@@ -97,7 +97,10 @@ export interface ReceptionCounters {
   cancelledCount: number;
   lateCount: number;
   temporaryCount: number;
-  convertedCount: number;
+  /** Đã hẹn tái khám — visits closed with Hẹn tái khám (R-1039, renamed by P2710_01). */
+  revisitCount: number;
+  /** Đổi lịch hẹn — visits moved before the patient began (P2710_01). */
+  rescheduledCount: number;
 }
 
 export interface ReceptionMetrics {
@@ -147,6 +150,9 @@ export interface CreateReceptionInput {
   dateOfBirth?: string;
   doctorId: string;
   refType: RefType;
+  /** Nội dung đặt lịch — the appointment's chief complaint. */
+  content?: string;
+  /** Ghi chú — the note the card shows beside the 📄 icon. */
   notes?: string;
   services?: string[];
   scheduledAt?: string;

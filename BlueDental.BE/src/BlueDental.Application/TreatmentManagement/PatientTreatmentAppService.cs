@@ -994,6 +994,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             .Where(c => serviceIds.Contains(c.Id))
             .ToList();
         var serviceNames = catalogRows.ToDictionary(c => c.Id, c => c.Name);
+        var catalogPrices = catalogRows.ToDictionary(c => c.Id, c => c.Price);
         var warrantyDays = catalogRows.ToDictionary(
             c => c.Id,
             c => c.ServiceConfig?.WarrantyDays ?? 0);
@@ -1104,6 +1105,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     SourceAdviseId = line.SourceAdviseId,
                     Code = line.Code,
                     OriginalPrice = line.OriginalPrice,
+                    CatalogPrice = catalogPrices.GetValueOrDefault(line.ServiceId),
                     Price = line.Price,
                     Quantity = line.Quantity,
                     DiscountType = line.DiscountType,

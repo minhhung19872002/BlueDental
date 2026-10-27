@@ -8,7 +8,7 @@ import { useMedicalRecordPhones, type MedicalRecordPhonesDto } from "../../../ap
 import { useAddressParts } from "../../../hooks/useGuardianSubject";
 import { GENDER, GUARDIAN_RELATION, type PatientDto, type PatientGuardianDto } from "../../../types/patient";
 import { RELATION_LABEL } from "../../../utils/guardian";
-import { branchFieldValues, patientFieldValues, sheetPhone, type FieldValues } from "./fieldValues";
+import { branchFieldValues, FORM_CODE_VALUES, patientFieldValues, sheetPhone, type FieldValues } from "./fieldValues";
 import { materialCatalogKey, type SheetMaterial } from "./materials/materialField";
 
 /** The three the forms know about; anything else prints nothing. */
@@ -70,7 +70,7 @@ function guardianLine(
 
 /**
  * What the blanks on a record are answered with when nobody has written on
- * them: the patient's own facts and the branch letterhead.
+ * them: the forms' own codes (MS), the patient's facts and the branch letterhead.
  *
  * Occupation and disease history are names out of Danh mục, so they arrive with
  * their catalogs rather than with the patient; the ward and province are names
@@ -95,7 +95,7 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
       catalogs[materialCatalogKey(kind)] = JSON.stringify(list);
     }
 
-    if (!patient) return { ...branchFieldValues(branch), ...catalogs };
+    if (!patient) return { ...FORM_CODE_VALUES, ...branchFieldValues(branch), ...catalogs };
 
     const job =
       occupations?.find((item) => item.id === patient.occupationEntryId)?.name ??
@@ -113,6 +113,7 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
       .join(", ");
 
     return {
+      ...FORM_CODE_VALUES,
       ...patientFieldValues({
         code: patient.patientCode,
         name: patient.fullName,

@@ -20,16 +20,17 @@ export type ReceptionCommand =
  *
  * The bar and the outcome column describe the same visit, so they move
  * together: "Đang khám" ticks "Chuyển bác sĩ" and "Hoàn tất" ticks "Kết thúc
- * điều trị". An outcome that already says more — a booked follow-up, a revisit
- * — is left alone.
+ * điều trị". "Đổi lịch hẹn" is for a visit not yet begun, so the chair
+ * replaces it; only a "Hẹn tái khám" outlasts "Hoàn tất" (P2710.drawio, owner
+ * 2026-10-27). The server keeps the same rule.
  */
 export function planStepClick(item: ReceptionItem, action: StepAction): ReceptionCommand {
   const current = item.selectedOutcome ?? null;
 
-  if (action === "start" && current === null) {
+  if (action === "start" && (current === null || current === "FollowUp")) {
     return { kind: "status", action, outcome: "TransferDoctor" };
   }
-  if (action === "complete" && current !== "FollowUp" && current !== "Revisit") {
+  if (action === "complete" && current !== "Revisit") {
     return { kind: "status", action, outcome: "EndTreatment" };
   }
   return { kind: "status", action };
@@ -41,9 +42,10 @@ export function planStepClick(item: ReceptionItem, action: StepAction): Receptio
  * The reverse of {@link planStepClick}: "Chuyển bác sĩ" puts the visit in the
  * chair ("Đang khám"), "Kết thúc điều trị" finishes it ("Hoàn tất"). A bar
  * already past that point is not moved back; only the outcome is saved.
- * "Đã hẹn tiếp" and "Hẹn tái khám" do not come through here — they need a
- * date first. Booking "Đã hẹn tiếp" leaves the bar alone; booking "Hẹn tái
- * khám" moves it one step on the server, and that step is "Đã hẹn lại".
+ * "Đổi lịch hẹn" and "Hẹn tái khám" do not come through here — they need a
+ * date first. Booking "Đổi lịch hẹn" leaves the bar alone; booking "Hẹn tái
+ * khám" moves it one step on the server: "Đã hẹn lại" before the chair,
+ * "Hoàn tất" from it.
  */
 export function planOutcomeClick(item: ReceptionItem, outcome: NonNullOutcome): ReceptionCommand {
   const started = !!item.step2Time;

@@ -54,6 +54,7 @@ function AmountInput({ payment }: { payment: PaymentForm }) {
             className="pd-newpay-amount"
             value={payment.autoAmount}
             max={payment.autoDefault}
+            selectOnFocus
             onChange={(amount) => update({ amount })}
           />
         </FloatingLabel>
@@ -70,6 +71,7 @@ function AmountInput({ payment }: { payment: PaymentForm }) {
           <CurrencyInput
             value={shareOf(line)}
             max={line.outstandingAmount}
+            selectOnFocus
             onChange={(value) => update({ manual: { ...form.manual, [line.id]: value } })}
           />
         </div>

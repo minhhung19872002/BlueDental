@@ -44,12 +44,15 @@ interface CounterQuery {
   statuses?: number[];
   isLate?: boolean;
   isTemporary?: boolean;
+  isRevisit?: boolean;
+  isRescheduled?: boolean;
 }
 
 /**
- * What each chip lists. Đã hẹn, Đã đến, Huỷ hẹn and Trễ hẹn split the board
+ * What each counter lists. Đã hẹn, Đã đến, Huỷ hẹn and Trễ hẹn split the board
  * between them, so they add up to Tất cả: a booking past its start time with
- * no arrival is Trễ hẹn, not Đã hẹn. Lịch tạm cuts across them.
+ * no arrival is Trễ hẹn, not Đã hẹn. Lịch tạm, Đã hẹn tái khám (closed with
+ * Hẹn tái khám, R-1039) and Đổi lịch hẹn (P2710_01) cut across them.
  */
 const COUNTER_QUERIES: Record<keyof ReceptionCounters, CounterQuery> = {
   scheduledCount: { statuses: [SERVER_STATUS.Requested, SERVER_STATUS.Confirmed], isLate: false },
@@ -57,7 +60,8 @@ const COUNTER_QUERIES: Record<keyof ReceptionCounters, CounterQuery> = {
   cancelledCount: { statuses: [SERVER_STATUS.Cancelled] },
   lateCount: { isLate: true },
   temporaryCount: { isTemporary: true },
-  convertedCount: {},
+  revisitCount: { isRevisit: true },
+  rescheduledCount: { isRescheduled: true },
 };
 
 function mapStatusFromBe(beStatus: number): ReceptionStatus {
@@ -221,6 +225,8 @@ export const receptionApi = {
         statuses: counterQuery.statuses,
         isLate: counterQuery.isLate,
         isTemporary: counterQuery.isTemporary,
+        isRevisit: counterQuery.isRevisit,
+        isRescheduled: counterQuery.isRescheduled,
         skipCount,
         maxResultCount,
         ...dateWindow(filter),
@@ -256,7 +262,8 @@ export const receptionApi = {
         cancelledCount: stats.cancelled ?? 0,
         lateCount: late,
         temporaryCount: stats.temporary ?? 0,
-        convertedCount: 0,
+        revisitCount: stats.revisit ?? 0,
+        rescheduledCount: stats.rescheduled ?? 0,
       },
     };
   },
@@ -280,7 +287,8 @@ export const receptionApi = {
       slotStart,
       slotEnd,
       type: 2,
-      chiefComplaint: input.notes,
+      chiefComplaint: input.content,
+      notes: input.notes,
       allowDentistOverlap: input.allowDentistOverlap,
     });
     return mapAppointmentDto(res.data as ServerAppointmentDto);
@@ -291,10 +299,10 @@ export const receptionApi = {
     action: "check-in" | "start" | "complete",
     outcome?: NonNullable<AppointmentOutcome>,
   ): Promise<void> {
-    const body: Record<string, unknown> = {};
-    if (action === "complete") body.notes = null;
-    if (outcome) body.outcome = OUTCOME_TO_SERVER[outcome];
-    await api.post(`${APPT_BASE}/${id}/${action}`, Object.keys(body).length ? body : undefined);
+    // `complete` binds a required body; it carries no `notes`, so the server
+    // keeps the Ghi chú written at booking (R-1038).
+    const body = outcome ? { outcome: OUTCOME_TO_SERVER[outcome] } : undefined;
+    await api.post(`${APPT_BASE}/${id}/${action}`, action === "complete" ? (body ?? {}) : body);
   },
 
   async cancel(id: string, _reason: string): Promise<void> {

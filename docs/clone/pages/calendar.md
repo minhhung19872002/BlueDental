@@ -93,9 +93,11 @@ When the toolbar row does not fit:
 | 3 | Huỷ hẹn | Cancelled |
 | 4 | Trễ hẹn | Late |
 | 5 | Lịch tạm | Tentative Schedule |
-| 6 | Chuyển đổi | Transferred/Converted |
+| 6 | Chuyển đổi | Transferred/Converted — **BlueDental: "Đã hẹn lại"** (R-1039) |
 
 All show count (0 for today with no data). Clicking filters the grid.
+
+BlueDental (R-1039, owner 2026-10-26 "đổi theo luôn"): chip 6 follows Tiếp nhận. It is labelled "Đã hẹn lại" and counts the loaded range's visits closed with "Hẹn tái khám" that were not cancelled afterwards (`Outcome = Revisit`). The count is made in the browser off the day/week/month list, using the same rule as the server's `IsRevisit`. Pressing the chip keeps only those visits. "Lịch tạm" (chip 5) is unchanged: it still counts 0 and does not filter.
 
 ### 5. Toolbar Row 2
 

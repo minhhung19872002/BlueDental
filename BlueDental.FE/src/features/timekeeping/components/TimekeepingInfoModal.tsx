@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Modal, Input, DatePicker, Switch, TimePicker, Button } from "antd";
+import { Modal, Input, DatePicker, Switch, Button } from "antd";
+import { TimePicker } from "@/components/TimePicker";
 import { SearchOutlined, SaveOutlined } from "@ant-design/icons";
 import { toast } from "sonner";
 import dayjs from "dayjs";

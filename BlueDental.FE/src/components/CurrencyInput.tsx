@@ -1,3 +1,4 @@
+import type { FocusEvent, MouseEvent } from "react";
 import { Input } from "antd";
 import type { InputProps } from "antd";
 import { NumericFormat } from "react-number-format";
@@ -13,6 +14,8 @@ interface CurrencyInputProps
    * exactly this amount instead, so an over-limit figure is never on screen.
    */
   max?: number;
+  /** Highlight the whole figure on focus, so typing replaces it instead of appending. */
+  selectOnFocus?: boolean;
 }
 
 /**
@@ -23,8 +26,24 @@ interface CurrencyInputProps
 /** Ten digits: the largest amount the reference lets anyone type. */
 export const MAX_VND = 9_999_999_999;
 
-export function CurrencyInput({ value, onChange, isAllowed, max, ...rest }: CurrencyInputProps) {
+/**
+ * A click would drop the caret where the mouse landed and undo the highlight,
+ * so the first click only focuses; onFocus then selects everything.
+ */
+function focusWithoutCaret(event: MouseEvent<HTMLInputElement>) {
+  const input = event.currentTarget;
+  if (document.activeElement === input) return;
+  event.preventDefault();
+  input.focus();
+}
+
+function selectAll(event: FocusEvent<HTMLInputElement>) {
+  event.currentTarget.select();
+}
+
+export function CurrencyInput({ value, onChange, isAllowed, max, selectOnFocus, ...rest }: CurrencyInputProps) {
   const ceiling = max === undefined ? MAX_VND : Math.min(Math.max(max, 0), MAX_VND);
+  const selectHandlers = selectOnFocus ? { onMouseDown: focusWithoutCaret, onFocus: selectAll } : {};
   return (
     <NumericFormat
       customInput={Input}
@@ -46,6 +65,7 @@ export function CurrencyInput({ value, onChange, isAllowed, max, ...rest }: Curr
           return false;
         })
       }
+      {...selectHandlers}
       {...rest}
     />
   );

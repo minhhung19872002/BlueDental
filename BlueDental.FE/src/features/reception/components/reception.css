@@ -35,9 +35,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 74px;
-  min-width: 52px;
-  padding: 8px 0;
+  /* Grows with its label ("Đã hẹn tái khám", P2710_01); short ones keep 74px. */
+  min-width: 74px;
+  padding: 8px 8px;
+  box-sizing: border-box;
   border-radius: 6px;
   border: 1px solid var(--chip-border);
   background: var(--chip-bg);
@@ -693,6 +694,20 @@
 
 /* ── Reception New Modal ── */
 
+/* The fields on the left, the Ghi chú card on the right as on the booking
+   dialog (R-1037); the card stretches to the fields' height. */
+.rn-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .rn-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .rn-form {
   display: flex;
   flex-direction: column;
@@ -773,7 +788,7 @@
 .rn-footer {
   display: flex;
   justify-content: flex-end;
-  padding-top: 4px;
+  padding-top: 16px;
 }
 
 /* ── "Đã hẹn tiếp": outcome with a date line, and the picker under the card ── */

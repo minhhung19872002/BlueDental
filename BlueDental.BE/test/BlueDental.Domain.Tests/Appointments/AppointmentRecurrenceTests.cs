@@ -244,9 +244,12 @@ public class AppointmentRecurrenceTests
     {
         var session = Session();
         session.Start();
-        var followUp = session.BookFollowUp(Guid.NewGuid(), SlotAt(SessionDay.AddDays(7), 9), null);
-        session.Complete();
+        // In the chair the next one is a "Hẹn tái khám", which finishes the
+        // visit; "Đổi lịch hẹn" is for a session not yet begun (P2710.drawio).
+        var followUp = session.BookFollowUp(
+            Guid.NewGuid(), SlotAt(SessionDay.AddDays(7), 9), null, outcome: AppointmentOutcome.Revisit);
 
+        Assert.Equal(AppointmentStatus.Completed, session.Status);
         Assert.Equal(SeriesOccurrenceState.Finished, session.SeriesState(followUp));
         Assert.Null(session.MovedTo(followUp));
     }

@@ -74,9 +74,8 @@ export type ReceptionStep = "check-in" | "start" | "complete";
 
 /**
  * Walks an appointment one step along Tiếp nhận. `complete` binds a body —
- * [FromBody] CompleteAppointmentDto — while check-in and start take none, and
- * the note goes back as it stands because Appointment.Complete assigns Notes
- * unconditionally: leaving it out would erase it.
+ * [FromBody] CompleteAppointmentDto — while check-in and start take none. The
+ * note goes back as it stands; a null one leaves the stored note (R-1038).
  */
 export function useAdvanceReception() {
   return useMutation({

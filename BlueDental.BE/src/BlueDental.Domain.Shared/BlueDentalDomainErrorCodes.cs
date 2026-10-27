@@ -190,6 +190,13 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>The patient already arrived (CheckedInAt is set), so the visit cannot be Trễ hẹn (R-1034).</summary>
         public const string ArrivedCannotBeLate = "BlueDental:Appointment:0016";
+
+        /// <summary>
+        /// "Đổi lịch hẹn" (outcome FollowUp) moves a visit whose work is not done yet,
+        /// so it is refused once the visit is in the chair or finished; those close
+        /// with "Hẹn tái khám" instead (owner 2026-10-27, docs/P2710.drawio).
+        /// </summary>
+        public const string RescheduleAfterStart = "BlueDental:Appointment:0017";
     }
 
     public static class TreatmentManagement

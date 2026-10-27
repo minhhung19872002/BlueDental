@@ -11163,6 +11163,86 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Tag tên ngắn vẫn nằm trên một dòng. Tên dài thì mỗi chip một dòng, thẻ cao thêm khoảng 50px.
   - Chụp lại thấy đọc được. Chạy lại `reception-patient-tags` → **6/6**.
 
+## R-1037 (2026-10-26, mức 3: component dùng chung + tiếp nhận + lịch hẹn) Hộp thoại Tạo tiếp nhận có khung Ghi chú như Tạo lịch hẹn
+
+- **Yêu cầu (BA, kèm ảnh)**: "bổ sung thêm ghi chú ở tiếp nhận nha (bên tạo lịch hẹn có mà tiếp nhận k)".
+- **Owner chốt**: khung Ghi chú nằm ở cột phải, giống hộp thoại Tạo lịch hẹn. Hộp thoại rộng 1000px; dưới 640px khung xếp xuống dưới form.
+- **FE**:
+  - Component dùng chung `src/components/NotesPanel/`, tách ra từ phần ghi chú của `AppointmentFormRight`. Điều khiển bằng `value`/`onChange`, nên dùng được với cả AntD Form (`Form.Item noStyle`) và React Hook Form. CSS `.appt-notes-*` trong `calendar.css` chuyển sang `notes-panel.css` (`.notes-panel*`).
+  - Cột trái của Tạo tiếp nhận tách thành `ReceptionNewFields.tsx`.
+  - Tách hai trường: `content` = Nội dung đặt lịch → `chiefComplaint`; `notes` = Ghi chú → `notes`. Trước đây trường `notes` của tiếp nhận thực chất là nội dung đặt lịch.
+  - Fixture `bookVisitToday(..., notes)` nhận thêm Ghi chú.
+- **E2E mới** `reception-notes.spec.ts` (ca 1). Stack thật, không chặn request, BE build riêng :5150 trên DB dev, bản build production `vite preview` :8150:
+  - Mở Tạo tiếp nhận. Khung hiện "Chưa có ghi chú". ✕ bỏ bản nháp, ✓ giữ bản nháp.
+  - Lưu. API trả `chiefComplaint` = nội dung và `notes` = ghi chú, tách riêng hai cột.
+  - Thẻ hiện ghi chú, reload vẫn còn.
+  - Kết quả: **xanh**.
+- **Ảnh chụp** ở 1440px và 600px: hai cột trên desktop, một cột trên màn hẹp. Khung giống hộp thoại Lịch hẹn vì dùng chung một component.
+
+## R-1038 (2026-10-26, mức 2: lịch hẹn + tiếp nhận) Bấm Hoàn tất làm mất Ghi chú
+
+- **Lỗi có sẵn** (phát hiện khi làm R-1037, owner chọn "sửa luôn"): nút Hoàn tất trên thẻ Tiếp nhận gửi `notes: null`, và `Appointment.Complete` gán thẳng giá trị đó, nên Ghi chú ghi lúc đặt lịch bị xoá trắng.
+- **BE**: `Complete(notes)` chỉ ghi đè khi được truyền ghi chú. Test domain `Complete_Should_Keep_The_Booking_Note_Unless_Given_One` (2 ca). Domain.Tests Appointments **106/106**.
+- **FE**: `receptionApi.updateStatus` không gửi `notes` khi Hoàn tất nữa. Body vẫn phải có (`{}` hoặc `{outcome}`), vì `[FromBody] CompleteAppointmentDto` là bắt buộc, thiếu sẽ bị 400.
+- **E2E** `reception-notes.spec.ts` (ca 2): đặt lịch có Ghi chú → Đã đến → Đang khám → Hoàn tất. Kiểm tra API trả status 5 và ghi chú còn nguyên, reload thì thẻ vẫn hiện ghi chú. Kết quả: **xanh**.
+- **Hồi quy (R-1037 + R-1038, mức 3)**: chạy trên bản build production :8150 với BE riêng :5150, DB dev. Phạm vi: `e2e/reception*`, `e2e/appointment*`, `patient-appointment`, `doctor-day-off-pickers`, `patient-pickers`.
+  - Kết quả cả loạt: **108 pass / 3 skip / 4 đỏ**. 3 ca skip là `TEMP-PRIORITY-OFF`.
+  - Chạy lại riêng thì 3 ca xanh: `patient-pickers:178` (Mẫu Labo), `reception-patient-tags:199`, `reception.spec:142` (lần chạy cả loạt kẹt ngay ở bước đăng nhập).
+  - Ca còn đỏ: `reception-live-late` "the server's push alone refreshes an open board", đỏ cả khi chạy riêng. Nguyên nhân là môi trường: host :5000 của session khác chạy chung DB dev, và worker của host nào đánh Trễ hẹn trước thì đẩy SignalR qua hub của host đó, nên bảng nối vào :5150 không nhận được. R-1037/R-1038 không đụng tới SignalR, worker hay việc tải lại bảng. Spec này cũng đang được một session khác sửa.
+- **Commit**: chưa commit.
+
+## R-1039 (2026-10-26, mức 2: tiếp nhận + API lịch hẹn) Chip "Chuyển đổi" trên Tiếp nhận thành "Đã hẹn lại"
+
+- **Yêu cầu (BA AnTran, chat)**: đổi chữ "Chuyển đổi" thành "Đã hẹn lại", rồi "count các lịch hẹn có trạng thái = hẹn tái khám".
+  - Trước đó chip này chưa có logic: luôn hiện 0, bấm vào không lọc gì.
+- **BE**:
+  - `GetAppointmentListInput.IsRevisit` và `AppointmentStatsDto.Revisit`.
+  - Một biểu thức chung `IsRevisit` đếm `Outcome = Revisit && Status != Cancelled`. Cả `GetStatsAsync` lẫn bộ lọc danh sách đều dùng nó, nên số trên chip khớp với danh sách khi bấm.
+- **FE**:
+  - `revisitCount` thay `convertedCount`, `COUNTER_QUERIES.revisitCount = { isRevisit: true }`.
+  - Nhãn dùng key có sẵn `Reception:StepRevisit` ("Đã hẹn lại" / "Rebooked"), giống chữ trên thanh bước của thẻ.
+- **Diễn giải chưa được BA xác nhận** (đã ghi vào unknowns.md):
+  - Không đếm lịch đã huỷ sau khi hẹn tái khám.
+  - Đếm cả hẹn tái khám có ngày lẫn "Chưa chốt ngày".
+  - Không đếm "Đã hẹn tiếp".
+- **E2E mới** `reception-revisit-counter.spec.ts`. Stack thật, BE build riêng :5160 trên DB dev, bản build production `vite preview` :8160 (`vite.r1039.config.ts`). Ba lượt khám hôm nay:
+  - A: Hẹn tái khám qua thẻ.
+  - B: Đã hẹn tiếp.
+  - C: Hẹn tái khám rồi huỷ.
+  - Kiểm tra:
+    - `stats.revisit` tăng đúng 1.
+    - Reload thì chip vẫn bằng số của server.
+    - Bấm chip → request có `isRevisit=true`, `aria-pressed=true`, chỉ còn A với chữ "Đã hẹn lại". B và C không có.
+    - Nhả chip → B hiện lại.
+  - Kết quả: **xanh**.
+- **Sửa spec cũ**: `reception-live-late.spec` tìm chip theo đúng nhãn, vì "Đã hẹn" có thể khớp nhầm "Đã hẹn lại".
+- **Hồi quy**: `reception-live-late` + `reception-rebook-undated` → 6/7, rồi chạy lại các ca đỏ.
+  - `rebook-undated:56` đỏ ở lần đầu: bệnh nhân seed có lịch khác nên CSKH thấy `nextAppointmentAt`. Chạy lại → **xanh**.
+  - `live-late:141` ("the server's push alone…") vẫn đỏ. Ba host (:5000, :5150, :5160) cùng chạy trên một DB, mỗi host có `MissedAppointmentWorker` riêng. Host nào đánh dấu Trễ hẹn trước thì push qua hub SignalR của host đó, nên board :8160 thường không nhận được. Lỗi do môi trường chạy song song, không liên quan R-1039.
+- **Trang Lịch hẹn theo luôn**. Chủ dự án (2026-10-26): "3. đổi theo luôn / 4, không sao". Nghĩa là chip "Chuyển đổi" ở trang Lịch hẹn cũng đổi, và việc "Đã hẹn" nằm cạnh "Đã hẹn lại" không thành vấn đề.
+  - Chip trang Lịch hẹn được đếm trên trình duyệt, từ danh sách ngày/tuần/tháng đã tải. Vì vậy:
+    - Bản đồ server (`ServerAppointmentDto.outcome`) được map thành `AppointmentDto.isRevisit = outcome === 4 && status !== "cancelled"`. Đây đúng là quy tắc `IsRevisit` của BE.
+    - `useStatusCounts`: nhóm `revisit` có `matches`. Hàm `keptByChip` dùng chung cho `WeekViewCalendar` và `timelineRows.filterBookings`. Chip không có quy tắc riêng (Lịch tạm) vẫn không lọc gì, như trước.
+    - Nhãn: key BE `Appointment:Status:Revisit` ("Đã hẹn lại" / "Rebooked") thay `Appointment:Status:Converted`, dùng ở `CalendarControlPanel` + `CalendarStatusCounters`.
+  - **E2E** `reception-revisit-counter.spec.ts` có thêm ca 2. Ba lượt khám hôm nay: A hẹn tái khám, B đã hẹn tiếp, C hẹn tái khám rồi huỷ. Mở `/calendar?date=hôm nay` và kiểm tra:
+    - Không còn nhãn "Chuyển đổi".
+    - Chip bằng `stats.revisit` của server.
+    - Bấm chip → `aria-pressed=true`, tìm A thì thấy 1 khối, tìm B thì 0 khối.
+    - Nhả chip → B hiện lại.
+  - Kết quả: 2/2 **xanh**.
+  - Hồi quy `appointment-day-timeline.spec.ts`: 7/7 **xanh**.
+  - View Tuần dùng chung `keptByChip` nhưng không có spec riêng.
+
+## R-1040 (2026-10-26, mức 2: Tạo phiếu thanh toán) Bôi đen số tiền khi bấm vào ô
+
+- **BA**: "bôi đen khi chọn giá tiền". Ô số tiền trong dialog Tạo phiếu thanh toán đã điền sẵn Còn nợ; bấm vào thì con trỏ rơi giữa số, gõ thêm thành số nối đuôi.
+- **Sửa**: `CurrencyInput` có prop tuỳ chọn `selectOnFocus`.
+  - Lần bấm đầu (ô chưa focus): chặn `mousedown` để trình duyệt không đặt con trỏ, tự `focus()`; `onFocus` bôi đen cả số. Tab vào ô cũng bôi đen.
+  - Bấm lần nữa khi ô đang focus: đặt con trỏ bình thường.
+  - Chỉ bật ở `PaymentInfoPanel` (ô Tự động + từng ô Thủ công). Các màn khác dùng `CurrencyInput` không đổi.
+- **E2E** `payment-amount-select.spec.ts`: bấm ô Tự động → vùng chọn = cả số; Thủ công → bấm ô → cả số được chọn, gõ nửa Còn nợ → ô thay hẳn bằng số mới; bấm lần hai → vùng chọn rỗng; Lưu → đọc lại bằng request riêng, `amount` = số đã gõ. **Xanh**.
+- **Hồi quy** (bản build production, `vite preview` :8080): `payment-amount-cap` + `payment-from-slip` (2 ca) → 4/4 **xanh** cùng spec mới.
+
 ## R-1041 (2026-10-27, mức 1: chỉ đổi nhãn) Tab Hóa đơn: segment "Phiếu thu" đổi thành "Hóa đơn đã tạo"
 
 - **Yêu cầu (owner, ảnh chụp hồ sơ → tab Hóa đơn)**: đổi tiêu đề segment thứ hai "Phiếu thu" → "Hóa đơn đã tạo".
@@ -11199,6 +11279,56 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Yêu cầu** (2026-10-27, ảnh chụp bảng tìm kiếm Ctrl+K): "Thêm năm sinh sau tên nha". Mẫu: `Huỳnh Văn Định (2002)`.
 - **Sửa**: `GlobalSearch` hiện `Tên (YYYY)` ở dòng tên của mỗi kết quả. Năm lấy từ `dateOfBirth` mà `GET /patients` đã trả sẵn, nên không sửa BE. Hồ sơ chưa có ngày sinh chỉ hiện tên.
 - **E2E** `patient-search-unaccent.spec.ts` ca 2: dòng tên của kết quả kết thúc bằng `Hà My (1990)`. Chạy trên bản build production của `main` (`vite preview` :8091, API :5000): 2/2 **xanh**.
+
+## R-1044 (2026-10-27, mức 1: bệnh án mẫu 6) Quốc hiệu xuống hàng riêng, căn giữa trang; nhãn hiệu phòng khám nhỏ lại
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: "Chỉnh lại phần quốc hiệu cho ra giữa nhá. Phần thông tin phòng khám cho nhỏ lại hơn quốc hiệu" (nhỏ = font size). Sau đó: "Quốc hiệu nên cho căn giữa của trang".
+- **Lỗi cũ**:
+  - Header 3 cột 335px / auto / 150px. Cột giữa chỉ còn khoảng 195px nên "CỘNG HÒA XÃ HỘI CHỦ / NGHĨA VIỆT NAM" rớt dòng, và quốc hiệu lệch phải so với tâm trang.
+  - Nhãn hiệu 10pt (13.3px), chỉ nhỏ hơn quốc hiệu (16px, cỡ chữ của phiếu) một chút.
+- **Phương án đã thử rồi bỏ**: cùng một hàng, 3 cột 176 / auto / 176, nhãn hiệu ép 7pt và ngắt 5 dòng. Owner xem xong cho revert, chọn đưa quốc hiệu xuống hàng riêng. Lý do: muốn quốc hiệu đúng giữa trang mà vẫn cùng hàng thì mỗi bên chỉ còn khoảng 165px; nhãn hiệu 4 dòng phải còn khoảng 6.8px, ngắt 5 dòng thì khoảng 9.5px.
+- **Sửa** (`templates/surgeryConsent.ts`, chỉ phần header):
+  - Bảng header còn 2 cột: nhãn hiệu (335px) và MS (căn phải), giống mẫu 7 và mẫu 9. Id ô MS không đổi, nên giá trị MS đã lưu vẫn giữ.
+  - Nhãn hiệu 10pt → 9pt (12px), vẫn 4 dòng như cũ.
+  - Quốc hiệu và tiêu ngữ thành một đoạn riêng, căn giữa, nằm giữa bảng header và tiêu đề. Cỡ chữ 16px theo phiếu.
+- **Đo trên dev :5173** (vùng nội dung của trang rộng 703px):
+  - Tâm của cả 2 dòng quốc hiệu lệch tâm trang 0px; quốc hiệu 1 dòng (331px).
+  - Nhãn hiệu 12px, 4 dòng. MS 1 dòng ở góc phải trên.
+  - Tiêu đề xuống thêm 47px (153 → 200px).
+- **E2E** (`patient-medical-record.spec.ts`, stack thật, dev :5173, `--headed` vì máy không tải được chromium-headless-shell):
+  - "every form draws the whole of its printed original" → **pass** (mẫu 6 vẫn 49 ô, 26 checkbox, 2 trang).
+  - "every form shares mẫu 5's type, boxes, letterhead and print rules": mẫu 6 qua đủ các bước (cỡ chữ 16px, nhãn hiệu đậm, **in vẫn đủ 2 trang** dù header cao thêm). Ca này vẫn **đỏ ở mẫu 7** "Phiếu phẫu thuật/thủ thuật · printed pages" (mong 1, ra 2). Đỏ này **có từ trước**: stash thay đổi rồi chạy lại trên code gốc vẫn đỏ y hệt. Chưa sửa, cần xem riêng.
+
+
+## R-1045 (2026-10-27, mức 2: thanh toán + API phiếu điều trị) Tạo phiếu thanh toán: dịch vụ hiện cả Giá gốc (giá danh mục) và Giá sau giảm
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**:
+  - "Hiển thị thông tin giá gốc, giá sau khi giảm" trên từng dịch vụ ở dialog "Tạo phiếu thanh toán". Mock: "Giá gốc: 20.000.000 đ / Giá sau giảm: 10.000.000 đ".
+  - Sau đó: "chỗ giá gốc này thì hiển thị giá ở master data". Ví dụ DT08, Cấy ghép Implant: danh mục 18.000.000 nhưng bản đầu in 16.200.000.
+- **Trước đó**: thẻ dịch vụ chỉ in một con số, `chargedAmount` (đã trừ giảm dòng, giảm phiếu và voucher, chưa VAT), không ghi nhãn.
+- **Vì sao bản đầu in 16.200.000**:
+  - Danh mục có Price 18.000.000 kèm giảm 10% (`serviceConfig.priceAfterDiscount` 16.200.000).
+  - Khi lên phiếu, dòng lưu giá sau giảm của danh mục vào `originalPrice`.
+  - Vì vậy `originalPrice` không phải giá ở master data.
+- **BE**:
+  - `TreatmentServiceDto.CatalogPrice` (decimal?) = `CatalogEntry.Price` hiện tại của dịch vụ, trước giảm giá của danh mục. Null khi danh mục đã xoá hoặc không có giá.
+  - Lấy từ `catalogRows` sẵn có trong `PatientTreatmentAppService`, không thêm query.
+  - Đây là giá **hiện tại**, không chụp lại lúc lên phiếu: đổi giá ở Danh mục thì "Giá gốc" ở dialog đổi theo.
+- **FE (chỉ dialog Tạo phiếu thanh toán)**:
+  - `PaymentServiceList.tsx`: cột tiền của thẻ có 3 dòng: "Giá gốc: …", "Giá sau giảm: **…**", rồi chip "Còn nợ". Số tiền sau giảm vẫn là thẻ `<b>` duy nhất của thẻ dịch vụ (các e2e cũ đọc `line.locator("b")`).
+  - `paymentDialogModel.ts`: `listAmount(line)` = (`catalogPrice` || `originalPrice` || `price`) × số lượng.
+  - `treatmentPlanApi.ts`: thêm `catalogPrice: number | null`. `treatmentRows.ts` (dòng phiếu chẩn đoán) đặt null.
+  - i18n: `Patient:Payment:OriginalPrice` ("Giá gốc:" / "Original price:") và `Patient:Payment:DiscountedPrice` ("Giá sau giảm:" / "After discount:").
+  - CSS `.pd-newpay-price`: nhãn màu nhạt 12px, số tiền sau giảm đậm 14px như cũ.
+  - Dịch vụ không giảm giá vẫn hiện đủ hai dòng (theo mock).
+- **Chạy thật (dev :5173, BE :5000, DB dev)**: DT08, Cấy ghép Implant SL 1 → "Giá gốc: 18.000.000 đ · Giá sau giảm: 16.000.000 đ · Còn nợ 16.000.000 đ". Đúng giá danh mục.
+- **E2E** (stack thật, `--headed` vì máy không tải được chromium-headless-shell):
+  - `treatment-plan-detail.spec` "a discounted slip is collected at its after-discount price…" → **pass**. Đã thêm 3 kiểm tra:
+    - API trả `catalogPrice` = giá danh mục cho dòng test tự thêm.
+    - Mỗi dòng in "Giá gốc:" = giá danh mục × SL và "Giá sau giảm:" = `chargedAmount`.
+    - Giá gốc > giá sau giảm.
+  - `payment-from-slip.spec` "In Hóa Đơn → Tạo phiếu thanh toán…" → **pass**.
+  - `tsc -b` và `oxlint` không báo lỗi. BE build qua (chạy `dotnet run`).
 
 ## R-1044 (2026-10-27, mức 3: trạng thái phiếu thu) P2610 phase 2 — 4 trạng thái phiếu thu, ✓ xác nhận thanh toán trên tab Thanh toán
 
@@ -11322,6 +11452,90 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `reception-restore-arrived` đỏ 4 ca. Cả 4 hỏng ở bước đặt lịch của fixture `bookVisitToday` ("every dentist was booked") vì DB riêng không có bác sĩ, trước khi chạm tới code đã sửa.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.
 
+## R-1048 (2026-10-27, mức 3: Tiếp nhận + domain Lịch hẹn) Kết quả lượt khám theo P2710.drawio: "Đổi lịch hẹn", đồng bộ thanh tiến trình ↔ radio
+
+- **Yêu cầu**: `docs/P2710.drawio` (owner, 2026-10-27), 3 ghi chú trên ảnh thẻ Tiếp nhận DH260044. Trước đó owner đã nói trong chat: "đã hẹn tiếp là hẹn nhưng chưa làm, hẹn tái khám là làm rồi … nếu đã làm xong thì chỉ được chọn hẹn tái khám".
+  1. Lúc "Đang khám", radio phải là "Chuyển bác sĩ", và "Đã hẹn tiếp" bị khóa.
+  2. Đổi tên "Đã hẹn tiếp" thành **"Đổi lịch hẹn"**. Hành vi không đổi: có ngày giờ thì tạo lịch, không chọn ngày thì chỉ cập nhật trạng thái.
+  3. Từ "Đang khám":
+     - Bấm "Hoàn tất" → tick "Kết thúc điều trị", khóa "Đổi lịch hẹn" và "Chuyển bác sĩ", **mở "Hẹn tái khám"**.
+     - Chọn "Kết thúc điều trị" → "Hoàn tất", khóa 2 lựa chọn trên.
+     - Chọn "Hẹn tái khám" rồi xác nhận ngày hoặc "chưa chốt ngày" → "Hoàn tất" (ghi giờ), khóa 3 lựa chọn còn lại.
+     - Không xác nhận thì giữ nguyên.
+- **Đã có từ trước, giữ nguyên**: "Hoàn tất" tick "Kết thúc điều trị"; "Hẹn tái khám" lúc đang khám làm lượt khám Hoàn tất, có hoặc không có ngày; Hủy picker thì không lưu gì; đã lưu "Đổi lịch hẹn" hoặc "Hẹn tái khám" thì khóa các lựa chọn khác.
+- **Đã sửa**:
+  - **Domain** `Appointment`:
+    - `Start()`: kết quả rỗng hoặc FollowUp → TransferDoctor. Áp dụng cho mọi đường bắt đầu lượt khám, không chỉ từ thẻ.
+    - `Complete()`: mọi kết quả trừ Revisit → EndTreatment.
+    - FollowUp ("Đổi lịch hẹn") bị từ chối khi lượt khám đang InProgress hoặc Completed. Áp cho `SetOutcome`, `BookFollowUp`, `MarkRebookUndated`. Mã lỗi mới `BlueDental:Appointment:0017` (`RescheduleAfterStart`), kiểm tra trước lỗi "đã có follow-up" để người dùng nhận đúng thông báo.
+  - **FE** `ReceptionCard`:
+    - "Đổi lịch hẹn" bị khóa khi đã qua bước "Đang khám".
+    - Khóa của "Kết thúc điều trị" giờ chỉ khóa "Chuyển bác sĩ"; trước đây khóa cả "Hẹn tái khám", từ commit a765ffa1.
+  - **FE** `receptionFlow.planStepClick`: "Đang khám" thay cả FollowUp bằng "Chuyển bác sĩ"; "Hoàn tất" giữ lại chỉ "Hẹn tái khám". Trước đây FollowUp sống sót qua "Hoàn tất", gây ra thẻ "Hoàn tất + Đã hẹn tiếp" mà owner chụp gửi.
+  - **i18n vi/en**: `Reception:OutcomeFollowUp` thành "Đổi lịch hẹn" / "Reschedule". `FollowUpHint`, `FollowUpConfirm` ("Xác nhận đổi lịch hẹn"), `FollowUpSuccess` và `Appointment:Series:MovedTo` ("Đã đổi lịch hẹn sang {0}") đổi theo. Tiêu đề picker "Chọn lịch hẹn tiếp theo" giữ nguyên.
+- **Lưu ý / chưa làm**:
+  - Một lượt khám đã có lịch "Đổi lịch hẹn" còn hiệu lực mà vẫn vào ghế: kết quả chuyển sang "Chuyển bác sĩ", nhưng lịch đã đặt vẫn nằm trên lịch (không tự huỷ). Khi đó muốn "Hẹn tái khám" thì phải huỷ lịch kia trước (lỗi 0003 "một follow-up"). Hỏi owner nếu cần tự huỷ.
+  - Dữ liệu cũ đã ở trạng thái "Hoàn tất + Đã hẹn tiếp" không bị sửa lại; thẻ hiện tick "Đổi lịch hẹn" và khóa các lựa chọn khác như trước.
+  - Đặt kết quả EndTreatment thẳng qua API `/outcome` (không qua thẻ) vẫn có thể để lượt khám ở "Đang khám". Giao diện luôn gọi `/complete`, nên không gặp qua UI.
+- **Test** (stack thật, dev :5173, BE :5000, DB dev; `--headed` vì máy không tải được chromium-headless-shell):
+  - Domain.Tests **1121/1121**. Thêm 6 ca:
+    - Từ chối FollowUp khi đang khám hoặc đã Hoàn tất, qua cả 3 đường.
+    - "Hẹn tái khám" vẫn nhận trên lượt khám đã Hoàn tất.
+    - `Start` ra TransferDoctor, `Complete` ra EndTreatment.
+  - Domain.Tests: sửa 2 ca cũ có book FollowUp trong lúc đang khám (`BookFollowUp_Should_Book_The_Next_Visit_And_Link_It`, `A_Visit_That_Took_Place_And_Booked_Its_Next_One_Is_Finished_Not_Moved`) sang luồng hợp lệ mới.
+  - E2E `reception-follow-up`:
+    - Viết lại ca "Kết thúc điều trị → Hẹn tái khám là lựa chọn hẹn duy nhất": mở picker đổi tick, Hủy trả lại, xác nhận thì lưu Revisit; server từ chối FollowUp với mã 0017.
+    - Thêm ca "đang khám": "Đổi lịch hẹn" chưa chốt ngày → "Đang khám" chuyển thành "Chuyển bác sĩ", "Đổi lịch hẹn" bị khóa; API trả 0017; "Hẹn tái khám" chưa chốt ngày → Hoàn tất có `completedAt`; reload vẫn đúng.
+  - E2E: đổi chữ trong `reception-rebook-undated`, `reception-revisit-counter`, `appointment-series-api`.
+  - 4 spec đó: **24/24 pass**.
+  - Hồi quy `e2e/reception*` + `cskh-after-treatment` + `appointment-day-timeline` (69 ca): **62 pass / 3 skip / 4 đỏ**, đều không liên quan tới kết quả lượt khám:
+    - `reception-restore-arrived` "cancelled in the chair": chạy riêng thì **pass**, tức là chập chờn.
+    - `reception-doctor-priority`: fixture báo `UserAlreadyInRole` (403), lỗi dữ liệu Identity.
+    - `reception-restore-arrived` "put back from the edit dialog": chờ worker 15 phút rồi hết thời gian.
+    - `reception-temporary` "takes the appointment over": không tìm thấy thẻ theo tên sau khi gắn hồ sơ.
+    - 3 ca cuối **chưa chạy đối chứng trên code gốc** (cần dựng lại BE cũ, khoảng 20 phút).
+  - Chụp thẻ thật: Đang khám → (●) Chuyển bác sĩ, Đổi lịch hẹn mờ. Hoàn tất → (●) Kết thúc điều trị, Đổi lịch hẹn và Chuyển bác sĩ mờ, Hẹn tái khám bấm được.
+
+
+## R-1049 (2026-10-27, mức 2: Tiếp nhận + API thống kê lịch hẹn) Chip lọc theo P2710_01: "Đã hẹn tái khám" và "Đổi lịch hẹn"
+
+- **Yêu cầu**: `docs/P2710_01.drawio` (owner, 2026-10-27), 2 khung đỏ trên dải chip của Tiếp nhận.
+  - Khung 1 đặt trên chip **"Đã hẹn"**: "Đổi text filter → Đã hẹn tái khám — lọc các lịch khám đã hoàn tất và có chọn hẹn tái khám".
+  - Khung 2 đặt trên chip **"Đã hẹn lại"**: "Đổi title → Đổi lịch hẹn — lọc các lịch khám chưa đến khám và đã đổi lịch hẹn sang ngày khác".
+  - Khung 1 nằm đúng trên chip "Đã hẹn", nhưng nội dung lại trùng với bộ lọc "Đã hẹn lại" đang có (R-1039). Đã hỏi lại, owner chốt **"Đúng như khung đỏ"**: bỏ chip "Đã hẹn".
+- **Dải chip mới** (vẫn 6 chip): **Đã hẹn tái khám** · Đã đến · Huỷ hẹn · Trễ hẹn · Lịch tạm · **Đổi lịch hẹn**.
+  - "Đã hẹn" không còn chip, nhưng vẫn được đếm trong tab "Tất cả".
+  - Nhãn bước "Đã hẹn lại" trên thanh tiến trình của thẻ giữ nguyên (`Reception:StepRevisit`). Chip dùng key riêng `Reception:ChipRevisit` / `Reception:ChipRescheduled`.
+  - Lịch hẹn (calendar) vẫn giữ chip "Đã hẹn lại", vì drawio chỉ nói tới Tiếp nhận.
+- **Bộ lọc**:
+  - "Đã hẹn tái khám" dùng lại `isRevisit` (R-1039): kết quả Hẹn tái khám, không bị huỷ. Lượt khám chọn Hẹn tái khám trước khi vào ghế (thanh dừng ở "Đã hẹn lại", chưa Hoàn tất) vẫn được tính như trước. Từ R-1048, chọn Hẹn tái khám lúc đang khám thì luôn Hoàn tất.
+  - "Đổi lịch hẹn" là bộ lọc mới `isRescheduled`: kết quả Đổi lịch hẹn, `StartedAt == null`, không bị huỷ. Tính cả "Hẹn lại - Chưa chốt ngày". Vào ghế thì kết quả chuyển sang "Chuyển bác sĩ" (R-1048), nên lượt đó tự rời khỏi chip.
+- **BE**: `GetAppointmentListInput.IsRescheduled`, `AppointmentStatsDto.Rescheduled`, biểu thức `IsRescheduled` trong `AppointmentAppService` (đếm trong DB như `IsRevisit`). i18n vi/en thêm 2 key chip.
+- **FE**: `ReceptionCounters.rescheduledCount`; `receptionApi` thêm query `isRescheduled` và số đếm `rescheduled`; `ReceptionStatusTabs` thêm kiểu `ChipKey`, không còn `scheduledCount`.
+- **E2E** (stack thật, dev :5173, BE :5000, `--headed`):
+  - `reception-revisit-counter` "counts and lists…" → **pass**. Đã thêm kiểm tra:
+    - Thứ tự 6 nhãn chip; "Đã hẹn" và "Đã hẹn lại" không còn.
+    - Chip "Đổi lịch hẹn" đếm +1 chỉ cho lượt Đổi lịch hẹn, không tính lượt tái khám hay lượt đã huỷ.
+    - Bấm chip thì gửi `isRescheduled=true` và chỉ hiện lượt đó.
+  - `reception-live-late` (3 ca) → **pass**. Phép cộng "Đã hẹn + Đã đến + Huỷ hẹn + Trễ hẹn = Tất cả" giờ lấy phần Đã hẹn từ `/stats`, vì chip đã bị bỏ.
+  - `reception-follow-up`, `reception-rebook-undated` → **pass**.
+  - `reception-revisit-counter` "Lịch hẹn: the same chip…" (trang Lịch hẹn, không đổi gì) **đỏ** ở bước cuối. Ca này đã pass sáng nay với cùng code. Nguyên nhân là dữ liệu e2e trong ngày quá nhiều: `bookVisitToday` dời lượt `followUp` tới 19:12–19:21 nên bước cuối không thấy block. Cần chạy lại trên DB sạch hoặc sáng hôm sau.
+  - `tsc -b` và `oxlint` không báo lỗi.
+
+
+## R-1050 (2026-10-27, mức 2: Tiếp nhận / Lịch hẹn — tìm kiếm + chip) Tìm theo họ tên đầy đủ; chip giãn theo nhãn
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**:
+  - "nguyễn hải yến" không ra kết quả, trong khi "yến" thì ra. "Search ở đây là search full text, chấp trim, không phân biệt hoa thường."
+  - Chip "Đã hẹn tái khám" (R-1049) bị tràn chữ: "chip nên bao width của content".
+- **Nguyên nhân tìm kiếm**: `AppointmentAppService.FilteredQueryAsync` so cụm từ khoá với **riêng** `FirstName` ("Yến") hoặc **riêng** `LastName` ("Nguyễn Hải"), nên cụm vắt qua cả hai trường không bao giờ khớp. Màn Bệnh nhân đã khớp trên họ tên đầy đủ từ R-1035; màn Tiếp nhận và Lịch hẹn (dùng chung API này) thì chưa.
+- **Sửa**:
+  - BE: từ khoá được trim, gộp các khoảng trắng liền nhau thành một, chuyển chữ thường bằng `ToLowerInvariant`. Thêm khớp cụm trên `LastName + " " + FirstName`; giữ cách khớp riêng họ hoặc tên như cũ. Không thêm bỏ dấu (owner không yêu cầu).
+  - FE `reception.css`: `.reception-stat-chip` bỏ `width: 74px`, đổi thành `min-width: 74px` và đệm ngang 8px. Chip ngắn vẫn 74px; "Đã hẹn tái khám" 106px, "Đổi lịch hẹn" 81px; nhãn nằm gọn trong chip (đo trên trang).
+- **Chạy thật**: "nguyễn hải yến", "  NGUYỄN   Hải YẾN  " và "yến" đều ra "Nguyễn Hải Yến (1968)" BD269022, qua API và qua ô tìm trên board.
+- **E2E mới** `reception-search-fullname.spec.ts` (stack thật): đọc họ và tên thật của bệnh nhân rồi tìm theo 7 kiểu (đúng, thường, HOA, khoảng trắng hai đầu, khoảng trắng giữa, chỉ tên, chỉ họ) → đều ra lượt khám đó. Thêm một ký tự sai thì không ra. Trên board, gõ HOA có khoảng trắng → các thẻ đều của bệnh nhân đó. → **pass**.
+- **Hồi quy**: `reception-follow-up`, `reception-rebook-undated`, `reception-revisit-counter` (trừ ca Lịch hẹn đã nêu ở R-1049), `reception-search-fullname` → **17/17**.
+
 ## R-1048 (2026-10-27, mức 3: phiếu thu + Cài đặt) P2610 phase 4 — khách kiểm tra và ký phiếu thu trên iPad
 
 - **Nguồn**: BA P2610 (`P2610.drawio`) + trả lời owner 2026-10-27. Phase 4/7 của F-81. Chi tiết: `docs/testing/features/receipt-ipad-signing.md`. (R-1047 đã dùng cho commit tab Đã đến.)
@@ -11428,6 +11642,24 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Sau khi gộp (build lại BE + FE): `search-unaccent-everywhere`, `reception-search-fullname` (R-1050), `patient-search-unaccent` và `reception.spec` — **8/8 xanh**.
   - Trên `develop` (cherry-pick): dropdown bác sĩ của Tạo tiếp nhận vẫn nằm trong `ReceptionNewDrawer.tsx` (chưa tách `ReceptionNewFields`), nên sửa ở đó. Điều kiện tên bệnh nhân dùng họ tên đầy đủ bỏ dấu như trên `main`.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152, bản chưa sửa :8153), host riêng :5120 / :5121, DB riêng `BlueDental_zalofix`.
+
+## R-1052 (2026-10-27, mức 2: bệnh án mẫu 2, 6, 7) Ô "MS:" điền sẵn mã biểu mẫu
+
+- **Yêu cầu (chủ dự án)**: "Bệnh án ngoại trú MS 16/BV-01, Phiếu đồng ý phẫu thuật MS 01/BV2, Phiếu phẫu thuật/thủ thuật MS PT-11 — binding mã số hồ sơ lên các phiếu tương ứng".
+- **Trước đó**: ô "MS:" ở góc phải 3 mẫu này là ô trống, người dùng tự gõ.
+- **Sửa (chỉ FE)**:
+  - `fieldValues.ts`: thêm `FORM_CODE_VALUES`, gắn mã theo id ô MS của từng mẫu:
+    - Bệnh án ngoại trú `custom.text.8b780086…` → 16/BV-01
+    - Giấy đồng ý thực hiện phẫu thuật/thủ thuật `custom.text.6d1c4222…` → 01/BV2
+    - Phiếu phẫu thuật/thủ thuật `custom.text.8d7eb5b7…` → PT-11
+  - `useSheetFieldValues` trộn bộ mã này vào giá trị tự động.
+  - Ô vẫn sửa được. Phiếu đã gõ và lưu MS riêng thì giữ giá trị đã lưu, vì giá trị đã lưu được ưu tiên hơn giá trị tự động. Mã này không bị ghi cứng vào phiếu khi lưu, giống các ô lấy từ hồ sơ.
+- **Chạy thật**: phiếu Giấy đồng ý của BD269023 hiện "MS: 01/BV2", nằm gọn trong ô (rộng 86px, không tràn).
+- **E2E** `patient-medical-record.spec` (stack thật, `--headed`):
+  - Ca mới "Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS" → **pass**.
+  - Hồi quy "every form draws the whole…", "what is written on a sheet survives a reload", "a blank that agrees with the record is not frozen…", "Enter moves to the blank below…" → **pass**.
+  - "picking the day prints it on the sheet…" **đỏ**, nhưng đỏ y hệt trên code gốc khi tạm cất thay đổi này (mong 15/08/2026, ra 03/09/2026). Lỗi có từ trước, liên quan bộ chọn ngày, chưa sửa.
+  - `tsc -b` và `oxlint` không báo lỗi.
 
 ## R-1052 (2026-10-27, mức 2: phiếu thu) P2610 phase 6 — trang Hủy phiếu thu, panel đã xuất / đã thanh toán theo mock BA, skeleton tải trang
 

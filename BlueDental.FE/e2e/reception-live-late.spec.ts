@@ -57,8 +57,12 @@ async function openBoard(page: Page): Promise<string> {
   return (await request).headers()["x-clinic-branch-id"];
 }
 
+// The whole label: "Đã hẹn" alone would also match "Đã hẹn lại" (R-1039).
 const chip = (page: Page, label: string) =>
-  page.locator(".reception-stat-chip-btn", { hasText: label }).locator(".reception-stat-chip-value");
+  page
+    .locator(".reception-stat-chip-btn")
+    .filter({ has: page.locator(".reception-stat-chip-label").getByText(label, { exact: true }) })
+    .locator(".reception-stat-chip-value");
 
 async function readChip(page: Page, label: string): Promise<number> {
   return Number(await chip(page, label).innerText());
@@ -69,9 +73,25 @@ async function readAllTab(page: Page): Promise<number> {
   return Number(/\((\d+)\)/.exec(text)?.[1] ?? NaN);
 }
 
-async function chipsAddUp(page: Page): Promise<boolean> {
-  const parts = await Promise.all(["Đã hẹn", "Đã đến", "Huỷ hẹn", "Trễ hẹn"].map((l) => readChip(page, l)));
-  return parts.reduce((a, b) => a + b, 0) === (await readAllTab(page));
+/**
+ * Đã hẹn has no chip since P2710_01 (owner 2026-10-27) — "Đã hẹn tái khám"
+ * took its place — but it is still part of Tất cả, so it is read from the
+ * server: booked and not yet past its time.
+ */
+async function scheduledToday(page: Page, branchId: string): Promise<number> {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const res = await call<{ requested: number; confirmed: number; overdue: number }>(
+    page, branchId, `${APPOINTMENTS}/stats?fromDate=${today}&toDate=${today}`,
+  );
+  return res.body.requested + res.body.confirmed - res.body.overdue;
+}
+
+async function chipsAddUp(page: Page, branchId: string): Promise<boolean> {
+  const parts = await Promise.all(["Đã đến", "Huỷ hẹn", "Trễ hẹn"].map((l) => readChip(page, l)));
+  const total = parts.reduce((a, b) => a + b, 0) + (await scheduledToday(page, branchId));
+  return total === (await readAllTab(page));
 }
 
 test.describe("Tiếp nhận — Trễ hẹn", () => {
@@ -82,10 +102,10 @@ test.describe("Tiếp nhận — Trễ hẹn", () => {
   test("Đã hẹn, Đã đến, Huỷ hẹn and Trễ hẹn add up to Tất cả", async ({ page }) => {
     // Before the stats arrive every number reads 0, which adds up trivially.
     const stats = page.waitForResponse((r) => r.url().includes(`${APPOINTMENTS}/stats`) && r.ok());
-    await openBoard(page);
+    const branchId = await openBoard(page);
     await stats;
     await expect.poll(() => readAllTab(page), { timeout: 15_000 }).toBeGreaterThan(0);
-    await expect.poll(() => chipsAddUp(page), { timeout: 15_000 }).toBe(true);
+    await expect.poll(() => chipsAddUp(page, branchId), { timeout: 15_000 }).toBe(true);
 
     // The Trễ hẹn chip lists exactly what it counts.
     const late = await readChip(page, "Trễ hẹn");
@@ -124,7 +144,7 @@ test.describe("Tiếp nhận — Trễ hẹn", () => {
     await expect(card.locator(".rc-badge")).toHaveText("Trễ hẹn", { timeout: 90_000 });
     // At least this one more — other bookings may pass their time meanwhile.
     await expect.poll(() => readChip(page, "Trễ hẹn"), { timeout: 15_000 }).toBeGreaterThan(lateBefore);
-    await expect.poll(() => chipsAddUp(page), { timeout: 15_000 }).toBe(true);
+    await expect.poll(() => chipsAddUp(page, branchId), { timeout: 15_000 }).toBe(true);
     expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
 
     expect(Date.now()).toBeLessThan(start.getTime() + 60_000);

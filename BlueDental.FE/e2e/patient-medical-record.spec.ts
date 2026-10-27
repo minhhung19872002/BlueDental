@@ -277,6 +277,20 @@ test.describe("Bệnh án", () => {
     }
   });
 
+  // Clinic, 2026-10-27: the "MS:" corner carries each printed form's own code.
+  test("Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS", async ({ page }) => {
+    await openMedicalRecord(page);
+    const codes: Array<[string, string, string]> = [
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "custom.text.8b780086e4014a049f87decd95bffaf3", "16/BV-01"],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "custom.text.6d1c4222d1b041c1aff9becd446183e1", "01/BV2"],
+      ["Phiếu phẫu thuật/thủ thuật", "custom.text.8d7eb5b7fe9746b3909ce9c21ba46a31", "PT-11"],
+    ];
+    for (const [form, field, code] of codes) {
+      await openFreshSheet(page, form);
+      await expect(blank(page, field), form).toHaveText(code);
+    }
+  });
+
   test("the cover prints the record's own identity", async ({ page }) => {
     await openMedicalRecord(page);
     await openFreshSheet(page, "Bìa hồ sơ bệnh án");

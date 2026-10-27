@@ -263,7 +263,7 @@ test.describe("Lặp lại lịch hẹn — API", () => {
     bookings.splice(bookings.indexOf(ids[4]), 1);
   });
 
-  test("Đã hẹn tiếp at reception on a session moves it: Đổi giờ the same day, Đã đổi lịch on another", async ({ page }) => {
+  test("Đổi lịch hẹn at reception on a session moves it: Đổi giờ the same day, Đã đổi lịch on another", async ({ page }) => {
     const day = farDay();
     const created = await call<Series>(page, SERIES, {
       method: "POST", branchId, json: weekly(day, "09:00", "09:30", 3),

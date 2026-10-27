@@ -3145,6 +3145,23 @@ Giả định về Zalo chưa kiểm được với OA thật: webhook ZNS đã 
   - Echo `oa_send_template` để template ở `message.payload` hay `attachments[].payload` (code đọc cả hai).
   - API lịch sử chat trả thẻ với `message_id` / `type` nào. Ca hiếm "gửi xong mà lưu lỗi": Đồng bộ sẽ đọc thẻ thành một câu trả lời thường.
   - Cấu hình Webhook của app Zalo phải tích `follow` và `user_click_chatnow`; không tích thì thẻ chỉ đi khi khách nhắn tin đầu.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Tiếp nhận (`/reception`)
+Control: the last stat chip "Chuyển đổi"
+Reason: On the reference it reads as a Lịch tạm turned into a real booking
+(`transferFromTempt`). BlueDental never counted it, so it always showed 0. BA
+(AnTran, 2026-10-26) asked to rename it "Đã hẹn lại" and to count the
+appointments closed with "Hẹn tái khám".
+Action taken: NONE on the reference. This is a deliberate departure (R-1039):
+- The chip counts `Outcome = Revisit`, excluding cancelled visits.
+- It counts dated and undated ("Hẹn lại - Chưa chốt ngày") revisits alike.
+- Clicking it filters the board.
+- "Đã hẹn tiếp" is not counted.
+- The calendar page's own "Chuyển đổi" chip follows the same rule. Owner, 2026-10-26: "đổi theo luôn". The owner also accepts that "Đã hẹn" and "Đã hẹn lại" sit side by side.
+The choices on cancelled and undated revisits are still to be confirmed by BA.
+
 ## P2610 phase 4 — Ký phiếu thu trên iPad (F-81, R-1048, 2026-10-27, BA P2610)
 
 UNKNOWN_REFERENCE_BEHAVIOR

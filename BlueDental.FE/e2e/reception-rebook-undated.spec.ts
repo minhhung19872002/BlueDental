@@ -5,7 +5,7 @@ import { APPOINTMENTS, bookVisitToday, call, cardOf, dayOf, getAppointment, open
 /**
  * Feature: "Hẹn lại - Chưa chốt ngày" (owner, 2026-10-09, save/P0910_3.drawio).
  *
- * - The "Chọn lịch hẹn tiếp theo" panel of "Đã hẹn tiếp" / "Hẹn tái khám" has
+ * - The "Chọn lịch hẹn tiếp theo" panel of "Đổi lịch hẹn" / "Hẹn tái khám" has
  *   a button that skips the required day and time: the outcome is saved with
  *   no next appointment, the card keeps "Cần chọn ngày giờ hẹn".
  * - The visit is filed on the CSKH tab of the same name, its booking note as
@@ -53,15 +53,15 @@ test.describe("Tiếp nhận — Hẹn lại - Chưa chốt ngày", () => {
     await login(page);
   });
 
-  test("saves Đã hẹn tiếp without a date, files it on CSKH, and the date can be booked later", async ({ page }) => {
+  test("saves Đổi lịch hẹn without a date, files it on CSKH, and the date can be booked later", async ({ page }) => {
     const branchId = await openBoard(page);
     const visit = await bookVisitToday(page, branchId, 200, "e2e-henlai");
     const card = await cardOf(page, visit);
-    const followUp = outcome(card, /Đã hẹn tiếp/);
+    const followUp = outcome(card, /Đổi lịch hẹn/);
     const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
 
     await followUp.click();
-    await expect(panel.getByRole("button", { name: "Xác nhận hẹn tiếp" })).toBeDisabled();
+    await expect(panel.getByRole("button", { name: "Xác nhận đổi lịch hẹn" })).toBeDisabled();
     const undated = panel.getByRole("button", { name: "Hẹn lại - Chưa chốt ngày" });
     // No day, no time: the required fields do not hold it back.
     await expect(undated).toBeEnabled();
@@ -91,12 +91,12 @@ test.describe("Tiếp nhận — Hẹn lại - Chưa chốt ngày", () => {
 
     await page.reload();
     const reloaded = await cardOf(page, visit);
-    await expect(outcome(reloaded, /Đã hẹn tiếp/)).toHaveAttribute("aria-pressed", "true");
-    await expect(outcome(reloaded, /Đã hẹn tiếp/)).toContainText("Cần chọn ngày giờ hẹn");
+    await expect(outcome(reloaded, /Đổi lịch hẹn/)).toHaveAttribute("aria-pressed", "true");
+    await expect(outcome(reloaded, /Đổi lịch hẹn/)).toContainText("Cần chọn ngày giờ hẹn");
 
     // Saved again with a new note: still one task, carrying the new note.
     const secondNote = `${note} lần 2`;
-    await outcome(reloaded, /Đã hẹn tiếp/).click();
+    await outcome(reloaded, /Đổi lịch hẹn/).click();
     const reopened = reloaded.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
     await reopened.getByRole("textbox").fill(secondNote);
     await reopened.getByRole("button", { name: "Hẹn lại - Chưa chốt ngày" }).click();
@@ -125,10 +125,10 @@ test.describe("Tiếp nhận — Hẹn lại - Chưa chốt ngày", () => {
     // The date is fixed later from the same card: the follow-up books normally.
     await openBoard(page);
     const again = await cardOf(page, visit);
-    await outcome(again, /Đã hẹn tiếp/).click();
+    await outcome(again, /Đổi lịch hẹn/).click();
     const picker = again.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
     await picker.getByRole("button", { name: /^\+1 tuần/ }).click();
-    await picker.getByRole("button", { name: "Xác nhận hẹn tiếp" }).click();
+    await picker.getByRole("button", { name: "Xác nhận đổi lịch hẹn" }).click();
     await expect(picker).toBeHidden({ timeout: 10_000 });
     stored = await getAppointment(page, branchId, visit.id);
     expect(stored.followUpAt).toBeTruthy();

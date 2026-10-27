@@ -50,6 +50,8 @@ export interface AppointmentDto {
   cancellationNote: string | null;
   /** The "Lặp lại lịch hẹn" series this booking belongs to; null for a single booking. */
   seriesId: string | null;
+  /** Closed with "Hẹn tái khám" and not cancelled since: the "Đã hẹn lại" chip (R-1039). */
+  isRevisit: boolean;
 }
 
 export interface CreateAppointmentRequest {

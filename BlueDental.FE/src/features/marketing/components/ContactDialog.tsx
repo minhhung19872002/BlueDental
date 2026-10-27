@@ -74,6 +74,7 @@ export function ContactDialog({ open, subtitle, pending, onSubmit, onClose }: Pr
           >
             <DatePicker
               showTime={{ format: "HH:mm", minuteStep: 5 }}
+              needConfirm={false}
               format="DD/MM/YYYY HH:mm"
               className="mkt-full"
               disabledDate={(day) => day.isBefore(dayjs(), "day")}

@@ -195,8 +195,8 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     // The note panel starts collapsed; "Thêm ngay" reveals the field.
     await expect(dialog.getByText("Chưa có ghi chú")).toBeVisible();
     await dialog.getByRole("button", { name: "Thêm ngay" }).click();
-    await dialog.locator(".appt-notes-panel textarea").fill(note);
-    await dialog.locator(".appt-notes-panel").getByRole("button").last().click();
+    await dialog.locator(".notes-panel textarea").fill(note);
+    await dialog.locator(".notes-panel").getByRole("button").last().click();
 
     await dialog.getByTitle("Xanh lá").click();
     await expect(dialog.locator(".appt-color-swatch--selected")).toHaveAttribute(

@@ -106,6 +106,32 @@ public class AppointmentTests
     }
 
     /// <summary>
+    /// Hoàn tất on the Tiếp nhận board sends no note: the Ghi chú written at
+    /// booking must survive it, while a note given on completion replaces it.
+    /// </summary>
+    [Theory]
+    [InlineData(null, "Ghi chu luc dat")]
+    [InlineData("Ghi chu khi xong", "Ghi chu khi xong")]
+    public void Complete_Should_Keep_The_Booking_Note_Unless_Given_One(string? given, string expected)
+    {
+        var appointment = new Appointment(
+            Guid.NewGuid(),
+            _patientId,
+            _dentistId,
+            _branchId,
+            _slot,
+            AppointmentType.Consultation,
+            null,
+            "Kham tong quat",
+            null,
+            "Ghi chu luc dat");
+
+        appointment.Complete(given);
+
+        Assert.Equal(expected, appointment.Notes);
+    }
+
+    /// <summary>
     /// The booking form edits the reason, the note and the colour in the same
     /// submit as it moves the slot, so rescheduling alone is not enough.
     /// </summary>
@@ -407,7 +433,7 @@ public class AppointmentTests
     public void BookFollowUp_Should_Book_The_Next_Visit_And_Link_It()
     {
         var appointment = NewAppointment();
-        appointment.Complete();
+        appointment.CheckIn();
         var nextSlot = new AppointmentSlot(DateTime.UtcNow.AddDays(7), DateTime.UtcNow.AddDays(7).AddMinutes(30));
         var followUpId = Guid.NewGuid();
 
@@ -422,6 +448,81 @@ public class AppointmentTests
         Assert.Equal(AppointmentType.FollowUp, followUp.Type);
         Assert.Equal(AppointmentStatus.Requested, followUp.Status);
         Assert.Equal("Tai kham", followUp.ChiefComplaint);
+    }
+
+    // P2710.drawio (owner 2026-10-27): "Đổi lịch hẹn" (FollowUp) moves a visit
+    // whose work has not begun; in the chair or done, only "Hẹn tái khám" books
+    // the next one. The bar and the outcome move together.
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BookFollowUp_Should_Refuse_Doi_Lich_Hen_Once_In_The_Chair(bool finished)
+    {
+        var appointment = NewAppointment();
+        if (finished) appointment.Complete();
+        else appointment.Start();
+
+        var error = Assert.Throws<BusinessException>(() => appointment.BookFollowUp(Guid.NewGuid(), _slot, null));
+
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.RescheduleAfterStart, error.Code);
+        Assert.Null(appointment.FollowUpAppointmentId);
+        Assert.NotEqual(AppointmentOutcome.FollowUp, appointment.Outcome);
+    }
+
+    [Fact]
+    public void MarkRebookUndated_And_SetOutcome_Should_Refuse_Doi_Lich_Hen_In_The_Chair()
+    {
+        var appointment = NewAppointment();
+        appointment.Start();
+
+        var undated = Assert.Throws<BusinessException>(() =>
+            appointment.MarkRebookUndated(AppointmentOutcome.FollowUp, null));
+        var plain = Assert.Throws<BusinessException>(() => appointment.SetOutcome(AppointmentOutcome.FollowUp));
+
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.RescheduleAfterStart, undated.Code);
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.RescheduleAfterStart, plain.Code);
+    }
+
+    [Fact]
+    public void BookFollowUp_Should_Take_Hen_Tai_Kham_On_A_Finished_Visit()
+    {
+        var appointment = NewAppointment();
+        appointment.Complete();
+        var followUpId = Guid.NewGuid();
+
+        appointment.BookFollowUp(followUpId, _slot, null, outcome: AppointmentOutcome.Revisit);
+
+        Assert.Equal(AppointmentOutcome.Revisit, appointment.Outcome);
+        Assert.Equal(followUpId, appointment.FollowUpAppointmentId);
+        Assert.Equal(AppointmentStatus.Completed, appointment.Status);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(AppointmentOutcome.FollowUp)]
+    public void Start_Should_Read_Chuyen_Bac_Si(AppointmentOutcome? before)
+    {
+        var appointment = NewAppointment();
+        if (before is { } outcome) appointment.MarkRebookUndated(outcome, null);
+
+        appointment.Start();
+
+        Assert.Equal(AppointmentOutcome.TransferDoctor, appointment.Outcome);
+    }
+
+    [Theory]
+    [InlineData(AppointmentOutcome.TransferDoctor)]
+    [InlineData(AppointmentOutcome.FollowUp)]
+    public void Complete_Should_Read_Ket_Thuc_Dieu_Tri(AppointmentOutcome before)
+    {
+        var appointment = NewAppointment();
+        appointment.CheckIn();
+        appointment.SetOutcome(before);
+
+        appointment.Complete();
+
+        Assert.Equal(AppointmentOutcome.EndTreatment, appointment.Outcome);
     }
 
     [Fact]

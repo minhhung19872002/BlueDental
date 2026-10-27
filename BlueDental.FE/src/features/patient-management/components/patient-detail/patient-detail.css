@@ -3358,7 +3358,12 @@
   margin-left: auto;
   white-space: nowrap;
 }
-.pd-newpay-card-money > b {
+/* Giá gốc over Giá sau giảm (owner 2026-10-27): label quiet, the amount after discount bold. */
+.pd-newpay-price {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-newpay-price b {
   color: var(--bd-ink);
   font-size: 14px;
   font-weight: 600;

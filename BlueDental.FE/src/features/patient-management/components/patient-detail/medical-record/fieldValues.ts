@@ -226,6 +226,19 @@ export function diagnosisFieldValues(diagnoses: readonly SheetDiagnosis[]): Fiel
   return values;
 }
 
+/**
+ * "MS:" — the form code printed in the corner of a sheet (clinic, 2026-10-27).
+ * Answered like any record fact, so a sheet that wrote its own keeps it.
+ */
+export const FORM_CODE_VALUES: Readonly<FieldValues> = {
+  // Bệnh án ngoại trú Răng Hàm Mặt
+  "custom.text.8b780086e4014a049f87decd95bffaf3": "16/BV-01",
+  // Giấy đồng ý thực hiện phẫu thuật/thủ thuật
+  "custom.text.6d1c4222d1b041c1aff9becd446183e1": "01/BV2",
+  // Phiếu phẫu thuật/thủ thuật
+  "custom.text.8d7eb5b7fe9746b3909ce9c21ba46a31": "PT-11",
+};
+
 /** The letterhead, reached from the templates as `{{branch.name}}` and friends. */
 export function branchFieldValues(branch: SheetBranch | undefined): FieldValues {
   const values: FieldValues = {};

@@ -1,21 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Modal, Button, Input, InputNumber, Form, Select, TimePicker, DatePicker } from "antd";
+import { Modal, Button, Form } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { DentistOverlapDialog } from "@/components/DentistOverlapDialog";
-import { FloatingField } from "@/components/FloatingField";
+import { NotesPanel } from "@/components/NotesPanel";
 import { useCreateReception } from "../api/receptionMutations";
 import { useAvailableReceptionDoctors } from "../api/receptionQueries";
-import { pagedSelectProps } from "@/components/pagedSelectProps";
 import { useDentistOverlapConfirm } from "@/hooks/useDentistOverlapConfirm";
 import { usePatientPicker } from "@/hooks/usePatientOptions";
-import { CLINIC_HOURS_PICKER_PROPS } from "@/utils/clinicHours";
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import type { CreateReceptionInput, RefType } from "../types/reception";
 import { t } from "@/lib/i18n";
-import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
-import { foldFilterOption } from "@/utils/foldForSearch";
+import { ReceptionNewFields } from "./ReceptionNewFields";
 
 interface ReceptionNewDrawerProps {
   open: boolean;
@@ -31,6 +28,9 @@ interface FormValues {
   appointmentDate: Dayjs;
   appointmentTime: Dayjs;
   durationMinutes: number;
+  /** Nội dung đặt lịch. */
+  content?: string;
+  /** Ghi chú — the right-hand card, as on the booking dialog (R-1037). */
   notes?: string;
 }
 
@@ -52,6 +52,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
   const visitDay = open ? (watchedDate ?? scheduledDate).format("YYYY-MM-DD") : undefined;
   const doctorsQuery = useAvailableReceptionDoctors(branchId, visitDay);
   const doctors = useMemo(() => doctorsQuery.data ?? [], [doctorsQuery.data]);
+  const doctorOptions = useMemo(() => doctors.map((d) => ({ value: d.id, label: d.name })), [doctors]);
   const doctorIsOff =
     doctorsQuery.isSuccess && !doctorsQuery.isFetching && Boolean(watchedDoctorId)
     && !doctors.some((d) => d.id === watchedDoctorId);
@@ -115,7 +116,8 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       phoneNumber: patient?.phone ?? "",
       doctorId: data.doctorId ?? "",
       refType: "Self" as RefType,
-      notes: data.notes,
+      content: data.content,
+      notes: data.notes || undefined,
       services: [t("Reception:DefaultService")],
       scheduledAt,
       estimatedDurationMinutes: data.durationMinutes,
@@ -154,7 +156,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       open={open}
       onCancel={handleClose}
       footer={null}
-      width={772}
+      width={1000}
       centered
       destroyOnHidden
       styles={{
@@ -171,99 +173,36 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           durationMinutes: 15,
         }}
       >
-        <div className="rn-form">
-          {/* Patient select + Tạo Mới */}
-          <div className="rn-row">
-            <div className="rn-field rn-field--flex1">
-              <FloatingField
-                label={t("Reception:ColCustomer")}
-                name="patientId"
-                required
-                rules={[{ required: true, message: t("Reception:CustomerRequired") }]}
-              >
-                <Select
-                  showSearch
-                  filterOption={false}
-                  onSearch={patientPicker.search}
-                  onChange={(val: string) => handlePatientChange(val)}
-                  {...pagedSelectProps(patientPicker)}
-                  options={patientOptions.map((p) => ({
-                    value: p.value,
-                    label: p.label,
-                  }))}
-                />
-              </FloatingField>
-            </div>
-            <Button
-              type="primary"
-              className="rn-create-btn"
-              onClick={() => setNewPatientOpen(true)}
-            >
-              {t("Reception:CreateNew")}
-            </Button>
-          </div>
+        <div className="rn-layout">
+          <ReceptionNewFields
+            patientPicker={patientPicker}
+            patientOptions={patientOptions}
+            doctorOptions={doctorOptions}
+            selectedPhone={selectedPhone}
+            onPatientChange={handlePatientChange}
+            onCreatePatient={() => setNewPatientOpen(true)}
+          />
+          <Form.Item name="notes" noStyle>
+            <NotesPanel />
+          </Form.Item>
+        </div>
 
-          {/* Phone */}
-          <div className="rn-phone-row">
-            <span className="rn-phone-label">{t("Reception:PhoneLabel")}</span>
-            <span className="rn-phone-value">{selectedPhone}</span>
-          </div>
-
-          {/* Doctor select */}
-          <FloatingField
-            label={t("Reception:TreatingDoctor")}
-            name="doctorId"
-            required
-            rules={[{ required: true, message: t("Reception:DoctorRequired") }]}
+        {/* Footer */}
+        <div className="rn-footer">
+          <Button
+            type="primary"
+            loading={createMutation.isPending}
+            onClick={handleSubmit}
+            style={{ background: "var(--bd-blue)", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
+            icon={
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+            }
           >
-            <Select
-              showSearch
-              filterOption={foldFilterOption}
-              options={doctors.map((d) => ({ value: d.id, label: d.name }))}
-            />
-          </FloatingField>
-
-          {/* Date */}
-          <FloatingField label={t("Reception:AppointmentDate")} name="appointmentDate">
-            <DatePicker format={DATE_INPUT_FORMAT} style={{ width: "100%" }} allowClear={false} />
-          </FloatingField>
-
-          {/* Time + duration */}
-          <div className="rn-time-row">
-            <div className="rn-field rn-field--flex1">
-              <FloatingField label={t("Reception:AppointmentTime")} name="appointmentTime">
-                <TimePicker format="HH:mm" style={{ width: "100%" }} {...CLINIC_HOURS_PICKER_PROPS} />
-              </FloatingField>
-            </div>
-            <div className="rn-field rn-field--flex1">
-              <FloatingField label={t("Reception:Minutes")} name="durationMinutes">
-                <InputNumber min={5} max={480} step={5} style={{ width: "100%" }} />
-              </FloatingField>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <FloatingField label={t("Reception:BookingNotes")} name="notes">
-            <Input.TextArea rows={4} style={{ resize: "none" }} />
-          </FloatingField>
-
-          {/* Footer */}
-          <div className="rn-footer">
-            <Button
-              type="primary"
-              loading={createMutation.isPending}
-              onClick={handleSubmit}
-              style={{ background: "var(--bd-blue)", height: 40, fontWeight: 600, paddingLeft: 20, paddingRight: 20 }}
-              icon={
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                  <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-                </svg>
-              }
-            >
-              {t("Common:Save")}
-            </Button>
-          </div>
+            {t("Common:Save")}
+          </Button>
         </div>
       </Form>
 

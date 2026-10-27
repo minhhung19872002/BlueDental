@@ -41,7 +41,12 @@ export interface ServerAppointmentDto {
   completedAt: string | null;
   cancellationNote: string | null;
   seriesId: string | null;
+  /** BlueDental.Appointments.AppointmentOutcome, set when the visit is closed. */
+  outcome: number | null;
 }
+
+/** AppointmentOutcome.Revisit — "Hẹn tái khám". */
+const OUTCOME_REVISIT = 4;
 
 /**
  * The three reception steps in order, and the endpoint each one posts to.
@@ -160,6 +165,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     completedAt: dto.completedAt,
     cancellationNote: dto.cancellationNote,
     seriesId: dto.seriesId ?? null,
+    isRevisit: dto.outcome === OUTCOME_REVISIT && status !== "cancelled",
     statusColor: STATUS_COLORS[status],
     statusLabel: statusLabels()[status],
     durationMinutes: dayjs(dto.slotEnd).diff(dayjs(dto.slotStart), "minute"),

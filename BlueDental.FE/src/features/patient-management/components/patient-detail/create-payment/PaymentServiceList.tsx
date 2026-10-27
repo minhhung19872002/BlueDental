@@ -5,6 +5,7 @@ import type { TreatmentServiceDto } from "@/features/treatment-management/api/tr
 import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
 import { matchesSearch } from "@/utils/foldForSearch";
+import { listAmount } from "./paymentDialogModel";
 
 interface Props {
   /** The chosen slip's code; null until one is chosen. */
@@ -34,9 +35,14 @@ function ServiceCard({ line, checked, onToggle }: {
         </span>
       </Checkbox>
       <div className="pd-newpay-card-money">
+        <span className="pd-newpay-price">
+          {t("Patient:Payment:OriginalPrice")} {formatMoneyUnit(listAmount(line))}
+        </span>
         {/* Before VAT — after the slip discount and voucher — so the price reads
             as the price; Còn nợ is VAT included, as it is what the receipt collects. */}
-        <b>{formatMoneyUnit(line.chargedAmount)}</b>
+        <span className="pd-newpay-price">
+          {t("Patient:Payment:DiscountedPrice")} <b>{formatMoneyUnit(line.chargedAmount)}</b>
+        </span>
         <span className="pd-newpay-due">
           {t("Patient:Payment:OutstandingValue", formatMoneyUnit(line.outstandingAmount))}
         </span>

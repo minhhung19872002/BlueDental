@@ -1568,107 +1568,11 @@ body.cal-fullscreen .cal-grid-wrap {
   box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--swatch-color);
 }
 
-/* ── Notes Panel ─────────────────────────────────────────────────────── */
+/* ── Status field ────────────────────────────────────────────────────── */
 
-/* Trạng thái — sits above the notes card, in the edit dialog only. */
+/* Trạng thái — sits above the Ghi chú card (NotesPanel), in the edit dialog only. */
 .appt-status-select {
   width: 100%;
-}
-
-.appt-notes-panel {
-  border: 1px solid var(--bd-line, #e7eaf6);
-  border-radius: var(--bd-radius, 8px);
-  padding: 12px;
-  min-height: 140px;
-}
-
-.appt-notes-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.appt-notes-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--bd-ink, #171c33);
-}
-
-.appt-notes-add-btn {
-  background: none;
-  border: none;
-  color: var(--bd-blue, #6366f1);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.appt-notes-add-btn:hover { text-decoration: underline; }
-
-.appt-notes-content {
-  font-size: 13px;
-  color: var(--bd-ink, #171c33);
-  white-space: pre-wrap;
-  line-height: 1.5;
-}
-
-.appt-notes-edit-row {
-  display: flex;
-  gap: 8px;
-  align-items: stretch;
-}
-
-.appt-notes-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.appt-notes-action-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 6px;
-  border: 1px solid var(--bd-line, #e7eaf6);
-  background: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  padding: 0;
-  transition: background 0.15s, color 0.15s;
-}
-
-.appt-notes-action-btn--cancel {
-  color: #5c6484;
-}
-
-.appt-notes-action-btn--cancel:hover {
-  background: #fdeced;
-  color: #e5484d;
-  border-color: #e5484d;
-}
-
-.appt-notes-action-btn--confirm {
-  color: var(--bd-blue, #6366f1);
-}
-
-.appt-notes-action-btn--confirm:hover {
-  background: #eef0ff;
-  color: #4f46e5;
-  border-color: #6366f1;
-}
-
-.appt-notes-empty {
-  color: var(--bd-faint, #99a0bd);
-  font-size: 13px;
-  font-style: italic;
 }
 
 /* ── Mini Calendar Preview ────────────────────────────────────────────── */
