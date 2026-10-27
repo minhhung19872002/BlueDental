@@ -11574,3 +11574,8 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
       - Màu nhãn Nội dung khi focus ở Đặt mới (labo).
       - "Danh sách công đoạn … capped at five rows": dữ liệu demo hết dòng có ≥2 công đoạn.
       - "the stage form fills its columns": dữ liệu demo không còn dòng "stageable" ở trạng thái phù hợp. Lần chạy riêng đỏ ngay bước mở dialog, trước khi tới phần form. Phần lưới 4 cột và dấu * đã được chứng minh trong `stage-appointment-note.spec.ts` bằng dữ liệu tự tạo.
+    - Kết quả cuối lần 2: **79 xanh / 9 đỏ**, cả 9 ngoài phạm vi. Ngoài 4 test trên:
+      - "the công đoạn form lists the pictures it is holding": cùng lỗi dữ liệu demo như "fills its columns" (không còn nút Thêm công đoạn).
+      - "the Tiếp nhận steps advance one at a time", "the appointment card reassigns its doctor": lịch hẹn / dữ liệu demo.
+      - `stage-remark` "without Công đoạn → Sửa …": đỏ ở fixture `createDentist` (ô Chi nhánh của dialog Nhân viên), trước khi tới phần Ghi chú.
+      - `treatment-plan` "the slip survives a reload": phiếu DT02 thành "Đang điều trị" vì worker song song của `patient.spec` thêm công đoạn lên bệnh nhân demo dùng chung. Chạy riêng `treatment-plan.spec` (1 worker): **9/9 xanh**.
