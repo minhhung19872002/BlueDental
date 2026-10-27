@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Input } from "antd";
 import { Controller, type Control } from "react-hook-form";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
@@ -48,6 +49,22 @@ export function TempFormCenter({ control, doctorOptions, watchedSourceTaxonomyId
               />
               {fieldState.error && <span className="appt-field-error">{fieldState.error.message}</span>}
             </>
+          )}
+        />
+      </div>
+
+      {/* Content — where Tạo lịch hẹn has it (owner 2026-10-27, R-1046) */}
+      <div className="appt-field">
+        <Controller
+          name="content"
+          control={control}
+          render={({ field }) => (
+            <Input.TextArea
+              {...field}
+              rows={4}
+              placeholder={t("Appointment:Form:BookingContent")}
+              style={{ resize: "none" }}
+            />
           )}
         />
       </div>

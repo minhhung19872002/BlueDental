@@ -16,6 +16,8 @@ export interface TempAppointmentFormValues {
   sourceTaxonomyId: string;
   sourceEntryId: string;
   color: string;
+  /** Nội dung đặt lịch. */
+  content: string;
   notes: string;
 }
 
