@@ -9,8 +9,8 @@ import { openShiftCovering } from "./fixtures/workShift";
  * 25 Tiếp nhận: a booking on another day cannot be checked in.
  * 26 Thanh toán: a receipt cannot be dated after today.
  * 27 Danh mục › Dịch vụ: a VNĐ discount larger than the price is refused.
- * 28 Thanh toán: a receipt cannot be taken back once written (owner 2026-10-13;
- *    it used to be cancelled with a reason and stay listed "Đã hủy").
+ * 28 Thanh toán: a paid receipt cannot be edited, and is taken back only
+ *    through the cancel page with one of its fixed reasons (P2610).
  * 29 Bệnh nhân: a phone another record holds is named and cannot be saved.
  * 30 Bệnh nhân: a name holds only letters, digits, spaces and - . '
  *
@@ -22,6 +22,7 @@ const APPOINTMENTS = "/api/v1/app/appointments";
 const PATIENTS = "/api/v1/app/patients";
 const PAYMENTS = "/api/v1/app/patient-payments";
 const ALREADY_COMPLETED = "BlueDental:Billing:0096";
+const REASON_CODE_REQUIRED = "BlueDental:Billing:0099";
 
 interface ApiResult<T> {
   status: number;
@@ -133,13 +134,12 @@ test.describe("25 · Tiếp nhận: only today's bookings are received", () => {
 });
 
 test.describe("26 + 28 · Thanh toán: no future date; a written receipt is final", () => {
-  // Owner 2026-10-13: a receipt is written "Hoàn tất" the moment "Có" is
-  // answered, and a Hoàn tất receipt can be neither edited nor cancelled. So
-  // the old item-28 walk (cancel a "Chưa thanh toán" receipt with a reason and
-  // see it listed "Đã hủy") can no longer be set up from the app: no new
-  // receipt is ever pending. What is left to hold is that the date and the
-  // money cannot be moved or taken back once written.
-  test("a receipt cannot be dated tomorrow, and a written one cannot be moved, edited or cancelled", async ({
+  // P2610: a receipt is "Đã thanh toán" only after export and ✓, and from
+  // there it can never be edited; it is taken back only through the cancel
+  // page (phase 6), which names one of the fixed reasons. What this holds is
+  // that the date and the money cannot be moved, and no free-text cancel
+  // takes a paid receipt back.
+  test("a receipt cannot be dated tomorrow, and a paid one cannot be moved, edited or cancelled without a fixed reason", async ({
     page,
   }) => {
     test.setTimeout(180_000);
@@ -168,7 +168,7 @@ test.describe("26 + 28 · Thanh toán: no future date; a written receipt is fina
     expect(ahead.body.error?.code).toBe("BlueDental:Billing:0094");
 
     // …and the written one keeps the day it was written: an edit carrying
-    // another date is refused outright, because a Hoàn tất receipt is final.
+    // another date is refused outright, because a paid receipt is final.
     const moved = await call<AbpError>(page, "PUT", `${PAYMENTS}/${receipt.id}`, {
       ...revisionOf(receipt),
       paidAt: tomorrow.toISOString(),
@@ -182,22 +182,22 @@ test.describe("26 + 28 · Thanh toán: no future date; a written receipt is fina
     const now = new Date();
     await expect(row).toContainText(`${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`);
 
-    // ── 28: no Sửa, no Huỷ on the row; the API refuses a cancel with or without a reason ──
-    await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất");
+    // ── 28: no Sửa, no Huỷ on the row; the API refuses a cancel with no fixed reason ──
+    await expect(row.locator(".tp-pill")).toHaveText("Đã thanh toán");
     await expect(row.getByRole("button", { name: `Huỷ phiếu ${receipt.code}` })).toHaveCount(0);
     await expect(row.getByRole("button", { name: `Chỉnh sửa phiếu ${receipt.code}` })).toHaveCount(0);
     const withReason = await call<AbpError>(page, "POST", `${PAYMENTS}/${receipt.id}/cancel`, {
       reason: `Thu nhầm e2e ${runId()}`,
     });
     expect(withReason.status).toBe(403);
-    expect(withReason.body.error?.code).toBe(ALREADY_COMPLETED);
+    expect(withReason.body.error?.code).toBe(REASON_CODE_REQUIRED);
     const blank = await call<AbpError>(page, "POST", `${PAYMENTS}/${receipt.id}/cancel`, { reason: "  " });
     expect(blank.status).toBeGreaterThanOrEqual(400);
     expect(blank.status).toBeLessThan(500);
 
     // Still counted, after a reload too — nothing was taken back.
     await page.reload();
-    await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất", { timeout: 15_000 });
+    await expect(row.locator(".tp-pill")).toHaveText("Đã thanh toán", { timeout: 15_000 });
     const counted = await call<{ items: { id: string; amount: number; isDeleted?: boolean }[] }>(
       page,
       "GET",

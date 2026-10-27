@@ -515,6 +515,15 @@ namespace BlueDental.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<short?>("CancelReasonCode")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledById")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ClinicBranchId")
                         .HasColumnType("uuid");
 
@@ -559,6 +568,12 @@ namespace BlueDental.Migrations
 
                     b.Property<bool>("IsImported")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("IssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("IssuedById")
+                        .HasColumnType("uuid");
 
                     b.Property<short>("Kind")
                         .HasColumnType("smallint");

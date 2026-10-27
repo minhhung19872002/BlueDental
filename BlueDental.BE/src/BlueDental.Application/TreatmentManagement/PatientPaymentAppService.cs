@@ -301,10 +301,12 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             input.SplitMode,
             lines,
             GuidGenerator.Create,
-            // Owner 2026-10-13: the cashier confirms in the dialog before it
-            // saves, so a new receipt is "Hoàn tất" and counts at once. Receipts
-            // written "Chưa thanh toán" before then still settle through ConfirmAsync.
-            PatientPaymentStatus.Completed);
+            // P2610 (owner 2026-10-27): a new payment is "Chưa thanh toán" and
+            // moves no money until it is signed, exported and ✓ confirmed. A
+            // refund or held money has no such flow and is written settled.
+            input.Kind == PatientPaymentKind.Payment
+                ? PatientPaymentStatus.Pending
+                : PatientPaymentStatus.Completed);
         payment.RequestRedInvoice(input.RedInvoiceRequested);
 
         await _repository.InsertAsync(payment, autoSave: true);
@@ -468,23 +470,64 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
     }
 
     /// <summary>
-    /// "Xác nhận thanh toán": the dialog's figures are saved — the amount may be
-    /// corrected to what was really handed over, still capped by what each line
-    /// owes — and the receipt becomes "Hoàn tất", dated now and credited to the
-    /// cashier confirming it. From here it counts in debt, revenue and the cash book.
+    /// "Xuất phiếu thu": the receipt is locked as "Đã xuất phiếu thu". It still
+    /// moves no money — that waits for ✓ <see cref="ConfirmAsync"/>.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
-    public async Task<PatientPaymentDto> ConfirmAsync(Guid id, UpdatePatientPaymentDto input)
+    public async Task<PatientPaymentDto> IssueAsync(Guid id)
     {
         using var pending = DataFilter.Disable<ISettleable>();
         var payment = await GetWithLinesAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
 
-        await ReviseAsync(payment, input);
-        payment.Confirm(Clock.Now, CurrentUser.Id ?? payment.StaffId);
+        payment.Issue(Clock.Now, CurrentUser.Id);
 
         await _repository.UpdateAsync(payment, autoSave: true);
         return (await MapManyAsync([payment])).Single();
+    }
+
+    /// <summary>
+    /// ✓ "Xác nhận thanh toán" on an exported receipt: it becomes "Đã thanh
+    /// toán", keeps the "Ngày thanh toán" picked when it was written, and is
+    /// credited to the cashier confirming it. From here it counts in debt,
+    /// revenue and the cash book. Its figures are frozen since the export, but
+    /// other receipts may have been paid meanwhile, so each line is checked once
+    /// more against what the slip still owes — after the status check, so a
+    /// receipt already paid is told so rather than that its line owes nothing.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
+    public async Task<PatientPaymentDto> ConfirmAsync(Guid id)
+    {
+        using var pending = DataFilter.Disable<ISettleable>();
+        var payment = await GetWithLinesAsync(id);
+        await _branchAccess.CheckAsync(payment.ClinicBranchId);
+
+        payment.Confirm(CurrentUser.Id ?? payment.StaffId);
+        await GuardLinesStillOwedAsync(payment);
+
+        await _repository.UpdateAsync(payment, autoSave: true);
+        return (await MapManyAsync([payment])).Single();
+    }
+
+    private async Task GuardLinesStillOwedAsync(PatientPayment payment)
+    {
+        if (payment.TreatmentPlanId is not { } planId || payment.Lines.Count == 0)
+        {
+            return;
+        }
+
+        var refunding = payment.Kind == PatientPaymentKind.Refund;
+        var serviceIds = payment.Lines.Select(line => line.TreatmentServiceId).Distinct().ToList();
+        Dictionary<Guid, decimal> cap;
+        using (DataFilter.Enable<ISettleable>())
+        {
+            cap = await CapByServiceAsync(planId, serviceIds, refunding);
+        }
+
+        foreach (var serviceId in serviceIds)
+        {
+            GuardWithinCap(cap, serviceId, payment.AmountFor(serviceId), refunding);
+        }
     }
 
     private async Task ReviseAsync(PatientPayment payment, UpdatePatientPaymentDto input)
@@ -523,18 +566,31 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
     }
 
     /// <summary>
-    /// "Hủy phiếu": the receipt is soft-deleted, so nothing counts it any more
-    /// and the debt comes back, but it keeps its reason, who and when, and the
-    /// Thanh toán tab still lists it as "Đã hủy" (bug list item 28).
+    /// "Hủy phiếu": the receipt becomes "Phiếu bị hủy" and is soft-deleted, so
+    /// nothing counts it any more and the debt comes back — a paid one raises
+    /// Còn lại again. It keeps its reason, who and when, and the Thanh toán tab
+    /// still lists it (bug list item 28, P2610).
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Delete)]
     public async Task CancelAsync(Guid id, CancelPatientPaymentDto input)
     {
-        // Only a pending receipt can be cancelled, and the filter hides those.
+        // An unpaid receipt is hidden by the filter; a paid one is not. A
+        // cancelled one is soft-deleted too, and is found so that a second
+        // cancel says "already cancelled"; one gone with its slip stays gone.
         using var pending = DataFilter.Disable<ISettleable>();
-        var payment = await _repository.GetAsync(id);
+        using var cancelled = DataFilter.Disable<ISoftDelete>();
+        var payment = await GetWithLinesAsync(id);
+        if (payment.IsDeleted && payment.Status != PatientPaymentStatus.Cancelled)
+        {
+            throw new EntityNotFoundException(typeof(PatientPayment), id);
+        }
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
-        payment.Cancel(input.Reason);
+        var wasPaid = payment.IsCompleted && payment.Kind == PatientPaymentKind.Payment;
+        payment.Cancel(input.ReasonCode, input.Reason, Clock.Now, CurrentUser.Id);
+        if (wasPaid)
+        {
+            await GuardRefundsStillCoveredAsync(payment);
+        }
 
         // A signed e-invoice puts the money on a tax document: the receipt
         // stays. A draft only lives at the provider and goes with the receipt.
@@ -551,6 +607,33 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         // would drop the reason otherwise.
         await _repository.UpdateAsync(payment, autoSave: true);
         await _repository.DeleteAsync(payment, autoSave: true);
+    }
+
+    /// <summary>
+    /// A refund is final once written, so a paid receipt whose money was paid
+    /// back cannot go: each of its lines must still have collected at least
+    /// this receipt's share once it is taken away. The cancel is not saved yet,
+    /// so the query still counts it.
+    /// </summary>
+    private async Task GuardRefundsStillCoveredAsync(PatientPayment payment)
+    {
+        if (payment.TreatmentPlanId is not { } planId || payment.Lines.Count == 0)
+        {
+            return;
+        }
+
+        var serviceIds = payment.Lines.Select(line => line.TreatmentServiceId).Distinct().ToList();
+        Dictionary<Guid, decimal> netPaid;
+        using (DataFilter.Enable<ISettleable>())
+        using (DataFilter.Enable<ISoftDelete>())
+        {
+            netPaid = await CapByServiceAsync(planId, serviceIds, refunding: true);
+        }
+
+        if (serviceIds.Any(serviceId => netPaid.GetValueOrDefault(serviceId) < payment.AmountFor(serviceId)))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Billing.PaymentCancelBelowRefunded);
+        }
     }
 
     /// <summary>
@@ -667,7 +750,7 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         }
 
         var staffIds = items.Select(x => x.StaffId)
-            .Concat(items.Where(x => x.DeleterId.HasValue).Select(x => x.DeleterId!.Value))
+            .Concat(items.Select(x => x.CancelledById).OfType<Guid>())
             .Distinct()
             .ToList();
         var users = await _userRepository.GetListByIdsAsync(staffIds);
@@ -718,10 +801,13 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             DeleterId = x.DeleterId,
             DeletionTime = x.DeletionTime,
             CancelReason = x.CancelReason,
+            CancelReasonCode = x.CancelReasonCode,
+            CancelledAt = x.CancelledAt,
+            IssuedAt = x.IssuedAt,
             Status = x.Status,
             RedInvoiceRequested = x.RedInvoiceRequested,
-            CancelledByName = x.DeleterId.HasValue && staffNames.TryGetValue(x.DeleterId.Value, out var deleter)
-                ? deleter
+            CancelledByName = x.CancelledById is { } canceller && staffNames.TryGetValue(canceller, out var name)
+                ? name
                 : null
         }).ToList();
     }

@@ -35,19 +35,46 @@ public enum PaymentSplitMode
 }
 
 /// <summary>
-/// Whether the money on a receipt has actually been taken (BA, 2026-10-08).
-/// A "Chưa thanh toán" receipt only counts — against the slip's debt, in
-/// revenue, the cash book, Dư nợ and e-invoices — once "Xác nhận thanh toán"
-/// moves it to "Hoàn tất". Since 2026-10-13 a new receipt is confirmed in its
-/// dialog and written "Hoàn tất"; only older receipts can still be pending.
+/// Where a receipt is on its way from the counter to the cash drawer (P2610,
+/// owner 2026-10-27). A receipt only counts — against the slip's debt, in
+/// revenue, the cash book, Dư nợ and e-invoices — once it is "Đã thanh toán";
+/// see <c>ISettleable</c>. A new receipt starts "Chưa thanh toán", the customer
+/// checks and signs it on the iPad, the accountant exports it ("Đã xuất phiếu
+/// thu") and later ticks ✓ on the slip's Thanh toán tab once the money is in.
+/// The numbers 1 and 2 predate that flow and keep their meaning.
 /// </summary>
 public enum PatientPaymentStatus
 {
-    /// <summary>Chưa thanh toán — written, money not yet collected.</summary>
+    /// <summary>Chưa thanh toán — written, not yet exported; still editable.</summary>
     Pending = 1,
 
-    /// <summary>Hoàn tất — money collected; the receipt counts everywhere.</summary>
-    Completed = 2
+    /// <summary>Đã thanh toán — money collected; the receipt counts everywhere.</summary>
+    Completed = 2,
+
+    /// <summary>Đã xuất phiếu thu — signed and exported; locked, money not yet confirmed.</summary>
+    Issued = 3,
+
+    /// <summary>Phiếu bị hủy — kept for the record, counted nowhere.</summary>
+    Cancelled = 4
+}
+
+/// <summary>
+/// Lý do hủy phiếu thu — the four fixed choices of the cancel page (P2610),
+/// each given with a free-text description.
+/// </summary>
+public enum PaymentCancelReason
+{
+    /// <summary>Sai thông tin người nộp.</summary>
+    WrongPayer = 1,
+
+    /// <summary>Sai số tiền / dịch vụ.</summary>
+    WrongAmountOrService = 2,
+
+    /// <summary>Lập trùng phiếu.</summary>
+    Duplicate = 3,
+
+    /// <summary>Lý do khác.</summary>
+    Other = 4
 }
 
 /// <summary>

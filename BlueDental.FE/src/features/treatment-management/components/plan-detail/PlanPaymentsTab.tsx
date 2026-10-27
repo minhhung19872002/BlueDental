@@ -2,10 +2,7 @@ import { useMemo, useState } from "react";
 import { DollarSign, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { DataTable } from "@/components/DataTable";
-import {
-  CreatePaymentDialog,
-  type PaymentRevision,
-} from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
+import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
@@ -36,6 +33,7 @@ import { InvoiceModal } from "../InvoiceModal";
 import { EInvoiceBadge } from "./EInvoiceBadge";
 import { PaymentCancelDialog } from "./PaymentCancelDialog";
 import { PaymentCardList } from "./PaymentCardList";
+import { PaymentConfirmPrompt } from "./PaymentConfirmPrompt";
 import { PaymentReceiptDialog } from "./PaymentReceiptDialog";
 import { buildPaymentColumns, paymentCardRows, type PaymentRowActions } from "./paymentColumns";
 import { aggregateReceiptOf, receiptOf, type ReceiptView } from "./receiptView";
@@ -75,7 +73,8 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
 
   const [creating, setCreating] = useState(false);
   const [receipt, setReceipt] = useState<ReceiptView | null>(null);
-  const [revision, setRevision] = useState<PaymentRevision | null>(null);
+  const [revision, setRevision] = useState<PatientPaymentDto | null>(null);
+  const [confirming, setConfirming] = useState<PatientPaymentDto | null>(null);
   const [cancelling, setCancelling] = useState<PatientPaymentDto | null>(null);
   const cancel = useCancelPayment();
 
@@ -138,8 +137,8 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   const rowActions: PaymentRowActions = {
     onView: handleView,
     // Xác nhận thanh toán is a write on the receipt, so it rides on payment.update.
-    onConfirm: canUpdate ? (payment) => setRevision({ payment, action: "confirm" }) : undefined,
-    onEdit: canUpdate ? (payment) => setRevision({ payment, action: "edit" }) : undefined,
+    onConfirm: canUpdate ? setConfirming : undefined,
+    onEdit: canUpdate ? setRevision : undefined,
     onCancel: canDelete ? setCancelling : undefined,
     onIssueInvoice: canFinalize ? setInvoicing : undefined,
     canIssueInvoice,
@@ -199,7 +198,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         onClose={() => setCreating(false)}
         onSaved={() => setCreating(false)}
       />
-      {/* Chỉnh sửa and Xác nhận thanh toán reopen the same big dialog on the receipt. */}
+      {/* Chỉnh sửa reopens the same big dialog on a "Chưa thanh toán" receipt. */}
       <CreatePaymentDialog
         open={revision !== null}
         patientId={patient.id}
@@ -211,6 +210,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
         onClose={() => setRevision(null)}
         onSaved={() => setRevision(null)}
       />
+      <PaymentConfirmPrompt payment={confirming} onClose={() => setConfirming(null)} />
       <PaymentCancelDialog
         open={cancelling !== null}
         code={cancelling?.code}

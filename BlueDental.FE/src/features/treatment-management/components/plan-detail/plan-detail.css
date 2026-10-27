@@ -341,7 +341,7 @@ a.pdt-crumb:hover {
   color: #e5484d;
 }
 
-/* "Xác nhận thanh toán" on a "Chưa thanh toán" row, in the primary colour. */
+/* ✓ "Xác nhận thanh toán" on a "Đã xuất phiếu thu" row, in the primary colour. */
 .pdt-row-action--confirm {
   color: var(--tp-blue);
 }
@@ -354,6 +354,12 @@ a.pdt-crumb:hover {
 .tp-pill--pending {
   background: var(--tp-orange-pale);
   color: var(--tp-orange);
+}
+
+/* "Đã xuất phiếu thu": exported and locked, waiting on ✓ (P2610). */
+.tp-pill--issued {
+  background: var(--tp-blue-pale);
+  color: var(--tp-blue);
 }
 
 /* ── Dialog chrome shared by the confirm, detail and receipt dialogs ── */

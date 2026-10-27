@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { BRANCH2_USER, login } from "./fixtures/auth";
-import { answerYes, openNewSlip } from "./fixtures/ledgerReceipt";
+import { openNewSlip, saveAndSettle } from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: tab "Lịch sử dư nợ" của hồ sơ bệnh nhân (F-40), `?tab=debt-history`.
@@ -36,9 +36,8 @@ async function refundOnANewSlip(page: Page): Promise<{ patientUrl: string; refun
   // the server will take in one receipt.
   const paid = Math.max(2, Math.floor(due / 2));
   await payDialog.locator(".pd-newpay-amount").fill(String(paid));
-  await payDialog.getByRole("button", { name: "Lưu" }).click();
-  // "Có" writes the receipt "Hoàn tất": the money is in at once (owner 2026-10-13).
-  await answerYes(page, payDialog);
+  // Written "Chưa thanh toán", then exported and ✓: the money is in (P2610).
+  await saveAndSettle(page, payDialog);
 
   // The refund is capped at what the line actually holds, so wait for the slip
   // to have taken the money in before asking for any of it back.
@@ -144,8 +143,7 @@ test.describe("Lịch sử dư nợ", () => {
     await payLine.locator("input[type=checkbox]").check();
     const owed = money(await payLine.locator(".pd-newpay-due").innerText());
     await payDialog.locator(".pd-newpay-amount").fill(String(owed));
-    await payDialog.getByRole("button", { name: "Lưu" }).click();
-    await answerYes(page, payDialog);
+    await saveAndSettle(page, payDialog);
 
     await page.getByRole("tab", { name: "Hoàn tiền", exact: true }).click();
     await page.getByRole("button", { name: "Hoàn Tiền" }).click();

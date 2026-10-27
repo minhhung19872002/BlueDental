@@ -1,7 +1,13 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
 import { addExtraService } from "./fixtures/extraService";
-import { answerYes, createSlipViaApi } from "./fixtures/ledgerReceipt";
+import {
+  confirmOnRow,
+  createSlipViaApi,
+  issueReceipt,
+  saveAndSettle,
+  saveReceipt,
+} from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: Chi tiết kế hoạch điều trị (F-38), /patient/:id/treatment-plan/:planId.
@@ -351,17 +357,24 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     paidAmount = Math.max(1, Math.floor(due / 2));
 
     await dialog.locator(".pd-newpay-amount").fill(String(paidAmount));
-    await dialog.getByRole("button", { name: "Lưu" }).click();
-    // "Có" in the question writes it (owner 2026-10-13).
-    const written = await answerYes(page, dialog);
+    // "Lưu" writes it "Chưa thanh toán" (P2610): listed, but no money moved yet.
+    const written = await saveReceipt(page, dialog);
 
-    // The receipt lands in the table already "Hoàn tất": the head figures move
-    // at once, and it can never be edited, cancelled or confirmed again.
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     await expect(row).toBeVisible();
     paymentCode = (await row.locator("td").first().innerText()).trim();
     expect(paymentCode).toBe(written.code);
-    await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất");
+    await expect(row.locator(".tp-pill")).toHaveText("Chưa thanh toán");
+    await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(0);
+
+    // Exported, then ✓ on the row: "Đã thanh toán", the head figures move, and
+    // it can never be edited, cancelled here or confirmed again.
+    await issueReceipt(page, written);
+    await page.reload();
+    await tab(page, "Thanh toán").click();
+    await expect(row.locator(".tp-pill")).toHaveText("Đã xuất phiếu thu");
+    await confirmOnRow(page, row, written);
+    await expect(row.locator(".tp-pill")).toHaveText("Đã thanh toán");
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(paidAmount);
     await expect(row.getByRole("button", { name: `Chỉnh sửa phiếu ${paymentCode}` })).toHaveCount(0);
     await expect(row.getByRole("button", { name: `Huỷ phiếu ${paymentCode}` })).toHaveCount(0);
@@ -899,8 +912,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     const due = money(await payLine.locator(".pd-newpay-due").innerText());
     expect(due).toBeGreaterThan(1);
     await payDialog.locator(".pd-newpay-amount").fill(String(due));
-    await payDialog.getByRole("button", { name: "Lưu" }).click();
-    await answerYes(page, payDialog);
+    await saveAndSettle(page, payDialog);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(due);
 
     // What each line has collected, read from the slip itself — the table
@@ -1172,9 +1184,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     // The after-discount amount goes through and settles the slip.
     await box.fill(String(owed));
     await expect(dialog.locator(".pd-newpay-error")).toHaveCount(0);
-    await dialog.getByRole("button", { name: "Lưu" }).click();
-    // Written "Hoàn tất" on "Có" (owner 2026-10-13): the slip is settled at once.
-    await answerYes(page, dialog);
+    // Exported and ✓ (P2610): now the slip is settled.
+    await saveAndSettle(page, dialog);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(owed);
     await expect.poll(() => statValue(page, "Công nợ")).toBe(0);
 

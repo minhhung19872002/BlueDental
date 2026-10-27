@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login } from "./fixtures/auth";
-import { PAYMENTS_API, call, collectOnFirstLine, money, openNewSlip, type Receipt } from "./fixtures/ledgerReceipt";
+import { PAYMENTS_API, call, collectOnFirstLine, money, openNewSlip, settleReceipt, type Receipt } from "./fixtures/ledgerReceipt";
 
 /**
  * Bug list item 31 (QA, 2026-10-14): Báo cáo › Doanh số và lượt khách ›
@@ -26,7 +26,7 @@ interface ServiceLine {
 const pad = (n: number) => String(n).padStart(2, "0");
 const isoDay = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
-/** One more receipt (or refund) on the receipt's first line, through the real API. */
+/** One more receipt (or refund) on the receipt's first line, through the real API — a receipt paid (P2610), so it counts. */
 async function moveMoney(
   page: Page,
   receipt: Receipt,
@@ -51,6 +51,7 @@ async function moveMoney(
     },
   });
   expect(res.status, JSON.stringify(res.body)).toBe(200);
+  if (kind === 1) await settleReceipt(page, { id: String(res.body.id) });
 }
 
 test.beforeEach(async ({ page }) => {

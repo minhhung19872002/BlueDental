@@ -49,6 +49,8 @@ const DOCTOR_TEAM = 3;
 const PERCENTAGE = 2;
 const KIND = { Payment: 1, Prepaid: 3 } as const;
 const CASH = 1;
+/** PatientPaymentStatus "Chưa thanh toán" — how a Thanh toán receipt is written (P2610). */
+const PENDING = 1;
 const PAID = 100_000;
 /** Less than any run slip asks (at least 100 000), so bug 41's finished slip stays owed on. */
 const PART_PAID = 30_000;
@@ -257,13 +259,19 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
   }
 
   async function record(json: Record<string, unknown>) {
-    const receipt = await call<{ id: string }>(admin, PAYMENTS, {
+    const receipt = await call<{ id: string; status: number }>(admin, PAYMENTS, {
       method: "POST",
       branchId: BRANCH_ONE,
       json: { patientId, clinicBranchId: BRANCH_ONE, method: CASH, staffId: staff.head.id, ...json },
     });
     expect(receipt.status, JSON.stringify(receipt.body.error)).toBe(200);
     receipts.push(receipt.body.id);
+    // A receipt is written "Chưa thanh toán"; exported and ✓ it counts (P2610).
+    if (receipt.body.status !== PENDING) return;
+    for (const [step, method] of [["issue", "POST"], ["confirm", "PUT"]] as const) {
+      const moved = await call(admin, `${PAYMENTS}/${receipt.body.id}/${step}`, { method, branchId: BRANCH_ONE });
+      expect(moved.status, JSON.stringify(moved.body.error)).toBe(200);
+    }
   }
 
   test.beforeAll(async ({ browser }) => {
@@ -338,7 +346,7 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
   });
 
   test.afterAll(async () => {
-    for (const id of receipts) await call(admin, `${PAYMENTS}/${id}/cancel`, { method: "POST", branchId: BRANCH_ONE, json: { reason: "e2e cleanup" } });
+    for (const id of receipts) await call(admin, `${PAYMENTS}/${id}/cancel`, { method: "POST", branchId: BRANCH_ONE, json: { reasonCode: 4, reason: "e2e cleanup" } });
     for (const slip of [...Object.values(slips), ...Object.values(far), ...Object.values(aside)]) {
       await call(admin, `${PLANS}/${slip.id}`, { method: "DELETE", branchId: BRANCH_ONE });
     }

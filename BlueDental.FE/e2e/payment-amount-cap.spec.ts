@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { login } from "./fixtures/auth";
-import { answerYes, call, money, openNewSlip, PAYMENTS_API, type Receipt } from "./fixtures/ledgerReceipt";
+import { call, money, openNewSlip, PAYMENTS_API, saveAndSettle, type Receipt } from "./fixtures/ledgerReceipt";
 
 /**
  * Bug list item 24: Công nợ went negative because a receipt could collect
@@ -46,10 +46,9 @@ test("Tạo phiếu thanh toán never takes more than the ticked services owe", 
   await share.fill(String(due * 3));
   await expect.poll(async () => money(await share.inputValue())).toBe(due);
 
-  // "Lưu", then "Có": written "Hoàn tất" at once (owner 2026-10-13). Read back
-  // with a separate request: the receipt holds exactly what was owed.
-  await dialog.getByRole("button", { name: "Lưu" }).click();
-  const receipt = await answerYes(page, dialog);
+  // "Lưu", then exported and ✓ so it counts (P2610). Read back with a
+  // separate request: the receipt holds exactly what was owed.
+  const receipt = await saveAndSettle(page, dialog);
   const stored = await call(page, `${PAYMENTS_API}?patientId=${receipt.patientId}&maxResultCount=1000`);
   const items = (stored.body.items ?? []) as Receipt[];
   expect(items.find((item) => item.id === receipt.id)?.amount).toBe(due);

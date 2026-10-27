@@ -11,8 +11,8 @@ import { call, collectOnFirstLine, openNewSlip, PAYMENTS_API, type Receipt } fro
  * Real stack only: real login, a fresh slip and receipts through the real
  * dialogs, every call a real HTTP request into PostgreSQL, the public page
  * called from a context with no session at all. The receipts are written
- * "Hoàn tất" with "Xuất hóa đơn đỏ" ticked as they are made — a Hoàn tất
- * receipt is final (owner 2026-10-13, R-929) — and nothing here issues an
+ * "Đã thanh toán" with "Xuất hóa đơn đỏ" ticked as they are made — a paid
+ * receipt cannot be edited (P2610) — and nothing here issues an
  * e-invoice: the requests are keyed and closed by hand.
  */
 
@@ -277,10 +277,9 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
     }
   });
 
-  // R-929 (owner 2026-10-13): every new receipt is Hoàn tất and final, so Hủy
-  // phiếu — and with it R-915 — only reaches receipts written "Chưa thanh toán"
-  // before then, which the API can no longer make. Kept for when that changes.
-  test.fixme("R-915: Hủy phiếu cancels its open request and voids the QR; an issued one stays", async ({ page, baseURL }) => {
+  // P2610: a paid receipt is taken back with one of the fixed reasons, and that
+  // cancel still closes its open request and voids its QR (R-915).
+  test("R-915: Hủy phiếu cancels its open request and voids the QR; an issued one stays", async ({ page, baseURL }) => {
     await login(page);
     await openNewSlip(page);
     await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
@@ -308,7 +307,7 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
       expect((await call(page, `${REQUESTS}/${openId}/start`, { method: "POST" })).body.status).toBe(2);
 
       for (const receipt of [issuedOn, openOn]) {
-        const res = await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e R-915" } });
+        const res = await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reasonCode: 4, reason: "e2e R-915" } });
         expect(res.status, JSON.stringify(res.body)).toBeLessThan(300);
       }
 

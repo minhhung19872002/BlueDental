@@ -8,29 +8,36 @@ import {
   PAYMENT_STATUS,
   paymentMethodLabels,
   type PatientPaymentDto,
+  type PatientPaymentStatus,
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import { moneyText } from "../plan/planTypes";
 import { dash, paymentServiceNames } from "./planDetailTypes";
 
+/** The pill of a receipt that still stands, by its status (P2610). */
+const STATUS_PILLS: Record<Exclude<PatientPaymentStatus, typeof PAYMENT_STATUS.Cancelled>, { modifier: string; label: string }> = {
+  [PAYMENT_STATUS.Pending]: { modifier: "tp-pill--pending", label: "Treatment:Payment:Pending" },
+  [PAYMENT_STATUS.Issued]: { modifier: "tp-pill--issued", label: "Treatment:Payment:Issued" },
+  [PAYMENT_STATUS.Completed]: { modifier: "tp-pill--done", label: "Treatment:Payment:Completed" },
+};
+
 /**
- * A receipt is written "Chưa thanh toán" and reads "Hoàn tất" once confirmed
- * (BA 2026-10-08). A cancelled one reads "Đã hủy" with who, when and why (bug
- * list item 28).
+ * A receipt is written "Chưa thanh toán", locked as "Đã xuất phiếu thu" and
+ * reads "Đã thanh toán" once ✓ confirms it (P2610). A cancelled one reads
+ * "Phiếu bị hủy" with who, when and why (bug list item 28).
  */
 function StatusPill({ payment }: { payment: PatientPaymentDto }) {
-  if (!payment.isDeleted && payment.status === PAYMENT_STATUS.Pending) {
-    return <span className="tp-pill tp-pill--pending">{t("Treatment:Payment:Pending")}</span>;
+  if (!payment.isDeleted && payment.status !== PAYMENT_STATUS.Cancelled) {
+    const pill = STATUS_PILLS[payment.status];
+    return <span className={`tp-pill ${pill.modifier}`}>{t(pill.label)}</span>;
   }
-  if (!payment.isDeleted) {
-    return <span className="tp-pill tp-pill--done">{t("Treatment:Payment:Completed")}</span>;
-  }
+  const cancelledAt = payment.cancelledAt ?? payment.deletionTime;
   return (
     <span className="pdt-cancelled">
       <span className="tp-pill tp-pill--cancelled">{t("Treatment:Payment:Cancelled")}</span>
       <span className="pdt-cancelled-by">
-        {t("Treatment:Payment:CancelledBy", payment.cancelledByName ?? "-", formatDateTime(payment.deletionTime ?? ""))}
+        {t("Treatment:Payment:CancelledBy", payment.cancelledByName ?? "-", cancelledAt ? formatDateTime(cancelledAt) : "-")}
       </span>
       {payment.cancelReason && (
         <span className="pdt-cancelled-reason">{t("Treatment:Payment:CancelReasonShown", payment.cancelReason)}</span>
@@ -69,7 +76,7 @@ export interface PaymentRowActions {
   renderEInvoice?: (payment: PatientPaymentDto) => ReactNode;
 }
 
-/** "Hoàn tất", with the receipt's e-invoice underneath when one was filed. */
+/** The receipt's status pill, with its e-invoice underneath when one was filed. */
 function statusCell(payment: PatientPaymentDto, renderEInvoice?: (payment: PatientPaymentDto) => ReactNode) {
   return (
     <span className="pdt-status-cell">
@@ -80,15 +87,18 @@ function statusCell(payment: PatientPaymentDto, renderEInvoice?: (payment: Patie
 }
 
 /**
- * Which actions a receipt still offers. A cancelled one is only looked at. A
- * "Chưa thanh toán" one is confirmed, corrected or cancelled but not invoiced —
- * no money has come in yet. A "Hoàn tất" one is final: no edit, no cancel.
+ * Which actions a receipt still offers (P2610). A cancelled one is only looked
+ * at. A "Chưa thanh toán" one is corrected or cancelled but not invoiced — no
+ * money has come in yet. A "Đã xuất phiếu thu" one is locked and only waits on
+ * ✓. A "Đã thanh toán" one is final here; cancelling an exported or paid
+ * receipt belongs to the receipt's own cancel page.
  */
 export function actionsFor(payment: PatientPaymentDto, all: PaymentRowActions): PaymentRowActions {
-  if (payment.isDeleted) return { onView: all.onView };
+  if (payment.isDeleted || payment.status === PAYMENT_STATUS.Cancelled) return { onView: all.onView };
   if (payment.status === PAYMENT_STATUS.Pending) {
-    return { onView: all.onView, onConfirm: all.onConfirm, onEdit: all.onEdit, onCancel: all.onCancel };
+    return { onView: all.onView, onEdit: all.onEdit, onCancel: all.onCancel };
   }
+  if (payment.status === PAYMENT_STATUS.Issued) return { onView: all.onView, onConfirm: all.onConfirm };
   return {
     onView: all.onView,
     onIssueInvoice: all.onIssueInvoice,
@@ -186,8 +196,8 @@ export function buildPaymentColumns(
     { key: "amount", title: t("Treatment:Payment:Payment"), width: 112, align: "right", render: (_, p) => moneyText(p.amount) },
     { key: "method", title: t("Treatment:Payment:PaymentMethod"), width: 188, render: (_, p) => methods[p.method] },
     { key: "note", title: t("Treatment:Common:Note"), width: 160, render: (_, p) => dash(p.note) },
-    // The widest pill ("Chưa thanh toán"); a filed e-invoice widens it to fit.
-    { key: "status", title: t("Common:Status"), width: 140, render: (_, p) => statusCell(p, actions.renderEInvoice) },
+    // The widest pill ("Đã xuất phiếu thu"); a filed e-invoice widens it to fit.
+    { key: "status", title: t("Common:Status"), width: 152, render: (_, p) => statusCell(p, actions.renderEInvoice) },
     {
       key: "actions",
       title: t("Common:Actions"),

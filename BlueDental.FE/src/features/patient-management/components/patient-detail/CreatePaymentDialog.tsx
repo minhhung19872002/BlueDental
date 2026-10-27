@@ -1,15 +1,14 @@
 import { useMemo } from "react";
 import { Button, Modal } from "antd";
 import dayjs from "dayjs";
-import { CheckCircleOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined } from "@ant-design/icons";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { FileTextOutlined, InfoCircleOutlined, SaveOutlined } from "@ant-design/icons";
 import {
   PAYMENT_ACCOUNT_KIND,
   usePaymentAccountOptions,
   type PaymentAccountKindCode,
 } from "@/hooks/usePaymentAccountOptions";
 import { t } from "@/lib/i18n";
-import { formatDate, formatMoneyUnit } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 import {
   PAYMENT_METHOD,
   useTreatmentPlans,
@@ -39,25 +38,13 @@ interface Props {
   /** Dư nợ — money the clinic already holds for the patient. */
   heldForPatient: number;
   /**
-   * A "Chưa thanh toán" receipt reopened from its row: "edit" saves the
-   * dialog's figures, "confirm" saves them and settles the receipt (BA
-   * 2026-10-08). Left out, the dialog writes a new receipt.
+   * A "Chưa thanh toán" receipt reopened from its row to correct its figures.
+   * Left out, the dialog writes a new receipt.
    */
-  revision?: PaymentRevision | null;
+  revision?: PatientPaymentDto | null;
   onClose: () => void;
   onSaved: () => void;
 }
-
-export interface PaymentRevision {
-  payment: PatientPaymentDto;
-  action: "edit" | "confirm";
-}
-
-const TITLE_KEYS = {
-  create: "Patient:Payment:CreateTitle",
-  edit: "Treatment:Payment:EditPayment",
-  confirm: "Treatment:Payment:ConfirmPayment",
-} as const;
 
 /**
  * Ngân hàng and Ví momo collect into one of the clinic's accounts, and the
@@ -86,14 +73,13 @@ export function CreatePaymentDialog({
   onClose,
   onSaved,
 }: Props) {
-  const intent = revision?.action ?? "create";
   const plansQuery = useTreatmentPlans(open ? patientId : "", branchId);
   const slips = useMemo(() => plansQuery.data?.items ?? [], [plansQuery.data]);
   const payment = usePaymentForm({
     open,
     initialSlipId: plan?.id ?? null,
     focusServiceId,
-    revision: revision?.payment ?? null,
+    revision,
     slips,
     fallbackSlip: plan,
     heldForPatient,
@@ -108,8 +94,7 @@ export function CreatePaymentDialog({
   const submit = useSavePayment(payment, {
     patientId,
     branchId,
-    intent,
-    revision: revision?.payment ?? null,
+    revision,
     needsAccount: accountKind !== null,
     onSaved,
     onClose,
@@ -124,24 +109,24 @@ export function CreatePaymentDialog({
       // 1024px, measured off the reference's own dialog.
       width="min(1024px, calc(100vw - 48px))"
       className="pd-newpay-dialog"
-      title={t(TITLE_KEYS[intent])}
+      title={t(revision ? "Treatment:Payment:EditPayment" : "Patient:Payment:CreateTitle")}
       onCancel={onClose}
       destroyOnHidden
       footer={
         <div className="pd-newpay-footer">
           <p>
             <InfoCircleOutlined />{" "}
-            {/* A new receipt is "Hoàn tất" at once, and a Hoàn tất one is final. */}
+            {/* A new receipt is "Chưa thanh toán" and moves no money until it is paid. */}
             {t(revision ? "Patient:Payment:EditWarning" : "Patient:Payment:FinalWarning")}
           </p>
           <Button
             type="primary"
-            icon={intent === "confirm" ? <CheckCircleOutlined /> : <SaveOutlined />}
+            icon={<SaveOutlined />}
             loading={submit.pending}
             disabled={submit.pending}
             onClick={submit.request}
           >
-            {intent === "confirm" ? t("Treatment:Payment:ConfirmPayment") : t("Common:Save")}
+            {t("Common:Save")}
           </Button>
         </div>
       }
@@ -193,14 +178,6 @@ export function CreatePaymentDialog({
           accounts={accounts}
         />
       </div>
-      <ConfirmDialog
-        open={submit.confirming}
-        title={t("Treatment:Payment:ConfirmPayment")}
-        message={t("Patient:Payment:ConfirmCreate", formatMoneyUnit(payment.total))}
-        pending={submit.pending}
-        onConfirm={() => void submit.commit()}
-        onClose={submit.cancel}
-      />
     </Modal>
   );
 }

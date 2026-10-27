@@ -456,18 +456,25 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
     public Guid? PaymentAccountId { get; set; }
 
     /// <summary>
-    /// Set on a cancelled receipt ("Đã hủy"), listed only when asked for with
-    /// <see cref="GetPatientPaymentListInput.IncludeCancelled"/>; who and when
-    /// are <c>DeleterId</c> / <c>DeletionTime</c>.
+    /// Set on a cancelled receipt ("Phiếu bị hủy"), listed only when asked for
+    /// with <see cref="GetPatientPaymentListInput.IncludeCancelled"/>.
     /// </summary>
     public string? CancelReason { get; set; }
 
+    public PaymentCancelReason? CancelReasonCode { get; set; }
+
+    public DateTimeOffset? CancelledAt { get; set; }
+
     public string? CancelledByName { get; set; }
 
+    /// <summary>When it became "Đã xuất phiếu thu".</summary>
+    public DateTimeOffset? IssuedAt { get; set; }
+
     /// <summary>
-    /// Chưa thanh toán / Hoàn tất. A pending receipt is listed only when asked
-    /// for with <see cref="GetPatientPaymentListInput.IncludePending"/>; until
-    /// it is confirmed <see cref="PaidAt"/> is just when it was written.
+    /// Chưa thanh toán / Đã xuất phiếu thu / Đã thanh toán / Phiếu bị hủy. A
+    /// receipt not yet paid is listed only when asked for with
+    /// <see cref="GetPatientPaymentListInput.IncludePending"/>; until it is
+    /// confirmed <see cref="PaidAt"/> is just when it was written.
     /// </summary>
     public PatientPaymentStatus Status { get; set; }
 
@@ -475,9 +482,14 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
     public bool RedInvoiceRequested { get; set; }
 }
 
-/// <summary>"Hủy phiếu" — a receipt is cancelled with a reason (bug list item 28).</summary>
+/// <summary>
+/// "Hủy phiếu" — a receipt is cancelled with a description (bug list item 28);
+/// an exported or paid one also with one of the four fixed reasons (P2610).
+/// </summary>
 public class CancelPatientPaymentDto
 {
+    public PaymentCancelReason? ReasonCode { get; set; }
+
     [Required]
     [StringLength(500)]
     public string Reason { get; set; } = string.Empty;
@@ -693,7 +705,8 @@ public interface IPatientPaymentAppService : IApplicationService
     Task<PatientAccountDto> GetAccountAsync(Guid patientId, Guid? clinicBranchId = null);
     Task<PatientPaymentDto> RecordAsync(RecordPatientPaymentDto input);
     Task<PatientPaymentDto> UpdateAsync(Guid id, UpdatePatientPaymentDto input);
-    Task<PatientPaymentDto> ConfirmAsync(Guid id, UpdatePatientPaymentDto input);
+    Task<PatientPaymentDto> IssueAsync(Guid id);
+    Task<PatientPaymentDto> ConfirmAsync(Guid id);
     Task<PagedResultDto<DebtHistoryEntryDto>> GetDebtHistoryAsync(GetDebtHistoryInput input);
     Task CancelAsync(Guid id, CancelPatientPaymentDto input);
 }

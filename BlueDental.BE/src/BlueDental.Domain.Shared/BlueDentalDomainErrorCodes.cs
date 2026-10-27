@@ -358,11 +358,26 @@ public static class BlueDentalDomainErrorCodes
         /// <summary>A receipt is cancelled with a reason, never silently (bug list item 28).</summary>
         public const string PaymentCancelReasonRequired = "BlueDental:Billing:0095";
 
-        /// <summary>A "Hoàn tất" receipt is final: it cannot be edited, confirmed again or cancelled.</summary>
+        /// <summary>An exported or paid receipt is locked: it cannot be edited or confirmed again.</summary>
         public const string PaymentAlreadyCompleted = "BlueDental:Billing:0096";
 
-        /// <summary>A "Chưa thanh toán" receipt has no money behind it yet, so it cannot be e-invoiced.</summary>
+        /// <summary>A receipt not yet "Đã thanh toán" has no money behind it, so it cannot be e-invoiced.</summary>
         public const string PaymentNotCompleted = "BlueDental:Billing:0097";
+
+        /// <summary>✓ "Xác nhận thanh toán" only follows "Đã xuất phiếu thu" (P2610).</summary>
+        public const string PaymentNotIssued = "BlueDental:Billing:0098";
+
+        /// <summary>An exported or paid receipt is cancelled with one of the four fixed reasons.</summary>
+        public const string PaymentCancelReasonCodeRequired = "BlueDental:Billing:0099";
+
+        /// <summary>A cancelled receipt is final.</summary>
+        public const string PaymentAlreadyCancelled = "BlueDental:Billing:0100";
+
+        /// <summary>
+        /// A paid receipt whose money was partly refunded cannot be cancelled:
+        /// the service would read as having paid back more than it took.
+        /// </summary>
+        public const string PaymentCancelBelowRefunded = "BlueDental:Billing:0101";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

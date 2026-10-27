@@ -11199,3 +11199,45 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Yêu cầu** (2026-10-27, ảnh chụp bảng tìm kiếm Ctrl+K): "Thêm năm sinh sau tên nha". Mẫu: `Huỳnh Văn Định (2002)`.
 - **Sửa**: `GlobalSearch` hiện `Tên (YYYY)` ở dòng tên của mỗi kết quả. Năm lấy từ `dateOfBirth` mà `GET /patients` đã trả sẵn, nên không sửa BE. Hồ sơ chưa có ngày sinh chỉ hiện tên.
 - **E2E** `patient-search-unaccent.spec.ts` ca 2: dòng tên của kết quả kết thúc bằng `Hà My (1990)`. Chạy trên bản build production của `main` (`vite preview` :8091, API :5000): 2/2 **xanh**.
+
+## R-1044 (2026-10-27, mức 3: trạng thái phiếu thu) P2610 phase 2 — 4 trạng thái phiếu thu, ✓ xác nhận thanh toán trên tab Thanh toán
+
+- **Nguồn**: BA P2610 (`P2610.drawio`) + trả lời của owner 2026-10-27. Phase 2/7 của luồng ký / xuất phiếu thu (F-81). Phase 1 là R-1042.
+- **Owner chốt**:
+  1. Bấm Lưu thì ghi phiếu "Chưa thanh toán", không hỏi gì thêm. Còn lại chỉ giảm khi phiếu "Đã thanh toán". Điều này đảo lại R-929 (trước đây Lưu là ghi luôn Hoàn tất).
+  2. Nút ✓ chỉ hiện khi phiếu "Đã xuất phiếu thu". Bấm ✓ chuyển sang "Đã thanh toán".
+  3. Phiếu Đã xuất / Đã thanh toán huỷ bằng 1 trong 4 lý do cố định, kèm mô tả bắt buộc. Huỷ phiếu đã thanh toán thì Còn lại tăng lại.
+- **Sửa (BE)**:
+  - `PatientPaymentStatus`: Pending=1 (Chưa thanh toán), Completed=2 (Đã thanh toán), Issued=3 (Đã xuất phiếu thu), Cancelled=4 (Phiếu bị hủy). Thêm lý do huỷ (mã 1–4, 4 = Khác) và thời điểm huỷ.
+  - Migration `20261027032559_PaymentReceiptStatuses`.
+  - `PatientPayment.Issue / Confirm / Cancel` giữ các luật trạng thái:
+    - Confirm giữ nguyên Ngày thanh toán đã chọn (R-934) và ghi người bấm ✓ làm `StaffId`.
+    - Hoàn tiền và tiền giữ được ghi Completed và không đổi được nữa (0096).
+  - Mã lỗi mới: 0097 (chưa thanh toán, chưa lập HĐĐT được), 0098 (chưa xuất), 0099 (thiếu lý do huỷ), 0100 (đã huỷ).
+  - Endpoint:
+    - `POST patient-payments/{id}/issue` là **tạm**. Phase 4–5 (iPad ký + xuất PDF) sẽ thay nó.
+    - `PUT {id}/confirm`.
+    - `POST {id}/cancel` với `{reasonCode, reason}`.
+  - Huỷ vẫn xoá mềm như cũ. `CancelAsync` tìm qua `ISoftDelete`, nên huỷ lần 2 báo 0100 thay vì 404. Phiếu đã mất cùng phiếu điều trị thì vẫn trả 404.
+  - Filter `ISettleable`, sổ thu và mọi con số tiền chỉ tính phiếu Completed.
+  - Review trước commit: huỷ một phiếu đã thanh toán mà khoản hoàn tiền đã rút từ nó sẽ làm "đã thu" của dịch vụ âm. Thêm chặn bằng mã **0101** (`GuardRefundsStillCoveredAsync`), có kiểm ở cuối ca API của `payment-status`.
+  - Owner xác nhận 2026-10-27: Confirm giữ Ngày thanh toán đã chọn và ghi người bấm ✓ làm `StaffId`.
+- **Sửa (FE)**:
+  - Tab Thanh toán của phiếu điều trị có pill trạng thái và nút ✓ (`PaymentConfirmPrompt`).
+  - `CreatePaymentDialog` / `useSavePayment` ghi phiếu Chưa thanh toán.
+  - `paymentColumns.statusCell`: pill, kèm HĐĐT bên dưới nếu có.
+- **E2E**:
+  - Fixture `ledgerReceipt` có thêm `writeOnFirstLine` (Chưa thanh toán), `issueReceipt`, `settleReceipt`, `confirmOnRow`. `collectOnFirstLine` = ghi phiếu + xuất + xác nhận.
+  - `billing-ledger` ca 1: ghi phiếu → xuất → pill "Đã xuất phiếu thu" → bấm ✓ trên UI → pill "Đã thanh toán" → sổ thu có dòng đó mà không cần tải lại.
+  - Các spec huỷ phiếu gửi `reasonCode: 4`.
+  - `invoice-request-api` R-915 bật lại: huỷ phiếu đã thanh toán vẫn đóng yêu cầu xuất HĐ đang mở và vô hiệu QR.
+  - `report-service-paid` xác nhận phiếu trước khi đọc báo cáo.
+- **Kết quả**:
+  - BE: Application (Billing / EInvoicing / Printing) 45/45, Domain Billing 34/34, HttpApi.Host 24/24.
+  - E2E trên stack thật (API :5000, bản build production `vite preview` :8080, không chặn request): 16 spec, 69 ca. **67 xanh**. `payment-status` chạy riêng sau khi sửa: 5/5. Sau khi thêm chặn 0101: `payment-status`, `billing-ledger`, `invoice-request-api`, `payment-from-slip`, `report-service-paid` 15/15.
+  - 2 ca đỏ, đều **không** do thay đổi này:
+    - `qa-bugs-25-30:102`: đỏ sẵn do TEMP-BUG25-OFF.
+    - `vat-payment-einvoice-api:102`: spec chọn phiếu điều trị đang mở mới nhất (DT14). Phiếu này có giảm giá cấp phiếu 20.000, chia đều xuống các dòng, nên số tiền khác 900.000. Lỗi do dữ liệu và xảy ra trước bước thanh toán. Lượt chạy đầu của phiên này vẫn xanh.
+- **Chưa làm / lưu ý**:
+  - Chưa có đường UI tới "Đã xuất phiếu thu" (phase 4–5), nên **không deploy staging** cho tới hết phase 5.
+  - Lưu vẫn tự mở PDF PHIẾU THU cho tới phase 3.

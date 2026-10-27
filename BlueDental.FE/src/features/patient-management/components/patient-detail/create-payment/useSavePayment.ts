@@ -1,4 +1,3 @@
-import { useState } from "react";
 import dayjs from "dayjs";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -6,7 +5,6 @@ import { useRenderPaymentReceipt } from "@/features/treatment-management/api/eIn
 import {
   PAYMENT_KIND,
   SPLIT_MODE,
-  useConfirmPayment,
   useRecordPayment,
   useUpdatePayment,
   type PatientPaymentDto,
@@ -15,12 +13,9 @@ import { t } from "@/lib/i18n";
 import { openReceiptTab, showReceipt } from "@/lib/receiptTab";
 import type { PaymentForm } from "./usePaymentForm";
 
-export type PaymentIntent = "create" | "edit" | "confirm";
-
 interface Options {
   patientId: string;
   branchId: string;
-  intent: PaymentIntent;
   revision: PatientPaymentDto | null;
   /** Ngân hàng / Ví momo must name the account that took the money. */
   needsAccount: boolean;
@@ -48,19 +43,16 @@ function paidAtOf(paidOn: string): string {
 }
 
 /**
- * Lưu / Xác nhận thanh toán. A new receipt is written "Hoàn tất" and counts at
- * once, so the cashier confirms the amount first (owner 2026-10-13); then its
- * PHIẾU THU opens in a new tab (owner 2026-10-12). A reopened receipt saves
- * straight away.
+ * Lưu. A new receipt is written "Chưa thanh toán" and moves no money until it
+ * is exported and confirmed (P2610), so it saves without asking first; its
+ * PHIẾU THU opens in a new tab (owner 2026-10-12). A reopened one is corrected.
  */
 export function useSavePayment(payment: PaymentForm, options: Options) {
-  const { patientId, branchId, intent, revision, needsAccount, onSaved, onClose } = options;
+  const { patientId, branchId, revision, needsAccount, onSaved, onClose } = options;
   const staffId = useAuthStore((state) => state.user?.id) ?? "";
   const record = useRecordPayment();
   const update = useUpdatePayment();
-  const confirm = useConfirmPayment();
   const receipt = useRenderPaymentReceipt();
-  const [confirming, setConfirming] = useState(false);
 
   const figures = () => {
     const { form, chosen, shareOf, total } = payment;
@@ -84,14 +76,13 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
 
   const saveRevision = async (current: PatientPaymentDto) => {
     const { note, accountId } = payment.form;
-    const confirming = intent === "confirm";
-    await (confirming ? confirm : update).mutateAsync({
+    await update.mutateAsync({
       id: current.id,
       ...figures(),
       note: note.trim() || null,
       paymentAccountId: needsAccount ? (accountId ?? null) : null,
     });
-    toast.success(t(confirming ? "Treatment:Payment:ConfirmSuccess" : "Treatment:Payment:UpdateSuccess"));
+    toast.success(t("Treatment:Payment:UpdateSuccess"));
   };
 
   const saveNew = async (planId: string, tab: Window | null) => {
@@ -117,14 +108,18 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
       .catch(() => tab?.close());
   };
 
-  /** Writes the receipt; for a new one this is the "Có" of the confirmation. */
-  const commit = async () => {
+  /** Lưu: checks the form, then writes or corrects the receipt. */
+  const request = async () => {
+    const problem = blocker(payment, needsAccount);
+    if (problem) {
+      toast.error(t(problem));
+      return;
+    }
     // Opened inside the click, before any await, or the browser blocks it.
     const tab = revision || !payment.slip ? null : openReceiptTab();
     try {
       if (revision) await saveRevision(revision);
       else if (payment.slip) await saveNew(payment.slip.id, tab);
-      setConfirming(false);
       onSaved();
       onClose();
     } catch {
@@ -133,22 +128,8 @@ export function useSavePayment(payment: PaymentForm, options: Options) {
     }
   };
 
-  /** Lưu / Xác nhận thanh toán: a new receipt waits on the cashier's yes first. */
-  const request = () => {
-    const problem = blocker(payment, needsAccount);
-    if (problem) {
-      toast.error(t(problem));
-      return;
-    }
-    if (revision) void commit();
-    else setConfirming(true);
-  };
-
   return {
-    request,
-    commit,
-    confirming,
-    cancel: () => setConfirming(false),
-    pending: record.isPending || update.isPending || confirm.isPending,
+    request: () => void request(),
+    pending: record.isPending || update.isPending,
   };
 }

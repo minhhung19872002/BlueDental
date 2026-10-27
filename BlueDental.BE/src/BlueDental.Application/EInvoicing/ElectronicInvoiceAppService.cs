@@ -536,10 +536,10 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
 
             await _branchAccess.CheckAsync(payment.ClinicBranchId);
 
-            // A receipt still "Chưa thanh toán" has no money behind it: no
+            // A receipt not yet "Đã thanh toán" has no money behind it: no
             // e-invoice until it is confirmed (BA 2026-10-08). Its PHIẾU THU may
             // be printed, right after Lưu (owner 2026-10-12).
-            if (payment.IsPending && !allowPending)
+            if (!payment.IsCompleted && !allowPending)
             {
                 throw new BusinessException(BlueDentalDomainErrorCodes.Billing.PaymentNotCompleted);
             }

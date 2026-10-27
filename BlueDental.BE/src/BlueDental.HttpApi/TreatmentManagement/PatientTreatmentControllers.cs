@@ -105,9 +105,11 @@ public sealed class PatientPaymentController(IPatientPaymentAppService service)
     public Task<PatientPaymentDto> UpdateAsync(Guid id, [FromBody] UpdatePatientPaymentDto input) =>
         service.UpdateAsync(id, input);
 
+    [HttpPost("{id:guid}/issue")]
+    public Task<PatientPaymentDto> IssueAsync(Guid id) => service.IssueAsync(id);
+
     [HttpPut("{id:guid}/confirm")]
-    public Task<PatientPaymentDto> ConfirmAsync(Guid id, [FromBody] UpdatePatientPaymentDto input) =>
-        service.ConfirmAsync(id, input);
+    public Task<PatientPaymentDto> ConfirmAsync(Guid id) => service.ConfirmAsync(id);
 
     [HttpPost("{id:guid}/cancel")]
     public Task CancelAsync(Guid id, [FromBody] CancelPatientPaymentDto input) =>

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
-import { call } from "./fixtures/ledgerReceipt";
+import { call, RECEIPT_STATUS, settleReceipt } from "./fixtures/ledgerReceipt";
 
 /**
  * Bug list item 15 (2026-10-06): "[Báo giá / Kế hoạch điều trị] Không cộng VAT
@@ -133,22 +133,22 @@ test.describe("VAT của dịch vụ vào kế hoạch, phiếu thu và hóa đ�
     });
     expect(receipt.status, JSON.stringify(receipt.body)).toBe(200);
 
-    // Written "Hoàn tất" at once (owner 2026-10-13): it settles the line and can
-    // be billed straight away; there is nothing left to confirm. A confirm is
-    // still refused, though on this fully-paid line the cap check (0092) runs
-    // before the "already Hoàn tất" one; a cancel meets 0096 head-on.
-    expect(receipt.body.status).toBe(2);
+    // Written "Chưa thanh toán" (P2610): nothing counts until it is exported
+    // and ✓. Once paid it settles the line and can be billed; a second ✓ is
+    // refused as already paid, and a cancel needs one of the fixed reasons.
+    expect(receipt.body.status).toBe(RECEIPT_STATUS.Pending);
+    await settleReceipt(page, { id: receipt.body.id as string });
     const reConfirm = await call(page, `/api/v1/app/patient-payments/${receipt.body.id as string}/confirm`, {
       method: "PUT",
-      json: { treatmentServiceIds: [line.id], splitMode: 1, items: [], method: 1, amount: 972_000 },
     });
     expect(reConfirm.status, JSON.stringify(reConfirm.body)).toBe(403);
+    expect((reConfirm.body.error as { code: string }).code).toBe("BlueDental:Billing:0096");
     const taken = await call(page, `/api/v1/app/patient-payments/${receipt.body.id as string}/cancel`, {
       method: "POST",
       json: { reason: "e2e" },
     });
     expect(taken.status, JSON.stringify(taken.body)).toBe(403);
-    expect((taken.body.error as { code: string }).code).toBe("BlueDental:Billing:0096");
+    expect((taken.body.error as { code: string }).code).toBe("BlueDental:Billing:0099");
 
     const after = (await call(page, `/api/v1/app/patient-treatments/${slip.id}`)).body as unknown as Slip;
     const paidLine = after.services.find((s) => s.id === line.id)!;

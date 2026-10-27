@@ -61,21 +61,38 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     public const int MaxCancelReasonLength = 500;
 
     /// <summary>
-    /// Why the receipt was cancelled. A cancelled receipt is soft-deleted — so
-    /// no rollup, debt or report counts it — and keeps who cancelled it and
-    /// when in <c>DeleterId</c> / <c>DeletionTime</c>; the Thanh toán tab still
-    /// lists it as "Đã hủy" (bug list item 28).
+    /// Mô tả lý do hủy — what the canceller wrote. A cancelled receipt is
+    /// "Phiếu bị hủy" and is also soft-deleted, so no rollup, debt or report
+    /// counts it; the row itself stays (bug list item 28, P2610).
     /// </summary>
     public string? CancelReason { get; private set; }
 
     /// <summary>
-    /// "Chưa thanh toán" until the cashier confirms the money was taken, then
-    /// "Hoàn tất". Only a payment waits; a refund or money held for the patient
-    /// is written already settled. See <see cref="ISettleable"/>.
+    /// Which of the four fixed reasons; null on a receipt cancelled before the
+    /// cancel page existed, or one cancelled while still "Chưa thanh toán".
+    /// </summary>
+    public PaymentCancelReason? CancelReasonCode { get; private set; }
+
+    /// <summary>When it was cancelled — kept apart from when it was exported or paid.</summary>
+    public DateTimeOffset? CancelledAt { get; private set; }
+
+    public Guid? CancelledById { get; private set; }
+
+    /// <summary>When the accountant exported it ("Đã xuất phiếu thu").</summary>
+    public DateTimeOffset? IssuedAt { get; private set; }
+
+    public Guid? IssuedById { get; private set; }
+
+    /// <summary>
+    /// See <see cref="PatientPaymentStatus"/>. Only a payment goes through the
+    /// signing flow; a refund or money held for the patient is written already
+    /// settled. See <see cref="ISettleable"/>.
     /// </summary>
     public PatientPaymentStatus Status { get; private set; } = PatientPaymentStatus.Completed;
 
     public bool IsPending => Status == PatientPaymentStatus.Pending;
+
+    public bool IsCompleted => Status == PatientPaymentStatus.Completed;
 
     /// <summary>
     /// The patient asked for a red (VAT) invoice when the receipt was written
@@ -115,6 +132,14 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         PatientPaymentStatus status = PatientPaymentStatus.Completed)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
+
+        // Exported and cancelled are reached through Issue and Cancel, never written.
+        if (status is not (PatientPaymentStatus.Pending or PatientPaymentStatus.Completed))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidInvoiceTransition,
+                "A receipt is written unpaid or paid.");
+        }
 
         if (status == PatientPaymentStatus.Pending && kind != PatientPaymentKind.Payment)
         {
@@ -202,11 +227,22 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
 
     private void EnsurePending()
     {
+        EnsureNotCancelled();
         if (!IsPending)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted,
-                "A completed receipt is final.");
+                "An exported or paid receipt is locked.");
+        }
+    }
+
+    private void EnsureNotCancelled()
+    {
+        if (Status == PatientPaymentStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled,
+                "A cancelled receipt is final.");
         }
     }
 
@@ -322,14 +358,39 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     }
 
     /// <summary>
-    /// Records why the receipt is being cancelled; the caller then soft-deletes
-    /// it. A receipt with no reason is not cancelled (bug list item 28: one
-    /// vanished from the list with no reason and no trace).
+    /// "Phiếu bị hủy"; the caller then soft-deletes it so nothing counts it and
+    /// the debt comes back. A receipt with no description is not cancelled (bug
+    /// list item 28: one vanished from the list with no reason and no trace).
+    ///
+    /// An exported or paid payment is cancelled from the cancel page, which
+    /// also asks one of the four fixed reasons (P2610) — cancelling a paid one
+    /// raises Còn lại again. A receipt still "Chưa thanh toán" keeps the plain
+    /// reason of the Thanh toán tab. A refund or held money is final once written.
     /// </summary>
-    public PatientPayment Cancel(string? reason)
+    public PatientPayment Cancel(
+        PaymentCancelReason? reasonCode,
+        string? reason,
+        DateTimeOffset cancelledAt,
+        Guid? cancelledById)
     {
-        // BA 2026-10-08: a "Hoàn tất" receipt hides Sửa and Xoá — the money was taken.
-        EnsurePending();
+        EnsureNotCancelled();
+
+        if (!IsPending)
+        {
+            if (Kind != PatientPaymentKind.Payment)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted,
+                    "A refund or held money is final once written.");
+            }
+
+            if (reasonCode is null || !Enum.IsDefined(reasonCode.Value))
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Billing.PaymentCancelReasonCodeRequired,
+                    "An exported or paid receipt is cancelled with one of the fixed reasons.");
+            }
+        }
 
         if (string.IsNullOrWhiteSpace(reason))
         {
@@ -339,6 +400,25 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         }
 
         CancelReason = Check.Length(reason.Trim(), nameof(reason), MaxCancelReasonLength);
+        CancelReasonCode = reasonCode;
+        CancelledAt = cancelledAt;
+        CancelledById = cancelledById;
+        Status = PatientPaymentStatus.Cancelled;
+        return this;
+    }
+
+    /// <summary>
+    /// "Xuất phiếu thu": the customer has signed and the accountant has
+    /// checked it. From here nothing on the receipt changes; the money is
+    /// still not counted until ✓ <see cref="Confirm"/>.
+    /// </summary>
+    public PatientPayment Issue(DateTimeOffset issuedAt, Guid? accountantId)
+    {
+        EnsurePending();
+
+        IssuedAt = issuedAt;
+        IssuedById = accountantId;
+        Status = PatientPaymentStatus.Issued;
         return this;
     }
 
@@ -378,16 +458,29 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     }
 
     /// <summary>
-    /// "Xác nhận thanh toán": the money is in. From here the receipt counts
-    /// everywhere and is dated by when it was collected — revenue is reported
-    /// by this day, while <c>CreationTime</c> keeps when it was written.
+    /// ✓ "Xác nhận thanh toán" on an exported receipt: the money is in. From
+    /// here the receipt counts everywhere. It keeps the "Ngày thanh toán" picked
+    /// when it was written (R-934) — revenue is reported by that day, not by
+    /// when ✓ was pressed. The one who confirms is credited as the cashier.
     /// </summary>
-    public PatientPayment Confirm(DateTimeOffset collectedAt, Guid cashierId)
+    public PatientPayment Confirm(Guid cashierId)
     {
-        EnsurePending();
+        EnsureNotCancelled();
+        if (IsPending)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentNotIssued,
+                "A receipt is confirmed as paid only once it has been exported.");
+        }
+
+        if (Status != PatientPaymentStatus.Issued)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted,
+                "A paid receipt is final.");
+        }
 
         Status = PatientPaymentStatus.Completed;
-        PaidAt = collectedAt;
         StaffId = cashierId;
         return this;
     }
