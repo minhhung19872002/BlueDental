@@ -172,11 +172,15 @@ public class StaffAppService(
     {
         var needle = SearchTerms.Fold(term);
         var fullName = string.Join(" ", new[] { user.Surname, user.Name }.Where(x => !x.IsNullOrWhiteSpace()));
+        // The list shows "Name Surname" (StaffDto.FullName); the name as shown must
+        // find the row too — Ctrl+K "Nhân viên" opens the list with it (R-1053).
+        var shownName = string.Join(" ", new[] { user.Name, user.Surname }.Where(x => !x.IsNullOrWhiteSpace()));
 
         return Contains(user.UserName, needle)
             || Contains(user.Name, needle)
             || Contains(user.Surname, needle)
             || Contains(fullName, needle)
+            || Contains(shownName, needle)
             || Contains(user.Email, needle)
             || Contains(user.PhoneNumber, needle);
 

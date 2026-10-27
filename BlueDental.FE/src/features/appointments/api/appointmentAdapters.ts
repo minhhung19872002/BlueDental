@@ -183,6 +183,7 @@ export function toServerQuery(query: AppointmentListQuery): Record<string, unkno
     statuses: query.statuses?.length ? serverCodesOf(query.statuses) : undefined,
     sorting: query.newestFirst ? "Start desc" : undefined,
     filter: query.filter || undefined,
+    patientFilter: query.patientFilter || undefined,
     skipCount: query.skipCount,
     maxResultCount: query.maxResultCount,
   };

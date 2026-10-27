@@ -13,10 +13,11 @@ export const appointmentKeys = {
   detail: (id: string) => [...appointmentKeys.details(), id] as const,
 };
 
-export function useAppointmentList(params: AppointmentListQuery) {
+export function useAppointmentList(params: AppointmentListQuery, enabled = true) {
   return useQuery({
     queryKey: appointmentKeys.list(params),
     queryFn: () => appointmentApi.list(params),
+    enabled,
   });
 }
 

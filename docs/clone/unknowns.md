@@ -3161,3 +3161,16 @@ Action taken: NONE on the reference. This is a deliberate departure (R-1039):
 - "Đã hẹn tiếp" is not counted.
 - The calendar page's own "Chuyển đổi" chip follows the same rule. Owner, 2026-10-26: "đổi theo luôn". The owner also accepts that "Đã hẹn" and "Đã hẹn lại" sit side by side.
 The choices on cancelled and undated revisits are still to be confirmed by BA.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: Header — Global Search Modal (Ctrl+K)
+Control: the result list shown after typing 2+ characters
+Reason: Observing it means typing into the reference's search field. Results
+would also show real customers' names and phones, so the result format and
+where a hit leads were never observed.
+Action taken: NONE. BlueDental's own design (R-1053, owner 2026-10-27, "cách 1"):
+- One block per group (Bệnh nhân, Lịch hẹn, CSKH, Nhân viên), each with a count and at most 5 rows.
+- A Lịch hẹn row opens the patient's appointment tab.
+- The CSKH hint names only the customer, not "nội dung".
+See docs/clone/components.md § Global Search Modal.

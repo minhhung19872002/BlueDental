@@ -102,6 +102,8 @@ export interface AppointmentListQuery {
   newestFirst?: boolean;
   /** Free text over patient, dentist, reason and notes — matched server-side. */
   filter?: string;
+  /** The customer only — name, code or phone, Lịch tạm included (Ctrl+K, R-1053). */
+  patientFilter?: string;
   skipCount?: number;
   maxResultCount?: number;
 }

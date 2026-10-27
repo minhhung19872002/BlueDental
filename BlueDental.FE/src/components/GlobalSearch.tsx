@@ -1,52 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "antd";
-import {
-  CalendarOutlined,
-  HeartOutlined,
-  IdcardOutlined,
-  SearchOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
-import { usePatientList } from "@/features/patient-management/api/patientQueries";
+import { SearchOutlined } from "@ant-design/icons";
+import { SearchHints } from "@/components/global-search/SearchHints";
+import { SearchResults } from "@/components/global-search/SearchResults";
 import { useDebounce } from "@/hooks/useDebounce";
-import { brand } from "@/theme/index";
+import { useGlobalSearch } from "@/hooks/useGlobalSearch";
 import { t } from "@/lib/i18n";
-import { SelectLoading } from "@/components/SelectLoading";
-
-/** What the empty state offers before anything has been typed. */
-const searchCategories = () => [
-  {
-    icon: <UserOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Common:Patient"),
-    desc: t("Common:SearchPatientHint"),
-  },
-  {
-    icon: <CalendarOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Common:Appointment"),
-    desc: t("Common:SearchAppointmentHint"),
-  },
-  {
-    icon: <HeartOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Common:CSKH"),
-    desc: t("Common:SearchCSKHHint"),
-  },
-  {
-    icon: <IdcardOutlined style={{ fontSize: 18, color: brand.muted }} />,
-    title: t("Common:Staff"),
-    desc: t("Common:SearchStaffHint"),
-  },
-];
-
-/** Below this the server would be asked to match half the clinic. */
-const MIN_QUERY = 2;
-
-/**
- * "Huỳnh Văn Định (2002)" — the birth year tells same-name records apart
- * (owner 2026-10-27). `dateOfBirth` is "YYYY-MM-DD"; none recorded, name only.
- */
-const hitName = (fullName: string, dateOfBirth: string | null) =>
-  dateOfBirth ? `${fullName} (${dateOfBirth.slice(0, 4)})` : fullName;
+import type { SearchRow } from "@/utils/globalSearchRows";
 
 interface Props {
   open: boolean;
@@ -56,32 +17,47 @@ interface Props {
 /**
  * The Ctrl-K palette.
  *
- * The design shows a hit list — name, code, phone, service — that opens the
- * record. It searches patients, which is what the reference's own palette leads
- * with and the only entity whose list endpoint takes a free-text filter today.
- * The other three categories stay as guidance until their endpoints do too.
+ * Typing two characters searches Bệnh nhân, Lịch hẹn, CSKH and Nhân viên at
+ * once (R-1053); ↑/↓ walk every listed row across the groups and Enter opens
+ * the one reached. The reference's own result list could not be observed, so
+ * the grouping is BlueDental's (docs/clone/unknowns.md).
  */
 export function GlobalSearch({ open, onClose }: Props) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [activeKey, setActiveKey] = useState<string | null>(null);
   const debounced = useDebounce(query, 250);
+  const { enabled, groups, isFetching } = useGlobalSearch(debounced);
+
+  const rows = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
+  const activeIndex = rows.findIndex((row) => row.key === activeKey);
 
   // Reopening should not show the last search.
   useEffect(() => {
     if (open) setQuery("");
   }, [open]);
 
-  const enabled = debounced.trim().length >= MIN_QUERY;
-  const { data, isFetching } = usePatientList({
-    filter: enabled ? debounced.trim() : undefined,
-    maxResultCount: 8,
-  });
+  // A new result list starts on its first row.
+  useEffect(() => {
+    setActiveKey(rows[0]?.key ?? null);
+  }, [rows]);
 
-  const hits = enabled ? (data?.items ?? []) : [];
-
-  const openPatient = (id: string) => {
+  const openRow = (row: SearchRow) => {
     onClose();
-    navigate(`/patient/${id}`);
+    navigate(row.to);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (rows.length === 0) return;
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      const next = (Math.max(activeIndex, 0) + step + rows.length) % rows.length;
+      setActiveKey(rows[next].key);
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      openRow(rows[Math.max(activeIndex, 0)]);
+    }
   };
 
   if (!open) return null;
@@ -99,9 +75,7 @@ export function GlobalSearch({ open, onClose }: Props) {
             placeholder={t("Common:SearchGlobalPlaceholder")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            onPressEnter={() => {
-              if (hits.length > 0) openPatient(hits[0].id);
-            }}
+            onKeyDown={handleKeyDown}
             className="app-search-field"
           />
           <kbd className="app-search-esc" onClick={onClose}>
@@ -110,55 +84,16 @@ export function GlobalSearch({ open, onClose }: Props) {
         </div>
 
         {enabled ? (
-          <div className="app-search-results">
-            {isFetching && hits.length === 0 ? (
-              // Hits-high rows rather than a spinner the results then push open.
-              <SelectLoading rows={3} rowHeight={61} />
-            ) : hits.length === 0 ? (
-              <div className="app-search-hint">
-                {t("Common:NoResultsFor", debounced.trim())}
-              </div>
-            ) : (
-              hits.map((hit) => (
-                <div
-                  key={hit.id}
-                  role="button"
-                  tabIndex={0}
-                  className="app-search-hit"
-                  onClick={() => openPatient(hit.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      openPatient(hit.id);
-                    }
-                  }}
-                >
-                  <span className="app-search-hit-badge">{t("Common:PatientBadge")}</span>
-                  <span className="app-search-hit-text">
-                    <span className="app-search-hit-name">{hitName(hit.fullName, hit.dateOfBirth)}</span>
-                    <span className="app-search-hit-meta">
-                      {[hit.patientCode, hit.phoneNumber, hit.serviceNames[0]].filter(Boolean).join(" · ")}
-                    </span>
-                  </span>
-                  <span className="app-search-hit-arrow">→</span>
-                </div>
-              ))
-            )}
-          </div>
+          <SearchResults
+            term={debounced.trim()}
+            groups={groups}
+            loading={isFetching}
+            activeKey={activeKey}
+            onOpen={openRow}
+            onHover={(row) => setActiveKey(row.key)}
+          />
         ) : (
-          <div className="app-search-categories">
-            <div className="app-search-categories-title">{t("Common:SearchHints")}</div>
-            {searchCategories().map((cat) => (
-              <div key={cat.title} className="app-search-category-item">
-                <span className="app-search-category-icon">{cat.icon}</span>
-                <div className="app-search-category-text">
-                  <span className="app-search-category-name">{cat.title}</span>
-                  <span className="app-search-category-desc">{cat.desc}</span>
-                </div>
-              </div>
-            ))}
-            <div className="app-search-hint">{t("Common:MinCharsHint")}</div>
-          </div>
+          <SearchHints />
         )}
       </div>
     </div>

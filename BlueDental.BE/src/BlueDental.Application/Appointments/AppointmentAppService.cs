@@ -271,7 +271,35 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
                 || (a.IsTemporary && a.PatientName != null && DbText.Unaccent(a.PatientName.ToLower()).Contains(DbText.Unaccent(filter))));
         }
 
+        if (!skipTextSearch && !string.IsNullOrWhiteSpace(input.PatientFilter))
+        {
+            query = await WhereCustomerMatchesAsync(query, input.PatientFilter);
+        }
+
         return query;
+    }
+
+    /// <summary>
+    /// <see cref="GetAppointmentListInput.PatientFilter"/>. A masked account
+    /// ("Ẩn số điện thoại") finds a phone by the whole number only, as on the
+    /// CSKH board, so typing digit after digit cannot spell out the hidden part.
+    /// </summary>
+    private async Task<IQueryable<Appointment>> WhereCustomerMatchesAsync(
+        IQueryable<Appointment> query, string rawFilter)
+    {
+        var filter = Regex.Replace(rawFilter.Trim(), @"\s+", " ").ToLowerInvariant();
+        var wholePhone = await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().ShouldMaskAsync();
+
+        var patientIds = (await _patientRepository.GetQueryableAsync())
+            .Where(p => p.PatientCode.ToLower().Contains(filter)
+                || DbText.Unaccent((p.LastName + " " + p.FirstName).ToLower()).Contains(DbText.Unaccent(filter))
+                || (wholePhone ? p.Contact.PhoneNumber == filter : p.Contact.PhoneNumber.Contains(filter)))
+            .Select(p => p.Id);
+
+        return query.Where(a => patientIds.Contains(a.PatientId)
+            || (a.IsTemporary
+                && ((a.PatientName != null && DbText.Unaccent(a.PatientName.ToLower()).Contains(DbText.Unaccent(filter)))
+                    || (a.PatientPhone != null && (wholePhone ? a.PatientPhone == filter : a.PatientPhone.Contains(filter))))));
     }
 
     /// <summary>

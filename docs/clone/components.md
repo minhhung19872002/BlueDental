@@ -98,7 +98,29 @@ Triggered by: clicking the global search bar in the header, or pressing Ctrl+K.
 **Behavior:**
 - Minimum 2 characters required before search executes
 - Esc key or Esc button closes the modal
-- UNKNOWN_REFERENCE_BEHAVIOR: search result format, result click navigation
+- UNKNOWN_REFERENCE_BEHAVIOR: search result format, result click navigation (see docs/clone/unknowns.md)
+
+**BlueDental results (R-1053, owner 2026-10-27):**
+
+- From 2 characters, the four groups are searched at once. Groups appear in the
+  order Bệnh nhân → Lịch hẹn → CSKH → Nhân viên.
+- Each group has an uppercase title with its total count, then at most 5 rows.
+  A row has a badge (BN / LH / CS / NV), a name, a meta line and an arrow.
+- A group with no hits is hidden. All four empty shows "Không tìm thấy kết quả cho …".
+- ↑/↓ walk every row across the groups, Enter opens the selected one, and the
+  mouse moves the selection.
+- A group the account cannot read is never requested and never shown.
+
+| Group | Matches | Row opens |
+|---|---|---|
+| Bệnh nhân | name, code, phone | `/patient/:id` |
+| Lịch hẹn | the customer only (patient, or the Lịch tạm's own name/phone); from today on | `/patient/:id?tab=appointment`; `/calendar?date=` for an unlinked Lịch tạm or without patient.read |
+| CSKH | the customer's name, code, phone | `/patient/:id?tab=care` |
+| Nhân viên | name (either order), email, phone, user name | `/staff?q=<name>` |
+
+- The CSKH hint reads "Tìm theo tên, mã KH hoặc SĐT khách hàng" instead of the
+  reference's "Tìm theo khách hàng, nội dung", because BlueDental's CSKH filter
+  matches the customer only.
 
 ## Branch Selector Dropdown
 

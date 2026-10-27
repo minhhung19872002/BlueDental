@@ -26,6 +26,12 @@ export const LegacyPermissions = {
   BranchManager: {
     View: `${PERMISSION_GROUP}.BranchManager.View`,
   },
+  CustomerCare: {
+    View: `${PERMISSION_GROUP}.CustomerCare.View`,
+  },
+  Staff: {
+    View: `${PERMISSION_GROUP}.Staff.View`,
+  },
   SystemAdmin: {
     Users: `${PERMISSION_GROUP}.SystemAdmin.Users`,
     UsersCreate: `${PERMISSION_GROUP}.SystemAdmin.Users.Create`,
