@@ -6425,6 +6425,8 @@
     "Patient:Payment:NoVat": "Not subject to VAT",
     "Patient:Payment:PaidValue": "Paid: {0}",
     "Patient:Payment:OutstandingValue": "Owing {0}",
+    "Patient:Payment:OriginalPrice": "Original price:",
+    "Patient:Payment:DiscountedPrice": "After discount:",
     "Patient:Payment:SelectedTotal": "Total of the selected services",
     "Patient:Payment:DebtToPay": "Owing to pay",
     "Patient:Payment:AutoAmountHint": "Automatically the total owing on the selected services",

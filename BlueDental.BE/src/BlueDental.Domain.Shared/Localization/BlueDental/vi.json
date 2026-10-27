@@ -6425,6 +6425,8 @@
     "Patient:Payment:NoVat": "Không chịu thuế VAT",
     "Patient:Payment:PaidValue": "Đã thanh toán: {0}",
     "Patient:Payment:OutstandingValue": "Còn nợ {0}",
+    "Patient:Payment:OriginalPrice": "Giá gốc:",
+    "Patient:Payment:DiscountedPrice": "Giá sau giảm:",
     "Patient:Payment:SelectedTotal": "Tổng tiền dịch vụ đã chọn",
     "Patient:Payment:DebtToPay": "Còn nợ cần thanh toán",
     "Patient:Payment:AutoAmountHint": "Tự động bằng tổng còn nợ của các dịch vụ đã chọn",

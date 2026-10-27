@@ -32,6 +32,17 @@ export interface SelectedTotals {
 const owing = (line: TreatmentServiceDto) => line.outstandingAmount > 0;
 
 /**
+ * "Giá gốc" of a line: the service's price in Danh mục times the quantity,
+ * before the catalog's own discount or anything else is taken off (owner
+ * 2026-10-27). A service no longer priced there falls back to the line's own
+ * giá gốc, then to its price, as the server does.
+ */
+export function listAmount(line: TreatmentServiceDto): number {
+  const unit = line.catalogPrice || line.originalPrice || line.price;
+  return unit * line.quantity;
+}
+
+/**
  * Only lines that still owe something can be paid; a settled one has nothing
  * for the dialog to collect. A receipt being reopened keeps its own lines in
  * view even when another receipt has since settled them, so they can be unticked.

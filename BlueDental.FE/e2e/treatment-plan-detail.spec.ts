@@ -1022,7 +1022,15 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
           planDiscountAmount: number;
           totalDiscountAmount: number;
           totalAmount: number;
-          services: { chargedAmount: number; outstandingAmount: number }[];
+          services: {
+            chargedAmount: number;
+            outstandingAmount: number;
+            serviceId: string;
+            catalogPrice: number | null;
+            originalPrice: number;
+            price: number;
+            quantity: number;
+          }[];
         };
         const after = (await res.json()) as Slip;
 
@@ -1052,7 +1060,15 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
           }),
         });
         const withLine = (await added.json()) as Slip;
-        return { ok: res.ok && added.ok, gross: plan.servicesTotal, discount, after, withLine, linePrice };
+        return {
+          ok: res.ok && added.ok,
+          gross: plan.servicesTotal,
+          discount,
+          after,
+          withLine,
+          linePrice,
+          lineServiceId: service.id,
+        };
       },
       { planId, plans: PLANS_API },
     );
@@ -1092,6 +1108,18 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
         .poll(async () => money(await line.locator(".pd-newpay-due").innerText()))
         .toBe(charged);
       expect(money(await line.locator("b").innerText())).toBe(charged);
+
+      // Giá gốc over Giá sau giảm (owner 2026-10-27): the service's price in
+      // Danh mục, before anything is taken off, then what the line is charged.
+      const { serviceId, catalogPrice, originalPrice, price, quantity } = slip.services[index];
+      if (serviceId === figures.lineServiceId) expect(catalogPrice).toBe(figures.linePrice);
+      const listed = (catalogPrice || originalPrice || price) * quantity;
+      const prices = line.locator(".pd-newpay-price");
+      await expect(prices.nth(0)).toContainText("Giá gốc:");
+      expect(money(await prices.nth(0).innerText())).toBe(listed);
+      await expect(prices.nth(1)).toContainText("Giá sau giảm:");
+      expect(money(await prices.nth(1).innerText())).toBe(charged);
+      expect(listed).toBeGreaterThan(charged);
     }
     await dialog.locator(".pd-newpay-head--split input[type=checkbox]").check();
     const box = dialog.locator("input.pd-newpay-amount");

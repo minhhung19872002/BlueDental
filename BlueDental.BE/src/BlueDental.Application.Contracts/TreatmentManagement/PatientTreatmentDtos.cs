@@ -56,6 +56,13 @@ public class TreatmentServiceDto : EntityDto<Guid>
 
     /// <summary>"Giá gốc" — what the plan table's Đơn giá prints; the ceiling for <see cref="Price"/>.</summary>
     public decimal OriginalPrice { get; set; }
+
+    /// <summary>
+    /// The service's price in Danh mục as it stands now, before the catalog's own
+    /// discount — the "Giá gốc" Tạo phiếu thanh toán prints (owner 2026-10-27).
+    /// Null when the catalog row is gone or carries no price.
+    /// </summary>
+    public decimal? CatalogPrice { get; set; }
     public decimal Price { get; set; }
     public int Quantity { get; set; }
     public DiscountType DiscountType { get; set; }

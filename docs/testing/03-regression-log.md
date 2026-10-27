@@ -11268,3 +11268,35 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **E2E** (`patient-medical-record.spec.ts`, stack thật, dev :5173, `--headed` vì máy không tải được chromium-headless-shell):
   - "every form draws the whole of its printed original" → **pass** (mẫu 6 vẫn 49 ô, 26 checkbox, 2 trang).
   - "every form shares mẫu 5's type, boxes, letterhead and print rules": mẫu 6 qua đủ các bước (cỡ chữ 16px, nhãn hiệu đậm, **in vẫn đủ 2 trang** dù header cao thêm). Ca này vẫn **đỏ ở mẫu 7** "Phiếu phẫu thuật/thủ thuật · printed pages" (mong 1, ra 2). Đỏ này **có từ trước**: stash thay đổi rồi chạy lại trên code gốc vẫn đỏ y hệt. Chưa sửa, cần xem riêng.
+
+
+## R-1045 (2026-10-27, mức 2: thanh toán + API phiếu điều trị) Tạo phiếu thanh toán: dịch vụ hiện cả Giá gốc (giá danh mục) và Giá sau giảm
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**:
+  - "Hiển thị thông tin giá gốc, giá sau khi giảm" trên từng dịch vụ ở dialog "Tạo phiếu thanh toán". Mock: "Giá gốc: 20.000.000 đ / Giá sau giảm: 10.000.000 đ".
+  - Sau đó: "chỗ giá gốc này thì hiển thị giá ở master data". Ví dụ DT08, Cấy ghép Implant: danh mục 18.000.000 nhưng bản đầu in 16.200.000.
+- **Trước đó**: thẻ dịch vụ chỉ in một con số, `chargedAmount` (đã trừ giảm dòng, giảm phiếu và voucher, chưa VAT), không ghi nhãn.
+- **Vì sao bản đầu in 16.200.000**:
+  - Danh mục có Price 18.000.000 kèm giảm 10% (`serviceConfig.priceAfterDiscount` 16.200.000).
+  - Khi lên phiếu, dòng lưu giá sau giảm của danh mục vào `originalPrice`.
+  - Vì vậy `originalPrice` không phải giá ở master data.
+- **BE**:
+  - `TreatmentServiceDto.CatalogPrice` (decimal?) = `CatalogEntry.Price` hiện tại của dịch vụ, trước giảm giá của danh mục. Null khi danh mục đã xoá hoặc không có giá.
+  - Lấy từ `catalogRows` sẵn có trong `PatientTreatmentAppService`, không thêm query.
+  - Đây là giá **hiện tại**, không chụp lại lúc lên phiếu: đổi giá ở Danh mục thì "Giá gốc" ở dialog đổi theo.
+- **FE (chỉ dialog Tạo phiếu thanh toán)**:
+  - `PaymentServiceList.tsx`: cột tiền của thẻ có 3 dòng: "Giá gốc: …", "Giá sau giảm: **…**", rồi chip "Còn nợ". Số tiền sau giảm vẫn là thẻ `<b>` duy nhất của thẻ dịch vụ (các e2e cũ đọc `line.locator("b")`).
+  - `paymentDialogModel.ts`: `listAmount(line)` = (`catalogPrice` || `originalPrice` || `price`) × số lượng.
+  - `treatmentPlanApi.ts`: thêm `catalogPrice: number | null`. `treatmentRows.ts` (dòng phiếu chẩn đoán) đặt null.
+  - i18n: `Patient:Payment:OriginalPrice` ("Giá gốc:" / "Original price:") và `Patient:Payment:DiscountedPrice` ("Giá sau giảm:" / "After discount:").
+  - CSS `.pd-newpay-price`: nhãn màu nhạt 12px, số tiền sau giảm đậm 14px như cũ.
+  - Dịch vụ không giảm giá vẫn hiện đủ hai dòng (theo mock).
+- **Chạy thật (dev :5173, BE :5000, DB dev)**: DT08, Cấy ghép Implant SL 1 → "Giá gốc: 18.000.000 đ · Giá sau giảm: 16.000.000 đ · Còn nợ 16.000.000 đ". Đúng giá danh mục.
+- **E2E** (stack thật, `--headed` vì máy không tải được chromium-headless-shell):
+  - `treatment-plan-detail.spec` "a discounted slip is collected at its after-discount price…" → **pass**. Đã thêm 3 kiểm tra:
+    - API trả `catalogPrice` = giá danh mục cho dòng test tự thêm.
+    - Mỗi dòng in "Giá gốc:" = giá danh mục × SL và "Giá sau giảm:" = `chargedAmount`.
+    - Giá gốc > giá sau giảm.
+  - `payment-from-slip.spec` "In Hóa Đơn → Tạo phiếu thanh toán…" → **pass**.
+  - `tsc -b` và `oxlint` không báo lỗi. BE build qua (chạy `dotnet run`).
+

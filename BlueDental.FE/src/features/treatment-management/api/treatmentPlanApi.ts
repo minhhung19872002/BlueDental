@@ -212,6 +212,11 @@ export interface TreatmentServiceDto {
   code: string;
   /** "Giá gốc" — what Đơn giá prints, and the ceiling for `price` (Treatment:0040). */
   originalPrice: number;
+  /**
+   * The service's price in Danh mục now, before the catalog's own discount —
+   * "Giá gốc" on Tạo phiếu thanh toán. Null when the catalog row is gone or unpriced.
+   */
+  catalogPrice: number | null;
   price: number;
   quantity: number;
   discountType: DiscountType;
