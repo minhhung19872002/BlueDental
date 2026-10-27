@@ -11317,3 +11317,22 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Môi trường chạy: bản build production của `main` (`vite preview` :8151), host riêng :5120 chạy code `main`, DB riêng `BlueDental_zalofix` có bệnh nhân giả.
   - Hồi quy: `appointment-day-timeline`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-mini-cal-date`, `reception-temporary`, `reception-temp-cancel` cho 20 xanh, 1 skip, 1 đỏ.
   - Ca đỏ là "a mouse drag scrolls the board sideways". Ca này cần đủ cột bác sĩ để bảng tràn ngang ở độ rộng 1000px, mà DB riêng chỉ có bác sĩ của lượt chạy. Lỗi do dữ liệu, không liên quan form Lịch tạm.
+
+## R-1047 (2026-10-27, mức 2: Tiếp nhận) Tab "Chờ khám" thành "Đã đến", chỉ lọc lượt đã đến
+
+- **Yêu cầu** (chủ phòng khám, ngày 27/10): "lọc đã đến", "bỏ cái đã hẹn ra". Trước đây tab thứ 2 ở Tiếp nhận tên "Chờ khám" và lọc cả lịch Đã hẹn chưa đến (kể cả lịch trễ giờ) lẫn lượt đã check-in.
+- **Đã sửa**:
+  - Đổi tên tab thành **"Đã đến"** (bản tiếng Anh "Arrived"), qua key `Reception:TabWaiting`.
+  - Tab chỉ lọc lượt có trạng thái `CheckedIn`, tức đã đến nhưng chưa vào khám. Số đếm của tab bằng `stats.checkedIn`.
+  - Khi chuyển sang Đang khám, lượt đó rời tab này và sang tab Đang khám.
+- **Giữ nguyên**: chip "Đã đến" vẫn đếm cả đang khám và hoàn thành. Chủ phòng khám chọn giữ quy tắc của bug 17 (ngày 06/10): các chip cộng lại phải bằng Tất cả. Vì vậy số trên tab có thể khác số trên chip. Tab Đã đến + Đang khám + Hoàn thành bằng chip Đã đến.
+- **Code**: `receptionApi.ts` (`TAB_STATUSES`, `waitingCount`), vi/en.json. Chỉ sửa FE, BE chỉ đổi file chuỗi hiển thị, không có migration.
+- **Test**:
+  - E2E mới `reception-arrived-tab.spec.ts`: một lượt chưa đến không có trong tab; sau khi check-in thì có; sau khi chuyển Đang khám thì rời tab. **Xanh**.
+  - Sửa `reception.spec.ts`:
+    - Tạo tiếp nhận làm tăng Tất cả nhưng không tăng Đã đến.
+    - Tab hiện `Đã đến (checkedIn)`.
+    - Cả 2 ca **xanh**.
+  - Hồi quy: `reception-live-late` 3/3 **xanh** (chip vẫn cộng lại bằng Tất cả). Vitest reception 3/3 xanh.
+  - `reception-restore-arrived` đỏ 4 ca. Cả 4 hỏng ở bước đặt lịch của fixture `bookVisitToday` ("every dentist was booked") vì DB riêng không có bác sĩ, trước khi chạm tới code đã sửa.
+  - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.
