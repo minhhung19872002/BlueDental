@@ -58,7 +58,6 @@ export function useAppointmentSeriesDialog({ open, editing, booking }: Options) 
         ...slotOf(data),
         reason: data.content || undefined,
         color: data.color || undefined,
-        notes: data.notes || undefined,
         recurrence: toRecurrenceRequest(recurrence.values),
         allowDentistOverlap,
       });

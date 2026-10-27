@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { Modal, Button, Form } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { DentistOverlapDialog } from "@/components/DentistOverlapDialog";
-import { NotesPanel } from "@/components/NotesPanel";
 import { useCreateReception } from "../api/receptionMutations";
 import { useAvailableReceptionDoctors } from "../api/receptionQueries";
 import { useDentistOverlapConfirm } from "@/hooks/useDentistOverlapConfirm";
@@ -30,8 +29,6 @@ interface FormValues {
   durationMinutes: number;
   /** Nội dung đặt lịch. */
   content?: string;
-  /** Ghi chú — the right-hand card, as on the booking dialog (R-1037). */
-  notes?: string;
 }
 
 export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
@@ -117,7 +114,6 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       doctorId: data.doctorId ?? "",
       refType: "Self" as RefType,
       content: data.content,
-      notes: data.notes || undefined,
       services: [t("Reception:DefaultService")],
       scheduledAt,
       estimatedDurationMinutes: data.durationMinutes,
@@ -156,7 +152,7 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
       open={open}
       onCancel={handleClose}
       footer={null}
-      width={1000}
+      width={772}
       centered
       destroyOnHidden
       styles={{
@@ -173,19 +169,14 @@ export const ReceptionNewDrawer: React.FC<ReceptionNewDrawerProps> = ({
           durationMinutes: 15,
         }}
       >
-        <div className="rn-layout">
-          <ReceptionNewFields
-            patientPicker={patientPicker}
-            patientOptions={patientOptions}
-            doctorOptions={doctorOptions}
-            selectedPhone={selectedPhone}
-            onPatientChange={handlePatientChange}
-            onCreatePatient={() => setNewPatientOpen(true)}
-          />
-          <Form.Item name="notes" noStyle>
-            <NotesPanel />
-          </Form.Item>
-        </div>
+        <ReceptionNewFields
+          patientPicker={patientPicker}
+          patientOptions={patientOptions}
+          doctorOptions={doctorOptions}
+          selectedPhone={selectedPhone}
+          onPatientChange={handlePatientChange}
+          onCreatePatient={() => setNewPatientOpen(true)}
+        />
 
         {/* Footer */}
         <div className="rn-footer">

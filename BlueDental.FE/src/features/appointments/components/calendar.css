@@ -1570,7 +1570,7 @@ body.cal-fullscreen .cal-grid-wrap {
 
 /* ── Status field ────────────────────────────────────────────────────── */
 
-/* Trạng thái — sits above the Ghi chú card (NotesPanel), in the edit dialog only. */
+/* Trạng thái — sits above Nội dung đặt lịch, in the edit dialog only. */
 .appt-status-select {
   width: 100%;
 }

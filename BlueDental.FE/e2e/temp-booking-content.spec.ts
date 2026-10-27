@@ -8,6 +8,10 @@ import { call, clinicToday } from "./fixtures/timekeepingStaff";
  * chiefComplaint, shows on view Ngày like any booking's content, and an edit
  * keeps it — before, saving the edit dialog wiped it.
  *
+ * R-1055 (owner 2026-10-27): the right column's read-only Ngày hẹn echo and
+ * Ghi chú are gone; Nội dung đặt lịch moved there, under Chi nhánh. A booking
+ * saved earlier with a Ghi chú keeps it through an edit.
+ *
  * Real stack: the walk-in is booked through the dialog and the API, read back
  * from the server after a reload. Nothing is intercepted.
  */
@@ -18,6 +22,7 @@ interface Booking {
   id: string;
   patientName: string;
   chiefComplaint: string | null;
+  notes: string | null;
   isTemporary: boolean;
 }
 
@@ -86,7 +91,7 @@ test.describe("Lịch tạm — Nội dung đặt lịch", () => {
     return res.body.items.filter((b) => b.patientName === name);
   }
 
-  test("Tạo lịch tạm saves Nội dung đặt lịch, under Chọn bác sĩ, and view Ngày shows it", async ({ page }) => {
+  test("Tạo lịch tạm saves Nội dung đặt lịch, under Chi nhánh, and view Ngày shows it", async ({ page }) => {
     const day = farDay();
     const name = `E2E TAM ND ${runId()}`;
     const content = `Nhổ răng khôn ${runId()}`;
@@ -95,12 +100,19 @@ test.describe("Lịch tạm — Nội dung đặt lịch", () => {
     const dialog = page.getByRole("dialog", { name: "Tạo lịch tạm" });
     const field = dialog.getByPlaceholder("Nội dung đặt lịch");
     await expect(field).toHaveValue("");
-    // Where Tạo lịch hẹn has it: straight under Chọn bác sĩ.
-    const doctor = await dialog.locator(".appt-field").filter({ hasText: /^Chọn bác sĩ/ }).boundingBox();
+    // R-1055: in the right column, labelled, straight under Chi nhánh — where Ngày hẹn's echo was.
+    // `has` takes a locator rooted at the page, not one chained from `dialog`.
+    const contentField = dialog.locator(".appt-field").filter({ has: page.getByPlaceholder("Nội dung đặt lịch") });
+    await expect(contentField.locator(".appt-field-label")).toHaveText("Nội dung đặt lịch");
+    const branch = await dialog.locator(".appt-field").filter({ hasText: /^Chi nhánh/ }).boundingBox();
     const box = await field.boundingBox();
-    if (!doctor || !box) throw new Error("Chọn bác sĩ or Nội dung đặt lịch is not on screen");
-    expect(Math.abs(box.x - doctor.x)).toBeLessThan(2);
-    expect(box.y).toBeGreaterThan(doctor.y + doctor.height - 1);
+    if (!branch || !box) throw new Error("Chi nhánh or Nội dung đặt lịch is not on screen");
+    expect(Math.abs(box.x - branch.x)).toBeLessThan(2);
+    expect(box.y).toBeGreaterThan(branch.y + branch.height - 1);
+    // One Ngày hẹn (the picker on the left), and no Ghi chú at all.
+    await expect(dialog.locator(".appt-field").filter({ hasText: /^Ngày hẹn/ })).toHaveCount(1);
+    await expect(dialog.getByPlaceholder("Ghi chú")).toHaveCount(0);
+    await expect(dialog.getByText("Ghi chú", { exact: true })).toHaveCount(0);
 
     await dialog.getByPlaceholder("Họ tên bệnh nhân").fill(name);
     await typeDate(dialog, day);
@@ -126,14 +138,16 @@ test.describe("Lịch tạm — Nội dung đặt lịch", () => {
     await expect(block.locator(".dtl-block-note")).toHaveText(content);
   });
 
-  test("Chỉnh sửa lịch tạm shows Nội dung đặt lịch, saves a change, and keeps it when only another field changes", async ({ page }) => {
+  test("Chỉnh sửa lịch tạm shows Nội dung đặt lịch, saves a change, and keeps it and an old Ghi chú when only the colour changes", async ({ page }) => {
     const day = farDay();
     const name = `E2E TAM SUA ${runId()}`;
     const content = `Tư vấn niềng ${runId()}`;
+    // Saved before R-1055, when the dialog still had Ghi chú.
+    const oldNote = `ghi chú cũ ${runId()}`;
     const res = await call<Booking>(page, `${APPOINTMENTS}/temp`, {
       method: "POST",
       branchId,
-      json: { patientName: name, branchId, slotStart: at(day, "10:00"), slotEnd: at(day, "10:30"), chiefComplaint: content },
+      json: { patientName: name, branchId, slotStart: at(day, "10:00"), slotEnd: at(day, "10:30"), chiefComplaint: content, notes: oldNote },
     });
     expect(res.status, JSON.stringify(res.body)).toBe(200);
     bookings.push(res.body.id);
@@ -146,13 +160,16 @@ test.describe("Lịch tạm — Nội dung đặt lịch", () => {
     // The form is reset once the booking arrives; type only after that.
     await expect(field).toHaveValue(content);
 
-    // Only Ghi chú changes: the content must survive the save.
-    await edit.getByPlaceholder("Ghi chú").fill(`ghi chú ${runId()}`);
+    // No Ghi chú to edit. Only the colour changes: content and the old note must survive the save.
+    await expect(edit.getByPlaceholder("Ghi chú")).toHaveCount(0);
+    await edit.locator(".appt-color-swatch:not(.appt-color-swatch--selected)").first().click();
     let put = page.waitForResponse((r) => r.url().includes(APPOINTMENTS) && r.request().method() === "PUT");
     await edit.getByRole("button", { name: "Lưu" }).click();
     expect((await put).ok()).toBeTruthy();
     await expect(edit).toBeHidden();
-    expect((await walkInsOn(page, day, name))[0].chiefComplaint).toBe(content);
+    const [kept] = await walkInsOn(page, day, name);
+    expect(kept.chiefComplaint).toBe(content);
+    expect(kept.notes).toBe(oldNote);
 
     // Changed: saved, shown on the board, and still there after a reload.
     const updated = `Đã sửa ${runId()}`;

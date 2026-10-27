@@ -22,7 +22,8 @@ interface ReceptionNewFieldsProps {
   onCreatePatient: () => void;
 }
 
-/** Tạo tiếp nhận's left column: who, with whom, when and what for. */
+/** Tạo tiếp nhận's fields: who, with whom, when and what for. Ghi chú is gone,
+ * as on the booking dialogs — one text, the content (BA, R-1055). */
 export function ReceptionNewFields({
   patientPicker,
   patientOptions,

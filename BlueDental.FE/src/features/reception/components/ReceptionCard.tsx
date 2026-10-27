@@ -283,7 +283,8 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                 )}
                 <div className="rc-detail-row">
                   <FileText size={18} className="rc-icon-top" aria-hidden />
-                  <span className="rc-detail-text rc-detail-notes">{item.notes || "-"}</span>
+                  {/* Nội dung đặt lịch; an older visit with none shows its Ghi chú (R-1055). */}
+                  <span className="rc-detail-text rc-detail-notes">{item.services[0] || item.notes || "-"}</span>
                 </div>
               </div>
             </div>
