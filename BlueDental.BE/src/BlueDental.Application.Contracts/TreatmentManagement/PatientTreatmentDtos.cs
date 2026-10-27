@@ -510,6 +510,12 @@ public class PaymentReceiptDto
     public string? CancelReason { get; set; }
     public PaymentCancelReason? CancelReasonCode { get; set; }
 
+    /// <summary>Ký số / Không ký số, once exported.</summary>
+    public ReceiptSignMode? SignMode { get; set; }
+
+    /// <summary>The exported PDF is stored: "In phiếu thu" prints that file.</summary>
+    public bool HasFile { get; set; }
+
     public PaymentReceiptContentDto Content { get; set; } = new();
 }
 
@@ -548,6 +554,17 @@ public class CancelPatientPaymentDto
     [Required]
     [StringLength(500)]
     public string Reason { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// "Xuất phiếu thu" (P2610): the accountant picks Ký số or Không ký số; the
+/// BA sets no default, so the field is required.
+/// </summary>
+public class ExportPatientPaymentDto
+{
+    [Required]
+    [EnumDataType(typeof(ReceiptSignMode))]
+    public ReceiptSignMode? SignMode { get; set; }
 }
 
 /// <summary>
@@ -760,9 +777,10 @@ public interface IPatientPaymentAppService : IApplicationService
     Task<PatientAccountDto> GetAccountAsync(Guid patientId, Guid? clinicBranchId = null);
     Task<PatientPaymentDto> RecordAsync(RecordPatientPaymentDto input);
     Task<PatientPaymentDto> UpdateAsync(Guid id, UpdatePatientPaymentDto input);
-    Task<PatientPaymentDto> IssueAsync(Guid id);
+    Task<PatientPaymentDto> ExportAsync(Guid id, ExportPatientPaymentDto input);
     Task<PatientPaymentDto> ConfirmAsync(Guid id);
     Task<PaymentReceiptDto> GetReceiptAsync(Guid id);
+    Task<byte[]> GetReceiptFileAsync(Guid id);
     Task<PagedResultDto<DebtHistoryEntryDto>> GetDebtHistoryAsync(GetDebtHistoryInput input);
     Task CancelAsync(Guid id, CancelPatientPaymentDto input);
 }

@@ -11364,3 +11364,33 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chi nhánh có iPad đang ghép và rảnh thì mọi phiếu mới tự lên iPad: không chạy `receipt-ipad` song song với spec tiền khác.
   - Giả định chưa có xác nhận: `docs/clone/unknowns.md` → P2610 phase 4.
   - Vẫn **không deploy staging** cho tới hết phase 5.
+
+## R-1049 (2026-10-27, mức 3: phiếu thu + mọi spec tiền) P2610 phase 5 — kế toán kiểm tra & xuất phiếu thu
+
+- **Nguồn**: BA P2610 (`P2610.drawio`), bước "Kế toán kiểm tra & xuất". Phase 5/7 của F-81. Chi tiết: `docs/testing/features/receipt-export.md`.
+- **Mặc định tự chọn (chưa có xác nhận)**: chỉ xuất khi khách đã ký trong phiên đang mở; Ký số hiện nhưng khoá tới phase 7; không chọn sẵn hình thức; file dùng mẫu PHIẾU THU `.docx` của F-56; phiếu đã xuất rồi hủy vẫn giữ file. Đủ danh sách: `docs/clone/unknowns.md` → P2610 phase 5.
+- **Sửa (BE)**:
+  - `ReceiptExporter`: điền mẫu docx từ nội dung đã chốt (R-1045), đặt chữ ký ngay trên tên Người nộp tiền (`DocxPicture.PlaceAbove`, tối đa 50 × 18 mm, giữ tỉ lệ), Gotenberg đổi sang PDF/A-2b (`pdfA` mới trên `GotenbergPdfConverter`), lấy SHA-256, `ReceiptCipher.Seal` (byte phiên bản 0x01 + nonce + tag + bản mã) rồi lưu MinIO `receipts/{chi nhánh}/{id}.pdf.enc`.
+  - `PatientPayment.EnsureIssuable` / `Issue(signMode, file, sha256)`; cột mới `SignMode`, `ReceiptFileName`, `ReceiptFileSha256`, migration `20261027073623_ReceiptExportFile`.
+  - `POST patient-payments/{id}/export { signMode }` (Payment.Update, lọc chi nhánh): chưa ký trong phiên mở → 403 `0112`; Ký số → 403 `0113`; không còn "Chưa thanh toán" → 403 `0096`. Xuất xong phiên iPad đóng (Issued).
+  - `GET patient-payments/{id}/receipt-file`: mở khoá, kiểm tra lại SHA-256; thiếu file → `0114`, sai / không giải mã được → `0115`.
+  - `PaymentReceiptDto` có `signMode`, `hasFile`. Đường tạm `POST {id}/issue` đã bỏ.
+- **Sửa (FE)**:
+  - `ReceiptExportPanel` trên trang phiếu thu (hiện khi khách đã ký): Hình thức ký Ký số (khoá) / Không ký số, gợi ý "Chọn hình thức ký trước khi xuất.", nút "Xuất phiếu thu" / "Ký số và xuất phiếu thu" có loading.
+  - `useReceiptExport`: xuất rồi mở file đã lưu ở tab mới. "In phiếu thu" của phiếu đã xuất in đúng file đã lưu (`receipt-file`), phiếu chưa có file vẫn dựng lại từ mẫu.
+  - i18n vi/en cho panel và mã lỗi 0112–0115.
+- **E2E**:
+  - Spec mới `receipt-export`, 2 ca nối tiếp: (1) chưa ký → 0112, file → 0114; ghép iPad tạm, ký qua API trạm; Ký số → 0113; Không ký số → Issued; đọc riêng thấy `signMode` 1, `hasFile`, phiên đóng; file là PDF có `pdfaid:part`, đọc lần hai giống từng byte; xuất lần hai → 0096. (2) Chi nhánh 2 không xuất, không đọc được file; chi nhánh 1 vẫn đọc được.
+  - `receipt-ipad` ca 2 xuất qua panel thật (nút khoá + gợi ý, Ký số khoá, chọn Không ký số, tab PDF mở, iPad "Đã xuất phiếu thu", tải lại "In phiếu thu" đọc `receipt-file`).
+  - `fixtures/ledgerReceipt.ts`: `issueReceipt` đi đường thật cho mọi spec tiền (ghép iPad tạm theo chi nhánh của phiếu → gửi (replace) → tích → ký → xuất Không ký số → thu hồi thiết bị), thử lại tối đa 5 lần khi worker khác giành phiên (`0112`). `issueReceipt` / `settleReceipt` nhận `{ id, clinicBranchId }`; sửa các nơi gọi (`billing-ledger`, `report-service-paid`, `vat-payment-einvoice-api`). `payment-status` đổi `/issue` → `/export`.
+- **Kết quả**:
+  - BE: Domain Billing 54/54, `PaymentReceiptTemplateTests` 19/19.
+  - FE: `tsc -b` sạch, eslint sạch.
+  - E2E trên stack thật (API :5000, `vite preview` :8080 bản `dist-p5`, MinIO + Gotenberg thật, không chặn request):
+    - `receipt-export` 2/2, `receipt-ipad` 6/6.
+    - Hồi quy tiền: `billing-ledger`, `payment-status`, `receipt-page`, `treatment-plan-detail`, `payment-receipt-pdf`, `report-service-paid`, `vat-payment-einvoice-api`, `payment-from-slip`: 33/34. Ca đỏ duy nhất `vat-payment-einvoice-api:102` là lỗi dữ liệu có sẵn (như R-1045): phiếu điều trị mở mới nhất có giảm giá cấp phiếu nên `chargedAmount` 881.818 ≠ 900.000, đỏ trước bước thanh toán / xuất phiếu.
+  - Kiểm tay: object MinIO bắt đầu bằng 0x01 và không chứa `%PDF`; giải mã ra 1 trang A5 ngang, PDF/A part 2, chữ ký nằm trên tên Người nộp tiền.
+- **Chưa làm / lưu ý**:
+  - **Server cần `RECEIPT_VAULT_KEY` trong `.env` của cả hai VM** (prod hung@14.225.83.131, staging hung@14.225.83.93) trước khi deploy. Mất khoá = mất mọi chữ ký và file phiếu thu đã lưu.
+  - Phase 5 xong → có thể deploy staging sau khi commit. Phase 6 (trang hủy) và 7 (Ký số thật) chưa làm.
+  - Lỗi có sẵn, không do phase 5: seed demo của DbMigrator `SlotInThePast` đỏ tuỳ giờ chạy.

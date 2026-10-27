@@ -13,7 +13,6 @@ using BlueDental.Permissions;
 using BlueDental.Printing;
 using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
@@ -297,7 +296,9 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
                 : ClinicCalendar.DateOf(DateTimeOffset.UtcNow),
             CashierName: await CashierNameAsync());
 
-        var docx = DocxTemplate.Fill(await ReceiptTemplateAsync(), content.ToPlaceholders());
+        var docx = DocxTemplate.Fill(
+            await LazyServiceProvider.LazyGetRequiredService<PaymentReceiptTemplate>().LoadAsync(),
+            content.ToPlaceholders());
         docx = source.Payment is { RedInvoiceRequested: true } payment
             ? await WithInvoiceRequestQrAsync(docx, payment)
             : PaymentReceiptQr.Leave(docx);
@@ -357,22 +358,6 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
 
         var fullName = string.Join(" ", new[] { user.Surname, user.Name }.Where(x => !string.IsNullOrWhiteSpace(x)));
         return string.IsNullOrWhiteSpace(fullName) ? user.UserName : fullName;
-    }
-
-    private async Task<byte[]> ReceiptTemplateAsync()
-    {
-        var configured = LazyServiceProvider.LazyGetRequiredService<IOptions<PaymentReceiptOptions>>().Value.TemplatePath;
-        var path = Path.IsPathRooted(configured)
-            ? configured
-            : Path.Combine(LazyServiceProvider.LazyGetRequiredService<IHostEnvironment>().ContentRootPath, configured);
-
-        if (!File.Exists(path))
-        {
-            Logger.LogError("PHIẾU THU template not found at {Path}", path);
-            throw new BusinessException(BlueDentalDomainErrorCodes.PaymentReceipt.TemplateMissing);
-        }
-
-        return await File.ReadAllBytesAsync(path);
     }
 
     private async Task<ElectronicInvoiceDto> IssueLockedAsync(

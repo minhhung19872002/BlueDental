@@ -408,6 +408,18 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>The iPad's link is unknown or was revoked: it must be paired again.</summary>
         public const string SigningDeviceNotPaired = "BlueDental:Billing:0111";
+
+        /// <summary>Xuất phiếu thu needs the customer's signature from the iPad first.</summary>
+        public const string ReceiptNotSignedByCustomer = "BlueDental:Billing:0112";
+
+        /// <summary>Ký số is not available yet (P2610 phase 7).</summary>
+        public const string ReceiptDigitalSignUnavailable = "BlueDental:Billing:0113";
+
+        /// <summary>The receipt has no exported PDF (not exported, or exported before P2610 phase 5).</summary>
+        public const string ReceiptFileMissing = "BlueDental:Billing:0114";
+
+        /// <summary>The stored PDF no longer matches the SHA-256 taken at export.</summary>
+        public const string ReceiptFileTampered = "BlueDental:Billing:0115";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

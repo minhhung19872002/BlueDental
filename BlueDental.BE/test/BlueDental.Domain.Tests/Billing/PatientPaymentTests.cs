@@ -256,7 +256,13 @@ public class PatientPaymentTests
     }
 
     private static PatientPayment Issued(decimal amount, IEnumerable<(Guid, decimal)> lines) =>
-        Pending(amount, lines).Issue(DateTimeOffset.UtcNow, Guid.NewGuid());
+        Export(Pending(amount, lines), DateTimeOffset.UtcNow, Guid.NewGuid());
+
+    private const string FileName = "receipts/branch/payment.pdf.enc";
+    private static readonly string Sha256 = new('a', 64);
+
+    private static PatientPayment Export(PatientPayment payment, DateTimeOffset at, Guid? accountant) =>
+        payment.Issue(at, accountant, ReceiptSignMode.Unsigned, FileName, Sha256);
 
     private static void Revise(PatientPayment payment) =>
         payment.Revise(
@@ -275,16 +281,44 @@ public class PatientPaymentTests
         var issuedAt = DateTimeOffset.UtcNow;
         var accountant = Guid.NewGuid();
 
-        payment.Issue(issuedAt, accountant);
+        Export(payment, issuedAt, accountant);
 
         payment.Status.ShouldBe(PatientPaymentStatus.Issued);
         payment.IsCompleted.ShouldBeFalse();
         payment.IssuedAt.ShouldBe(issuedAt);
         payment.IssuedById.ShouldBe(accountant);
+        payment.SignMode.ShouldBe(ReceiptSignMode.Unsigned);
+        payment.ReceiptFileName.ShouldBe(FileName);
+        payment.ReceiptFileSha256.ShouldBe(Sha256);
+        payment.HasReceiptFile.ShouldBeTrue();
         Should.Throw<BusinessException>(() => Revise(payment))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
-        Should.Throw<BusinessException>(() => payment.Issue(DateTimeOffset.UtcNow, accountant))
+        Should.Throw<BusinessException>(() => Export(payment, DateTimeOffset.UtcNow, accountant))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
+    }
+
+    [Fact]
+    public void Digital_Signing_Is_Refused_Until_Phase_7()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+
+        Should.Throw<BusinessException>(() =>
+                payment.Issue(DateTimeOffset.UtcNow, null, ReceiptSignMode.Digital, FileName, Sha256))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.ReceiptDigitalSignUnavailable);
+        payment.Status.ShouldBe(PatientPaymentStatus.Pending);
+        payment.HasReceiptFile.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_Export_Must_Name_Its_File_And_Hash()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+
+        Should.Throw<ArgumentException>(() =>
+            payment.Issue(DateTimeOffset.UtcNow, null, ReceiptSignMode.Unsigned, FileName, "abc"));
+        Should.Throw<ArgumentException>(() =>
+            payment.Issue(DateTimeOffset.UtcNow, null, ReceiptSignMode.Unsigned, " ", Sha256));
+        payment.Status.ShouldBe(PatientPaymentStatus.Pending);
     }
 
     [Fact]
@@ -371,7 +405,7 @@ public class PatientPaymentTests
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled);
         Should.Throw<BusinessException>(() => payment.Confirm(Guid.NewGuid()))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled);
-        Should.Throw<BusinessException>(() => payment.Issue(DateTimeOffset.UtcNow, null))
+        Should.Throw<BusinessException>(() => Export(payment, DateTimeOffset.UtcNow, null))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled);
         Should.Throw<BusinessException>(() => Revise(payment))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled);
@@ -484,7 +518,7 @@ public class PatientPaymentTests
     {
         var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
         payment.FreezeReceipt(Snapshot(2_000_000m));
-        payment.Issue(DateTimeOffset.UtcNow, Guid.NewGuid());
+        Export(payment, DateTimeOffset.UtcNow, Guid.NewGuid());
 
         Should.Throw<BusinessException>(() => payment.FreezeReceipt(Snapshot(2_000_000m)))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);

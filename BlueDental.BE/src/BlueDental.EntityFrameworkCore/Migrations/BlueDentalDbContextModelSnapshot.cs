@@ -602,8 +602,19 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("PaymentAccountId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ReceiptFileName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ReceiptFileSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<bool>("RedInvoiceRequested")
                         .HasColumnType("boolean");
+
+                    b.Property<short?>("SignMode")
+                        .HasColumnType("smallint");
 
                     b.Property<short>("SplitMode")
                         .HasColumnType("smallint");

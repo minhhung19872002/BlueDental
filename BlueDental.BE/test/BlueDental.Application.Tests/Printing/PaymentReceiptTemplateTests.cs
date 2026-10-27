@@ -1,13 +1,18 @@
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using BlueDental.Billing;
 using BlueDental.Printing;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Shouldly;
 using Volo.Abp.DependencyInjection;
 using Xunit;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace BlueDental.Application.Tests.Printing;
 
@@ -124,6 +129,58 @@ public class PaymentReceiptTemplateTests
     public void Gotenberg_Is_Registered_As_The_Docx_Pdf_Converter() =>
         typeof(GotenbergPdfConverter).GetCustomAttribute<ExposeServicesAttribute>()!
             .ServiceTypes.ShouldContain(typeof(IDocxPdfConverter));
+
+    /// <summary>
+    /// P2610 phase 5: the customer's signature takes the four blank lines above
+    /// Người nộp tiền's name, inline in that cell, scaled to fit and never
+    /// stretched — so the A5 sheet keeps its single page.
+    /// </summary>
+    [Fact]
+    public void The_Signature_Takes_The_Blank_Lines_Above_The_Payer()
+    {
+        var template = File.ReadAllBytes(TemplatePath());
+        var before = PayerCell(template);
+
+        var signed = DocxPicture.PlaceAbove(
+            template, "{{PayerName}}", Png(600, 200),
+            ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
+
+        var after = PayerCell(signed);
+        before.Paragraphs.ShouldBe(after.Paragraphs + 3);
+        after.Above.ShouldNotBeNull();
+        after.Above.Name.ShouldBe("customer-signature");
+        // 600 × 200 px into 50 × 18 mm: the width binds, 50 mm × 16.7 mm.
+        after.Above.Width.ShouldBe(50 * 36_000);
+        after.Above.Height.ShouldBe(50 * 36_000 / 3);
+    }
+
+    private sealed record Signature(string Name, long Width, long Height);
+
+    private sealed record PayerCellView(int Paragraphs, Signature? Above);
+
+    /// <summary>The table cell holding {{PayerName}}: how many lines it has, and the picture right above the name.</summary>
+    private static PayerCellView PayerCell(byte[] docx)
+    {
+        using var document = WordprocessingDocument.Open(new MemoryStream(docx), isEditable: false);
+        var payer = document.MainDocumentPart!.Document.Body!.Descendants<Paragraph>()
+            .First(p => p.InnerText.Contains("PayerName"));
+        var cell = payer.Ancestors<TableCell>().First();
+        var inline = payer.PreviousSibling<Paragraph>()?.Descendants<DW.Inline>().FirstOrDefault();
+        var signature = inline == null
+            ? null
+            : new Signature(inline.DocProperties!.Name!.Value!, inline.Extent!.Cx!.Value, inline.Extent.Cy!.Value);
+        return new PayerCellView(cell.Elements<Paragraph>().Count(), signature);
+    }
+
+    /// <summary>The 8-byte PNG signature and an IHDR chunk: all PlaceAbove reads.</summary>
+    private static byte[] Png(int width, int height)
+    {
+        var png = new byte[33];
+        new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52 }.CopyTo(png, 0);
+        BinaryPrimitives.WriteInt32BigEndian(png.AsSpan(16), width);
+        BinaryPrimitives.WriteInt32BigEndian(png.AsSpan(20), height);
+        return png;
+    }
 
     private static int DotLeaders(string xml) => Regex.Matches(xml, "w:leader=\"dot\"").Count;
 

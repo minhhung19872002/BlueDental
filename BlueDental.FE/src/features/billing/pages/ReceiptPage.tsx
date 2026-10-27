@@ -10,10 +10,12 @@ import { openReceiptTab, showReceipt } from "@/lib/receiptTab";
 import { RECEIPT_STATUS, usePaymentReceipt, useReceiptPdf } from "../api/paymentReceiptApi";
 import type { ReceiptSigningStateDto } from "../api/receiptSigningApi";
 import { planPaymentPath } from "../components/paymentLedgerColumns";
+import { ReceiptExportPanel } from "../components/receipt/ReceiptExportPanel";
 import { ReceiptHeader } from "../components/receipt/ReceiptHeader";
 import { ReceiptIpadControls } from "../components/receipt/ReceiptIpadControls";
 import { ReceiptStatusPanel } from "../components/receipt/ReceiptStatusPanel";
 import { countedSession, receiptSteps } from "../components/receipt/receiptSteps";
+import { useReceiptExport } from "../hooks/useReceiptExport";
 import { useReceiptIpad } from "../hooks/useReceiptIpad";
 import "../components/receipt/receipt.css";
 
@@ -29,6 +31,7 @@ export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
   const { data: receipt, isLoading, error } = usePaymentReceipt(id);
   const pdf = useReceiptPdf();
   const ipad = useReceiptIpad(id);
+  const exporter = useReceiptExport(id);
 
   if (isLoading) return <Spin className="rcpt-loading" />;
   if (error || !receipt) {
@@ -48,7 +51,15 @@ export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
 
   const session = ipad.state?.session ?? null;
 
+  const waiting = receipt.status === RECEIPT_STATUS.Pending;
+  const signed = Boolean(session?.isOpen && session.signedAt);
+
+  // An exported receipt prints the file kept at export; before that, the template.
   const handlePrint = () => {
+    if (receipt.hasFile) {
+      exporter.printStored();
+      return;
+    }
     const tab = openReceiptTab();
     pdf.mutate(receipt.id, {
       onSuccess: (blob) => showReceipt(tab, blob),
@@ -69,15 +80,23 @@ export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
           receipt={receipt}
           slipPath={slipPath}
           onPrint={handlePrint}
-          printing={pdf.isPending}
+          printing={pdf.isPending || exporter.printingStored}
           pendingTitle={pendingTitleOf(ipad.state)}
         >
-          {receipt.status === RECEIPT_STATUS.Pending && ipad.state && (
+          {waiting && ipad.state && (
             <ReceiptIpadControls
               state={ipad.state}
               pendingAction={ipad.pendingAction}
               confirmReplace={ipad.confirmReplace}
               handlers={ipad}
+            />
+          )}
+          {waiting && signed && (
+            <ReceiptExportPanel
+              signMode={exporter.signMode}
+              onSignModeChange={exporter.setSignMode}
+              onExport={exporter.exportReceipt}
+              exporting={exporter.exporting}
             />
           )}
         </ReceiptStatusPanel>

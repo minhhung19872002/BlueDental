@@ -108,8 +108,13 @@ public sealed class PatientPaymentController(IPatientPaymentAppService service)
     [HttpGet("{id:guid}/receipt")]
     public Task<PaymentReceiptDto> GetReceiptAsync(Guid id) => service.GetReceiptAsync(id);
 
-    [HttpPost("{id:guid}/issue")]
-    public Task<PatientPaymentDto> IssueAsync(Guid id) => service.IssueAsync(id);
+    [HttpPost("{id:guid}/export")]
+    public Task<PatientPaymentDto> ExportAsync(Guid id, [FromBody] ExportPatientPaymentDto input) =>
+        service.ExportAsync(id, input);
+
+    [HttpGet("{id:guid}/receipt-file")]
+    public async Task<IActionResult> GetReceiptFileAsync(Guid id) =>
+        Pdf(await service.GetReceiptFileAsync(id), $"phieu-thu-{id:N}");
 
     [HttpPut("{id:guid}/confirm")]
     public Task<PatientPaymentDto> ConfirmAsync(Guid id) => service.ConfirmAsync(id);

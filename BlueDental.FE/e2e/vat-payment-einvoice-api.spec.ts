@@ -137,7 +137,7 @@ test.describe("VAT của dịch vụ vào kế hoạch, phiếu thu và hóa đ�
     // and ✓. Once paid it settles the line and can be billed; a second ✓ is
     // refused as already paid, and a cancel needs one of the fixed reasons.
     expect(receipt.body.status).toBe(RECEIPT_STATUS.Pending);
-    await settleReceipt(page, { id: receipt.body.id as string });
+    await settleReceipt(page, { id: String(receipt.body.id), clinicBranchId: String(receipt.body.clinicBranchId) });
     const reConfirm = await call(page, `/api/v1/app/patient-payments/${receipt.body.id as string}/confirm`, {
       method: "PUT",
     });

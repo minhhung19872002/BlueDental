@@ -1,5 +1,5 @@
-import { expect, type Locator, type Page } from "@playwright/test";
-import { assertRealApiTraffic } from "./auth";
+import { expect, request, type Locator, type Page } from "@playwright/test";
+import { assertRealApiTraffic, runId } from "./auth";
 
 /**
  * A THANHTOAN receipt written the way the BA does it: a fresh slip on the first
@@ -270,22 +270,90 @@ export async function saveAndSettle(page: Page, createDialog: Locator): Promise<
   return settleReceipt(page, await saveReceipt(page, createDialog));
 }
 
+const SIGNING_API = "/api/v1/app/receipt-signing";
+const DEVICES_API = "/api/v1/app/signing-devices";
+const STATION_API = "/api/v1/public/signing-station";
+/** A real 1 × 1 PNG: what the station takes is a PNG data URL, decoded and re-checked on the server. */
+export const SIGNATURE_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+/** Matches BlueDental.Billing.ReceiptSignMode. */
+export const SIGN_MODE = { Unsigned: 1, Digital: 2 } as const;
+/** Parallel workers share the branch's one iPad session; a send can take another's. */
+const EXPORT_ATTEMPTS = 5;
+
 /**
- * "Đã xuất phiếu thu". The iPad signature and the accountant's export (P2610
- * phases 4–5) are not built yet, so the API's interim issue endpoint stands in.
+ * The customer's part on a paired iPad, through the station API the iPad
+ * itself calls: the receipt sent to it (ending any session it showed), both
+ * boxes ticked, the signature. The iPad has no staff session — its own
+ * request context carries only the device token.
  */
-export async function issueReceipt(page: Page, receipt: Pick<Receipt, "id">): Promise<Receipt> {
-  const issued = await call(page, `${PAYMENTS_API}/${receipt.id}/issue`, { method: "POST" });
-  expect(issued.status, JSON.stringify(issued.body)).toBe(200);
-  expect(issued.body.status).toBe(RECEIPT_STATUS.Issued);
-  return issued.body as unknown as Receipt;
+export async function signOnStation(page: Page, receipt: Pick<Receipt, "id">, token: string): Promise<void> {
+  const sent = await call(page, `${SIGNING_API}/${receipt.id}/send`, { method: "POST", json: { replace: true } });
+  expect(sent.status, JSON.stringify(sent.body)).toBe(200);
+
+  const ipad = await request.newContext({ baseURL: new URL(page.url()).origin });
+  try {
+    const asIpad = { headers: { "X-Signing-Device-Token": token, Accept: "application/json" } };
+    const current = await ipad.get(STATION_API, asIpad);
+    expect(current.status(), await current.text()).toBe(200);
+    const { sessionId } = (await current.json()) as { sessionId: string };
+    const checked = await ipad.post(`${STATION_API}/sessions/${sessionId}/check`, asIpad);
+    expect(checked.status(), await checked.text()).toBe(200);
+    const signed = await ipad.post(`${STATION_API}/sessions/${sessionId}/sign`, {
+      ...asIpad,
+      data: { signatureDataUrl: SIGNATURE_PNG },
+    });
+    expect(signed.status(), await signed.text()).toBe(200);
+  } finally {
+    await ipad.dispose();
+  }
+}
+
+/** An iPad paired to the receipt's branch for one export, then revoked so no other receipt goes to it. */
+export async function withPairedIpad<T>(
+  page: Page,
+  receipt: Pick<Receipt, "clinicBranchId">,
+  work: (token: string) => Promise<T>,
+): Promise<T> {
+  const paired = await call(page, DEVICES_API, {
+    method: "POST",
+    json: { clinicBranchId: receipt.clinicBranchId, name: `iPad e2e helper ${runId()}` },
+  });
+  expect(paired.status, JSON.stringify(paired.body)).toBe(200);
+  try {
+    return await work(String(paired.body.token));
+  } finally {
+    await call(page, `${DEVICES_API}/${String(paired.body.id)}/revoke`, { method: "POST" });
+  }
+}
+
+/**
+ * "Đã xuất phiếu thu" the real way (P2610 phases 4–5): signed by the
+ * customer on a paired iPad, then exported Không ký số by the accountant —
+ * the PDF/A written, sealed and kept. Specs about the money, not the export.
+ */
+export async function issueReceipt(page: Page, receipt: Pick<Receipt, "id" | "clinicBranchId">): Promise<Receipt> {
+  return withPairedIpad(page, receipt, async (token) => {
+    for (let attempt = 1; ; attempt += 1) {
+      await signOnStation(page, receipt, token);
+      const issued = await call(page, `${PAYMENTS_API}/${receipt.id}/export`, {
+        method: "POST",
+        json: { signMode: SIGN_MODE.Unsigned },
+      });
+      const takenOver = (issued.body.error as { code?: string } | undefined)?.code === "BlueDental:Billing:0112";
+      if (takenOver && attempt < EXPORT_ATTEMPTS) continue;
+      expect(issued.status, JSON.stringify(issued.body)).toBe(200);
+      expect(issued.body.status).toBe(RECEIPT_STATUS.Issued);
+      return issued.body as unknown as Receipt;
+    }
+  });
 }
 
 /**
  * Exported, then ✓ "Xác nhận thanh toán" on the API: "Đã thanh toán", and the
  * money counts. Reloads, so the page on screen reads the new figures.
  */
-export async function settleReceipt(page: Page, receipt: Pick<Receipt, "id">): Promise<Receipt> {
+export async function settleReceipt(page: Page, receipt: Pick<Receipt, "id" | "clinicBranchId">): Promise<Receipt> {
   await issueReceipt(page, receipt);
   const confirmed = await call(page, `${PAYMENTS_API}/${receipt.id}/confirm`, { method: "PUT" });
   expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);

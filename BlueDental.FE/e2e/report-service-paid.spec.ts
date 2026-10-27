@@ -51,7 +51,7 @@ async function moveMoney(
     },
   });
   expect(res.status, JSON.stringify(res.body)).toBe(200);
-  if (kind === 1) await settleReceipt(page, { id: String(res.body.id) });
+  if (kind === 1) await settleReceipt(page, { id: String(res.body.id), clinicBranchId: String(res.body.clinicBranchId) });
 }
 
 test.beforeEach(async ({ page }) => {

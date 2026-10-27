@@ -116,3 +116,16 @@ public enum SigningCloseReason
     /// <summary>Another receipt was sent to the iPad in its place.</summary>
     Replaced = 5
 }
+
+/// <summary>
+/// The accountant's choice on "Xuất phiếu thu" (P2610). The BA sets no
+/// default: the export waits until one is picked.
+/// </summary>
+public enum ReceiptSignMode
+{
+    /// <summary>Không ký số — nothing of the accountant's is added to the receipt.</summary>
+    Unsigned = 1,
+
+    /// <summary>Ký số — the accountant's token signs the PDF (phase 7; refused until then).</summary>
+    Digital = 2
+}

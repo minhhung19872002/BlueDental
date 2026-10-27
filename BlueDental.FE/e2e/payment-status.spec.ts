@@ -214,7 +214,7 @@ test.describe("Phiếu thu: Chưa thanh toán → Đã xuất phiếu thu → �
     const writes = [
       { url: `${PAYMENTS_API}/${done.id}`, method: "PUT", json: revisionOf(done) },
       { url: `${PAYMENTS_API}/${done.id}/confirm`, method: "PUT" },
-      { url: `${PAYMENTS_API}/${done.id}/issue`, method: "POST" },
+      { url: `${PAYMENTS_API}/${done.id}/export`, method: "POST", json: { signMode: 1 } },
     ] as const;
     for (const write of writes) {
       const refused = await call(page, write.url, write);
@@ -334,7 +334,7 @@ test.describe("Phiếu thu: Chưa thanh toán → Đã xuất phiếu thu → �
       await login(other, BRANCH2_USER);
       const attempts = [
         await call(other, `${PAYMENTS_API}/${done.id}`, { method: "PUT", json: revisionOf(done) }),
-        await call(other, `${PAYMENTS_API}/${done.id}/issue`, { method: "POST" }),
+        await call(other, `${PAYMENTS_API}/${done.id}/export`, { method: "POST", json: { signMode: 1 } }),
         await call(other, `${PAYMENTS_API}/${done.id}/confirm`, { method: "PUT" }),
         await call(other, `${PAYMENTS_API}/${done.id}/cancel`, { method: "POST", json: { reasonCode: 4, reason: "e2e" } }),
       ];

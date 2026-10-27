@@ -1,10 +1,9 @@
-import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type Browser, type BrowserContext, type Page, type Response } from "@playwright/test";
 import { BRANCH2_USER, login, runId } from "./fixtures/auth";
 import { workingBranchId } from "./fixtures/branch";
 import {
   call,
   expectReceiptPage,
-  issueReceipt,
   openNewSlip,
   writeOnFirstLine,
   type Receipt,
@@ -71,6 +70,15 @@ async function receiptOnPage(page: Page): Promise<Receipt> {
 }
 
 const panel = (page: Page) => page.getByRole("complementary", { name: "Trạng thái" });
+
+/** The stored PHIẾU THU read back for the receipt's tab. */
+const storedReceiptFile = (page: Page, receipt: Pick<Receipt, "id">) =>
+  page.waitForResponse((res) => res.url().includes(`/${receipt.id}/receipt-file`) && res.ok());
+
+async function expectPdf(res: Response): Promise<void> {
+  expect(res.headers()["content-type"]).toContain("application/pdf");
+  expect((await res.body()).subarray(0, 5).toString("latin1")).toBe("%PDF-");
+}
 const ipadStatus = (page: Page) => panel(page).locator(".rcpt-ipad-status");
 
 /**
@@ -228,8 +236,23 @@ test.describe.serial("iPad ký phiếu thu", () => {
       await signOnIpad(ipad);
       await expect(page.locator(".rcpt-sheet .rcpt-sign-image")).toBeVisible();
 
-      // ── Exported (interim ✓ path): the iPad says so, then waits again ───────
-      await issueReceipt(page, receipt);
+      // ── "Kế toán kiểm tra & xuất": nothing picked for the accountant, Ký số not yet ──
+      const exportPanel = panel(page).locator(".rcpt-export");
+      await expect(exportPanel).toContainText("Kế toán kiểm tra & xuất phiếu thu");
+      const exportButton = exportPanel.getByRole("button", { name: "Xuất phiếu thu" });
+      await expect(exportButton).toBeDisabled();
+      await expect(exportPanel).toContainText("Chọn hình thức ký trước khi xuất.");
+      await expect(exportPanel.getByRole("radio", { name: /^Ký số/ })).toBeDisabled();
+      await exportPanel.getByRole("radio", { name: "Không ký số" }).check();
+      await expect(exportButton).toBeEnabled();
+
+      // ── Exported: the stored PDF opens in a new tab, the iPad says so, then waits again ──
+      const stored = storedReceiptFile(page, receipt);
+      const tab = page.waitForEvent("popup");
+      await exportButton.click();
+      await expectPdf(await stored);
+      await (await tab).close();
+      await expect(exportPanel).toHaveCount(0);
       await expect(ipad.getByRole("heading", { name: "Đã xuất phiếu thu" })).toBeVisible({ timeout: 20_000 });
       await expect(ipad.locator(".sst-issued-box")).toContainText("Phiếu thu có chữ ký của quý khách");
       await expect(ipad.getByRole("heading", { name: "Xin chào quý khách" })).toBeVisible({ timeout: 30_000 });
@@ -237,6 +260,13 @@ test.describe.serial("iPad ký phiếu thu", () => {
       await page.reload();
       await expect(page.locator(".rcpt-track-card .step-track-item--done")).toHaveCount(6);
       await expect(page.locator(".rcpt-sheet .rcpt-sign-image")).toBeVisible();
+
+      // "In phiếu thu" now prints the file written at export, not a fresh render.
+      const reprinted = storedReceiptFile(page, receipt);
+      const reprintTab = page.waitForEvent("popup");
+      await panel(page).getByRole("button", { name: "In phiếu thu" }).click();
+      await expectPdf(await reprinted);
+      await (await reprintTab).close();
     } finally {
       await context.close();
     }

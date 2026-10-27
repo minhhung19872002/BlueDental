@@ -485,17 +485,22 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
     }
 
     /// <summary>
-    /// "Xuất phiếu thu": the receipt is locked as "Đã xuất phiếu thu". It still
-    /// moves no money — that waits for ✓ <see cref="ConfirmAsync"/>.
+    /// "Xuất phiếu thu" / "Ký số và xuất phiếu thu": once the customer has
+    /// signed on the iPad, the PHIẾU THU is written to PDF/A with their
+    /// signature, sealed and stored, and the receipt is locked as "Đã xuất
+    /// phiếu thu". It still moves no money — that waits for ✓
+    /// <see cref="ConfirmAsync"/>. Ký số is refused until phase 7.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
-    public async Task<PatientPaymentDto> IssueAsync(Guid id)
+    public async Task<PatientPaymentDto> ExportAsync(Guid id, ExportPatientPaymentDto input)
     {
         using var pending = DataFilter.Disable<ISettleable>();
         var payment = await GetWithLinesAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
 
-        payment.Issue(Clock.Now, CurrentUser.Id);
+        var file = await LazyServiceProvider.LazyGetRequiredService<ReceiptExporter>()
+            .ExportAsync(payment, input.SignMode!.Value);
+        payment.Issue(Clock.Now, CurrentUser.Id, input.SignMode.Value, file.FileName, file.Sha256);
         // The iPad turns to "Phiếu thu đã được xuất".
         await _signing.CloseOfPaymentAsync(payment, SigningCloseReason.Issued);
 
@@ -620,8 +625,26 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             CancelledByName = PaymentReceiptContents.NameOf(people, payment.CancelledById),
             CancelReason = payment.CancelReason,
             CancelReasonCode = payment.CancelReasonCode,
+            SignMode = payment.SignMode,
+            HasFile = payment.HasReceiptFile,
             Content = PaymentReceiptContents.ToDto(content)
         };
+    }
+
+    /// <summary>
+    /// The exported PHIẾU THU, as stored at export and checked against its
+    /// SHA-256 — for "In phiếu thu" and the accountant. A cancelled receipt
+    /// keeps its file.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
+    public async Task<byte[]> GetReceiptFileAsync(Guid id)
+    {
+        using var pending = DataFilter.Disable<ISettleable>();
+        using var cancelled = DataFilter.Disable<ISoftDelete>();
+        var payment = await _repository.GetAsync(id, includeDetails: false);
+        await _branchAccess.CheckAsync(payment.ClinicBranchId);
+
+        return await LazyServiceProvider.LazyGetRequiredService<ReceiptExporter>().ReadAsync(payment);
     }
 
     /// <summary>A bare GetAsync leaves the lines unloaded, and a revise would then orphan them.</summary>

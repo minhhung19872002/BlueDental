@@ -60,6 +60,10 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
 
     public const int MaxCancelReasonLength = 500;
 
+    public const int MaxReceiptFileNameLength = 200;
+
+    public const int ReceiptFileSha256Length = 64;
+
     /// <summary>
     /// Mô tả lý do hủy — what the canceller wrote. A cancelled receipt is
     /// "Phiếu bị hủy" and is also soft-deleted, so no rollup, debt or report
@@ -82,6 +86,20 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     public DateTimeOffset? IssuedAt { get; private set; }
 
     public Guid? IssuedById { get; private set; }
+
+    /// <summary>Ký số or Không ký số, as the accountant chose on the export.</summary>
+    public ReceiptSignMode? SignMode { get; private set; }
+
+    /// <summary>
+    /// The exported PHIẾU THU (PDF/A, AES-encrypted) in blob storage. Null on a
+    /// receipt not yet exported, or exported before P2610 phase 5.
+    /// </summary>
+    public string? ReceiptFileName { get; private set; }
+
+    /// <summary>SHA-256 (hex) of the PDF as exported, checked on every read.</summary>
+    public string? ReceiptFileSha256 { get; private set; }
+
+    public bool HasReceiptFile => ReceiptFileName != null;
 
     /// <summary>
     /// See <see cref="PatientPaymentStatus"/>. Only a payment goes through the
@@ -441,16 +459,45 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     }
 
     /// <summary>
-    /// "Xuất phiếu thu": the customer has signed and the accountant has
-    /// checked it. From here nothing on the receipt changes; the money is
-    /// still not counted until ✓ <see cref="Confirm"/>.
+    /// Checked before the PDF is rendered, so a locked receipt or Ký số is
+    /// refused without the cost of a render.
     /// </summary>
-    public PatientPayment Issue(DateTimeOffset issuedAt, Guid? accountantId)
+    public void EnsureIssuable(ReceiptSignMode signMode)
     {
         EnsurePending();
+        if (signMode == ReceiptSignMode.Digital)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.ReceiptDigitalSignUnavailable,
+                "Ký số is not available yet.");
+        }
+    }
+
+    /// <summary>
+    /// "Xuất phiếu thu": the customer has signed and the accountant has
+    /// checked it. The PDF written from it is stored with its SHA-256. From
+    /// here nothing on the receipt changes; the money is still not counted
+    /// until ✓ <see cref="Confirm"/>.
+    /// </summary>
+    public PatientPayment Issue(
+        DateTimeOffset issuedAt,
+        Guid? accountantId,
+        ReceiptSignMode signMode,
+        string receiptFileName,
+        string receiptFileSha256)
+    {
+        EnsureIssuable(signMode);
+        Check.NotNullOrWhiteSpace(receiptFileName, nameof(receiptFileName), MaxReceiptFileNameLength);
+        if (receiptFileSha256.Length != ReceiptFileSha256Length)
+        {
+            throw new ArgumentException("A SHA-256 is 64 hex digits.", nameof(receiptFileSha256));
+        }
 
         IssuedAt = issuedAt;
         IssuedById = accountantId;
+        SignMode = signMode;
+        ReceiptFileName = receiptFileName;
+        ReceiptFileSha256 = receiptFileSha256;
         Status = PatientPaymentStatus.Issued;
         return this;
     }

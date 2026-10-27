@@ -129,6 +129,23 @@ public class ReceiptSigningTests
     }
 
     [Fact]
+    public void Sealed_File_Round_Trips_And_Refuses_A_Changed_Byte()
+    {
+        var cipher = Cipher(RandomNumberGenerator.GetBytes(32));
+        var pdf = RandomNumberGenerator.GetBytes(4096);
+
+        var sealedFile = cipher.Seal(pdf);
+
+        sealedFile[0].ShouldBe((byte)0x01);
+        sealedFile.Length.ShouldBe(1 + 12 + 16 + pdf.Length);
+        cipher.Open(sealedFile).ShouldBe(pdf);
+
+        sealedFile[^1] ^= 0xFF;
+        Should.Throw<CryptographicException>(() => cipher.Open(sealedFile));
+        Should.Throw<CryptographicException>(() => cipher.Open([0x02, .. pdf]));
+    }
+
+    [Fact]
     public void Cipher_Without_A_Key_Refuses_To_Store()
     {
         var cipher = new AesGcmReceiptCipher(Options.Create(new ReceiptVaultOptions()));

@@ -8,12 +8,16 @@ namespace BlueDental.Billing;
 
 /// <summary>
 /// Encrypts what the receipt flow keeps of the customer — the iPad signature
-/// now, the exported PDF in phase 5 — before it is stored.
+/// as text in the database, the exported PDF as bytes in blob storage —
+/// before it is stored.
 /// </summary>
 public interface IReceiptCipher
 {
     string Encrypt(byte[] plain);
     byte[] Decrypt(string cipher);
+
+    byte[] Seal(byte[] plain);
+    byte[] Open(byte[] sealedFile);
 }
 
 public class ReceiptVaultOptions
@@ -23,22 +27,55 @@ public class ReceiptVaultOptions
     /// <summary>
     /// Base64 of 32 random bytes. Kept out of git: appsettings.Development.json
     /// locally, the <c>ReceiptVault__Key</c> environment variable on a server.
-    /// Losing it loses every stored signature.
+    /// Losing it loses every stored signature and receipt file.
     /// </summary>
     public string? Key { get; set; }
 }
 
 /// <summary>
-/// AES-256-GCM. The stored text is <c>v1:</c> + base64(nonce ‖ tag ‖ ciphertext),
-/// so a later key or algorithm can sit next to it.
+/// AES-256-GCM over nonce ‖ tag ‖ ciphertext. Text is stored as <c>v1:</c> +
+/// base64 of that, a file as version byte 0x01 + that, so a later key or
+/// algorithm can sit next to either.
 /// </summary>
 public class AesGcmReceiptCipher(IOptions<ReceiptVaultOptions> options) : IReceiptCipher, ITransientDependency
 {
     private const string Prefix = "v1:";
+    private const byte FileVersion = 0x01;
     private const int NonceSize = 12;
     private const int TagSize = 16;
 
-    public string Encrypt(byte[] plain)
+    public string Encrypt(byte[] plain) => Prefix + Convert.ToBase64String(SealCore(plain));
+
+    public byte[] Decrypt(string cipher)
+    {
+        if (!cipher.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            throw new CryptographicException("Unknown receipt cipher format.");
+        }
+
+        return OpenCore(Convert.FromBase64String(cipher[Prefix.Length..]));
+    }
+
+    public byte[] Seal(byte[] plain)
+    {
+        var core = SealCore(plain);
+        var file = new byte[1 + core.Length];
+        file[0] = FileVersion;
+        core.CopyTo(file, 1);
+        return file;
+    }
+
+    public byte[] Open(byte[] sealedFile)
+    {
+        if (sealedFile.Length < 1 + NonceSize + TagSize || sealedFile[0] != FileVersion)
+        {
+            throw new CryptographicException("Unknown receipt file format.");
+        }
+
+        return OpenCore(sealedFile.AsSpan(1).ToArray());
+    }
+
+    private byte[] SealCore(byte[] plain)
     {
         var nonce = RandomNumberGenerator.GetBytes(NonceSize);
         var sealedBytes = new byte[NonceSize + TagSize + plain.Length];
@@ -52,17 +89,11 @@ public class AesGcmReceiptCipher(IOptions<ReceiptVaultOptions> options) : IRecei
         }
 
         nonce.CopyTo(sealedBytes, 0);
-        return Prefix + Convert.ToBase64String(sealedBytes);
+        return sealedBytes;
     }
 
-    public byte[] Decrypt(string cipher)
+    private byte[] OpenCore(byte[] sealedBytes)
     {
-        if (!cipher.StartsWith(Prefix, StringComparison.Ordinal))
-        {
-            throw new CryptographicException("Unknown receipt cipher format.");
-        }
-
-        var sealedBytes = Convert.FromBase64String(cipher[Prefix.Length..]);
         var plain = new byte[sealedBytes.Length - NonceSize - TagSize];
         using var aes = new AesGcm(Key(), TagSize);
         aes.Decrypt(

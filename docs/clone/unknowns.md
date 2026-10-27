@@ -3163,3 +3163,20 @@ Action taken: NONE trên production. Chủ dự án đã chốt: trang web riên
 - Ký lại: xoá chữ ký cũ, quay về bước ký (không phải bước kiểm tra lại 2 ô).
 - Sửa phiếu / hủy phiếu / xuất phiếu thì đóng phiên. Chỉ khi xuất, iPad hiện "Đã xuất phiếu thu" 15 giây rồi về màn chờ.
 - Chưa có panel kế toán: xuất phiếu vẫn qua nút ✓ tạm (`POST patient-payments/{id}/issue`).
+
+## P2610 phase 5 — Kế toán kiểm tra & xuất phiếu thu (F-81, R-1049, 2026-10-27, BA P2610)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/billing/receipts/:id` (panel "Kế toán kiểm tra & xuất phiếu thu"), `POST patient-payments/{id}/export`, `GET patient-payments/{id}/receipt-file`
+Control: Hình thức ký (Ký số / Không ký số), "Xuất phiếu thu" / "Ký số và xuất phiếu thu", "In phiếu thu" sau khi xuất
+Reason: tính năng riêng của BlueDental theo `P2610.drawio`; bản gốc không có bước xuất phiếu thu có chữ ký khách. Xem `docs/testing/features/receipt-export.md`.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+- Chỉ xuất được khi khách đã ký trên iPad trong phiên đang mở (chưa ký → `0112`). Không có đường xuất không cần chữ ký khách.
+- Ký số chưa làm (phase 7): lựa chọn hiện nhưng bị khoá, API trả `0113`. Không chọn sẵn hình thức nào; chưa chọn thì nút xuất bị khoá.
+- File xuất dùng mẫu PHIẾU THU `.docx` của F-56 (không phải tờ phiếu trên màn hình), chữ ký đặt ngay trên tên Người nộp tiền, tối đa 50 × 18 mm, giữ tỉ lệ.
+- Ngày lập phiếu trên file = ngày (giờ phòng khám) lúc ghi phiếu, không phải ngày xuất.
+- PDF/A-2b qua Gotenberg; SHA-256 tính trên PDF gốc, lưu cùng phiếu. File lưu ở MinIO `receipts/{chi nhánh}/{id}.pdf.enc`, mã hoá AES-256-GCM bằng cùng khoá `ReceiptVault:Key` với chữ ký. Mỗi lần đọc kiểm tra lại SHA-256; sai → `0115`, thiếu file → `0114`.
+- Xuất xong: phiên iPad đóng (iPad hiện "Đã xuất phiếu thu"), file mở ở tab mới, "In phiếu thu" từ đó in đúng file đã lưu.
+- Phiếu đã xuất rồi bị hủy vẫn giữ file (chưa có quy định xoá).
+- Phiếu xuất bằng đường tạm `/issue` của phase 2–4 (chỉ có trên máy dev, chưa lên staging) không có file; "In phiếu thu" của chúng vẫn dựng lại từ mẫu. Đường `/issue` đã bỏ.

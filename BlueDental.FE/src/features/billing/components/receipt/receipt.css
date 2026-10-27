@@ -189,3 +189,26 @@
   flex-direction: column;
   gap: 8px;
 }
+
+/* ── Xuất phiếu thu, once the customer has signed (P2610 phase 5) ── */
+.rcpt-export {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--bd-border);
+}
+.rcpt-export-title {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.rcpt-export-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rcpt-export-hint {
+  display: block;
+  color: var(--bd-muted);
+  font-size: 12px;
+}

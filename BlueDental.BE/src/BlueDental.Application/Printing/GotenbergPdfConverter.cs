@@ -12,7 +12,8 @@ namespace BlueDental.Printing;
 /// <summary>Turns a filled .docx into a PDF.</summary>
 public interface IDocxPdfConverter
 {
-    Task<byte[]> ConvertAsync(byte[] docx, string fileName);
+    /// <param name="pdfA">A PDF/A level such as <see cref="GotenbergPdfConverter.PdfA2b"/>, for a file kept as the record; null for a plain PDF.</param>
+    Task<byte[]> ConvertAsync(byte[] docx, string fileName, string? pdfA = null);
 }
 
 /// <summary>
@@ -28,9 +29,12 @@ public class GotenbergPdfConverter(
 {
     public const string ClientName = "Gotenberg";
 
+    /// <summary>PDF/A-2b, not 1b: the customer's signature is a PNG with transparency, which 1b forbids.</summary>
+    public const string PdfA2b = "PDF/A-2b";
+
     private const string DocxMediaType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-    public async Task<byte[]> ConvertAsync(byte[] docx, string fileName)
+    public async Task<byte[]> ConvertAsync(byte[] docx, string fileName, string? pdfA = null)
     {
         var client = httpClientFactory.CreateClient(ClientName);
         var url = $"{options.Value.GotenbergUrl.TrimEnd('/')}/forms/libreoffice/convert";
@@ -39,6 +43,10 @@ public class GotenbergPdfConverter(
         var file = new ByteArrayContent(docx);
         file.Headers.ContentType = new MediaTypeHeaderValue(DocxMediaType);
         content.Add(file, "files", fileName);
+        if (pdfA != null)
+        {
+            content.Add(new StringContent(pdfA), "pdfa");
+        }
 
         try
         {

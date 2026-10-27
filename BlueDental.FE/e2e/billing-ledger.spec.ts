@@ -265,7 +265,7 @@ test.describe("Tài chính → Thanh toán", () => {
     const code = String(written.body.code);
     const listedCount = async () => (await call(page, `${LEDGER_API}?filter=${code}`)).body.totalCount;
     expect(await listedCount()).toBe(0);
-    await issueReceipt(page, { id: String(written.body.id) });
+    await issueReceipt(page, { id: String(written.body.id), clinicBranchId: String(written.body.clinicBranchId) });
     expect(await listedCount(), "exported is not yet paid").toBe(0);
     const paid = await call(page, `${PAYMENTS_API}/${String(written.body.id)}/confirm`, { method: "PUT" });
     expect(paid.status, JSON.stringify(paid.body)).toBe(200);
