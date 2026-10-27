@@ -10,6 +10,17 @@ import { call, clinicToday, createRunStaff, deleteStaff } from "./fixtures/timek
  * intercepted, so a field the client drops on the wire fails the test.
  */
 
+/** The fields of an appointment these tests read back from the API. */
+interface AppointmentRow {
+  id: string;
+  slotStart: string;
+  slotEnd: string;
+  dentistId: string;
+  chiefComplaint: string | null;
+  notes: string | null;
+  color: string | null;
+}
+
 /** Opens the patient's Lịch hẹn tab from the list. */
 async function openAppointmentTab(page: Page) {
   await page.goto("/patient");
@@ -20,7 +31,7 @@ async function openAppointmentTab(page: Page) {
     .click();
   await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
 
-  await page.getByRole("link", { name: "Lịch hẹn" }).click();
+  await page.getByRole("link", { name: "Lịch hẹn", exact: true }).click();
   await expect(page).toHaveURL(/tab=appointment/);
 }
 
@@ -154,12 +165,11 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     }
   });
 
-  test("the dialog carries the reference's fields, and saves colour and note for real", async ({
+  test("the dialog carries the reference's fields, and saves colour and content for real", async ({
     page,
   }) => {
     const id = runId();
     const reason = `E2E khám ${id}`;
-    const note = `E2E ghi chú ${id}`;
 
     await openAppointmentTab(page);
     await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
@@ -190,13 +200,18 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await chooseSlot(dialog, freeSlot(id, 1));
     const doctorName = await pickFirstDoctor(page);
 
-    await dialog.getByPlaceholder("Nội dung đặt lịch").fill(reason);
-
-    // The note panel starts collapsed; "Thêm ngay" reveals the field.
-    await expect(dialog.getByText("Chưa có ghi chú")).toBeVisible();
-    await dialog.getByRole("button", { name: "Thêm ngay" }).click();
-    await dialog.locator(".notes-panel textarea").fill(note);
-    await dialog.locator(".notes-panel").getByRole("button").last().click();
+    // R-1055: no Ghi chú any more; Nội dung đặt lịch, labelled, takes the third column.
+    await expect(dialog.locator(".notes-panel")).toHaveCount(0);
+    const content = dialog.getByPlaceholder("Nội dung đặt lịch");
+    // `has` takes a locator rooted at the page, not one chained from `dialog`.
+    const contentField = dialog.locator(".appt-field").filter({ has: page.getByPlaceholder("Nội dung đặt lịch") });
+    await expect(contentField.locator(".appt-field-label")).toHaveText(
+      "Nội dung đặt lịch",
+    );
+    const third = await dialog.locator(".appt-editor-cols > *").nth(2).boundingBox();
+    const box = await content.boundingBox();
+    expect(Math.abs(box!.x - third!.x)).toBeLessThan(2);
+    await content.fill(reason);
 
     await dialog.getByTitle("Xanh lá").click();
     await expect(dialog.locator(".appt-color-swatch--selected")).toHaveAttribute(
@@ -211,16 +226,16 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     expect((await created).ok()).toBeTruthy();
     await expect(dialog).toBeHidden();
 
-    // Reload: the row, its note and its doctor all came from PostgreSQL.
+    // Reload: the row, its content and its doctor all came from PostgreSQL.
     await page.reload();
     const row = await findRow(page, reason);
-    await expect(row).toContainText(note);
     await expect(row).toContainText(doctorName);
   });
 
-  test("editing an appointment updates it instead of booking a second one", async ({ page }) => {
+  test("editing an appointment updates it instead of booking a second one, and keeps an old Ghi chú", async ({ page }) => {
     const id = runId();
     const reason = `E2E sửa ${id}`;
+    const oldNote = `E2E ghi chú cũ ${id}`;
 
     await openAppointmentTab(page);
     await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
@@ -228,8 +243,31 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await chooseSlot(create, freeSlot(id, 2));
     await pickFirstDoctor(page);
     await create.getByPlaceholder("Nội dung đặt lịch").fill(reason);
+    const posted = page.waitForResponse(
+      (res) => res.url().includes("/api/v1/app/appointments") && res.request().method() === "POST",
+    );
     await create.getByRole("button", { name: "Lưu" }).click();
+    const response = await posted;
     await expect(create).toBeHidden();
+
+    // A Ghi chú as one saved before R-1055 would carry: the dialog no longer has the field.
+    const booking = (await response.json()) as AppointmentRow;
+    const branchId = response.request().headers()["x-clinic-branch-id"];
+    const url = `/api/v1/app/appointments/${booking.id}`;
+    const seeded = await call(page, url, {
+      method: "PUT",
+      branchId,
+      json: {
+        slotStart: booking.slotStart,
+        slotEnd: booking.slotEnd,
+        dentistId: booking.dentistId,
+        chiefComplaint: booking.chiefComplaint,
+        color: booking.color,
+        notes: oldNote,
+      },
+    });
+    expect(seeded.status, JSON.stringify(seeded.body)).toBe(200);
+    await page.reload();
 
     const row = await findRow(page, reason);
 
@@ -257,6 +295,11 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await findRow(page, updated);
     await expect(page.locator("tbody tr", { hasText: reason })).toHaveCount(1);
     await expect(page.locator("tbody tr", { hasText: updated })).toHaveCount(1);
+
+    // The edit had no Ghi chú to show, and still did not wipe it.
+    const stored = await call<AppointmentRow>(page, url, { branchId });
+    expect(stored.body.chiefComplaint).toBe(updated);
+    expect(stored.body.notes).toBe(oldNote);
   });
 
   test("the dialog is styled when opened from the record, not just the calendar", async ({
@@ -343,7 +386,7 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     const patientName = (await names.last().innerText()).split(/\s[–-]\s/).pop()!.trim().toUpperCase();
     await names.last().click();
     await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
-    await page.getByRole("link", { name: "Lịch hẹn" }).click();
+    await page.getByRole("link", { name: "Lịch hẹn", exact: true }).click();
     await expect(page).toHaveURL(/tab=appointment/);
 
     const patientPicker = (dialog: ReturnType<Page["getByRole"]>) =>

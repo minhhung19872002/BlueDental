@@ -190,6 +190,7 @@ export function TempAppointmentEditorModal({
           color: data.color ?? "",
           // Sent even when emptied: the update rewrites it, so leaving it out wiped it.
           reason: data.content,
+          // Not on the form any more; resent as loaded so the update keeps it.
           notes: data.notes ?? "",
           sourceTaxonomyId: data.sourceTaxonomyId || undefined,
           sourceEntryId: data.sourceEntryId || undefined,
@@ -218,7 +219,6 @@ export function TempAppointmentEditorModal({
           sourceEntryId: data.sourceEntryId || undefined,
           color: data.color || undefined,
           reason: data.content || undefined,
-          notes: data.notes || undefined,
           allowDentistOverlap,
         },
         {

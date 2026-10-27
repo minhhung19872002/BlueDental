@@ -11714,3 +11714,25 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - **5/5 xanh**.
   - Chạy lại `patient-search-unaccent` và `search-unaccent-everywhere`: **5/5 xanh**.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.
+
+## R-1055 (2026-10-27, mức 2: Lịch hẹn / Lịch tạm / Tiếp nhận — dialog) Bỏ Ghi chú, chỉ giữ Nội dung đặt lịch
+
+- **Yêu cầu** (BA + lễ tân, ngày 27/10):
+  - Tạo / Chỉnh sửa lịch tạm: "Dư ngày hẹn, bỏ nó đi và đẩy nội dung qua"; bỏ Ghi chú, chỉ để Nội dung.
+  - Tạo / Cập nhật lịch hẹn: bỏ Ghi chú luôn.
+  - Thẻ Tiếp nhận: dòng 📄 hiện Nội dung đặt lịch.
+  - Tạo tiếp nhận: ban đầu góp ý ô Ghi chú dạng thẻ thao tác nhiều, không sửa được; sau đó BA chốt bỏ luôn Ghi chú cho đồng bộ với Lịch hẹn.
+- **Thay đổi** (chỉ FE, không migration, không đổi API):
+  - Lịch tạm: bỏ ô "Ngày hẹn" chỉ đọc ở cột phải và ô Ghi chú. "Nội dung đặt lịch" có nhãn, nằm ngay dưới Chi nhánh.
+  - Lịch hẹn: bỏ khung Ghi chú (`NotesPanel`). Cột giữa còn Chọn bác sĩ + Màu lịch hẹn; cột phải là Trạng thái (khi sửa) rồi Nội dung đặt lịch có nhãn.
+  - Tạo tiếp nhận: bỏ khung Ghi chú, dialog còn một cột (rộng 772). Không gửi `notes` nữa.
+  - Lặp lại lịch hẹn (series) không gửi `notes`.
+  - Thẻ Tiếp nhận 📄: `Nội dung đặt lịch`, nếu trống thì Ghi chú cũ, nếu không có thì "-".
+  - `components/NotesPanel/` đã xoá vì không còn nơi dùng.
+- **Ghi chú cũ giữ nguyên trong DB**: dialog không hiện nhưng form vẫn nạp `notes` từ bản ghi và gửi lại khi cập nhật, vì `Appointment.UpdateDetails` ghi đè cả ba trường. Ô tìm của Tiếp nhận vẫn khớp cả Ghi chú.
+- **Test** (bản build production, `vite preview` :8154):
+  - `temp-booking-content.spec.ts`: Tạo lịch tạm — Nội dung có nhãn, ngay dưới Chi nhánh, chỉ một Ngày hẹn, không có Ghi chú; Chỉnh sửa chỉ đổi màu thì Nội dung và Ghi chú cũ (tạo qua API) vẫn còn.
+  - `patient-appointment.spec.ts`: không còn `.notes-panel`, Nội dung có nhãn ở cột 3; sửa lịch hẹn có Ghi chú cũ (gán qua API) thì Ghi chú vẫn còn. Sửa luôn lỗi có sẵn: link tab "Lịch hẹn" trùng tên bệnh nhân e2e "… Lịch Hẹn …" → `exact: true`.
+  - `reception-notes.spec.ts`: Tạo tiếp nhận chỉ có 1 textarea, lưu `chiefComplaint`, `notes` rỗng, thẻ hiện Nội dung sau reload; thẻ ưu tiên Nội dung hơn Ghi chú, Hoàn tất giữ Ghi chú; lịch cũ chỉ có Ghi chú thì thẻ hiện Ghi chú. Fixture `bookVisitToday` thêm tham số `withContent`.
+  - 3 spec trên: **13/13 xanh**.
+  - Chạy lại `appointment-mini-cal-date`, `appointment-series-ui`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `reception`, `reception-temporary`, `reception-temp-cancel`, `reception-own-doctor`, `reception-doctor-list`, `reception-search-fullname`: **26/26 xanh**.

@@ -124,7 +124,6 @@ export function AppointmentEditorModal({
 
   const watchedDoctorId = useWatch({ control, name: "doctorId" });
   const watchedDate = useWatch({ control, name: "date" });
-  const watchedNotes = useWatch({ control, name: "notes" });
   const watchedPatientId = useWatch({ control, name: "patientId" });
   const watchedStartTime = useWatch({ control, name: "startTime" });
   const watchedDuration = useWatch({ control, name: "durationMinutes" });
@@ -333,8 +332,6 @@ export function AppointmentEditorModal({
           doctorOptions={doctorOptions}
           watchedDoctorId={watchedDoctorId}
           watchedDate={watchedDate}
-          watchedNotes={watchedNotes}
-          isEdit={isEdit}
           stored={existingAppt && { status: existingAppt.status, arrived: !!existingAppt.checkedInAt }}
           lockPatient={lockPatient}
           onOpenNewPatient={handleOpenNewPatient}

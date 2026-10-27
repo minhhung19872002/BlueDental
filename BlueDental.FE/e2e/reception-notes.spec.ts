@@ -12,13 +12,15 @@ import { call as staffCall, createRunStaff, deleteStaff, type RunStaff } from ".
 import { openShiftCovering } from "./fixtures/workShift";
 
 /**
- * Tiếp nhận — Ghi chú (R-1037, R-1038).
+ * Tiếp nhận — Ghi chú (R-1037, R-1038, R-1055).
  *
- * - "Tạo tiếp nhận" has the booking dialog's Ghi chú card on its right: the
- *   note is saved as the appointment's `notes`, apart from Nội dung đặt lịch
- *   (`chiefComplaint`), and the card shows it beside 📄.
- * - Hoàn tất on the board keeps that note; it used to send `notes: null`,
- *   which wiped it.
+ * - "Tạo tiếp nhận" has no Ghi chú any more, as the booking dialogs (BA,
+ *   R-1055; R-1037 had a card for it): Nội dung đặt lịch is the one text, saved
+ *   as `chiefComplaint`.
+ * - The board card's 📄 line shows Nội dung đặt lịch, or the Ghi chú of an
+ *   older visit that has no content (R-1055).
+ * - Hoàn tất on the board keeps an older visit's note; it used to send
+ *   `notes: null`, which wiped it.
  *
  * Real stack: the dialog is filled and saved in the browser, nothing is
  * intercepted, the result is re-read after a reload and from the API.
@@ -46,12 +48,11 @@ test.describe("Tiếp nhận — Ghi chú", () => {
     await login(page);
   });
 
-  test("Tạo tiếp nhận saves Ghi chú apart from Nội dung đặt lịch and the card shows it", async ({ page }) => {
+  test("Tạo tiếp nhận has no Ghi chú; Nội dung đặt lịch is saved and shows beside 📄", async ({ page }) => {
     test.setTimeout(90_000);
     const branchId = await openBoard(page);
     const run = `${runId()}${test.info().workerIndex}`;
     const searchKey = `e2e-ghichu-${run}`;
-    const note = `Ghi chú tiếp nhận ${run}`;
 
     const start = new Date();
     start.setSeconds(0, 0);
@@ -78,19 +79,11 @@ test.describe("Tiếp nhận — Ghi chú", () => {
       const selects = dialog.locator(".ant-select");
       await pick(page, selects.nth(0), patient.body.patientCode);
       await pick(page, selects.nth(1), doctorName);
-      await dialog.locator(".rn-form textarea").fill(searchKey);
-
-      // The Ghi chú card starts empty; ✕ drops a draft, ✓ keeps it.
-      const panel = dialog.locator(".notes-panel");
-      await expect(panel).toContainText("Chưa có ghi chú");
-      await panel.getByRole("button", { name: "Thêm ngay" }).click();
-      await panel.locator("textarea").fill("bản nháp bỏ đi");
-      await panel.getByRole("button", { name: "Hủy" }).click();
-      await expect(panel).toContainText("Chưa có ghi chú");
-      await panel.getByRole("button", { name: "Thêm ngay" }).click();
-      await panel.locator("textarea").fill(note);
-      await panel.getByRole("button", { name: "Xác nhận" }).click();
-      await expect(panel.locator(".notes-panel-content")).toHaveText(note);
+      // R-1055: one text box, Nội dung đặt lịch — no Ghi chú card or field.
+      await expect(dialog.locator(".notes-panel")).toHaveCount(0);
+      await expect(dialog.getByText("Ghi chú", { exact: true })).toHaveCount(0);
+      await expect(dialog.locator("textarea")).toHaveCount(1);
+      await dialog.getByLabel("Nội dung đặt lịch").fill(searchKey);
 
       // The server refuses a slot before the current minute; book a few minutes ahead.
       const ahead = new Date(Date.now() + 3 * 60_000);
@@ -110,26 +103,26 @@ test.describe("Tiếp nhận — Ghi chú", () => {
       visitId = visit.id;
       await expect(dialog).toBeHidden();
 
-      // Two fields, two columns: neither overwrites the other.
       const saved = await stored(page, branchId, visit.id);
       expect(saved.chiefComplaint).toBe(searchKey);
-      expect(saved.notes).toBe(note);
+      expect(saved.notes ?? "").toBe("");
 
       await page.reload();
       const card = await cardOf(page, { ...visit, searchKey });
-      await expect(card.locator(".rc-detail-notes")).toHaveText(note);
+      await expect(card.locator(".rc-detail-notes")).toHaveText(searchKey);
     } finally {
       if (visitId) await staffCall(page, `${APPOINTMENTS}/${visitId}`, { method: "DELETE", branchId });
       if (dentist) await deleteStaff(page, dentist.id);
     }
   });
 
-  test("Hoàn tất on the board keeps the Ghi chú", async ({ page }) => {
+  test("the card's 📄 shows Nội dung đặt lịch over the Ghi chú, and Hoàn tất keeps the Ghi chú", async ({ page }) => {
     const branchId = await openBoard(page);
     const note = `Ghi chú giữ lại ${runId()}`;
+    // Booked with both: Nội dung đặt lịch is the search key.
     const visit = await bookVisitToday(page, branchId, 30, "e2e-ghichu-xong", note);
     const card = await cardOf(page, visit);
-    await expect(card.locator(".rc-detail-notes")).toHaveText(note);
+    await expect(card.locator(".rc-detail-notes")).toHaveText(visit.searchKey);
 
     await card.getByRole("button", { name: /Đã đến/ }).click();
     await expect(card.getByRole("button", { name: /Đang khám/ })).toBeEnabled();
@@ -141,6 +134,17 @@ test.describe("Tiếp nhận — Ghi chú", () => {
     expect((await stored(page, branchId, visit.id)).notes).toBe(note);
     await page.reload();
     const reloaded = await cardOf(page, visit);
-    await expect(reloaded.locator(".rc-detail-notes")).toHaveText(note);
+    await expect(reloaded.locator(".rc-detail-notes")).toHaveText(visit.searchKey);
+  });
+
+  test("an older visit with only a Ghi chú shows it beside 📄", async ({ page }) => {
+    const branchId = await openBoard(page);
+    const note = `ghi chú cũ ${runId()}`;
+    const visit = await bookVisitToday(page, branchId, 35, "e2e-ghichu-cu", note, false);
+    const saved = await stored(page, branchId, visit.id);
+    expect(saved.chiefComplaint ?? "").toBe("");
+
+    const card = await cardOf(page, visit);
+    await expect(card.locator(".rc-detail-notes")).toHaveText(`${visit.searchKey} ${note}`);
   });
 });

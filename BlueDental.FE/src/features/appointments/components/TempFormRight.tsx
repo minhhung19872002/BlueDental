@@ -1,6 +1,5 @@
 import { Input } from "antd";
 import { Controller, type Control } from "react-hook-form";
-import dayjs from "dayjs";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import type { TempAppointmentFormValues } from "./TempAppointmentForm";
@@ -8,10 +7,13 @@ import type { TempAppointmentFormValues } from "./TempAppointmentForm";
 interface Props {
   control: Control<TempAppointmentFormValues>;
   branchOptions: { value: string; label: string }[];
-  watchedDate: string;
 }
 
-export function TempFormRight({ control, branchOptions, watchedDate }: Props) {
+/**
+ * Chi nhánh, then Nội dung đặt lịch. Ngày hẹn is set on the left only, and
+ * Ghi chú is gone — the front desk keeps one text, the content (owner, R-1055).
+ */
+export function TempFormRight({ control, branchOptions }: Props) {
   return (
     <div>
       {/* Branch */}
@@ -31,25 +33,17 @@ export function TempFormRight({ control, branchOptions, watchedDate }: Props) {
         />
       </div>
 
-      {/* Date display (read-only echo) */}
+      {/* Content */}
       <div className="appt-field">
-        <label className="appt-field-label">{t("Appointment:Form:AppointmentDate")}</label>
-        <div className="appt-date-display">
-          {watchedDate ? dayjs(watchedDate).format("DD/MM/YYYY") : "—"}
-        </div>
-      </div>
-
-      {/* Notes — simple textarea */}
-      <div className="appt-field">
-        <label className="appt-field-label">{t("Common:Note")}</label>
+        <label className="appt-field-label">{t("Appointment:Form:BookingContent")}</label>
         <Controller
-          name="notes"
+          name="content"
           control={control}
           render={({ field }) => (
             <Input.TextArea
               {...field}
               rows={4}
-              placeholder={t("Common:Note")}
+              placeholder={t("Appointment:Form:BookingContent")}
               style={{ resize: "none" }}
             />
           )}

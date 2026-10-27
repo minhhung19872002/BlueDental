@@ -18,6 +18,7 @@ export interface TempAppointmentFormValues {
   color: string;
   /** Nội dung đặt lịch. */
   content: string;
+  /** Ghi chú — no longer on the form (R-1055): only carried so an edit keeps an older booking's note. */
   notes: string;
 }
 
@@ -55,11 +56,7 @@ export function TempAppointmentForm({
           doctorOptions={doctorOptions}
           watchedSourceTaxonomyId={watchedSourceTaxonomyId}
         />
-        <TempFormRight
-          control={control}
-          branchOptions={branchOptions}
-          watchedDate={watchedDate}
-        />
+        <TempFormRight control={control} branchOptions={branchOptions} />
       </div>
       <AppointmentMiniCalendar
         date={watchedDate}

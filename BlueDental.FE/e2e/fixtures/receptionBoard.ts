@@ -97,6 +97,11 @@ export async function bookVisitToday(
   keyPrefix = "e2e-hentiep",
   /** Ghi chú stored with the visit. */
   notes?: string,
+  /**
+   * False books an older-style visit with no Nội dung đặt lịch: the search key
+   * then rides in the Ghi chú (the board search reads both).
+   */
+  withContent = true,
 ): Promise<Appointment & { searchKey: string }> {
   const searchKey = `${keyPrefix}-${runId()}-${minutesAhead}`;
   const firstStart = new Date(Date.now() + minutesAhead * 60_000);
@@ -165,8 +170,9 @@ export async function bookVisitToday(
             slotStart: start.toISOString(),
             slotEnd: end.toISOString(),
             type: 2,
-            chiefComplaint: searchKey,
-            notes,
+            ...(withContent
+              ? { chiefComplaint: searchKey, notes }
+              : { notes: [searchKey, notes].filter(Boolean).join(" ") }),
           },
         });
         if (res.status === 200) return { ...res.body, searchKey };

@@ -17,8 +17,6 @@ interface Props {
   setValue: UseFormSetValue<AppointmentEditorValues>;
   watchedDoctorId: string;
   watchedDate: string;
-  watchedNotes: string;
-  isEdit?: boolean;
   /** The stored status of the appointment being edited; drives Trạng thái. */
   stored?: StoredStatus;
   /** Opened from a patient's record: the patient is fixed. */
@@ -26,8 +24,8 @@ interface Props {
   onOpenNewPatient?: () => void;
   /**
    * "Lặp lại lịch hẹn": the field under Giờ hẹn / Phút, the session list that
-   * takes the third column while repeating (Ghi chú then moves under Nội
-   * dung), and the slot a clicked session shows in Lịch đã hẹn.
+   * takes the third column while repeating (Nội dung đặt lịch then moves
+   * under Màu lịch hẹn), and the slot a clicked session shows in Lịch đã hẹn.
    */
   series?: { field: ReactNode; list: ReactNode | null; focus: CalendarFocus | null };
   /** A slot clicked in Lịch đã hẹn (fills Giờ hẹn and, on a doctor row, Chọn bác sĩ). */
@@ -44,8 +42,6 @@ export function AppointmentEditorForm({
   setValue,
   watchedDoctorId,
   watchedDate,
-  watchedNotes,
-  isEdit,
   stored,
   lockPatient,
   onOpenNewPatient,
@@ -54,16 +50,7 @@ export function AppointmentEditorForm({
   onCalendarDateChange,
 }: Props) {
   const center = <AppointmentFormCenter control={control} errors={errors} doctorOptions={doctorOptions} setValue={setValue} />;
-  const right = (
-    <AppointmentFormRight
-      control={control}
-      errors={errors}
-      setValue={setValue}
-      notesValue={watchedNotes}
-      isEdit={isEdit}
-      stored={stored}
-    />
-  );
+  const right = <AppointmentFormRight control={control} errors={errors} stored={stored} />;
   const sessionList = series?.list ?? null;
 
   return (
