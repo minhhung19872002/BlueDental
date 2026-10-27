@@ -11242,3 +11242,9 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chỉ bật ở `PaymentInfoPanel` (ô Tự động + từng ô Thủ công). Các màn khác dùng `CurrencyInput` không đổi.
 - **E2E** `payment-amount-select.spec.ts`: bấm ô Tự động → vùng chọn = cả số; Thủ công → bấm ô → cả số được chọn, gõ nửa Còn nợ → ô thay hẳn bằng số mới; bấm lần hai → vùng chọn rỗng; Lưu → đọc lại bằng request riêng, `amount` = số đã gõ. **Xanh**.
 - **Hồi quy** (bản build production, `vite preview` :8080): `payment-amount-cap` + `payment-from-slip` (2 ca) → 4/4 **xanh** cùng spec mới.
+
+## R-1043 (2026-10-27, mức 1: Tìm kiếm Ctrl+K) Năm sinh sau tên bệnh nhân
+
+- **Yêu cầu** (2026-10-27, ảnh chụp bảng tìm kiếm Ctrl+K): "Thêm năm sinh sau tên nha". Mẫu: `Huỳnh Văn Định (2002)`.
+- **Sửa**: `GlobalSearch` hiện `Tên (YYYY)` ở dòng tên của mỗi kết quả. Năm lấy từ `dateOfBirth` mà `GET /patients` đã trả sẵn, nên không sửa BE. Hồ sơ chưa có ngày sinh chỉ hiện tên.
+- **E2E** `patient-search-unaccent.spec.ts` ca 2: dòng tên của kết quả kết thúc bằng `Hà My (1990)`. Chạy trên bản build production của `main` (`vite preview` :8091, API :5000): 2/2 **xanh**.

@@ -41,6 +41,13 @@ const searchCategories = () => [
 /** Below this the server would be asked to match half the clinic. */
 const MIN_QUERY = 2;
 
+/**
+ * "Huỳnh Văn Định (2002)" — the birth year tells same-name records apart
+ * (owner 2026-10-27). `dateOfBirth` is "YYYY-MM-DD"; none recorded, name only.
+ */
+const hitName = (fullName: string, dateOfBirth: string | null) =>
+  dateOfBirth ? `${fullName} (${dateOfBirth.slice(0, 4)})` : fullName;
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -128,7 +135,7 @@ export function GlobalSearch({ open, onClose }: Props) {
                 >
                   <span className="app-search-hit-badge">{t("Common:PatientBadge")}</span>
                   <span className="app-search-hit-text">
-                    <span className="app-search-hit-name">{hit.fullName}</span>
+                    <span className="app-search-hit-name">{hitName(hit.fullName, hit.dateOfBirth)}</span>
                     <span className="app-search-hit-meta">
                       {[hit.patientCode, hit.phoneNumber, hit.serviceNames[0]].filter(Boolean).join(" · ")}
                     </span>

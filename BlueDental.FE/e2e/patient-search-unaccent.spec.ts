@@ -80,6 +80,8 @@ test.describe.serial("Tìm bệnh nhân không dấu", () => {
     const hit = page.locator(".app-search-hit").filter({ hasText: `E2E${run}` });
     await expect(hit).toHaveCount(1, { timeout: 15_000 });
     await expect(hit).toContainText("Hà My");
+    // The birth year follows the name (owner 2026-10-27).
+    await expect(hit.locator(".app-search-hit-name")).toHaveText(/Hà My \(1990\)$/);
     await hit.click();
 
     await expect(page).toHaveURL(new RegExp(`/patient/${patient.id}`));
