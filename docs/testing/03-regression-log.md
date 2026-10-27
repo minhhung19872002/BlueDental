@@ -11300,3 +11300,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `payment-from-slip.spec` "In Hóa Đơn → Tạo phiếu thanh toán…" → **pass**.
   - `tsc -b` và `oxlint` không báo lỗi. BE build qua (chạy `dotnet run`).
 
+## R-1046 (2026-10-27, mức 2: Lịch hẹn — Lịch tạm) Nội dung đặt lịch trên Tạo / Chỉnh sửa lịch tạm
+
+- **Yêu cầu** (2026-10-27, ảnh chụp Tạo lịch hẹn khoanh ô "Nội dung đặt lịch" và ảnh chụp Lịch tạm): "Lịch tạm cho phần nội dung đặt lịch luôn nha". Chủ dự án chọn đặt ô này **dưới Chọn bác sĩ**, đúng chỗ của Tạo lịch hẹn.
+- **Sửa FE**: `TempFormCenter` thêm ô `Input.TextArea` "Nội dung đặt lịch" (4 dòng), giống `AppointmentFormCenter`. `TempAppointmentEditorModal`:
+  - đọc lại nội dung từ `reason` khi mở để sửa;
+  - gửi `reason` khi tạo và khi sửa;
+  - `toCreateTempRequest` đổi thành `chiefComplaint`.
+- **Sửa BE**: `CreateTempAppointmentDto.ChiefComplaint`, và `Appointment.CreateTemporary(..., chiefComplaint)` lưu vào cột `ChiefComplaint` đã có sẵn, nên không cần migration. Khi lịch tạm gắn hồ sơ (`AttachPatient`) nội dung vẫn giữ.
+- **Lỗi cũ sửa kèm**: trước đây dialog Chỉnh sửa lịch tạm không gửi `reason`, mà `PUT` ghi đè `ChiefComplaint`, nên chỉ cần mở ra rồi bấm Lưu là mất nội dung của lịch tạm. Giờ dialog luôn gửi lại nội dung.
+- **Test**:
+  - Domain: `CreateTemporary_Should_Keep_The_Booking_Content`. Toàn bộ test Appointments 107/107 xanh.
+  - E2E mới `temp-booking-content.spec.ts`, 2 ca, đều **xanh**:
+    - Tạo lịch tạm qua dialog: ô nằm dưới Chọn bác sĩ, server lưu `chiefComplaint`, view Ngày hiện ở cột "Chưa chọn bác sĩ".
+    - Chỉnh sửa: ô hiện sẵn nội dung; sửa mỗi Ghi chú thì nội dung vẫn còn; sửa nội dung thì lưu được, và sau khi tải lại vẫn đúng.
+  - Môi trường chạy: bản build production của `main` (`vite preview` :8151), host riêng :5120 chạy code `main`, DB riêng `BlueDental_zalofix` có bệnh nhân giả.
+  - Hồi quy: `appointment-day-timeline`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-mini-cal-date`, `reception-temporary`, `reception-temp-cancel` cho 20 xanh, 1 skip, 1 đỏ.
+  - Ca đỏ là "a mouse drag scrolls the board sideways". Ca này cần đủ cột bác sĩ để bảng tràn ngang ở độ rộng 1000px, mà DB riêng chỉ có bác sĩ của lượt chạy. Lỗi do dữ liệu, không liên quan form Lịch tạm.

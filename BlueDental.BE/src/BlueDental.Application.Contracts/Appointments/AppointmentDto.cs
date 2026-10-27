@@ -63,6 +63,9 @@ public class CreateTempAppointmentDto
     public string? Color { get; set; }
     public string? Notes { get; set; }
 
+    /// <summary>"Nội dung đặt lịch", as on Tạo lịch hẹn (owner 2026-10-27, R-1046).</summary>
+    public string? ChiefComplaint { get; set; }
+
     /// <summary>
     /// Set once the user confirmed the "bác sĩ đã có lịch trùng khung giờ" warning:
     /// the dentist may be double-booked (BA 2026-10-16). Left false, an overlap

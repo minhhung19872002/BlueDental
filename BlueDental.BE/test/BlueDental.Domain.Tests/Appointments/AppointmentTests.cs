@@ -625,6 +625,21 @@ public class AppointmentTests
         Assert.Null(appointment.PatientPhone);
     }
 
+    /// <summary>R-1046: Lịch tạm takes "Nội dung đặt lịch" like Tạo lịch hẹn; it stays once the hồ sơ is attached.</summary>
+    [Fact]
+    public void CreateTemporary_Should_Keep_The_Booking_Content()
+    {
+        var appointment = Appointment.CreateTemporary(
+            Guid.NewGuid(), "Khach tam", "0900000000", _branchId, _slot, _dentistId,
+            notes: "Ghi chu", chiefComplaint: "Nho rang khon");
+
+        Assert.Equal("Nho rang khon", appointment.ChiefComplaint);
+        Assert.Equal("Ghi chu", appointment.Notes);
+
+        appointment.AttachPatient(_patientId);
+        Assert.Equal("Nho rang khon", appointment.ChiefComplaint);
+    }
+
     [Fact]
     public void AttachPatient_Refuses_An_Appointment_That_Is_Not_Temporary()
     {

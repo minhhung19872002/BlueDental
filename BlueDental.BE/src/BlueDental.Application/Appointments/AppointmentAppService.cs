@@ -441,7 +441,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             input.SourceTaxonomyId,
             input.SourceEntryId,
             input.Color,
-            input.Notes);
+            input.Notes,
+            input.ChiefComplaint);
 
         await _repository.InsertAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(

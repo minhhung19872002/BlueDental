@@ -31,6 +31,7 @@ const buildSchema = () =>
     sourceTaxonomyId: z.string(),
     sourceEntryId: z.string(),
     color: z.string(),
+    content: z.string(),
     notes: z.string(),
   });
 
@@ -76,6 +77,7 @@ export function TempAppointmentEditorModal({
       sourceTaxonomyId: "",
       sourceEntryId: "",
       color: APPT_COLORS[0].value,
+      content: "",
       notes: "",
     },
   });
@@ -134,6 +136,7 @@ export function TempAppointmentEditorModal({
         sourceTaxonomyId: existingAppt.sourceTaxonomyId ?? "",
         sourceEntryId: existingAppt.sourceEntryId ?? "",
         color: existingAppt.color ?? APPT_COLORS[0].value,
+        content: existingAppt.reason ?? "",
         notes: existingAppt.notes ?? "",
       });
     } else if (!isEdit) {
@@ -148,6 +151,7 @@ export function TempAppointmentEditorModal({
         sourceTaxonomyId: "",
         sourceEntryId: "",
         color: APPT_COLORS[0].value,
+        content: "",
         notes: "",
       });
     }
@@ -184,6 +188,8 @@ export function TempAppointmentEditorModal({
           patientName: data.patientName,
           patientPhone: data.patientPhone ?? "",
           color: data.color ?? "",
+          // Sent even when emptied: the update rewrites it, so leaving it out wiped it.
+          reason: data.content,
           notes: data.notes ?? "",
           sourceTaxonomyId: data.sourceTaxonomyId || undefined,
           sourceEntryId: data.sourceEntryId || undefined,
@@ -211,6 +217,7 @@ export function TempAppointmentEditorModal({
           sourceTaxonomyId: data.sourceTaxonomyId || undefined,
           sourceEntryId: data.sourceEntryId || undefined,
           color: data.color || undefined,
+          reason: data.content || undefined,
           notes: data.notes || undefined,
           allowDentistOverlap,
         },

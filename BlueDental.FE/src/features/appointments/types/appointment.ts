@@ -124,6 +124,8 @@ export interface CreateTempAppointmentRequest {
   sourceTaxonomyId?: string;
   sourceEntryId?: string;
   color?: string;
+  /** Nội dung đặt lịch. */
+  reason?: string;
   notes?: string;
   /** Set after the user confirmed booking the dentist into an overlap (Appointment:0002). */
   allowDentistOverlap?: boolean;

@@ -92,7 +92,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Guid? sourceTaxonomyId = null,
         Guid? sourceEntryId = null,
         string? color = null,
-        string? notes = null)
+        string? notes = null,
+        string? chiefComplaint = null)
     {
         Check.NotNullOrWhiteSpace(patientName, nameof(patientName));
 
@@ -112,6 +113,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
             SourceEntryId = sourceEntryId,
             Color = color,
             Notes = notes,
+            ChiefComplaint = chiefComplaint,
         };
     }
 

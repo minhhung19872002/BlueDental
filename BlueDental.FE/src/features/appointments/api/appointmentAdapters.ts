@@ -222,6 +222,7 @@ export function toCreateTempRequest(request: CreateTempAppointmentRequest): Reco
     sourceTaxonomyId: request.sourceTaxonomyId || undefined,
     sourceEntryId: request.sourceEntryId || undefined,
     color: request.color || undefined,
+    chiefComplaint: request.reason || undefined,
     notes: request.notes || undefined,
     allowDentistOverlap: request.allowDentistOverlap,
   };
