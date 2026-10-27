@@ -11169,3 +11169,27 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa**: chỉ đổi giá trị localization BE `Patient:InvoiceRequest:Tab:Receipts` — vi "Hóa đơn đã tạo", en "Issued invoices". Key, `PatientRecordTabs.tsx` và bảng bên dưới không đổi.
 - **E2E**: `patient.spec.ts` (ca tab Hóa đơn) bấm theo tên mới.
 - Các nút "Phiếu thu <mã phiếu>" ở kế hoạch điều trị và combobox "Phiếu thu" trong dialog Yêu cầu xuất HĐ là chỗ khác, không đổi.
+
+## R-1042 (2026-10-27, mức 2) Kế hoạch điều trị: nút Phiếu thu mở trang thanh toán của phiếu, chỉ phiếu "Đã tạo" có nút xoá
+
+- **Yêu cầu (owner, ảnh chụp bảng Kế hoạch điều trị)**:
+  1. Nút 🧾 Phiếu thu ở cột Thao tác điều hướng tới trang thanh toán của phiếu điều trị đó, thay vì mở dialog.
+  2. Phiếu có trạng thái khác "Đã tạo" thì ẩn nút xoá. Chỉ xoá được phiếu mới tạo.
+- **Owner chốt khi duyệt plan**:
+  1. Phiếu "Đã tạo" nhưng đã thu tiền vẫn xoá được, nhưng confirm phải cảnh báo số tiền trước.
+  2. Chỉ ẩn nút ở FE, BE không chặn thêm.
+  3. Nút Phiếu thu vẫn theo quyền `payment.create`.
+- **Sửa (FE)**:
+  - `planTypes.isPlanUntouched`: cùng điều kiện với pill "Đã tạo" (Draft/PendingApproval/Approved, hoặc InProgress mà mọi dòng còn Created). `planPill` dùng lại hàm này.
+  - Bảng (`planColumns`) và thẻ điện thoại (`PlanCardList`) chỉ render thùng rác khi `isPlanUntouched`.
+  - `TreatmentPlanPanel`: Phiếu thu → `planDetailPath(..., PLAN_TAB.payment)` (`?planTab=payment-v2`). Đã bỏ `CreatePaymentDialog` khỏi panel.
+  - `DeletePlanDialog`: khi `payment.totalPaid > 0` thì hiện dòng đỏ trước ghi chú.
+- **Text (BE localization)**:
+  - `Treatment:Plan:DeletePaidWarning`: "Phiếu đã thu {0}, các phiếu thu này cũng sẽ bị xoá."
+  - `Treatment:Plan:DeleteNote` rút gọn theo góp ý owner: "Dữ liệu của phiếu sẽ bị xoá, dịch vụ tư vấn quay về trạng thái đã chốt."
+- **E2E**:
+  - `treatment-plan-delete.spec`: kiểm câu cảnh báo và số tiền (có / không có). Ca mới: phiếu có công đoạn → pill "Đang điều trị", không có thùng rác, nút Phiếu thu vẫn còn.
+  - `treatment-plan.spec`, `payment-from-slip.spec`: bấm Phiếu thu → URL `planTab=payment-v2` và tab Thanh toán được chọn.
+- **Kết quả**: stack thật, BE :5000, bản build production `vite preview` :8160, không chặn request.
+  - `payment-from-slip`, `payment-permission-buttons`, `plan-treating-scope`, `treatment-plan-delete`, `treatment-plan` → **36/36**.
+  - Sau khi rút gọn text: chạy lại `treatment-plan-delete` → **4/4**.
