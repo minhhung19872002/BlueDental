@@ -49,7 +49,7 @@ interface RowHandlers {
  * the caller decides what a confirmed delete does. The clock in front of them
  * is BlueDental's own (not on the reference): that appointment's change
  * history. It only reads, so the column is there for anyone who sees the tab.
- * So is the pencil in Ghi chú, which edits the note in place (R-1058).
+ * So is the pencil in Ghi chú, which edits the note in place (R-1063).
  */
 export function buildAppointmentColumns({
   onHistory,

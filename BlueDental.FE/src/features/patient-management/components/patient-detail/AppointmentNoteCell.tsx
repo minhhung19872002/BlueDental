@@ -1,5 +1,6 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Button, Input } from "antd";
+import type { TextAreaRef } from "antd/es/input/TextArea";
 import { t } from "@/lib/i18n";
 import { StageEditPencil } from "./stage/StageEditPencil";
 
@@ -16,12 +17,19 @@ interface Props {
 }
 
 /**
- * Ghi chú on the patient's Lịch hẹn tab (BA, R-1058). The booking dialogs no
+ * Ghi chú on the patient's Lịch hẹn tab (BA, R-1063). The booking dialogs no
  * longer carry it (R-1055), so it is kept up here, in place, whatever the
  * appointment's status. Esc drops the draft like Hủy.
  */
 export function AppointmentNoteCell({ notes, saving, editable, onSave }: Props) {
   const [draft, setDraft] = useState<string | null>(null);
+  const boxRef = useRef<TextAreaRef>(null);
+  const editing = draft !== null;
+
+  // autoFocus would leave the caret before the old note; it goes after it.
+  useEffect(() => {
+    if (editing) boxRef.current?.focus({ cursor: "end" });
+  }, [editing]);
 
   const handleSave = async () => {
     if (draft === null) return;
@@ -35,7 +43,7 @@ export function AppointmentNoteCell({ notes, saving, editable, onSave }: Props) 
     setDraft(null);
   };
 
-  if (draft === null) {
+  if (!editing) {
     return (
       <div className="pd-appt-note">
         <span className="pd-appt-note-text">{notes ?? "—"}</span>
@@ -52,7 +60,7 @@ export function AppointmentNoteCell({ notes, saving, editable, onSave }: Props) 
   return (
     <div className="pd-appt-noteedit">
       <Input.TextArea
-        autoFocus
+        ref={boxRef}
         autoSize={{ minRows: 2, maxRows: 6 }}
         value={draft}
         maxLength={APPOINTMENT_NOTES_LIMIT}

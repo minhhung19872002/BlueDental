@@ -45,7 +45,7 @@ export function useUpdateAppointment(id: string) {
   });
 }
 
-/** Ghi chú alone: no slot or dentist checks, so no overlap prompt either (R-1058). */
+/** Ghi chú alone: no slot or dentist checks, so no overlap prompt either (R-1063). */
 export function useUpdateAppointmentNotes() {
   return useMutation({
     mutationKey: ["appointments", "updateNotes"],

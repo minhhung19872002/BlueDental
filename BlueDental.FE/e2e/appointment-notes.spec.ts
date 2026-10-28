@@ -5,7 +5,7 @@ import { call, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/tim
 import { openShiftCovering } from "./fixtures/workShift";
 
 /**
- * Feature: Ghi chú lịch hẹn sửa ngay trong bảng (R-1058, BA 2026-10-28: "Cột
+ * Feature: Ghi chú lịch hẹn sửa ngay trong bảng (R-1063, BA 2026-10-28: "Cột
  * ghi chú vẫn còn DB chứ? Giờ cho chỉnh sửa ở đây nha"). The booking dialogs
  * lost Ghi chú in R-1055; the patient's Lịch hẹn tab now edits it in its cell
  * with a pencil, whatever the visit's status, through its own
@@ -195,6 +195,15 @@ test.describe.serial("Ghi chú lịch hẹn trên tab Lịch hẹn", () => {
 
     await page.reload();
     await expect(rowOf(page)).toContainText(note, { timeout: 15_000 });
+
+    // Reopened, the caret waits after the saved note, ready to add to it.
+    await rowOf(page).getByRole("button", { name: "Sửa ghi chú" }).click();
+    const reopened = rowOf(page).getByRole("textbox", { name: "Ghi chú" });
+    await expect(reopened).toBeFocused();
+    const caret = await reopened.evaluate((el: HTMLTextAreaElement) => [el.selectionStart, el.selectionEnd]);
+    expect(caret).toEqual([note.length, note.length]);
+    await reopened.press("Escape");
+    await expect(reopened).toHaveCount(0);
 
     // Lịch sử thay đổi names the field in words.
     const list = page.waitForResponse(

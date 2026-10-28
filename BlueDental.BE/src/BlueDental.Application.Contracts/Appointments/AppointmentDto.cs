@@ -170,7 +170,7 @@ public class SetOutcomeDto
     public AppointmentOutcome Outcome { get; set; }
 }
 
-/// <summary>Ghi chú alone, edited in its cell on the patient's Lịch hẹn tab (R-1058).</summary>
+/// <summary>Ghi chú alone, edited in its cell on the patient's Lịch hẹn tab (R-1063).</summary>
 public class UpdateAppointmentNotesDto
 {
     [StringLength(2000)]
