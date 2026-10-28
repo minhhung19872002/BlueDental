@@ -8,22 +8,25 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/webp",
 ] as const;
 
+const MEGABYTE = 1024 * 1024;
+
 /** Maximum file size for image uploads (5 MB). */
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 5 * MEGABYTE;
 
 /** `accept` attribute value for `<input type="file">` pickers. */
 export const IMAGE_ACCEPT = ACCEPTED_IMAGE_TYPES.join(",");
 
 /**
- * Validates a file is an accepted image type and under the size limit.
- * Returns `null` when valid, or a user-facing error string.
+ * Validates a file is an accepted image type and under the size limit — 5 MB
+ * unless the caller allows more. Returns `null` when valid, or a user-facing
+ * error string.
  */
-export function validateImageFile(file: File): string | null {
+export function validateImageFile(file: File, maxBytes: number = MAX_IMAGE_BYTES): string | null {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type as (typeof ACCEPTED_IMAGE_TYPES)[number])) {
     return t("Common:Validation:ImageTypesOnly");
   }
-  if (file.size > MAX_IMAGE_BYTES) {
-    return t("Common:Validation:ImageMaxSize");
+  if (file.size > maxBytes) {
+    return t("Common:Validation:ImageMaxSize", maxBytes / MEGABYTE);
   }
   return null;
 }

@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -147,6 +148,21 @@ function useImageMutation<TVariables, TData>(fn: (variables: TVariables) => Prom
 
 export function useUploadPatientImage() {
   return useImageMutation(patientImageApi.upload);
+}
+
+/**
+ * "Tải ảnh" / "Chụp ảnh" send a batch of any size one file at a time. Sending
+ * does not touch the cache; the caller refreshes the feed once the batch is
+ * over, instead of reloading every page of it after each file.
+ */
+export function usePatientImageBatchUpload() {
+  const queryClient = useQueryClient();
+  const { mutateAsync: send } = useMutation({ mutationFn: patientImageApi.upload });
+  const refresh = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: patientImageKeys.all }),
+    [queryClient],
+  );
+  return { send, refresh };
 }
 
 export function useDeletePatientImage() {

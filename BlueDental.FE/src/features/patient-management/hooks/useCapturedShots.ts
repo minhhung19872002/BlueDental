@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
-import { UPLOAD_BATCH_LIMIT } from "./usePatientImageUpload";
 
 export interface CapturedShot {
   id: number;
@@ -15,9 +14,9 @@ function shotFileName(sequence: number): string {
 }
 
 /**
- * The pictures taken in one "Chụp ảnh" session, waiting to be uploaded — at
- * most as many as one upload takes. Thumbnails are object URLs, released as
- * shots are dropped and when the dialog goes away.
+ * The pictures taken in one "Chụp ảnh" session, waiting to be uploaded — as
+ * many as the desk takes. Thumbnails are object URLs, released as shots are
+ * dropped and when the dialog goes away.
  */
 export function useCapturedShots() {
   const [shots, setShots] = useState<CapturedShot[]>([]);
@@ -46,11 +45,5 @@ export function useCapturedShots() {
 
   const remove = useCallback((shot: CapturedShot) => discard([shot]), [discard]);
 
-  return {
-    shots,
-    full: shots.length >= UPLOAD_BATCH_LIMIT,
-    add,
-    remove,
-    discard,
-  };
+  return { shots, add, remove, discard };
 }
