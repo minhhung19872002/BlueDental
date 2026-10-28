@@ -282,7 +282,8 @@ test.describe("Bệnh án", () => {
   /*
    * Clinic, 2026-10-27: the "MS:" corner carries each printed form's own code.
    * BA, 2026-10-29 (R-1069): and nobody changes it — the blank takes no typing,
-   * and a sheet saved with another code before shows the form's own.
+   * a sheet saved with another code before shows the form's own, and the code
+   * reads as plain text rather than as a blank, on screen and on paper.
    */
   test("Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS, which nobody can change", async ({
     page,
@@ -293,19 +294,39 @@ test.describe("Bệnh án", () => {
       ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "custom.text.6d1c4222d1b041c1aff9becd446183e1", "01/BV2"],
       ["Phiếu phẫu thuật/thủ thuật", "custom.text.8d7eb5b7fe9746b3909ce9c21ba46a31", "PT-11"],
     ];
+    // The code against the words around it: the box, tint and dotted line a blank draws.
+    const looks = (node: Element) => {
+      const style = getComputedStyle(node);
+      const around = getComputedStyle(node.parentElement!);
+      return {
+        border: style.borderBottomStyle,
+        outline: style.outlineStyle,
+        background: style.backgroundColor,
+        sameColour: style.color === around.color,
+      };
+    };
+    const plain = { border: "none", outline: "none", background: "rgba(0, 0, 0, 0)", sameColour: true };
     for (const [form, field, code] of codes) {
       await openFreshSheet(page, form, { [field]: "99/SỬA TAY" });
       const ms = blank(page, field);
       await expect(ms, form).toHaveText(code);
       await expect(ms, form).not.toHaveAttribute("contenteditable");
+      expect(await ms.evaluate(looks), form).toEqual(plain);
       await ms.click();
       await page.keyboard.type("9");
       await expect(ms, form).toHaveText(code);
+
+      await page.emulateMedia({ media: "print" });
+      const printed = await ms.evaluate(looks);
+      await page.emulateMedia({ media: "screen" });
+      expect(printed, `${form} on paper`).toEqual(plain);
     }
 
-    // A form without a code of its own still has its MS written by hand.
+    // A form without a code of its own still has its MS written by hand, in a blank.
     await openFreshSheet(page, "Phiếu theo dõi điều trị");
-    await expect(blank(page, "custom.text.15acbc6a08b2454e985bf7bc663d4afe")).toHaveAttribute("contenteditable", "true");
+    const handWritten = blank(page, "custom.text.15acbc6a08b2454e985bf7bc663d4afe");
+    await expect(handWritten).toHaveAttribute("contenteditable", "true");
+    expect(await handWritten.evaluate((node) => getComputedStyle(node).borderBottomStyle)).toBe("dotted");
   });
 
   test("the cover prints the record's own identity", async ({ page }) => {
@@ -1428,8 +1449,9 @@ test.describe("Bệnh án", () => {
         const style = (node: Element | null) => (node ? getComputedStyle(node).borderBottomStyle : null);
         return {
           inGrid: style(root.querySelector("[data-grid-cell] .nfc-medical-record-text-field")),
+          // MS is print, not a blank (R-1069): it has no line at all.
           outside: style(
-            Array.from(root.querySelectorAll(".nfc-medical-record-text-field")).find(
+            Array.from(root.querySelectorAll(".nfc-medical-record-text-field:not([data-form-code])")).find(
               (node) => !node.closest("[data-grid-cell]") && !node.closest("[data-cover]"),
             ) ?? null,
           ),

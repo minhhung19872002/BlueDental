@@ -12014,3 +12014,12 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,1 phút, 1 worker): **32 xanh / 4 đỏ**. 4 ca đỏ đúng là 4 ca đã đỏ từ trước, đã chứng minh trên HEAD sạch ở R-1067: `sheet-facts:309`, "the index lists…", "the open sheet's card wears…", "picking the day…".
   - `tsc -b` (trong `npm run build`) xanh; `oxlint` 5 file xanh; build production có đúng 1 chunk ngôn ngữ.
 - **Mức retest**: 2 (F-30 Bệnh án). `renderSheet.ts` chỉ được tab hồ sơ bệnh nhân import; `/taxonomy` Bệnh án mẫu không bị ảnh hưởng. Đã thêm dòng `renderSheet.ts` / `FORM_CODE_VALUES` vào `02-impact-map.md`.
+- **Bổ sung cùng ngày (chủ dự án: "nếu disable thì hiện dạng text luôn thay vì field")**: ô MS đã khoá trông như chữ thường của tờ, không còn dáng ô nhập, trên màn hình lẫn khi in.
+  - `renderSheet.ts`: ô MS được gắn `data-form-code="true"` (cả khi tờ chỉ đọc) và dừng ở đó, không qua nhánh `contenteditable`.
+  - `sheetCss.ts` (cuối `SHEET_FIELD_CSS`, nên áp cho cả khung tờ lẫn bản sao in): `display:inline`, bỏ `min-width` của template, bỏ padding, viền gạch chấm, viền vàng và nền; chữ cùng màu với chữ xung quanh (đen), không còn xanh như ô đã điền.
+  - E2E:
+    - Ca MS kiểm thêm, cho mỗi mẫu 2/6/7, trên màn hình và khi `emulateMedia print`: không có gạch chân, không viền, nền trong suốt, màu chữ bằng màu chữ cha. Ô MS mẫu 8 vẫn có gạch chấm → **xanh**.
+    - Ca "every form shares mẫu 5's type, boxes, letterhead and print rules" lấy ô đầu tiên ngoài lưới để kiểm gạch chấm khi in, và ở mẫu 2 ô đó là MS → đỏ. Đổi bộ chọn thành `:not([data-form-code])` → **xanh**.
+    - Ca R-1067 "mẫu 2: 15mm margins, the MS block…" (nhãn và ô thẳng cột, khối sát lề phải) và ca R-1068 "mẫu 6: 15mm margins…" → **xanh**.
+    - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,2 phút, 1 worker): **32 xanh / 4 đỏ**, đúng 4 ca đỏ từ trước như trên.
+    - `tsc -b` xanh; `oxlint` xanh; build có 1 chunk ngôn ngữ.

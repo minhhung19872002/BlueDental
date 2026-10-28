@@ -103,7 +103,13 @@ function fillFields(root: ParentNode, options: RenderOptions) {
     }
 
     if (typeof value === "string") node.textContent = value;
-    if (options.editable && !isFormCode(id)) node.setAttribute("contenteditable", "true");
+    if (isFormCode(id)) {
+      // Print, not a blank: drawn as the words around it (`data-form-code` in sheetCss).
+      node.setAttribute("data-form-code", "true");
+      node.removeAttribute("contenteditable");
+      return;
+    }
+    if (options.editable) node.setAttribute("contenteditable", "true");
     else node.removeAttribute("contenteditable");
   });
 }

@@ -244,7 +244,10 @@ const SHEET_FIELD_CSS = String.raw`
   @media print{
     .nfc-tpl .nfc-medical-record-text-field:not(:empty){color:#000!important;background:transparent!important}
     .nfc-tpl [data-medical-record-suggested="true"]{outline:none!important}
-  }`;
+  }
+  /* MS, the form's own code (BA, 2026-10-29, R-1069): nobody writes in it, so
+     it reads as plain text on screen and on paper — no box, tint or dotted line. */
+  .nfc-tpl .nfc-medical-record-text-field[data-form-code="true"]{display:inline;min-width:0!important;min-height:0;padding:0;line-height:inherit;border:0!important;outline:none!important;background:none!important;color:inherit!important}`;
 
 /*
  * What a sheet does on paper, read off the reference's own stylesheet: A4 with
