@@ -4717,6 +4717,7 @@
     "Patient:Plan:ProsthesisDetailTitle": "Chi tiết phục hình",
     "Patient:Photo:SelectForPrintBtn": "Chọn ảnh để đưa vào form in.",
     "Patient:Labo:NoMaterial": "Không có vật liệu",
+    "Patient:Labo:NoMaterialMatch": "Không tìm thấy vật liệu",
     "Patient:Staff:SelectDoctorLabel": "Chọn bác sĩ điều trị",
     "Patient:DiagnosisInvoice:DateLine": "Ngày: {0}",
     "Patient:Photo:ClinicalLibraryFullscreen": "Thư viện ảnh lâm sàng toàn màn hình",

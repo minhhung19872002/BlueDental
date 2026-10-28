@@ -11857,3 +11857,29 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `patient.spec:2546` chập chờn ở cả hai bản: HEAD đỏ 1/5, F-82 đỏ 1/4, cùng dòng 2602 (ô Ghi chú Labo mất focus). Không do F-82.
 
 **Sửa sau review (2026-10-28, sau commit 5898e6df).** Cùng một người giám hộ được khai trên hai hồ sơ với CCCD gõ khác khoảng trắng (`0791 23…` và `079123…`): danh sách gộp là một người, nhưng khi lưu họ thành hồ sơ, `LinkGuardianAsync` so CCCD từng ký tự nên chỉ gắn `LinkedPatientId` cho bản khai trùng khít. Thêm nữa, dòng giám hộ trả CCCD còn khoảng trắng, dialog chép vào form và Lưu bị `0011` ("CCCD phải đủ 12 số"). Sửa: so khớp theo cùng khoá với danh sách (bỏ khoảng trắng, không phân biệt hoa thường; SQL `replace(' ', '')` + `upper`), dòng giám hộ trả CCCD đã làm sạch. Test: `patient-shared-phone-api` ca 3 khai lại người mẹ với CCCD có khoảng trắng ở giữa (đỏ `0011` trước khi sửa), API 7/7 + UI 6/6 + `patient-guardian*` 10/10 = 23/23 trên build production + host :5000 + PostgreSQL thật.
+
+
+## R-1062 (2026-10-28, mức 2: Labo — form Đặt mới / Làm tiếp công đoạn / Bảo hành) Ô tìm kiếm cạnh "Vật liệu*"
+
+- **Yêu cầu (chủ dự án)**: "Tạo Labo, thêm thanh tìm kiếm vật liệu nha." Đã chốt với chủ dự án: chỉ làm cho Vật liệu, và có cả trong dialog con (Làm tiếp công đoạn / Bảo hành → Thay đổi vật liệu mới).
+- **So với bản gốc**: bản gốc có kính lúp trên cả hai dải chip, bấm vào mới hiện popover "Tìm dịch vụ" (`patient-detail.md`, trước đây ghi là chưa dựng). BlueDental làm theo yêu cầu: một ô tìm luôn hiện ngay sau nhãn, và chỉ trên Vật liệu. Lựa chọn dịch vụ vẫn chưa có ô tìm.
+- **FE** (`ChipStrip` thêm prop `search`, `LaboMaterialStrips` giữ chữ đang tìm):
+  - Lọc ngay trên danh sách vật liệu đã tải của nhóm (`useLaboMaterialOptions`, tối đa 200 vật liệu một nhóm, giới hạn có từ trước), không gọi thêm API. Không phân biệt hoa thường và dấu (`matchesSearch`, R-1051): gõ "su" ra các vật liệu "Sứ …", gõ "DUC" ra "Đức".
+  - Ô bị khoá khi chưa chọn nhóm dịch vụ, hoặc khi nhóm không có vật liệu. Đổi nhóm thì xoá cả chữ đang tìm lẫn vật liệu đã chọn.
+  - Vật liệu đang chọn bị lọc khuất thì vẫn giữ lựa chọn. Xoá chữ tìm thì chip hiện lại, vẫn ở trạng thái đang chọn.
+  - Không có vật liệu nào khớp: hiện viên "Không tìm thấy vật liệu" (key mới `Patient:Labo:NoMaterialMatch`, có cả vi/en). Placeholder dùng key có sẵn `Labo:Material:SearchMaterial` ("Tìm kiếm vật liệu").
+  - Enter trong ô tìm không gửi form. Mỗi lần gõ, dải chip cuộn về đầu.
+  - Lưu khi chưa chọn vật liệu: nhãn và dòng báo vẫn đỏ như cũ, nhưng ô tìm không đỏ theo (`Form.Item noStyle validateStatus=""`).
+  - Nhãn và ô nằm trên cùng một hàng `.pd-labo-strip-head`. Selector trong `patient.spec` đổi theo.
+- **E2E** (bản build production, preview riêng :8161 nối host riêng :5131):
+  - Spec mới `labo-material-search.spec.ts`, 2/2 xanh (repeat-each 2). Kiểm:
+    - ô bị khoá trước khi chọn nhóm;
+    - lọc với "zirconia", "su", "DUC" và một chuỗi không khớp;
+    - lựa chọn được giữ khi chip bị lọc khuất;
+    - Enter không gửi form;
+    - Lưu khi thiếu vật liệu thì ô tìm không đỏ;
+    - đổi nhóm thì xoá chữ tìm;
+    - tìm "zircon", chọn rồi lưu, tải lại trang vẫn thấy đúng vật liệu;
+    - trên dòng đó, Bảo hành → Thay đổi vật liệu mới, tìm "tháo lắp", chọn rồi lưu, tải lại trang vẫn thấy đúng vật liệu.
+  - Hồi quy Labo (`labo`, `labo-detail`, `labo-warranty`, `labo-orders-actions` và spec mới): **19/22 xanh**. 3 ca đỏ có từ trước, đỏ y hệt trước thay đổi: `labo-orders-actions:88` (link `?branch=` của F-68), `labo-warranty:315` (DatePicker có mask nhập), `labo:156` (ô "—").
+  - `patient.spec` các ca Labo (Tạo Labo từ công đoạn, Đặt mới, chip trạng thái, In Phiếu): **4/4 xanh**.
