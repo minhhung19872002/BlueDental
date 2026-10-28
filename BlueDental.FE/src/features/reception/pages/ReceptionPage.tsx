@@ -116,8 +116,8 @@ export const ReceptionPage: React.FC = () => {
   const setOutcomeMutation = useSetReceptionOutcome();
 
   const items = useMemo(
-    () => orderForBoard(listData?.pages.flatMap((p) => p.items) ?? []),
-    [listData],
+    () => orderForBoard(listData?.pages.flatMap((p) => p.items) ?? [], activeTab),
+    [listData, activeTab],
   );
   useRefetchWhenDue(items);
 

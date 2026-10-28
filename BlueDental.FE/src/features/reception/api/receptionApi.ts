@@ -199,6 +199,7 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     step3Time: formatStepTime(dto.completedAt),
     checkedInAt: dto.checkedInAt ?? undefined,
     startedAt: dto.startedAt ?? undefined,
+    completedAt: dto.completedAt ?? undefined,
     cancelTime: formatStepTime(dto.cancelledAt),
     createdAt: dto.creationTime || new Date().toISOString(),
     selectedOutcome: dto.outcome ? (OUTCOME_MAP[dto.outcome] ?? null) : null,
