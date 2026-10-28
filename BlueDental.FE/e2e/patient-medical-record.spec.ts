@@ -112,8 +112,10 @@ const FORM_NUMBER: Record<string, number> = {
  * leaves the sheet behind, and after a few of them the index carries dozens of
  * copies and the suite slows to a crawl. Keyed on the form's number, not its
  * name — a sheet can be renamed.
+ *
+ * `written` is put on it instead of nothing: a sheet as it was saved before.
  */
-async function openFreshSheet(page: Page, form: string) {
+async function openFreshSheet(page: Page, form: string, written: Record<string, string> = {}) {
   const row = page.locator(".pd-medical-form", { hasText: form });
   const cards = row.locator(LIVE_CARD);
 
@@ -122,7 +124,7 @@ async function openFreshSheet(page: Page, form: string) {
     await expect(cards).toHaveCount(1);
   }
 
-  const wiped = await page.evaluate(async (number: number) => {
+  const wiped = await page.evaluate(async ({ number, written }) => {
     const patientId = window.location.pathname.split("/")[2];
     const read = async () => {
       // Only the live set's sheets: one in a cancelled set is read-only, and the
@@ -155,10 +157,10 @@ async function openFreshSheet(page: Page, form: string) {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      // An explicitly empty set of values, not null: the API treats a null
-      // content as "leave it as it is", which is what lets a rename send only
-      // a title.
-      body: JSON.stringify({ content: JSON.stringify({ fieldValues: {} }) }),
+      // An explicit set of values, empty unless asked, not null: the API treats
+      // a null content as "leave it as it is", which is what lets a rename send
+      // only a title.
+      body: JSON.stringify({ content: JSON.stringify({ fieldValues: written }) }),
     });
     if (!put.ok) return `put ${put.status}`;
 
@@ -167,11 +169,11 @@ async function openFreshSheet(page: Page, form: string) {
     for (let tries = 0; tries < 10; tries += 1) {
       const again = await read();
       const values = again?.content ? Object.keys(JSON.parse(again.content).fieldValues ?? {}) : [];
-      if (values.length === 0) return "ok";
+      if (values.length === Object.keys(written).length) return "ok";
       await new Promise((done) => setTimeout(done, 150));
     }
     return "still filled";
-  }, FORM_NUMBER[form]);
+  }, { number: FORM_NUMBER[form], written });
   expect(wiped).toBe("ok");
 
   await page.reload();
@@ -277,8 +279,14 @@ test.describe("Bệnh án", () => {
     }
   });
 
-  // Clinic, 2026-10-27: the "MS:" corner carries each printed form's own code.
-  test("Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS", async ({ page }) => {
+  /*
+   * Clinic, 2026-10-27: the "MS:" corner carries each printed form's own code.
+   * BA, 2026-10-29 (R-1069): and nobody changes it — the blank takes no typing,
+   * and a sheet saved with another code before shows the form's own.
+   */
+  test("Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS, which nobody can change", async ({
+    page,
+  }) => {
     await openMedicalRecord(page);
     const codes: Array<[string, string, string]> = [
       ["Bệnh án ngoại trú Răng Hàm Mặt", "custom.text.8b780086e4014a049f87decd95bffaf3", "16/BV-01"],
@@ -286,9 +294,18 @@ test.describe("Bệnh án", () => {
       ["Phiếu phẫu thuật/thủ thuật", "custom.text.8d7eb5b7fe9746b3909ce9c21ba46a31", "PT-11"],
     ];
     for (const [form, field, code] of codes) {
-      await openFreshSheet(page, form);
-      await expect(blank(page, field), form).toHaveText(code);
+      await openFreshSheet(page, form, { [field]: "99/SỬA TAY" });
+      const ms = blank(page, field);
+      await expect(ms, form).toHaveText(code);
+      await expect(ms, form).not.toHaveAttribute("contenteditable");
+      await ms.click();
+      await page.keyboard.type("9");
+      await expect(ms, form).toHaveText(code);
     }
+
+    // A form without a code of its own still has its MS written by hand.
+    await openFreshSheet(page, "Phiếu theo dõi điều trị");
+    await expect(blank(page, "custom.text.15acbc6a08b2454e985bf7bc663d4afe")).toHaveAttribute("contenteditable", "true");
   });
 
   test("the cover prints the record's own identity", async ({ page }) => {

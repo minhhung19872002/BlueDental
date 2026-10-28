@@ -11989,3 +11989,28 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,1 phút, 1 worker): **31 xanh / 5 đỏ**. Cả 5 ca đỏ đúng là 5 ca đã đỏ từ trước, đã chứng minh trên HEAD sạch ở R-1067: `sheet-facts:161`, `sheet-facts:309`, "the index lists…", "the open sheet's card wears…", "picking the day…". Lần này "every form shares…" không chập chờn.
   - `tsc -b` (trong `npm run build`) xanh, `oxlint` 3 file xanh. Build production có đúng 1 chunk ngôn ngữ.
 - **Mức retest**: 2 (F-30 Bệnh án, mẫu 6: màn hình + bản in; mẫu 2 chỉ đổi tên trang, có ca R-1067 giữ). Không ảnh hưởng `/taxonomy`, vì chỉ tab hồ sơ import `sheetCss.ts`. Đã sửa dòng `sheetCss.ts` trong `02-impact-map.md`.
+
+## R-1069 (2026-10-29, mức 2: bệnh án mẫu 2, 6, 7) Ô MS đã tự điền thì không sửa được nữa
+
+- **Yêu cầu (BA, qua chủ dự án)**: "các MS ở hồ sơ này đã auto fill rồi nên k cho thay đổi luôn". Chủ dự án chốt:
+  - Khoá MS ở cả ba mẫu đang tự điền mã: **mẫu 2** Bệnh án ngoại trú (`16/BV-01`), **mẫu 6** Giấy đồng ý thực hiện phẫu thuật/thủ thuật (`01/BV2`), **mẫu 7** Phiếu phẫu thuật/thủ thuật (`PT-11`).
+  - Mẫu 8 (Phiếu theo dõi điều trị) và mẫu 9 (Phiếu chăm sóc) có ô MS nhưng không tự điền, nên vẫn viết tay như cũ.
+  - Tờ đã lưu một mã khác từ trước: **luôn hiện mã chuẩn**, không hiện số cũ.
+  - Số ngoại trú, Số lưu trữ ở mẫu 2 không phải MS, giữ nguyên.
+- **Trước đó**: mã MS được điền sẵn (R-1052, `FORM_CODE_VALUES`) nhưng ô vẫn `contenteditable`, gõ đè được và giá trị gõ đè được lưu vào tờ như mọi ô khác.
+- **Sửa (chỉ FE, không đổi server/DB/i18n)**:
+  - `renderSheet.ts`: thêm `isFormCode(id)`, tức id có trong `FORM_CODE_VALUES`.
+    - `valueOf` trả mã chuẩn trước cả giá trị đã lưu.
+    - `fillFields` không gắn `contenteditable` cho ô đó, kể cả khi tờ đang ở chế độ sửa.
+  - Không đổi `MedicalRecordDocument.collect()`: ô khoá luôn bằng giá trị tự điền nên không bị lưu. Tờ cũ lưu mã khác sẽ tự rơi giá trị đó ở lần "Lưu" sau.
+  - Chú thích `FORM_CODE_VALUES` (`fieldValues.ts`) và đầu `sheetFacts.ts` ghi lại quy tắc mới.
+- **E2E** (bản build production, preview :8160 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec`: ca MS đổi thành "Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS, which nobody can change" → **xanh**. `openFreshSheet` nhận thêm `written`, ghi sẵn lên tờ qua PUT thật để dựng một tờ cũ. Với mỗi mẫu 2/6/7, tờ được ghi sẵn MS `99/SỬA TAY` rồi kiểm:
+    - ô hiện mã chuẩn;
+    - ô không có `contenteditable`;
+    - bấm vào ô rồi gõ thì chữ không đổi.
+    - Thêm một kiểm tra: ô MS của mẫu 8 vẫn `contenteditable="true"`.
+  - `medical-record-sheet-facts.spec:161`: mong đợi MS mẫu 2 đổi từ rỗng thành `16/BV-01` → **xanh**. Ca này đỏ từ R-1052 (spec chưa theo kịp việc tự điền MS), nay hết.
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,1 phút, 1 worker): **32 xanh / 4 đỏ**. 4 ca đỏ đúng là 4 ca đã đỏ từ trước, đã chứng minh trên HEAD sạch ở R-1067: `sheet-facts:309`, "the index lists…", "the open sheet's card wears…", "picking the day…".
+  - `tsc -b` (trong `npm run build`) xanh; `oxlint` 5 file xanh; build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-30 Bệnh án). `renderSheet.ts` chỉ được tab hồ sơ bệnh nhân import; `/taxonomy` Bệnh án mẫu không bị ảnh hưởng. Đã thêm dòng `renderSheet.ts` / `FORM_CODE_VALUES` vào `02-impact-map.md`.

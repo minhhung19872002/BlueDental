@@ -228,7 +228,8 @@ export function diagnosisFieldValues(diagnoses: readonly SheetDiagnosis[]): Fiel
 
 /**
  * "MS:" — the form code printed in the corner of a sheet (clinic, 2026-10-27).
- * Answered like any record fact, so a sheet that wrote its own keeps it.
+ * Fixed (BA, 2026-10-29, R-1069): the blank cannot be typed in, and a sheet
+ * that wrote another code before shows this one all the same — see renderSheet.
  */
 export const FORM_CODE_VALUES: Readonly<FieldValues> = {
   // Bệnh án ngoại trú Răng Hàm Mặt

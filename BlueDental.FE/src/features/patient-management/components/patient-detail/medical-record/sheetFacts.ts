@@ -12,7 +12,7 @@ import { costRowFieldIds } from "./rowEditing";
  * What the sheets of a bộ hồ sơ print about its treatment slips — the clinic's
  * mapping in save/P1810.drawio (2026-10-18), blank by blank.
  *
- * "MS" stays empty on every form, as the clinic asked for now.
+ * "MS" is not one of them: it is the form's own code (`FORM_CODE_VALUES`).
  */
 
 /** How the caller names a set of teeth: "16, 17", or "Hàm trên" for a whole jaw. */
