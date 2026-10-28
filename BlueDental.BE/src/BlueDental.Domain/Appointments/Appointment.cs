@@ -580,7 +580,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// Ghi chú on its own, from the patient's Lịch hẹn tab (R-1058). The booking
+    /// Ghi chú on its own, from the patient's Lịch hẹn tab (R-1063). The booking
     /// dialogs no longer show it (R-1055), so this is where it is kept up. A
     /// remark never moves the booking, so every status takes one (owner,
     /// 2026-10-28). Blank clears it.

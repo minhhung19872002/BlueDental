@@ -609,7 +609,7 @@
   border-radius: 16px;
   box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
 }
-/* Ghi chú, edited in its cell (R-1058): the text with its line breaks kept,
+/* Ghi chú, edited in its cell (R-1063): the text with its line breaks kept,
    the pencil at the right; editing swaps both for the box and its two buttons. */
 .pd-appt-note {
   display: flex;

@@ -11764,8 +11764,9 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy Labo (`labo`, `labo-detail`, `labo-warranty`, `labo-orders-actions` và spec mới): **19/22 xanh**. 3 ca đỏ có từ trước, đỏ y hệt trước thay đổi: `labo-orders-actions:88` (link `?branch=` của F-68), `labo-warranty:315` (DatePicker có mask nhập), `labo:156` (ô "—").
   - `patient.spec` các ca Labo (Tạo Labo từ công đoạn, Đặt mới, chip trạng thái, In Phiếu): **4/4 xanh**.
 
-## R-1058 (2026-10-28, mức 2: Lịch hẹn — tab Lịch hẹn của hồ sơ) Sửa Ghi chú lịch hẹn ngay trong ô
+## R-1063 (2026-10-28, mức 2: Lịch hẹn — tab Lịch hẹn của hồ sơ) Sửa Ghi chú lịch hẹn ngay trong ô
 
+- **Số hiệu**: lúc đầu ghi R-1058 (commit 752f92b7). R-1058–R-1062 đã được phiên khác dùng trên origin (main/develop), nên đổi thành R-1063. Lỗ hổng header chi nhánh đề xuất ở cuối mục cũng đổi từ R-1059 thành R-1064.
 - **Yêu cầu** (BA Huỳnh Văn Định, ảnh chụp cột GHI CHÚ trên tab Lịch hẹn của hồ sơ): "Cột ghi chú vẫn còn DB chứ? Giờ cho chỉnh sửa ở đây nha."
   - Trả lời BA: còn. `Appointment.Notes` (tối đa 2000 ký tự) vẫn nằm trong DB, dữ liệu cũ giữ nguyên. R-1055 chỉ bỏ ô Ghi chú khỏi 3 dialog (Lịch hẹn, Lịch tạm, Tạo tiếp nhận).
 - **Chủ dự án chốt** (2026-10-28):
@@ -11783,6 +11784,7 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `AppointmentNoteCell` (mới): chữ giữ xuống dòng, bút chì bên phải (`StageEditPencil`).
       - Esc / Hủy bỏ bản nháp.
       - Lưu khi không đổi gì thì đóng ô, không gửi request.
+      - Mở ô thì con trỏ nằm SAU ghi chú cũ (`focus({ cursor: "end" })`). Chủ dự án thử thấy `autoFocus` để con trỏ ở đầu chữ, đã sửa; spec ca 2 kiểm `selectionStart` khi mở lại.
       - Lỗi từ server giữ ô và bản nháp, toast do MutationCache lo.
     - `useUpdateAppointmentNotes` (invalidates appointments).
     - Bút chì chỉ hiện khi có `appointment.update`.
@@ -11796,7 +11798,7 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `BlueDental.Domain.Tests` 1139/1139 (thêm 5 case `SetNotes`). `BlueDental.Application.Tests` lọc Appointment 28/28.
   - Hồi quy mức 2: `patient-appointment` + `appointment-history` + `appointment` **16/16** xanh.
 - **Lỗi tìm thấy khi test, đã sửa (chỉ cho endpoint mới)**: tài khoản `branch2` gửi header `X-Clinic-Branch-Id` của chi nhánh 1 vẫn sửa được ghi chú (200). `GuardBranchAccess` chỉ so chi nhánh của lịch hẹn với header, không xem tài khoản có được vào chi nhánh đó không. `UpdateNotesAsync` nay gọi thêm `BranchAccessChecker.CheckAsync` → 403.
-- **Phát hiện ngoài phạm vi, CHƯA sửa, chờ chủ dự án quyết** (đề xuất R-1059, mức 3):
+- **Phát hiện ngoài phạm vi, CHƯA sửa, chờ chủ dự án quyết** (đề xuất R-1064, mức 3):
   - Cùng lỗ hổng đó có sẵn ở các endpoint lịch hẹn khác. Trên DB local, `branch2` gửi header chi nhánh 1: `GET appointments/{id}` → 200, danh sách lịch hẹn → 200 với 67405 dòng.
   - Có thể cả các thao tác ghi (`UpdateAsync`, huỷ …) và các service khác dùng cùng mẫu `GuardBranchAccess` (Patient, Invoice, InsuranceClaim, TreatmentPlan, CustomerCare, Voucher), chưa đo.
   - Nên chặn tập trung ở chỗ đọc header (resolver chi nhánh) thay vì vá từng service.

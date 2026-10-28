@@ -761,7 +761,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     }
 
     /// <summary>
-    /// Ghi chú alone, from its cell on the patient's Lịch hẹn tab (R-1058).
+    /// Ghi chú alone, from its cell on the patient's Lịch hẹn tab (R-1063).
     /// Unlike <see cref="UpdateAsync"/> it neither needs the slot back nor runs
     /// the shift and overlap checks, and a finished session of a series takes
     /// it too. A note left as it was writes no history row.

@@ -179,7 +179,7 @@ public class AppointmentTests
         Assert.Equal(AppointmentStatus.InProgress, appointment.Status);
     }
 
-    /// <summary>R-1058: Ghi chú is edited on its own from the patient's Lịch hẹn
+    /// <summary>R-1063: Ghi chú is edited on its own from the patient's Lịch hẹn
     /// tab, whatever the status, and leaves everything else as it was.</summary>
     [Fact]
     public void SetNotes_Should_Trim_And_Touch_Nothing_Else_Even_When_Cancelled()
