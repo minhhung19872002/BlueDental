@@ -79,6 +79,8 @@
   font: inherit;
   font-size: 14px;
   font-weight: 500;
+  /* "Đang tải 3/40" keeps its width as the count moves. */
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
 }
 .pi-upload:hover:not(:disabled) {
@@ -173,10 +175,6 @@
   min-width: 0;
   margin-right: auto;
 }
-.pi-cam-full {
-  color: var(--bd-amber);
-  font-size: 13px;
-}
 .pi-cam-snap {
   min-width: 140px;
 }
@@ -193,12 +191,16 @@
   font-size: 13px;
   text-align: center;
 }
+/* No cap on shots: past about two rows the strip scrolls, the camera stays put. */
 .pi-shots {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
   gap: 10px;
+  max-height: 176px;
   margin: 0;
   padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 .pi-shot {

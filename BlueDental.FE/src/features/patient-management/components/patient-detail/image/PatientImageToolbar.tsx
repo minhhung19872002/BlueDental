@@ -5,10 +5,12 @@ import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { PATIENT_IMAGE_TYPE, type PatientImageType } from "../../../api/patientImageApi";
+import type { UploadProgress } from "../../../hooks/usePatientImageUpload";
 
 interface Props {
   filter: PatientImageType | null;
-  uploading: boolean;
+  /** How far an upload has got; `null` while nothing is being sent. */
+  progress: UploadProgress | null;
   canUpload: boolean;
   onFilterChange: (filter: PatientImageType) => void;
   onClearFilter: () => void;
@@ -35,7 +37,7 @@ function useTypeOptions() {
  */
 export function PatientImageToolbar({
   filter,
-  uploading,
+  progress,
   canUpload,
   onFilterChange,
   onClearFilter,
@@ -76,11 +78,15 @@ export function PatientImageToolbar({
           <button
             type="button"
             className="pi-upload"
-            disabled={uploading}
+            disabled={progress !== null}
             onClick={() => inputRef.current?.click()}
           >
             <ImagePlus size={28} strokeWidth={1.5} />
-            <span>{uploading ? t("Common:Uploading") : t("Patient:Photo:Upload")}</span>
+            <span>
+              {progress
+                ? t("Patient:Photo:UploadProgress", progress.sending, progress.total)
+                : t("Patient:Photo:Upload")}
+            </span>
           </button>
           <input
             ref={inputRef}

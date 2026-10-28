@@ -1,40 +1,25 @@
 import type { Dayjs } from "dayjs";
 import { startOfWeek } from "@/utils/week";
-import type { BusySpan } from "../types/reception";
+import type { BusySpan, DoctorWorkDay, MinuteSpan } from "../types/reception";
 
-/** Every follow-up slot is half an hour. */
-export const SLOT_MINUTES = 30;
+/** The timeline snaps to a quarter hour; the Từ / Đến steppers move by one. */
+export const STEP_MINUTES = 15;
 
-export interface SlotSession {
-  key: "morning" | "afternoon";
-  times: string[];
-}
+/** A click without a drag, and a quick pick, take half an hour. */
+export const DEFAULT_MINUTES = 30;
 
-function halfHours(from: string, to: string): string[] {
-  const toMinutes = (hhmm: string) => {
-    const [h, m] = hhmm.split(":").map(Number);
-    return h * 60 + m;
-  };
-  const times: string[] = [];
-  for (let m = toMinutes(from); m <= toMinutes(to); m += SLOT_MINUTES) {
-    times.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
-  }
-  return times;
-}
+/** The length chips under the timeline. */
+export const DURATIONS = [30, 45, 60, 90] as const;
 
-/** From 08:00, every half hour, with the midday break left out. */
-export const SLOT_SESSIONS: SlotSession[] = [
-  { key: "morning", times: halfHours("08:00", "11:00") },
-  { key: "afternoon", times: halfHours("13:30", "16:30") },
-];
+const DAY_MINUTES = 24 * 60;
+const MINUTE_MS = 60_000;
 
-const ALL_TIMES = SLOT_SESSIONS.flatMap((s) => s.times);
-
-export type QuickPickKey = "1w" | "2w" | "1m";
+export type QuickPickKey = "1w" | "2w" | "3w" | "1m";
 
 export const QUICK_PICKS: { key: QuickPickKey; amount: number; unit: "week" | "month" }[] = [
   { key: "1w", amount: 1, unit: "week" },
   { key: "2w", amount: 2, unit: "week" },
+  { key: "3w", amount: 3, unit: "week" },
   { key: "1m", amount: 1, unit: "month" },
 ];
 
@@ -52,35 +37,176 @@ export function weekDays(monday: Dayjs): Dayjs[] {
   return Array.from({ length: 7 }, (_, i) => monday.add(i, "day"));
 }
 
-export function slotAt(day: Dayjs, time: string): Dayjs {
-  const [h, m] = time.split(":").map(Number);
-  return day.hour(h).minute(m).second(0).millisecond(0);
+/** 510 → "08:30". */
+export function hhmm(minutes: number): string {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
-export type SlotState = "free" | "busy" | "past";
+/** The instant `minutes` past midnight of `day`. */
+export function atMinute(day: Dayjs, minutes: number): Dayjs {
+  return day.startOf("day").add(minutes, "minute");
+}
+
+function clip(spans: MinuteSpan[], to: MinuteSpan): MinuteSpan[] {
+  return spans
+    .map((s) => ({ start: Math.max(s.start, to.start), end: Math.min(s.end, to.end) }))
+    .filter((s) => s.end > s.start);
+}
+
+/** Sorted, with overlapping and touching spans joined. */
+function merge(spans: MinuteSpan[]): MinuteSpan[] {
+  const merged: MinuteSpan[] = [];
+  for (const s of [...spans].sort((a, b) => a.start - b.start)) {
+    const last = merged[merged.length - 1];
+    if (last && s.start <= last.end) last.end = Math.max(last.end, s.end);
+    else merged.push({ ...s });
+  }
+  return merged;
+}
+
+/** What is left of `span` once `holes` are taken out of it. */
+function subtract(span: MinuteSpan, holes: MinuteSpan[]): MinuteSpan[] {
+  const left: MinuteSpan[] = [];
+  let from = span.start;
+  for (const h of merge(clip(holes, span))) {
+    if (h.start > from) left.push({ start: from, end: h.start });
+    from = Math.max(from, h.end);
+  }
+  if (from < span.end) left.push({ start: from, end: span.end });
+  return left;
+}
+
+/** The doctor's bookings that fall on `day`, as minutes of that day. */
+export function bookedOn(day: Dayjs, busy: BusySpan[]): MinuteSpan[] {
+  const midnight = day.startOf("day").valueOf();
+  const spans = busy.map((b) => ({
+    start: Math.round((b.start - midnight) / MINUTE_MS),
+    end: Math.round((b.end - midnight) / MINUTE_MS),
+  }));
+  return clip(spans, { start: 0, end: DAY_MINUTES });
+}
 
 /**
- * Only the past is out of reach. A slot the doctor already has a visit in may
- * still be booked; the server asks the user to confirm the overlap (BA 2026-10-16).
+ * What of the doctor's day a follow-up may take: the working windows on the
+ * quarter hour, and only from the next quarter hour on when the day is today.
  */
-export function isPickable(state: SlotState | DayState): boolean {
-  return state !== "past";
+const snapUp = (m: number) => Math.ceil(m / STEP_MINUTES) * STEP_MINUTES;
+const snapDown = (m: number) => Math.floor(m / STEP_MINUTES) * STEP_MINUTES;
+
+/** Spans trimmed to the quarter hour, dropping any left shorter than one. */
+function onQuarterHours(spans: MinuteSpan[]): MinuteSpan[] {
+  return spans
+    .map((s) => ({ start: snapUp(s.start), end: snapDown(s.end) }))
+    .filter((s) => s.end - s.start >= STEP_MINUTES);
 }
 
-export function slotState(day: Dayjs, time: string, busy: BusySpan[], now: number): SlotState {
-  const start = slotAt(day, time).valueOf();
-  if (start < now) return "past";
-  const end = start + SLOT_MINUTES * 60_000;
-  return busy.some((b) => b.start < end && b.end > start) ? "busy" : "free";
+export function openWindows(day: Dayjs, workDay: DoctorWorkDay, now: number): MinuteSpan[] {
+  const sinceMidnight = Math.ceil((now - day.startOf("day").valueOf()) / MINUTE_MS);
+  const earliest = Math.max(0, Math.min(DAY_MINUTES, sinceMidnight));
+  return onQuarterHours(workDay.windows.map((w) => ({ start: Math.max(w.start, earliest), end: w.end })));
 }
 
-export function firstFreeTime(day: Dayjs, busy: BusySpan[], now: number): string | undefined {
-  return ALL_TIMES.find((time) => slotState(day, time, busy, now) === "free");
+/**
+ * What a range may be picked in: the open windows less the doctor's bookings
+ * (owner 2026-10-28: no picking over a booked visit), on the quarter hour.
+ */
+export function freeStretches(open: MinuteSpan[], booked: MinuteSpan[]): MinuteSpan[] {
+  return onQuarterHours(open.flatMap((w) => subtract(w, booked)));
 }
 
-export type DayState = "past" | "full" | "free";
+/** The stretch holding minute `m`. */
+export function windowAt(stretches: MinuteSpan[], m: number): MinuteSpan | undefined {
+  return stretches.find((w) => w.start <= m && m < w.end);
+}
 
-export function dayState(day: Dayjs, busy: BusySpan[], now: number): DayState {
+/** Whether the range sits inside one of the stretches and lasts a step at least. */
+export function fitsIn(stretches: MinuteSpan[], range: MinuteSpan): boolean {
+  return range.end - range.start >= STEP_MINUTES && stretches.some((w) => w.start <= range.start && range.end <= w.end);
+}
+
+/** The first free half hour — where a quick pick lands. */
+export function firstFreeRange(free: MinuteSpan[]): MinuteSpan | undefined {
+  const stretch = free.find((w) => w.end - w.start >= DEFAULT_MINUTES);
+  return stretch && { start: stretch.start, end: stretch.start + DEFAULT_MINUTES };
+}
+
+/** Minutes left to book in the free stretches. */
+export function freeMinutes(free: MinuteSpan[]): number {
+  return free.reduce((sum, s) => sum + s.end - s.start, 0);
+}
+
+/**
+ * past — gone, or today with nothing left; off — the doctor's day off;
+ * full — every open quarter hour is booked; unknown — no doctor, or the
+ * shifts are on their way.
+ */
+export type DayState = "past" | "off" | "full" | "free" | "unknown";
+
+export function dayState(day: Dayjs, workDay: DoctorWorkDay | undefined, open: MinuteSpan[], free: number, now: number): DayState {
   if (day.endOf("day").valueOf() < now) return "past";
-  return firstFreeTime(day, busy, now) ? "free" : "full";
+  if (!workDay) return "unknown";
+  if (workDay.windows.length === 0) return "off";
+  if (open.length === 0) return "past";
+  return free > 0 ? "free" : "full";
+}
+
+/** A full day has nothing left to pick, now that booked visits cannot be picked over. */
+export function isPickable(state: DayState): boolean {
+  return state === "free" || state === "unknown";
+}
+
+export type SessionKey = "morning" | "afternoon";
+
+/** One timeline: a planned shift, what of it is open, out of it, and booked. */
+export interface SessionTrack {
+  key: SessionKey;
+  span: MinuteSpan;
+  /** False when leave or a day off takes the whole shift; true when only time has run out. */
+  working: boolean;
+  open: MinuteSpan[];
+  /** Drawn hatched as "Ngoài ca": leave, the past, minutes off the quarter hour. */
+  closed: MinuteSpan[];
+  booked: MinuteSpan[];
+  /** Where a range may go: the open stretches less the bookings. */
+  free: MinuteSpan[];
+}
+
+export function sessionTracks(
+  workDay: DoctorWorkDay,
+  open: MinuteSpan[],
+  booked: MinuteSpan[],
+  free: MinuteSpan[],
+): SessionTrack[] {
+  const track = (key: SessionKey, span: MinuteSpan): SessionTrack => {
+    const inside = clip(open, span);
+    return {
+      key,
+      span,
+      working: clip(workDay.windows, span).length > 0,
+      open: inside,
+      closed: subtract(span, inside),
+      booked: clip(booked, span),
+      free: onQuarterHours(clip(free, span)),
+    };
+  };
+  return [track("morning", workDay.morning), track("afternoon", workDay.afternoon)];
+}
+
+/** Consecutive days sharing the same hours, for "Ca làm việc: T2–T6 …". */
+export interface ShiftRun {
+  first: number;
+  last: number;
+  windows: MinuteSpan[];
+}
+
+export function shiftRuns(workDays: (DoctorWorkDay | undefined)[]): ShiftRun[] {
+  const runs: (ShiftRun & { hours: string })[] = [];
+  workDays.forEach((day, i) => {
+    if (!day) return;
+    const hours = day.windows.map((w) => `${w.start}-${w.end}`).join(",");
+    const last = runs[runs.length - 1];
+    if (last && last.last === i - 1 && last.hours === hours) last.last = i;
+    else runs.push({ first: i, last: i, windows: day.windows, hours });
+  });
+  return runs;
 }

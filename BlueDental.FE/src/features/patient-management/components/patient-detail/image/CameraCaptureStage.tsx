@@ -3,12 +3,9 @@ import { Button, Select, Spin } from "antd";
 import { Camera, RotateCcw } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { usePhotoCamera } from "../../../hooks/usePhotoCamera";
-import { UPLOAD_BATCH_LIMIT } from "../../../hooks/usePatientImageUpload";
 import { rememberCamera, savedCamera, type CameraStatus } from "../../../utils/camera/cameraStream";
 
 interface Props {
-  /** As many shots as one upload takes are waiting: "Chụp" rests. */
-  full: boolean;
   /** The shots are being uploaded. */
   busy: boolean;
   onShot: (picture: Blob) => void;
@@ -33,7 +30,7 @@ const RETRYABLE: ReadonlySet<CameraStatus> = new Set(["denied", "unavailable"]);
  * is more than one (webcam and intraoral camera), and "Chụp". Each shot
  * flashes the picture so the desk sees it was taken.
  */
-export function CameraCaptureStage({ full, busy, onShot }: Props) {
+export function CameraCaptureStage({ busy, onShot }: Props) {
   const [deviceId, setDeviceId] = useState(() => savedCamera(CAMERA_KEY));
   const [attempt, setAttempt] = useState(0);
   const [flashes, setFlashes] = useState(0);
@@ -90,13 +87,12 @@ export function CameraCaptureStage({ full, busy, onShot }: Props) {
             onChange={handleCamera}
           />
         )}
-        {full && <span className="pi-cam-full">{t("Patient:Image:ShotsFull", UPLOAD_BATCH_LIMIT)}</span>}
         <Button
           type="primary"
           size="large"
           className="pi-cam-snap"
           icon={<Camera size={18} />}
-          disabled={!live || full || busy}
+          disabled={!live || busy}
           onClick={() => void handleSnap()}
         >
           {t("Patient:Image:Snap")}

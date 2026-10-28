@@ -34,7 +34,7 @@ export function useUpdateReceptionStatus() {
   return useMutation({
     mutationFn: ({ id, action, outcome }: {
       id: string;
-      action: "check-in" | "start" | "complete";
+      action: "check-in" | "start" | "complete" | "undo-check-in";
       outcome?: NonNullable<AppointmentOutcome>;
     }) => receptionApi.updateStatus(id, action, outcome),
     meta: INVALIDATES_APPOINTMENTS,

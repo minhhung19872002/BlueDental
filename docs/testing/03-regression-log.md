@@ -11859,6 +11859,94 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 **Sửa sau review (2026-10-28, sau commit 5898e6df).** Cùng một người giám hộ được khai trên hai hồ sơ với CCCD gõ khác khoảng trắng (`0791 23…` và `079123…`): danh sách gộp là một người, nhưng khi lưu họ thành hồ sơ, `LinkGuardianAsync` so CCCD từng ký tự nên chỉ gắn `LinkedPatientId` cho bản khai trùng khít. Thêm nữa, dòng giám hộ trả CCCD còn khoảng trắng, dialog chép vào form và Lưu bị `0011` ("CCCD phải đủ 12 số"). Sửa: so khớp theo cùng khoá với danh sách (bỏ khoảng trắng, không phân biệt hoa thường; SQL `replace(' ', '')` + `upper`), dòng giám hộ trả CCCD đã làm sạch. Test: `patient-shared-phone-api` ca 3 khai lại người mẹ với CCCD có khoảng trắng ở giữa (đỏ `0011` trước khi sửa), API 7/7 + UI 6/6 + `patient-guardian*` 10/10 = 23/23 trên build production + host :5000 + PostgreSQL thật.
 
 
+## R-1058 (2026-10-28, mức 2: Tiếp nhận — Chọn lịch hẹn tiếp theo) Dựng lại panel chọn lịch theo thiết kế "Chọn lịch hẹn – có +3 tuần"
+
+- **Yêu cầu (chủ dự án, kèm file thiết kế HTML)**: phần chọn lịch khi bấm "Đổi lịch hẹn" / "Hẹn tái khám" ở Tiếp nhận làm theo giao diện mới.
+- **Giao diện** (feature `reception`):
+  - **Bước 1 — Bác sĩ phụ trách**: một thẻ gồm avatar chữ cái, tên, dòng "Ca làm việc" của tuần đang xem và nút "Đổi bác sĩ". Bấm vào mở danh sách có ô tìm, gõ không dấu được, Enter chọn dòng đầu.
+  - **Bước 2 — Chọn ngày**: tháng và mũi tên chuyển tuần, chip chọn nhanh +1 / +2 / **+3 tuần** / +1 tháng, rồi 7 ô ngày. Mỗi ô có chấm trạng thái: xanh = còn trống, cam = kín. Ngày đã qua và ngày BS nghỉ bị gạch ngang, không chọn được.
+  - **Bước 3 — Chọn khung giờ**: mỗi buổi một thanh thời gian vẽ trên ca thật của bác sĩ. Kéo để chọn khoảng giờ (bước 15'); bấm không kéo thì lấy 30'; với bàn phím, Enter / Space lấy nửa giờ trống đầu tiên. Có nút Từ / Đến ±15' và chip 30 / 45 / 60 / 90 phút. Chú thích: Còn trống / Đang chọn / Đã có lịch hẹn / Ngoài ca. Phần nghỉ phép và giờ đã qua tô gạch chéo.
+  - Ô tóm tắt Ngày hẹn / Khung giờ / Bác sĩ, rồi 3 nút như cũ.
+  - Màu của thiết kế khai báo thành token `--fu-*` trong `.fu-panel`, không có mã hex trong `.tsx`.
+- **Quy tắc giữ nguyên**:
+  - Chọn nhanh tự lấy nửa giờ trống đầu tiên.
+  - Bấm ngày bằng tay thì xoá chip chọn nhanh.
+  - Khung đã có lịch **vẫn chọn được**, lưu thì hỏi xác nhận trùng (BA 2026-10-16). Bản mẫu HTML chặn kéo qua lịch đã đặt; ở đây không làm theo điểm này.
+  - "Hẹn lại - Chưa chốt ngày" và giới hạn 300 ký tự giữ như cũ.
+- **Mới**:
+  - Độ dài lịch không còn cố định 30'. `slotEnd` gửi đúng khoảng đã chọn; API vốn đã nhận được.
+  - Không có bác sĩ thì thanh thời gian hiện "Chọn bác sĩ trước" và không xác nhận được. Trước đây vẫn đặt được, khi đó lịch đi theo bác sĩ của thẻ.
+- **BE**: `GET /api/v1/app/appointments/dentist-work-days?dentistId&fromDate&toDate` (`Appointment.Read`, chi nhánh hiện tại). Trả về từng ngày: ca sáng / chiều dự kiến và `windows` còn đặt được.
+  - Dùng chung `DentistShiftChecker` với lúc đặt lịch (`PlannedShifts` tách khỏi `WorkingWindows`, hành vi không đổi), nên picker chỉ cho chọn những gì server sẽ nhận.
+  - Khoảng ngày tối đa 62 ngày, sai thì trả 400.
+- **Kiểm thử**:
+  - `DentistShiftCheckerTests` 18/18 (2 test mới cho `PlannedShifts`).
+  - Trên bản build production (`vite preview` :8080, host :5000, Chromium đầy đủ vì máy chưa có headless shell): `reception-follow-up` (+1 test kéo/giãn/lùi rồi lưu đúng 14:15–14:45), `reception-rebook-undated`, `reception-revisit-counter`, và spec mới `reception-follow-up-shifts` (API: ngày nghỉ, nghỉ phép, giờ hồ sơ, 400 / 401, chi nhánh 2; UI: ngày nghỉ bị khoá, nghỉ phép tô gạch, bấm vào giờ nghỉ không chọn được) → **21/22 xanh**.
+  - Đỏ: "Lịch hẹn: the same chip counts and filters the day the same way" (`.dtl-block` mong 1, ra 0, đỏ cả 2 lần chạy). Test này chỉ dùng trang Lịch hẹn, thay đổi lần này không đụng tới. Chưa tìm nguyên nhân.
+- **Phát hiện bảo mật (có từ trước, chưa sửa)**: `CurrentClinicBranchResolver` tin header `X-Clinic-Branch-Id` mà không đối chiếu với chi nhánh tài khoản được phép. Probe GET bằng `branch2`, gửi header chi nhánh 1 vào `/appointments`: trả **200, 490 lịch của chi nhánh 1**. Endpoint mới cũng dùng resolver này nên mắc cùng lỗi. Cần sửa ở resolver (mức 3).
+
+
+## R-1059 (2026-10-28, mức 2: Tiếp nhận — Chọn lịch hẹn tiếp theo) Thanh thời gian: lăn chuột để phóng to, kéo thả khung đã chọn
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: bác sĩ có ca 00:00–12:00 / 12:00–23:59 thì nhãn giờ chồng lên nhau, các lịch đã đặt chỉ còn vài pixel. Muốn lăn chuột để phóng to, và giữ để kéo thả khung giờ.
+- **Phóng to** (`useTrackView`, `utils/trackScale.ts`):
+  - Lăn chuột hoặc pinch trên trackpad thì phóng to / thu nhỏ quanh con trỏ, gần nhất là 1 giờ trên cả thanh. Shift + lăn, hoặc lăn ngang, thì dịch sang hai bên.
+  - Khi thanh không đổi được nữa thì không chặn cuộn, trang vẫn cuộn bình thường.
+  - Đang zoom thì có dải tổng quan cả ca ngay dưới thanh (bấm / kéo để dời vùng xem) và nút "Xem cả buổi".
+  - Bàn phím trên thanh đang focus: `+` / `−` / `0` để zoom.
+  - Khung được chọn ở chỗ khác (chọn nhanh, ±15') mà nằm ngoài vùng xem thì vùng xem tự dời tới.
+  - Mỗi buổi zoom riêng. Đổi sang ngày có giờ ca khác thì về lại cả ca.
+- **Nhãn giờ tự giãn theo độ rộng thanh**: 15 / 30 / 60 / 120 / 180 / 240 / 360 phút, hai nhãn cách nhau ít nhất 56px. Ca 4 tiếng ở cỡ thường vẫn hiện mỗi 30' như thiết kế. Khi zoom sâu thì thêm đường kẻ mỗi 15'.
+- **Kéo thả** (`useTrackDrag`):
+  - Bấm vào chỗ trống: tạo khoảng mới như trước.
+  - Bấm vào giữa khung đang chọn: dời khung, giữ nguyên độ dài. Được sang khúc trống khác của buổi nếu vừa trọn; nếu không thì dừng ở mép khúc hiện tại.
+  - Bấm vào mép (±6px): kéo giãn đầu đó.
+  - Con trỏ đổi theo chỗ đặt chuột: grab / grabbing / ew-resize.
+  - Bàn phím: ← / → dời 15', Shift + ← / → đổi giờ kết thúc.
+- Lịch đã đặt mà ngắn quá thì chỉ hiện giờ bắt đầu; giờ đầy đủ xem ở tooltip.
+- **E2E** (bản build production, :8080):
+  - `reception-follow-up` thêm 1 test: kéo 14:00–15:00, giữ giữa dời sang 15:00–16:00, kéo mép thành 15:00–16:30 rồi 15:15–16:30, lăn chuột thì có "Xem cả buổi" và dải tổng quan, nhãn đầu không còn 13:00, khung giữ nguyên, bấm "Xem cả buổi" thì về lại cả ca.
+  - Hai test kéo bấm lại ô ngày trước khi kéo, để bỏ nửa giờ mà chọn nhanh tự gán.
+  - `reception-follow-up` + `-shifts` + `reception-rebook-undated`: **21/21 xanh**.
+
+
+## R-1060 (2026-10-28, mức 2: Tiếp nhận — Chọn lịch hẹn tiếp theo) Không cho chọn đè lên khung giờ đã có lịch hẹn
+
+- **Yêu cầu (chủ dự án)**: "không cho drag vào những khung giờ đã có lịch hẹn". Trên panel, quyết định này thay cho BA 2026-10-16 ("trùng bác sĩ chỉ là cảnh báo, chọn vẫn được").
+- **Sửa** (`followUpSlots.freeStretches` = giờ mở trừ lịch đã đặt, làm tròn theo bước 15'): mọi cách chọn khoảng giờ chỉ đi trong phần trống.
+  - Bấm lên một lịch đã đặt: không chọn gì.
+  - Kéo tạo mới, kéo giãn mép: dừng ở mép lịch kế bên.
+  - Dời khung: nhảy qua lịch đã đặt sang khúc trống khác nếu vừa trọn; nếu không thì dừng sát lịch.
+  - Từ / Đến ±15', chip 30 / 45 / 60 / 90, phím ← / →: tắt hoặc bỏ qua khi kết quả đè lên lịch.
+  - Chọn nhanh vẫn lấy nửa giờ trống đầu tiên.
+  - Rê chuột qua lịch đã đặt hoặc ngoài ca thì con trỏ thành `not-allowed`.
+  - Ngày "Kín" (không còn khúc trống 15' nào) giờ bị khoá như ngày nghỉ, vẫn giữ chấm cam.
+  - Khung đã chọn mà bị lịch mới đè lên (dữ liệu tải lại) thì tự bỏ chọn.
+- **Giữ nguyên**: server vẫn chỉ cảnh báo trùng bác sĩ (0002 + `allowDentistOverlap`). Hộp "Cảnh báo trùng khung giờ" trên panel chỉ còn hiện khi có lịch được đặt chen vào sau lúc panel tải dữ liệu.
+- **E2E** (bản build production :8080):
+  - Test "booked slots… booking one asks first" viết lại thành "the doctor's booked visits are marked and cannot be picked over". Dùng bác sĩ tạm có lịch 08:00 và 09:30, kiểm: chọn nhanh vào 08:30; bấm lên lịch không chọn gì; nút Lùi giờ bắt đầu và chip 90' bị tắt, chip 60' bật; kéo giãn dừng ở 09:30; dời qua lịch thì nhảy sang 10:15, dời ngược thì dừng ở 10:00; server vẫn trả 0002; lưu 10:00 với đúng bác sĩ.
+  - Hai test kéo chuyển sang bác sĩ tạm (lịch các bác sĩ seed đã đầy do các lần chạy trước), có cuộn thanh vào màn hình trước khi rê chuột, và huỷ lịch + xoá bác sĩ sau khi chạy.
+  - Test "saved only with a booked next appointment" đợi nút Xác nhận bật (lịch bận đã tải xong) rồi mới đọc giờ chọn nhanh. Trước đó test có lúc đọc 08:00 trước khi lịch 08:00 kịp tải về.
+  - `reception-follow-up` + `-shifts` + `reception-rebook-undated`: **21/21 xanh**.
+
+
+## R-1061 (2026-10-28, mức 2: Tiếp nhận — thanh tiến trình) Bấm lại "Đã đến" để huỷ, xoá giờ đến
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: "lỡ người dùng ấn nút đã đến thì cho bấm vào lại để hủy trạng thái đã đến, reset lại thời gian".
+- **BE**: `Appointment.UndoCheckIn()` và `POST /api/v1/app/appointments/{id}/undo-check-in` (`Appointment.Update`, `GuardBranchAccess`, ghi lịch sử thay đổi như check-in).
+  - Chỉ nhận lịch đang ở `CheckedIn`, tức bệnh nhân còn đang chờ. Khi đã vào ghế, hoặc đã "Hẹn tái khám" từ lúc chờ (lịch được đưa vào ghế), thì trả `Appointment:0003`.
+  - Lịch về lại **Đã hẹn** (`Requested`, trạng thái lễ tân đặt lịch; FE không có bước xác nhận lịch), `CheckedInAt` = null.
+  - Lịch đã qua giờ hẹn thì worker trễ hẹn tự đánh lại "Trễ hẹn".
+  - Check-in không kéo theo gì khác (hàng chờ là phiếu tạo tay), nên không có gì khác cần hoàn tác.
+- **FE**:
+  - Bước "Đã đến" đã xong mà bước sau chưa xong thì vẫn bấm được: tooltip "Bấm để huỷ Đã đến", rê chuột thì ✓ đổi thành ↺. Sau khi huỷ hiện toast "Đã huỷ Đã đến".
+  - Giờ đến hiện lại "--:--" và đồng hồ chờ biến mất; bấm "Đã đến" lần nữa thì tính giờ mới.
+  - Tách phần dựng các bước của `ReceptionCardSteps.tsx` ra `utils/receptionSteps.ts` (từ 174 dòng xuống 90).
+- **Kiểm thử**:
+  - `AppointmentTests` +3: huỷ đến thì về Requested và đến lại được; lịch trễ hẹn sau khi huỷ thì bị đánh trễ lại; từ chối khi đã vào ghế, đã Hẹn tái khám, hoặc chưa đến. Kết quả 62/62.
+  - E2E `reception-follow-up` +1: bấm đến → bấm lại → "--:--", API trả Requested và `checkedInAt` null, tải lại trang vẫn vậy; đến lại có giờ mới; chi nhánh 2 bị từ chối 403/404; vào ghế thì nút bị khoá và server trả 0003.
+
+
 ## R-1062 (2026-10-28, mức 2: Labo — form Đặt mới / Làm tiếp công đoạn / Bảo hành) Ô tìm kiếm cạnh "Vật liệu*"
 
 - **Yêu cầu (chủ dự án)**: "Tạo Labo, thêm thanh tìm kiếm vật liệu nha." Đã chốt với chủ dự án: chỉ làm cho Vật liệu, và có cả trong dialog con (Làm tiếp công đoạn / Bảo hành → Thay đổi vật liệu mới).
@@ -11922,3 +12010,55 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Cùng lỗ hổng đó có sẵn ở các endpoint lịch hẹn khác. Trên DB local, `branch2` gửi header chi nhánh 1: `GET appointments/{id}` → 200, danh sách lịch hẹn → 200 với 67405 dòng.
   - Có thể cả các thao tác ghi (`UpdateAsync`, huỷ …) và các service khác dùng cùng mẫu `GuardBranchAccess` (Patient, Invoice, InsuranceClaim, TreatmentPlan, CustomerCare, Voucher), chưa đo.
   - Nên chặn tập trung ở chỗ đọc header (resolver chi nhánh) thay vì vá từng service.
+
+## R-1065 (2026-10-28, mức 2: Hồ sơ bệnh nhân — tab Hình ảnh) Bỏ giới hạn 10 ảnh của "Tải ảnh" / "Chụp ảnh", kiểm tra 20 MB
+
+- **Yêu cầu**: Định hỏi "bỏ cho upload hết đc k?". Hiện "Tải ảnh" chỉ cho 10 ảnh một lần.
+- **Chủ dự án chốt (2026-10-28)**:
+  - bỏ hẳn giới hạn số ảnh, không đặt trần mới;
+  - bỏ luôn ở "Chụp ảnh";
+  - nâng mức kiểm tra mỗi file từ 5 MB lên 20 MB;
+  - đưa lên cả main và develop.
+- **Số hiệu**: R-1062 đã được phiên Labo dùng trên main, R-1063 thuộc Ghi chú lịch hẹn, còn R-1064 đang giữ cho lỗ hổng header chi nhánh. Vì vậy mục này là R-1065.
+- **So với bản gốc**: bản gốc dừng ở 10 file một lần và kiểm tra 5 MB. BlueDental cố ý làm khác (`patient-detail.md`, Tab 5: "Tải ảnh — BlueDental lệch bản gốc" và "Chụp ảnh").
+- **Server**: không đổi.
+  - Server vốn không giới hạn số ảnh.
+  - Server vẫn từ chối file trên 20 MB (`PatientImage.MaxSizeBytes`), file rỗng và file sai loại.
+  - Mỗi file vẫn là một request riêng, nên số ảnh nhiều hay ít không đụng tới `client_max_body_size 20m` của nginx.
+- **FE**:
+  - `usePatientImageUpload`:
+    - Bỏ việc cắt còn 10 file. Mỗi file được kiểm tra với `PATIENT_IMAGE_MAX_BYTES` = 20 MB.
+    - `validateImageFile` có thêm tham số `maxBytes`, mặc định vẫn 5 MB cho khoảng 12 nơi gọi khác. Với những nơi đó chữ báo lỗi vẫn y như cũ: "Ảnh phải nhỏ hơn 5 MB".
+    - Vẫn gửi tuần tự. Trong lúc gửi, nút "Tải ảnh" ghi "Đang tải x/y" và bị khoá.
+    - Lưới ảnh chỉ tải lại **một lần**, khi cả lô xong: `usePatientImageBatchUpload` tách `send` / `refresh`. Trước đây mỗi file làm mới danh sách một lần, nên 50 ảnh là 50 lần tải lại.
+  - File bị từ chối: **một** toast cho mỗi lý do, nêu tên 3 file đầu rồi "và n tệp khác" (`Patient:Photo:RefusedMore`). Các file hợp lệ vẫn được gửi.
+  - Server từ chối giữa chừng: lô **dừng** lại, toast "Lỗi khi tải {tên} — đã tải lên x/y ảnh" (`Patient:Photo:UploadStopped`). Các ảnh đã lên vẫn giữ. Lô chỉ có 1 file thì vẫn toast "Không thể tải ảnh".
+  - "Chụp ảnh":
+    - `useCapturedShots` bỏ trần 10 ảnh (bỏ luôn key `Patient:Image:ShotsFull`).
+    - Chân dialog ghi "Đã chụp n ảnh", nút lưu ghi "Đang tải x/y".
+    - Dải ảnh đã chụp xếp lưới ô 96px, cao tối đa 176px. Nhiều hơn thì dải tự cuộn, và mỗi ảnh mới chụp cuộn dải tới ảnh đó.
+  - Bỏ key `MaxUploadError`. `Common:Validation:ImageMaxSize` giờ nhận tham số `{0}`. Key mới có đủ vi/en: `Patient:Photo:UploadProgress`, `Patient:Photo:UploadStopped`, `Patient:Photo:RefusedMore`.
+- **Ảnh hưởng đã xét**:
+  - Bộ nhớ trình duyệt: ảnh chụp được giữ ở dạng JPEG, cạnh dài tối đa 1600px. Ảnh chọn từ máy được thu nhỏ từng ảnh lúc gửi, không giải mã cả lô cùng lúc.
+  - Danh sách ảnh vẫn phân trang 25 ảnh và cuộn để tải thêm, như cũ.
+  - Không phải đổi DB hay migration.
+  - Rủi ro còn lại: ảnh hỏng không đọc được, dung lượng gần 20 MB, sẽ được gửi nguyên. Cộng phần đầu multipart, request có thể vượt 20 MB và bị nginx trả 413. Khi đó người dùng thấy toast lỗi như mọi lỗi server khác. Ảnh đọc được thì luôn được thu nhỏ trước khi gửi.
+- **E2E** (bản build production, preview riêng :8171 nối host riêng :5141, không chặn API, có đăng nhập thật):
+  - Spec mới `patient-image-batch.spec.ts`, **3/3 xanh**:
+    - Chọn 12 ảnh một lần:
+      - nút đếm từ "Đang tải 1/12" tới "Đang tải 12/12" rồi trở về "Tải ảnh";
+      - mỗi file được trả lời xong mới gửi file sau;
+      - lưới không tải lại giữa chừng mà tải lại sau file cuối;
+      - tải lại trang vẫn thấy đủ 12 ảnh, đúng thứ tự đã chọn.
+    - PNG trên 5 MB tải lên được. File 21 MB và 4 file .txt bị từ chối, có nêu tên, trong 2 toast (toast .txt ghi "… và 1 tệp khác").
+    - File rỗng ở giữa lô bị server từ chối:
+      - lô dừng, toast "Lỗi khi tải … — đã tải lên 1/3 ảnh";
+      - ảnh đã lên hiện trong lưới;
+      - ảnh phía sau không được gửi.
+  - `patient-image-capture.spec.ts` **5/5 xanh**. Ca cũ "đủ 10 ảnh thì khoá" đổi thành chụp 17 ảnh: "Chụp" vẫn bật, chân dialog ghi "Đã chụp 17 ảnh", "Tải lên (17)" bật, dải cuộn được và thấy ảnh mới nhất.
+  - `patient-image.spec.ts` **3/5 xanh** (tải lên, kéo sắp xếp, xoá):
+    - 2 ca còn đỏ đã đỏ từ trước, trên HEAD cũng đỏ (R-989): viewer (các nút độ dày nét có `aria-pressed`) và branch-scoped (gọi `login()` khi đã đăng nhập).
+    - Một ca đỏ làm worker khởi động lại với runId mới, nên ca kéo/xoá tìm sai tên ảnh và đỏ theo. Chạy bỏ 2 ca đó thì xanh.
+    - Đã dọn 4 ảnh rác `truoc-a/b-*.png` khỏi hồ sơ đầu tiên. Sau khi chạy không còn ảnh test nào sót lại.
+  - `tsc` xanh, build production xanh, đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-24 Hình ảnh, R-989 Chụp ảnh). `validateImageFile` là util dùng chung, nhưng giá trị mặc định và chữ báo lỗi của nó không đổi với các nơi gọi khác.

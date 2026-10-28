@@ -143,6 +143,25 @@ export interface BusySpan {
   end: number;
 }
 
+/** A stretch of the clinic's wall clock, as minutes from midnight. */
+export interface MinuteSpan {
+  start: number;
+  end: number;
+}
+
+/**
+ * One day of a doctor's Lịch làm việc: the planned morning and afternoon the
+ * timeline is drawn over, and the windows a follow-up may be booked in — the
+ * shifts less any leave, empty on a day off.
+ */
+export interface DoctorWorkDay {
+  /** "YYYY-MM-DD". */
+  date: string;
+  morning: MinuteSpan;
+  afternoon: MinuteSpan;
+  windows: MinuteSpan[];
+}
+
 export interface CreateReceptionInput {
   patientId?: string;
   patientName: string;

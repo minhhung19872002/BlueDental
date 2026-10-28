@@ -219,6 +219,22 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
+    /// Takes back a "Đã đến" pressed by mistake on the reception card (owner
+    /// 2026-10-28), only while the patient still waits: once in the chair — or
+    /// closed with "Hẹn tái khám", which seats them — the arrival stands. The
+    /// booking goes back to Đã hẹn, the status reception books with, and loses
+    /// its arrival time, so the wait timer starts afresh on the next arrival;
+    /// past its time the missed-appointment worker marks it Trễ hẹn again.
+    /// </summary>
+    public Appointment UndoCheckIn()
+    {
+        EnsureStatus(AppointmentStatus.CheckedIn, nameof(UndoCheckIn));
+        Status = AppointmentStatus.Requested;
+        CheckedInAt = null;
+        return this;
+    }
+
+    /// <summary>
     /// A patient arrives on the day they are booked for: a booking on 21/10
     /// cannot be received on 07/10, and its wait timer must not start (bug list
     /// item 25). Only a booking not yet received is checked — every step that

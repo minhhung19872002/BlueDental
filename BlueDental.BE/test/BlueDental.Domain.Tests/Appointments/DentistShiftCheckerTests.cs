@@ -120,6 +120,36 @@ public class DentistShiftCheckerTests
     }
 
     [Fact]
+    public void Leave_And_A_Day_Off_Leave_The_Planned_Shifts_As_They_Were()
+    {
+        // The follow-up picker draws its timeline over the planned shifts and
+        // greys out what leave or a day off takes away.
+        var leave = Record().RegisterLeave(
+            new LeaveWindow(LeaveShift.Morning, new TimeOnly(9, 0), new TimeOnly(10, 0)));
+        var dayOff = Record().RegisterDayOff("Nghỉ phép");
+
+        foreach (var record in new[] { leave, dayOff })
+        {
+            var (morning, afternoon) = DentistShiftChecker.PlannedShifts(record);
+            Assert.Equal(new ShiftWindow(new TimeOnly(8, 0), new TimeOnly(12, 0)), morning);
+            Assert.Equal(new ShiftWindow(new TimeOnly(13, 0), new TimeOnly(17, 0)), afternoon);
+        }
+    }
+
+    [Fact]
+    public void Without_A_Record_The_Planned_Shifts_Are_The_Profile_Hours()
+    {
+        var dentist = new IdentityUser(Guid.NewGuid(), "bs.toi", "bs.toi@example.test");
+        dentist.ExtraProperties["MorningStartTime"] = "07:30";
+        dentist.ExtraProperties["MorningEndTime"] = "11:30";
+
+        var (morning, afternoon) = DentistShiftChecker.PlannedShifts(null, dentist);
+
+        Assert.Equal(new ShiftWindow(new TimeOnly(7, 30), new TimeOnly(11, 30)), morning);
+        Assert.Equal(new ShiftWindow(new TimeOnly(13, 0), new TimeOnly(17, 0)), afternoon);
+    }
+
+    [Fact]
     public void A_Slot_Running_Past_Midnight_Never_Fits()
     {
         var windows = DentistShiftChecker.WorkingWindows(null);

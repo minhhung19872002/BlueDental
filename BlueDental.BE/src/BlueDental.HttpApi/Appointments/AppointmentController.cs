@@ -25,6 +25,10 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     [HttpGet("doctor-teams")]
     public Task<List<AppointmentDoctorTeamDto>> GetDoctorTeamsAsync() => service.GetDoctorTeamsAsync();
 
+    [HttpGet("dentist-work-days")]
+    public Task<List<DentistWorkDayDto>> GetDentistWorkDaysAsync(
+        [FromQuery] GetDentistWorkDaysInput input) => service.GetDentistWorkDaysAsync(input);
+
     [HttpGet("{id:guid}")]
     public Task<AppointmentDto> GetAsync(Guid id) => service.GetAsync(id);
 
@@ -49,6 +53,9 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
 
     [HttpPost("{id:guid}/check-in")]
     public Task<AppointmentDto> CheckInAsync(Guid id) => service.CheckInAsync(id);
+
+    [HttpPost("{id:guid}/undo-check-in")]
+    public Task<AppointmentDto> UndoCheckInAsync(Guid id) => service.UndoCheckInAsync(id);
 
     [HttpPost("{id:guid}/start")]
     public Task<AppointmentDto> StartAsync(Guid id, [FromBody] StartAppointmentDto? input = null) =>
