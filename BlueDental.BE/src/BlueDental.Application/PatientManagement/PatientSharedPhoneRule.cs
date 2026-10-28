@@ -216,14 +216,16 @@ public class PatientSharedPhoneRule(
             return;
         }
 
-        var nationalId = source.NationalId;
+        // The same person the dropdown folded: CCCD spacing and case do not count.
+        var identity = IdentityKey(source.NationalId);
         var wards = await asyncExecuter.ToListAsync(query
             .Where(p => p.BranchId == branchId && p.Id != patient.Id)
-            .Where(p => p.Guardians.Any(g => g.LinkedPatientId == null && g.NationalId == nationalId)));
+            .Where(p => p.Guardians.Any(g => g.LinkedPatientId == null
+                && g.NationalId.Replace(" ", "").ToUpper() == identity)));
 
         foreach (var ward in wards)
         {
-            foreach (var guardian in ward.Guardians.Where(g => g.LinkedPatientId is null && g.NationalId == nationalId).ToList())
+            foreach (var guardian in ward.Guardians.Where(g => g.LinkedPatientId is null && IdentityKey(g.NationalId) == identity).ToList())
             {
                 ward.LinkGuardianTo(guardian.Id, patient.Id);
             }
@@ -268,7 +270,7 @@ public class PatientSharedPhoneRule(
                     GuardianId = g.Id,
                     Relation = g.Relation,
                     FullName = g.FullName,
-                    NationalId = g.NationalId,
+                    NationalId = person.Key,
                     DateOfBirth = g.DateOfBirth,
                     Gender = g.Gender,
                     Email = g.Email,
