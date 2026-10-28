@@ -1,16 +1,13 @@
 import type { KeyboardEvent, MouseEvent } from "react";
 import { Button, Tag } from "antd";
-import { CheckCircleFilled, DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { CheckCircleFilled, DeleteOutlined, EditOutlined, RightOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
-import type { PatientGuardianDto } from "../../types/patient";
-import {
-  formatPhoneGroups,
-  initialsOf,
-  maskNationalIdEnds,
-  RELATION_LABEL,
-} from "../../utils/guardian";
+import type { LinkedGuardian, PatientGuardianDto } from "../../types/patient";
+import { formatPhoneGroups, maskNationalIdEnds, RELATION_LABEL } from "../../utils/guardian";
+import { HolderAvatar } from "../shared-phone/HolderCard";
+import { holderLineWithAge } from "../shared-phone/holderMeta";
 
 /** What the viewer may do with the card; null hides both buttons. */
 export interface GuardianCardActions {
@@ -23,8 +20,11 @@ export interface GuardianCardActions {
 interface Props {
   guardian: PatientGuardianDto;
   occupation: string | null;
+  /** The guardian's own hồ sơ (P2710_02), when they have one. */
+  linked: LinkedGuardian | null;
   expanded: boolean;
   onToggle: () => void;
+  onOpenRecord: (patientId: string) => void;
   actions: GuardianCardActions | null;
 }
 
@@ -33,20 +33,28 @@ function relationText(guardian: PatientGuardianDto) {
   return guardian.relationNote?.trim() ? `${relation} · ${guardian.relationNote}` : relation;
 }
 
-/** The pencil and the trash do their own job; they never fold the card. */
+/** The pencil, the trash and the chevron do their own job; they never fold the card. */
 const stopFold = (event: MouseEvent) => event.stopPropagation();
 
 /**
- * One người giám hộ on the record's Hồ sơ tab (BA mock 2026-10-07). The
- * primary contact opens with its details; the others fold them away. A click
- * anywhere on the card folds or unfolds it (owner, 2026-10-07: no chevron
- * button) — except while text is being selected, so a phone or an email can
- * still be copied. From the keyboard, the name block is the toggle.
+ * One người giám hộ on the record's Hồ sơ tab (BA mock 2026-10-07), dressed
+ * like the "Người dùng chung SĐT" cards (P2710_02): avatar, name with its
+ * tags, then "mã · tuổi · khám gần nhất" — the code only once the guardian has
+ * a hồ sơ, which the chevron then opens. The primary contact opens with its
+ * details; the others fold them away. A click anywhere on the card folds or
+ * unfolds it (owner, 2026-10-07) — except while text is being selected, so a
+ * phone or an email can still be copied. From the keyboard, the name block is
+ * the toggle.
  */
-export function PatientGuardianCard({ guardian, occupation, expanded, onToggle, actions }: Props) {
+export function PatientGuardianCard({ guardian, occupation, linked, expanded, onToggle, onOpenRecord, actions }: Props) {
   const className = ["pd-guardian", guardian.isPrimaryContact && "pd-guardian--primary"]
     .filter(Boolean)
     .join(" ");
+  const meta = holderLineWithAge({
+    patientCode: linked?.patientCode ?? null,
+    dateOfBirth: guardian.dateOfBirth,
+    lastVisitAt: linked?.lastVisitAt ?? null,
+  });
 
   const handleCardClick = () => {
     if (window.getSelection()?.toString()) return;
@@ -62,9 +70,7 @@ export function PatientGuardianCard({ guardian, occupation, expanded, onToggle, 
   return (
     <article className={className} aria-label={guardian.fullName} onClick={handleCardClick}>
       <header className="pd-guardian-head">
-        <span className="pd-guardian-avatar" aria-hidden>
-          {initialsOf(guardian.fullName)}
-        </span>
+        <HolderAvatar name={guardian.fullName} />
         <div
           className="pd-guardian-who"
           role="button"
@@ -79,30 +85,45 @@ export function PatientGuardianCard({ guardian, occupation, expanded, onToggle, 
               <Tag className="pd-guardian-primary">{t("Patient:Guardian:PrimaryBadge")}</Tag>
             )}
           </div>
+          {meta && <span className="bd-holder-meta">{meta}</span>}
           <span className="pd-guardian-contact">
             {formatPhoneGroups(guardian.phone)} · {t("Patient:Guardian:NationalIdShort")}{" "}
             {maskNationalIdEnds(guardian.nationalId)}
           </span>
         </div>
-        {actions && (
+        {(actions || linked) && (
           <span className="pd-guardian-actions" onClick={stopFold}>
-            <Button
-              size="small"
-              className="pd-guardian-edit"
-              icon={<EditOutlined />}
-              aria-label={t("Patient:Guardian:Edit")}
-              onClick={actions.onEdit}
-            />
-            <Button
-              size="small"
-              danger
-              className="pd-guardian-delete"
-              icon={<DeleteOutlined />}
-              aria-label={t("Patient:Guardian:Delete")}
-              title={actions.deleteBlockedReason ?? undefined}
-              disabled={actions.deleteBlockedReason !== null}
-              onClick={actions.onDelete}
-            />
+            {actions && (
+              <>
+                <Button
+                  size="small"
+                  className="pd-guardian-edit"
+                  icon={<EditOutlined />}
+                  aria-label={t("Patient:Guardian:Edit")}
+                  onClick={actions.onEdit}
+                />
+                <Button
+                  size="small"
+                  danger
+                  className="pd-guardian-delete"
+                  icon={<DeleteOutlined />}
+                  aria-label={t("Patient:Guardian:Delete")}
+                  title={actions.deleteBlockedReason ?? undefined}
+                  disabled={actions.deleteBlockedReason !== null}
+                  onClick={actions.onDelete}
+                />
+              </>
+            )}
+            {linked && (
+              <Button
+                type="text"
+                size="small"
+                className="pd-guardian-open"
+                icon={<RightOutlined />}
+                aria-label={t("Patient:SharedPhone:OpenMember", guardian.fullName)}
+                onClick={() => onOpenRecord(linked.patientId)}
+              />
+            )}
           </span>
         )}
       </header>

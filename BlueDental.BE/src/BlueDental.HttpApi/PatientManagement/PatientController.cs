@@ -31,6 +31,10 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
         [FromQuery] Guid? excludeId = null) =>
         service.CheckPhoneAsync(phone, excludeId);
 
+    /// <summary>"Người dùng chung SĐT" on the Hồ sơ tab, and the guardian cards' hồ sơ codes.</summary>
+    [HttpGet("{id:guid}/linked-people")]
+    public Task<PatientLinkedPeopleDto> GetLinkedPeopleAsync(Guid id) => service.GetLinkedPeopleAsync(id);
+
     /// <summary>"Quét CCCD" — the record already holding a scanned number, if any.</summary>
     [HttpGet("by-national-id")]
     public Task<NationalIdLookupDto> FindByNationalIdAsync([FromQuery] string nationalId) =>

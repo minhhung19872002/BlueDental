@@ -1,14 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Button, Checkbox, Form, Input } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
-import { PhoneInput } from "@/components/PhoneInput";
 import { SearchSelect } from "@/components/SearchSelect";
 import { CATALOG_GROUP, useCatalogOptions, useTaxonomyGroupOptions } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
 import { PERSON_NAME_PATTERN } from "@/utils/vietnameseName";
-import { PATIENT_PHONE_PATTERN } from "../utils/patientPhone";
 
 interface Props {
   /** The fixed half of the code, greyed inside the field. */
@@ -17,6 +15,8 @@ interface Props {
   sourceTaxonomyId?: string;
   onAddSource: () => void;
   onSourceGroupChange: () => void;
+  /** "Điện thoại" with the shared-phone list and link hung off it (P2710_02). */
+  phoneField: ReactNode;
 }
 
 /**
@@ -31,6 +31,7 @@ export function PatientSourceColumn({
   sourceTaxonomyId,
   onAddSource,
   onSourceGroupChange,
+  phoneField,
 }: Props) {
   const sourceGroups = useTaxonomyGroupOptions(CATALOG_GROUP.Source);
   const sourceEntries = useCatalogOptions(CATALOG_GROUP.Source);
@@ -74,17 +75,7 @@ export function PatientSourceColumn({
         <Checkbox>{t("Patient:Editor:Uppercase")}</Checkbox>
       </Form.Item>
 
-      <FloatingField
-        label={t("Patient:Form:Telephone")}
-        name="phone"
-        required
-        rules={[
-          { required: true, message: t("Patient:Form:RequiredPhone") },
-          { pattern: PATIENT_PHONE_PATTERN, message: t("Patient:Form:InvalidPhone") },
-        ]}
-      >
-        <PhoneInput />
-      </FloatingField>
+      {phoneField}
 
       <div className="bd-patient-sourcerow">
         <FloatingField label={t("Patient:Source:SelectType")} name="sourceTaxonomyId">

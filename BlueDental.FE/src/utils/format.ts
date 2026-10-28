@@ -93,6 +93,9 @@ export function formatShortDate(value: string | Date | null | undefined): string
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
 }
 
+/** What an amount reads as for a viewer without "Chi phí › Xem" (BA P2010). */
+export const MONEY_MASK = "*********";
+
 /** `formatVND(value)` + the currency unit ("đ" / "VND"), used everywhere money is shown. */
 export function formatMoneyUnit(value: number | null | undefined): string {
   return `${formatVND(value)} ${t("Common:Currency:Unit")}`;

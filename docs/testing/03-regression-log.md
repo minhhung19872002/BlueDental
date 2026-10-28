@@ -11787,3 +11787,71 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
       - "the Tiếp nhận steps advance one at a time", "the appointment card reassigns its doctor": lịch hẹn / dữ liệu demo.
       - `stage-remark` "without Công đoạn → Sửa …": đỏ ở fixture `createDentist` (ô Chi nhánh của dialog Nhân viên), trước khi tới phần Ghi chú.
       - `treatment-plan` "the slip survives a reload": phiếu DT02 thành "Đang điều trị" vì worker song song của `patient.spec` thêm công đoạn lên bệnh nhân demo dùng chung. Chạy riêng `treatment-plan.spec` (1 worker): **9/9 xanh**.
+
+## R-1057 (2026-10-28, mức 3: Hồ sơ bệnh nhân — Điện thoại) Nhiều hồ sơ dùng chung một số điện thoại (F-82)
+
+- **Yêu cầu** (BA P2710_02, `P2710_02.drawio`): một số điện thoại được dùng cho nhiều hồ sơ, thay cho luật "1 số = 1 hồ sơ / chi nhánh" của bug 29.
+  - Gõ số đã có người dùng thì ô Điện thoại hiện badge "N hồ sơ" và danh sách "Những người đang dùng số điện thoại này". Mỗi dòng có Chủ số / "… của …", mã hồ sơ, Khám gần nhất, "Mở hồ sơ ›".
+  - Chọn "Người mới, dùng chung số này" thì phải điền khối "Liên kết người dùng chung SĐT" ("Là … của …") trước khi Lưu.
+  - Trang chi tiết, tab Hồ sơ, có thêm khối "Người dùng chung SĐT" (đếm số người, nút +, thẻ từng người, Tổng dư nợ cả nhóm).
+  - Thẻ người giám hộ có hồ sơ riêng hiện mã hồ sơ và mở được hồ sơ đó.
+- **Chủ phòng khám / BA chốt** (2026-10-28):
+  1. Chỉ làm phần khung đỏ của mock. KHÔNG làm chip tên, chip "Dùng chung · N hồ sơ", "Lịch hẹn của người cùng SĐT", dòng "Liên hệ:".
+  2. Trùng tên = cùng số, không phân biệt hoa thường, CÓ phân biệt dấu ("Hà My" ≠ "Ha My"). CCCD vẫn duy nhất trong chi nhánh (`Patient:0012`).
+  3. "Mở hồ sơ ›" mở trang chi tiết của hồ sơ đó.
+     - Trong luồng (Lịch hẹn, Lịch tạm, Tạo tiếp nhận, Hộp thư Zalo) thì mở **tab mới**; bấm thân dòng thì dùng luôn hồ sơ đó cho luồng.
+     - Ở trang Bệnh nhân và khi sửa hồ sơ thì cả hai cách đều chuyển trang ngay tại tab đang mở.
+     - Không bao giờ tạo trùng hồ sơ đã có.
+  4. "của …" chỉ liệt kê người trên 18 tuổi (năm nay − năm sinh) hoặc chưa có ngày sinh. Riêng Bố/Mẹ, Ông/Bà, Người giám hộ khác được chọn cả người dưới 18. Không ai đủ điều kiện thì hiện hết.
+  5. Người giám hộ chưa có hồ sơ mà dùng số đó cũng có dòng trong danh sách (chỉ khi tạo mới).
+     - Chọn dòng đó thì chép thông tin người giám hộ vào form đúng 1 lần, quan hệ điền sẵn: Bố/Mẹ → Bố/Mẹ, Ông/Bà → Ông/Bà, Anh/Chị/Em → Anh/Chị/Em, còn lại → Người giám hộ khác.
+     - Lưu thì tạo hồ sơ mới với mã bình thường. Dòng người giám hộ cũ được gắn `LinkedPatientId`, không đồng bộ hai chiều.
+     - Số chỉ khớp người giám hộ (chưa có hồ sơ nào) thì không bắt buộc liên kết.
+  6. Sửa hồ sơ sang số hồ sơ khác đang dùng thì xử lý như tạo mới. Giữ nguyên số thì không hỏi lại.
+  7. Chủ số = hồ sơ tạo sớm nhất trên số đó.
+  8. "Người giám hộ khác" tính là gia đình; "Người quen dùng nhờ số" thì không.
+  9. Không đổi: nhập Excel danh sách vẫn từ chối số trùng (`Patient:0021`); tài khoản bị "Ẩn số điện thoại" vẫn thấy Alert cũ và nhận `0021`; Zalo tự nối vẫn cần khớp đúng 1 hồ sơ.
+  10. Thẻ người giám hộ giữ bút chì và thùng rác, thêm chevron › mở hồ sơ liên kết. Bấm thân thẻ vẫn gập/mở thẻ. Các nút "thêm mới" vẫn mở popup cũ.
+- **Thay đổi** (không migration; cột `LinkedPatientId` đã có từ F-50):
+  - BE:
+    - `PatientSharedPhoneRule` (mới) gồm: danh sách người dùng số (cũ nhất trước), luật "của …", kiểm trùng tên, ghi liên kết vào bảng quan hệ 4.8 (cặp đã có quan hệ thì sửa dòng đó, quan hệ giám hộ đã nói đúng như vậy thì không ghi thêm), nhãn "… của …", tìm người giám hộ theo số, gắn người giám hộ vào hồ sơ mới theo CCCD.
+    - `RegisterPatientDto` / `UpdatePatientDto` thêm `sharedPhoneLink { anchorPatientId, relation }`; tạo mới thêm `sourceGuardianId`.
+    - Mã lỗi mới: `Patient:0033` (thiếu liên kết), `0034` ("của …" không hợp lệ), `0035` (trùng tên trên cùng số).
+    - Loại quan hệ mới: `OtherGuardian` / `Ward`, `PhoneBorrower` / `PhoneLender`.
+    - `check-phone` trả `owners[]` đủ thông tin (giới tính, ngày sinh, Khám gần nhất, Chủ số, trên 18, nhãn quan hệ) và `guardians[]`.
+    - Endpoint mới `GET api/v1/app/patients/{id}/linked-people`: người dùng chung số (không gồm chính hồ sơ, Chủ số đứng đầu), Tổng dư nợ cả nhóm (gồm chính hồ sơ; tiền theo quyền "Chi phí › Xem"), `canAddSharedPhone`, mã hồ sơ của người giám hộ đã có hồ sơ.
+    - `Patient.LinkGuardianTo`.
+    - `EnsurePhoneIsFreeAsync` đã xoá.
+  - FE:
+    - `shared-phone/` gồm `SharedPhoneField`, `PhoneHoldersDropdown`, `HolderCard`, `SharedPhoneLinkBlock`, `holderMeta`, `shared-phone.css`.
+    - Hook mới: `usePhoneHolders`, `useSharedPhoneLink`, `useHolderNavigation`, `usePatientNameCasing`. Thêm `utils/patientEditorForm.ts`.
+    - `PatientEditorDialog` bỏ Alert số trùng cũ (chỉ còn cho tài khoản bị che số).
+    - `PatientSharedPhoneSection` (mới, tab Hồ sơ, đứng sau khối người giám hộ như mock). Nút + cần `patient.create` và `canAddSharedPhone` của server; dialog mở với số điền sẵn, danh sách đóng, "của" là hồ sơ đang xem.
+    - `PatientGuardianCard` dựng lại theo kiểu thẻ thành viên.
+    - `PhoneInput` nhận `suffix`. `MONEY_MASK` chuyển vào `utils/format.ts`.
+  - **Lỗi tìm thấy khi test, đã sửa**: Esc khi danh sách đang mở đóng luôn cả dialog Tạo hồ sơ (mất hết dữ liệu đã gõ). Giờ Esc được bắt ở pha capture: chỉ đóng danh sách, dialog vẫn còn.
+  - **Lỗi chủ phòng khám tìm thấy khi thử (2026-10-28), đã sửa**:
+    1. Người giám hộ có CCCD trùng một hồ sơ khác bị ẩn khỏi danh sách (ví dụ "Trần Thị Mẹ"). Giờ vẫn hiện; bấm Lưu thì báo `Patient:0012` như mọi CCCD trùng.
+    2. Cùng một số VN gõ hai kiểu không ra cùng kết quả: "0902472111" hiện "1 giám hộ", còn "902472111" (bên cờ +84) không hiện gì. Ô số giữ nguyên chữ đã gõ, server so khớp chính xác từng ký tự.
+       - Giờ BE (`PatientPhoneFormat.Normalize`) và FE (`normalizePhone` / `composePhone`) dùng cùng một luật.
+       - 9–10 chữ số bắt đầu 1–9 (số VN thiếu số 0) thì thêm 0.
+       - 11–12 chữ số bắt đầu 84 (kiểu Zalo) thì bỏ 84 và thêm 0.
+       - Số ngắn, số có "+", số bị che "*" giữ nguyên.
+       - Hồ sơ cũ đã lưu thiếu 0 hoặc dạng 84… vẫn được tìm thấy: `PatientPhoneFormat.Spellings` dò cả 4 kiểu viết.
+       - Lưu mới hoặc sửa thì số được lưu dạng có 0.
+       - `+84 0…` khi đọc lên cũng không còn ra "00…".
+    3. Số nước ngoài không bao giờ hiện danh sách: FE chỉ hỏi `check-phone` khi chuỗi toàn chữ số. Giờ hỏi cả dạng E.164 (`+61…`).
+    4. Tab Hồ sơ: khối "Người giám hộ" đứng TRÊN "Người dùng chung SĐT" cho giống mock (trước đây ngược lại).
+  - **Fixture e2e đã sửa**: `restrictedDentist.ts` và `patient-permission-gates.spec.ts` giờ tìm chi nhánh theo tên. Từ R-1051, ô Chi nhánh lọc theo tên chứ không theo id.
+    - Còn 3 chỗ cùng lỗi, chưa sửa (ngoài phạm vi): `role-permissions.spec.ts:81`, `staff.spec.ts:46`, `taxonomy-import-api.spec.ts:729`.
+- **Ảnh hưởng spec cũ**: `qa-bugs-25-30.spec.ts` "29 + 30" viết lại. Lưu trên số đã có giờ là `Patient:0033` thay vì `0021`; số trùng của tài khoản bị che vẫn là `0021`.
+- **Test** (bản build production `vite preview` :8080 + host Debug :5000, PostgreSQL thật):
+  - `BlueDental.Domain.Tests`: 1134/1134. `PatientPhoneFormatTests` có 40 case, gồm luật thêm 0, số giữ nguyên và `Spellings`.
+  - `patient-shared-phone-api` 7/7. Case mới: một số gõ thiếu 0 / 84 / +84 / 0084 vẫn là một số. Số Úc lưu E.164; `+64…` (New Zealand) và `0…` (VN) cùng dãy chữ số là người khác.
+  - `patient-shared-phone-ui` 6/6. Case mới: bên +84 gõ thiếu 0 hoặc 84… vẫn hiện badge "1 hồ sơ" / "1 giám hộ". Chọn Úc, gõ có số 0 đầu, không có số 0, hoặc dán `+61…` đều hiện "1 hồ sơ".
+  - `patient-phone-country` 4/4. `qa-bugs-25-30` "29 + 30" 2/2.
+  - `patient-guardian*` 10/10. `patient-roster*` 14/14 (case 403 trang trắng 1 lần, chạy lại xanh). `patient-permission-gates` xanh. `zalo-inbox` 15/15.
+  - Đã gọi API thật trên DB local: hồ sơ cũ lưu `9024…` (9 số) và `8493…` (11 số), cùng một người giám hộ lưu `9007…`, đều được tìm thấy khi gõ dạng có 0.
+  - Hồi quy mức 3: 145 xanh / 12 đỏ / 15 bỏ qua. Chạy lại các case đỏ: 26/27.
+    - Đỏ có sẵn, đã chứng minh trên bản HEAD: `patient.spec` 1821, 2314, 2434, 2727, 2857, 3670, 3925; `qa-bugs-25-30:102` (TEMP-BUG25-OFF); `role-permissions-abilities:38`.
+    - `patient.spec:2546` chập chờn ở cả hai bản: HEAD đỏ 1/5, F-82 đỏ 1/4, cùng dòng 2602 (ô Ghi chú Labo mất focus). Không do F-82.

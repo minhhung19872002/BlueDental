@@ -109,38 +109,106 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             return new PhoneAvailabilityDto { Exists = false };
         }
 
-        var trimmed = PatientPhoneFormat.Normalize(phone);
-        var query = await _repository.GetQueryableAsync();
+        var trimmed = PatientPhoneFormat.Normalize(phone)!;
 
         // Every holder, not the first one found (bug list item 29: a number
-        // shared by DH260039 and DH260040 named only one of them).
-        var owners = await AsyncExecuter.ToListAsync(query
-            .Where(p => p.BranchId == branchId && p.Contact.PhoneNumber == trimmed)
-            .Where(p => !excludeId.HasValue || p.Id != excludeId.Value)
-            .OrderBy(p => p.PatientCode)
-            .Select(p => new { p.Id, p.LastName, p.FirstName, p.PatientCode }));
+        // shared by DH260039 and DH260040 named only one of them). The record
+        // being edited still counts when telling who the Chủ số is.
+        var everyone = await SharedPhone.HoldersAsync(branchId, trimmed, excludeId: null);
+        var holders = everyone.Where(p => !excludeId.HasValue || p.Id != excludeId.Value).ToList();
 
         // A masked account (Cụm 11 mục 9) learns only that the number is
         // taken, not whose it is: naming the holder would turn this check
         // into a way to look up whose number a guess is.
         if (await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().ShouldMaskAsync())
         {
-            return new PhoneAvailabilityDto { Exists = owners.Count > 0 };
+            return new PhoneAvailabilityDto { Exists = holders.Count > 0 };
         }
+
+        var labels = await SharedPhone.LabelsAsync(everyone);
+        var lastVisits = (await BuildRowsAsync(holders, branchId)).ToDictionary(row => row.Id, row => row.LastVisitAt);
+        var today = ClinicToday;
 
         return new PhoneAvailabilityDto
         {
-            Exists = owners.Count > 0,
-            Owners = owners
-                .Select(o => new PhoneOwnerDto
+            Exists = holders.Count > 0,
+            Owners = holders
+                .Select(p => new PhoneOwnerDto
                 {
-                    Id = o.Id,
-                    PatientCode = o.PatientCode,
-                    PatientName = $"{o.LastName} {o.FirstName}".Trim()
+                    Id = p.Id,
+                    PatientCode = p.PatientCode,
+                    PatientName = p.FullName,
+                    Gender = p.Gender,
+                    DateOfBirth = p.DateOfBirth,
+                    LastVisitAt = lastVisits.GetValueOrDefault(p.Id),
+                    IsPhoneOwner = p.Id == everyone[0].Id,
+                    IsAdult = PatientSharedPhoneRule.IsAdult(p.DateOfBirth, today),
+                    RelationType = labels.GetValueOrDefault(p.Id)?.Type,
+                    RelatedToName = labels.GetValueOrDefault(p.Id)?.RelatedToName
+                })
+                .ToList(),
+            Guardians = await SharedPhone.GuardiansOnPhoneAsync(branchId, trimmed)
+        };
+    }
+
+    /// <summary>
+    /// The Hồ sơ tab's "Người dùng chung SĐT" (P2710_02) and the hồ sơ codes
+    /// of guardians who have one. Money follows "Chi phí › Xem" (BA P2010).
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
+    public async Task<PatientLinkedPeopleDto> GetLinkedPeopleAsync(Guid id)
+    {
+        var patient = await _repository.GetAsync(id);
+        GuardBranchAccess(patient);
+
+        var holders = await SharedPhone.HoldersAsync(patient.BranchId, patient.Contact.PhoneNumber, excludeId: null);
+        var group = holders.Count > 1 ? holders : [];
+        var linkedIds = patient.Guardians.Select(g => g.LinkedPatientId).OfType<Guid>().ToHashSet();
+        var linked = linkedIds.Count == 0
+            ? []
+            : await _repository.GetListAsync(p => p.BranchId == patient.BranchId && linkedIds.Contains(p.Id));
+
+        var rows = (await BuildRowsAsync(group.Concat(linked).DistinctBy(p => p.Id).ToList(), patient.BranchId))
+            .ToDictionary(row => row.Id);
+        await HideMoneyIfRequiredAsync(rows.Values);
+        var labels = await SharedPhone.LabelsAsync(group);
+        var masked = await LazyServiceProvider.LazyGetRequiredService<PatientPhoneMasker>().ShouldMaskAsync();
+
+        return new PatientLinkedPeopleDto
+        {
+            SharedPhone = group
+                .Where(p => p.Id != patient.Id)
+                .Select(p => new PhoneGroupMemberDto
+                {
+                    Id = p.Id,
+                    PatientCode = p.PatientCode,
+                    FullName = p.FullName,
+                    Gender = p.Gender,
+                    DateOfBirth = p.DateOfBirth,
+                    LastVisitAt = rows[p.Id].LastVisitAt,
+                    TotalDebt = rows[p.Id].TotalDebt,
+                    IsPhoneOwner = p.Id == group[0].Id,
+                    RelationType = labels.GetValueOrDefault(p.Id)?.Type,
+                    RelatedToName = labels.GetValueOrDefault(p.Id)?.RelatedToName
+                })
+                .ToList(),
+            GroupDebt = group.Sum(p => rows[p.Id].TotalDebt),
+            MoneyHidden = !await LazyServiceProvider.LazyGetRequiredService<TreatmentCostAccess>().SeesCostsAsync(),
+            CanAddSharedPhone = !masked && !string.IsNullOrWhiteSpace(patient.Contact.PhoneNumber),
+            Guardians = patient.Guardians
+                .Where(g => g.LinkedPatientId is { } linkedId && rows.ContainsKey(linkedId))
+                .Select(g => new LinkedGuardianDto
+                {
+                    GuardianId = g.Id,
+                    PatientId = g.LinkedPatientId!.Value,
+                    PatientCode = rows[g.LinkedPatientId!.Value].PatientCode,
+                    LastVisitAt = rows[g.LinkedPatientId!.Value].LastVisitAt
                 })
                 .ToList()
         };
     }
+
+    private PatientSharedPhoneRule SharedPhone => LazyServiceProvider.LazyGetRequiredService<PatientSharedPhoneRule>();
 
     /// <summary>
     /// "Quét CCCD". Branch-scoped like the uniqueness rule it mirrors: a number
@@ -188,7 +256,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             input.NationalId);
 
         await EnsureNationalIdIsFreeAsync(branchId, patient.NationalId, excludeId: null);
-        await EnsurePhoneIsFreeAsync(branchId, patient.Contact.PhoneNumber, excludeId: null);
+        var sharedPhoneLink = await SharedPhone.CheckAsync(
+            branchId, null, patient.Contact.PhoneNumber, patient.FullName, input.SharedPhoneLink, ClinicToday);
         patient.SetOldAddress(input.OldAddress);
 
         await ApplyProfileAsync(
@@ -209,6 +278,17 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         await ApplyGuardiansAsync(patient, branchId, input.Guardians, input.GuardiansConsented);
 
         await _repository.InsertAsync(patient, autoSave: true);
+
+        if (input.SourceGuardianId is { } sourceGuardianId)
+        {
+            await SharedPhone.LinkGuardianAsync(branchId, sourceGuardianId, patient);
+        }
+
+        if (sharedPhoneLink is not null)
+        {
+            await SharedPhone.LinkAsync(branchId, patient, sharedPhoneLink);
+        }
+
         return MapToDto(patient);
     }
 
@@ -217,6 +297,8 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     {
         var patient = await _repository.GetAsync(id);
         GuardBranchAccess(patient);
+        var phoneBefore = PatientPhoneFormat.Normalize(patient.Contact.PhoneNumber);
+        var nameBefore = patient.FullName;
 
         patient.UpdateDemographics(input.FirstName, input.LastName, input.DateOfBirth, input.Gender);
         // A masked phone sent back unchanged (Cụm 11 mục 9) keeps the real one.
@@ -226,7 +308,20 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         patient.UpdateContact(new ContactInfo(phone, input.Email, input.Address));
         patient.SetNationalId(input.NationalId);
         await EnsureNationalIdIsFreeAsync(patient.BranchId, patient.NationalId, patient.Id);
-        await EnsurePhoneIsFreeAsync(patient.BranchId, patient.Contact.PhoneNumber, patient.Id);
+
+        // A number the record already had is not asked about again (P2710_02);
+        // moving to one another hồ sơ holds is handled like creating a record.
+        SharedPhoneLink? sharedPhoneLink = null;
+        if (PatientPhoneFormat.Normalize(patient.Contact.PhoneNumber) != phoneBefore)
+        {
+            sharedPhoneLink = await SharedPhone.CheckAsync(
+                patient.BranchId, patient.Id, patient.Contact.PhoneNumber, patient.FullName, input.SharedPhoneLink, ClinicToday);
+        }
+        else if (patient.FullName != nameBefore)
+        {
+            await SharedPhone.EnsureNameIsFreeAsync(patient.BranchId, patient.Id, patient.Contact.PhoneNumber, patient.FullName);
+        }
+
         patient.SetOldAddress(input.OldAddress);
 
         if (!string.IsNullOrWhiteSpace(input.PatientCode) && input.PatientCode.Trim() != patient.PatientCode)
@@ -253,6 +348,12 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         await ApplyGuardiansAsync(patient, patient.BranchId, input.Guardians, input.GuardiansConsented);
 
         await _repository.UpdateAsync(patient, autoSave: true);
+
+        if (sharedPhoneLink is not null)
+        {
+            await SharedPhone.LinkAsync(patient.BranchId, patient, sharedPhoneLink);
+        }
+
         await DeleteDroppedDocumentsAsync(documentsBefore, GuardianDocuments(patient));
         return MapToDto(patient);
     }
@@ -845,36 +946,12 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     }
 
     /// <summary>
-    /// One CCCD, one record. Scoped to the branch the way the phone check is:
-    /// a person seen at two branches holds a record at each, but never two in
-    /// one. The refusal names the holder so the front desk can open that record
-    /// instead of typing a second one.
+    /// One CCCD, one record. Scoped to the branch: a person seen at two
+    /// branches holds a record at each, but never two in one. The refusal
+    /// names the holder so the front desk can open that record instead of
+    /// typing a second one. A shared phone number is allowed with a link
+    /// (P2710_02, <see cref="PatientSharedPhoneRule"/>).
     /// </summary>
-    /// <summary>
-    /// One phone number, one record per branch: a number another record holds
-    /// is not only warned about, the save is refused (bug list item 29, owner
-    /// 2026-10-07). The same match as <see cref="CheckPhoneAsync"/>, so the
-    /// dialog's warning and this refusal agree.
-    /// </summary>
-    private async Task EnsurePhoneIsFreeAsync(Guid branchId, string? phone, Guid? excludeId)
-    {
-        if (string.IsNullOrWhiteSpace(phone))
-        {
-            return;
-        }
-
-        var trimmed = phone.Trim();
-        var query = await _repository.GetQueryableAsync();
-        var exists = await AsyncExecuter.AnyAsync(query
-            .Where(p => p.BranchId == branchId && p.Contact.PhoneNumber == trimmed)
-            .Where(p => !excludeId.HasValue || p.Id != excludeId.Value));
-
-        if (exists)
-        {
-            throw new Volo.Abp.BusinessException(BlueDentalDomainErrorCodes.PatientManagement.DuplicatePhone);
-        }
-    }
-
     private async Task EnsureNationalIdIsFreeAsync(Guid branchId, string? nationalId, Guid? excludeId)
     {
         if (string.IsNullOrWhiteSpace(nationalId))

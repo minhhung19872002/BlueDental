@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Col, Form, Row } from "antd";
 import { toast } from "sonner";
-import dayjs, { type Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { AppDialog } from "@/components/AppDialog";
 import { CATALOG_GROUP, useCreateTaxonomyGroupOption } from "@/hooks/useCatalogOptions";
 import { describeApiError } from "@/lib/apiError";
@@ -11,19 +11,38 @@ import { t } from "@/lib/i18n";
 // patient's record, and the record's page does not import the list's CSS.
 import "./patient.css";
 import { useRegisterPatient, useUpdatePatient } from "../api/patientMutations";
-import { usePatientCodeEstimate, usePhoneAvailability } from "../api/patientQueries";
-import { GENDER_BY_CODE } from "../api/patientAdapters";
-import type { Gender, PatientDto, PatientPrefill, PhoneOwner, RegisterPatientRequest } from "../types/patient";
+import { usePatientCodeEstimate } from "../api/patientQueries";
+import type { PatientDto, PatientPrefill, PhoneGuardian } from "../types/patient";
 import { PATIENT_PHONE_PATTERN } from "../utils/patientPhone";
+import {
+  buildPatientPayload,
+  DUPLICATE_NAME_ON_PHONE,
+  DUPLICATE_NATIONAL_ID,
+  DUPLICATE_PHONE,
+  EMPTY_PATIENT_FORM,
+  GUARDIAN_ERROR,
+  INVALID_NAME,
+  SHARED_PHONE_LINK_ERROR,
+  splitPatientCode,
+  valuesFromGuardian,
+  valuesFromPatient,
+  valuesFromPrefill,
+  type PatientFormValues,
+} from "../utils/patientEditorForm";
 import { PatientAddressColumn } from "./PatientAddressColumn";
 import { useGuardianSubject } from "../hooks/useGuardianSubject";
+import { useHolderNavigation } from "../hooks/useHolderNavigation";
 import { usePatientGuardians } from "../hooks/usePatientGuardians";
+import { usePatientNameCasing } from "../hooks/usePatientNameCasing";
+import { usePhoneHolders } from "../hooks/usePhoneHolders";
+import { useSharedPhoneLink } from "../hooks/useSharedPhoneLink";
 import { PatientBasicColumn, type PatientEditorTab } from "./PatientBasicColumn";
 import { PatientSourceColumn } from "./PatientSourceColumn";
 import { AddSourceGroupDialog } from "./AddSourceGroupDialog";
 import { GuardianDialog } from "./guardian/GuardianDialog";
 import { GuardianPane } from "./guardian/GuardianPane";
 import { GuardianRequiredBanner } from "./guardian/GuardianRequiredBanner";
+import { SharedPhoneField } from "./shared-phone/SharedPhoneField";
 
 interface Props {
   open: boolean;
@@ -33,122 +52,6 @@ interface Props {
   onCreated?: (patient: PatientDto) => void;
   /** "Quét CCCD" — what a scanned card fills into a new record. */
   prefill?: PatientPrefill;
-}
-
-export interface PatientFormValues {
-  codeSequence: string;
-  createdAtLabel: string;
-  fullName: string;
-  uppercase: boolean;
-  phone: string;
-  sourceTaxonomyId?: string;
-  sourceEntryId?: string;
-  examinationReason: string;
-  gender: Gender;
-  dateOfBirth: Dayjs | null;
-  email: string;
-  note: string;
-  occupationEntryId?: string;
-  /** Free text behind the occupation list's "Khác"; absent until it is ticked. */
-  occupationOther?: string;
-  nationalId: string;
-  insuranceNumber: string;
-  country: string;
-  address: string;
-  provinceCode?: string;
-  wardCode?: string;
-  /** Địa chỉ cũ — the pre-2025 address off the CCCD, kept apart from the new one. */
-  oldAddress: string;
-}
-
-/**
- * "Lê Thị Liên" from "LÊ THỊ LIÊN".
- *
- * Unticking "IN HOA" has to put the name back the way a name is written, not
- * just stop shouting future keystrokes. Cased with the Vietnamese locale so the
- * diacritics survive the round trip.
- */
-function titleCaseName(name: string): string {
-  return name
-    .toLocaleLowerCase("vi")
-    .split(/(\s+)/)
-    .map((part) =>
-      /\s/.test(part) ? part : part.charAt(0).toLocaleUpperCase("vi") + part.slice(1),
-    )
-    .join("");
-}
-
-/** The server's refusal of a CCCD another record in the branch already holds. */
-const DUPLICATE_NATIONAL_ID = "BlueDental:Patient:0012";
-const INVALID_NAME = "BlueDental:Patient:0020";
-const DUPLICATE_PHONE = "BlueDental:Patient:0021";
-
-/**
- * Names every record on the number (bug list item 29: only the first one was
- * named). An account that sees phones masked (Cụm 11 mục 9) is told only that
- * the number is taken — the server sends no owners — so it is not named.
- */
-function phoneTakenMessage(owners: readonly PhoneOwner[]): string {
-  if (owners.length === 0) return t("Patient:Editor:PhoneTakenHidden");
-  const named = owners.map((owner) => `[${owner.patientCode}] ${owner.patientName}`);
-  return owners.length === 1
-    ? t("Patient:Editor:PhoneTaken", owners[0].patientCode, owners[0].patientName)
-    : t("Patient:Editor:PhoneTakenMany", owners.length, named.join(", "));
-}
-
-/** The server's guardian refusals (Patient:0013–0019) — shown on the guardian pane. */
-const GUARDIAN_ERROR = /^BlueDental:Patient:001[3-9]$/;
-
-const EMPTY: PatientFormValues = {
-  codeSequence: "",
-  createdAtLabel: "",
-  fullName: "",
-  uppercase: false,
-  phone: "",
-  sourceTaxonomyId: undefined,
-  sourceEntryId: undefined,
-  examinationReason: "",
-  gender: "male",
-  dateOfBirth: null,
-  email: "",
-  note: "",
-  occupationEntryId: undefined,
-  occupationOther: "",
-  nationalId: "",
-  insuranceNumber: "",
-  country: "",
-  address: "",
-  provinceCode: undefined,
-  wardCode: undefined,
-  oldAddress: "",
-};
-
-/** A scanned CCCD (or a walk-in's details) laid over an empty form; the desk reviews it before saving. */
-function valuesFromPrefill(prefill: PatientPrefill): Partial<PatientFormValues> {
-  return {
-    nationalId: prefill.nationalId ?? "",
-    fullName: prefill.fullName ?? "",
-    phone: prefill.phone ?? "",
-    // Cards print the name in capitals, so the IN HOA tick follows suit.
-    uppercase: Boolean(prefill.fullName && prefill.fullName === prefill.fullName.toLocaleUpperCase("vi")),
-    dateOfBirth: prefill.dateOfBirth ? dayjs(prefill.dateOfBirth) : null,
-    gender: prefill.gender ?? EMPTY.gender,
-    address: prefill.address ?? "",
-    provinceCode: prefill.provinceCode,
-    wardCode: prefill.wardCode,
-    oldAddress: prefill.oldAddress ?? "",
-  };
-}
-
-/**
- * A stored code split the way the server builds it and the dialog renders it:
- * a clinic prefix and a two-digit year that are shown but not edited, then the
- * sequence that is. A code that does not fit that shape is left whole in the
- * editable half rather than being silently cut somewhere arbitrary.
- */
-function splitPatientCode(code: string): { prefix: string; sequence: string } {
-  const match = /^(\D+\d{2})(\d+)$/.exec(code);
-  return match ? { prefix: match[1], sequence: match[2] } : { prefix: "", sequence: code };
 }
 
 /**
@@ -166,6 +69,8 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
   const guardians = usePatientGuardians();
   const [diseaseHistoryEntryIds, setDiseaseHistoryEntryIds] = useState<string[]>([]);
   const [addingSource, setAddingSource] = useState(false);
+  /** The guardian a new hồ sơ was filled from — their card then links to it (P2710_02). */
+  const [sourceGuardianId, setSourceGuardianId] = useState<string | null>(null);
 
   const fullName = Form.useWatch("fullName", form) ?? "";
   const phone = Form.useWatch("phone", form) ?? "";
@@ -174,7 +79,10 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
   const provinceCode = Form.useWatch("provinceCode", form);
 
   const estimate = usePatientCodeEstimate(open && !patient);
-  const duplicate = usePhoneAvailability(phone.trim(), patient?.id);
+  const { holders, masked } = usePhoneHolders(phone, patient);
+  const link = useSharedPhoneLink(holders.owners, prefill?.sharedPhoneAnchorId);
+  // Edit has no flow waiting on a patient, whatever the caller passed.
+  const navigation = useHolderNavigation({ onCreated: patient ? undefined : onCreated, onClose });
   const createSourceGroup = useCreateTaxonomyGroupOption();
 
   const create = useRegisterPatient();
@@ -196,41 +104,20 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     setDiseaseHistoryEntryIds(patient?.diseaseHistoryEntryIds ?? []);
     guardians.reset(patient);
     setGuardianError(null);
+    setSourceGuardianId(null);
+    link.reset();
 
     form.setFieldsValue(
       patient
-        ? {
-            ...EMPTY,
-            codeSequence: storedSequence,
-            createdAtLabel: dayjs(patient.creationTime).format("DD/MM/YYYY"),
-            fullName: patient.fullName,
-            uppercase: patient.fullName === patient.fullName.toUpperCase(),
-            phone: patient.phoneNumber ?? "",
-            sourceTaxonomyId: patient.sourceTaxonomyId ?? undefined,
-            sourceEntryId: patient.sourceEntryId ?? undefined,
-            examinationReason: patient.examinationReason ?? "",
-            gender: GENDER_BY_CODE[patient.gender] ?? "other",
-            dateOfBirth: patient.dateOfBirth ? dayjs(patient.dateOfBirth) : null,
-            email: patient.email ?? "",
-            note: patient.note ?? "",
-            occupationEntryId: patient.occupationEntryId ?? undefined,
-            occupationOther: patient.occupationOther ?? "",
-            nationalId: patient.nationalId ?? "",
-            insuranceNumber: patient.insuranceNumber ?? "",
-            country: t("Patient:DefaultCountry"),
-            address: patient.address ?? "",
-            provinceCode: patient.provinceCode ?? undefined,
-            wardCode: patient.wardCode ?? undefined,
-            oldAddress: patient.oldAddress ?? "",
-          }
+        ? valuesFromPatient(patient, storedSequence)
         : {
-            ...EMPTY,
+            ...EMPTY_PATIENT_FORM,
             ...(prefill ? valuesFromPrefill(prefill) : {}),
             country: t("Patient:DefaultCountry"),
             createdAtLabel: dayjs().format("DD/MM/YYYY"),
           },
     );
-    // `guardians.reset` is a stable callback; it is left out of the list on purpose.
+    // `guardians.reset` and `link.reset` are stable callbacks; they are left out of the list on purpose.
   }, [open, patient, prefill, form]);
 
   // The suggestion only arrives once the dialog is open, so it is filled in
@@ -241,31 +128,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     }
   }, [open, patient, estimate.data, form]);
 
-  // "IN HOA" is a switch on the name, not a separate value — the reference
-  // rewrites the field the moment it is ticked and keeps it shouting as more is
-  // typed, then puts it back when the tick is cleared.
-  //
-  // Normalising only on the *transition* matters: doing it on every keystroke
-  // would fight the front desk as they type a name in their own casing.
-  const wasUppercase = useRef(uppercase);
-  useEffect(() => {
-    const justCleared = wasUppercase.current && !uppercase;
-    wasUppercase.current = uppercase;
-
-    const current = (form.getFieldValue("fullName") as string | undefined) ?? "";
-    if (!current) return;
-
-    if (uppercase) {
-      const shouted = current.toLocaleUpperCase("vi");
-      if (shouted !== current) form.setFieldValue("fullName", shouted);
-      return;
-    }
-
-    if (justCleared) {
-      const normalised = titleCaseName(current);
-      if (normalised !== current) form.setFieldValue("fullName", normalised);
-    }
-  }, [uppercase, fullName, form]);
+  usePatientNameCasing(form, uppercase, fullName);
 
   const handleSourceGroupChange = () => {
     // A channel belongs to one source group; keeping it across a change would
@@ -283,42 +146,24 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     toast.success(t("Patient:SourceGroup:AddSuccess"));
   };
 
-  const submit = async (values: PatientFormValues) => {
-    const name = values.fullName.trim();
-    const words = name.split(/\s+/).filter(Boolean);
+  const handlePickGuardian = (guardian: PhoneGuardian) => {
+    form.setFieldsValue(valuesFromGuardian(guardian));
+    setSourceGuardianId(guardian.guardianId);
+    link.suggestFromGuardian(guardian);
+  };
 
-    const payload: RegisterPatientRequest = {
+  const submit = async (values: PatientFormValues) => {
+    const payload = buildPatientPayload(values, codePrefix, {
       sourceAppointmentId: prefill?.sourceAppointmentId,
-      // The dialog collects one "Họ và tên"; the record keeps họ and tên apart,
-      // so the last word is the given name and the rest the family name.
-      lastName: words.length > 1 ? words.slice(0, -1).join(" ") : name,
-      firstName: words.length > 1 ? words[words.length - 1] : "",
-      dateOfBirth: values.dateOfBirth ? values.dateOfBirth.format("YYYY-MM-DD") : null,
-      gender: values.gender,
-      phoneNumber: values.phone.trim(),
-      email: values.email.trim() || undefined,
-      nationalId: values.nationalId.trim() || undefined,
-      patientCode: values.codeSequence.trim()
-        ? `${codePrefix}${values.codeSequence.trim()}`
-        : undefined,
-      sourceTaxonomyId: values.sourceTaxonomyId ?? null,
-      sourceEntryId: values.sourceEntryId ?? null,
-      occupationEntryId: values.occupationEntryId ?? null,
-      // Only registered once "Khác" is ticked, so it can be absent entirely.
-      occupationOther: values.occupationOther?.trim() || null,
-      insuranceNumber: values.insuranceNumber.trim() || null,
-      address: values.address.trim() || null,
-      provinceCode: values.provinceCode ?? null,
-      wardCode: values.wardCode ?? null,
-      oldAddress: values.oldAddress.trim() || null,
-      examinationReason: values.examinationReason.trim() || null,
-      note: values.note.trim() || null,
       // The tag button on the record owns these; carry them through untouched
       // rather than clearing them on every edit.
       tagIds: patient?.tagIds ?? [],
       diseaseHistoryEntryIds,
       ...guardians.toPayload(),
-    };
+      sharedPhoneLink: link.link,
+      // Dropped once the number no longer carries that guardian.
+      sourceGuardianId: holders.guardians.some((g) => g.guardianId === sourceGuardianId) ? sourceGuardianId : null,
+    });
 
     try {
       if (patient) {
@@ -332,8 +177,8 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
       onClose();
     } catch (error) {
       const failure = describeApiError(error);
-      // A taken CCCD is a field error, not a toast: it goes under the box it
-      // was typed in, on the pane that box sits on.
+      // A refused field is a field error, not a toast: it goes under the box
+      // it was typed in, on the pane that box sits on.
       if (failure.code === DUPLICATE_NATIONAL_ID) {
         setTab("basic");
         form.setFields([{ name: "nationalId", errors: [failure.message] }]);
@@ -344,12 +189,16 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         setGuardianError(failure.message);
         return;
       }
-      if (failure.code === INVALID_NAME) {
+      if (failure.code === INVALID_NAME || failure.code === DUPLICATE_NAME_ON_PHONE) {
         form.setFields([{ name: "fullName", errors: [failure.message] }]);
         return;
       }
       if (failure.code === DUPLICATE_PHONE) {
         form.setFields([{ name: "phone", errors: [failure.message] }]);
+        return;
+      }
+      if (failure.code && SHARED_PHONE_LINK_ERROR.test(failure.code)) {
+        link.setError(failure.message);
         return;
       }
       notifyError(failure.message);
@@ -358,11 +207,14 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
 
   // A name with no given name is still a name; the server only needs one word.
   // BA: under 16 the record cannot be saved without a guardian.
-  // Bug list item 29 (owner 2026-10-07): a number another record in the branch
-  // holds is not only warned about, it cannot be saved — the server refuses it too.
-  const phoneTaken = duplicate.data?.exists === true;
+  // P2710_02: a number already on file is saved once "Là … của …" is chosen;
+  // an account that sees phones masked is still refused (bug list item 29).
   const canSave =
-    fullName.trim().length > 0 && PATIENT_PHONE_PATTERN.test(phone.trim()) && !guardianMissing && !phoneTaken;
+    fullName.trim().length > 0 &&
+    PATIENT_PHONE_PATTERN.test(phone.trim()) &&
+    !guardianMissing &&
+    !masked &&
+    link.ready;
 
   const handleGuardianDelete = (index: number) => {
     guardians.remove(index);
@@ -387,15 +239,15 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
         form={form}
         layout="vertical"
         requiredMark={false}
-        initialValues={EMPTY}
+        initialValues={EMPTY_PATIENT_FORM}
         onFinish={(values) => void submit(values)}
       >
-        {phoneTaken && duplicate.data && (
+        {masked && (
           <Alert
             type="error"
             showIcon
             className="bd-patient-dupe"
-            message={phoneTakenMessage(duplicate.data.owners)}
+            message={t("Patient:Editor:PhoneTakenHidden")}
             description={t("Patient:Editor:PhoneTakenBlocked")}
           />
         )}
@@ -408,6 +260,15 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
               sourceTaxonomyId={sourceTaxonomyId}
               onAddSource={() => setAddingSource(true)}
               onSourceGroupChange={handleSourceGroupChange}
+              phoneField={
+                <SharedPhoneField
+                  holders={holders}
+                  link={link}
+                  handlers={{ ...navigation, onPickGuardian: handlePickGuardian }}
+                  footerLabel={patient ? t("Patient:SharedPhone:KeepThisRecord") : t("Patient:SharedPhone:NewPerson")}
+                  quietPhone={prefill?.sharedPhoneAnchorId ? prefill.phone : undefined}
+                />
+              }
             />
           </Col>
 

@@ -163,6 +163,24 @@ UNKNOWN_REFERENCE_BEHAVIOR — the POST behind + was not captured (production an
 staging are read-only). BlueDental defines its own:
 `POST /api/v1/app/patients/{id}/examination-reasons { content, note? }`.
 
+### "NGƯỜI DÙNG CHUNG SĐT" (BlueDental-local, F-82)
+
+Not on the reference. Source: BA P2710_02 (2026-10-28). It sits under the info
+grid, above "NGƯỜI GIÁM HỘ" (see `patient-guardian.md`).
+
+- Header: phone icon, the title, a count, and a round **+**. The **+** needs
+  `patient.create` and is hidden when the account has "Ẩn số điện thoại" or the
+  record has no phone. It opens Tạo hồ sơ with the number filled in, already
+  linked to this record.
+- One row for each other hồ sơ on the same number, Chủ số (the earliest holder)
+  first. A row shows the name, a "Chủ số" chip or the relation chip, gender and
+  age, and debt when above 0. Clicking the row or its › opens that hồ sơ in the
+  same tab.
+- Footer: the group's total debt, this record included. Without "Chi phí › Xem"
+  every amount is masked.
+- Data: `GET /api/v1/app/patients/{id}/linked-people`. Test record:
+  `docs/testing/features/patient-shared-phone.md` (R-1057).
+
 ### Financial cards
 
 **Seven** equal cards in one row (`xl:grid-cols-7`, 12px gap, 8px radius,

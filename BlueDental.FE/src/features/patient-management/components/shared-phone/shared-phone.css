@@ -1,0 +1,358 @@
+/* P2710_02 — several hồ sơ on one phone number: the dialog's holders list,
+   the "Là … của …" block, and the record's "Người dùng chung SĐT" cards. */
+
+/* ── One person on the number ─────────────────────────────────────────── */
+
+.bd-holder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.bd-holder-main {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.bd-holder-main {
+  cursor: pointer;
+}
+
+button.bd-holder-main:focus-visible {
+  border-radius: var(--bd-radius-sm);
+  outline: none;
+  box-shadow: var(--bd-shadow-focus);
+}
+
+.bd-holder-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue-dark);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bd-holder-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bd-holder-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.bd-holder-name {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.bd-holder-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-bg-soft);
+  color: var(--bd-muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bd-holder-chip--owner {
+  border-color: var(--bd-orange-line);
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+
+.bd-holder-meta {
+  color: var(--bd-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.bd-holder-trailing {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── The holders' list under Điện thoại ───────────────────────────────── */
+
+.bd-shared-phone {
+  position: relative;
+}
+
+.bd-shared-phone--taken .phone-input-number.ant-input-affix-wrapper,
+.bd-shared-phone--taken .phone-input-number.ant-input-affix-wrapper:hover {
+  border-color: var(--bd-amber);
+}
+
+.bd-phone-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--bd-orange-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bd-phone-badge:hover {
+  color: var(--bd-orange-hover);
+}
+
+.bd-phone-holders-anchor {
+  position: relative;
+  height: 0;
+}
+
+.bd-phone-holders {
+  position: absolute;
+  z-index: 30;
+  /* 4px under the box: the field keeps a 16px gap below it. */
+  top: -12px;
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-pop);
+}
+
+.bd-phone-holders-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bd-line-soft);
+  background: var(--bd-bg-soft);
+  color: var(--bd-sub);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.bd-phone-holders-head strong {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+
+.bd-phone-holders-ask {
+  margin-left: 4px;
+}
+
+.bd-phone-holders-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.bd-holder--row {
+  padding: 10px 14px;
+}
+
+.bd-holder--row + .bd-holder--row {
+  border-top: 1px solid var(--bd-line-soft);
+}
+
+.bd-holder--row:hover {
+  background: var(--bd-hover-tint);
+}
+
+/* The dropdown's rows stack the chip under the name, as the mock does. */
+.bd-holder--row .bd-holder-head {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.bd-holder-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--bd-blue-dark);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bd-holder-open:hover {
+  color: var(--bd-blue);
+}
+
+.bd-phone-holders-new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-top: 1px solid var(--bd-line);
+  background: var(--bd-card);
+  color: var(--bd-blue-dark);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bd-phone-holders-new:hover {
+  background: var(--bd-hover-tint);
+}
+
+.bd-phone-holders-plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bd-blue);
+  color: var(--bd-card);
+  font-size: 12px;
+}
+
+/* ── "Liên kết người dùng chung SĐT" ──────────────────────────────────── */
+
+.bd-phone-link {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+  background: var(--bd-card);
+}
+
+.bd-phone-link-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bd-phone-link-title {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bd-phone-link-count {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bd-blue-dark);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.bd-phone-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.bd-phone-link-hint,
+.bd-phone-link-error {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.bd-phone-link-hint {
+  color: var(--bd-muted);
+}
+
+.bd-phone-link-error {
+  color: var(--bd-red);
+}
+
+/* ── "Người dùng chung SĐT" on the Hồ sơ tab ──────────────────────────── */
+
+.pd-members {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-member {
+  padding: 12px 14px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  transition: border-color 0.15s ease;
+}
+
+.pd-member:hover {
+  border-color: var(--bd-blue-light);
+}
+
+.pd-member-debt {
+  color: var(--bd-red);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pd-members-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: var(--bd-sub);
+  font-size: 13px;
+}
+
+.pd-members-total > strong {
+  color: var(--bd-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pd-members-total > strong.pd-members-total--owed {
+  color: var(--bd-red);
+}
+
+/* The guardian cards wear the same avatar; on the primary's blue it goes white. */
+.pd-guardian--primary .bd-holder-avatar {
+  background: var(--bd-card);
+}

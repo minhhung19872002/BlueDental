@@ -3210,3 +3210,32 @@ Action taken: NONE. BlueDental's own design (R-1053, owner 2026-10-27, "cách 1"
 - A Lịch hẹn row opens the patient's appointment tab.
 - The CSKH hint names only the customer, not "nội dung".
 See docs/clone/components.md § Global Search Modal.
+
+## Hồ sơ bệnh nhân — Nhiều hồ sơ dùng chung một số điện thoại (F-82, R-1057, 2026-10-28, BA P2710_02)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: dialog Tạo / Chỉnh sửa hồ sơ (ô Điện thoại) và `/patient/:id?tab=profile` (khối "Người dùng chung SĐT", thẻ người giám hộ)
+Control: badge "N hồ sơ" / "N giám hộ", danh sách "Những người đang dùng số điện thoại này", khối "Liên kết người dùng chung SĐT", nút + "Thêm người dùng chung số điện thoại", chevron › trên thẻ thành viên và thẻ người giám hộ
+Reason: tính năng riêng của BlueDental theo `P2710_02.drawio`. Bản gốc không có nên không có gì để quan sát. Các quyết định đã chốt nằm ở `docs/testing/features/patient-shared-phone.md`. Mock và ghi chú BA không nói những điểm dưới đây.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+- Danh sách tự mở khi kết quả về. Esc hoặc bấm ra ngoài thì đóng; bấm badge thì mở lại. Mở từ nút + ở tab Hồ sơ thì danh sách đóng sẵn, vì người dùng đã chọn "người dùng chung" rồi.
+- Chữ không có trong mock:
+  - badge "N giám hộ" khi số chỉ khớp người giám hộ;
+  - "Hồ sơ này dùng chung số này" ở chân danh sách khi sửa hồ sơ;
+  - "Chọn quan hệ để lưu." dưới khối liên kết;
+  - "Chưa có hồ sơ nào khác dùng số này." khi khối Người dùng chung SĐT trống.
+- Nhãn "… của …" của mỗi người: lấy quan hệ với Chủ số trước, không có thì lấy quan hệ với người khác cùng số. Nguồn là cả bảng quan hệ lẫn khai báo người giám hộ đã gắn hồ sơ. Tên trong nhãn là tên gọi (chữ cuối của họ tên), như mock ("Con của Hùng").
+- "của …" luôn có sẵn một người: hồ sơ đang xem nếu mở từ nút +, không thì Chủ số (nếu đủ điều kiện), không nữa thì người đầu tiên đủ điều kiện. Đổi quan hệ làm người đang chọn không còn đủ điều kiện thì chuyển sang người khác theo cùng thứ tự đó.
+- "Khám gần nhất" là cùng số liệu với cột "Lần khám gần nhất" của trang Bệnh nhân.
+- Dòng trên trang chi tiết hiện tuổi (năm nay − năm sinh); dòng trong danh sách của dialog hiện giới tính + ngày sinh, như mock.
+- Trùng tên cũng bỏ qua khoảng trắng thừa (cùng với hoa thường; dấu vẫn tính).
+- Người giám hộ được nhận diện theo CCCD (bỏ khoảng trắng, không phân biệt hoa thường). CCCD đã thuộc một hồ sơ khác trong chi nhánh thì dòng giám hộ VẪN hiện; chọn rồi Lưu thì bị từ chối `0012` (BA: "CCCD đã tồn tại thì báo lỗi"). Người giám hộ đã được tạo hồ sơ từ dòng này thì có `LinkedPatientId` nên không hiện nữa. Chỉ tìm trong 50 hồ sơ mới nhất có người giám hộ dùng số đó.
+- Thông tin chép từ người giám hộ sang form: họ tên, CCCD, ngày sinh, giới tính, email, nghề nghiệp, địa chỉ (lấy địa chỉ bệnh nhân nếu người giám hộ "cùng địa chỉ"). Không chép ngày/nơi cấp CCCD.
+- Liên kết ghi đè quan hệ đã khai giữa hai người đó trong tab Mối quan hệ (một cặp chỉ giữ một dòng).
+- Nút + cần quyền `patient.create`, và bị ẩn với tài khoản bị "Ẩn số điện thoại" hoặc hồ sơ chưa có số.
+- Chevron › mở trang chi tiết ở tab mặc định của trang (Chẩn đoán & Tư vấn), không nhảy thẳng tới tab Hồ sơ.
+- Tổng dư nợ cả nhóm cộng cả chính hồ sơ đang xem. Không có quyền "Chi phí › Xem" thì tiền hiện `*********`, cùng dấu che với trang Bệnh nhân.
+- Sửa hồ sơ, giữ nguyên số nhưng đổi tên: vẫn kiểm trùng tên với người khác cùng số (`0035`).
+- Một số, nhiều cách gõ: số Việt Nam thiếu số 0 (9–10 chữ số) hoặc có `84` / `+84` / `0084` phía trước được hiểu là cùng một số và lưu dạng `0…`; số nước ngoài lưu dạng E.164 (`+61…`), gõ `0061 …` cũng vậy. Số nước ngoài gõ kèm số 0 đầu của quốc gia đó (`0` + số quốc gia) KHÔNG được coi là cùng số. Hàng lưu trước R-1057 thiếu 0 hoặc có 84 vẫn được tìm ra, không sửa dữ liệu cũ.
+- Ở tab Hồ sơ, khối Người giám hộ đứng trên khối Người dùng chung SĐT (như mock). Tiêu đề khối giữ chữ thường như các khối khác của tab, mock viết hoa "NGƯỜI DÙNG CHUNG SĐT".

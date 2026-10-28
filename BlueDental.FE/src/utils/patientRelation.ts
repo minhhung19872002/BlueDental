@@ -17,6 +17,14 @@ export const PATIENT_RELATION = {
   Friend: 8,
   Colleague: 9,
   Other: 10,
+  /** P2710_02: answers for the other person without being their parent or grandparent. */
+  OtherGuardian: 11,
+  /** The other side of OtherGuardian. */
+  Ward: 12,
+  /** "Người quen dùng nhờ số" — on the number, not family. */
+  PhoneBorrower: 13,
+  /** The other side of PhoneBorrower. */
+  PhoneLender: 14,
 } as const;
 export type PatientRelationType = (typeof PATIENT_RELATION)[keyof typeof PATIENT_RELATION];
 
@@ -41,7 +49,44 @@ const KEY: Record<PatientRelationType, string> = {
   [PATIENT_RELATION.Friend]: "Friend",
   [PATIENT_RELATION.Colleague]: "Colleague",
   [PATIENT_RELATION.Other]: "Other",
+  [PATIENT_RELATION.OtherGuardian]: "OtherGuardian",
+  [PATIENT_RELATION.Ward]: "Ward",
+  [PATIENT_RELATION.PhoneBorrower]: "PhoneBorrower",
+  [PATIENT_RELATION.PhoneLender]: "PhoneLender",
 };
+
+/** What Mối quan hệ (4.8) offers; the shared-phone relations come only from P2710_02. */
+const PICKER_RELATIONS: PatientRelationType[] = [
+  PATIENT_RELATION.Spouse,
+  PATIENT_RELATION.Parent,
+  PATIENT_RELATION.Child,
+  PATIENT_RELATION.Sibling,
+  PATIENT_RELATION.Grandparent,
+  PATIENT_RELATION.Grandchild,
+  PATIENT_RELATION.Relative,
+  PATIENT_RELATION.Friend,
+  PATIENT_RELATION.Colleague,
+  PATIENT_RELATION.Other,
+];
+
+/** "Là …" under a shared number, in the BA's order (PatientRelationTypes.SharedPhoneChoices). */
+export const SHARED_PHONE_RELATIONS: PatientRelationType[] = [
+  PATIENT_RELATION.Child,
+  PATIENT_RELATION.Spouse,
+  PATIENT_RELATION.Parent,
+  PATIENT_RELATION.Sibling,
+  PATIENT_RELATION.Grandparent,
+  PATIENT_RELATION.Grandchild,
+  PATIENT_RELATION.OtherGuardian,
+  PATIENT_RELATION.PhoneBorrower,
+];
+
+/** The relations that answer for a child, so "của …" may name a minor (PatientRelationTypes.MayLinkToMinor). */
+export const MAY_LINK_TO_MINOR = new Set<PatientRelationType>([
+  PATIENT_RELATION.Parent,
+  PATIENT_RELATION.Grandparent,
+  PATIENT_RELATION.OtherGuardian,
+]);
 
 /** Words that change with the other person's gender: Bố / Mẹ, Vợ / Chồng, Ông / Bà… */
 const GENDERED = new Set<PatientRelationType>([
@@ -60,14 +105,22 @@ export function relationLabel(type: PatientRelationType, gender?: number | null)
   return t(`PatientRelation:Type:${key}`);
 }
 
-/** Người nhà — blood and marriage, not friends or colleagues (PatientRelationTypes.IsFamily). */
+const NOT_FAMILY = new Set<PatientRelationType>([
+  PATIENT_RELATION.Friend,
+  PATIENT_RELATION.Colleague,
+  PATIENT_RELATION.Other,
+  PATIENT_RELATION.PhoneBorrower,
+  PATIENT_RELATION.PhoneLender,
+]);
+
+/** Người nhà — blood, marriage and guardianship; not friends, colleagues or number borrowers (PatientRelationTypes.IsFamily). */
 export function isFamilyRelation(type: PatientRelationType): boolean {
-  return type !== PATIENT_RELATION.Friend && type !== PATIENT_RELATION.Colleague && type !== PATIENT_RELATION.Other;
+  return !NOT_FAMILY.has(type);
 }
 
 /** The relation picker's options, gender-neutral; `familyOnly` for a family card's members. */
 export function relationOptions(familyOnly = false): { value: PatientRelationType; label: string }[] {
-  return (Object.values(PATIENT_RELATION) as PatientRelationType[])
+  return PICKER_RELATIONS
     .filter((type) => !familyOnly || isFamilyRelation(type))
     .map((type) => ({ value: type, label: relationLabel(type) }));
 }

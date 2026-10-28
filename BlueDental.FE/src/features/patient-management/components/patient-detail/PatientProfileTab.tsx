@@ -44,6 +44,7 @@ import { GENDER, GUARDIAN_LIMITS, type GenderCode } from "../../types/patient";
 import { ageByYear, RELATION_LABEL, requiresGuardian } from "../../utils/guardian";
 import { PatientEditorDialog } from "../PatientEditorDialog";
 import { PatientGuardianSection } from "./PatientGuardianSection";
+import { PatientSharedPhoneSection } from "./PatientSharedPhoneSection";
 import { AppointmentDoctorPicker } from "./AppointmentDoctorPicker";
 import { ReceptionSteps } from "./ReceptionSteps";
 import { CreatePaymentDialog } from "./CreatePaymentDialog";
@@ -414,6 +415,7 @@ export function PatientProfileTab({ patient }: Props) {
             />
           </div>
           <PatientGuardianSection patient={patient} canEdit={patientAbility.canUpdate} />
+          <PatientSharedPhoneSection patient={patient} canCreate={patientAbility.canCreate} />
         </div>
         <div className="pd-profile-column">
           <h3>
