@@ -6,7 +6,10 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
 import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { AppointmentHistoryModal } from "@/features/appointments/components/history/AppointmentHistoryModal";
-import { useDeleteAppointment } from "@/features/appointments/api/appointmentMutations";
+import {
+  useDeleteAppointment,
+  useUpdateAppointmentNotes,
+} from "@/features/appointments/api/appointmentMutations";
 import { useAppointmentList, useAppointmentStats } from "@/features/appointments/api/appointmentQueries";
 import type { Appointment } from "@/features/appointments/types/appointment";
 import { useAbility } from "@/hooks/useAbility";
@@ -43,6 +46,7 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
 
   const pagination = useTablePagination(20);
   const remove = useDeleteAppointment();
+  const updateNotes = useUpdateAppointmentNotes();
 
   // The four counters count the whole record, not the page on screen, and the
   // server counts them: a patient moved in from an old system can bring
@@ -67,10 +71,27 @@ export function PatientAppointmentTab({ patientId }: { patientId: string }) {
   const rows = page.data?.items ?? [];
   const totalCount = page.data?.totalCount ?? 0;
 
+  const handleSaveNote = async (appointment: Appointment, notes: string) => {
+    try {
+      await updateNotes.mutateAsync({ id: appointment.id, notes });
+      toast.success(t("Patient:Misc:NoteSaved"));
+      return true;
+    } catch {
+      // queryClient reports the failure; the cell keeps the draft to retry.
+      return false;
+    }
+  };
+
   const columns = buildAppointmentColumns({
     onHistory: (appointment) => setHistory({ open: true, appointment }),
     onEdit: ability.canUpdate ? setEditing : undefined,
     onDelete: ability.canDelete ? setDeleting : undefined,
+    noteEditor: ability.canUpdate
+      ? {
+          savingId: updateNotes.isPending ? (updateNotes.variables?.id ?? null) : null,
+          onSave: handleSaveNote,
+        }
+      : undefined,
   });
 
   const refresh = () => {

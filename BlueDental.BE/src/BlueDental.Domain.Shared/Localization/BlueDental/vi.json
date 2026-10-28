@@ -3541,6 +3541,7 @@
     "Patient:Appt:DoctorChanged": "Đã đổi bác sĩ của lịch hẹn",
     "Patient:Appt:Time": "Giờ hẹn",
     "Patient:Appt:TreatmentDate": "Ngày điều trị",
+    "Patient:Appt:EditNote": "Sửa ghi chú",
     "Patient:MedRecord:Index": "Mục lục bệnh án",
     "Patient:MedRecord:ZoomIn": "Phóng to bệnh án",
     "Patient:MedRecord:Fullscreen": "Toàn màn hình",

@@ -11764,6 +11764,43 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy Labo (`labo`, `labo-detail`, `labo-warranty`, `labo-orders-actions` và spec mới): **19/22 xanh**. 3 ca đỏ có từ trước, đỏ y hệt trước thay đổi: `labo-orders-actions:88` (link `?branch=` của F-68), `labo-warranty:315` (DatePicker có mask nhập), `labo:156` (ô "—").
   - `patient.spec` các ca Labo (Tạo Labo từ công đoạn, Đặt mới, chip trạng thái, In Phiếu): **4/4 xanh**.
 
+## R-1058 (2026-10-28, mức 2: Lịch hẹn — tab Lịch hẹn của hồ sơ) Sửa Ghi chú lịch hẹn ngay trong ô
+
+- **Yêu cầu** (BA Huỳnh Văn Định, ảnh chụp cột GHI CHÚ trên tab Lịch hẹn của hồ sơ): "Cột ghi chú vẫn còn DB chứ? Giờ cho chỉnh sửa ở đây nha."
+  - Trả lời BA: còn. `Appointment.Notes` (tối đa 2000 ký tự) vẫn nằm trong DB, dữ liệu cũ giữ nguyên. R-1055 chỉ bỏ ô Ghi chú khỏi 3 dialog (Lịch hẹn, Lịch tạm, Tạo tiếp nhận).
+- **Chủ dự án chốt** (2026-10-28):
+  1. Sửa ngay trong ô: bút chì → ô nhập nhiều dòng + Lưu / Hủy, không mở dialog.
+  2. Sửa được ở mọi trạng thái của lịch hẹn, kể cả Đã huỷ / Trễ hẹn / Hoàn thành.
+  - Ngoài phạm vi: KHÔNG đưa Ghi chú trở lại các dialog đặt lịch, lịch tuần/ngày hay thẻ Tiếp nhận.
+- **Thay đổi** (không migration; cột giữ `varchar(2000)`, nay đọc từ `Appointment.NotesMaxLength`):
+  - BE:
+    - `Appointment.SetNotes`: cắt khoảng trắng, chuỗi rỗng thành `null`, quá 2000 ký tự bị từ chối.
+    - Endpoint riêng `PUT api/v1/app/appointments/{id}/notes` (`UpdateAppointmentNotesDto { notes }`), quyền `appointment.update`.
+    - Chỉ đổi Ghi chú, nên KHÔNG chạy kiểm tra ca làm, trùng lịch hay chuỗi lặp. Đi qua `GuardBranchAccess` và thêm `BranchAccessChecker` (xem phát hiện bên dưới).
+    - Ghi chú thật sự đổi thì ghi 1 dòng lịch sử "Cập nhật" (diff `note`). Để nguyên (kể cả chỉ khác khoảng trắng) thì không ghi.
+    - Khoá i18n mới `Patient:Appt:EditNote` ("Sửa ghi chú" / "Edit note").
+  - FE:
+    - `AppointmentNoteCell` (mới): chữ giữ xuống dòng, bút chì bên phải (`StageEditPencil`).
+      - Esc / Hủy bỏ bản nháp.
+      - Lưu khi không đổi gì thì đóng ô, không gửi request.
+      - Lỗi từ server giữ ô và bản nháp, toast do MutationCache lo.
+    - `useUpdateAppointmentNotes` (invalidates appointments).
+    - Bút chì chỉ hiện khi có `appointment.update`.
+- **Test** (bản build production `vite preview` :8158 → host riêng :5120 → PostgreSQL thật của main, không chặn request):
+  - `e2e/appointment-notes.spec.ts` (mới) **5/5**:
+    1. API: lưu cắt khoảng trắng, các trường khác không đổi (GET riêng). Lịch sử đúng 1 dòng diff `note` null → ghi chú. Lưu lại y hệt thì không thêm dòng. 2001 ký tự → 400. Xoá trắng → `null` + dòng thứ 2.
+    2. UI: bút chì → ô nhập có focus; Esc và Hủy bỏ nháp; Lưu không đổi thì không có request; lưu thật → toast "Đã lưu ghi chú" → tải lại vẫn còn. Dialog lịch sử của dòng có "Cập nhật" với "Ghi chú: …".
+    3. Lịch hẹn đã huỷ vẫn sửa được, `cancelledAt` giữ nguyên.
+    4. Vai trò chỉ có `patient.read` + `appointment.read`: không có bút chì, PUT → 403.
+    5. Tài khoản `branch2`: header chi nhánh của mình → 404; tự gửi header chi nhánh 1 → 403; ghi chú không đổi.
+  - `BlueDental.Domain.Tests` 1139/1139 (thêm 5 case `SetNotes`). `BlueDental.Application.Tests` lọc Appointment 28/28.
+  - Hồi quy mức 2: `patient-appointment` + `appointment-history` + `appointment` **16/16** xanh.
+- **Lỗi tìm thấy khi test, đã sửa (chỉ cho endpoint mới)**: tài khoản `branch2` gửi header `X-Clinic-Branch-Id` của chi nhánh 1 vẫn sửa được ghi chú (200). `GuardBranchAccess` chỉ so chi nhánh của lịch hẹn với header, không xem tài khoản có được vào chi nhánh đó không. `UpdateNotesAsync` nay gọi thêm `BranchAccessChecker.CheckAsync` → 403.
+- **Phát hiện ngoài phạm vi, CHƯA sửa, chờ chủ dự án quyết** (đề xuất R-1059, mức 3):
+  - Cùng lỗ hổng đó có sẵn ở các endpoint lịch hẹn khác. Trên DB local, `branch2` gửi header chi nhánh 1: `GET appointments/{id}` → 200, danh sách lịch hẹn → 200 với 67405 dòng.
+  - Có thể cả các thao tác ghi (`UpdateAsync`, huỷ …) và các service khác dùng cùng mẫu `GuardBranchAccess` (Patient, Invoice, InsuranceClaim, TreatmentPlan, CustomerCare, Voucher), chưa đo.
+  - Nên chặn tập trung ở chỗ đọc header (resolver chi nhánh) thay vì vá từng service.
+
 ## R-1065 (2026-10-28, mức 2: Hồ sơ bệnh nhân — tab Hình ảnh) Bỏ giới hạn 10 ảnh của "Tải ảnh" / "Chụp ảnh", kiểm tra 20 MB
 
 - **Yêu cầu**: Định hỏi "bỏ cho upload hết đc k?". Hiện "Tải ảnh" chỉ cho 10 ảnh một lần.

@@ -609,6 +609,40 @@
   border-radius: 16px;
   box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
 }
+/* Ghi chú, edited in its cell (R-1058): the text with its line breaks kept,
+   the pencil at the right; editing swaps both for the box and its two buttons. */
+.pd-appt-note {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pd-appt-note-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.pd-appt-note > button {
+  flex-shrink: 0;
+  border: 0;
+  padding: 2px 0 0;
+  background: none;
+  color: var(--bd-muted);
+  cursor: pointer;
+  line-height: 0;
+}
+.pd-appt-note > button:hover {
+  color: var(--bd-primary);
+}
+.pd-appt-noteedit {
+  display: grid;
+  gap: 8px;
+}
+.pd-appt-noteedit > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
 .pd-filter-pills,
 .pd-stat-row {
   display: flex;

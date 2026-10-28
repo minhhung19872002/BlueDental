@@ -59,6 +59,12 @@ export const appointmentApi = {
       .put<ServerAppointmentDto>(`${BASE}/${id}`, toUpdateRequest(data))
       .then((r) => adaptAppointment(r.data)),
 
+  /** Ghi chú alone, from its cell on the patient's Lịch hẹn tab; blank clears it. */
+  updateNotes: (id: string, notes: string): Promise<Appointment> =>
+    api
+      .put<ServerAppointmentDto>(`${BASE}/${id}/notes`, { notes })
+      .then((r) => adaptAppointment(r.data)),
+
   cancel: (id: string, reason: CancellationReason, note?: string): Promise<void> =>
     api.post(`${BASE}/${id}/cancel`, { reason, note }).then(() => undefined),
 

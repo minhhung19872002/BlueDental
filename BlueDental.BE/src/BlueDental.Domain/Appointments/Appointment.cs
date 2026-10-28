@@ -11,6 +11,8 @@ namespace BlueDental.Appointments;
 /// </summary>
 public class Appointment : FullAuditedAggregateRoot<Guid>
 {
+    public const int NotesMaxLength = 2000;
+
     public Guid PatientId { get; private set; }
     public Guid DentistId { get; private set; }
     public Guid BranchId { get; private set; }
@@ -574,6 +576,24 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         ChiefComplaint = chiefComplaint;
         Notes = notes;
         Color = color;
+        return this;
+    }
+
+    /// <summary>
+    /// Ghi chú on its own, from the patient's Lịch hẹn tab (R-1058). The booking
+    /// dialogs no longer show it (R-1055), so this is where it is kept up. A
+    /// remark never moves the booking, so every status takes one (owner,
+    /// 2026-10-28). Blank clears it.
+    /// </summary>
+    public Appointment SetNotes(string? notes)
+    {
+        var text = notes?.Trim();
+        if (!string.IsNullOrEmpty(text))
+        {
+            Check.Length(text, nameof(notes), NotesMaxLength);
+        }
+
+        Notes = string.IsNullOrEmpty(text) ? null : text;
         return this;
     }
 

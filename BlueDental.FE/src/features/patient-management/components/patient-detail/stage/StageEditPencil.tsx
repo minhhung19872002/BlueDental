@@ -3,7 +3,10 @@ interface Props {
   onClick: () => void;
 }
 
-/** The pencil that swaps a LỊCH SỬ ĐIỀU TRỊ cell for its editor, in place. */
+/**
+ * The pencil that swaps a cell for its editor, in place: LỊCH SỬ ĐIỀU TRỊ, and
+ * Ghi chú on the Lịch hẹn tab.
+ */
 export function StageEditPencil({ label, onClick }: Props) {
   return (
     <button type="button" aria-label={label} onClick={onClick}>
