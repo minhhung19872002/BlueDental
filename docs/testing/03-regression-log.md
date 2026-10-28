@@ -11952,3 +11952,40 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
       - "picking the day…": đã ghi ở R-1052.
   - `tsc -b` xanh, `oxlint` 3 file xanh. Build production có đúng 1 chunk ngôn ngữ.
 - **Mức retest**: 2 (F-30 Bệnh án, chỉ mẫu 2: màn hình + bản in). Không ảnh hưởng `/taxonomy`, vì chỉ tab hồ sơ import `sheetCss.ts`. Đã thêm một dòng trong `02-impact-map.md`.
+
+## R-1068 (2026-10-29, mức 2: bệnh án mẫu 6) Giấy đồng ý thực hiện phẫu thuật/thủ thuật: lề 15mm, chữ 15px, dòng 1,5, ô trống theo bản của phòng khám
+
+- **Yêu cầu (chủ dự án, kèm file `phieu_dong_y_phau_thuat_1.html` của phòng khám)**: đọc, so với mẫu 6 rồi sửa cho giống. Chủ dự án chốt:
+  - Chỉ sửa mẫu 6, dùng lại cơ chế lề 15mm của R-1067. Các mẫu khác sửa sau.
+  - Dòng "SỞ Y TẾ…" ở đầu phiếu lên 10pt như file (R-1054 để 8pt; nay chỉ mẫu 6 đổi).
+  - Độ rộng các ô trống lấy số của phòng khám nhưng làm **độ rộng tối thiểu** (`min-width`), không cố định, để chữ dài vẫn giãn hoặc xuống dòng như cũ. Chữ, id ô và số ô giữ nguyên.
+  - Còn lại "cứ theo file html": chữ 15px; giãn dòng 1,5 cho đoạn văn và tiêu đề; lề 15mm 4 cạnh mọi trang; khối tên phòng khám sát lề trái, MS sát lề phải; cột ô đánh dấu đầu tiên và ô đánh dấu mở đầu dòng sát lề trái.
+- **Trước đó**: chữ 16px; giãn dòng 1,3 (đoạn) / 1,2 (tiêu đề); in lề `@page` 5mm cộng padding tờ 7mm, trên màn hình padding 12mm; đầu phiếu 8pt; phần lớn ô trống rộng 320px nên xuống dòng sớm hơn bản của phòng khám.
+- **Sửa (chỉ FE, không đổi server/DB/i18n)**:
+  - `sheetCss.ts`:
+    - Trang có tên đổi tên `outpatient-dental` → `@page margin-15mm{margin:15mm}`, dùng chung cho mẫu 2 và mẫu 6: `.nfc-tpl:is([data-form="2"],[data-form="6"]){page:margin-15mm;…;padding:0}` khi in; padding 15mm ở `SHEET_PAGE_CSS` và `PRINT_COPY_CSS`. Mẫu 2 không đổi gì ngoài tên trang.
+    - `.nfc-tpl[data-form="6"]{font-size:15px}` (tách khỏi nhóm 16px của mẫu 4/5).
+    - Giãn dòng 1,5 cho `p`, `h1`, `h2` của mẫu 6. Luật đặt sau các luật `line-height:1.3!important` / `1.2!important` chung và có thêm `[data-form="6"]` nên thắng.
+    - Bảng đầu phiếu: bỏ padding trái ô đầu, padding phải ô cuối. Bảng không viền (danh sách ô đánh dấu): bỏ padding trái cột đầu. Ô đánh dấu đứng đầu đoạn: bỏ `margin-left`.
+  - `templates/surgeryConsent.ts` (chỉ thuộc tính style, một dòng template):
+    - 12 ô đổi `data-field-width` và `min-width` sang số của phòng khám: text.1 320→614, text.2 320→607, text.3 268→292, text.4 320→607, text.5 320→390, text.6 320→557, text.7 320→507, text.8 240→334, năm sinh 90→195, text.10 112→176, text.11 320→526, text.12 680→57. Các ô khác giữ nguyên.
+    - 12 ô đó thêm `box-sizing: border-box;` như file của phòng khám. Thiếu nó thì padding 3px hai bên cộng vào `min-width` 614px làm ô text.1 rớt xuống dòng dưới.
+    - Đầu phiếu `font-size: 8pt` → `10pt`.
+  - Template nằm trong code, phiếu đã lưu chỉ giữ giá trị ô, nên phiếu cũ cũng hiện theo kiểu mới.
+- **Đo so với file của phòng khám** (cùng khổ 794px, toạ độ tính từ góc vùng viết):
+  - Vị trí và độ rộng của toàn bộ 49 ô trống + ô đánh dấu: **49/49 lệch không quá 1px**.
+- **PDF in thật** ("In biểu mẫu" → `page.pdf({preferCSSPageSize:true})`, A4) so với file của phòng khám in bằng Chrome: cả hai **2 trang**, ngắt trang cùng chỗ, ảnh hai bên đặt cạnh nhau trùng nhau.
+- **Phát hiện, chưa sửa (có từ trước, không thuộc phạm vi)**: nền gradient của app (`body::before` trong `index.css`) in ra thành vệt nhạt dưới tờ ở trang cuối khi bật "Background graphics". `body.mr-printing > *:not(.mr-print-copy)` không ẩn được pseudo-element. Đã báo chủ dự án.
+- **E2E** (bản build production, preview :8160 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec`:
+    - Ca "every form shares one letterhead…" đổi mẫu 6 thành 15px / 2 trang → **xanh**. 8 mẫu khác giữ nguyên số liệu và vẫn xanh.
+    - Ca R-1067 "mẫu 2: 15mm margins…" đổi tên trang mong đợi thành `margin-15mm` → **xanh**.
+    - Ca mới "mẫu 6: 15mm margins, the letterhead, MS and the boxes on the margins" → **xanh**. Ca này kiểm:
+      - padding 15mm 4 cạnh; giãn dòng ≈ 1,5 lần cỡ chữ;
+      - đầu phiếu 10pt và chạm lề trái; khối MS chạm lề phải;
+      - ít nhất 14 ô đánh dấu mở đầu dòng, mỗi ô cách lề trái không quá 1px;
+      - ô sau "Tôi tên là", "Chức danh", "Chẩn đoán" nằm trên một dòng và chạy tới lề phải;
+      - khi in, bản sao `.mr-print-copy` có `page: margin-15mm` và padding 0.
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,1 phút, 1 worker): **31 xanh / 5 đỏ**. Cả 5 ca đỏ đúng là 5 ca đã đỏ từ trước, đã chứng minh trên HEAD sạch ở R-1067: `sheet-facts:161`, `sheet-facts:309`, "the index lists…", "the open sheet's card wears…", "picking the day…". Lần này "every form shares…" không chập chờn.
+  - `tsc -b` (trong `npm run build`) xanh, `oxlint` 3 file xanh. Build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-30 Bệnh án, mẫu 6: màn hình + bản in; mẫu 2 chỉ đổi tên trang, có ca R-1067 giữ). Không ảnh hưởng `/taxonomy`, vì chỉ tab hồ sơ import `sheetCss.ts`. Đã sửa dòng `sheetCss.ts` trong `02-impact-map.md`.

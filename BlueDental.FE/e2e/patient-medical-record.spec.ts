@@ -1383,7 +1383,7 @@ test.describe("Bệnh án", () => {
       ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
       ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
       ["Phiếu phẫu thuật/thủ thuật", "16.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu chăm sóc", "15.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
@@ -1504,7 +1504,84 @@ test.describe("Bệnh án", () => {
     });
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
-    expect(printed).toEqual({ page: "outpatient-dental", padding: "0px" });
+    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+  });
+
+  /**
+   * Mẫu 6 as the clinic's own copy (2026-10-29, R-1068): 15mm on every edge of
+   * the sheet and of every printed page; a line and a half between lines; the
+   * letterhead at 10pt on the left margin and MS on the right; the boxes that
+   * open a line on the left margin; the blanks after "Tôi tên là", "Chức danh",
+   * "Chẩn đoán" running to the right margin, on the line they start on.
+   */
+  test("mẫu 6: 15mm margins, the letterhead, MS and the boxes on the margins", async ({ page }) => {
+    const margin = (15 / 25.4) * 96;
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Giấy đồng ý thực hiện phẫu thuật/thủ thuật");
+
+    const layout = await sheet(page)
+      .locator(".nfc-tpl")
+      .evaluate((root) => {
+        const style = getComputedStyle(root);
+        const box = root.getBoundingClientRect();
+        const left = box.left + parseFloat(style.paddingLeft);
+        const right = box.right - parseFloat(style.paddingRight);
+        const rect = (node: Node) => {
+          const range = root.ownerDocument.createRange();
+          range.selectNodeContents(node);
+          return range.getBoundingClientRect();
+        };
+        const header = root.querySelector(":scope > table:first-child");
+        const letterhead = header?.querySelector("td:first-child > p");
+        const ms = header?.querySelector("td:last-child > p");
+        const opening = Array.from(root.querySelectorAll(".nfc-medical-record-checkbox")).filter(
+          (node) => !node.previousSibling?.textContent?.trim() && !node.closest("td:not(:first-child)"),
+        );
+        const blank = (id: string) => root.querySelector(`[data-medical-record-field="surgery-consent.${id}"]`)!;
+        const reaching = ["text.1", "text.2", "text.4"].map((id) => {
+          const node = blank(id);
+          return { right: right - node.getBoundingClientRect().right, lines: node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight) };
+        });
+        return {
+          padding: ["Top", "Right", "Bottom", "Left"].map((edge) => parseFloat(style.getPropertyValue(`padding-${edge.toLowerCase()}`))),
+          lineHeight: parseFloat(getComputedStyle(blank("text.1").closest("p")!).lineHeight) / parseFloat(style.fontSize),
+          letterheadSize: parseFloat(getComputedStyle(letterhead!.querySelector("span")!).fontSize),
+          letterhead: rect(letterhead!).left - left,
+          ms: right - rect(ms!).right,
+          boxes: opening.map((node) => node.getBoundingClientRect().left - left),
+          reaching,
+        };
+      });
+
+    for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
+    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
+    expect(layout.letterheadSize, "letterhead at 10pt").toBeCloseTo((10 * 4) / 3, 2);
+    expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
+    expect(Math.abs(layout.ms), "MS on the right margin").toBeLessThan(1);
+    // Chẩn đoán … Kết quả, the first column of the two lists, Không, 1. and 2.
+    expect(layout.boxes.length, "boxes opening a line").toBeGreaterThanOrEqual(14);
+    for (const gap of layout.boxes) expect(Math.abs(gap), "box on the left margin").toBeLessThan(1);
+    for (const { right, lines } of layout.reaching) {
+      expect(lines, "the blank stays on its line").toBeLessThan(1.6);
+      expect(right, "the blank runs to the right margin").toBeGreaterThanOrEqual(-1);
+      expect(right, "the blank runs to the right margin").toBeLessThan(24);
+    }
+
+    // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
+    await page.evaluate(() => {
+      window.print = () => undefined;
+    });
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+    const copy = page.locator(".mr-print-copy .nfc-tpl");
+    await expect(copy).toBeAttached();
+    await page.emulateMedia({ media: "print" });
+    const printed = await copy.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { page: style.getPropertyValue("page"), padding: style.paddingTop };
+    });
+    await page.emulateMedia({ media: "screen" });
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
   });
 
   /**
