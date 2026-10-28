@@ -170,6 +170,13 @@ public class SetOutcomeDto
     public AppointmentOutcome Outcome { get; set; }
 }
 
+/// <summary>Ghi chú alone, edited in its cell on the patient's Lịch hẹn tab (R-1058).</summary>
+public class UpdateAppointmentNotesDto
+{
+    [StringLength(2000)]
+    public string? Notes { get; set; }
+}
+
 /// <summary>
 /// "Đã hẹn tiếp" or "Hẹn tái khám": the next appointment, booked from the
 /// reception card together with the outcome it stands for.

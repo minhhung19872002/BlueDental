@@ -179,6 +179,57 @@ public class AppointmentTests
         Assert.Equal(AppointmentStatus.InProgress, appointment.Status);
     }
 
+    /// <summary>R-1058: Ghi chú is edited on its own from the patient's Lịch hẹn
+    /// tab, whatever the status, and leaves everything else as it was.</summary>
+    [Fact]
+    public void SetNotes_Should_Trim_And_Touch_Nothing_Else_Even_When_Cancelled()
+    {
+        var appointment = new Appointment(
+            Guid.NewGuid(),
+            _patientId,
+            _dentistId,
+            _branchId,
+            _slot,
+            AppointmentType.Consultation,
+            null,
+            "Kham tong quat");
+        appointment.Cancel(CancellationReason.PatientRequest, "sick");
+
+        appointment.SetNotes("  Goi lai tuan sau  ");
+
+        Assert.Equal("Goi lai tuan sau", appointment.Notes);
+        Assert.Equal("Kham tong quat", appointment.ChiefComplaint);
+        Assert.Equal(AppointmentStatus.Cancelled, appointment.Status);
+        Assert.Equal("sick", appointment.CancellationNote);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void SetNotes_Should_Clear_The_Note_When_Blank(string? notes)
+    {
+        var appointment = NewAppointment();
+        appointment.SetNotes("Ghi chu cu");
+
+        appointment.SetNotes(notes);
+
+        Assert.Null(appointment.Notes);
+    }
+
+    [Fact]
+    public void SetNotes_Should_Refuse_A_Note_Past_The_Column_Length()
+    {
+        var appointment = NewAppointment();
+        appointment.SetNotes("Ghi chu cu");
+
+        Assert.Throws<ArgumentException>(() =>
+            appointment.SetNotes(new string('a', Appointment.NotesMaxLength + 1)));
+        appointment.SetNotes(new string('a', Appointment.NotesMaxLength));
+
+        Assert.Equal(Appointment.NotesMaxLength, appointment.Notes!.Length);
+    }
+
     /// <summary>
     /// Saving the edit dialog always goes through Reschedule, and the dialog
     /// states the status separately. Moving a booking therefore never changes

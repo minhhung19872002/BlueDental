@@ -3265,6 +3265,7 @@
     "Patient:Appt:DoctorChanged": "Appointment doctor changed",
     "Patient:Appt:Time": "Appointment time",
     "Patient:Appt:TreatmentDate": "Treatment date",
+    "Patient:Appt:EditNote": "Edit note",
     "Patient:MedRecord:Index": "Medical record index",
     "Patient:MedRecord:ZoomIn": "Zoom in medical record",
     "Patient:MedRecord:Fullscreen": "Full screen",

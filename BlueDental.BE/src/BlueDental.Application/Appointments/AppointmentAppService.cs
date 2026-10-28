@@ -33,6 +33,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     private readonly AppointmentChangeRecorder _changeRecorder;
     private readonly DentistShiftChecker _shiftChecker;
     private readonly DoctorTeamLookup _doctorTeams;
+    private readonly BranchAccessChecker _branchAccess;
 
     public AppointmentAppService(
         IRepository<Appointment, Guid> repository,
@@ -43,9 +44,11 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         ICurrentClinicBranchResolver branchResolver,
         AppointmentChangeRecorder changeRecorder,
         DentistShiftChecker shiftChecker,
-        DoctorTeamLookup doctorTeams)
+        DoctorTeamLookup doctorTeams,
+        BranchAccessChecker branchAccess)
     {
         _doctorTeams = doctorTeams;
+        _branchAccess = branchAccess;
         _changeRecorder = changeRecorder;
         _shiftChecker = shiftChecker;
         _repository = repository;
@@ -717,6 +720,32 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         // when another patient has the dentist then — a dentist double-booking
         // is no longer refused (BA 2026-10-16) and this visit is under way.
         appointment.SetOutcome(input.Outcome);
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
+        return await ToDtoAsync(appointment);
+    }
+
+    /// <summary>
+    /// Ghi chú alone, from its cell on the patient's Lịch hẹn tab (R-1058).
+    /// Unlike <see cref="UpdateAsync"/> it neither needs the slot back nor runs
+    /// the shift and overlap checks, and a finished session of a series takes
+    /// it too. A note left as it was writes no history row.
+    /// GuardBranchAccess only matches the header; the header alone is no right
+    /// to a branch, so the account's own branches are checked as well.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public async Task<AppointmentDto> UpdateNotesAsync(Guid id, UpdateAppointmentNotesDto input)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        await _branchAccess.CheckAsync(appointment.BranchId);
+        var notesBefore = appointment.Notes;
+        var before = await SnapshotAsync(appointment);
+        appointment.SetNotes(input.Notes);
+        if (appointment.Notes == notesBefore)
+            return await ToDtoAsync(appointment);
+
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));

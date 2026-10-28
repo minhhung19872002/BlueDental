@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { Appointment, AppointmentStatus } from "@/features/appointments/types/appointment";
 import { t } from "@/lib/i18n";
+import { AppointmentNoteCell } from "./AppointmentNoteCell";
 
 /** The reference's four groups, and which server statuses land in each. */
 export function appointmentGroups() {
@@ -28,10 +29,18 @@ function statusTones(): Record<AppointmentStatus, { label: string; bg: string; c
   };
 }
 
+/** Ghi chú edited in its cell — handed over only with appointment.update. */
+interface NoteEditor {
+  /** The row whose note is being saved, if any. */
+  savingId: string | null;
+  onSave: (row: Appointment, notes: string) => Promise<boolean>;
+}
+
 interface RowHandlers {
   onHistory: (row: Appointment) => void;
   onEdit?: (row: Appointment) => void;
   onDelete?: (row: Appointment) => void;
+  noteEditor?: NoteEditor;
 }
 
 /**
@@ -40,11 +49,13 @@ interface RowHandlers {
  * the caller decides what a confirmed delete does. The clock in front of them
  * is BlueDental's own (not on the reference): that appointment's change
  * history. It only reads, so the column is there for anyone who sees the tab.
+ * So is the pencil in Ghi chú, which edits the note in place (R-1058).
  */
 export function buildAppointmentColumns({
   onHistory,
   onEdit,
   onDelete,
+  noteEditor,
 }: RowHandlers): TableColumnsType<Appointment> {
   return [
     {
@@ -70,8 +81,15 @@ export function buildAppointmentColumns({
     {
       title: t("Patient:Misc:Note"),
       dataIndex: "notes",
-      width: 200,
-      render: (value: string | null) => value ?? "—",
+      width: 220,
+      render: (value: string | null, row) => (
+        <AppointmentNoteCell
+          notes={value}
+          editable={Boolean(noteEditor)}
+          saving={noteEditor?.savingId === row.id}
+          onSave={(notes) => noteEditor?.onSave(row, notes) ?? Promise.resolve(false)}
+        />
+      ),
     },
     {
       title: t("Patient:Misc:StatusLabel"),

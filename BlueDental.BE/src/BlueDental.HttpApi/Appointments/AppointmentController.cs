@@ -73,6 +73,11 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     public Task<AppointmentDto> SetOutcomeAsync(Guid id, [FromBody] SetOutcomeDto input) =>
         service.SetOutcomeAsync(id, input);
 
+    /// <summary>Ghi chú alone — a BlueDental field, not the reference's (R-1058).</summary>
+    [HttpPut("{id:guid}/notes")]
+    public Task<AppointmentDto> UpdateNotesAsync(Guid id, [FromBody] UpdateAppointmentNotesDto input) =>
+        service.UpdateNotesAsync(id, input);
+
     [HttpPost("{id:guid}/follow-up")]
     public Task<AppointmentDto> BookFollowUpAsync(Guid id, [FromBody] BookFollowUpDto input) =>
         service.BookFollowUpAsync(id, input);
