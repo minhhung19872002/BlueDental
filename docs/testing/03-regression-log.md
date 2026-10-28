@@ -11895,3 +11895,60 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chạy toàn bộ `e2e/reception*` (20 spec): **67 xanh / 3 bỏ qua / 0 đỏ**, mất 11,5 phút. 3 ca bỏ qua là `TEMP-PRIORITY-OFF` (R-980).
   - `tsc -b` xanh, build production xanh, đúng 1 chunk ngôn ngữ.
 - **Mức retest**: 2 (F-11 Tiếp nhận).
+
+## R-1067 (2026-10-28, mức 2: bệnh án mẫu 2) Bệnh án ngoại trú Răng Hàm Mặt: lề 15mm, chữ 13px, khối MS thẳng cột
+
+- **Yêu cầu (chủ dự án, kèm file `benh_an_ngoai_tru_2.html` của phòng khám)**: so style mẫu 2 với file rồi sửa cho giống. Chủ dự án chốt:
+  - Lề 15mm đều 4 cạnh, mọi trang (phương án A).
+  - Chỉ sửa mẫu 2. 8 mẫu còn lại sẽ sửa sau.
+  - Đồng ý giảm chữ 13,5px → 13px, với điều kiện in qua "In biểu mẫu" phải vẫn ra 3 trang.
+  - Chỉ sửa style. Nội dung, chữ và các ô nhập giữ nguyên.
+- **Trước đó**:
+  - Khi in: lề `@page` 5mm cộng padding tờ 7mm. Trên màn hình: padding 12mm.
+  - Chữ 13,5px.
+  - Khối "MS / Số ngoại trú / Số lưu trữ" là một đoạn căn phải, các dòng ngắt bằng `<br>`, nên các ô không thẳng cột.
+  - Hộp sinh hiệu (Mạch, Nhiệt độ, …) có thể rớt dòng.
+- **Sửa (chỉ FE, không đổi server/DB/i18n)**:
+  - `sheetCss.ts`:
+    - In: thêm trang có tên `@page outpatient-dental{margin:15mm}` và `.nfc-tpl[data-form="2"]{page:outpatient-dental;width:auto;margin:0;padding:0}`.
+      - Trang có tên thắng luật `@media print{@page{margin:0}}` trong `index.css`.
+      - Khổ A4 và số trang (`@bottom-right`) vẫn kế thừa từ `@page` gốc. Số trang giờ nằm trong vùng lề 15mm.
+    - Màn hình và bản sao in (`SHEET_PAGE_CSS`, `PRINT_COPY_CSS`): `.nfc-tpl[data-form="2"]{padding:15mm}`.
+    - Chữ: `.nfc-tpl[data-form="2"]{font-size:13px}`.
+    - Các bảng chia cột của trang chính và trang tổng kết, cùng bảng Toàn thân: bỏ padding ngoài cùng, để tiêu đề (I., II., 10., 11.) chạm lề trái và cột phải chạm lề phải. Riêng "3. Hình vẽ mô tả tổn thương" giữ như cũ.
+    - Sinh hiệu: mỗi dòng là một hàng flex. Ô trống giãn giữa nhãn và đơn vị, các đơn vị thẳng cột.
+    - Khối MS (`p.record-ids`): lưới 2 cột (nhãn | ô), sát lề phải.
+      - Bảng tiêu đề chứa khối này đổi từ 675px vẽ sẵn sang `width:100%!important`. Làm bằng CSS để không đụng vào template.
+      - Luật dòng 1.5 đặt sau luật `p … line-height:1.3!important` và có độ ưu tiên cao hơn.
+  - `templates/outpatientDental.ts`: chỉ đổi phần bọc của khối MS.
+    - `<p data-block-align="right" style=…>` cùng các `<br>` → `<p class="record-ids">`.
+    - Mỗi nhãn bọc trong `span.record-ids-label`, mỗi ô bọc trong `span`.
+    - Chữ, id ô, `min-width` và mọi thuộc tính khác của ô giữ nguyên.
+    - Vẫn dùng thẻ `p`, vì `flowLines` / `lineEditing` tìm khối bằng `closest("p, h1…")`. Đổi sang `div` sẽ mất Enter-thêm-dòng.
+  - Template nằm trong code, phiếu đã lưu chỉ giữ giá trị ô, nên phiếu cũ cũng hiện theo kiểu mới.
+- **Đo so với file của phòng khám** (cùng khổ 794px):
+  - Khớp: chữ 13px, padding 56,69px, bảng tiêu đề (56,7; 56,7; rộng 680,3), khối MS (x 489,8, nhãn rộng 72,2, ô ở x 567 rộng 170), hộp sinh hiệu (x 559,7, rộng 164), các dòng mục I.
+  - Từ dòng "Xã, phường … Tỉnh, thành phố" trở xuống, phiếu lệch xuống khoảng 17px. Nguyên nhân là dữ liệu, không phải style: file có địa chỉ đã điền nằm gọn một dòng, còn phiếu trắng có các ô `min-width` nên dòng này xuống 2 dòng. Đây là hệ quả của vùng viết hẹp lại còn 680px.
+- **PDF in thật** ("In biểu mẫu" → `page.pdf({preferCSSPageSize:true})`, A4, rasterize 96dpi):
+  - **3 trang**.
+  - Lề mực: trái 15,1mm; trên 15,3 / 16,9 / 14,8mm; phải 14,8mm.
+  - Dưới lề 15mm chỉ có số trang. Nội dung cuối mỗi trang cách mép dưới 29,9 / 79,4 / 28,6mm, nên còn dư chỗ.
+- **E2E** (bản build production, preview :8187 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec`:
+    - Ca "every form shares one letterhead…" đổi mẫu 2 thành 13px / 3 trang → **xanh**. 8 mẫu khác giữ nguyên số liệu cũ và vẫn xanh.
+    - Ca mới "mẫu 2: 15mm margins, the MS block and the vital signs lined up" → **xanh**. Ca này kiểm:
+      - padding 4 cạnh;
+      - quốc hiệu chạm lề trái;
+      - 3 nhãn MS một cột, 3 ô một cột, khối sát lề phải;
+      - 5 dòng sinh hiệu mỗi dòng một hàng, đơn vị sát mép ô;
+      - khi in, bản sao `.mr-print-copy` có `page: outpatient-dental` và padding 0.
+  - Hồi quy cả 4 spec `patient-medical-record`, `medical-record-set`, `medical-record-sheet-facts`, `medical-record-drawing` (43 ca, 8 phút): **37 xanh / 6 đỏ**.
+    - "every form shares…" bị timeout 90 giây khi chờ thẻ "Bìa" sau `reload`. Chạy riêng thì xanh 2 lần (31 giây), nên đây là ca chập chờn khi chạy cả bộ, không phải lỗi style.
+    - 5 ca còn lại đỏ y hệt trên bản build sạch HEAD c14aa6e1 (`git archive` + junction `node_modules`, preview :8188), nên đã đỏ từ trước:
+      - `sheet-facts:161` mong ô MS trống nhưng ra "16/BV-01". Spec chưa cập nhật theo R-1052.
+      - `sheet-facts:309` cần 3 dịch vụ trong Danh mục, DB local chỉ có 2.
+      - "the index lists…": không thấy `.pd-profile-card` khi bấm "Chi tiết hồ sơ".
+      - "the open sheet's card wears…": màu viền ra `oklab(…)` chứ không phải `rgb(217, 122, 64)`.
+      - "picking the day…": đã ghi ở R-1052.
+  - `tsc -b` xanh, `oxlint` 3 file xanh. Build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-30 Bệnh án, chỉ mẫu 2: màn hình + bản in). Không ảnh hưởng `/taxonomy`, vì chỉ tab hồ sơ import `sheetCss.ts`. Đã thêm một dòng trong `02-impact-map.md`.

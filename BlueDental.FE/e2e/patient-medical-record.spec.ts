@@ -1379,7 +1379,7 @@ test.describe("Bệnh án", () => {
 
     const expected: Array<[string, string, string, number]> = [
       ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
-      ["Bệnh án ngoại trú Răng Hàm Mặt", "13.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "13px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
       ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
       ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
@@ -1440,6 +1440,71 @@ test.describe("Bệnh án", () => {
       if (form === "Phiếu theo dõi điều trị") expect(printed, `${form} · printed pages`).toBeGreaterThanOrEqual(pages);
       else expect(printed, `${form} · printed pages`).toBe(pages);
     }
+  });
+
+  /**
+   * Mẫu 2 inside 15mm margins (clinic, 2026-10-28, R-1067): 15mm on every edge
+   * of the sheet and of every printed page; the letterhead on the left margin;
+   * MS / Số ngoại trú / Số lưu trữ a column of labels and a column of blanks
+   * against the right margin; each vital sign on one line, its unit against the
+   * cell's right edge.
+   */
+  test("mẫu 2: 15mm margins, the MS block and the vital signs lined up", async ({ page }) => {
+    const margin = (15 / 25.4) * 96;
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+
+    const layout = await sheet(page)
+      .locator(".nfc-tpl")
+      .evaluate((root) => {
+        const style = getComputedStyle(root);
+        const box = root.getBoundingClientRect();
+        const left = box.left + parseFloat(style.paddingLeft);
+        const right = box.right - parseFloat(style.paddingRight);
+        const rect = (node: Node) => {
+          const range = root.ownerDocument.createRange();
+          range.selectNodeContents(node);
+          return range.getBoundingClientRect();
+        };
+        const ids = root.querySelector(".record-ids");
+        const vitals = Array.from(root.querySelectorAll('table[data-record-section="vitals"] td > p'));
+        const cell = vitals[0]?.closest("td");
+        return {
+          padding: ["Top", "Right", "Bottom", "Left"].map((edge) => parseFloat(style.getPropertyValue(`padding-${edge.toLowerCase()}`))),
+          letterhead: rect(root.querySelector('table[data-record-section="layout"] td p')!).left - left,
+          labels: Array.from(ids?.querySelectorAll(".record-ids-label") ?? []).map((node) => node.getBoundingClientRect().left),
+          blanks: Array.from(ids?.querySelectorAll(".nfc-medical-record-text-field") ?? []).map((node) => node.getBoundingClientRect().left),
+          idsRight: right - (ids?.getBoundingClientRect().right ?? 0),
+          vitalLines: vitals.map((node) => node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight)),
+          unitsRight: vitals.map((node) => (cell ? cell.getBoundingClientRect().right - parseFloat(getComputedStyle(cell).paddingRight) - rect(node.lastChild!).right : NaN)),
+        };
+      });
+
+    for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
+    expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
+    expect(layout.labels, "MS labels").toHaveLength(3);
+    for (const at of layout.labels) expect(at, "labels in one column").toBeCloseTo(layout.labels[0], 0);
+    for (const at of layout.blanks) expect(at, "blanks in one column").toBeCloseTo(layout.blanks[0], 0);
+    expect(Math.abs(layout.idsRight), "MS block on the right margin").toBeLessThan(1);
+    expect(layout.vitalLines, "vital signs").toHaveLength(5);
+    for (const lines of layout.vitalLines) expect(lines, "one line each").toBeLessThan(1.6);
+    for (const gap of layout.unitsRight) expect(Math.abs(gap), "units against the cell's edge").toBeLessThan(1);
+
+    // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
+    await page.evaluate(() => {
+      window.print = () => undefined;
+    });
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+    const copy = page.locator(".mr-print-copy .nfc-tpl");
+    await expect(copy).toBeAttached();
+    await page.emulateMedia({ media: "print" });
+    const printed = await copy.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { page: style.getPropertyValue("page"), padding: style.paddingTop };
+    });
+    await page.emulateMedia({ media: "screen" });
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    expect(printed).toEqual({ page: "outpatient-dental", padding: "0px" });
   });
 
   /**

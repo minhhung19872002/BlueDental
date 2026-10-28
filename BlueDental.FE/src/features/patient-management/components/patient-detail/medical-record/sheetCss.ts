@@ -56,6 +56,19 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl table[data-record-section="diagnosis-code"] td{height:16px;padding:0}
 .nfc-tpl table[data-record-section="summary-files"]{border:0;margin:0}
 .nfc-tpl table[data-record-section="summary-files"] td,.nfc-tpl table[data-record-section="summary-files"] th{padding:2px 8px;line-height:1.2}
+/* Mẫu 2 inside its 15mm margins (clinic, 2026-10-28, R-1067): the headings of
+   a table laid out in columns start on the left edge with I., II., 10., 11.,
+   the right column reaches the right edge — "3. Hình vẽ mô tả tổn thương"
+   (outpatient-figure) is left as drawn; each vital sign holds one line, its
+   blank stretching between the label and the unit, the units lined up. */
+.nfc-tpl table[data-record-page="outpatient-main"] table[data-record-section="layout"]>tbody>tr>td:first-child,
+.nfc-tpl table[data-record-page="outpatient-summary"] table[data-record-section="layout"]>tbody>tr>td:first-child,
+.nfc-tpl table[data-record-section="general-exam"]>tbody>tr>td:first-child{padding-left:0}
+.nfc-tpl table[data-record-page="outpatient-main"] table[data-record-section="layout"]>tbody>tr>td:last-child,
+.nfc-tpl table[data-record-page="outpatient-summary"] table[data-record-section="layout"]>tbody>tr>td:last-child{padding-right:0}
+.nfc-tpl table[data-record-section="vitals"] td>p{display:flex;align-items:baseline;gap:3px;white-space:nowrap}
+.nfc-tpl table[data-record-section="vitals"] td>p>span{flex:1 1 0;min-width:0}
+.nfc-tpl table[data-record-section="vitals"] td>p>span>.nfc-medical-record-text-field{width:100%;min-width:0!important;box-sizing:border-box}
 /* Mẫu 5 — Phiếu tư vấn và xác nhận đồng ý điều trị, laid out as the clinic's
    paper copy (2026-10-16): the title on one line, one text line to a table
    row, a narrow label column, so I–IV fit on the first page. */
@@ -83,7 +96,8 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl[data-form="9"]{font-size:15.5px}
 .nfc-tpl[data-form="3"]{font-size:15px}
 .nfc-tpl[data-form="8"]{font-size:14px}
-.nfc-tpl[data-form="2"]{font-size:13.5px}
+/* 13px since its margins went to 15mm (R-1067). */
+.nfc-tpl[data-form="2"]{font-size:13px}
 .nfc-tpl h2{font-size:1em}
 .nfc-tpl h2 span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl>h2{margin:6px 0 2px}
@@ -112,6 +126,15 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl p[data-spacer]::before{content:none}
 .nfc-tpl h1:not([data-cover] *){margin:10px 0 6px;line-height:1.2!important}
 .nfc-tpl p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.3!important}
+/* Mẫu 2's MS / Số ngoại trú / Số lưu trữ (clinic, 2026-10-28, R-1067): the
+   labels in one column, the blanks lined up after the ":", the block against
+   the right margin. After the paragraph rules above, which it overrides; the
+   header table it sits in drops its drawn 675px to span the writing area. */
+.nfc-tpl table:has(.record-ids){width:100%!important}
+.nfc-tpl table[data-record-page="outpatient-main"] p.record-ids{display:grid;grid-template-columns:auto auto;column-gap:5px;row-gap:2px;align-items:baseline;width:max-content;max-width:100%;margin:0 0 0 auto;line-height:1.5!important}
+.nfc-tpl .record-ids-label{white-space:nowrap}
+.nfc-tpl .record-ids>span:not(.record-ids-label){display:block;min-width:0}
+.nfc-tpl .record-ids .nfc-medical-record-text-field{width:100%;box-sizing:border-box}
 @media print{
   .nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{border-bottom:0!important}
   .nfc-tpl .nfc-material-add{display:none}
@@ -233,6 +256,10 @@ const SHEET_FIELD_CSS = String.raw`
  * blue of a filled blank and the amber of a suggested one are *meant* to
  * flatten to black on paper.
  *
+ * Mẫu 2 is the exception (clinic, 2026-10-28, R-1067): 15mm on every edge of
+ * every page, so its pages are a named page with that margin — the A4 and the
+ * page number still come from the rule above — and the sheet itself adds none.
+ *
  * This is the part that has to travel with the sheet wherever it is printed
  * from. Printing the sheet's *frame* from outside cannot honour it: an iframe
  * is one box to the printer, and it gets sliced wherever the outer page ends,
@@ -240,8 +267,10 @@ const SHEET_FIELD_CSS = String.raw`
  */
 const SHEET_PRINT_CSS = String.raw`
     @page{size:A4;margin:5mm;@bottom-right{content:counter(page);font-family:'Times New Roman',Times,serif;font-size:10pt;color:#000}}
+    @page outpatient-dental{margin:15mm}
     @media print{
       .nfc-tpl{width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
+      .nfc-tpl[data-form="2"]{page:outpatient-dental;width:auto;margin:0;padding:0}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
       .nfc-tpl .nfc-medical-record-checkbox{accent-color:#2671d8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
     }`;
@@ -253,9 +282,11 @@ const SHEET_PRINT_CSS = String.raw`
 export const SHEET_PAGE_CSS = String.raw`    html,body{margin:0;min-height:100%;background:#f0f0f0}
     body{padding:20px;box-sizing:border-box}
     .nfc-tpl{width:210mm;min-height:297mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.1)}
+    .nfc-tpl[data-form="2"]{padding:15mm}
     .nfc-tpl>hr{margin:28px 0;border:0;border-top:2px dashed #b7c0ce}
     ${SHEET_FIELD_CSS}
     @media print{html,body{width:210mm;height:auto!important;min-height:0!important;margin:0;padding:0;background:#fff}}
+    @media print{html:has(.nfc-tpl[data-form="2"]),html:has(.nfc-tpl[data-form="2"]) body{width:auto}}
 ${SHEET_PRINT_CSS}
   `;
 
@@ -268,6 +299,7 @@ ${SHEET_PRINT_CSS}
  */
 export const PRINT_COPY_CSS = String.raw`${SHEET_CSS}
     .nfc-tpl{width:210mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff}
+    .nfc-tpl[data-form="2"]{padding:15mm}
     .nfc-tpl>hr{margin:0;border:0}
 ${SHEET_FIELD_CSS}
 ${SHEET_PRINT_CSS}
