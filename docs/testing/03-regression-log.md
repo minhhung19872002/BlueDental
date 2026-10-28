@@ -12062,3 +12062,44 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - Đã dọn 4 ảnh rác `truoc-a/b-*.png` khỏi hồ sơ đầu tiên. Sau khi chạy không còn ảnh test nào sót lại.
   - `tsc` xanh, build production xanh, đúng 1 chunk ngôn ngữ.
 - **Mức retest**: 2 (F-24 Hình ảnh, R-989 Chụp ảnh). `validateImageFile` là util dùng chung, nhưng giá trị mặc định và chữ báo lỗi của nó không đổi với các nơi gọi khác.
+
+## R-1066 (2026-10-28, mức 2: Tiếp nhận — thứ tự thẻ) Tab "Hoàn thành": ai hoàn tất sau cùng lên đầu
+
+- **Yêu cầu (khách, kèm ảnh)**: khoanh đỏ 3 tab "Đã đến", "Đang khám", "Hoàn thành" và chữ "Hoàn tất 15:47" trên thẻ, kèm lời nhắn "Mấy trạng thái này cũng đẩy thời gian gần nhất lên đầu luôn nha".
+- **Chủ dự án chốt (2026-10-28)**:
+  - Tab "Tất cả" không đổi:
+    - Đang khám vẫn ở trên, ai vào ghế sau cùng lên đầu (R-979).
+    - Phần giữa theo giờ bắt đầu.
+    - Hoàn tất ở cuối, cũng theo giờ bắt đầu (R-978).
+  - BA đổi ý, chỉ áp dụng cho 2 tab:
+    - Tab "Đang khám": ai vào ghế sau cùng lên đầu. Việc này đã đúng từ R-979, lần này chỉ thêm test khoá lại.
+    - Tab "Hoàn thành": ai hoàn tất sau cùng lên đầu, theo `completedAt`. Đây là chỗ đổi thật.
+  - Tab "Đã đến" không đổi, vẫn theo giờ bắt đầu (giờ hẹn).
+  - Đưa lên cả develop và main.
+- **Số hiệu**: R-1064 đang giữ cho lỗ hổng header chi nhánh và R-1065 thuộc ảnh hồ sơ, nên mục này là R-1066.
+- **Server**: không đổi.
+  - `AppointmentDto.completedAt` đã có sẵn.
+  - Endpoint danh sách vẫn trả theo giờ bắt đầu.
+- **FE**:
+  - Thêm `ReceptionItem.completedAt`, map từ `dto.completedAt` trong `mapAppointmentDto` (`receptionApi.ts`).
+  - `orderForBoard(items, tab)` (`utils/boardOrder.ts`) nhận thêm tab đang mở. Truyền vào từ `ReceptionPage` (`activeTab`).
+    - Tab "Hoàn thành" xếp theo `completedAt` giảm dần.
+    - Các tab khác giữ quy tắc cũ: Đang khám lên đầu theo `startedAt` giảm dần, Hoàn tất xuống cuối, phần còn lại giữ thứ tự của server (sort ổn định).
+  - Thứ tự phải theo tab chứ không theo trạng thái thẻ. Ở FE, "WaitingForExam" gồm cả lịch đã hẹn, trễ hẹn và hủy hẹn trong tab Tất cả, nên xếp theo trạng thái sẽ làm lệch tab Tất cả.
+  - Sắp xếp ở client vẫn an toàn: bảng luôn gửi khoảng ngày, nên `GetListAsync` trả đủ mọi dòng, không phân trang.
+- **Ảnh hưởng đã xét**:
+  - Chỉ bảng Tiếp nhận gọi `orderForBoard`.
+  - Bộ đếm, chip và `/stats` không đổi.
+  - Không đổi DB, không có migration, không có key i18n mới.
+  - Đã thêm một dòng trong `02-impact-map.md`.
+- **E2E** (bản build production, preview :8166 nối host :5000, không chặn API, có đăng nhập thật):
+  - `reception-board-order.spec.ts` có thêm 1 ca, **2/2 xanh**. Ca mới đặt 3 lịch hôm nay, rồi cho đến, vào ghế và hoàn tất theo các thứ tự khác cả thứ tự đặt lịch, thứ tự đảo ngược lẫn thứ tự của bước trước:
+    - Tab Đã đến: theo giờ hẹn [sớm, giữa, muộn].
+    - Tab Đang khám: ai vào ghế sau cùng lên đầu [muộn, sớm, giữa].
+    - Tab Hoàn thành: ai xong sau cùng lên đầu [giữa, muộn, sớm]. Kiểm cả khi bấm "Hoàn tất" ngay trên thẻ rồi mở tab bằng tay, lẫn sau khi tải lại trang.
+    - Tab Tất cả: phần Hoàn tất ở cuối vẫn theo giờ bắt đầu [sớm, giữa, muộn].
+  - Ca cũ (R-978/R-979) không sửa và vẫn xanh.
+  - Đã chứng minh trên HEAD 32547533: dựng bản build sạch bằng `git archive` rồi cho spec mới chạy vào. Ca mới đỏ đúng ở bước tab Hoàn thành, vì bản cũ xếp theo giờ bắt đầu. Các bước Đã đến và Đang khám, cùng ca cũ, vẫn xanh.
+  - Chạy toàn bộ `e2e/reception*` (20 spec): **67 xanh / 3 bỏ qua / 0 đỏ**, mất 11,5 phút. 3 ca bỏ qua là `TEMP-PRIORITY-OFF` (R-980).
+  - `tsc -b` xanh, build production xanh, đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-11 Tiếp nhận).
