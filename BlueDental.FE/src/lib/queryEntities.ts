@@ -2,6 +2,7 @@ import { partialMatchKey, type QueryClient, type QueryKey } from "@tanstack/reac
 import { branchInfoKeys } from "@/hooks/useBranchInfo";
 import { catalogOptionKeys } from "@/hooks/useCatalogOptions";
 import { laboPickerKeys } from "@/hooks/useLaboPickers";
+import { patientRelationKeys } from "@/hooks/usePatientFamily";
 import { patientOptionKeys } from "@/hooks/usePatientOptions";
 import { patientTagOptionKeys } from "@/hooks/usePatientTagOptions";
 import { paymentAccountOptionKeys } from "@/hooks/usePaymentAccountOptions";
@@ -80,6 +81,8 @@ export const ENTITY_QUERY_ROOTS = {
     patientOptionKeys.all,
     // Tiếp nhận cards print the patient's name, birth year and tags.
     ["receptions"],
+    // A save on a shared number writes its "Là … của …" link (P2710_02).
+    patientRelationKeys.all,
   ],
   appointment: [
     ["appointments"] satisfies RootOf<typeof appointmentKeys>,

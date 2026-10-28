@@ -6,6 +6,7 @@ import type {
   PagedResult,
   PatientCodeEstimate,
   PatientDto,
+  PatientLinkedPeople,
   PatientListItem,
   PatientListQuery,
   NationalIdLookup,
@@ -33,6 +34,10 @@ export const patientApi = {
     api
       .get<PhoneAvailability>(`${BASE}/check-phone`, { params: { phone, excludeId } })
       .then((r) => r.data),
+
+  /** "Người dùng chung SĐT" on the Hồ sơ tab, and the guardian cards' hồ sơ codes (P2710_02). */
+  linkedPeople: (id: string): Promise<PatientLinkedPeople> =>
+    api.get<PatientLinkedPeople>(`${BASE}/${id}/linked-people`).then((r) => r.data),
 
   /** "Tìm người giám hộ đã có hồ sơ": hồ sơ and guardians already on file (R-787). */
   guardianCandidates: (filter: string, excludePatientId?: string): Promise<GuardianCandidate[]> =>

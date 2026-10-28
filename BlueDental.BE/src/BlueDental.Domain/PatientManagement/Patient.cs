@@ -386,6 +386,23 @@ public class Patient : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
+    /// A guardian who came for treatment and was given a hồ sơ of their own
+    /// (P2710_02): the declaration stays, now pointing at that hồ sơ. A
+    /// guardian already linked to a hồ sơ is left alone.
+    /// </summary>
+    public bool LinkGuardianTo(Guid guardianId, Guid patientId)
+    {
+        var guardian = _guardians.FirstOrDefault(g => g.Id == guardianId);
+        if (guardian is null || guardian.LinkedPatientId.HasValue || patientId == Id)
+        {
+            return false;
+        }
+
+        guardian.LinkTo(patientId);
+        return true;
+    }
+
+    /// <summary>
     /// Under-16s need someone to answer for them. Age is the BA's "năm hiện
     /// tại − năm sinh", so a child turns 16 on 1 January of that year, not on
     /// the birthday. A record without a birth date is not held to it.

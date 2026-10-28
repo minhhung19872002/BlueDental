@@ -28,6 +28,9 @@ public interface IPatientAppService : IApplicationService
     /// <summary>Duplicate-phone check behind the dialog's Điện thoại field.</summary>
     Task<PhoneAvailabilityDto> CheckPhoneAsync(string phone, Guid? excludeId = null);
 
+    /// <summary>"Người dùng chung SĐT" and the hồ sơ of guardians who have one (P2710_02).</summary>
+    Task<PatientLinkedPeopleDto> GetLinkedPeopleAsync(Guid id);
+
     /// <summary>"Quét CCCD" — is the scanned number already on a record in the branch?</summary>
     Task<NationalIdLookupDto> FindByNationalIdAsync(string nationalId);
 

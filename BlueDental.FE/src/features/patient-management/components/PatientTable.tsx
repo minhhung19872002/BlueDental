@@ -4,7 +4,7 @@ import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import { EditOutlined, EyeOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
 import { t } from "@/lib/i18n";
-import { formatDate, formatDateTime, formatVND } from "@/utils/format";
+import { formatDate, formatDateTime, formatVND, MONEY_MASK } from "@/utils/format";
 import { TREATMENT_STATUS, type PatientListItem, type TreatmentStatusCode } from "../types/patient";
 
 interface Props {
@@ -33,9 +33,6 @@ function statusLabel(status: TreatmentStatusCode): string {
   if (status === TREATMENT_STATUS.Done) return t("Patient:Misc:Complete");
   return t("Patient:Debt:NoTransactions");
 }
-
-/** What a money cell shows when the row's money is hidden (BA P2010). */
-const MONEY_MASK = "*********";
 
 /** A money cell; `tone` colours a non-zero amount (Thực thu green, Công nợ red). */
 function Money({ row, amount, tone }: { row: PatientListItem; amount: number; tone?: "in" | "due" }) {

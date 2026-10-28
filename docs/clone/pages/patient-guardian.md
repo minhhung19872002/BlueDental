@@ -59,6 +59,7 @@ The popup **Thông tin người giám hộ**:
 | "Lưu & quay lại hồ sơ" | Hands the group back to the dialog; only the hồ sơ's Lưu writes to the DB. Hủy / X / ← drop the popup's edits | Assumed, not objected |
 | Validation messages | Under the inputs, never toasts (R-307) | House rule |
 | Detail page Hồ sơ tab | Shows "NGƯỜI GIÁM HỘ (n)" under the info grid, with + / pencil / trash written at once through `PUT /patients/{id}/guardians`; "Dưới 16 tuổi" chip by the name; "SĐT của {quan hệ} - {tên}" under the phone when it is a guardian's number; whole card folds on click | BA mock 2026-10-07 + owner (R-777) |
+| A guardian who gets a hồ sơ of their own | Offered in the Điện thoại dropdown of Tạo hồ sơ when their phone is typed ("Người giám hộ của …", "Chưa có hồ sơ"). Picking them copies their details in once; saving creates a normal hồ sơ, and every guardian row with that CCCD in the branch gets `LinkedPatientId`. No two-way sync. The card then shows the spaced hồ sơ code and a chevron › that opens it; pencil, trash and the body-click fold are unchanged. The "thêm mới" buttons keep the old popup | BA P2710_02 + owner 2026-10-28 (F-82, R-1057, `features/patient-shared-phone.md`) |
 
 ## Not decided / not built
 

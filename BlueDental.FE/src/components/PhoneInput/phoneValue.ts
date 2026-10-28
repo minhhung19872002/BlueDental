@@ -31,18 +31,42 @@ export function parsePhone(value: string, preferred?: string): PhoneParts {
 
   const match = matchDialCode(value.slice(1), preferred);
   if (!match) return { iso: VIETNAM, national: value };
-  if (match.iso === VIETNAM) return { iso: VIETNAM, national: `0${value.slice(1 + match.dial.length)}` };
-  return { iso: match.iso, national: value.slice(1 + match.dial.length) };
+  const rest = value.slice(1 + match.dial.length);
+  if (match.iso === VIETNAM) return { iso: VIETNAM, national: `0${rest.replace(/^0+/, "")}` };
+  return { iso: match.iso, national: rest };
+}
+
+/** The most digits a Vietnamese number has once its 0 is dropped (02x landlines). */
+const VIETNAM_WITHOUT_ZERO_MAX_LENGTH = 10;
+const VIETNAM_DIAL = dialCodeOf(VIETNAM);
+
+/**
+ * A Vietnamese number as it is stored, national with its 0. The same phone
+ * typed beside the +84 flag without the 0 ("901…"), or with the code but no
+ * "+" ("84901…", how Zalo writes it), gets its 0 back, so it finds the same
+ * hồ sơ — the server folds it the same way (PatientPhoneFormat.Normalize).
+ * Any other length, a masked value and a "+" number stay as typed.
+ */
+export function normalizePhone(value: string): string {
+  if (!/^[1-9]\d{8,11}$/.test(value)) return value;
+  if (value.length <= VIETNAM_WITHOUT_ZERO_MAX_LENGTH) return `0${value}`;
+  return value.startsWith(VIETNAM_DIAL) ? `0${value.slice(VIETNAM_DIAL.length).replace(/^0+/, "")}` : value;
 }
 
 /**
  * The stored value for a country and what the box holds, and the box text
  * that goes with it. Abroad the trunk 0 is not dialled after the country
  * code, so it is dropped as it is typed ("0412…" under Australia → +61412…),
- * save where the 0 is part of the number (Italy…).
+ * save where the 0 is part of the number (Italy…). At home the 0 is put
+ * back instead; the box keeps "901…" as typed beside +84, but shows "84901…"
+ * as the national number it is.
  */
 export function composePhone(iso: string, national: string): { value: string; national: string } {
-  if (iso === VIETNAM || national.startsWith("+")) return { value: national, national };
+  if (national.startsWith("+")) return { value: national, national };
+  if (iso === VIETNAM) {
+    const value = normalizePhone(national);
+    return { value, national: value === `0${national}` ? national : value };
+  }
 
   const digits = national.includes(MASK) || keepsLeadingZero(iso) ? national : national.replace(/^0+/, "");
   return { value: digits ? `+${dialCodeOf(iso)}${digits}` : "", national: digits };

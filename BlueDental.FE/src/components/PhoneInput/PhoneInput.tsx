@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ChangeEvent, FocusEvent } from "react";
+import type { ChangeEvent, FocusEvent, ReactNode } from "react";
 
 import { Input, Select, Space } from "antd";
 
@@ -25,6 +25,12 @@ export interface PhoneInputProps {
   onBlur?: (event: FocusEvent<HTMLInputElement>) => void;
   /** The country list opening and closing — a FloatingField floats its label on it. */
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Inside the number box, at its end. Pass one from the first render (an
+   * empty `<span />` when there is nothing to show): AntD remounts the box
+   * when a suffix comes or goes, and the caret is lost mid-typing.
+   */
+  suffix?: ReactNode;
 }
 
 interface Draft extends PhoneParts {
@@ -64,7 +70,7 @@ function renderSelected({ value }: { value?: string | number }) {
  * searchable list, then the number. Vietnamese numbers keep their national
  * form, foreign ones are composed into E.164 — see phoneValue.ts.
  */
-export function PhoneInput({ value, onChange, id, placeholder, disabled, onFocus, onBlur, onOpenChange }: PhoneInputProps) {
+export function PhoneInput({ value, onChange, id, placeholder, disabled, onFocus, onBlur, onOpenChange, suffix }: PhoneInputProps) {
   const t = useT();
   const options = useCountryOptions();
   const current = value ?? "";
@@ -115,6 +121,7 @@ export function PhoneInput({ value, onChange, id, placeholder, disabled, onFocus
         value={draft.national}
         placeholder={placeholder}
         disabled={disabled}
+        suffix={suffix}
         onChange={handleNumberChange}
         onFocus={onFocus}
         onBlur={onBlur}

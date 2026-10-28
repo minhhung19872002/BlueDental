@@ -115,6 +115,8 @@ public class PatientGuardian : Entity<Guid>
         SortOrder = sortOrder;
     }
 
+    internal void LinkTo(Guid patientId) => LinkedPatientId = patientId;
+
     private static string Required(string? value, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value))

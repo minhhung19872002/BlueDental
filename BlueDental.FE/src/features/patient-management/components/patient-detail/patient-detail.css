@@ -4918,21 +4918,6 @@
   align-items: center;
   gap: 10px;
 }
-.pd-guardian-avatar {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bd-blue-pale);
-  color: var(--bd-blue);
-  font-size: 13px;
-  font-weight: 600;
-}
-.pd-guardian--primary .pd-guardian-avatar {
-  background: var(--bd-card);
-}
 .pd-guardian-who {
   display: flex;
   flex: 1;

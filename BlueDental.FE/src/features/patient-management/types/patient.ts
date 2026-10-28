@@ -1,3 +1,5 @@
+import type { PatientRelationType } from "@/utils/patientRelation";
+
 export type Gender = "male" | "female" | "other";
 
 /** Matches BlueDental.PatientManagement.Gender (numeric on the wire). */
@@ -244,6 +246,8 @@ export interface PatientPrefill {
   provinceCode?: string;
   wardCode?: string;
   oldAddress?: string;
+  /** "+" under "Người dùng chung SĐT": the record the new one is linked to by default. */
+  sharedPhoneAnchorId?: string;
 }
 
 /**
@@ -254,16 +258,91 @@ export interface NationalIdLookup {
   exists: boolean;
 }
 
+/** Mirrors BlueDental.PatientManagement.PhoneOwnerDto — one hồ sơ already on the number. */
 export interface PhoneOwner {
   id: string;
   patientCode: string;
   patientName: string;
+  gender: GenderCode;
+  /** "YYYY-MM-DD". */
+  dateOfBirth: string | null;
+  lastVisitAt: string | null;
+  /** Chủ số — the first hồ sơ that held the number. */
+  isPhoneOwner: boolean;
+  /** Over 18 by year, or of unknown age: may stand on the "của …" side of any relation. */
+  isAdult: boolean;
+  /** What this holder is to `relatedToName` — the "Con của Hùng" chip. */
+  relationType: PatientRelationType | null;
+  relatedToName: string | null;
+}
+
+/** Mirrors BlueDental.PatientManagement.PhoneGuardianDto — a guardian without a hồ sơ on the number. */
+export interface PhoneGuardian {
+  /** Sent back as `sourceGuardianId` when the hồ sơ is made from them. */
+  guardianId: string;
+  relation: GuardianRelationCode;
+  fullName: string;
+  nationalId: string;
+  /** "YYYY-MM-DD". */
+  dateOfBirth: string | null;
+  gender: GenderCode | null;
+  email: string | null;
+  occupationEntryId: string | null;
+  /** The ward's address when "cùng địa chỉ với khách hàng" is ticked. */
+  address: string | null;
+  provinceCode: string | null;
+  wardCode: string | null;
+  /** The patients they answer for, newest first. */
+  wards: GuardianWard[];
 }
 
 export interface PhoneAvailability {
   exists: boolean;
-  /** Every record in the branch on this number, by code. */
+  /** Every record in the branch on this number, Chủ số first. Empty for a masked account. */
   owners: PhoneOwner[];
+  /** Guardians on the number with no hồ sơ yet — not counted in `exists`. */
+  guardians: PhoneGuardian[];
+}
+
+/** "Liên kết người dùng chung SĐT": the record being saved is `relation` of `anchorPatientId`. */
+export interface SharedPhoneLink {
+  relation: PatientRelationType;
+  anchorPatientId: string;
+}
+
+/** Mirrors BlueDental.PatientManagement.PhoneGroupMemberDto. */
+export interface PhoneGroupMember {
+  id: string;
+  patientCode: string;
+  fullName: string;
+  gender: GenderCode;
+  /** "YYYY-MM-DD". */
+  dateOfBirth: string | null;
+  lastVisitAt: string | null;
+  totalDebt: number;
+  isPhoneOwner: boolean;
+  relationType: PatientRelationType | null;
+  relatedToName: string | null;
+}
+
+/** Mirrors BlueDental.PatientManagement.LinkedGuardianDto — a guardian who has a hồ sơ. */
+export interface LinkedGuardian {
+  guardianId: string;
+  patientId: string;
+  patientCode: string;
+  lastVisitAt: string | null;
+}
+
+/** Mirrors BlueDental.PatientManagement.PatientLinkedPeopleDto. */
+export interface PatientLinkedPeople {
+  /** The other hồ sơ on the record's number, Chủ số first. */
+  sharedPhone: PhoneGroupMember[];
+  /** "Tổng dư nợ cả nhóm", the record's own debt included. */
+  groupDebt: number;
+  /** BA P2010: without "Chi phí › Xem" every amount arrives as 0. */
+  moneyHidden: boolean;
+  canAddSharedPhone: boolean;
+  guardians: LinkedGuardian[];
 }
 
 /**
@@ -304,6 +383,11 @@ export interface RegisterPatientRequest {
   guardians?: PatientGuardianInput[];
   /** The popup's "xác nhận thông tin … đồng ý cho khách hàng được thăm khám" tick. */
   guardiansConsented?: boolean;
+
+  /** Required when another hồ sơ holds the number (P2710_02); null otherwise. */
+  sharedPhoneLink?: SharedPhoneLink | null;
+  /** Create only: the guardian the hồ sơ was made from — their cards then link to it. */
+  sourceGuardianId?: string | null;
 }
 
 export type UpdatePatientRequest = RegisterPatientRequest;

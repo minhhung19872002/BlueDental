@@ -20,9 +20,39 @@ public class PatientPhoneFormatTests
     [InlineData("+1 (415) 555-0123", "+14155550123")]
     [InlineData("0014155550123", "+14155550123")]
     [InlineData("+82 10-1234-5678", "+821012345678")]
+    [InlineData("901234567", "0901234567")]
+    [InlineData("2887654321", "02887654321")]
+    [InlineData("84901234567", "0901234567")]
+    [InlineData("840901234567", "0901234567")]
+    [InlineData("842887654321", "02887654321")]
     public void Spellings_Of_One_Number_Become_One(string typed, string stored)
     {
         PatientPhoneFormat.Normalize(typed).ShouldBe(stored);
+    }
+
+    /// <summary>
+    /// Only a length a Vietnamese number short of its 0 can have gets one: a
+    /// short code, a foreign E.164 number and a masked value stay as typed.
+    /// </summary>
+    [Theory]
+    [InlineData("1234")]
+    [InlineData("12345678")]
+    [InlineData("821012345678")]
+    [InlineData("+14155550123")]
+    [InlineData("+390612345678")]
+    [InlineData("90****567")]
+    public void Other_Values_Get_No_Zero(string typed)
+    {
+        PatientPhoneFormat.Normalize(typed).ShouldBe(typed);
+    }
+
+    [Fact]
+    public void A_Lookup_Matches_The_Older_Spellings_Of_A_Vietnamese_Number()
+    {
+        string[] every = ["0901234567", "901234567", "84901234567", "+84901234567"];
+        PatientPhoneFormat.Spellings("0901234567").ShouldBe(every);
+        PatientPhoneFormat.Spellings("901234567").ShouldBe(every);
+        PatientPhoneFormat.Spellings("+14155550123").ShouldBe(["+14155550123"]);
     }
 
     [Theory]

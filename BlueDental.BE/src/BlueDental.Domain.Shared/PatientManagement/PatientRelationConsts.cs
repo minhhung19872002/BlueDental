@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace BlueDental.PatientManagement;
 
 /// <summary>
@@ -21,6 +23,14 @@ public enum PatientRelationType : short
     Friend = 8,
     Colleague = 9,
     Other = 10,
+    /// <summary>Người giám hộ khác — answers for the other record without being a parent (P2710_02).</summary>
+    OtherGuardian = 11,
+    /// <summary>Người được giám hộ — the inverse of <see cref="OtherGuardian"/>.</summary>
+    Ward = 12,
+    /// <summary>Người quen dùng nhờ số — uses the other record's phone; not family (P2710_02).</summary>
+    PhoneBorrower = 13,
+    /// <summary>Cho dùng nhờ số — the inverse of <see cref="PhoneBorrower"/>.</summary>
+    PhoneLender = 14,
 }
 
 /// <summary>"Hồ sơ nhóm" (function list 4.10): a family, or any other group of records.</summary>
@@ -49,15 +59,43 @@ public static class PatientRelationTypes
         PatientRelationType.Child => PatientRelationType.Parent,
         PatientRelationType.Grandparent => PatientRelationType.Grandchild,
         PatientRelationType.Grandchild => PatientRelationType.Grandparent,
+        PatientRelationType.OtherGuardian => PatientRelationType.Ward,
+        PatientRelationType.Ward => PatientRelationType.OtherGuardian,
+        PatientRelationType.PhoneBorrower => PatientRelationType.PhoneLender,
+        PatientRelationType.PhoneLender => PatientRelationType.PhoneBorrower,
         _ => type,
     };
 
     /// <summary>Người nhà — the relations a family prepaid card can be shared along.</summary>
     public static bool IsFamily(PatientRelationType type) =>
-        type is not (PatientRelationType.Friend or PatientRelationType.Colleague or PatientRelationType.Other);
+        type is not (PatientRelationType.Friend or PatientRelationType.Colleague or PatientRelationType.Other
+            or PatientRelationType.PhoneBorrower or PatientRelationType.PhoneLender);
 
     public static bool IsDefined(PatientRelationType type) =>
-        type is >= PatientRelationType.Spouse and <= PatientRelationType.Other;
+        type is >= PatientRelationType.Spouse and <= PatientRelationType.PhoneLender;
+
+    /// <summary>
+    /// The "Là …" choices of "Liên kết người dùng chung SĐT" (P2710_02), in the
+    /// BA's order: what the new record is to the one it shares the phone with.
+    /// </summary>
+    public static readonly IReadOnlyList<PatientRelationType> SharedPhoneChoices =
+    [
+        PatientRelationType.Child,
+        PatientRelationType.Spouse,
+        PatientRelationType.Parent,
+        PatientRelationType.Sibling,
+        PatientRelationType.Grandparent,
+        PatientRelationType.Grandchild,
+        PatientRelationType.OtherGuardian,
+        PatientRelationType.PhoneBorrower,
+    ];
+
+    /// <summary>
+    /// "của …" lists adults only (over 18), except for the relations that answer
+    /// for a child: "Bố/Mẹ của An" is linked from An's side (owner 2026-10-28).
+    /// </summary>
+    public static bool MayLinkToMinor(PatientRelationType type) =>
+        type is PatientRelationType.Parent or PatientRelationType.Grandparent or PatientRelationType.OtherGuardian;
 }
 
 public static class PatientRelationConsts

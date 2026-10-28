@@ -14,6 +14,7 @@ export const patientKeys = {
   codeEstimate: () => [...patientKeys.all, "code-estimate"] as const,
   phone: (phone: string, excludeId?: string) =>
     [...patientKeys.all, "phone", phone, excludeId ?? null] as const,
+  linkedPeople: (id: string) => [...patientKeys.all, "linked-people", id] as const,
 };
 
 /**
@@ -116,6 +117,21 @@ export function usePatientDto(id: string) {
   });
 }
 
+/** The record on demand — a hồ sơ picked from the phone's holders becomes the flow's patient (P2710_02). */
+export function useFetchPatientDto() {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (id: string) =>
+      queryClient.fetchQuery({
+        queryKey: [...patientKeys.detail(id), "dto"],
+        queryFn: () => patientApi.get(id),
+        staleTime: 0,
+      }),
+    [queryClient],
+  );
+}
+
 /** Only asked for while the create dialog is open. */
 export function usePatientCodeEstimate(enabled: boolean) {
   return useQuery({
@@ -132,14 +148,26 @@ export function usePatientCodeEstimate(enabled: boolean) {
  * Whether a phone is already on another record in this branch.
  *
  * The reference checks as the field is typed rather than only on submit, so a
- * duplicate is caught before the form is filled in.
+ * duplicate is caught before the form is filled in. A foreign number is asked
+ * about too, in the E.164 form PhoneInput composes; a masked one is not.
  */
 export function usePhoneAvailability(phone: string, excludeId?: string) {
-  const valid = /^\d{8,15}$/.test(phone);
+  const valid = /^(\+[1-9]\d{6,14}|\d{8,15})$/.test(phone);
 
   return useQuery({
     queryKey: patientKeys.phone(phone, excludeId),
     queryFn: () => patientApi.checkPhone(phone, excludeId),
     enabled: valid,
+    // A record saved a moment ago on the number must show up on the next look.
+    staleTime: 0,
+  });
+}
+
+/** "Người dùng chung SĐT" and the guardians who have a hồ sơ, for the record's Hồ sơ tab. */
+export function usePatientLinkedPeople(id: string) {
+  return useQuery({
+    queryKey: patientKeys.linkedPeople(id),
+    queryFn: () => patientApi.linkedPeople(id),
+    enabled: Boolean(id),
   });
 }

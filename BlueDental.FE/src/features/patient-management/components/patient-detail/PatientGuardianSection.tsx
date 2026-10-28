@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { PlusOutlined, TeamOutlined } from "@ant-design/icons";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
+import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import { usePatientLinkedPeople } from "../../api/patientQueries";
 import { useAddressLabel } from "../../hooks/useGuardianSubject";
 import { usePatientGuardianBlock } from "../../hooks/usePatientGuardianBlock";
 import { GUARDIAN_LIMITS, type PatientDto } from "../../types/patient";
@@ -24,6 +27,9 @@ interface Props {
 export function PatientGuardianSection({ patient, canEdit }: Props) {
   const block = usePatientGuardianBlock(patient);
   const occupations = useCatalogOptions(CATALOG_GROUP.Occupation).data ?? [];
+  const linkedGuardians = usePatientLinkedPeople(patient.id).data?.guardians ?? [];
+  const navigate = useNavigate();
+  const branchId = useCurrentBranchId();
   const patientAddress = useAddressLabel(
     patient.address ?? "",
     patient.provinceCode ?? undefined,
@@ -35,6 +41,8 @@ export function PatientGuardianSection({ patient, canEdit }: Props) {
   const full = guardians.length >= GUARDIAN_LIMITS.maxPerPatient;
   const lastRequired = t("Patient:Guardian:LastRequired", GUARDIAN_LIMITS.requiredUnderAge);
   const deleteBlocked = block.summary.required && guardians.length === 1 ? lastRequired : null;
+
+  const handleOpenRecord = (patientId: string) => navigate(withBranch(`/patient/${patientId}`, branchId));
 
   const handleToggle = (id: string) =>
     setFlipped((current) => {
@@ -75,8 +83,10 @@ export function PatientGuardianSection({ patient, canEdit }: Props) {
               key={guardian.id}
               guardian={guardian}
               occupation={occupations.find((row) => row.id === guardian.occupationEntryId)?.name ?? null}
+              linked={linkedGuardians.find((row) => row.guardianId === guardian.id) ?? null}
               expanded={guardian.isPrimaryContact !== flipped.has(guardian.id)}
               onToggle={() => handleToggle(guardian.id)}
+              onOpenRecord={handleOpenRecord}
               actions={
                 canEdit
                   ? {

@@ -152,6 +152,18 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A bộ hồ sơ shows at least one of the nine forms in its index.</summary>
         public const string MedicalRecordSetNeedsForm = "BlueDental:Patient:0031";
+
+        /// <summary>
+        /// The phone is already held by another hồ sơ, and the save did not say
+        /// how the new person is related to one of them (P2710_02).
+        /// </summary>
+        public const string SharedPhoneLinkRequired = "BlueDental:Patient:0033";
+
+        /// <summary>The "của …" pick does not hold the number, or may not be picked for that relation.</summary>
+        public const string SharedPhoneAnchorInvalid = "BlueDental:Patient:0034";
+
+        /// <summary>Another hồ sơ on the same phone already has this full name (P2710_02).</summary>
+        public const string DuplicateNameOnPhone = "BlueDental:Patient:0035";
     }
 
     public static class Appointments

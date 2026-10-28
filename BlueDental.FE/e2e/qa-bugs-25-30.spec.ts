@@ -11,7 +11,8 @@ import { openShiftCovering } from "./fixtures/workShift";
  * 27 Danh mục › Dịch vụ: a VNĐ discount larger than the price is refused.
  * 28 Thanh toán: a receipt cannot be taken back once written (owner 2026-10-13;
  *    it used to be cancelled with a reason and stay listed "Đã hủy").
- * 29 Bệnh nhân: a phone another record holds is named and cannot be saved.
+ * 29 Bệnh nhân: a phone another record holds is named; since P2710_02 a record
+ *    joins it only with "Là … của …".
  * 30 Bệnh nhân: a name holds only letters, digits, spaces and - . '
  *
  * Real stack: real login, real API, real PostgreSQL — nothing is intercepted.
@@ -265,9 +266,13 @@ test.describe("27 · Danh mục › Dịch vụ: a VNĐ discount cannot exceed t
 });
 
 test.describe("29 + 30 · Bệnh nhân", () => {
-  test("a phone another record holds is named and cannot be saved, in the dialog or through the API", async ({
-    page,
-  }) => {
+  /*
+   * P2710_02 (2026-10-28) replaced "one record per phone": a number may be
+   * shared, but a record only joins it by saying who it is to someone already
+   * on it ("Là … của …"). What bug 29 asked for still holds — the holder is
+   * named, and nothing joins the number unannounced.
+   */
+  test("a phone another record holds is named, and nothing joins it without 'Là … của …'", async ({ page }) => {
     await page.goto("/patient");
     await assertRealApiTraffic(page, PATIENTS);
     const id = runId();
@@ -275,7 +280,7 @@ test.describe("29 + 30 · Bệnh nhân", () => {
     const holder = await newPatient(page, `Trung So A ${id}`, phone);
     const other = await newPatient(page, `Trung So B ${id}`, phoneOf(id, "28"));
 
-    // The API refuses a second record, and moving another record onto the number.
+    // The API refuses a second record, and moving another record onto the number, without the link.
     const created = await call<AbpError>(page, "POST", PATIENTS, {
       firstName: `Trung So C ${id}`,
       lastName: "E2E",
@@ -283,7 +288,7 @@ test.describe("29 + 30 · Bệnh nhân", () => {
       phoneNumber: phone,
     });
     expect(created.status).toBeGreaterThanOrEqual(400);
-    expect(created.body.error?.code).toBe("BlueDental:Patient:0021");
+    expect(created.body.error?.code).toBe("BlueDental:Patient:0033");
     const moved = await call<AbpError>(page, "PUT", `${PATIENTS}/${other.id}`, {
       firstName: `Trung So B ${id}`,
       lastName: "E2E",
@@ -291,9 +296,8 @@ test.describe("29 + 30 · Bệnh nhân", () => {
       phoneNumber: phone,
     });
     expect(moved.status).toBeGreaterThanOrEqual(400);
-    expect(moved.body.error?.code).toBe("BlueDental:Patient:0021");
+    expect(moved.body.error?.code).toBe("BlueDental:Patient:0033");
 
-    // The check names every holder (only one can exist now that saves are refused).
     const check = await call<{ exists: boolean; owners: { patientCode: string }[] }>(
       page,
       "GET",
@@ -301,18 +305,24 @@ test.describe("29 + 30 · Bệnh nhân", () => {
     );
     expect(check.body.owners.map((o) => o.patientCode)).toEqual([holder.code]);
 
-    // The dialog names the holder and shuts Lưu; another number opens it again.
+    // The dialog lists the holder under the box and holds Lưu until the link is set.
     await page.locator(".bd-patient-toolbar").getByRole("button", { name: "Tạo hồ sơ" }).click();
     const dialog = page.getByRole("dialog", { name: "Tạo hồ sơ" });
+    const save = dialog.getByRole("button", { name: "Lưu" });
     await dialog.getByRole("textbox", { name: "Họ và tên *" }).fill(`Trung So D ${id}`);
     await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill(phone);
-    const warning = dialog.locator(".bd-patient-dupe");
-    await expect(warning).toContainText(`[${holder.code}] ${holder.name}`, { timeout: 15_000 });
-    await expect(warning).toContainText("Không thể lưu");
-    await expect(dialog.getByRole("button", { name: "Lưu" })).toBeDisabled();
+    const holders = dialog.getByRole("region", { name: "Những người đang dùng số điện thoại này" });
+    await expect(holders).toContainText(holder.name, { timeout: 15_000 });
+    await expect(holders).toContainText("Chủ số");
+    await holders.getByRole("button", { name: "Người mới, dùng chung số này" }).click();
+    await expect(holders).toBeHidden();
+    await expect(dialog.getByText("Liên kết người dùng chung SĐT")).toBeVisible();
+    await expect(save).toBeDisabled();
+
+    // Another number drops the list and the link; Lưu opens again.
     await dialog.getByRole("textbox", { name: "Điện thoại *" }).fill(phoneOf(id, "27"));
-    await expect(warning).toHaveCount(0, { timeout: 15_000 });
-    await expect(dialog.getByRole("button", { name: "Lưu" })).toBeEnabled();
+    await expect(dialog.getByText("Liên kết người dùng chung SĐT")).toHaveCount(0, { timeout: 15_000 });
+    await expect(save).toBeEnabled();
   });
 
   test("a name with HTML or symbols is refused; letters, digits and - . ' are kept", async ({ page }) => {

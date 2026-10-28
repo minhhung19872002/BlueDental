@@ -156,8 +156,17 @@ public class PhoneAvailabilityDto
 {
     public bool Exists { get; set; }
 
-    /// <summary>Everyone in the branch who already holds it, by code, so the dialog can name them all.</summary>
+    /// <summary>
+    /// Everyone in the branch who already holds it, Chủ số first, so the
+    /// dialog can name them all. Empty for a masked account.
+    /// </summary>
     public List<PhoneOwnerDto> Owners { get; set; } = [];
+
+    /// <summary>
+    /// Guardians on file with this number who have no hồ sơ yet (P2710_02):
+    /// the dialog offers to make one from them. Not counted in <see cref="Exists"/>.
+    /// </summary>
+    public List<PhoneGuardianDto> Guardians { get; set; } = [];
 }
 
 public class PhoneOwnerDto
@@ -167,6 +176,103 @@ public class PhoneOwnerDto
     public string PatientCode { get; set; } = default!;
 
     public string PatientName { get; set; } = default!;
+
+    public Gender Gender { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
+
+    /// <summary>Khám gần nhất — the patient list's "Lần khám cuối".</summary>
+    public DateTimeOffset? LastVisitAt { get; set; }
+
+    /// <summary>Chủ số — the first hồ sơ that held the number.</summary>
+    public bool IsPhoneOwner { get; set; }
+
+    /// <summary>
+    /// Over 18, or of unknown age: may stand on the "của …" side of any
+    /// relation. The relations that answer for a child accept every holder.
+    /// </summary>
+    public bool IsAdult { get; set; }
+
+    /// <summary>What this holder is to <see cref="RelatedToName"/> — the "Con của Hùng" chip.</summary>
+    public PatientRelationType? RelationType { get; set; }
+
+    public string? RelatedToName { get; set; }
+}
+
+/// <summary>A guardian without a hồ sơ who answers on the number typed (P2710_02).</summary>
+public class PhoneGuardianDto
+{
+    /// <summary>The newest declaration of the person; sent back as <see cref="RegisterPatientDto.SourceGuardianId"/>.</summary>
+    public Guid GuardianId { get; set; }
+
+    public GuardianRelation Relation { get; set; }
+    public string FullName { get; set; } = default!;
+    public string NationalId { get; set; } = default!;
+    public DateOnly? DateOfBirth { get; set; }
+    public Gender? Gender { get; set; }
+    public string? Email { get; set; }
+    public Guid? OccupationEntryId { get; set; }
+
+    /// <summary>The guardian's address — the ward's when "cùng địa chỉ với khách hàng" is ticked.</summary>
+    public string? Address { get; set; }
+    public string? ProvinceCode { get; set; }
+    public string? WardCode { get; set; }
+
+    /// <summary>The patients they answer for, newest first.</summary>
+    public List<GuardianWardDto> Wards { get; set; } = [];
+}
+
+/// <summary>
+/// "Liên kết người dùng chung SĐT" (P2710_02): a record saved on a number
+/// another hồ sơ holds says who it is to one of them.
+/// </summary>
+public class SharedPhoneLinkInput
+{
+    /// <summary>"Là …" — what the record being saved is to <see cref="AnchorPatientId"/>.</summary>
+    public PatientRelationType Relation { get; set; }
+
+    /// <summary>"của …" — a hồ sơ already holding the number.</summary>
+    public Guid AnchorPatientId { get; set; }
+}
+
+/// <summary>"Người dùng chung SĐT" on the record's Hồ sơ tab, and the guardians' hồ sơ codes.</summary>
+public class PatientLinkedPeopleDto
+{
+    /// <summary>The other hồ sơ on the record's number, Chủ số first.</summary>
+    public List<PhoneGroupMemberDto> SharedPhone { get; set; } = [];
+
+    /// <summary>"Tổng dư nợ cả nhóm" — the record's own debt included.</summary>
+    public decimal GroupDebt { get; set; }
+
+    /// <summary>BA P2010: without "Chi phí › Xem" every amount arrives as 0.</summary>
+    public bool MoneyHidden { get; set; }
+
+    /// <summary>The section's +: a masked account cannot put a record on a number it is not shown.</summary>
+    public bool CanAddSharedPhone { get; set; }
+
+    /// <summary>Guardians of the record who have their own hồ sơ.</summary>
+    public List<LinkedGuardianDto> Guardians { get; set; } = [];
+}
+
+public class PhoneGroupMemberDto
+{
+    public Guid Id { get; set; }
+    public string PatientCode { get; set; } = default!;
+    public string FullName { get; set; } = default!;
+    public Gender Gender { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
+    public DateTimeOffset? LastVisitAt { get; set; }
+    public decimal TotalDebt { get; set; }
+    public bool IsPhoneOwner { get; set; }
+    public PatientRelationType? RelationType { get; set; }
+    public string? RelatedToName { get; set; }
+}
+
+public class LinkedGuardianDto
+{
+    public Guid GuardianId { get; set; }
+    public Guid PatientId { get; set; }
+    public string PatientCode { get; set; } = default!;
+    public DateTimeOffset? LastVisitAt { get; set; }
 }
 
 /// <summary>
@@ -222,6 +328,15 @@ public class RegisterPatientDto
 
     /// <summary>The popup's single consent tick for the whole group.</summary>
     public bool GuardiansConsented { get; set; }
+
+    /// <summary>Required when another hồ sơ of the branch holds the phone (P2710_02).</summary>
+    public SharedPhoneLinkInput? SharedPhoneLink { get; set; }
+
+    /// <summary>
+    /// The guardian row the form was filled from (P2710_02): the guardian
+    /// becomes this hồ sơ, and every declaration of the person links to it.
+    /// </summary>
+    public Guid? SourceGuardianId { get; set; }
 }
 
 public class UpdatePatientDto
@@ -263,6 +378,9 @@ public class UpdatePatientDto
 
     /// <summary>The popup's single consent tick; only read when <see cref="Guardians"/> is sent.</summary>
     public bool GuardiansConsented { get; set; }
+
+    /// <summary>Required when the phone changes to one another hồ sơ holds (P2710_02).</summary>
+    public SharedPhoneLinkInput? SharedPhoneLink { get; set; }
 }
 
 /// <summary>
