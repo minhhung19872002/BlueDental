@@ -28,6 +28,7 @@ export function PatientImageTab({ patientId }: Props) {
   const gallery = usePatientImageGallery(patientId);
   const permissions = usePatientImagePermissions();
   const upload = usePatientImageUpload(patientId, gallery.branchId, gallery.filter);
+  const uploading = upload.progress !== null;
   const { reordering, reorder } = usePatientImageReorder(patientId, gallery.filter);
   const deleteImage = useDeletePatientImage();
   const cameraAvailability = useCameraAvailability();
@@ -61,7 +62,7 @@ export function PatientImageTab({ patientId }: Props) {
 
   const busy =
     (gallery.isFetching && !gallery.isLoading && !gallery.isLoadingMore) ||
-    upload.uploading ||
+    uploading ||
     reordering ||
     deleteImage.isPending;
 
@@ -69,7 +70,7 @@ export function PatientImageTab({ patientId }: Props) {
     <div className="pi-tab" data-testid="patient-image-tab">
       <PatientImageToolbar
         filter={gallery.filter}
-        uploading={upload.uploading}
+        progress={upload.progress}
         canUpload={permissions.canUpload}
         onFilterChange={gallery.setFilter}
         onClearFilter={gallery.clearFilter}
@@ -77,7 +78,7 @@ export function PatientImageTab({ patientId }: Props) {
       >
         <PatientImageCaptureButton
           availability={cameraAvailability}
-          busy={upload.uploading}
+          busy={uploading}
           onClick={() => setCapturing(true)}
         />
       </PatientImageToolbar>
@@ -102,7 +103,7 @@ export function PatientImageTab({ patientId }: Props) {
       {capturing && (
         <CameraCaptureDialog
           stageLabel={captureStage}
-          uploading={upload.uploading}
+          progress={upload.progress}
           onUpload={upload.upload}
           onClose={() => setCapturing(false)}
         />

@@ -25,8 +25,8 @@ const JPEG_QUALITY = 0.92;
  * picture is never mirrored, so the left of the mouth stays on the left.
  *
  * `snap` takes the frame on screen at the size an upload keeps (1600px on the
- * longest side): a 4K camera's shot never trips the 5 MB limit, ten waiting
- * shots stay light, and the upload sends them as they are, not re-encoded.
+ * longest side): a 4K camera's shot stays far under the upload limit, a long
+ * strip of waiting shots stays light, and the upload sends them as they are.
  */
 export function usePhotoCamera({ deviceId, attempt }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null);

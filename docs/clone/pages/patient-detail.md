@@ -1545,6 +1545,22 @@ Nút kéo chỉ hiện với quyền `treatmentImage.update`, nút xoá với
   5 MB; `type` gửi lên = giai đoạn đang lọc, chưa lọc → `before`; tải **tuần
   tự** từng file `POST /api/v1/patient-images/upload` (multipart `patientId`,
   `type`, `file`, tuỳ chọn `note`, `ordering`); lỗi → toast "Không thể tải ảnh".
+- **Tải ảnh — BlueDental lệch bản gốc** (owner 2026-10-28, R-1065). Hai giới
+  hạn ở trên là của bản gốc, BlueDental **bỏ cả hai**:
+  - **Không giới hạn số file** một lần chọn (bản gốc dừng ở 10).
+  - Kiểm tra mỗi file **20 MB** (bằng trần server `PatientImage.MaxSizeBytes`),
+    thay vì 5 MB. Ảnh trên 5 MB hoặc trên 1600px vẫn được thu nhỏ trước khi gửi.
+    Ảnh hỏng không đọc được thì gửi nguyên, và có thể bị nginx
+    (`client_max_body_size 20m`) chặn 413 khi gần sát 20 MB.
+  - Vẫn gửi **tuần tự** từng file. Trong lúc gửi, nút đổi thành
+    "Đang tải x/y" và bị khoá. Lưới ảnh chỉ tải lại **một lần**, khi cả lô xong.
+  - File bị từ chối (sai loại, quá 20 MB): **một** toast cho mỗi lý do. Toast
+    nêu tên 3 file đầu, các file còn lại ghi "… và n tệp khác". Các file hợp
+    lệ vẫn được tải lên.
+  - Server từ chối giữa chừng → **dừng** lô và hiện toast "Lỗi khi tải {tên} —
+    đã tải lên x/y ảnh". Các ảnh đã lên vẫn giữ. Nếu cả lô chỉ có 1 file thì
+    toast vẫn là "Không thể tải ảnh".
+  - Tải xong không có toast báo thành công (như trước).
 
 ### Rỗng
 
@@ -1583,15 +1599,16 @@ bản gốc.
 - **Chụp nhiều ảnh**: mỗi lần bấm "Chụp" lóe sáng khung hình và thêm một ảnh
   vào dải bên phải, cách khung camera 20px.
   - Mỗi ảnh có nút × để bỏ.
-  - Tối đa **10 ảnh** cho một lần tải lên (bằng giới hạn của "Tải ảnh"). Đủ
-    10 ảnh thì "Chụp" tạm khoá và hiện "Đã đủ 10 ảnh cho một lần tải lên".
-  - Chân dialog ghi "Đã chụp n/10 ảnh".
+  - **Không giới hạn số ảnh** (owner 2026-10-28, R-1065; trước đó tối đa 10).
+    Dải xếp lưới ô 96px, cao tối đa 176px (khoảng 2 hàng). Nhiều hơn thì dải
+    tự cuộn, và mỗi ảnh mới chụp sẽ cuộn dải xuống cuối cho thấy ảnh đó.
+  - Chân dialog ghi "Đã chụp n ảnh".
 - **Ảnh chụp**: JPEG chất lượng 0.92, cạnh dài tối đa **1600px** (cùng trần
   với "Tải ảnh"). Tên file là `chup-anh-YYYYMMDD-HHmmss-n.jpg`. Ảnh đi qua
-  đúng đường tải của "Tải ảnh": kiểm tra 5 MB, thu nhỏ, rồi
+  đúng đường tải của "Tải ảnh": kiểm tra 20 MB, thu nhỏ, rồi
   `POST /api/v1/app/patient-images` từng file.
-- **"Tải lên (n)"**: gửi cả lô. Ảnh nào lên được thì rời khỏi dải và có toast
-  "Đã tải lên n ảnh".
+- **"Tải lên (n)"**: gửi cả lô. Trong lúc gửi, nút lưu ghi "Đang tải x/y". Ảnh
+  nào lên được thì rời khỏi dải và có toast "Đã tải lên n ảnh".
   - Lên hết → dialog đóng.
   - Lỗi một phần → dialog ở lại với những ảnh chưa lên để thử lại.
   - Đang tải thì không đóng được dialog.

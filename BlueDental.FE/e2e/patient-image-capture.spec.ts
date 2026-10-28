@@ -4,9 +4,9 @@ import { call } from "./fixtures/timekeepingStaff";
 
 /**
  * "Chụp ảnh" on tab "Hình ảnh" (BA request, not in the reference): a button
- * beside "Tải ảnh" opens the camera on the page, any number of shots up to ten
- * are taken and can be taken back, and "Tải lên" sends them the way "Tải ảnh"
- * sends picked files. See docs/clone/pages/patient-detail.md, Tab 5.
+ * beside "Tải ảnh" opens the camera on the page, any number of shots are taken
+ * and can be taken back, and "Tải lên" sends them the way "Tải ảnh" sends
+ * picked files. See docs/clone/pages/patient-detail.md, Tab 5.
  *
  * Chromium's fake camera stands in for the webcam; login, API, MinIO and
  * PostgreSQL are real and nothing is intercepted. The page's own
@@ -185,13 +185,13 @@ test.describe("Chụp ảnh bệnh nhân", () => {
     await expect(dialog.getByRole("button", { name: /Tải lên/ })).toBeDisabled();
 
     await snap(dialog, 2);
-    await expect(dialog.getByText("Đã chụp 2/10 ảnh")).toBeVisible();
+    await expect(dialog.getByText("Đã chụp 2 ảnh")).toBeVisible();
     const thumb = dialog.getByRole("img", { name: "Ảnh chụp 1" });
     await expect.poll(() => thumb.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
 
     await dialog.getByRole("button", { name: "Bỏ ảnh chụp 1" }).click();
     await expect(dialog.getByTestId("captured-shot")).toHaveCount(1);
-    await expect(dialog.getByText("Đã chụp 1/10 ảnh")).toBeVisible();
+    await expect(dialog.getByText("Đã chụp 1 ảnh")).toBeVisible();
 
     const [image] = await uploadShots(page, dialog, 1);
     try {
@@ -243,7 +243,7 @@ test.describe("Chụp ảnh bệnh nhân", () => {
     }
   });
 
-  test("ten shots fill one upload; Hủy throws them away and switches the camera off", async ({ page }) => {
+  test("shots past ten keep coming and the strip scrolls to the newest; Hủy throws them away and switches the camera off", async ({ page }) => {
     await watchCamera(page);
     await login(page);
     await openImageTab(page);
@@ -255,14 +255,28 @@ test.describe("Chụp ảnh bệnh nhân", () => {
 
     const dialog = await openCamera(page);
     expect(await cameraOff(page)).toBe(false);
-    await snap(dialog, 10);
-    await expect(dialog.getByText("Đã đủ 10 ảnh cho một lần tải lên")).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Chụp", exact: true })).toBeDisabled();
-    await expect(dialog.getByRole("button", { name: "Tải lên (10)" })).toBeEnabled();
-
-    // Taking one back makes room again.
-    await dialog.getByRole("button", { name: "Bỏ ảnh chụp 10" }).click();
+    // Three rows of the strip at this width — past the two it shows.
+    await snap(dialog, 17);
+    // No ceiling any more (owner, 2026-10-28): Chụp stays live past ten.
     await expect(dialog.getByRole("button", { name: "Chụp", exact: true })).toBeEnabled();
+    await expect(dialog.getByText("Đã chụp 17 ảnh")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Tải lên (17)" })).toBeEnabled();
+
+    // The strip keeps its height and scrolls itself to the newest shot.
+    const strip = dialog.getByRole("list", { name: "Ảnh đã chụp" });
+    const scroll = () =>
+      strip.evaluate((list) => {
+        const box = list.getBoundingClientRect();
+        const newest = list.lastElementChild?.getBoundingClientRect();
+        return {
+          overflows: list.scrollHeight > list.clientHeight,
+          newestShown: !!newest && newest.top >= box.top - 1 && newest.bottom <= box.bottom + 1,
+        };
+      });
+    await expect.poll(scroll).toEqual({ overflows: true, newestShown: true });
+
+    await dialog.getByRole("button", { name: "Bỏ ảnh chụp 17" }).click();
+    await expect(dialog.getByRole("button", { name: "Tải lên (16)" })).toBeEnabled();
 
     await dialog.getByRole("button", { name: "Hủy" }).click();
     await expect(dialog).toBeHidden();

@@ -11763,3 +11763,55 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - trên dòng đó, Bảo hành → Thay đổi vật liệu mới, tìm "tháo lắp", chọn rồi lưu, tải lại trang vẫn thấy đúng vật liệu.
   - Hồi quy Labo (`labo`, `labo-detail`, `labo-warranty`, `labo-orders-actions` và spec mới): **19/22 xanh**. 3 ca đỏ có từ trước, đỏ y hệt trước thay đổi: `labo-orders-actions:88` (link `?branch=` của F-68), `labo-warranty:315` (DatePicker có mask nhập), `labo:156` (ô "—").
   - `patient.spec` các ca Labo (Tạo Labo từ công đoạn, Đặt mới, chip trạng thái, In Phiếu): **4/4 xanh**.
+
+## R-1065 (2026-10-28, mức 2: Hồ sơ bệnh nhân — tab Hình ảnh) Bỏ giới hạn 10 ảnh của "Tải ảnh" / "Chụp ảnh", kiểm tra 20 MB
+
+- **Yêu cầu**: Định hỏi "bỏ cho upload hết đc k?". Hiện "Tải ảnh" chỉ cho 10 ảnh một lần.
+- **Chủ dự án chốt (2026-10-28)**:
+  - bỏ hẳn giới hạn số ảnh, không đặt trần mới;
+  - bỏ luôn ở "Chụp ảnh";
+  - nâng mức kiểm tra mỗi file từ 5 MB lên 20 MB;
+  - đưa lên cả main và develop.
+- **Số hiệu**: R-1062 đã được phiên Labo dùng trên main, R-1063 thuộc Ghi chú lịch hẹn, còn R-1064 đang giữ cho lỗ hổng header chi nhánh. Vì vậy mục này là R-1065.
+- **So với bản gốc**: bản gốc dừng ở 10 file một lần và kiểm tra 5 MB. BlueDental cố ý làm khác (`patient-detail.md`, Tab 5: "Tải ảnh — BlueDental lệch bản gốc" và "Chụp ảnh").
+- **Server**: không đổi.
+  - Server vốn không giới hạn số ảnh.
+  - Server vẫn từ chối file trên 20 MB (`PatientImage.MaxSizeBytes`), file rỗng và file sai loại.
+  - Mỗi file vẫn là một request riêng, nên số ảnh nhiều hay ít không đụng tới `client_max_body_size 20m` của nginx.
+- **FE**:
+  - `usePatientImageUpload`:
+    - Bỏ việc cắt còn 10 file. Mỗi file được kiểm tra với `PATIENT_IMAGE_MAX_BYTES` = 20 MB.
+    - `validateImageFile` có thêm tham số `maxBytes`, mặc định vẫn 5 MB cho khoảng 12 nơi gọi khác. Với những nơi đó chữ báo lỗi vẫn y như cũ: "Ảnh phải nhỏ hơn 5 MB".
+    - Vẫn gửi tuần tự. Trong lúc gửi, nút "Tải ảnh" ghi "Đang tải x/y" và bị khoá.
+    - Lưới ảnh chỉ tải lại **một lần**, khi cả lô xong: `usePatientImageBatchUpload` tách `send` / `refresh`. Trước đây mỗi file làm mới danh sách một lần, nên 50 ảnh là 50 lần tải lại.
+  - File bị từ chối: **một** toast cho mỗi lý do, nêu tên 3 file đầu rồi "và n tệp khác" (`Patient:Photo:RefusedMore`). Các file hợp lệ vẫn được gửi.
+  - Server từ chối giữa chừng: lô **dừng** lại, toast "Lỗi khi tải {tên} — đã tải lên x/y ảnh" (`Patient:Photo:UploadStopped`). Các ảnh đã lên vẫn giữ. Lô chỉ có 1 file thì vẫn toast "Không thể tải ảnh".
+  - "Chụp ảnh":
+    - `useCapturedShots` bỏ trần 10 ảnh (bỏ luôn key `Patient:Image:ShotsFull`).
+    - Chân dialog ghi "Đã chụp n ảnh", nút lưu ghi "Đang tải x/y".
+    - Dải ảnh đã chụp xếp lưới ô 96px, cao tối đa 176px. Nhiều hơn thì dải tự cuộn, và mỗi ảnh mới chụp cuộn dải tới ảnh đó.
+  - Bỏ key `MaxUploadError`. `Common:Validation:ImageMaxSize` giờ nhận tham số `{0}`. Key mới có đủ vi/en: `Patient:Photo:UploadProgress`, `Patient:Photo:UploadStopped`, `Patient:Photo:RefusedMore`.
+- **Ảnh hưởng đã xét**:
+  - Bộ nhớ trình duyệt: ảnh chụp được giữ ở dạng JPEG, cạnh dài tối đa 1600px. Ảnh chọn từ máy được thu nhỏ từng ảnh lúc gửi, không giải mã cả lô cùng lúc.
+  - Danh sách ảnh vẫn phân trang 25 ảnh và cuộn để tải thêm, như cũ.
+  - Không phải đổi DB hay migration.
+  - Rủi ro còn lại: ảnh hỏng không đọc được, dung lượng gần 20 MB, sẽ được gửi nguyên. Cộng phần đầu multipart, request có thể vượt 20 MB và bị nginx trả 413. Khi đó người dùng thấy toast lỗi như mọi lỗi server khác. Ảnh đọc được thì luôn được thu nhỏ trước khi gửi.
+- **E2E** (bản build production, preview riêng :8171 nối host riêng :5141, không chặn API, có đăng nhập thật):
+  - Spec mới `patient-image-batch.spec.ts`, **3/3 xanh**:
+    - Chọn 12 ảnh một lần:
+      - nút đếm từ "Đang tải 1/12" tới "Đang tải 12/12" rồi trở về "Tải ảnh";
+      - mỗi file được trả lời xong mới gửi file sau;
+      - lưới không tải lại giữa chừng mà tải lại sau file cuối;
+      - tải lại trang vẫn thấy đủ 12 ảnh, đúng thứ tự đã chọn.
+    - PNG trên 5 MB tải lên được. File 21 MB và 4 file .txt bị từ chối, có nêu tên, trong 2 toast (toast .txt ghi "… và 1 tệp khác").
+    - File rỗng ở giữa lô bị server từ chối:
+      - lô dừng, toast "Lỗi khi tải … — đã tải lên 1/3 ảnh";
+      - ảnh đã lên hiện trong lưới;
+      - ảnh phía sau không được gửi.
+  - `patient-image-capture.spec.ts` **5/5 xanh**. Ca cũ "đủ 10 ảnh thì khoá" đổi thành chụp 17 ảnh: "Chụp" vẫn bật, chân dialog ghi "Đã chụp 17 ảnh", "Tải lên (17)" bật, dải cuộn được và thấy ảnh mới nhất.
+  - `patient-image.spec.ts` **3/5 xanh** (tải lên, kéo sắp xếp, xoá):
+    - 2 ca còn đỏ đã đỏ từ trước, trên HEAD cũng đỏ (R-989): viewer (các nút độ dày nét có `aria-pressed`) và branch-scoped (gọi `login()` khi đã đăng nhập).
+    - Một ca đỏ làm worker khởi động lại với runId mới, nên ca kéo/xoá tìm sai tên ảnh và đỏ theo. Chạy bỏ 2 ca đó thì xanh.
+    - Đã dọn 4 ảnh rác `truoc-a/b-*.png` khỏi hồ sơ đầu tiên. Sau khi chạy không còn ảnh test nào sót lại.
+  - `tsc` xanh, build production xanh, đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-24 Hình ảnh, R-989 Chụp ảnh). `validateImageFile` là util dùng chung, nhưng giá trị mặc định và chữ báo lỗi của nó không đổi với các nơi gọi khác.
