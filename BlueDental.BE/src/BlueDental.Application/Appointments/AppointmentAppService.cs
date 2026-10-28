@@ -639,6 +639,20 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return await ToDtoAsync(appointment);
     }
 
+    /// <summary>"Đã đến" pressed again on the reception card: the arrival taken back while the patient waits.</summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public async Task<AppointmentDto> UndoCheckInAsync(Guid id)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
+        appointment.UndoCheckIn();
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
+        return await ToDtoAsync(appointment);
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> StartAsync(Guid id, StartAppointmentDto? input = null)
     {

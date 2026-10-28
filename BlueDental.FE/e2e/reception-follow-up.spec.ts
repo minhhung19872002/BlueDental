@@ -26,7 +26,7 @@ import { createRunStaff, deleteStaff, firstBranchId, type RunStaff } from "./fix
  * Nothing is intercepted; every state is re-read from the server.
  */
 
-const STATUS = { InProgress: 4, Completed: 5 } as const;
+const STATUS = { Requested: 1, CheckedIn: 3, InProgress: 4, Completed: 5 } as const;
 const OUTCOME = { EndTreatment: 1, FollowUp: 2, TransferDoctor: 3, Revisit: 4 } as const;
 
 /** "13:30" → 810. */
@@ -91,6 +91,62 @@ test.describe("Tiếp nhận — tiến trình và kết quả", () => {
     const stored = await getAppointment(page, branchId, visit.id);
     expect(stored.status).toBe(STATUS.Completed);
     expect(stored.outcome).toBe(OUTCOME.EndTreatment);
+  });
+
+  // Owner 2026-10-28: "Đã đến" pressed by mistake is pressed again to take it
+  // back, and its time goes — but only while the patient still waits.
+  test("Đã đến pressed again takes the arrival back while the patient waits", async ({ page, browser }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 45);
+    const card = await cardOf(page, visit);
+    const arrived = card.getByRole("button", { name: /Đã đến/ });
+    const arrivedTime = card.locator(".rc-step-time").first();
+
+    await arrived.click();
+    await expect(arrivedTime).toHaveText(/^\d\d:\d\d$/);
+    expect((await getAppointment(page, branchId, visit.id)).status).toBe(STATUS.CheckedIn);
+
+    // Pressed again: back on the book, the arrival time and the wait gone.
+    await expect(arrived).toHaveAttribute("title", "Bấm để huỷ Đã đến");
+    await arrived.click();
+    await expect(arrivedTime).toHaveText("--:--");
+    await expect(card.locator(".rc-wait-gap")).toHaveCount(0);
+    let stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.status).toBe(STATUS.Requested);
+    expect(stored.checkedInAt).toBeNull();
+
+    await page.reload();
+    const reloaded = await cardOf(page, visit);
+    await expect(reloaded.locator(".rc-step-time").first()).toHaveText("--:--");
+
+    // Arriving again starts afresh.
+    await reloaded.getByRole("button", { name: /Đã đến/ }).click();
+    await expect(reloaded.locator(".rc-step-time").first()).toHaveText(/^\d\d:\d\d$/);
+
+    // Another branch cannot take it back.
+    const other = await browser.newPage();
+    await login(other, BRANCH2_USER);
+    const foreign = await other.evaluate(async (url) => {
+      const xsrf = document.cookie.split("; ").find((c) => c.startsWith("XSRF-TOKEN="))?.substring(11);
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {},
+      });
+      return res.status;
+    }, `${APPOINTMENTS}/${visit.id}/undo-check-in`);
+    await other.close();
+    expect([403, 404]).toContain(foreign);
+    expect((await getAppointment(page, branchId, visit.id)).status).toBe(STATUS.CheckedIn);
+
+    // In the chair the arrival stands: the step no longer answers, nor does the server.
+    await reloaded.getByRole("button", { name: /Đang khám/ }).click();
+    await expect(reloaded.getByRole("button", { name: /Đã đến/ })).toBeDisabled();
+    const refused = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/undo-check-in`, { method: "POST" });
+    expect(refused.body.error?.code).toBe("BlueDental:Appointment:0003");
+    stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.status).toBe(STATUS.InProgress);
+    expect(stored.checkedInAt).toBeTruthy();
   });
 });
 

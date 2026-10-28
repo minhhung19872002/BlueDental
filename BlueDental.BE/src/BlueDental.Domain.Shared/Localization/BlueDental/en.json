@@ -2711,6 +2711,8 @@
     "Reception:CheckInOnItsDay": "A booking can only be received on its own day",
     "Reception:StatusScheduled": "Scheduled",
     "Reception:StatusArrived": "Arrived",
+    "Reception:UndoArrivedHint": "Click to undo Arrived",
+    "Reception:UndoArrivedSuccess": "Arrival undone",
     "Reception:StatusCancelled": "Cancelled",
     "Reception:StatusLate": "Late",
     "Reception:StatusTemporary": "Temporary",

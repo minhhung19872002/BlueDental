@@ -770,6 +770,57 @@ public class AppointmentTests
         Assert.NotNull(appointment.CheckedInAt);
     }
 
+    [Fact]
+    public void UndoCheckIn_Should_Put_A_Waiting_Patient_Back_On_The_Book()
+    {
+        var appointment = NewAppointment();
+        appointment.CheckIn();
+
+        appointment.UndoCheckIn();
+
+        Assert.Equal(AppointmentStatus.Requested, appointment.Status);
+        Assert.Null(appointment.CheckedInAt);
+
+        // Arriving again starts a new wait.
+        appointment.CheckIn();
+        Assert.Equal(AppointmentStatus.CheckedIn, appointment.Status);
+        Assert.NotNull(appointment.CheckedInAt);
+    }
+
+    [Fact]
+    public void UndoCheckIn_Should_Leave_A_Late_Booking_To_Be_Marked_Late_Again()
+    {
+        var appointment = NewAppointment();
+        appointment.MarkNoShow();
+        appointment.CheckIn();
+
+        appointment.UndoCheckIn();
+
+        Assert.True(appointment.IsMissedAt(_slot.Start.AddMinutes(1)));
+    }
+
+    [Fact]
+    public void UndoCheckIn_Should_Refuse_Once_The_Patient_Is_In_The_Chair()
+    {
+        var seated = NewAppointment();
+        seated.CheckIn();
+        seated.Start();
+        // "Hẹn tái khám" from the wait seats the patient too.
+        var revisited = NewAppointment();
+        revisited.CheckIn();
+        revisited.BookFollowUp(
+            Guid.NewGuid(), new AppointmentSlot(_slot.Start.AddDays(7), _slot.End.AddDays(7)), null, null, null,
+            AppointmentOutcome.Revisit);
+
+        foreach (var appointment in new[] { seated, revisited, NewAppointment() })
+        {
+            var error = Assert.Throws<BusinessException>(() => appointment.UndoCheckIn());
+            Assert.Equal(BlueDentalDomainErrorCodes.Appointments.InvalidTransition, error.Code);
+        }
+
+        Assert.NotNull(seated.CheckedInAt);
+    }
+
     private Appointment NewAppointment() =>
         new(Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot, AppointmentType.Consultation);
 }

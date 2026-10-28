@@ -464,6 +464,19 @@
   text-decoration: underline;
 }
 
+/* "Đã đến" pressed again takes the arrival back: hovering swaps ✓ for ↺. */
+.rc-step-undo-icon {
+  display: none;
+}
+
+.rc-step--undo:hover .rc-step-undo-icon {
+  display: block;
+}
+
+.rc-step--undo:hover .rc-step-check {
+  display: none;
+}
+
 .rc-step-track {
   display: flex;
   width: 100%;

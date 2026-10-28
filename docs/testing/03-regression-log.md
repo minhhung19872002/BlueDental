@@ -11720,3 +11720,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hai test kéo chuyển sang bác sĩ tạm (lịch các bác sĩ seed đã đầy do các lần chạy trước), có cuộn thanh vào màn hình trước khi rê chuột, và huỷ lịch + xoá bác sĩ sau khi chạy.
   - Test "saved only with a booked next appointment" đợi nút Xác nhận bật (lịch bận đã tải xong) rồi mới đọc giờ chọn nhanh. Trước đó test có lúc đọc 08:00 trước khi lịch 08:00 kịp tải về.
   - `reception-follow-up` + `-shifts` + `reception-rebook-undated`: **21/21 xanh**.
+
+
+## R-1061 (2026-10-28, mức 2: Tiếp nhận — thanh tiến trình) Bấm lại "Đã đến" để huỷ, xoá giờ đến
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: "lỡ người dùng ấn nút đã đến thì cho bấm vào lại để hủy trạng thái đã đến, reset lại thời gian".
+- **BE**: `Appointment.UndoCheckIn()` và `POST /api/v1/app/appointments/{id}/undo-check-in` (`Appointment.Update`, `GuardBranchAccess`, ghi lịch sử thay đổi như check-in).
+  - Chỉ nhận lịch đang ở `CheckedIn`, tức bệnh nhân còn đang chờ. Khi đã vào ghế, hoặc đã "Hẹn tái khám" từ lúc chờ (lịch được đưa vào ghế), thì trả `Appointment:0003`.
+  - Lịch về lại **Đã hẹn** (`Requested`, trạng thái lễ tân đặt lịch; FE không có bước xác nhận lịch), `CheckedInAt` = null.
+  - Lịch đã qua giờ hẹn thì worker trễ hẹn tự đánh lại "Trễ hẹn".
+  - Check-in không kéo theo gì khác (hàng chờ là phiếu tạo tay), nên không có gì khác cần hoàn tác.
+- **FE**:
+  - Bước "Đã đến" đã xong mà bước sau chưa xong thì vẫn bấm được: tooltip "Bấm để huỷ Đã đến", rê chuột thì ✓ đổi thành ↺. Sau khi huỷ hiện toast "Đã huỷ Đã đến".
+  - Giờ đến hiện lại "--:--" và đồng hồ chờ biến mất; bấm "Đã đến" lần nữa thì tính giờ mới.
+  - Tách phần dựng các bước của `ReceptionCardSteps.tsx` ra `utils/receptionSteps.ts` (từ 174 dòng xuống 90).
+- **Kiểm thử**:
+  - `AppointmentTests` +3: huỷ đến thì về Requested và đến lại được; lịch trễ hẹn sau khi huỷ thì bị đánh trễ lại; từ chối khi đã vào ghế, đã Hẹn tái khám, hoặc chưa đến. Kết quả 62/62.
+  - E2E `reception-follow-up` +1: bấm đến → bấm lại → "--:--", API trả Requested và `checkedInAt` null, tải lại trang vẫn vậy; đến lại có giờ mới; chi nhánh 2 bị từ chối 403/404; vào ghế thì nút bị khoá và server trả 0003.

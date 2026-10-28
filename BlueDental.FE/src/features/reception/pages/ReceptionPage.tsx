@@ -170,7 +170,12 @@ export const ReceptionPage: React.FC = () => {
   const handleStatusChange = (id: string, action: StepAction) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
-    const labels = { "check-in": t("Reception:StatusArrived"), start: t("Reception:StepStart"), complete: t("Reception:StepComplete") };
+    const labels: Record<StepAction, string> = {
+      "check-in": t("Reception:StatusArrived"),
+      start: t("Reception:StepStart"),
+      complete: t("Reception:StepComplete"),
+      "undo-check-in": t("Reception:UndoArrivedSuccess"),
+    };
     runCommand(id, planStepClick(item, action), () => toast.success(labels[action]));
   };
 

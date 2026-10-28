@@ -2610,6 +2610,8 @@
     "Reception:CheckInOnItsDay": "Chỉ tiếp nhận được vào đúng ngày hẹn",
     "Reception:StatusScheduled": "Đã hẹn",
     "Reception:StatusArrived": "Đã đến",
+    "Reception:UndoArrivedHint": "Bấm để huỷ Đã đến",
+    "Reception:UndoArrivedSuccess": "Đã huỷ Đã đến",
     "Reception:StatusCancelled": "Huỷ hẹn",
     "Reception:StatusLate": "Trễ hẹn",
     "Reception:StatusTemporary": "Lịch tạm",

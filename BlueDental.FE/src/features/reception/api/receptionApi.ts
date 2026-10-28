@@ -298,7 +298,7 @@ export const receptionApi = {
 
   async updateStatus(
     id: string,
-    action: "check-in" | "start" | "complete",
+    action: "check-in" | "start" | "complete" | "undo-check-in",
     outcome?: NonNullable<AppointmentOutcome>,
   ): Promise<void> {
     // `complete` binds a required body; it carries no `notes`, so the server

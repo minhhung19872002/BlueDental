@@ -1,6 +1,6 @@
 import type { AppointmentOutcome, ReceptionItem } from "../types/reception";
 
-export type StepAction = "check-in" | "start" | "complete";
+export type StepAction = "check-in" | "start" | "complete" | "undo-check-in";
 export type NonNullOutcome = Exclude<AppointmentOutcome, null>;
 
 /**

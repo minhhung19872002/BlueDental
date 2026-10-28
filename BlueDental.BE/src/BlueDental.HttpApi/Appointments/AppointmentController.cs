@@ -54,6 +54,9 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     [HttpPost("{id:guid}/check-in")]
     public Task<AppointmentDto> CheckInAsync(Guid id) => service.CheckInAsync(id);
 
+    [HttpPost("{id:guid}/undo-check-in")]
+    public Task<AppointmentDto> UndoCheckInAsync(Guid id) => service.UndoCheckInAsync(id);
+
     [HttpPost("{id:guid}/start")]
     public Task<AppointmentDto> StartAsync(Guid id, [FromBody] StartAppointmentDto? input = null) =>
         service.StartAsync(id, input);
