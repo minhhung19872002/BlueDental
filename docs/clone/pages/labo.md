@@ -663,6 +663,7 @@ the reference does; BlueDental sends the window the label promises.
 | Modal titles 24px | 16px | The app's modal convention (`patient-detail.md` §Labo) |
 | Blue accent on chips, tabs and the primary button | The app's indigo | Owner's 2026-09-07 rule for these dialogs |
 | `PUT /v1/orders/{id}` `{ status, imageLaboIds }` after separate media uploads | One `PUT /api/v1/app/labo-orders/{id}/detail` as `multipart/form-data` carrying `status`, `keepImageIds[]` and the new `pictures[]` | Same one-request rule as R-315; the pictures are `PatientImage` rows with `LaboOrderId`, read back as `images[]` |
+| A magnifier on each chip strip opens a "Tìm dịch vụ" popover | **Vật liệu** only: a search box always shown after the label (R-1062). Lựa chọn dịch vụ has no search | Owner's request 2026-10-28 ("thêm thanh tìm kiếm vật liệu"), in Đặt mới and in the row dialogs' Thay đổi vật liệu mới. The box filters the group's loaded materials blind to case and marks (`matchesSearch`). A choice that is filtered out stays chosen, and the box clears when the group changes |
 
 ### Mẫu Labo — the Thao tác column and its three dialogs (2026-09-24)
 

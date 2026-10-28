@@ -710,8 +710,10 @@ service has no stages in its catalog entry.
   reference *draws* for a chosen-but-unsaved picture stays unobserved — see
   docs/clone/unknowns.md.
 - The chip strips' **magnifier**, which opens the reference's "Tìm dịch vụ"
-  popover (Tab 6 table below), is not built: the strips list every option
-  instead of offering a search.
+  popover (Tab 6 table below), is not built as such. Since R-1062 (owner's
+  request, 2026-10-28), **Vật liệu** has a search box always shown right after
+  its label instead. It is blind to case and marks, and filters the group's
+  loaded materials. **Lựa chọn dịch vụ** still lists every option.
 - Primary buttons are BlueDental indigo (`--bd-primary #6366f1`), not the
   reference's blue `#2671D8`. That is the clone's own brand, applied
   app-wide.

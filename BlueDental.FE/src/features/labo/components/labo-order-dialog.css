@@ -48,11 +48,22 @@
 .pd-labo-strip--off {
   opacity: 0.6;
 }
-.pd-labo-strip > p {
+/* The label, and on Vật liệu the search box right after it (R-1062). */
+.pd-labo-strip-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   margin: 0 0 8px;
+}
+.pd-labo-strip-head > p {
+  margin: 0;
   color: var(--bd-ink);
   font-size: 14px;
   font-weight: 600;
+}
+.pd-labo-strip-search {
+  flex: 0 1 240px;
+  min-width: 0;
 }
 .pd-labo-emptypill {
   display: inline-flex;
@@ -570,7 +581,7 @@
   font-size: 12px;
   margin-top: 4px;
 }
-.pd-labo-strip--error > p,
+.pd-labo-strip--error .pd-labo-strip-head > p,
 .pd-labo-teeth--error > p {
   color: var(--bd-red);
 }

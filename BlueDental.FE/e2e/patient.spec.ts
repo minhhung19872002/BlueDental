@@ -2573,7 +2573,7 @@ test.describe("Bệnh nhân", () => {
     await expect(labo.locator(".ss-wrapper")).toHaveCount(4);
 
     // Two chip strips with the reference's own empty pills, then the teeth row.
-    await expect(labo.locator(".pd-labo-strip > p")).toHaveText([/Lựa chọn dịch vụ/, /Vật liệu/]);
+    await expect(labo.locator(".pd-labo-strip-head > p")).toHaveText([/Lựa chọn dịch vụ/, /Vật liệu/]);
     await expect(labo.getByText("Chọn dịch vụ trước")).toBeVisible();
     // The teeth row follows the line it was opened from: chips with "Chọn tất
     // cả" when the line names teeth, the "(Trống)" pill and no tick box when it

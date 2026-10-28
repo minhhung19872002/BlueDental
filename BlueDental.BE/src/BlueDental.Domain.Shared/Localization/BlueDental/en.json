@@ -4839,6 +4839,7 @@
     "Patient:Plan:ProsthesisDetailTitle": "Prosthesis detail",
     "Patient:Photo:SelectForPrintBtn": "Select images to include in print form.",
     "Patient:Labo:NoMaterial": "No material available",
+    "Patient:Labo:NoMaterialMatch": "No matching material",
     "Patient:Staff:SelectDoctorLabel": "Select treating doctor",
     "Patient:DiagnosisInvoice:DateLine": "Date: {0}",
     "Patient:Photo:ClinicalLibraryFullscreen": "Clinical image library fullscreen",

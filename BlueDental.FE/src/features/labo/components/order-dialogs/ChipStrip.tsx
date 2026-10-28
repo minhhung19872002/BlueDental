@@ -1,8 +1,20 @@
-import { Form } from "antd";
+import { useEffect } from "react";
+import { Form, Input } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import { useChipScroller } from "@/hooks/useChipScroller";
+import { matchesSearch } from "@/utils/foldForSearch";
+
+/** A search box beside the label that narrows the chips (R-1062). */
+export interface ChipSearch {
+  query: string;
+  onQuery: (query: string) => void;
+  placeholder: string;
+  /** The dashed pill when no chip matches the query. */
+  noMatch: string;
+}
 
 interface Props {
   id?: string;
@@ -11,6 +23,7 @@ interface Props {
   value?: string;
   empty: string;
   dimmed?: boolean;
+  search?: ChipSearch;
   onChange?: (value: string | undefined) => void;
 }
 
@@ -20,10 +33,16 @@ interface Props {
  * chip that is clicked again to let go of the choice. Shaped as a form
  * control (value/onChange) so a Form.Item can carry its rule and paint the
  * label red with the helper text.
+ *
+ * With `search`, a box beside the label hides the chips that do not match,
+ * blind to case and marks. The choice outlives its chip being hidden.
  */
-export function ChipStrip({ id, label, options, value, empty, dimmed, onChange }: Props) {
+export function ChipStrip({ id, label, options, value, empty, dimmed, search, onChange }: Props) {
   const { status } = Form.Item.useStatus();
-  const scroller = useChipScroller(options.length);
+  const query = search?.query ?? "";
+  const shown = query ? options.filter((option) => matchesSearch(option.label, query)) : options;
+  const scroller = useChipScroller(shown.length);
+  const scrollerRef = scroller.ref;
   const className = [
     "pd-labo-strip",
     dimmed && "pd-labo-strip--off",
@@ -32,16 +51,41 @@ export function ChipStrip({ id, label, options, value, empty, dimmed, onChange }
     .filter(Boolean)
     .join(" ");
 
+  // A new query shows its matches from the first one.
+  useEffect(() => {
+    scrollerRef.current?.scrollTo({ left: 0 });
+  }, [query, scrollerRef]);
+
   const pick = (optionValue: string) => onChange?.(optionValue === value ? undefined : optionValue);
 
   return (
     <div id={id} className={className}>
-      <p>
-        {label}
-        <span className="floating-field-required">*</span>
-      </p>
-      {options.length === 0 ? (
-        <span className="pd-labo-emptypill">{empty}</span>
+      <div className="pd-labo-strip-head">
+        <p>
+          {label}
+          <span className="floating-field-required">*</span>
+        </p>
+        {search && (
+          // A status of its own: a missing choice reddens the label and the hint, not the box.
+          <Form.Item noStyle validateStatus="">
+            <Input
+              className="pd-labo-strip-search"
+              size="small"
+              allowClear
+              prefix={<SearchOutlined />}
+              placeholder={search.placeholder}
+              aria-label={search.placeholder}
+              value={search.query}
+              disabled={dimmed || options.length === 0}
+              onChange={(event) => search.onQuery(event.target.value)}
+              // Enter in a text box would submit the order form.
+              onPressEnter={(event) => event.preventDefault()}
+            />
+          </Form.Item>
+        )}
+      </div>
+      {shown.length === 0 ? (
+        <span className="pd-labo-emptypill">{options.length > 0 && search ? search.noMatch : empty}</span>
       ) : (
         <div className="pd-labo-carousel">
           <button
@@ -54,7 +98,7 @@ export function ChipStrip({ id, label, options, value, empty, dimmed, onChange }
             <ChevronLeft size={16} />
           </button>
           <div className="pd-labo-chips" ref={scroller.ref} onScroll={scroller.onScroll}>
-            {options.map((option) => (
+            {shown.map((option) => (
               <button
                 type="button"
                 key={option.value}
