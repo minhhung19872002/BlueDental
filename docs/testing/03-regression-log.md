@@ -11649,3 +11649,74 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `patient.spec:2546` chập chờn ở cả hai bản: HEAD đỏ 1/5, F-82 đỏ 1/4, cùng dòng 2602 (ô Ghi chú Labo mất focus). Không do F-82.
 
 **Sửa sau review (2026-10-28, sau commit 5898e6df).** Cùng một người giám hộ được khai trên hai hồ sơ với CCCD gõ khác khoảng trắng (`0791 23…` và `079123…`): danh sách gộp là một người, nhưng khi lưu họ thành hồ sơ, `LinkGuardianAsync` so CCCD từng ký tự nên chỉ gắn `LinkedPatientId` cho bản khai trùng khít. Thêm nữa, dòng giám hộ trả CCCD còn khoảng trắng, dialog chép vào form và Lưu bị `0011` ("CCCD phải đủ 12 số"). Sửa: so khớp theo cùng khoá với danh sách (bỏ khoảng trắng, không phân biệt hoa thường; SQL `replace(' ', '')` + `upper`), dòng giám hộ trả CCCD đã làm sạch. Test: `patient-shared-phone-api` ca 3 khai lại người mẹ với CCCD có khoảng trắng ở giữa (đỏ `0011` trước khi sửa), API 7/7 + UI 6/6 + `patient-guardian*` 10/10 = 23/23 trên build production + host :5000 + PostgreSQL thật.
+
+
+## R-1058 (2026-10-28, mức 2: Tiếp nhận — Chọn lịch hẹn tiếp theo) Dựng lại panel chọn lịch theo thiết kế "Chọn lịch hẹn – có +3 tuần"
+
+- **Yêu cầu (chủ dự án, kèm file thiết kế HTML)**: phần chọn lịch khi bấm "Đổi lịch hẹn" / "Hẹn tái khám" ở Tiếp nhận làm theo giao diện mới.
+- **Giao diện** (feature `reception`):
+  - **Bước 1 — Bác sĩ phụ trách**: một thẻ gồm avatar chữ cái, tên, dòng "Ca làm việc" của tuần đang xem và nút "Đổi bác sĩ". Bấm vào mở danh sách có ô tìm, gõ không dấu được, Enter chọn dòng đầu.
+  - **Bước 2 — Chọn ngày**: tháng và mũi tên chuyển tuần, chip chọn nhanh +1 / +2 / **+3 tuần** / +1 tháng, rồi 7 ô ngày. Mỗi ô có chấm trạng thái: xanh = còn trống, cam = kín. Ngày đã qua và ngày BS nghỉ bị gạch ngang, không chọn được.
+  - **Bước 3 — Chọn khung giờ**: mỗi buổi một thanh thời gian vẽ trên ca thật của bác sĩ. Kéo để chọn khoảng giờ (bước 15'); bấm không kéo thì lấy 30'; với bàn phím, Enter / Space lấy nửa giờ trống đầu tiên. Có nút Từ / Đến ±15' và chip 30 / 45 / 60 / 90 phút. Chú thích: Còn trống / Đang chọn / Đã có lịch hẹn / Ngoài ca. Phần nghỉ phép và giờ đã qua tô gạch chéo.
+  - Ô tóm tắt Ngày hẹn / Khung giờ / Bác sĩ, rồi 3 nút như cũ.
+  - Màu của thiết kế khai báo thành token `--fu-*` trong `.fu-panel`, không có mã hex trong `.tsx`.
+- **Quy tắc giữ nguyên**:
+  - Chọn nhanh tự lấy nửa giờ trống đầu tiên.
+  - Bấm ngày bằng tay thì xoá chip chọn nhanh.
+  - Khung đã có lịch **vẫn chọn được**, lưu thì hỏi xác nhận trùng (BA 2026-10-16). Bản mẫu HTML chặn kéo qua lịch đã đặt; ở đây không làm theo điểm này.
+  - "Hẹn lại - Chưa chốt ngày" và giới hạn 300 ký tự giữ như cũ.
+- **Mới**:
+  - Độ dài lịch không còn cố định 30'. `slotEnd` gửi đúng khoảng đã chọn; API vốn đã nhận được.
+  - Không có bác sĩ thì thanh thời gian hiện "Chọn bác sĩ trước" và không xác nhận được. Trước đây vẫn đặt được, khi đó lịch đi theo bác sĩ của thẻ.
+- **BE**: `GET /api/v1/app/appointments/dentist-work-days?dentistId&fromDate&toDate` (`Appointment.Read`, chi nhánh hiện tại). Trả về từng ngày: ca sáng / chiều dự kiến và `windows` còn đặt được.
+  - Dùng chung `DentistShiftChecker` với lúc đặt lịch (`PlannedShifts` tách khỏi `WorkingWindows`, hành vi không đổi), nên picker chỉ cho chọn những gì server sẽ nhận.
+  - Khoảng ngày tối đa 62 ngày, sai thì trả 400.
+- **Kiểm thử**:
+  - `DentistShiftCheckerTests` 18/18 (2 test mới cho `PlannedShifts`).
+  - Trên bản build production (`vite preview` :8080, host :5000, Chromium đầy đủ vì máy chưa có headless shell): `reception-follow-up` (+1 test kéo/giãn/lùi rồi lưu đúng 14:15–14:45), `reception-rebook-undated`, `reception-revisit-counter`, và spec mới `reception-follow-up-shifts` (API: ngày nghỉ, nghỉ phép, giờ hồ sơ, 400 / 401, chi nhánh 2; UI: ngày nghỉ bị khoá, nghỉ phép tô gạch, bấm vào giờ nghỉ không chọn được) → **21/22 xanh**.
+  - Đỏ: "Lịch hẹn: the same chip counts and filters the day the same way" (`.dtl-block` mong 1, ra 0, đỏ cả 2 lần chạy). Test này chỉ dùng trang Lịch hẹn, thay đổi lần này không đụng tới. Chưa tìm nguyên nhân.
+- **Phát hiện bảo mật (có từ trước, chưa sửa)**: `CurrentClinicBranchResolver` tin header `X-Clinic-Branch-Id` mà không đối chiếu với chi nhánh tài khoản được phép. Probe GET bằng `branch2`, gửi header chi nhánh 1 vào `/appointments`: trả **200, 490 lịch của chi nhánh 1**. Endpoint mới cũng dùng resolver này nên mắc cùng lỗi. Cần sửa ở resolver (mức 3).
+
+
+## R-1059 (2026-10-28, mức 2: Tiếp nhận — Chọn lịch hẹn tiếp theo) Thanh thời gian: lăn chuột để phóng to, kéo thả khung đã chọn
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: bác sĩ có ca 00:00–12:00 / 12:00–23:59 thì nhãn giờ chồng lên nhau, các lịch đã đặt chỉ còn vài pixel. Muốn lăn chuột để phóng to, và giữ để kéo thả khung giờ.
+- **Phóng to** (`useTrackView`, `utils/trackScale.ts`):
+  - Lăn chuột hoặc pinch trên trackpad thì phóng to / thu nhỏ quanh con trỏ, gần nhất là 1 giờ trên cả thanh. Shift + lăn, hoặc lăn ngang, thì dịch sang hai bên.
+  - Khi thanh không đổi được nữa thì không chặn cuộn, trang vẫn cuộn bình thường.
+  - Đang zoom thì có dải tổng quan cả ca ngay dưới thanh (bấm / kéo để dời vùng xem) và nút "Xem cả buổi".
+  - Bàn phím trên thanh đang focus: `+` / `−` / `0` để zoom.
+  - Khung được chọn ở chỗ khác (chọn nhanh, ±15') mà nằm ngoài vùng xem thì vùng xem tự dời tới.
+  - Mỗi buổi zoom riêng. Đổi sang ngày có giờ ca khác thì về lại cả ca.
+- **Nhãn giờ tự giãn theo độ rộng thanh**: 15 / 30 / 60 / 120 / 180 / 240 / 360 phút, hai nhãn cách nhau ít nhất 56px. Ca 4 tiếng ở cỡ thường vẫn hiện mỗi 30' như thiết kế. Khi zoom sâu thì thêm đường kẻ mỗi 15'.
+- **Kéo thả** (`useTrackDrag`):
+  - Bấm vào chỗ trống: tạo khoảng mới như trước.
+  - Bấm vào giữa khung đang chọn: dời khung, giữ nguyên độ dài. Được sang khúc trống khác của buổi nếu vừa trọn; nếu không thì dừng ở mép khúc hiện tại.
+  - Bấm vào mép (±6px): kéo giãn đầu đó.
+  - Con trỏ đổi theo chỗ đặt chuột: grab / grabbing / ew-resize.
+  - Bàn phím: ← / → dời 15', Shift + ← / → đổi giờ kết thúc.
+- Lịch đã đặt mà ngắn quá thì chỉ hiện giờ bắt đầu; giờ đầy đủ xem ở tooltip.
+- **E2E** (bản build production, :8080):
+  - `reception-follow-up` thêm 1 test: kéo 14:00–15:00, giữ giữa dời sang 15:00–16:00, kéo mép thành 15:00–16:30 rồi 15:15–16:30, lăn chuột thì có "Xem cả buổi" và dải tổng quan, nhãn đầu không còn 13:00, khung giữ nguyên, bấm "Xem cả buổi" thì về lại cả ca.
+  - Hai test kéo bấm lại ô ngày trước khi kéo, để bỏ nửa giờ mà chọn nhanh tự gán.
+  - `reception-follow-up` + `-shifts` + `reception-rebook-undated`: **21/21 xanh**.
+
+
+## R-1060 (2026-10-28, mức 2: Tiếp nhận — Chọn lịch hẹn tiếp theo) Không cho chọn đè lên khung giờ đã có lịch hẹn
+
+- **Yêu cầu (chủ dự án)**: "không cho drag vào những khung giờ đã có lịch hẹn". Trên panel, quyết định này thay cho BA 2026-10-16 ("trùng bác sĩ chỉ là cảnh báo, chọn vẫn được").
+- **Sửa** (`followUpSlots.freeStretches` = giờ mở trừ lịch đã đặt, làm tròn theo bước 15'): mọi cách chọn khoảng giờ chỉ đi trong phần trống.
+  - Bấm lên một lịch đã đặt: không chọn gì.
+  - Kéo tạo mới, kéo giãn mép: dừng ở mép lịch kế bên.
+  - Dời khung: nhảy qua lịch đã đặt sang khúc trống khác nếu vừa trọn; nếu không thì dừng sát lịch.
+  - Từ / Đến ±15', chip 30 / 45 / 60 / 90, phím ← / →: tắt hoặc bỏ qua khi kết quả đè lên lịch.
+  - Chọn nhanh vẫn lấy nửa giờ trống đầu tiên.
+  - Rê chuột qua lịch đã đặt hoặc ngoài ca thì con trỏ thành `not-allowed`.
+  - Ngày "Kín" (không còn khúc trống 15' nào) giờ bị khoá như ngày nghỉ, vẫn giữ chấm cam.
+  - Khung đã chọn mà bị lịch mới đè lên (dữ liệu tải lại) thì tự bỏ chọn.
+- **Giữ nguyên**: server vẫn chỉ cảnh báo trùng bác sĩ (0002 + `allowDentistOverlap`). Hộp "Cảnh báo trùng khung giờ" trên panel chỉ còn hiện khi có lịch được đặt chen vào sau lúc panel tải dữ liệu.
+- **E2E** (bản build production :8080):
+  - Test "booked slots… booking one asks first" viết lại thành "the doctor's booked visits are marked and cannot be picked over". Dùng bác sĩ tạm có lịch 08:00 và 09:30, kiểm: chọn nhanh vào 08:30; bấm lên lịch không chọn gì; nút Lùi giờ bắt đầu và chip 90' bị tắt, chip 60' bật; kéo giãn dừng ở 09:30; dời qua lịch thì nhảy sang 10:15, dời ngược thì dừng ở 10:00; server vẫn trả 0002; lưu 10:00 với đúng bác sĩ.
+  - Hai test kéo chuyển sang bác sĩ tạm (lịch các bác sĩ seed đã đầy do các lần chạy trước), có cuộn thanh vào màn hình trước khi rê chuột, và huỷ lịch + xoá bác sĩ sau khi chạy.
+  - Test "saved only with a booked next appointment" đợi nút Xác nhận bật (lịch bận đã tải xong) rồi mới đọc giờ chọn nhanh. Trước đó test có lúc đọc 08:00 trước khi lịch 08:00 kịp tải về.
+  - `reception-follow-up` + `-shifts` + `reception-rebook-undated`: **21/21 xanh**.

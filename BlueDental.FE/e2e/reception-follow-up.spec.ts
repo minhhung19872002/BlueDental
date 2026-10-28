@@ -11,6 +11,7 @@ import {
   type ApiResult,
   type Appointment,
 } from "./fixtures/receptionBoard";
+import { createRunStaff, deleteStaff, firstBranchId, type RunStaff } from "./fixtures/timekeepingStaff";
 
 /**
  * Feature: Tiếp nhận — progress bar ↔ outcome, and "Đổi lịch hẹn".
@@ -27,6 +28,15 @@ import {
 
 const STATUS = { InProgress: 4, Completed: 5 } as const;
 const OUTCOME = { EndTreatment: 1, FollowUp: 2, TransferDoctor: 3, Revisit: 4 } as const;
+
+/** "13:30" → 810. */
+const minutesOf = (hhmm: string) => {
+  const [h, m] = hhmm.trim().split(":").map(Number);
+  return h * 60 + m;
+};
+
+/** 810 → "13:30". */
+const hhmmOf = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 /** The outcome options only — the picker's own buttons share their words. */
 const outcome = (card: Locator, name: string | RegExp) =>
@@ -111,9 +121,12 @@ test.describe("Tiếp nhận — Đổi lịch hẹn", () => {
     await followUp.click();
     await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
     await expect(panel.getByRole("button", { name: /^\+1 tuần/ })).toHaveAttribute("aria-pressed", "true");
-    const pickedSlot = panel.locator(".fu-slot[aria-pressed='true']");
-    await expect(pickedSlot).toHaveCount(1);
-    const time = (await pickedSlot.innerText()).trim();
+    // The quick pick lands on the doctor's first free half hour — read once the
+    // bookings are in (Xác nhận waits for them too), or it may still move.
+    const pickedStart = panel.locator(".fu-time--start");
+    await expect(confirm).toBeEnabled();
+    await expect(pickedStart).toHaveText(/^\d\d:\d\d$/);
+    const time = (await pickedStart.innerText()).trim();
 
     // A day picked by hand clears the quick pick: only one is ever active.
     await panel.locator(".fu-day:not([disabled])[aria-pressed='false']").first().click();
@@ -145,6 +158,26 @@ test.describe("Tiếp nhận — Đổi lịch hẹn", () => {
     const reloaded = await cardOf(page, visit);
     await expect(outcome(reloaded, /Đổi lịch hẹn/)).toContainText(label);
     await expect(outcome(reloaded, /Đổi lịch hẹn/)).toHaveAttribute("aria-pressed", "true");
+  });
+
+  // The drag tests take a dentist of their own: earlier runs fill the seeded
+  // dentists' days, and a booked visit can no longer be picked over.
+  test("a range dragged on the timeline, then stretched and nudged, is the one booked", async ({ page }) => {
+    const dentist = await runDentist(page, "Keo");
+    try {
+      await dragStretchAndBook(page, dentist);
+    } finally {
+      await dropRunDentist(page, dentist.id);
+    }
+  });
+
+  test("the picked range is moved and stretched by hand, and the wheel zooms the bar", async ({ page }) => {
+    const dentist = await runDentist(page, "Doi");
+    try {
+      await moveStretchAndZoom(page, dentist);
+    } finally {
+      await dropRunDentist(page, dentist.id);
+    }
   });
 
   // P2710.drawio (owner 2026-10-27): once done, "Đổi lịch hẹn" and "Chuyển bác
@@ -345,68 +378,92 @@ test.describe("Tiếp nhận — Đổi lịch hẹn", () => {
     expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.EndTreatment);
   });
 
-  test("the doctor's booked slots are marked, and booking one asks first", async ({ page }) => {
-    const branchId = await openBoard(page);
-    const visit = await bookVisitToday(page, branchId, 120);
+  // Owner 2026-10-28: the picker no longer lets a range onto a booked visit —
+  // not by a press, a drag, a stretch, the steppers or the length chips.
+  test("the doctor's booked visits are marked and cannot be picked over", async ({ page }) => {
+    const dentist = await runDentist(page, "Kin");
+    try {
+      const branchId = await openBoard(page);
+      const visit = await bookVisitToday(page, branchId, 120);
+      // The run's dentist holds 08:00–08:30 and 09:30–10:00 a week from now.
+      const weekAhead = (h: number, m: number) => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        d.setHours(h, m, 0, 0);
+        return d;
+      };
+      await holdDentist(page, branchId, dentist.id, weekAhead(8, 0), 30, visit.patientId);
+      await holdDentist(page, branchId, dentist.id, weekAhead(9, 30), 30, visit.patientId);
 
-    // Put the dentist in the chair at 08:00 a week from now (or find it taken already).
-    const blockStart = new Date();
-    blockStart.setDate(blockStart.getDate() + 7);
-    blockStart.setHours(8, 0, 0, 0);
-    const other = await call<{ items: { id: string }[] }>(page, branchId, `/api/v1/app/patients?MaxResultCount=50&ClinicBranchId=${branchId}`);
-    for (const p of other.body.items.filter((x) => x.id !== visit.patientId)) {
-      const res = await call<Appointment>(page, branchId, APPOINTMENTS, {
+      const card = await cardOf(page, visit);
+      await outcome(card, /Đổi lịch hẹn/).click();
+      const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
+      await switchDoctor(page, panel, dentist.name);
+      await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
+
+      // Drawn on the morning bar; the quick pick lands on the first free half hour.
+      await expect(panel.locator(".fu-booked")).toHaveCount(2);
+      const start = panel.locator(".fu-time--start");
+      const end = panel.locator(".fu-time--end");
+      await expect(start).toHaveText("08:30");
+      await expect(end).toHaveText("09:00");
+
+      const morning = panel.getByRole("button", { name: "Chọn khung giờ Buổi sáng" });
+      // The mouse only reaches what is on screen.
+      await morning.scrollIntoViewIfNeeded();
+      const [from, to] = (await panel.locator(".fu-session-range").first().innerText()).split(" – ").map(minutesOf);
+      const box = (await morning.boundingBox())!;
+      const x = (m: number) => box.x + ((m - from) / (to - from)) * box.width;
+      const y = box.y + box.height / 2;
+      const dragOnBar = async (fromMinute: number, toMinute: number) => {
+        await page.mouse.move(x(fromMinute), y);
+        await page.mouse.down();
+        await page.mouse.move(x(toMinute), y, { steps: 6 });
+        await page.mouse.up();
+      };
+
+      // A press on a booked visit picks nothing.
+      await page.mouse.click(x(8 * 60 + 10), y);
+      await expect(start).toHaveText("08:30");
+      // Neither stepper nor chip reaches into one.
+      await expect(panel.getByRole("button", { name: "Lùi giờ bắt đầu 15 phút" })).toBeDisabled();
+      await expect(panel.getByRole("button", { name: "60 phút" })).toBeEnabled();
+      await expect(panel.getByRole("button", { name: "90 phút" })).toBeDisabled();
+
+      // Stretched toward 10:30, the end stops where the next visit begins.
+      await dragOnBar(9 * 60, 10 * 60 + 30);
+      await expect(end).toHaveText("09:30");
+
+      // Moved past that visit, the range jumps to where it fits whole…
+      await dragOnBar(9 * 60, 10 * 60 + 45);
+      await expect(start).toHaveText("10:15");
+      await expect(end).toHaveText("11:15");
+      // …and moved back onto it, it stops against it.
+      await dragOnBar(10 * 60 + 45, 9 * 60 + 15);
+      await expect(start).toHaveText("10:00");
+      await expect(end).toHaveText("11:00");
+
+      // The server itself still only warns about a doubled dentist (a visit
+      // booked while the picker was open), and books nothing without a yes.
+      const held = weekAhead(8, 0);
+      const warned = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/follow-up`, {
         method: "POST",
-        json: {
-          patientId: p.id,
-          dentistId: visit.dentistId,
-          branchId,
-          slotStart: blockStart.toISOString(),
-          slotEnd: new Date(blockStart.getTime() + 30 * 60_000).toISOString(),
-          type: 2,
-        },
+        json: { dentistId: dentist.id, slotStart: held.toISOString(), slotEnd: new Date(held.getTime() + 30 * 60_000).toISOString() },
       });
-      if (res.status === 200 || res.body.error?.code === "BlueDental:Appointment:0002") break;
+      expect(warned.body.error?.code).toBe("BlueDental:Appointment:0002");
+      expect((await getAppointment(page, branchId, visit.id)).outcome).toBeNull();
+
+      await panel.getByRole("button", { name: "Xác nhận đổi lịch hẹn" }).click();
+      await expect(panel).toBeHidden({ timeout: 10_000 });
+      const stored = await getAppointment(page, branchId, visit.id);
+      expect(stored.outcome).toBe(OUTCOME.FollowUp);
+      const next = await getAppointment(page, branchId, stored.followUpAppointmentId!);
+      expect(next.dentistId).toBe(dentist.id);
+      expect(new Date(next.slotStart).getHours()).toBe(10);
+      expect(new Date(next.slotStart).getMinutes()).toBe(0);
+    } finally {
+      await dropRunDentist(page, dentist.id);
     }
-
-    const card = await cardOf(page, visit);
-    await outcome(card, /Đổi lịch hẹn/).click();
-    const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
-    await panel.getByRole("button", { name: /^\+1 tuần/ }).click();
-
-    // Marked busy but still pickable; the quick pick itself skips it.
-    const busySlot = panel.getByRole("button", { name: "08:00", exact: true });
-    await expect(busySlot).toBeEnabled();
-    await expect(busySlot).toHaveClass(/fu-slot--busy/);
-    await expect(panel.locator(".fu-slot[aria-pressed='true']")).not.toHaveText("08:00");
-
-    // Without the user's say-so the server only warns, and books nothing.
-    const warned = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/follow-up`, {
-      method: "POST",
-      json: { slotStart: blockStart.toISOString(), slotEnd: new Date(blockStart.getTime() + 30 * 60_000).toISOString() },
-    });
-    expect(warned.status).toBeGreaterThanOrEqual(400);
-    expect(warned.body.error?.code).toBe("BlueDental:Appointment:0002");
-    expect((await getAppointment(page, branchId, visit.id)).outcome).toBeNull();
-
-    await busySlot.click();
-    await expect(busySlot).toHaveAttribute("aria-pressed", "true");
-    const confirm = panel.getByRole("button", { name: "Xác nhận đổi lịch hẹn" });
-    await confirm.click();
-    const warning = page.getByRole("dialog", { name: "Cảnh báo trùng khung giờ" });
-    await expect(warning).toContainText("Bác sĩ đã có lịch hẹn trong khung giờ 08:00–");
-
-    // Hủy keeps the pick open to choose another time.
-    await warning.getByRole("button", { name: "Hủy", exact: true }).click();
-    await expect(warning).toBeHidden();
-    await expect(busySlot).toHaveAttribute("aria-pressed", "true");
-    expect((await getAppointment(page, branchId, visit.id)).outcome).toBeNull();
-
-    // Xác nhận books it anyway.
-    await confirm.click();
-    await warning.getByRole("button", { name: /Xác nhận$/ }).click();
-    await expect(panel).toBeHidden({ timeout: 10_000 });
-    expect((await getAppointment(page, branchId, visit.id)).outcome).toBe(OUTCOME.FollowUp);
   });
 
   test("a visit gets one live follow-up, and only inside its branch", async ({ page, browser }) => {
@@ -561,3 +618,156 @@ test.describe("Tiếp nhận — thanh tiến trình khi huỷ hẹn", () => {
     });
   });
 });
+
+type RunDentist = RunStaff & { name: string };
+
+/**
+ * A dentist for one test alone: nothing booked, the clinic's default hours.
+ * Made before the board loads, so its doctor list has them.
+ */
+async function runDentist(page: Page, tag: string): Promise<RunDentist> {
+  const run = `${runId()}${test.info().workerIndex}`;
+  const name = `BS ${tag} ${run}`;
+  const staff = await createRunStaff(page, await firstBranchId(page), `${tag.toLowerCase()}${run}`, { name, isDentist: true });
+  return { ...staff, name };
+}
+
+/** Cancels whatever the run's dentist was booked for, then removes them. */
+async function dropRunDentist(page: Page, dentistId: string) {
+  const branchId = await firstBranchId(page);
+  const until = new Date();
+  until.setDate(until.getDate() + 40);
+  const booked = await call<{ items: Appointment[] }>(
+    page, branchId, `${APPOINTMENTS}?dentistId=${dentistId}&fromDate=${dayOf(new Date())}&toDate=${dayOf(until)}&MaxResultCount=200`,
+  );
+  for (const a of (booked.body.items ?? []).filter((x) => x.status !== 6)) {
+    await call(page, branchId, `${APPOINTMENTS}/${a.id}/cancel`, { method: "POST", json: { reason: 1, note: "e2e" } });
+  }
+  await deleteStaff(page, dentistId);
+}
+
+/** Books `dentistId` from `start` for `minutes` with a patient other than `notPatient`. */
+async function holdDentist(page: Page, branchId: string, dentistId: string, start: Date, minutes: number, notPatient: string) {
+  const patients = await call<{ items: { id: string }[] }>(page, branchId, `/api/v1/app/patients?MaxResultCount=50&ClinicBranchId=${branchId}`);
+  for (const p of patients.body.items.filter((x) => x.id !== notPatient)) {
+    const res = await call<Appointment>(page, branchId, APPOINTMENTS, {
+      method: "POST",
+      json: {
+        patientId: p.id,
+        dentistId,
+        branchId,
+        slotStart: start.toISOString(),
+        slotEnd: new Date(start.getTime() + minutes * 60_000).toISOString(),
+        type: 2,
+      },
+    });
+    if (res.status === 200) return;
+  }
+  throw new Error("no patient was free to hold the dentist");
+}
+
+/** "Đổi bác sĩ" → `name`, through the list's search. */
+async function switchDoctor(page: Page, panel: Locator, name: string) {
+  await panel.getByRole("button", { name: /Đổi bác sĩ/ }).click();
+  const search = page.getByRole("textbox", { name: "Tìm bác sĩ" });
+  await search.fill(name);
+  await search.press("Enter");
+  await expect(panel.locator(".fu-doctor-name")).toContainText(name);
+}
+
+/** A visit's "Đổi lịch hẹn" picker, on `dentist`, two weeks out, with nothing picked yet. */
+async function pickerTwoWeeksOut(page: Page, dentist: RunDentist, minutesAhead: number) {
+  const branchId = await openBoard(page);
+  const visit = await bookVisitToday(page, branchId, minutesAhead);
+  const card = await cardOf(page, visit);
+  await outcome(card, /Đổi lịch hẹn/).click();
+  const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
+  await switchDoctor(page, panel, dentist.name);
+  await panel.getByRole("button", { name: /^\+2 tuần/ }).click();
+  // The same day by hand lets the quick pick's half hour go.
+  await panel.locator(".fu-day[aria-pressed='true']").click();
+  await expect(panel.locator(".fu-time--start")).toHaveText("--:--");
+
+  // The afternoon bar, measured off the shift it is drawn over.
+  const afternoon = panel.getByRole("button", { name: "Chọn khung giờ Buổi chiều" });
+  await expect(afternoon).toBeVisible();
+  // The mouse only reaches what is on screen.
+  await afternoon.scrollIntoViewIfNeeded();
+  const [from, to] = (await panel.locator(".fu-session-range").nth(1).innerText()).split(" – ").map(minutesOf);
+  const box = (await afternoon.boundingBox())!;
+  const x = (m: number) => box.x + ((m - from) / (to - from)) * box.width;
+  const y = box.y + box.height / 2;
+  const dragOnBar = async (fromMinute: number, toMinute: number, nudge = 0) => {
+    await page.mouse.move(x(fromMinute) + nudge, y);
+    await page.mouse.down();
+    await page.mouse.move(x(toMinute) + nudge, y, { steps: 6 });
+    await page.mouse.up();
+  };
+  return { branchId, visit, panel, from, x, y, dragOnBar };
+}
+
+async function dragStretchAndBook(page: Page, dentist: RunDentist) {
+  const { branchId, visit, panel, dragOnBar } = await pickerTwoWeeksOut(page, dentist, 100);
+
+  await dragOnBar(14 * 60, 15 * 60, 2);
+  await expect(panel.locator(".fu-time--start")).toHaveText("14:00");
+  await expect(panel.locator(".fu-time--end")).toHaveText("15:00");
+  await expect(panel.getByRole("button", { name: "60 phút" })).toHaveAttribute("aria-pressed", "true");
+
+  // 45 phút keeps the start; Từ + moves it a quarter hour on.
+  await panel.getByRole("button", { name: "45 phút" }).click();
+  await panel.getByRole("button", { name: "Tăng giờ bắt đầu 15 phút" }).click();
+  await expect(panel.locator(".fu-summary")).toContainText("14:15 – 14:45 (30 phút)");
+
+  await panel.getByRole("button", { name: "Xác nhận đổi lịch hẹn" }).click();
+  await expect(panel).toBeHidden({ timeout: 10_000 });
+
+  const stored = await getAppointment(page, branchId, visit.id);
+  expect(stored.outcome).toBe(OUTCOME.FollowUp);
+  const next = await getAppointment(page, branchId, stored.followUpAppointmentId!);
+  expect(next.dentistId).toBe(dentist.id);
+  const start = new Date(next.slotStart);
+  const inTwoWeeks = new Date();
+  inTwoWeeks.setDate(inTwoWeeks.getDate() + 14);
+  expect(dayOf(start)).toBe(dayOf(inTwoWeeks));
+  expect([start.getHours(), start.getMinutes()]).toEqual([14, 15]);
+  expect(new Date(next.slotEnd).getTime() - start.getTime()).toBe(30 * 60_000);
+}
+
+async function moveStretchAndZoom(page: Page, dentist: RunDentist) {
+  const { panel, from, x, y, dragOnBar } = await pickerTwoWeeksOut(page, dentist, 105);
+  const start = panel.locator(".fu-time--start");
+  const end = panel.locator(".fu-time--end");
+
+  await dragOnBar(14 * 60, 15 * 60, 2);
+  await expect(start).toHaveText("14:00");
+  await expect(end).toHaveText("15:00");
+
+  // Held by its middle, the range moves and keeps its hour.
+  await dragOnBar(14 * 60 + 30, 15 * 60 + 30);
+  await expect(start).toHaveText("15:00");
+  await expect(end).toHaveText("16:00");
+
+  // Held by an edge, only that end moves.
+  await dragOnBar(16 * 60, 16 * 60 + 30);
+  await expect(start).toHaveText("15:00");
+  await expect(end).toHaveText("16:30");
+  await dragOnBar(15 * 60, 15 * 60 + 15);
+  await expect(start).toHaveText("15:15");
+  await expect(end).toHaveText("16:30");
+
+  // The wheel zooms around the pointer; the range stays as picked.
+  const ticks = panel.locator(".fu-session").nth(1).locator(".fu-tick");
+  await expect(ticks.first()).toHaveText(hhmmOf(from));
+  await page.mouse.move(x(15 * 60 + 30), y);
+  await page.mouse.wheel(0, -500);
+  const reset = panel.getByRole("button", { name: "Xem cả buổi" });
+  await expect(reset).toBeVisible();
+  await expect(panel.locator(".fu-overview")).toBeVisible();
+  await expect(ticks.first()).not.toHaveText(hhmmOf(from));
+  await expect(start).toHaveText("15:15");
+
+  await reset.click();
+  await expect(reset).toBeHidden();
+  await expect(ticks.first()).toHaveText(hhmmOf(from));
+}

@@ -819,295 +819,832 @@
   font-weight: 500;
 }
 
+/* "Chọn lịch hẹn tiếp theo" — design "Chọn lịch hẹn – có +3 tuần" (2026-10-28).
+   Its palette is kept as panel tokens so the values stay in one place. */
 .fu-panel {
+  --fu-primary: #5b5ce6;
+  --fu-primary-off: #b9b8f5;
+  --fu-primary-ink: #4338ca;
+  --fu-primary-pale: #eef0ff;
+  --fu-primary-sub: #e4e5ff;
+  --fu-chip-line: #e0e3fa;
+  --fu-ink: #1e1b4b;
+  --fu-sub: #5b6080;
+  --fu-line: #e3e5f5;
+  --fu-rule: #eef0f7;
+  --fu-off-bg: #f5f6fb;
+  --fu-off-ink: #8a8fb0;
+  --fu-off-line: #f0f1f7;
+  --fu-closed-bg: #f1f2f8;
+  --fu-closed-ink: #6b7090;
+  --fu-closed-hatch: repeating-linear-gradient(135deg, transparent 0 6px, rgba(138, 143, 176, 0.14) 6px 7px);
+  --fu-legend-off: #ecedf5;
+  --fu-free-line: #c9cce4;
+  --fu-free-dot: #22a06b;
+  --fu-booked-bg: #fff3de;
+  --fu-booked-line: #f3c98b;
+  --fu-booked-ink: #8a4f06;
+  --fu-sum-bg: #fafafe;
+  --fu-sum-bg-set: #f4f4ff;
+  --fu-sum-line-set: #d4d6fa;
+  --fu-required: #e11d48;
+
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
-  border: 1px solid var(--bd-line);
-  border-radius: 16px;
+  gap: 20px;
+  padding: 22px 24px 24px;
+  border-radius: 20px;
   background: var(--bd-card);
-  box-shadow: 0 8px 24px rgba(35, 42, 86, 0.08);
+  box-shadow: 0 2px 10px rgba(30, 27, 75, 0.06);
+  color: var(--fu-ink);
+}
+
+.fu-panel button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.fu-panel button:disabled {
+  cursor: default;
+}
+
+.fu-panel button:focus-visible,
+.fu-track:focus-visible {
+  outline: 2px solid var(--fu-primary);
+  outline-offset: 2px;
 }
 
 .fu-head {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
 }
 
 .fu-head-icon {
-  display: inline-flex;
+  display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: var(--bd-blue-pale);
-  color: var(--bd-blue);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--fu-primary-pale);
+  color: var(--fu-primary);
 }
 
 .fu-head-text {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
 .fu-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 600;
-  color: var(--bd-title);
+  color: var(--fu-ink);
 }
 
 .fu-required {
-  color: var(--bd-red);
+  color: var(--fu-required);
 }
 
 .fu-hint {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--bd-muted);
+  margin: 0;
+  font-size: 13px;
+  color: var(--fu-sub);
 }
 
-.fu-doctor {
+.fu-divider {
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: var(--fu-rule);
+}
+
+/* ---- Steps ---------------------------------------------------------- */
+
+.fu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fu-section--time {
+  gap: 14px;
+}
+
+.fu-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fu-step-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.fu-step-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--fu-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.fu-step-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fu-ink);
+}
+
+.fu-step-hint {
+  font-size: 12px;
+  color: var(--fu-sub);
+}
+
+/* ---- 1 · Bác sĩ phụ trách -------------------------------------------- */
+
+.fu-doctor-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--fu-line);
+  border-radius: 12px;
+  background: var(--bd-card);
+  color: var(--fu-ink);
+  text-align: left;
+}
+
+.fu-doctor-card:hover {
+  border-color: var(--fu-chip-line);
+  background: var(--bd-row-alt);
+}
+
+.fu-doctor-card--error {
+  border-color: var(--bd-red);
+}
+
+.fu-avatar {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 8px;
-  width: 220px;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--fu-primary-pale);
+  color: var(--fu-primary-ink);
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.fu-doctor-label,
-.fu-quick-label,
-.fu-session-label,
-.fu-notes-label {
-  font-size: 12px;
-  color: var(--bd-muted);
-  white-space: nowrap;
-}
-
-.fu-doctor > :last-child {
+.fu-doctor-text {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  gap: 3px;
   min-width: 0;
 }
 
-.fu-doctor-error {
-  margin: -4px 0 0;
+.fu-doctor-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.fu-doctor-shift {
   font-size: 12px;
-  text-align: right;
+  color: var(--fu-sub);
+}
+
+.fu-doctor-change {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fu-primary-ink);
+}
+
+.fu-doctor-chevron {
+  flex-shrink: 0;
+  color: var(--fu-primary-ink);
+}
+
+.fu-doctor-error {
+  margin: 0;
+  font-size: 12px;
   color: var(--bd-red);
+}
+
+.fu-doctor-popover .ant-popover-inner {
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.fu-doctor-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 320px;
+}
+
+.fu-doctor-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.fu-doctor-option {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--bd-ink);
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fu-doctor-option:hover,
+.fu-doctor-option--on {
+  background: var(--bd-blue-pale);
+}
+
+.fu-doctor-option--on {
+  color: var(--bd-blue-dark);
+  font-weight: 600;
+}
+
+.fu-doctor-empty {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--bd-muted);
+}
+
+/* ---- 2 · Chọn ngày ---------------------------------------------------- */
+
+.fu-week-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fu-week-month {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fu-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--fu-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+  color: var(--fu-ink);
+}
+
+.fu-nav-btn:disabled {
+  opacity: 0.45;
 }
 
 .fu-quick {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-}
-
-.fu-chip {
-  padding: 4px 10px;
-  border: 1px solid var(--bd-line);
-  border-radius: var(--bd-radius-pill);
-  background: var(--bd-blue-pale);
-  color: var(--bd-blue);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.fu-chip:hover {
-  border-color: var(--bd-blue-light);
-}
-
-.fu-chip--on {
-  border-color: var(--bd-blue);
-  background: var(--bd-blue);
-  color: #fff;
-}
-
-.fu-week {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
-.fu-week-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.fu-quick-label {
+  font-size: 12px;
+  color: var(--fu-sub);
 }
 
-.fu-week-month {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--bd-title);
-}
-
-.fu-week-nav {
-  display: flex;
-  gap: 4px;
-}
-
-.fu-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
+.fu-chip {
   height: 26px;
-  border: 1px solid var(--bd-line);
-  border-radius: 8px;
-  background: var(--bd-card);
-  color: var(--bd-sub);
-  cursor: pointer;
+  padding: 0 10px;
+  border: 1px solid var(--fu-chip-line);
+  border-radius: 999px;
+  background: var(--fu-primary-pale);
+  color: var(--fu-primary-ink);
+  font-size: 12px;
+  font-weight: 500;
 }
 
-.fu-nav-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
+.fu-chip--on {
+  border-color: var(--fu-primary);
+  background: var(--fu-primary);
+  color: #fff;
 }
 
 .fu-days {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .fu-day {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 1px;
-  padding: 6px 0;
-  border: 1px solid var(--bd-line);
-  border-radius: 10px;
+  justify-content: center;
+  gap: 5px;
+  min-width: 62px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--fu-line);
+  border-radius: 8px;
   background: var(--bd-card);
-  color: var(--bd-ink);
-  cursor: pointer;
+  color: var(--fu-ink);
 }
 
-.fu-day:hover:not(:disabled) {
-  border-color: var(--bd-blue-light);
-}
-
-.fu-day:disabled {
-  background: var(--bd-bg-soft);
-  color: var(--bd-faint);
-  cursor: not-allowed;
-}
-
-.fu-day--full:not(.fu-day--selected) {
-  color: var(--bd-orange);
-}
-
-.fu-day--selected {
-  border-color: var(--bd-blue);
-  background: var(--bd-blue);
-  color: #fff;
-}
-
-.fu-day-name,
-.fu-day-state {
-  font-size: 10px;
-  opacity: 0.8;
+.fu-day-name {
+  font-size: 11px;
+  color: var(--fu-sub);
 }
 
 .fu-day-num {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.fu-slots {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.fu-day-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: transparent;
 }
+
+.fu-day--free .fu-day-dot {
+  background: var(--fu-free-dot);
+}
+
+/* Every open quarter hour booked: nothing left to pick that day. */
+.fu-day--full .fu-day-dot {
+  background: var(--bd-amber);
+}
+
+.fu-day--past,
+.fu-day--off,
+.fu-day--full {
+  border-color: var(--fu-off-line);
+  background: var(--fu-off-bg);
+  color: var(--fu-off-ink);
+  text-decoration: line-through;
+}
+
+.fu-day--past .fu-day-name,
+.fu-day--off .fu-day-name,
+.fu-day--full .fu-day-name {
+  color: var(--fu-off-ink);
+}
+
+.fu-day--selected {
+  border-color: var(--fu-primary);
+  background: var(--fu-primary);
+  color: #fff;
+}
+
+.fu-day--selected .fu-day-name {
+  color: var(--fu-primary-sub);
+}
+
+.fu-day--selected .fu-day-dot {
+  background: #fff;
+}
+
+/* ---- 3 · Chọn khung giờ ----------------------------------------------- */
 
 .fu-session {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.fu-session-head {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
+  padding-top: 10px;
 }
 
-.fu-slot-row {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+.fu-session-label {
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.fu-slot {
-  height: 30px;
-  border: 1px solid var(--bd-line);
-  border-radius: 8px;
+.fu-session-range {
+  font-size: 11px;
+  color: var(--fu-sub);
+}
+
+.fu-session-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fu-track {
+  position: relative;
+  height: 56px;
+  overflow: hidden;
+  border: 1px solid var(--fu-line);
+  border-radius: 10px;
   background: var(--bd-card);
-  color: var(--bd-ink);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
 }
 
-.fu-slot:hover:not(:disabled) {
-  border-color: var(--bd-blue-light);
-}
-
-/* The doctor already has a visit then: pickable, the overlap is confirmed on save. */
-.fu-slot--busy {
-  border-color: var(--bd-orange-line);
-  background: var(--bd-orange-pale);
-  color: var(--bd-orange);
-}
-
-.fu-slot--off {
-  background: var(--bd-line);
-  color: var(--bd-faint);
-  text-decoration: line-through;
+.fu-track--closed {
+  background: var(--fu-closed-bg) var(--fu-closed-hatch);
   cursor: not-allowed;
 }
 
-.fu-slot--selected {
-  border-color: var(--bd-blue);
-  background: var(--bd-blue);
+/* Over the picked range: its middle moves it, its edges stretch it. */
+.fu-track--grab {
+  cursor: grab;
+}
+
+.fu-track--grabbing {
+  cursor: grabbing;
+}
+
+.fu-track--resize {
+  cursor: ew-resize;
+}
+
+/* Over a booked visit or out of hours: nothing to pick there. */
+.fu-track--blocked {
+  cursor: not-allowed;
+}
+
+.fu-zoom-reset {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fu-primary-ink);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.fu-zoom-reset:hover {
+  text-decoration: underline;
+}
+
+/* Once zoomed: the whole shift, with the part in view as the thumb. */
+.fu-overview {
+  position: relative;
+  height: 6px;
+  margin-top: 2px;
+  border-radius: 3px;
+  background: var(--fu-rule);
+  cursor: pointer;
+  touch-action: none;
+}
+
+.fu-overview-thumb {
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background: var(--fu-free-line);
+}
+
+/* Placed along the bar by FollowUpTrack through --fu-left / --fu-width. */
+.fu-at {
+  position: absolute;
+  left: var(--fu-left);
+  width: var(--fu-width);
+  pointer-events: none;
+}
+
+.fu-grid {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--fu-closed-bg);
+}
+
+.fu-grid--hour {
+  background: var(--fu-line);
+}
+
+.fu-off {
+  top: 0;
+  bottom: 0;
+  background: var(--fu-closed-bg) var(--fu-closed-hatch);
+}
+
+.fu-track-note {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--fu-closed-ink);
+  pointer-events: none;
+}
+
+.fu-booked {
+  top: 6px;
+  bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 8px;
+  overflow: hidden;
+  border: 1px solid var(--fu-booked-line);
+  border-radius: 6px;
+  background: var(--fu-booked-bg);
+  color: var(--fu-booked-ink);
+  container-type: inline-size;
+}
+
+/* A short visit: its start alone, the rest is in the hover title. */
+@container (max-width: 80px) {
+  .fu-booked-end,
+  .fu-booked-note {
+    display: none;
+  }
+}
+
+.fu-booked-time {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fu-booked-note {
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.fu-sel {
+  top: 4px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 0 10px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--fu-primary);
+  box-shadow: 0 2px 6px rgba(91, 92, 230, 0.35);
   color: #fff;
+  container-type: inline-size;
+}
+
+.fu-sel-text {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Too short for "08:00 – 08:30": the start alone; the summary has the rest. */
+@container (max-width: 96px) {
+  .fu-sel-text-end {
+    display: none;
+  }
+}
+
+.fu-sel-grip {
+  position: absolute;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.fu-sel-grip--start {
+  left: 3px;
+}
+
+.fu-sel-grip--end {
+  right: 3px;
+}
+
+.fu-ticks {
+  position: relative;
+  height: 14px;
+}
+
+.fu-tick {
+  width: auto;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--fu-sub);
+  white-space: nowrap;
+}
+
+.fu-tick--first {
+  transform: none;
+}
+
+.fu-tick--last {
+  transform: translateX(-100%);
+}
+
+.fu-under-track {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-left: 108px;
+}
+
+.fu-range {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.fu-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fu-stepper-label {
+  font-size: 12px;
+  color: var(--fu-sub);
+}
+
+.fu-stepper:first-child .fu-stepper-label {
+  width: 34px;
+}
+
+.fu-nudge {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--fu-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+  color: var(--fu-ink);
+  font-size: 15px;
+}
+
+.fu-nudge:disabled {
+  opacity: 0.45;
+}
+
+.fu-time {
+  min-width: 48px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.fu-durations {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fu-duration {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--fu-line);
+  border-radius: 999px;
+  background: var(--bd-card);
+  color: var(--fu-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.fu-duration--on {
+  border-color: var(--fu-primary);
+  background: var(--fu-primary);
+  color: #fff;
+}
+
+.fu-duration:disabled {
+  opacity: 0.45;
 }
 
 .fu-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  font-size: 11px;
-  color: var(--bd-muted);
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--fu-sub);
 }
 
 .fu-legend-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .fu-swatch {
   width: 10px;
   height: 10px;
-  border: 1px solid var(--bd-line);
+  box-sizing: border-box;
   border-radius: 3px;
+}
+
+.fu-swatch--free {
+  border: 1px solid var(--fu-free-line);
   background: var(--bd-card);
 }
 
 .fu-swatch--selected {
-  border-color: var(--bd-blue);
-  background: var(--bd-blue);
+  background: var(--fu-primary);
 }
 
 .fu-swatch--busy {
-  border-color: var(--bd-orange-line);
-  background: var(--bd-orange-pale);
+  border: 1px solid var(--fu-booked-line);
+  background: var(--fu-booked-bg);
 }
+
+.fu-swatch--off {
+  background: var(--fu-legend-off);
+}
+
+/* ---- Nội dung, tóm tắt, nút ------------------------------------------- */
 
 .fu-notes {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+}
+
+.fu-notes-label {
+  font-size: 13px;
+  color: var(--fu-sub);
+}
+
+.fu-notes .ant-input {
+  min-height: 54px;
+  padding: 10px 12px;
+  border-color: var(--fu-line);
+  border-radius: 12px;
+  color: var(--fu-ink);
+  font-size: 14px;
+}
+
+.fu-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--fu-line);
+  border-radius: 12px;
+  background: var(--fu-line);
+}
+
+.fu-summary--set {
+  border-color: var(--fu-sum-line-set);
+  background: var(--fu-sum-line-set);
+}
+
+.fu-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  background: var(--fu-sum-bg);
+}
+
+.fu-summary--set .fu-summary-item {
+  background: var(--fu-sum-bg-set);
+}
+
+.fu-summary-item dt {
+  font-size: 11px;
+  color: var(--fu-sub);
+}
+
+.fu-summary-item dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .fu-foot {
@@ -1117,21 +1654,74 @@
   gap: 8px;
 }
 
+.fu-btn-wrap {
+  display: inline-flex;
+}
+
+.fu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--fu-line);
+  border-radius: 10px;
+  background: var(--bd-card);
+  color: var(--fu-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fu-btn:disabled {
+  opacity: 0.55;
+}
+
+.fu-btn--primary {
+  padding: 0 18px;
+  border: none;
+  background: var(--fu-primary);
+  color: #fff;
+}
+
+.fu-btn--primary:disabled {
+  background: var(--fu-primary-off);
+  opacity: 1;
+}
+
 .fu-spin {
   animation: rc-spin 0.8s linear infinite;
 }
 
 @media (max-width: 640px) {
-  .fu-head {
-    flex-wrap: wrap;
+  .fu-panel {
+    padding: 16px;
   }
 
-  .fu-doctor {
-    width: 100%;
+  .fu-session {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
   }
 
-  .fu-days,
-  .fu-slot-row {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .fu-session-head {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    padding-top: 0;
+  }
+
+  .fu-under-track {
+    padding-left: 0;
+  }
+
+  .fu-zoom-reset {
+    margin: 0 0 0 auto;
+  }
+
+  .fu-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fu-doctor-change {
+    display: none;
   }
 }

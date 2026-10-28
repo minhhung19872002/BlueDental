@@ -174,6 +174,26 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
     [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
     public Task<List<AppointmentDoctorTeamDto>> GetDoctorTeamsAsync() => _doctorTeams.GetTeamsAsync();
 
+    /// <summary>
+    /// "Chọn lịch hẹn tiếp theo": the dentist's working hours day by day at the
+    /// current branch, so the picker offers only what booking will accept.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Read)]
+    public async Task<List<DentistWorkDayDto>> GetDentistWorkDaysAsync(GetDentistWorkDaysInput input)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var days = await _shiftChecker.GetWorkDaysAsync(input.DentistId, branchId, input.FromDate, input.ToDate);
+
+        static ShiftWindowDto ToDto(ShiftWindow w) => new() { Start = w.Start, End = w.End };
+        return days.Select(d => new DentistWorkDayDto
+        {
+            Date = d.Date,
+            Morning = ToDto(d.Morning),
+            Afternoon = ToDto(d.Afternoon),
+            Windows = d.Windows.Select(ToDto).ToList(),
+        }).ToList();
+    }
+
     private async Task<IQueryable<Appointment>> FilteredQueryAsync(
         GetAppointmentListInput input, bool skipTextSearch = false)
     {

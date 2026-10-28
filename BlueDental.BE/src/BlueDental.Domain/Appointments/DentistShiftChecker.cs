@@ -66,6 +66,43 @@ public class DentistShiftChecker : ITransientDependency
     }
 
     /// <summary>
+    /// The dentist's working day for each date in [<paramref name="from"/>, <paramref name="to"/>]
+    /// at the branch, as "Chọn lịch hẹn tiếp theo" draws it: the planned morning and
+    /// afternoon, and what of them <see cref="EnsureWithinShiftAsync"/> would accept.
+    /// </summary>
+    public async Task<List<DentistWorkDay>> GetWorkDaysAsync(Guid dentistId, Guid branchId, DateOnly from, DateOnly to)
+    {
+        var records = (await _timeKeepingRepository.GetListAsync(r =>
+                r.StaffId == dentistId && r.ClinicBranchId == branchId && r.WorkDate >= from && r.WorkDate <= to))
+            .GroupBy(r => r.WorkDate)
+            .ToDictionary(g => g.Key, g => g.First());
+        var dentist = await _userRepository.FindAsync(dentistId, includeDetails: false);
+
+        var days = new List<DentistWorkDay>();
+        for (var day = from; day <= to; day = day.AddDays(1))
+        {
+            var record = records.GetValueOrDefault(day);
+            var (morning, afternoon) = PlannedShifts(record, dentist);
+            days.Add(new DentistWorkDay(day, morning, afternoon, WorkingWindows(record, dentist)));
+        }
+
+        return days;
+    }
+
+    /// <summary>
+    /// The morning and afternoon the day is planned around: the record's, else
+    /// the profile hours, else the clinic default. A day off or leave does not
+    /// change them — <see cref="WorkingWindows"/> takes those out.
+    /// </summary>
+    public static (ShiftWindow Morning, ShiftWindow Afternoon) PlannedShifts(
+        TimeKeepingRecord? record, IHasExtraProperties? dentist = null)
+    {
+        var morning = record?.MorningShift ?? StaffWorkingHours.PlannedOrDefault(dentist, WorkShiftKind.Morning);
+        var afternoon = record?.AfternoonShift ?? StaffWorkingHours.PlannedOrDefault(dentist, WorkShiftKind.Afternoon);
+        return (new(morning.PlannedStart, morning.PlannedEnd), new(afternoon.PlannedStart, afternoon.PlannedEnd));
+    }
+
+    /// <summary>
     /// The hours the dentist works that day, earliest first, with touching
     /// windows joined. Empty on a day off. <paramref name="dentist"/> supplies
     /// the profile hours for a day with no record.
@@ -77,13 +114,8 @@ public class DentistShiftChecker : ITransientDependency
             return [];
         }
 
-        var morning = record?.MorningShift ?? StaffWorkingHours.PlannedOrDefault(dentist, WorkShiftKind.Morning);
-        var afternoon = record?.AfternoonShift ?? StaffWorkingHours.PlannedOrDefault(dentist, WorkShiftKind.Afternoon);
-        IEnumerable<ShiftWindow> windows =
-        [
-            new(morning.PlannedStart, morning.PlannedEnd),
-            new(afternoon.PlannedStart, afternoon.PlannedEnd),
-        ];
+        var (morning, afternoon) = PlannedShifts(record, dentist);
+        IEnumerable<ShiftWindow> windows = [morning, afternoon];
 
         if (record?.LeaveStart is { } leaveStart && record.LeaveEnd is { } leaveEnd)
         {
@@ -134,6 +166,16 @@ public class DentistShiftChecker : ITransientDependency
         return merged;
     }
 }
+
+/// <summary>
+/// One day of a dentist's Lịch làm việc: the planned shifts, and the
+/// <see cref="Windows"/> left to book in them — empty on a day off.
+/// </summary>
+public sealed record DentistWorkDay(
+    DateOnly Date,
+    ShiftWindow Morning,
+    ShiftWindow Afternoon,
+    IReadOnlyList<ShiftWindow> Windows);
 
 /// <summary>One stretch of working hours on the clinic's wall clock.</summary>
 public readonly record struct ShiftWindow(TimeOnly Start, TimeOnly End)

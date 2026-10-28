@@ -28,4 +28,5 @@ public interface IAppointmentAppService : IApplicationService
     Task DeleteManyAsync(List<Guid> ids);
     Task<AppointmentStatsDto> GetStatsAsync(GetAppointmentListInput input);
     Task<List<AppointmentDoctorTeamDto>> GetDoctorTeamsAsync();
+    Task<List<DentistWorkDayDto>> GetDentistWorkDaysAsync(GetDentistWorkDaysInput input);
 }

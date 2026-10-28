@@ -44,6 +44,17 @@ export function useDentistBusySpans(dentistId: string | undefined, weekStart: st
   });
 }
 
+/** A doctor's working hours for one week (Monday → Sunday); idle without a doctor. */
+export function useDentistWorkDays(dentistId: string | undefined, weekStart: string, weekEnd: string) {
+  return useQuery({
+    queryKey: ["receptions", "workDays", dentistId, weekStart, weekEnd],
+    queryFn: () => receptionApi.getDentistWorkDays(dentistId ?? "", weekStart, weekEnd),
+    enabled: !!dentistId,
+    // Shifts and days off are changed on Chấm công, often by someone else.
+    staleTime: 0,
+  });
+}
+
 export interface ReceptionDoctor {
   id: string;
   name: string;

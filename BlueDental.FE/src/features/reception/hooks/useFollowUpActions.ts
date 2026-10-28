@@ -26,7 +26,8 @@ export function useFollowUpActions(
   const rebookMutation = useRebookUndated();
   const overlap = useDentistOverlapConfirm();
 
-  // The doctor already holding a visit then is only a warning: Xác nhận
+  // The picker offers no booked time (owner 2026-10-28), so this only meets a
+  // visit booked since it loaded. That is still only a warning: Xác nhận
   // resends with `allowDentistOverlap`, Hủy leaves the pick as it is. Any
   // other error the global handler has already reported.
   const book = (input: BookFollowUpInput) => {

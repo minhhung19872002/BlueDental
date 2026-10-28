@@ -7,6 +7,8 @@ import type {
   BookFollowUpInput,
   BookedOutcome,
   BusySpan,
+  DoctorWorkDay,
+  MinuteSpan,
   RebookUndatedInput,
   CreateReceptionInput,
   ReceptionCounters,
@@ -343,4 +345,41 @@ export const receptionApi = {
         end: dayjs(dto.slotEnd).valueOf(),
       }));
   },
+
+  /** A doctor's working hours day by day at the current branch, inclusive. */
+  async getDentistWorkDays(dentistId: string, fromDate: string, toDate: string): Promise<DoctorWorkDay[]> {
+    const res = await api.get<ServerWorkDayDto[]>(`${APPT_BASE}/dentist-work-days`, {
+      params: { dentistId, fromDate, toDate },
+    });
+    return res.data.map(adaptWorkDay);
+  },
 };
+
+interface ServerShiftWindowDto {
+  /** "HH:mm:ss" on the clinic's wall clock. */
+  start: string;
+  end: string;
+}
+
+interface ServerWorkDayDto {
+  date: string;
+  morning: ServerShiftWindowDto;
+  afternoon: ServerShiftWindowDto;
+  windows: ServerShiftWindowDto[];
+}
+
+function toMinutes(hhmmss: string): number {
+  const [h, m] = hhmmss.split(":").map(Number);
+  return h * 60 + m;
+}
+
+const adaptWindow = (w: ServerShiftWindowDto): MinuteSpan => ({ start: toMinutes(w.start), end: toMinutes(w.end) });
+
+function adaptWorkDay(dto: ServerWorkDayDto): DoctorWorkDay {
+  return {
+    date: dto.date,
+    morning: adaptWindow(dto.morning),
+    afternoon: adaptWindow(dto.afternoon),
+    windows: dto.windows.map(adaptWindow),
+  };
+}
