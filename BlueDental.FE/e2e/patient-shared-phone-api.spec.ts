@@ -317,10 +317,11 @@ test.describe("Several hồ sơ on one phone (real API)", () => {
       guardians: [mother],
       guardiansConsented: true,
     });
-    // The same mother, declared again on a sibling with a number of its own.
+    // The same mother, declared again on a sibling with a number of its own and
+    // her CCCD typed with a space inside: still one person, both cards get linked.
     const sibling = await registered(page, {
       ...person(id, "Bé Bình", phoneOf(id), { dateOfBirth: bornYearsAgo(6) }),
-      guardians: [{ ...mother, nationalId: ` ${nationalId.toLowerCase()} ` }],
+      guardians: [{ ...mother, nationalId: ` ${nationalId.slice(0, 4)} ${nationalId.slice(4)} ` }],
       guardiansConsented: true,
     });
 
