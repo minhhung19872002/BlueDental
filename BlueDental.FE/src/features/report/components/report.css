@@ -789,8 +789,8 @@
 }
 
 .report-table-card .ant-table-wrapper .ant-table-thead > tr > th {
-  background: var(--bd-bg-soft);
-  color: var(--bd-sub);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-weight: 500;
   font-size: 14px;
   letter-spacing: 0;
@@ -801,6 +801,9 @@
 .report-table-card .ant-table-wrapper .ant-table-thead > tr > th:not(:last-child),
 .report-table-card .ant-table-wrapper .ant-table-tbody > tr > td:not(:last-child) {
   border-inline-end: 1px solid var(--bd-line);
+}
+.report-table-card .ant-table-wrapper .ant-table-thead > tr > th:not(:last-child) {
+  border-inline-end-color: var(--bd-table-head-line);
 }
 
 /* Merged (rowSpan) cells drop out of the DOM, so ":first-child" padding would
@@ -857,12 +860,6 @@
   overflow: auto;
 }
 
-.report-daily-table th {
-  background: var(--bd-bg-soft);
-  color: var(--bd-sub);
-  font-weight: 600;
-}
-
 .report-daily-table {
   width: 100%;
   border-collapse: collapse;
@@ -878,8 +875,8 @@
 }
 
 .report-daily-table th {
-  background: var(--bd-bg-soft);
-  color: var(--bd-sub);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-weight: 600;
 }
 
@@ -891,6 +888,10 @@
 .report-daily-table th:not(:last-child),
 .report-daily-table td:not(:last-child) {
   border-right: 1px solid var(--bd-line);
+}
+
+.report-daily-table th:not(:last-child) {
+  border-right-color: var(--bd-table-head-line);
 }
 
 .report-daily-table-amount {

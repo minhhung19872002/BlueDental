@@ -12211,3 +12211,27 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Đỏ có sẵn, đỏ y hệt trên build HEAD sạch 30d380e4 (`git archive` + preview :8182, cùng host): `patient` 1821 (đầu mục dialog thanh toán), 2727 / 2857 / 3925 (thiếu dữ liệu seed: dòng có công đoạn mẫu, lịch hẹn đơn có bác sĩ trống).
 - **Mức retest**: 2 (F-38) + các màn dùng `ToothChart` (xem dòng mới trong `02-impact-map.md`): chọn răng ở kế hoạch, phiếu chẩn đoán, phiếu tư vấn, công đoạn. Không đổi BE ngoài 4 key dịch.
 - **Ngoài phạm vi**: bảng điều trị ở tab Hồ sơ và tờ in "In lịch sử điều trị" vẫn in số răng như cũ.
+
+## R-1075 (2026-10-29, mức 1: giao diện dùng chung) Header mọi bảng trên màn hình đổi sang dải indigo nhạt
+
+- **Yêu cầu** (BA qua chat, Huỳnh Văn Định): header bảng "trùng với cái background nền ở dưới nên khó nhìn". Header cũ `#f7f8fd` nằm trên nền trang `#f7f9ff`, hai màu gần như trùng nhau.
+  - BA đề xuất `#722ED1`. Đã dựng thử 3 phương án trên màn thật (Bệnh nhân, Vật tư có tick chọn tất cả): **A** `#e0e7ff` chữ `#22285c`, **B** `#4f46e5` chữ trắng, **C** `#722ED1` chữ trắng.
+  - **BA chọn A.** Bảng màu v2 giữ nguyên (R-1002); A nằm trong họ indigo của v2.
+- **Sửa (chỉ FE, chỉ CSS + theme)**:
+  - Token mới trong `styles/index.css`: `--bd-table-head` `#e0e7ff`, `--bd-table-head-ink` `#22285c`, `--bd-table-head-line` `#c7d0f5`. `--bd-bg-head` không đổi (lịch và các chỗ không phải bảng vẫn dùng).
+  - `theme/index.ts`: thêm `brand.tableHead` / `tableHeadInk` / `tableHeadLine`; Table dùng `headerBg`, `headerColor`, và cả `headerSortActiveBg`, `headerSortHoverBg`, `fixedHeaderSortActiveBg`. Nếu thiếu các token sort, luật cột đang sắp xếp của antd (độ ưu tiên 0,3,1) thắng luật toàn cục và cột đó quay về xám.
+  - Luật toàn cục `.ant-table-thead > tr > th` đổi nền và chữ sang token mới. Thêm luật sau luật kẻ cột R-997: kẻ dọc của **header** dùng `--bd-table-head-line`, vì `--bd-line` gần như biến mất trên nền indigo. Kẻ dọc của thân bảng giữ nguyên.
+  - `.dg-head` (DataGrid dùng chung) đổi theo.
+  - Bảng antd có CSS riêng cho header, đổi sang token: `.bd-rx-table`, `.ah-table`, `.cskh-table`, `.pc-card`, `.pd-table-card`, `.pd-treatment-table`, `.pd-debt-table`, `.bd-patient-tablecard`, `.report-table-card` (thêm kẻ header), `.org-history__table`, `.bd-stage-table`, `.inv-table`, `.tp-table`.
+  - Bảng HTML thường (nền, chữ, kẻ header): `.rs-slips`, `.report-daily-table` (bỏ một luật `th` bị lặp), `.bd-combo-table` / `.bd-combo-detail-table`, `.wsb-table` (bảng xếp lịch làm việc; ô thân giữ nguyên), `.am-table`, `.tp-group-table`, `.pdt-refund-table`.
+  - `/taxonomy`: chỉ đổi màu nền header `.bd-stage-table` và bảng combo, không đụng cấu trúc hay hành vi (CLAUDE.md §17).
+- **Không đổi, có chủ đích**: các bảng in / tờ giấy (`.pd-cover-table`, `.pq-sheet`, `.pq-dx__table`, `.report-print-table`, `.report-voucher-table`, `.pdt-slip-sheet-table`, `.rx-sheet-table`), bảng trong bài thư viện `.pd-lib-article`, lịch và DateNavigator.
+- **Kiểm tra giao diện** (bản build production, preview :8080 nối host :5000, đăng nhập thật; đọc computed style):
+  - `/patient`: mọi ô header `rgb(224,231,255)`, chữ `rgb(34,40,92)`, kẻ dọc `rgb(199,208,245)`; ô cố định "Thao tác" cùng màu.
+  - `/dashboard/cskh`: bấm sắp xếp, ô `column-sort` vẫn `rgb(224,231,255)`.
+  - `/materials`: ô checkbox chọn tất cả và rãnh thanh cuộn cùng dải màu.
+  - Lịch làm việc (`workSchedule=builder`): ô tick, Nhân viên, cột ngày thường và cuối tuần đều indigo; ô thân trắng như cũ.
+  - `/taxonomy/service`, `/report` (bảng thường và bảng tổng theo ngày ở tab Thanh toán), tab Chẩn đoán & Tư vấn của hồ sơ bệnh nhân (16 ô header): đúng 3 màu.
+  - `tsc -p tsconfig.app.json --noEmit` xanh; build production có đúng 1 chunk ngôn ngữ.
+- **E2E**: E2E_RESULT_PENDING
+- **Mức retest**: 1 (CSS + token, không đổi hành vi). Chạy thêm bộ `/taxonomy` theo §17 vì có đổi `taxonomy.css`.

@@ -327,8 +327,8 @@
   height: 40px;
   border-bottom: 1px solid var(--tp-line);
   padding: 0 12px;
-  background: var(--tp-ground);
-  color: var(--tp-ink);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-size: 14px;
   font-weight: 500;
   text-align: left;
@@ -348,6 +348,9 @@
 .am-table th:not(:last-child),
 .am-table td:not(:last-child) {
   border-right: 1px solid var(--tp-line);
+}
+.am-table th:not(:last-child) {
+  border-right-color: var(--bd-table-head-line);
 }
 .am-cell-check {
   text-align: center;

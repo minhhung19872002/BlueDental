@@ -951,7 +951,7 @@
 
 .org-history__table .ant-table-thead > tr > th {
   height: 40px;
-  background: var(--bd-bg-soft);
+  background: var(--bd-table-head);
 }
 
 .org-history-unit,

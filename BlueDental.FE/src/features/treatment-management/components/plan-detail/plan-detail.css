@@ -517,8 +517,8 @@ a.pdt-crumb:hover {
 .pdt-refund-table th {
   height: 40px;
   padding: 0 12px;
-  background: var(--tp-ground);
-  color: var(--tp-label);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-weight: 600;
   text-align: left;
   white-space: nowrap;
@@ -532,6 +532,9 @@ a.pdt-crumb:hover {
 .pdt-refund-table th:not(:last-child),
 .pdt-refund-table td:not(:last-child) {
   border-right: 1px solid var(--tp-line);
+}
+.pdt-refund-table th:not(:last-child) {
+  border-right-color: var(--bd-table-head-line);
 }
 .pdt-num,
 .pdt-refund-table th.pdt-num {

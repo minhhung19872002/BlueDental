@@ -39,7 +39,7 @@
 .bd-stage-table .ant-table-thead > tr > th {
   height: 40px;
   padding-block: 0;
-  background: var(--bd-bg-head);
+  background: var(--bd-table-head);
 }
 .bd-stage-table .ant-table-tbody > tr > td {
   height: 56px;
@@ -658,7 +658,8 @@
 .bd-combo-table th,
 .bd-combo-detail-table th {
   padding: 10px 12px;
-  color: var(--bd-muted);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-size: 12px;
   font-weight: 600;
   text-align: left;
@@ -678,6 +679,11 @@
 .bd-combo-detail-table th:not(:last-child),
 .bd-combo-detail-table td:not(:last-child) {
   border-right: 1px solid var(--bd-line);
+}
+
+.bd-combo-table th:not(:last-child),
+.bd-combo-detail-table th:not(:last-child) {
+  border-right-color: var(--bd-table-head-line);
 }
 
 .bd-combo-table .bd-combo-col-money,

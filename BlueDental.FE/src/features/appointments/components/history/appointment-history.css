@@ -418,10 +418,10 @@
   z-index: 1;
   height: 40px;
   padding: 8px 16px;
-  background: var(--ah-panel);
+  background: var(--bd-table-head);
   font-size: 14px;
   font-weight: 500;
-  color: var(--ah-muted);
+  color: var(--bd-table-head-ink);
 }
 
 .ah-modal .ah-table .ant-table-thead > tr > th::before {

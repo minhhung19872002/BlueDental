@@ -106,8 +106,8 @@
 /* The shared header rule shouts in 11.5px capitals; this one reads in
    sentence case on a single line, with a rule between every column. */
 .pc-tab .pc-card .ant-table-thead > tr > th {
-  background: #f6f8fb;
-  color: #5a6b82;
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0;

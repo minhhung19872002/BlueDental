@@ -57,6 +57,12 @@
   --bd-bg-soft: #f7f8fd;
   --bd-bg-head: #f7f8fd;
   --bd-card: #ffffff;
+  /* Every table's header strip (BA, R-1075): a light indigo band, so the head
+     no longer reads as the page ground beneath it, titled in --bd-title and
+     ruled a step darker than the band. */
+  --bd-table-head: #e0e7ff;
+  --bd-table-head-ink: #22285c;
+  --bd-table-head-line: #c7d0f5;
 
   /* The planes below a card: input fill, row hover, table head. */
   --bd-surface-2: #f6f8fe;
@@ -1852,8 +1858,8 @@ body::-webkit-scrollbar-track {
    A column title never wraps (owner, 2026-10-20): every column is declared at
    least as wide as its own title, so the header strip stays one line. */
 .ant-table-wrapper .ant-table-thead > tr > th {
-  background: var(--bd-bg-head);
-  color: var(--bd-muted);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1924,6 +1930,11 @@ body::-webkit-scrollbar-track {
 .ant-table-wrapper .ant-table-thead > tr > th:not(:last-child):not(:has(+ th.ant-table-cell-scrollbar)),
 .ant-table-wrapper .ant-table-tbody > tr > td:not(:last-child) {
   border-inline-end: 1px solid var(--bd-line);
+}
+
+/* On the indigo header strip the body's rule would vanish (R-1075). */
+.ant-table-wrapper .ant-table-thead > tr > th:not(:last-child):not(:has(+ th.ant-table-cell-scrollbar)) {
+  border-inline-end-color: var(--bd-table-head-line);
 }
 
 .ant-table-wrapper .ant-table-tbody > tr.row-deleted > td {
@@ -4904,11 +4915,11 @@ html:has(.ant-modal-wrap) {
 .dg-head {
   padding-block: 9px;
   white-space: nowrap;
-  background: var(--bd-bg-head);
+  background: var(--bd-table-head);
   border-bottom: 1px solid var(--bd-line-soft);
   font-size: 11.5px;
   font-weight: 700;
-  color: var(--bd-muted);
+  color: var(--bd-table-head-ink);
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }

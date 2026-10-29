@@ -1,8 +1,8 @@
 /* ── Prescription lines: table on a wide screen, cards on a narrow one ── */
 
 .bd-rx-table .ant-table-thead > tr > th {
-  background: var(--bd-card);
-  color: var(--bd-ink);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-size: 13px;
   font-weight: 600;
   padding: 10px 6px !important;
