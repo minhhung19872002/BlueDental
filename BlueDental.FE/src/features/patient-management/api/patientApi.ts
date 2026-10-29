@@ -4,6 +4,7 @@ import type {
   GuardianCandidate,
   GuardianDocument,
   PagedResult,
+  PatientCodeAvailability,
   PatientCodeEstimate,
   PatientDto,
   PatientLinkedPeople,
@@ -28,6 +29,12 @@ export const patientApi = {
   /** The code the "Tạo hồ sơ" dialog opens with. */
   codeEstimate: (): Promise<PatientCodeEstimate> =>
     api.get<PatientCodeEstimate>(`${BASE}/code-estimate`).then((r) => r.data),
+
+  /** Duplicate check behind the dialog's "Mã khách hàng" field. */
+  checkCode: (code: string, excludeId?: string): Promise<PatientCodeAvailability> =>
+    api
+      .get<PatientCodeAvailability>(`${BASE}/check-code`, { params: { code, excludeId } })
+      .then((r) => r.data),
 
   /** Duplicate check behind the dialog's Điện thoại field. */
   checkPhone: (phone: string, excludeId?: string): Promise<PhoneAvailability> =>

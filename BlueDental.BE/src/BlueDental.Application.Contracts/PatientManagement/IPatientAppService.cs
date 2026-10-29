@@ -25,6 +25,9 @@ public interface IPatientAppService : IApplicationService
     /// <summary>The code the "BE:Common:CreateRecord" dialog opens with.</summary>
     Task<PatientCodeEstimateDto> GetCodeEstimateAsync();
 
+    /// <summary>Duplicate check behind the dialog's "Mã khách hàng" field — the same rule the save applies.</summary>
+    Task<PatientCodeAvailabilityDto> CheckCodeAsync(string? code, Guid? excludeId = null);
+
     /// <summary>Duplicate-phone check behind the dialog's Điện thoại field.</summary>
     Task<PhoneAvailabilityDto> CheckPhoneAsync(string phone, Guid? excludeId = null);
 

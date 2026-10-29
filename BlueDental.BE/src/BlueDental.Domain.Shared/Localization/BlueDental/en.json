@@ -2887,6 +2887,7 @@
     "Patient:Form:InvalidEmail": "Invalid email",
     "Patient:Form:InvalidPhone": "Invalid phone number",
     "Patient:Form:CodeDigitsOnly": "Patient code must contain only digits",
+    "Patient:Form:CodeTaken": "This patient code is already in use",
     "Patient:Form:CodeNumberPart": "Numeric part of patient code",
     "Patient:Form:RequiredFullName": "Please enter full name",
     "Patient:Form:InvalidFullName": "A name may only contain letters, digits, spaces and - . '",

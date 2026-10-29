@@ -24,6 +24,13 @@ public sealed class PatientController(IPatientAppService service) : BlueDentalCo
     [HttpGet("code-estimate")]
     public Task<PatientCodeEstimateDto> GetCodeEstimateAsync() => service.GetCodeEstimateAsync();
 
+    /// <summary>Duplicate check behind the dialog's "Mã khách hàng" field, asked on blur.</summary>
+    [HttpGet("check-code")]
+    public Task<PatientCodeAvailabilityDto> CheckCodeAsync(
+        [FromQuery] string? code,
+        [FromQuery] Guid? excludeId = null) =>
+        service.CheckCodeAsync(code, excludeId);
+
     /// <summary>Duplicate-phone check behind the dialog's Điện thoại field.</summary>
     [HttpGet("check-phone")]
     public Task<PhoneAvailabilityDto> CheckPhoneAsync(

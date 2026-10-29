@@ -145,6 +145,24 @@ export function usePatientCodeEstimate(enabled: boolean) {
 }
 
 /**
+ * Whether a typed "Mã khách hàng" is already taken — asked once the box loses
+ * focus, not as it is typed. Never served stale: someone may have saved it since.
+ */
+export function useCheckPatientCode() {
+  const queryClient = useQueryClient();
+
+  return useCallback(
+    (code: string, excludeId?: string) =>
+      queryClient.fetchQuery({
+        queryKey: [...patientKeys.all, "code", code, excludeId ?? null] as const,
+        queryFn: () => patientApi.checkCode(code, excludeId),
+        staleTime: 0,
+      }),
+    [queryClient],
+  );
+}
+
+/**
  * Whether a phone is already on another record in this branch.
  *
  * The reference checks as the field is typed rather than only on submit, so a

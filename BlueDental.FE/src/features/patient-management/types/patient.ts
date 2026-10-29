@@ -226,6 +226,11 @@ export interface PatientCodeEstimate {
   code: string;
 }
 
+/** Answer to the dialog's duplicate check on "Mã khách hàng". */
+export interface PatientCodeAvailability {
+  exists: boolean;
+}
+
 /**
  * What a scanned CCCD — or a "Lịch tạm" walk-in's name and phone — fills into
  * a new "Tạo hồ sơ" before the desk reviews it.

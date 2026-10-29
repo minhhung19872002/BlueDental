@@ -35,6 +35,8 @@ export interface PatientFormValues {
   oldAddress: string;
 }
 
+/** The server's refusal of a "Mã khách hàng" another record already holds. */
+export const DUPLICATE_PATIENT_CODE = "BlueDental:Patient:0002";
 /** The server's refusal of a CCCD another record in the branch already holds. */
 export const DUPLICATE_NATIONAL_ID = "BlueDental:Patient:0012";
 export const INVALID_NAME = "BlueDental:Patient:0020";

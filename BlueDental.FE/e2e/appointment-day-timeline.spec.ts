@@ -148,7 +148,8 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     const search = page.locator(".cal-search-field input");
     await search.fill(`khong-co-${runId()}`);
     await expect(block).toHaveCount(0);
-    await expect(column.locator(".dtl-count")).toHaveText("0");
+    // A doctor with nobody shows no chip at all, not a 0.
+    await expect(column.locator(".dtl-count")).toHaveCount(0);
     await search.fill("");
     await expect(column.locator(".dtl-count")).toHaveText("1");
 

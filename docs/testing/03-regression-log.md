@@ -12282,6 +12282,41 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc -b`, eslint, prettier các file đổi đều xanh.
 - **Mức retest**: 2 (F-30, phần bộ hồ sơ). Chỉ tab Bệnh án import `record-set.css`. `/taxonomy` không đụng.
 
+## R-1078 (2026-10-29, mức 2: F-02 Bệnh nhân + view Ngày Lịch hẹn) Mã khách hàng tự nhập, check trùng khi blur; màu 3 cột tiền; chip số lịch hẹn đỏ
+
+- **Yêu cầu** (chủ dự án, kèm 3 ảnh):
+  - Dialog "Tạo hồ sơ": ô "Mã khách hàng" không tự tăng nữa, để trống cho người dùng nhập. Logic tự tăng cũ comment lại để dùng sau. Khi rời ô (blur) thì check trùng và hiện lỗi.
+  - Danh sách bệnh nhân: chữ cột Số tiền màu xanh dương, Thực thu xanh lá, Công nợ đỏ.
+  - Lịch hẹn khách hàng, view Ngày: chip số lượng sau tên bác sĩ nền đỏ, chữ trắng; 0 thì không hiện chip.
+- **BE**:
+  - `GET /api/v1/app/patients/check-code?code=&excludeId=` → `PatientCodeAvailabilityDto { exists }`, quyền `Patient.Read`.
+  - Cùng điều kiện với lúc lưu (`IsCodeTakenAsync`, dùng chung với `EnsureCodeIsFreeAsync`): unique trên **toàn hệ thống** (index `PatientCode` unique, không theo chi nhánh), tính cả hồ sơ đã xoá mềm. `excludeId` để màn sửa không báo trùng với chính mã của mình. Mã rỗng → `exists: false` (tham số `string?`, không bị 400).
+  - Key i18n mới `Patient:Form:CodeTaken` ("Mã khách hàng đã tồn tại").
+  - Không đổi `RegisterAsync`: để trống mã thì server **vẫn tự cấp mã kế tiếp** (`ResolveCodeAsync`), vì các luồng tạo hồ sơ khác (Lịch tạm, import…) dựa vào đó.
+- **FE**:
+  - `PatientEditorDialog`: `useEffect` điền `estimate.data.sequence` vào `codeSequence` được comment lại. `code-estimate` vẫn gọi để lấy prefix (`DH26`).
+  - `usePatientCodeRule` (hook mới): rule AntD `validateTrigger: "onBlur"` gọi `useCheckPatientCode` (`fetchQuery`, `staleTime: 0`). Chỉ hỏi khi ô là chữ số; gõ lại thì lỗi mất (rule pattern chạy onChange thay danh sách lỗi), blur lại thì check lại. Bấm Lưu thì `validateFields` cũng chạy rule này.
+  - Server trả `BlueDental:Patient:0002` khi lưu (trùng do ai đó vừa lưu) → lỗi dưới ô mã, không toast.
+  - Ô mã dùng `alwaysFloat`: khi trống, label nằm trên viền, không đè lên prefix.
+  - `patient.css`: `.bd-patient-dialog .ant-form-item-with-help { margin-bottom: 32px }`. Dòng lỗi (~22px) cao hơn khoảng cách 16px, trước đó đè lên label nổi của ô kế tiếp ("Mã khách hàng đã tồn tại" chồng lên "Họ và tên"). Áp dụng cho mọi ô có lỗi trong dialog.
+  - `PatientTable`: `Money` bắt buộc `tone`; Số tiền `--total` (`--bd-link` #2671d8), Thực thu `--in` (`--bd-green`), Công nợ `--due` (`--bd-red`). Tô **cả số 0** (trước chỉ tô số > 0). Ô bị che tiền (`moneyHidden`) vẫn màu nhạt. Dùng `--bd-link` vì `--bd-blue` của dự án là tím indigo #6366f1 (màu primary).
+  - `TimelineColumn`: `patients > 0` mới render `.dtl-count`; `calendar.css` `.dtl-count` nền `--bd-red`, chữ `#fff`, bỏ viền. `title` của header vẫn có "N bệnh nhân".
+    - Owner thấy chip "méo" (22×20 thành bầu dục): đổi thành hình tròn 20×20 (`min-width` 20, `padding 0 3px` để 2 chữ số vẫn tròn, `line-height: 1`). Đo trên bản build ở 4×: cả 5 chip đều 20×20; nét chữ số cách trên/dưới 6/6px, trái/phải lệch ≤ 0,6px (chữ "1" vốn lệch). `appointment-day-timeline` **7/7 xanh**.
+- **E2E** (bản build production, preview :8080 nối host local :5000; không chặn API; có đăng nhập thật):
+  - `patient-code-check.spec` mới **2/2 xanh**:
+    - API: mã mới → `exists:false`; tạo hồ sơ với mã đó → `true`; `excludeId` của chính hồ sơ → `false`; mã rỗng → `false`; lưu hồ sơ thứ hai cùng mã → 403 `Patient:0002`. Tài khoản chi nhánh 2: check → `true` và lưu → 403 (một mã cho mọi chi nhánh, check khớp với save).
+    - UI: ô mã trống, prefix hiện đúng. Gõ mã đã có: chưa báo lỗi khi đang gõ, rời ô thì hiện "Mã khách hàng đã tồn tại". Sửa sang mã trống → lỗi mất, blur không báo. Lưu → reload thấy `[mã]` trong danh sách, check-code trả `true`.
+  - `appointment-day-timeline.spec`: bước tìm kiếm không ra ai đổi từ `.dtl-count` = "0" sang **không có chip**.
+  - Chạy cùng `appointment-day-timeline`, `appointment-shown-hours`, `patient-national-id`, `patient-scan-id`, `patient-shared-phone-ui`, `plan-treating-scope`: **43/43 xanh**. Sau khi sửa CSS khoảng cách lỗi chạy lại `patient-code-check`, `patient-national-id`, `patient-scan-id`: **9/9 xanh**.
+  - Application.Tests `ApplicationServiceInterception` + `PatientAppServiceContract` **12/12**. `tsc` xanh, eslint các file đổi xanh (lỗi `react-hooks/exhaustive-deps` ở `PatientProfileTab.tsx` có sẵn, không thuộc thay đổi này).
+  - Ảnh chụp bản build local đã đối chiếu cả 3 màn (dialog trống / dialog báo trùng / bảng / header lịch).
+- **Mức retest**: 2 (F-02 dialog hồ sơ + danh sách; view Ngày của Lịch hẹn).
+  - Endpoint mới chỉ đọc. `RegisterAsync` / `UpdateAsync` không đổi hành vi.
+  - `/taxonomy` không đụng.
+- **Chưa chốt / ngoài phạm vi**:
+  - Ô mã chưa bắt buộc: để trống thì server vẫn tự cấp mã. Nếu muốn bắt buộc nhập thì thêm `required` ở FE và chặn ở `RegisterAsync`.
+  - Check trùng cho biết một mã đã có ở chi nhánh khác (chỉ có/không, không lộ hồ sơ). Lúc lưu vốn cũng từ chối như vậy.
+
 ## R-1079 (2026-10-29, mức 2: F-30 Bệnh án) Mẫu 10 "Hợp đồng thỏa thuận niềng răng" — biểu mẫu của phòng khám
 
 - **Yêu cầu (chủ dự án)**:
