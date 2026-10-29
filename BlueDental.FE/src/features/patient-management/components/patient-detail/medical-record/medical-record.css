@@ -218,6 +218,21 @@
     padding: 0 !important;
     background: #fff !important;
   }
+
+  /*
+   * Whatever is left outside the copy is printed on the last sheet's page, so
+   * no page starts for it (R-1070). A browser extension can put a block in the
+   * page that no rule here hides — appended to `<html>`, `!important` inline,
+   * or behind a closed shadow root — and after mẫu 2 or mẫu 6 that block was a
+   * page name away from the sheet, and the job ended on a blank page.
+   */
+  html:has(body.mr-printing) {
+    page: margin-5mm;
+  }
+
+  html:has(.mr-print-copy > .nfc-tpl:last-child:is([data-form="2"], [data-form="6"])) {
+    page: margin-15mm;
+  }
 }
 
 /* ── Toàn màn hình ── */

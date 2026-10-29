@@ -1,5 +1,5 @@
 import { SHEET_CSS, SHEET_PAGE_CSS } from "./sheetCss";
-import type { FieldValues } from "./fieldValues";
+import { FORM_CODE_VALUES, type FieldValues } from "./fieldValues";
 import { applyStoredRows } from "./rowEditing";
 import { applyStoredLines } from "./lineEditing";
 import { isDrawingField, showDrawing } from "./drawing/drawingField";
@@ -46,8 +46,17 @@ function has(values: FieldValues, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(values, key);
 }
 
+/**
+ * A form's own code (MS) is filled in and nobody changes it (BA, 2026-10-29,
+ * R-1069): not typed in, and not taken from what a sheet wrote before either.
+ */
+function isFormCode(id: string): boolean {
+  return has(FORM_CODE_VALUES, id);
+}
+
 /** A blank is answered by its own id first, then by the fact it asked for. */
 function valueOf(id: string, source: string, options: RenderOptions): unknown {
+  if (isFormCode(id)) return FORM_CODE_VALUES[id];
   if (has(options.stored, id)) return options.stored[id];
   if (has(options.auto, id)) return options.auto[id];
   return options.auto[source];
@@ -94,6 +103,12 @@ function fillFields(root: ParentNode, options: RenderOptions) {
     }
 
     if (typeof value === "string") node.textContent = value;
+    if (isFormCode(id)) {
+      // Print, not a blank: drawn as the words around it (`data-form-code` in sheetCss).
+      node.setAttribute("data-form-code", "true");
+      node.removeAttribute("contenteditable");
+      return;
+    }
     if (options.editable) node.setAttribute("contenteditable", "true");
     else node.removeAttribute("contenteditable");
   });

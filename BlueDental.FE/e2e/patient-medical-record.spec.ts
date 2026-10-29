@@ -112,8 +112,10 @@ const FORM_NUMBER: Record<string, number> = {
  * leaves the sheet behind, and after a few of them the index carries dozens of
  * copies and the suite slows to a crawl. Keyed on the form's number, not its
  * name — a sheet can be renamed.
+ *
+ * `written` is put on it instead of nothing: a sheet as it was saved before.
  */
-async function openFreshSheet(page: Page, form: string) {
+async function openFreshSheet(page: Page, form: string, written: Record<string, string> = {}) {
   const row = page.locator(".pd-medical-form", { hasText: form });
   const cards = row.locator(LIVE_CARD);
 
@@ -122,7 +124,7 @@ async function openFreshSheet(page: Page, form: string) {
     await expect(cards).toHaveCount(1);
   }
 
-  const wiped = await page.evaluate(async (number: number) => {
+  const wiped = await page.evaluate(async ({ number, written }) => {
     const patientId = window.location.pathname.split("/")[2];
     const read = async () => {
       // Only the live set's sheets: one in a cancelled set is read-only, and the
@@ -155,10 +157,10 @@ async function openFreshSheet(page: Page, form: string) {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      // An explicitly empty set of values, not null: the API treats a null
-      // content as "leave it as it is", which is what lets a rename send only
-      // a title.
-      body: JSON.stringify({ content: JSON.stringify({ fieldValues: {} }) }),
+      // An explicit set of values, empty unless asked, not null: the API treats
+      // a null content as "leave it as it is", which is what lets a rename send
+      // only a title.
+      body: JSON.stringify({ content: JSON.stringify({ fieldValues: written }) }),
     });
     if (!put.ok) return `put ${put.status}`;
 
@@ -167,11 +169,11 @@ async function openFreshSheet(page: Page, form: string) {
     for (let tries = 0; tries < 10; tries += 1) {
       const again = await read();
       const values = again?.content ? Object.keys(JSON.parse(again.content).fieldValues ?? {}) : [];
-      if (values.length === 0) return "ok";
+      if (values.length === Object.keys(written).length) return "ok";
       await new Promise((done) => setTimeout(done, 150));
     }
     return "still filled";
-  }, FORM_NUMBER[form]);
+  }, { number: FORM_NUMBER[form], written });
   expect(wiped).toBe("ok");
 
   await page.reload();
@@ -277,18 +279,54 @@ test.describe("Bệnh án", () => {
     }
   });
 
-  // Clinic, 2026-10-27: the "MS:" corner carries each printed form's own code.
-  test("Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS", async ({ page }) => {
+  /*
+   * Clinic, 2026-10-27: the "MS:" corner carries each printed form's own code.
+   * BA, 2026-10-29 (R-1069): and nobody changes it — the blank takes no typing,
+   * a sheet saved with another code before shows the form's own, and the code
+   * reads as plain text rather than as a blank, on screen and on paper.
+   */
+  test("Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS, which nobody can change", async ({
+    page,
+  }) => {
     await openMedicalRecord(page);
     const codes: Array<[string, string, string]> = [
       ["Bệnh án ngoại trú Răng Hàm Mặt", "custom.text.8b780086e4014a049f87decd95bffaf3", "16/BV-01"],
       ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "custom.text.6d1c4222d1b041c1aff9becd446183e1", "01/BV2"],
       ["Phiếu phẫu thuật/thủ thuật", "custom.text.8d7eb5b7fe9746b3909ce9c21ba46a31", "PT-11"],
     ];
+    // The code against the words around it: the box, tint and dotted line a blank draws.
+    const looks = (node: Element) => {
+      const style = getComputedStyle(node);
+      const around = getComputedStyle(node.parentElement!);
+      return {
+        border: style.borderBottomStyle,
+        outline: style.outlineStyle,
+        background: style.backgroundColor,
+        sameColour: style.color === around.color,
+      };
+    };
+    const plain = { border: "none", outline: "none", background: "rgba(0, 0, 0, 0)", sameColour: true };
     for (const [form, field, code] of codes) {
-      await openFreshSheet(page, form);
-      await expect(blank(page, field), form).toHaveText(code);
+      await openFreshSheet(page, form, { [field]: "99/SỬA TAY" });
+      const ms = blank(page, field);
+      await expect(ms, form).toHaveText(code);
+      await expect(ms, form).not.toHaveAttribute("contenteditable");
+      expect(await ms.evaluate(looks), form).toEqual(plain);
+      await ms.click();
+      await page.keyboard.type("9");
+      await expect(ms, form).toHaveText(code);
+
+      await page.emulateMedia({ media: "print" });
+      const printed = await ms.evaluate(looks);
+      await page.emulateMedia({ media: "screen" });
+      expect(printed, `${form} on paper`).toEqual(plain);
     }
+
+    // A form without a code of its own still has its MS written by hand, in a blank.
+    await openFreshSheet(page, "Phiếu theo dõi điều trị");
+    const handWritten = blank(page, "custom.text.15acbc6a08b2454e985bf7bc663d4afe");
+    await expect(handWritten).toHaveAttribute("contenteditable", "true");
+    expect(await handWritten.evaluate((node) => getComputedStyle(node).borderBottomStyle)).toBe("dotted");
   });
 
   test("the cover prints the record's own identity", async ({ page }) => {
@@ -1379,11 +1417,11 @@ test.describe("Bệnh án", () => {
 
     const expected: Array<[string, string, string, number]> = [
       ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
-      ["Bệnh án ngoại trú Răng Hàm Mặt", "13.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "13px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
       ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
       ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
       ["Phiếu phẫu thuật/thủ thuật", "16.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu chăm sóc", "15.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
@@ -1411,8 +1449,9 @@ test.describe("Bệnh án", () => {
         const style = (node: Element | null) => (node ? getComputedStyle(node).borderBottomStyle : null);
         return {
           inGrid: style(root.querySelector("[data-grid-cell] .nfc-medical-record-text-field")),
+          // MS is print, not a blank (R-1069): it has no line at all.
           outside: style(
-            Array.from(root.querySelectorAll(".nfc-medical-record-text-field")).find(
+            Array.from(root.querySelectorAll(".nfc-medical-record-text-field:not([data-form-code])")).find(
               (node) => !node.closest("[data-grid-cell]") && !node.closest("[data-cover]"),
             ) ?? null,
           ),
@@ -1440,6 +1479,214 @@ test.describe("Bệnh án", () => {
       if (form === "Phiếu theo dõi điều trị") expect(printed, `${form} · printed pages`).toBeGreaterThanOrEqual(pages);
       else expect(printed, `${form} · printed pages`).toBe(pages);
     }
+  });
+
+  /**
+   * Mẫu 2 inside 15mm margins (clinic, 2026-10-28, R-1067): 15mm on every edge
+   * of the sheet and of every printed page; the letterhead on the left margin;
+   * MS / Số ngoại trú / Số lưu trữ a column of labels and a column of blanks
+   * against the right margin; each vital sign on one line, its unit against the
+   * cell's right edge.
+   */
+  test("mẫu 2: 15mm margins, the MS block and the vital signs lined up", async ({ page }) => {
+    const margin = (15 / 25.4) * 96;
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+
+    const layout = await sheet(page)
+      .locator(".nfc-tpl")
+      .evaluate((root) => {
+        const style = getComputedStyle(root);
+        const box = root.getBoundingClientRect();
+        const left = box.left + parseFloat(style.paddingLeft);
+        const right = box.right - parseFloat(style.paddingRight);
+        const rect = (node: Node) => {
+          const range = root.ownerDocument.createRange();
+          range.selectNodeContents(node);
+          return range.getBoundingClientRect();
+        };
+        const ids = root.querySelector(".record-ids");
+        const vitals = Array.from(root.querySelectorAll('table[data-record-section="vitals"] td > p'));
+        const cell = vitals[0]?.closest("td");
+        return {
+          padding: ["Top", "Right", "Bottom", "Left"].map((edge) => parseFloat(style.getPropertyValue(`padding-${edge.toLowerCase()}`))),
+          letterhead: rect(root.querySelector('table[data-record-section="layout"] td p')!).left - left,
+          labels: Array.from(ids?.querySelectorAll(".record-ids-label") ?? []).map((node) => node.getBoundingClientRect().left),
+          blanks: Array.from(ids?.querySelectorAll(".nfc-medical-record-text-field") ?? []).map((node) => node.getBoundingClientRect().left),
+          idsRight: right - (ids?.getBoundingClientRect().right ?? 0),
+          vitalLines: vitals.map((node) => node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight)),
+          unitsRight: vitals.map((node) => (cell ? cell.getBoundingClientRect().right - parseFloat(getComputedStyle(cell).paddingRight) - rect(node.lastChild!).right : NaN)),
+        };
+      });
+
+    for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
+    expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
+    expect(layout.labels, "MS labels").toHaveLength(3);
+    for (const at of layout.labels) expect(at, "labels in one column").toBeCloseTo(layout.labels[0], 0);
+    for (const at of layout.blanks) expect(at, "blanks in one column").toBeCloseTo(layout.blanks[0], 0);
+    expect(Math.abs(layout.idsRight), "MS block on the right margin").toBeLessThan(1);
+    expect(layout.vitalLines, "vital signs").toHaveLength(5);
+    for (const lines of layout.vitalLines) expect(lines, "one line each").toBeLessThan(1.6);
+    for (const gap of layout.unitsRight) expect(Math.abs(gap), "units against the cell's edge").toBeLessThan(1);
+
+    // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
+    await page.evaluate(() => {
+      window.print = () => undefined;
+    });
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+    const copy = page.locator(".mr-print-copy .nfc-tpl");
+    await expect(copy).toBeAttached();
+    await page.emulateMedia({ media: "print" });
+    const printed = await copy.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { page: style.getPropertyValue("page"), padding: style.paddingTop };
+    });
+    await page.emulateMedia({ media: "screen" });
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+  });
+
+  /**
+   * Mẫu 6 as the clinic's own copy (2026-10-29, R-1068): 15mm on every edge of
+   * the sheet and of every printed page; a line and a half between lines; the
+   * letterhead at 10pt on the left margin and MS on the right; the boxes that
+   * open a line on the left margin; the blanks after "Tôi tên là", "Chức danh",
+   * "Chẩn đoán" running to the right margin, on the line they start on.
+   */
+  test("mẫu 6: 15mm margins, the letterhead, MS and the boxes on the margins", async ({ page }) => {
+    const margin = (15 / 25.4) * 96;
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Giấy đồng ý thực hiện phẫu thuật/thủ thuật");
+
+    const layout = await sheet(page)
+      .locator(".nfc-tpl")
+      .evaluate((root) => {
+        const style = getComputedStyle(root);
+        const box = root.getBoundingClientRect();
+        const left = box.left + parseFloat(style.paddingLeft);
+        const right = box.right - parseFloat(style.paddingRight);
+        const rect = (node: Node) => {
+          const range = root.ownerDocument.createRange();
+          range.selectNodeContents(node);
+          return range.getBoundingClientRect();
+        };
+        const header = root.querySelector(":scope > table:first-child");
+        const letterhead = header?.querySelector("td:first-child > p");
+        const ms = header?.querySelector("td:last-child > p");
+        const opening = Array.from(root.querySelectorAll(".nfc-medical-record-checkbox")).filter(
+          (node) => !node.previousSibling?.textContent?.trim() && !node.closest("td:not(:first-child)"),
+        );
+        const blank = (id: string) => root.querySelector(`[data-medical-record-field="surgery-consent.${id}"]`)!;
+        const reaching = ["text.1", "text.2", "text.4"].map((id) => {
+          const node = blank(id);
+          return { right: right - node.getBoundingClientRect().right, lines: node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight) };
+        });
+        return {
+          padding: ["Top", "Right", "Bottom", "Left"].map((edge) => parseFloat(style.getPropertyValue(`padding-${edge.toLowerCase()}`))),
+          lineHeight: parseFloat(getComputedStyle(blank("text.1").closest("p")!).lineHeight) / parseFloat(style.fontSize),
+          letterheadSize: parseFloat(getComputedStyle(letterhead!.querySelector("span")!).fontSize),
+          letterhead: rect(letterhead!).left - left,
+          ms: right - rect(ms!).right,
+          boxes: opening.map((node) => node.getBoundingClientRect().left - left),
+          reaching,
+        };
+      });
+
+    for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
+    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
+    expect(layout.letterheadSize, "letterhead at 10pt").toBeCloseTo((10 * 4) / 3, 2);
+    expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
+    expect(Math.abs(layout.ms), "MS on the right margin").toBeLessThan(1);
+    // Chẩn đoán … Kết quả, the first column of the two lists, Không, 1. and 2.
+    expect(layout.boxes.length, "boxes opening a line").toBeGreaterThanOrEqual(14);
+    for (const gap of layout.boxes) expect(Math.abs(gap), "box on the left margin").toBeLessThan(1);
+    for (const { right, lines } of layout.reaching) {
+      expect(lines, "the blank stays on its line").toBeLessThan(1.6);
+      expect(right, "the blank runs to the right margin").toBeGreaterThanOrEqual(-1);
+      expect(right, "the blank runs to the right margin").toBeLessThan(24);
+    }
+
+    // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
+    await page.evaluate(() => {
+      window.print = () => undefined;
+    });
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+    const copy = page.locator(".mr-print-copy .nfc-tpl");
+    await expect(copy).toBeAttached();
+    await page.emulateMedia({ media: "print" });
+    const printed = await copy.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { page: style.getPropertyValue("page"), padding: style.paddingTop };
+    });
+    await page.emulateMedia({ media: "screen" });
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+  });
+
+  /**
+   * A browser extension's block prints no page (clinic, 2026-10-29, R-1070).
+   * An extension can put a block in the page that no print rule of the app's
+   * hides — at the end of `<html>`, `display: … !important` inline, behind a
+   * closed shadow root — and Chrome starts a page wherever the page name
+   * changes. On mẫu 2 and mẫu 6's 15mm page such a block printed a blank last
+   * page; one standing before a job that opens on another form and ends on
+   * one of them, a blank first page.
+   */
+  test("a browser extension's block in the page prints no blank page", async ({ page }) => {
+    test.slow();
+    const outpatient = "Bệnh án ngoại trú Răng Hàm Mặt";
+    const consent = "Giấy đồng ý thực hiện phẫu thuật/thủ thuật";
+    const treatment = "Phiếu tư vấn và xác nhận đồng ý điều trị";
+
+    const extension = () =>
+      page.evaluate(() => {
+        const shadowed = (display: string) => {
+          const host = document.createElement("div");
+          host.attachShadow({ mode: "closed" }).innerHTML = `<style>:host{display:${display}!important}</style><div></div>`;
+          return host;
+        };
+        const inline = document.createElement("div");
+        inline.style.setProperty("display", "block", "important");
+        document.body.append(shadowed("contents"), shadowed("block"), inline);
+        document.documentElement.append(document.createElement("div"));
+      });
+
+    /** Pages "In biểu mẫu" sends to the printer; `pick` is what the Toàn bộ view's list ticks. */
+    const printedPages = async (pick: string[], withExtension: boolean) => {
+      await page.evaluate(() => {
+        window.print = () => undefined;
+      });
+      // One block there from the start, as an extension's is — before the copy is made — and one added after.
+      if (withExtension) await extension();
+      await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+      if (pick.length) {
+        const all = page.getByRole("checkbox", { name: "Chọn tất cả phiếu bệnh án" });
+        await all.check();
+        await all.uncheck();
+        for (const form of pick) await page.getByRole("checkbox", { name: `Chọn ${form}` }).first().check();
+        await page.getByRole("button", { name: "In", exact: true }).click();
+      }
+      await expect(page.locator(".mr-print-copy > .nfc-tpl")).toHaveCount(Math.max(pick.length, 1));
+      if (withExtension) await extension();
+      await page.emulateMedia({ media: "print" });
+      const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+      await page.emulateMedia({ media: "screen" });
+      await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+      return (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+    };
+
+    await openMedicalRecord(page);
+    // Opening a fresh sheet reloads the page, which clears the blocks of the form before.
+    await openFreshSheet(page, consent);
+    expect(await printedPages([], true), `${consent} · printed pages`).toBe(2);
+    await openFreshSheet(page, outpatient);
+    expect(await printedPages([], true), `${outpatient} · printed pages`).toBe(3);
+
+    // Mẫu 5 on the 5mm page, then mẫu 6 on the 15mm one: as many pages as the two print without the blocks.
+    await openFreshSheet(page, treatment);
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "Toàn bộ" }).click();
+    const alone = await printedPages([treatment, consent], false);
+    expect(await printedPages([treatment, consent], true), "mẫu 5 + mẫu 6 · printed pages").toBe(alone);
   });
 
   /**

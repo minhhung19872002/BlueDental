@@ -202,11 +202,11 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "cover.text.4")).toHaveText(today.year.slice(2));
     await expect(blank(page, "cover.text.5")).toHaveText("");
 
-    // Bệnh án ngoại trú: Số ngoại trú and Số lưu trữ; MS stays empty.
+    // Bệnh án ngoại trú: Số ngoại trú and Số lưu trữ; MS is the form's own code, not a slip's (R-1052).
     await openSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
     await expect(blank(page, "outpatient-dental.text.1")).toHaveText(facts.outpatientNumber!);
     await expect(blank(page, "outpatient-dental.text.2")).toHaveText(facts.storageCode!);
-    await expect(blank(page, "custom.text.8b780086e4014a049f87decd95bffaf3")).toHaveText("");
+    await expect(blank(page, "custom.text.8b780086e4014a049f87decd95bffaf3")).toHaveText("16/BV-01");
 
     // Bệnh án chỉnh nha: Mã ngoại trú; IX lists each slip's services under its
     // name, a blank line between slips, and grows a line past the seven printed.

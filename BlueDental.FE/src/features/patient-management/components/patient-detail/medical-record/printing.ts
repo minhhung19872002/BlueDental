@@ -70,7 +70,10 @@ export function copySheetsForPrint(frames: readonly HTMLIFrameElement[]): () => 
     holder.append(copy);
   }
 
-  document.body.append(holder);
+  // First, so that nothing the app cannot hide stands before the sheets — a
+  // block there would sit a page name away from the first one and open the
+  // job with a blank page (R-1070, medical-record.css).
+  document.body.prepend(holder);
   document.body.classList.add(PRINTING_CLASS);
 
   return () => {

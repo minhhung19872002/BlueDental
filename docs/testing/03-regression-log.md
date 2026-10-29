@@ -12103,3 +12103,173 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chạy toàn bộ `e2e/reception*` (20 spec): **67 xanh / 3 bỏ qua / 0 đỏ**, mất 11,5 phút. 3 ca bỏ qua là `TEMP-PRIORITY-OFF` (R-980).
   - `tsc -b` xanh, build production xanh, đúng 1 chunk ngôn ngữ.
 - **Mức retest**: 2 (F-11 Tiếp nhận).
+
+## R-1067 (2026-10-28, mức 2: bệnh án mẫu 2) Bệnh án ngoại trú Răng Hàm Mặt: lề 15mm, chữ 13px, khối MS thẳng cột
+
+- **Yêu cầu (chủ dự án, kèm file `benh_an_ngoai_tru_2.html` của phòng khám)**: so style mẫu 2 với file rồi sửa cho giống. Chủ dự án chốt:
+  - Lề 15mm đều 4 cạnh, mọi trang (phương án A).
+  - Chỉ sửa mẫu 2. 8 mẫu còn lại sẽ sửa sau.
+  - Đồng ý giảm chữ 13,5px → 13px, với điều kiện in qua "In biểu mẫu" phải vẫn ra 3 trang.
+  - Chỉ sửa style. Nội dung, chữ và các ô nhập giữ nguyên.
+- **Trước đó**:
+  - Khi in: lề `@page` 5mm cộng padding tờ 7mm. Trên màn hình: padding 12mm.
+  - Chữ 13,5px.
+  - Khối "MS / Số ngoại trú / Số lưu trữ" là một đoạn căn phải, các dòng ngắt bằng `<br>`, nên các ô không thẳng cột.
+  - Hộp sinh hiệu (Mạch, Nhiệt độ, …) có thể rớt dòng.
+- **Sửa (chỉ FE, không đổi server/DB/i18n)**:
+  - `sheetCss.ts`:
+    - In: thêm trang có tên `@page outpatient-dental{margin:15mm}` và `.nfc-tpl[data-form="2"]{page:outpatient-dental;width:auto;margin:0;padding:0}`.
+      - Trang có tên thắng luật `@media print{@page{margin:0}}` trong `index.css`.
+      - Khổ A4 và số trang (`@bottom-right`) vẫn kế thừa từ `@page` gốc. Số trang giờ nằm trong vùng lề 15mm.
+    - Màn hình và bản sao in (`SHEET_PAGE_CSS`, `PRINT_COPY_CSS`): `.nfc-tpl[data-form="2"]{padding:15mm}`.
+    - Chữ: `.nfc-tpl[data-form="2"]{font-size:13px}`.
+    - Các bảng chia cột của trang chính và trang tổng kết, cùng bảng Toàn thân: bỏ padding ngoài cùng, để tiêu đề (I., II., 10., 11.) chạm lề trái và cột phải chạm lề phải. Riêng "3. Hình vẽ mô tả tổn thương" giữ như cũ.
+    - Sinh hiệu: mỗi dòng là một hàng flex. Ô trống giãn giữa nhãn và đơn vị, các đơn vị thẳng cột.
+    - Khối MS (`p.record-ids`): lưới 2 cột (nhãn | ô), sát lề phải.
+      - Bảng tiêu đề chứa khối này đổi từ 675px vẽ sẵn sang `width:100%!important`. Làm bằng CSS để không đụng vào template.
+      - Luật dòng 1.5 đặt sau luật `p … line-height:1.3!important` và có độ ưu tiên cao hơn.
+  - `templates/outpatientDental.ts`: chỉ đổi phần bọc của khối MS.
+    - `<p data-block-align="right" style=…>` cùng các `<br>` → `<p class="record-ids">`.
+    - Mỗi nhãn bọc trong `span.record-ids-label`, mỗi ô bọc trong `span`.
+    - Chữ, id ô, `min-width` và mọi thuộc tính khác của ô giữ nguyên.
+    - Vẫn dùng thẻ `p`, vì `flowLines` / `lineEditing` tìm khối bằng `closest("p, h1…")`. Đổi sang `div` sẽ mất Enter-thêm-dòng.
+  - Template nằm trong code, phiếu đã lưu chỉ giữ giá trị ô, nên phiếu cũ cũng hiện theo kiểu mới.
+- **Đo so với file của phòng khám** (cùng khổ 794px):
+  - Khớp: chữ 13px, padding 56,69px, bảng tiêu đề (56,7; 56,7; rộng 680,3), khối MS (x 489,8, nhãn rộng 72,2, ô ở x 567 rộng 170), hộp sinh hiệu (x 559,7, rộng 164), các dòng mục I.
+  - Từ dòng "Xã, phường … Tỉnh, thành phố" trở xuống, phiếu lệch xuống khoảng 17px. Nguyên nhân là dữ liệu, không phải style: file có địa chỉ đã điền nằm gọn một dòng, còn phiếu trắng có các ô `min-width` nên dòng này xuống 2 dòng. Đây là hệ quả của vùng viết hẹp lại còn 680px.
+- **PDF in thật** ("In biểu mẫu" → `page.pdf({preferCSSPageSize:true})`, A4, rasterize 96dpi):
+  - **3 trang**.
+  - Lề mực: trái 15,1mm; trên 15,3 / 16,9 / 14,8mm; phải 14,8mm.
+  - Dưới lề 15mm chỉ có số trang. Nội dung cuối mỗi trang cách mép dưới 29,9 / 79,4 / 28,6mm, nên còn dư chỗ.
+- **E2E** (bản build production, preview :8187 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec`:
+    - Ca "every form shares one letterhead…" đổi mẫu 2 thành 13px / 3 trang → **xanh**. 8 mẫu khác giữ nguyên số liệu cũ và vẫn xanh.
+    - Ca mới "mẫu 2: 15mm margins, the MS block and the vital signs lined up" → **xanh**. Ca này kiểm:
+      - padding 4 cạnh;
+      - quốc hiệu chạm lề trái;
+      - 3 nhãn MS một cột, 3 ô một cột, khối sát lề phải;
+      - 5 dòng sinh hiệu mỗi dòng một hàng, đơn vị sát mép ô;
+      - khi in, bản sao `.mr-print-copy` có `page: outpatient-dental` và padding 0.
+  - Hồi quy cả 4 spec `patient-medical-record`, `medical-record-set`, `medical-record-sheet-facts`, `medical-record-drawing` (43 ca, 8 phút): **37 xanh / 6 đỏ**.
+    - "every form shares…" bị timeout 90 giây khi chờ thẻ "Bìa" sau `reload`. Chạy riêng thì xanh 2 lần (31 giây), nên đây là ca chập chờn khi chạy cả bộ, không phải lỗi style.
+    - 5 ca còn lại đỏ y hệt trên bản build sạch HEAD c14aa6e1 (`git archive` + junction `node_modules`, preview :8188), nên đã đỏ từ trước:
+      - `sheet-facts:161` mong ô MS trống nhưng ra "16/BV-01". Spec chưa cập nhật theo R-1052.
+      - `sheet-facts:309` cần 3 dịch vụ trong Danh mục, DB local chỉ có 2.
+      - "the index lists…": không thấy `.pd-profile-card` khi bấm "Chi tiết hồ sơ".
+      - "the open sheet's card wears…": màu viền ra `oklab(…)` chứ không phải `rgb(217, 122, 64)`.
+      - "picking the day…": đã ghi ở R-1052.
+  - `tsc -b` xanh, `oxlint` 3 file xanh. Build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-30 Bệnh án, chỉ mẫu 2: màn hình + bản in). Không ảnh hưởng `/taxonomy`, vì chỉ tab hồ sơ import `sheetCss.ts`. Đã thêm một dòng trong `02-impact-map.md`.
+
+## R-1068 (2026-10-29, mức 2: bệnh án mẫu 6) Giấy đồng ý thực hiện phẫu thuật/thủ thuật: lề 15mm, chữ 15px, dòng 1,5, ô trống theo bản của phòng khám
+
+- **Yêu cầu (chủ dự án, kèm file `phieu_dong_y_phau_thuat_1.html` của phòng khám)**: đọc, so với mẫu 6 rồi sửa cho giống. Chủ dự án chốt:
+  - Chỉ sửa mẫu 6, dùng lại cơ chế lề 15mm của R-1067. Các mẫu khác sửa sau.
+  - Dòng "SỞ Y TẾ…" ở đầu phiếu lên 10pt như file (R-1054 để 8pt; nay chỉ mẫu 6 đổi).
+  - Độ rộng các ô trống lấy số của phòng khám nhưng làm **độ rộng tối thiểu** (`min-width`), không cố định, để chữ dài vẫn giãn hoặc xuống dòng như cũ. Chữ, id ô và số ô giữ nguyên.
+  - Còn lại "cứ theo file html": chữ 15px; giãn dòng 1,5 cho đoạn văn và tiêu đề; lề 15mm 4 cạnh mọi trang; khối tên phòng khám sát lề trái, MS sát lề phải; cột ô đánh dấu đầu tiên và ô đánh dấu mở đầu dòng sát lề trái.
+- **Trước đó**: chữ 16px; giãn dòng 1,3 (đoạn) / 1,2 (tiêu đề); in lề `@page` 5mm cộng padding tờ 7mm, trên màn hình padding 12mm; đầu phiếu 8pt; phần lớn ô trống rộng 320px nên xuống dòng sớm hơn bản của phòng khám.
+- **Sửa (chỉ FE, không đổi server/DB/i18n)**:
+  - `sheetCss.ts`:
+    - Trang có tên đổi tên `outpatient-dental` → `@page margin-15mm{margin:15mm}`, dùng chung cho mẫu 2 và mẫu 6: `.nfc-tpl:is([data-form="2"],[data-form="6"]){page:margin-15mm;…;padding:0}` khi in; padding 15mm ở `SHEET_PAGE_CSS` và `PRINT_COPY_CSS`. Mẫu 2 không đổi gì ngoài tên trang.
+    - `.nfc-tpl[data-form="6"]{font-size:15px}` (tách khỏi nhóm 16px của mẫu 4/5).
+    - Giãn dòng 1,5 cho `p`, `h1`, `h2` của mẫu 6. Luật đặt sau các luật `line-height:1.3!important` / `1.2!important` chung và có thêm `[data-form="6"]` nên thắng.
+    - Bảng đầu phiếu: bỏ padding trái ô đầu, padding phải ô cuối. Bảng không viền (danh sách ô đánh dấu): bỏ padding trái cột đầu. Ô đánh dấu đứng đầu đoạn: bỏ `margin-left`.
+  - `templates/surgeryConsent.ts` (chỉ thuộc tính style, một dòng template):
+    - 12 ô đổi `data-field-width` và `min-width` sang số của phòng khám: text.1 320→614, text.2 320→607, text.3 268→292, text.4 320→607, text.5 320→390, text.6 320→557, text.7 320→507, text.8 240→334, năm sinh 90→195, text.10 112→176, text.11 320→526, text.12 680→57. Các ô khác giữ nguyên.
+    - 12 ô đó thêm `box-sizing: border-box;` như file của phòng khám. Thiếu nó thì padding 3px hai bên cộng vào `min-width` 614px làm ô text.1 rớt xuống dòng dưới.
+    - Đầu phiếu `font-size: 8pt` → `10pt`.
+  - Template nằm trong code, phiếu đã lưu chỉ giữ giá trị ô, nên phiếu cũ cũng hiện theo kiểu mới.
+- **Đo so với file của phòng khám** (cùng khổ 794px, toạ độ tính từ góc vùng viết):
+  - Vị trí và độ rộng của toàn bộ 49 ô trống + ô đánh dấu: **49/49 lệch không quá 1px**.
+- **PDF in thật** ("In biểu mẫu" → `page.pdf({preferCSSPageSize:true})`, A4) so với file của phòng khám in bằng Chrome: cả hai **2 trang**, ngắt trang cùng chỗ, ảnh hai bên đặt cạnh nhau trùng nhau.
+- **Phát hiện, chưa sửa (có từ trước, không thuộc phạm vi)**: nền gradient của app (`body::before` trong `index.css`) in ra thành vệt nhạt dưới tờ ở trang cuối khi bật "Background graphics". `body.mr-printing > *:not(.mr-print-copy)` không ẩn được pseudo-element. Đã báo chủ dự án.
+- **E2E** (bản build production, preview :8160 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec`:
+    - Ca "every form shares one letterhead…" đổi mẫu 6 thành 15px / 2 trang → **xanh**. 8 mẫu khác giữ nguyên số liệu và vẫn xanh.
+    - Ca R-1067 "mẫu 2: 15mm margins…" đổi tên trang mong đợi thành `margin-15mm` → **xanh**.
+    - Ca mới "mẫu 6: 15mm margins, the letterhead, MS and the boxes on the margins" → **xanh**. Ca này kiểm:
+      - padding 15mm 4 cạnh; giãn dòng ≈ 1,5 lần cỡ chữ;
+      - đầu phiếu 10pt và chạm lề trái; khối MS chạm lề phải;
+      - ít nhất 14 ô đánh dấu mở đầu dòng, mỗi ô cách lề trái không quá 1px;
+      - ô sau "Tôi tên là", "Chức danh", "Chẩn đoán" nằm trên một dòng và chạy tới lề phải;
+      - khi in, bản sao `.mr-print-copy` có `page: margin-15mm` và padding 0.
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,1 phút, 1 worker): **31 xanh / 5 đỏ**. Cả 5 ca đỏ đúng là 5 ca đã đỏ từ trước, đã chứng minh trên HEAD sạch ở R-1067: `sheet-facts:161`, `sheet-facts:309`, "the index lists…", "the open sheet's card wears…", "picking the day…". Lần này "every form shares…" không chập chờn.
+  - `tsc -b` (trong `npm run build`) xanh, `oxlint` 3 file xanh. Build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-30 Bệnh án, mẫu 6: màn hình + bản in; mẫu 2 chỉ đổi tên trang, có ca R-1067 giữ). Không ảnh hưởng `/taxonomy`, vì chỉ tab hồ sơ import `sheetCss.ts`. Đã sửa dòng `sheetCss.ts` trong `02-impact-map.md`.
+
+## R-1069 (2026-10-29, mức 2: bệnh án mẫu 2, 6, 7) Ô MS đã tự điền thì không sửa được nữa
+
+- **Yêu cầu (BA, qua chủ dự án)**: "các MS ở hồ sơ này đã auto fill rồi nên k cho thay đổi luôn". Chủ dự án chốt:
+  - Khoá MS ở cả ba mẫu đang tự điền mã: **mẫu 2** Bệnh án ngoại trú (`16/BV-01`), **mẫu 6** Giấy đồng ý thực hiện phẫu thuật/thủ thuật (`01/BV2`), **mẫu 7** Phiếu phẫu thuật/thủ thuật (`PT-11`).
+  - Mẫu 8 (Phiếu theo dõi điều trị) và mẫu 9 (Phiếu chăm sóc) có ô MS nhưng không tự điền, nên vẫn viết tay như cũ.
+  - Tờ đã lưu một mã khác từ trước: **luôn hiện mã chuẩn**, không hiện số cũ.
+  - Số ngoại trú, Số lưu trữ ở mẫu 2 không phải MS, giữ nguyên.
+- **Trước đó**: mã MS được điền sẵn (R-1052, `FORM_CODE_VALUES`) nhưng ô vẫn `contenteditable`, gõ đè được và giá trị gõ đè được lưu vào tờ như mọi ô khác.
+- **Sửa (chỉ FE, không đổi server/DB/i18n)**:
+  - `renderSheet.ts`: thêm `isFormCode(id)`, tức id có trong `FORM_CODE_VALUES`.
+    - `valueOf` trả mã chuẩn trước cả giá trị đã lưu.
+    - `fillFields` không gắn `contenteditable` cho ô đó, kể cả khi tờ đang ở chế độ sửa.
+  - Không đổi `MedicalRecordDocument.collect()`: ô khoá luôn bằng giá trị tự điền nên không bị lưu. Tờ cũ lưu mã khác sẽ tự rơi giá trị đó ở lần "Lưu" sau.
+  - Chú thích `FORM_CODE_VALUES` (`fieldValues.ts`) và đầu `sheetFacts.ts` ghi lại quy tắc mới.
+- **E2E** (bản build production, preview :8160 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec`: ca MS đổi thành "Bệnh án ngoại trú, Giấy đồng ý and Phiếu phẫu thuật print their MS, which nobody can change" → **xanh**. `openFreshSheet` nhận thêm `written`, ghi sẵn lên tờ qua PUT thật để dựng một tờ cũ. Với mỗi mẫu 2/6/7, tờ được ghi sẵn MS `99/SỬA TAY` rồi kiểm:
+    - ô hiện mã chuẩn;
+    - ô không có `contenteditable`;
+    - bấm vào ô rồi gõ thì chữ không đổi.
+    - Thêm một kiểm tra: ô MS của mẫu 8 vẫn `contenteditable="true"`.
+  - `medical-record-sheet-facts.spec:161`: mong đợi MS mẫu 2 đổi từ rỗng thành `16/BV-01` → **xanh**. Ca này đỏ từ R-1052 (spec chưa theo kịp việc tự điền MS), nay hết.
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,1 phút, 1 worker): **32 xanh / 4 đỏ**. 4 ca đỏ đúng là 4 ca đã đỏ từ trước, đã chứng minh trên HEAD sạch ở R-1067: `sheet-facts:309`, "the index lists…", "the open sheet's card wears…", "picking the day…".
+  - `tsc -b` (trong `npm run build`) xanh; `oxlint` 5 file xanh; build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-30 Bệnh án). `renderSheet.ts` chỉ được tab hồ sơ bệnh nhân import; `/taxonomy` Bệnh án mẫu không bị ảnh hưởng. Đã thêm dòng `renderSheet.ts` / `FORM_CODE_VALUES` vào `02-impact-map.md`.
+- **Bổ sung cùng ngày (chủ dự án: "nếu disable thì hiện dạng text luôn thay vì field")**: ô MS đã khoá trông như chữ thường của tờ, không còn dáng ô nhập, trên màn hình lẫn khi in.
+  - `renderSheet.ts`: ô MS được gắn `data-form-code="true"` (cả khi tờ chỉ đọc) và dừng ở đó, không qua nhánh `contenteditable`.
+  - `sheetCss.ts` (cuối `SHEET_FIELD_CSS`, nên áp cho cả khung tờ lẫn bản sao in): `display:inline`, bỏ `min-width` của template, bỏ padding, viền gạch chấm, viền vàng và nền; chữ cùng màu với chữ xung quanh (đen), không còn xanh như ô đã điền.
+  - E2E:
+    - Ca MS kiểm thêm, cho mỗi mẫu 2/6/7, trên màn hình và khi `emulateMedia print`: không có gạch chân, không viền, nền trong suốt, màu chữ bằng màu chữ cha. Ô MS mẫu 8 vẫn có gạch chấm → **xanh**.
+    - Ca "every form shares mẫu 5's type, boxes, letterhead and print rules" lấy ô đầu tiên ngoài lưới để kiểm gạch chấm khi in, và ở mẫu 2 ô đó là MS → đỏ. Đổi bộ chọn thành `:not([data-form-code])` → **xanh**.
+    - Ca R-1067 "mẫu 2: 15mm margins, the MS block…" (nhãn và ô thẳng cột, khối sát lề phải) và ca R-1068 "mẫu 6: 15mm margins…" → **xanh**.
+    - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,2 phút, 1 worker): **32 xanh / 4 đỏ**, đúng 4 ca đỏ từ trước như trên.
+    - `tsc -b` xanh; `oxlint` xanh; build có 1 chunk ngôn ngữ.
+
+## R-1070 (2026-10-29, mức 2: in bệnh án) Mẫu 2, mẫu 6 in ra không còn trang trắng ở cuối
+
+- **Báo lỗi (chủ dự án, trên production)**: "mục 6 lúc in biểu mẫu nó có trang rỗng dưới cùng".
+- **Nguyên nhân** (đo trên PDF của `page.pdf`, Chrome):
+  - Từ R-1067/R-1068, mẫu 2 và mẫu 6 in trên trang có tên `@page margin-15mm`. Các mẫu khác, và mọi thứ nằm ngoài phiếu, in trên trang không tên (5mm). Chrome luôn sang trang mới ở chỗ tên trang đổi.
+  - Lúc in, `body.mr-printing > *:not(.mr-print-copy)` ẩn phần còn lại của app. Nhưng extension của trình duyệt có thể chèn vào trang một khối mà CSS của trang không ẩn được:
+    - khối gắn thẳng vào `<html>`;
+    - khối có `display: … !important` inline;
+    - host của closed shadow root có `:host{display:…!important}`: `!important` trong shadow thắng `!important` bên ngoài, nên không luật nào của app ẩn được.
+  - Chrome của chủ dự án có đúng một host như vậy trong `<body>`.
+  - Khối đó, dù rỗng 0px, nằm sau mẫu 6 thì khác tên trang, nên thành một trang trắng ở cuối. Khối nằm trước bản sao thì thành trang trắng ở đầu. Khối `position: fixed/absolute` không gây ra.
+  - Máy không có extension như vậy thì không bị. Trước R-1067 chưa có tên trang, nên chưa có lỗi này.
+- **Sửa (chỉ FE, chỉ khi in; không đổi server, DB, i18n)**:
+  - `sheetCss.ts` `SHEET_PRINT_CSS`: các phiếu thường mang tên trang `margin-5mm`. Tên này không có luật `@page` riêng, nên vẫn là A4, lề 5mm, có số trang như cũ. Mẫu 2/6 giữ `margin-15mm`.
+  - `medical-record.css` (khối in): lúc in, `<html>` mang tên trang của phiếu cuối: `margin-5mm`, hoặc `margin-15mm` khi phiếu cuối là mẫu 2/6. Khối lạ phía sau vì thế cùng tên trang, không sang trang.
+  - `printing.ts` `copySheetsForPrint`: bản sao được đặt ở **đầu** `<body>` (`prepend`, trước đây là `append`), để khối lạ có sẵn trong trang luôn nằm sau nó. Chỉ sửa CSS thì vẫn còn một trường hợp: lệnh in nhiều phiếu mở đầu bằng mẫu khác, kết thúc bằng mẫu 2/6, và có khối đứng trước bản sao. Đo được 5 trang, trang 1 trắng.
+- **Đo trước khi sửa** (spec dò tạm, không commit; chèn khối giả extension):
+
+  | Lệnh in | Trước | Sau |
+  |---|---|---|
+  | Mẫu 6 | 3 (trang 3 trắng) | 2 |
+  | Mẫu 5 | 2 | 2 |
+  | Mẫu 5 + 6 | 5 (trang 5 trắng) | 4 |
+  | Mẫu 6 + 5 | 4 | 4 |
+
+  - Không có khối lạ thì bản sửa in giống hệt bản cũ: cùng số trang, chữ cùng vị trí, điểm ảnh lệch ≤3/255 (nhiễu). Đã đo ở mẫu 2, mẫu 5, mẫu 6, Toàn bộ (23 trang) và 5 + 6.
+- **E2E** (bản build production, preview :8160 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec` có ca mới "a browser extension's block in the page prints no blank page". Ca này chèn 4 khối: closed shadow `display:contents` và `display:block`, div `display:block !important` inline, div gắn vào `<html>`. Khối được chèn một lần trước khi bấm "In biểu mẫu" (như extension có sẵn trong trang) và một lần sau khi bản sao đã có. Kết quả mong đợi:
+    - mẫu 6 ra 2 trang, mẫu 2 ra 3 trang;
+    - Toàn bộ, chọn mẫu 5 + mẫu 6: số trang bằng lúc không có khối.
+  - Trên bản build cũ: **đỏ** (mẫu 6 ra 4 trang, trắng đầu và trắng cuối). Trên bản sửa: **xanh**.
+  - Ca "every form shares…" (số trang in của cả 9 mẫu không đổi) và hai ca 15mm R-1067/R-1068 (`page` của bản sao vẫn là `margin-15mm`) → **xanh**.
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (37 ca, 1 worker): **33 xanh / 4 đỏ**. 4 ca đỏ đúng là 4 ca đã đỏ từ trước (R-1067): `sheet-facts:309`, "the index lists…", "the open sheet's card wears…", "picking the day…".
+  - `treatment-plan.spec` (9 ca, chạy cả file vì các ca nối tiếp nhau) → **9 xanh**, trong đó có ca in từ dialog "In bệnh án": bản sao vẫn là thứ duy nhất hiện trong `<body>` khi in.
+  - `tsc -b` (trong `npm run build`) xanh; `oxlint` xanh; build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-30 Bệnh án, phần in).
+  - Bị ảnh hưởng: "In biểu mẫu" ở tab Bệnh án, và dialog "In bệnh án" ở kế hoạch điều trị (`PrintMedicalRecordDialog`, cũng gọi `copySheetsForPrint`).
+  - Màn hình không đổi: luật mới chỉ nằm trong `@media print`, và luật `<html>` chỉ áp khi body có `mr-printing`.
+  - Các chức năng in khác (báo giá, yêu cầu hoá đơn, phiếu điều trị, `usePrintSheet`) dùng code riêng, không bị ảnh hưởng. `/taxonomy` cũng không.
+  - Đã thêm dòng `printing.ts` / khối in `medical-record.css` vào `02-impact-map.md`.
+- **Chưa chắc**: chưa chứng minh host extension trên máy chủ dự án chính là thủ phạm (trên màn hình nó không sinh hộp nào). Sau khi deploy cần in lại mẫu 6 trên máy đó.
