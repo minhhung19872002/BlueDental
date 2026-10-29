@@ -42,6 +42,9 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public Guid? ParentOrderId { get; set; }
 
     public string? SupplierName { get; set; }
+
+    /// <summary>The supplier's badge colour, "#RRGGBB"; null reads grey (R-1072).</summary>
+    public string? SupplierLabelColor { get; set; }
     public string? MaterialName { get; set; }
 
     /// <summary>The labo service (Dịch vụ - vật liệu group) the material belongs to: "BE:LaboField:CurrentService" on the child form.</summary>

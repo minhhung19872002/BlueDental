@@ -240,3 +240,26 @@ reloads Mẫu Labo and the test reads the row buttons, the select's disabled
 state, the well and the footer text. `e2e/labo` 28/28 on the production
 build; `role-permissions-abilities.spec.ts` 1/1 after its helpers moved to
 `e2e/fixtures/restrictedDentist.ts`.
+
+## Màu nhãn nhà cung cấp (2026-10-29, R-1072)
+
+BA request, not on the reference: "Thêm lựa chọn màu nhãn. Các tên nhà cung
+cấp sẽ hiển thị bag theo màu đã chọn (k thì mặc định xám)". Owner chose the
+badge on all three Labo tables, 8 presets plus any colour, and a solid badge
+with white text. The picker and badge are shared (`src/components/LabelColor`).
+`LaboSupplier.SetLabelColor` keeps `#RRGGBB` upper case, clears on blank and
+refuses anything else with `Labo:0014`; the input DTO's regex answers 400
+first. `LaboOrderDto.SupplierLabelColor` comes from the order's `SupplierId`;
+an order with only a typed lab name stays grey.
+
+Evidence, production build on an isolated stack (preview :8172 → host :5172 →
+DB copy `BlueDental_r1072`), real login, no interception:
+`labo-supplier-color.spec.ts` 3/3 — create with a preset (preview follows name
+and colour, POST echoes `#2671D8`), reload reads blue/white from the server,
+an order carrying the supplier shows the same badge on Mẫu Labo and on the
+patient tab, Mặc định brings back grey on both after a reload, a custom pale
+colour persists with dark text and reopens in the custom well, and
+`labelColor: "red"` is 400 with nothing stored. `labo*` 26/29; the three reds
+(`labo-orders-actions:88`, `labo-warranty:315`, `labo:156`) fail the same way
+on a HEAD build. Domain Labo 33/33 (`LaboSupplierLabelColorTests`),
+Application Labo 35/35, EF Labo 6/6.

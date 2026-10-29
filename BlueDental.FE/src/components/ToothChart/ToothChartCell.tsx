@@ -2,15 +2,22 @@ import { t } from "@/lib/i18n";
 import { ToothSurfaceCircle } from "./ToothSurfaceCircle";
 import { isMolar, type Jaw, type ToothPick, type ToothSurface } from "./toothModel";
 
+/**
+ * What can be clicked on one tooth: `open` — the tooth and its surfaces;
+ * `tooth` — the tooth only, its surfaces just shown; `view` — nothing, drawn as
+ * usual; `off` — nothing, greyed out as a tooth the owner does not offer.
+ */
+export type ToothAccess = "open" | "tooth" | "view" | "off";
+
 interface Props {
   fdi: number;
   jaw: Jaw;
   pick: ToothPick | undefined;
-  /** Grey and inert — a tooth the owner does not offer. */
-  disabled?: boolean;
-  surfacesReadOnly?: boolean;
-  onToggleTooth: (fdi: number) => void;
-  onToggleSurface: (fdi: number, surface: ToothSurface) => void;
+  access: ToothAccess;
+  /** Finished: the pick reads green instead of blue. */
+  done?: boolean;
+  onToggleTooth?: (fdi: number) => void;
+  onToggleSurface?: (fdi: number, surface: ToothSurface) => void;
 }
 
 /**
@@ -22,8 +29,8 @@ export function ToothChartCell({
   fdi,
   jaw,
   pick,
-  disabled = false,
-  surfacesReadOnly = false,
+  access,
+  done = false,
   onToggleTooth,
   onToggleSurface,
 }: Props) {
@@ -36,8 +43,8 @@ export function ToothChartCell({
       className={["tc-tooth", selected && "tc-tooth--selected"].filter(Boolean).join(" ")}
       aria-pressed={selected}
       aria-label={t("Common:Tooth:Label", fdi)}
-      disabled={disabled}
-      onClick={() => onToggleTooth(fdi)}
+      disabled={access === "view" || access === "off"}
+      onClick={() => onToggleTooth?.(fdi)}
     >
       {jaw === "lower" && <span className="tc-tooth__num">{fdi}</span>}
       <span className={["tc-tooth__img", jaw === "lower" && "tc-tooth__img--lower"].filter(Boolean).join(" ")}>
@@ -55,13 +62,13 @@ export function ToothChartCell({
     <ToothSurfaceCircle
       fdi={fdi}
       selected={pick?.surfaces ?? []}
-      disabled={disabled || surfacesReadOnly}
-      onToggle={(surface) => onToggleSurface(fdi, surface)}
+      disabled={access !== "open"}
+      onToggle={(surface) => onToggleSurface?.(fdi, surface)}
     />
   );
 
   return (
-    <div className={["tc-cell", disabled && "tc-cell--disabled"].filter(Boolean).join(" ")}>
+    <div className="tc-cell" data-access={access} data-done={done || undefined}>
       {jaw === "upper" ? tooth : circle}
       {jaw === "upper" ? circle : tooth}
     </div>

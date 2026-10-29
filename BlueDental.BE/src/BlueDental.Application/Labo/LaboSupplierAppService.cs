@@ -219,15 +219,17 @@ public class LaboSupplierAppService : ApplicationService, ILaboSupplierAppServic
     /// code of nothing" two different states.
     /// </summary>
     private static void Apply(LaboSupplier entity, LaboSupplierInputDto input) =>
-        entity.SetDetails(
-            input.Name.Trim(),
-            Blank(input.Phone),
-            Blank(input.Email),
-            Blank(input.ContactPerson),
-            Blank(input.TaxCode),
-            Blank(input.ProvinceCode),
-            Blank(input.WardCode),
-            Blank(input.Address));
+        entity
+            .SetDetails(
+                input.Name.Trim(),
+                Blank(input.Phone),
+                Blank(input.Email),
+                Blank(input.ContactPerson),
+                Blank(input.TaxCode),
+                Blank(input.ProvinceCode),
+                Blank(input.WardCode),
+                Blank(input.Address))
+            .SetLabelColor(Blank(input.LabelColor));
 
     private static string? Blank(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

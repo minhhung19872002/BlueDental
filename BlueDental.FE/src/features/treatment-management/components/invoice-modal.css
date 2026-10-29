@@ -74,7 +74,7 @@
 .inv-table .ant-table-wrapper .ant-table-thead > tr > th {
   padding-top: 9px;
   padding-bottom: 9px;
-  color: #5a6b82;
+  color: var(--bd-table-head-ink);
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0;

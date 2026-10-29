@@ -171,6 +171,8 @@ export interface LaboOrderDto {
   attachmentUrl?: string;
 
   supplierName?: string;
+  /** The supplier's badge colour, "#RRGGBB"; absent reads grey (R-1072). */
+  supplierLabelColor?: string | null;
   materialName?: string;
   /** The labo service the material belongs to: "Dịch vụ hiện tại" on the child form. */
   laboServiceName?: string;

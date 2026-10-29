@@ -765,6 +765,11 @@ Captures stay in `reference-private/stage-multi/` and `reference-private/warrant
    `isGuarantee`); the one continued comes back `disabled: true` at its old
    status. The history greys a disabled row (`opacity-50`,
    `pointer-events-none`) and drops its pencil, Hoàn thành and Tạo Labo.
+   **BlueDental differs on purpose (owner, 2026-10-29, R-1074):** no fade —
+   the old row stays locked control by control (pencil gone, Hoàn thành and
+   Tải ảnh disabled, no Tạo Labo) but its jaw button and pictures still open.
+   The row carries `data-superseded`, not `aria-disabled`, which would mark
+   those two as disabled as well.
 7. **Warranty controls on a finished, live row** (`canCreateWarranty =
    !disabled && status === "done"`):
    - no `guaranteeTime` on the service → grey disabled **Không bảo hành**;

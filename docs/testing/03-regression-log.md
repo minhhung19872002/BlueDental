@@ -12273,3 +12273,195 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Các chức năng in khác (báo giá, yêu cầu hoá đơn, phiếu điều trị, `usePrintSheet`) dùng code riêng, không bị ảnh hưởng. `/taxonomy` cũng không.
   - Đã thêm dòng `printing.ts` / khối in `medical-record.css` vào `02-impact-map.md`.
 - **Chưa chắc**: chưa chứng minh host extension trên máy chủ dự án chính là thủ phạm (trên màn hình nó không sinh hộp nào). Sau khi deploy cần in lại mẫu 6 trên máy đó.
+
+## R-1071 (2026-10-29, mức 2: F-47 Tài chính → Thanh toán) Lọc theo phương thức thanh toán
+
+- **Yêu cầu** (chat của owner, kèm ảnh màn `/billing`): "thêm lọc theo phương thức thanh toán". Owner chốt 3 điểm:
+  - **chọn 1** phương thức mỗi lần (không chọn nhiều);
+  - hai thẻ "Tổng tiền đã thu" / "Số phiếu thanh toán" **đi theo** bộ lọc;
+  - làm trên `main`.
+- **BE**:
+  - `GetPaymentLedgerInput.Method` (`PaymentMethodKind?`).
+  - `PaymentLedgerAppService.FilteredAsync` lọc `x.Method == input.Method` ngay trong câu truy vấn, nên danh sách, `TotalCount`, `TotalAmount` và Xuất Excel dùng chung một bộ lọc.
+  - `ExportAsync` chép tay từng trường đầu vào, nên đã thêm `Method`. Thiếu dòng này thì Excel bỏ qua bộ lọc.
+  - Giá trị không có trong enum (`method=99`) → 400 do model binding chặn.
+- **FE**:
+  - `LedgerMethodSelect` (AntD `Select`, `allowClear`) đặt giữa ô tìm kiếm và Ngày/Tuần/Tháng.
+  - Thứ tự lựa chọn giống dialog thanh toán của kế hoạch (`LEDGER_METHOD_ORDER`): Tiền mặt, Ngân hàng, Ví momo, Quẹt thẻ, Dư nợ.
+  - Placeholder là "Phương thức TT" (key có sẵn `Treatment:Receipt:PaymentMethodShort`). `aria-label` giữ đủ "Phương thức thanh toán".
+  - Rộng 150px. Owner thấy 210px "dài, vừa đủ là được". Đo trên bản build: chữ placeholder 99px, ô chữ 109px, cả 5 phương thức đều không bị cắt (`scrollWidth == clientWidth`). Ở mobile, ô chiếm trọn một hàng như các control khác.
+  - Đổi phương thức thì quay về trang 1. Xoá lựa chọn thì hiện lại mọi phương thức.
+- **E2E** (bản build production, preview :8171 nối host riêng :5171 + DB copy `BlueDental_r1071` có Zalo tắt; không chặn API; có đăng nhập thật):
+  - `billing-ledger.spec` có ca mới "Phương thức thanh toán narrows the list, both cards and the Excel to one method":
+    - API: lọc đúng phương thức của phiếu → `totalCount` 1, `totalAmount` = số tiền; phương thức khác → 0 / 0; `method=99` → 400.
+    - Màn hình: thứ tự 5 lựa chọn đúng như trên.
+    - Chọn phương thức khác → dòng mất, hiện "Chưa có phiếu thanh toán", cả hai thẻ về 0. Excel gửi `method=<khác>` và file không có mã phiếu.
+    - Chọn lại đúng phương thức → dòng, thẻ và Excel (có mã phiếu) quay lại.
+    - Xoá lựa chọn → dòng hiện lại.
+  - Kết quả: `billing-ledger` **6/6 xanh**, `payment-permission-buttons` **2/2**, `payment-receipt-pdf` **4/4**, `routes` **20/20**.
+  - Lần chạy đầu, `payment-receipt-pdf:47` đỏ ("receipt template is missing") vì host riêng chạy từ thư mục build trong scratchpad, không có `wwwroot/templates`. Chạy lại với `--contentRoot` trỏ về project Host → xanh. Lỗi do môi trường, không do R-1071.
+  - `tsc -b` xanh; `dotnet build` Application + Host xanh; build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-47).
+  - Chỉ màn `/billing` và hai endpoint `GET /api/v1/app/payment-ledger` (+ `/excel`) đổi. Tham số mới là tuỳ chọn: bỏ trống thì kết quả y như trước.
+  - Tab Thanh toán của kế hoạch, phiếu thu, HĐĐT không đổi. `/taxonomy` không đụng.
+- **Ngoài phạm vi**: lọc theo "Tài khoản nhận" (`PaymentAccountId`) chưa làm.
+
+## R-1072 (2026-10-29, mức 2: F-13 Labo) Màu nhãn nhà cung cấp Labo
+
+- **Yêu cầu** (BA, kèm ảnh bảng Nhà cung cấp Labo và dialog Tạo nhà cung cấp): "Thêm lựa chọn màu nhãn. Các tên nhà cung cấp sẽ hiển thị bag theo màu đã chọn (k thì mặc định xám)". Owner chốt 3 điểm:
+  - badge hiện ở **cả 3 bảng**: Nhà cung cấp Labo, Mẫu Labo, tab Labo của hồ sơ bệnh nhân;
+  - bảng màu: **Mặc định (xám) + 8 màu có sẵn + màu tùy ý**;
+  - kiểu badge: **nền đặc, chữ trắng**. Trên nền nhạt thì chữ tự đổi sang màu đậm.
+  - Bản gốc không có tính năng này, nên không có gì để so sánh hình.
+- **BE**:
+  - `LaboSupplier.LabelColor` (`varchar(7)`, null = xám), migration `20261029035423_AddLaboSupplierLabelColor`.
+  - Guard `SetLabelColor`: rỗng hoặc trắng → null; khác `#RRGGBB` → `BusinessException Labo:0014` ("Màu nhãn không hợp lệ."); hợp lệ thì lưu chữ hoa.
+  - `LaboSupplierInputDto.LabelColor` có `[RegularExpression]`, nên giá trị sai bị trả 400 trước khi vào domain.
+  - `LaboOrderDto.SupplierLabelColor`: `LaboAppService` tra nhà cung cấp theo `SupplierId`, giờ lấy cả entity (trước chỉ lấy tên). Phiếu chỉ có tên labo gõ tay (không có `SupplierId`) → xám.
+- **FE**:
+  - Component dùng chung `src/components/LabelColor/`:
+    - `LabelBadge`: màu đi qua `--bd-label-color`; YIQ ≥ 186 thì thêm `--light` (chữ `--bd-ink`).
+    - `LabelColorPicker`: `radiogroup` 9 ô gồm Mặc định + 8 màu; ô thứ 10 là `<input type=color>` "Màu tùy chọn"; dưới cùng là badge xem trước theo tên đang gõ.
+  - `LaboSupplierDialog` gắn picker vào `Form.Item name="labelColor"` (cuối form) và gửi `labelColor` khi Lưu.
+  - `LaboSupplierScreen`, `laboOrderColumns`, `patientLaboColumns` đổi tên thành badge (`LaboSupplierBadge` trong `laboOrderCells`).
+  - Key i18n mới: `Labo:Supplier:LabelColor`, `Common:LabelColor:{Default,Select,Custom,Preview}`.
+- **E2E** (bản build production, preview :8172 nối host riêng :5172 + DB copy `BlueDental_r1072`; không chặn API; có đăng nhập thật):
+  - `labo-supplier-color.spec` **3/3 xanh**:
+    - Tạo nhà cung cấp, chọn `#2671D8`: badge xem trước theo tên và màu, POST trả `labelColor` đúng. Reload: bảng đọc lại nền xanh, chữ trắng.
+    - Phiếu Labo mang nhà cung cấp đó có cùng badge trên Mẫu Labo và tab Labo của bệnh nhân.
+    - Sửa sang Mặc định: reload thấy xám `rgb(100,116,139)` ở bảng nhà cung cấp và Mẫu Labo.
+    - Màu tùy ý nhạt `#fef08a`: lưu được, chữ đậm, mở lại thấy đúng màu trong ô tùy chọn.
+    - `labelColor: "red"` → 400 và không có bản ghi nào được tạo.
+  - `labo*` **26/29**. Ba đỏ `labo-orders-actions:88` (href `?branch=BD-001` thay vì `?branchId=`), `labo-warranty:315` (ô ngày nhập mask) và `labo:156` (dòng mới nhất là phiếu seed không có bác sĩ) **cũng đỏ y hệt trên bản build HEAD** (preview :8173, cùng host và DB). R-1062 cũng đã ghi đúng ba đỏ này.
+  - Domain Labo **33/33** (thêm `LaboSupplierLabelColorTests`), Application Labo **35/35**, EF Labo **6/6**; `tsc -b` và eslint các file đổi đều xanh.
+- **Mức retest**: 2 (F-13).
+  - Chỉ màn Labo và tab Labo của hồ sơ thay đổi. Các trường mới đều là tuỳ chọn: bỏ trống thì vẫn như cũ (xám).
+  - `/taxonomy` không đụng.
+- **Ngoài phạm vi**: phiếu Labo in (PHIẾU ĐẶT HÀNG LABO) và dialog chi tiết phiếu vẫn hiển thị tên chữ thường, không có badge.
+
+## R-1073 (2026-10-29, mức 2: bệnh án mẫu 7, mẫu 2) Phiếu phẫu thuật/thủ thuật theo bản của phòng khám; ô trống mẫu 2 theo bản của phòng khám
+
+- **Yêu cầu (chủ dự án, kèm 3 file của phòng khám trong thư mục `Phiếu update`: `benh_an_ngoai_tru_2.html`, `phieu_dong_y_phau_thuat_1.html`, `phieu_phau_thuat_thu_thuat.html`)**: so style các mẫu bệnh án tương ứng với file (cỡ chữ…), khác chỗ nào thì sửa cho giống.
+  - Cách so: lấy CSS trong file diff với `SHEET_CSS` + `SHEET_PAGE_CSS`; render template bằng chính `renderSheetHtml` rồi diff với thân file sau khi bỏ giá trị đã điền.
+  - Mẫu 6: đã khớp từ R-1068. Chỉ còn khác ô MS: R-1069 cố ý cho MS hiện như chữ in, còn file được xuất trước R-1069.
+  - Mẫu 2: style đã khớp từ R-1067. Còn 31 ô trống trong file rộng hơn template (R-1067 đã chốt giữ nguyên). Chủ dự án chốt lần này: **lấy theo file**, như mẫu 6.
+  - Mẫu 7: chưa làm. File có khối "Chỉnh sửa 2026-10-29: mẫu 7": lề 15mm, chữ 14px, dòng 1,5, đầu phiếu sát lề trái, MS / Mã người bệnh thẳng cột sát lề phải. 10 ô trống kéo tới lề phải.
+  - File mẫu 2 và mẫu 7 còn kéo dòng nối tiếp của ô chữ dài (`flowLines`) rộng 680px, tức chạm lề phải.
+- **Trước đó**:
+  - Mẫu 7: chữ 16,5px. In lề `@page` 5mm cộng padding 7mm, trên màn hình padding 12mm. Dòng 1,3 (đoạn) / 1,2 (tiêu đề). MS và Mã người bệnh là một đoạn căn phải ngắt bằng `<br>`, nên hai ô không thẳng cột. Phần lớn ô trống 320px.
+  - Mẫu 2: ô trống theo số cũ (vd. Địa chỉ 480px, Tiền sử bệnh 500px, "Gia đình" 320px) và không có `box-sizing`. Ô `text.7` (256px + padding) vì thế rớt xuống dòng dưới, tờ cao hơn file 102px.
+- **Sửa (chỉ FE, không đổi server/DB/i18n)**:
+  - `sheetCss.ts`:
+    - `.nfc-tpl[data-form="7"]{font-size:14px}`, tách khỏi dòng 16,5px.
+    - Nhóm lề 15mm `:is([data-form="2"],[data-form="6"])` thêm `[data-form="7"]`: trang in `margin-15mm`, padding 15mm ở `SHEET_PAGE_CSS` / `PRINT_COPY_CSS`, và luật `html:has(…)`.
+    - Ba luật của mẫu 6 đổi selector thành `:is([data-form="6"],[data-form="7"])`: dòng 1,5; đầu phiếu sát lề trái, MS sát lề phải; cột đầu bảng không viền sát lề trái. Luật ô đánh dấu đầu dòng vẫn chỉ cho mẫu 6, vì file mẫu 7 không có.
+    - Luật lưới `p.record-ids` của mẫu 2 dùng chung cho mẫu 7 (`.nfc-tpl[data-form="7"] p.record-ids`).
+    - Thêm `.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"]) [data-flow-of]{width:100%;min-width:0!important;max-width:none;box-sizing:border-box}`: dòng nối tiếp chạm lề phải. Chữ trên dòng vẫn ngắt như cũ, theo bề rộng dòng đầu. Mẫu 6 được thêm cho cả nhóm 15mm đồng bộ; file mẫu 6 không có dòng nối tiếp nào để so.
+  - `medical-record.css` (khối in R-1070): `<html>` mang tên trang `margin-15mm` khi phiếu cuối là mẫu 2, 6 hoặc 7.
+  - `templates/surgeryRecord.ts`:
+    - Khối MS → `<p class="record-ids">`, nhãn bọc `span.record-ids-label`, ô bọc `span`, giống mẫu 2 (bỏ `<br>` và style căn phải). Chữ, id ô và thuộc tính ô giữ nguyên.
+    - 10 ô lấy số của phòng khám làm `min-width`, thêm `box-sizing: border-box`: text.2 320→475, text.3 320→482, text.4 320→554, text.5 320→582, text.6 320→590, text.11 40→269, text.31 430→421, text.33 320→583, text.34 320→515, text.35 320→440.
+    - Ô full-width (text.21–30, text.32) giữ nguyên: đã `width:100%`, đo ra đúng số của file.
+  - `templates/outpatientDental.ts`: 31 ô làm như trên, ví dụ Họ tên 190→235, Địa chỉ 480→574, Tiền sử bệnh 500→616, `text.18` 48→210, `text.23` 320→617, `text.43` 320→474, `text.58` 40→223, `text.108` 64→155. Ba ô vốn đã đúng số (hai ô 680px, `text.20` 560px) chỉ thêm `box-sizing`. Ô full-width giữ nguyên.
+  - Template nằm trong code, phiếu đã lưu chỉ giữ giá trị ô, nên phiếu cũ cũng hiện theo kiểu mới.
+- **Đo so với file của phòng khám**: script trong scratchpad render template (`renderSheetHtml` + `flowLongBlanks`) và file trong 2 iframe cùng khổ, xoá giá trị đã điền, rồi so toạ độ từng ô tính từ góc vùng viết.
+  - Mẫu 7: **39/39 ô trống + ô đánh dấu lệch ≤1px**. Ảnh chụp tờ **0 pixel khác** (ngưỡng 40/255). Cao 1123px, bằng file.
+  - Mẫu 2: **137/140 ≤1px** (trước khi sửa: 6/140). Cao 2907px, bằng file (trước: 3009px). 3 ô lệch là khối MS: R-1069 bỏ khung ô MS nên cột ô hẹp lại 170→128px. Ảnh chụp chỉ khác ở dải y 59–119, đúng khối MS.
+  - Mẫu 6: 48/49, không đổi; ô lệch là MS (R-1069).
+- **E2E** (bản build production, preview :8080 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec`:
+    - Ca "every form shares…": mẫu 7 đổi 16,5px → 14px, vẫn in 1 trang → **xanh**. 8 mẫu khác giữ nguyên số liệu (mẫu 2 vẫn 3 trang) và vẫn xanh.
+    - Ca R-1067 "mẫu 2: 15mm margins…" thêm kiểm tra → **xanh**: ô Địa chỉ, Tiền sử bệnh, Gia đình nằm trên một dòng và chạm lề phải (±2px); "5. Chẩn đoán" dài chảy sang dòng riêng, dòng đó chạm lề phải (±1px).
+    - Ca mới "mẫu 7: 15mm margins, the letterhead, the MS block and the blanks to the right margin" → **xanh**. Ca này kiểm:
+      - chữ 14px; padding 15mm 4 cạnh; giãn dòng ≈ 1,5 lần cỡ chữ;
+      - đầu phiếu chạm lề trái; 2 nhãn MS một cột, 2 ô một cột, khối chạm lề phải;
+      - 10 ô trên nằm một dòng và chạm lề phải (±2px);
+      - "Chẩn đoán trước" dài có dòng nối tiếp chạm lề phải;
+      - khi in, bản sao `.mr-print-copy` có `page: margin-15mm` và padding 0.
+    - Ca R-1070 "a browser extension's block…" thêm mẫu 7: có khối extension vẫn in 1 trang → **xanh 3/3** (`--repeat-each 3`).
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` + `medical-record-drawing` (43 ca, 8 phút, 1 worker): **37 xanh / 6 đỏ**.
+    - "the index lists…", "picking the day…": đã đỏ từ trước (R-1067…R-1070). Cũng đỏ y hệt trên bản build HEAD sạch `ea1eabc7` (`git archive` + junction `node_modules`, preview :8188).
+    - "a row of the treatment log…", "picking a sheet from the folded index…", "leaving a sheet with unsaved writing…": đỏ vì dữ liệu do các ca chạy trước để lại (thẻ "Bìa hồ sơ" thay vì "Bìa hồ sơ bệnh án"; hàng Phiếu chăm sóc chưa ra thẻ sau khi bấm Thêm). Chạy lại trên chính bản sửa → **xanh cả 3**.
+    - "a browser extension's block…": lần đó đỏ vì thẻ mẫu 5 đang mang tên "Phiếu đồng ý điều trị" (dữ liệu). Một lần chạy riêng khác đỏ vì "Failed to fetch". Sau đó chạy lại 3/3 xanh.
+  - `treatment-plan.spec` (9 ca; dialog "In bệnh án" in qua cùng `copySheetsForPrint`) → **9 xanh**.
+  - `tsc -b` (trong `npm run build`) xanh; `oxlint` xanh.
+- **Mức retest**: 2 (F-30 Bệnh án: mẫu 2 và mẫu 7, màn hình + bản in; khối in dùng chung). Không ảnh hưởng `/taxonomy`, vì chỉ tab hồ sơ import `sheetCss.ts`. Đã sửa 2 dòng trong `02-impact-map.md`.
+- **Còn lại, chưa làm**:
+  - Khối MS mẫu 2: cột ô rộng 128px thay vì 170px như file (hệ quả của R-1069). Muốn giữ 170px thì cần thêm độ rộng tối thiểu cho cột ô. Chờ chủ dự án.
+  - In thẳng tài liệu của tờ phiếu (không qua "In biểu mẫu") thì mẫu 2 ra 5 trang. HEAD sạch cũng vậy, và app không in theo đường này.
+
+## R-1074 (2026-10-29, mức 2: F-38 Chi tiết phiếu → LỊCH SỬ ĐIỀU TRỊ) Nút hàm răng thay cho chip răng, bỏ làm mờ dòng cũ
+
+- **Yêu cầu** (chat, kèm ảnh bảng LỊCH SỬ ĐIỀU TRỊ và icon hàm răng): "Bỏ hiển thị các răng, hiển thị hình hàm răng click chọn để xem lại. Bỏ phần làm mờ phía dưới". Owner chốt 3 điểm:
+  - dòng công đoạn cũ (đã được tiếp tục) **vẫn khoá** như trước, chỉ bỏ làm mờ;
+  - sơ đồ trong dialog **giữ màu** của R-696: răng dòng này làm xanh, răng đã xong xanh lá (quy tắc BA 2026-10-05), răng của dịch vụ chưa làm để trắng, răng ngoài dịch vụ xám;
+  - chỉ làm trên `main`.
+  - Bản gốc vẫn in chip răng và làm mờ dòng cũ (`opacity-50`), nên đây là **sai khác có chủ đích**, đã ghi ở `docs/clone/pages/patient-detail.md` (mục 6 của luồng công đoạn).
+- **FE**:
+  - `stage/StageChartButton.tsx` (mới): nút hàm răng 30px `.pd-stage-chartbtn` mang `/img/teeth/teeth.svg`, tooltip + `aria-label` `Patient:Stage:ViewChart`. Dùng chung cho nút sơ đồ của form công đoạn (`StageTeethPicker`, `FollowUpTeeth` — trước đây mỗi nơi tự viết) và dòng lịch sử.
+  - `stage/StageHistoryTeeth.tsx` (viết lại): `StageChartButton` mở modal "Sơ đồ răng – {dịch vụ}" gồm chú thích 3 màu, `DentitionRadio` (mở sẵn theo răng của dòng) và `ToothChart interaction="view"`; chân modal chỉ có `Đóng`. Dòng không có răng thì không có nút.
+  - `ToothChart`:
+    - prop `enabledTeeth` đổi tên thành `offeredTeeth` (răng chủ màn hình cho phép; còn lại xám, không bấm được).
+    - prop `interaction` thành union: `"open"` (mặc định) / `"tooth"` bắt buộc truyền `onToggleTooth` + `onToggleSurface`; `"view"` thì **không nhận** handler nào.
+    - mỗi ô nhận `ToothAccess` (`open` / `tooth` / `view` / `off`) và ghi ra `data-access`; CSS bám vào thuộc tính này thay cho các class `tc-cell--disabled` / `tc-chart--readonly` (đã bỏ). `view` vẽ như thường, con trỏ thường, không bấm được; `off` xám như trước.
+    - `doneTeeth` mới: ô mang `data-done`, đổi `--tc-blue` sang `--bd-success` nên răng đã xong tô xanh lá.
+  - `toothPicker.ts`: hàm mới `toothSelectionToPick` (ngược của `toothPickToSelection`), dùng cho `StageTeethDialog`, sơ đồ lịch sử và chính `toothSelectionsToValue` (trước đây dialog tự viết một bản).
+  - `StageHistory`: bỏ chip răng và bỏ rule làm mờ. Dòng cũ thôi mang `aria-disabled="true"` mà mang `data-superseded`, vì `aria-disabled` trên dòng khiến trình đọc màn hình và Playwright coi **mọi nút con** là disabled, kể cả nút hàm răng và ảnh. Các khoá từng nút giữ nguyên: mất bút chì sửa ghi chú, ô Hoàn thành và Tải ảnh disabled, không có Tạo Labo.
+  - CSS: bỏ `.pd-stage-histteeth` / `.pd-stage-histtooth*` và rule mờ; gộp kiểu nút sơ đồ vào một rule `.pd-stage-chartbtn`; thêm `.pd-stage-chartlegend` (3 ô màu).
+  - Key i18n mới: `Patient:Stage:ChartTitle`, `ChartWorked`, `ChartDone`, `ChartOutside`.
+- **E2E** (bản build production, preview :8181 nối host riêng :5130 build vào scratchpad, cùng DB; không chặn API; đăng nhập thật). Host riêng là bắt buộc: host chung :5000 của phiên khác vẫn trả bản dịch cũ nên tiêu đề dialog ra key thô.
+  - `treatment-stage-chain` đọc màu răng **trong sơ đồ** thay vì chip (helper `openRowChart`: danh sách răng của dịch vụ / đang làm / đã xong). Dòng cũ: `data-superseded="true"`, opacity 1, ô Hoàn thành và Tải ảnh disabled, nút hàm răng vẫn mở được và sơ đồ không có răng nào bấm được.
+  - `treatment-stage-chain` đọc trạng thái ô qua `data-access` / `data-done` (không dùng class), tìm nút qua tên "Xem sơ đồ răng".
+  - `patient.spec` (2 chỗ) và `stage-remark.spec` (1 chỗ) đổi `aria-disabled` của dòng lịch sử sang `data-superseded`.
+  - `patient.spec` "a continued công đoạn locks its controls…" (trước là "greys out"): dòng cũ phải **opacity 1, pointer-events auto** thay vì `pointer-events: none` của rule mờ.
+  - Trên build từ `main` 30d380e4 (đã pull) + R-1074: `treatment-stage-chain` **8/8**, `stage-remark` **2/2**, `stage-treatment-date` **4/4**, `stage-appointment-note` **2/2**, `treatment-stage` **2/2**, `patient` 2522 **1/1** xanh. Một lần đỏ `net::ERR_NO_BUFFER_SPACE` ở `stage-remark:247` (Windows hết socket) chạy lại xanh. `tsc -b` xanh, build production có đúng 1 chunk ngôn ngữ.
+  - Màn dùng `ToothChart` khác: `cskh-after-treatment`, `diagnosis-quick-create`, `plan-advisor-scope`, `service-priority-order`, `treatment-plan-detail`, `cross-screen-freshness` xanh; `patient` 2187/2280/2314/2370/2413/2434 và `cross-screen-freshness:232` đỏ (bấm quá 30s) khi chạy cuối một lượt 33 test, chạy riêng **8/8** xanh — dữ liệu e2e dồn lại, không do R-1074.
+  - Đỏ có sẵn, đỏ y hệt trên build HEAD sạch 30d380e4 (`git archive` + preview :8182, cùng host): `patient` 1821 (đầu mục dialog thanh toán), 2727 / 2857 / 3925 (thiếu dữ liệu seed: dòng có công đoạn mẫu, lịch hẹn đơn có bác sĩ trống).
+- **Mức retest**: 2 (F-38) + các màn dùng `ToothChart` (xem dòng mới trong `02-impact-map.md`): chọn răng ở kế hoạch, phiếu chẩn đoán, phiếu tư vấn, công đoạn. Không đổi BE ngoài 4 key dịch.
+- **Ngoài phạm vi**: bảng điều trị ở tab Hồ sơ và tờ in "In lịch sử điều trị" vẫn in số răng như cũ.
+
+## R-1075 (2026-10-29, mức 1: giao diện dùng chung) Header mọi bảng trên màn hình đổi sang dải indigo nhạt
+
+- **Yêu cầu** (BA qua chat, Huỳnh Văn Định): header bảng "trùng với cái background nền ở dưới nên khó nhìn". Header cũ `#f7f8fd` nằm trên nền trang `#f7f9ff`, hai màu gần như trùng nhau.
+  - BA đề xuất `#722ED1`. Đã dựng thử 3 phương án trên màn thật (Bệnh nhân, Vật tư có tick chọn tất cả): **A** `#e0e7ff` chữ `#22285c`, **B** `#4f46e5` chữ trắng, **C** `#722ED1` chữ trắng.
+  - **BA chọn A.** Bảng màu v2 giữ nguyên (R-1002); A nằm trong họ indigo của v2.
+- **Sửa (chỉ FE, chỉ CSS + theme)**:
+  - Token mới trong `styles/index.css`: `--bd-table-head` `#e0e7ff`, `--bd-table-head-ink` `#22285c`, `--bd-table-head-line` `#c7d0f5`. `--bd-bg-head` không đổi (lịch và các chỗ không phải bảng vẫn dùng).
+  - `theme/index.ts`: thêm `brand.tableHead` / `tableHeadInk` / `tableHeadLine`; Table dùng `headerBg`, `headerColor`, và cả `headerSortActiveBg`, `headerSortHoverBg`, `fixedHeaderSortActiveBg`. Nếu thiếu các token sort, luật cột đang sắp xếp của antd (độ ưu tiên 0,3,1) thắng luật toàn cục và cột đó quay về xám.
+  - Luật toàn cục `.ant-table-thead > tr > th` đổi nền và chữ sang token mới. Thêm luật sau luật kẻ cột R-997: kẻ dọc của **header** dùng `--bd-table-head-line`, vì `--bd-line` gần như biến mất trên nền indigo. Kẻ dọc của thân bảng giữ nguyên.
+  - `.dg-head` (DataGrid dùng chung) đổi theo.
+  - Bảng antd có CSS riêng cho header, đổi sang token: `.bd-rx-table`, `.ah-table`, `.cskh-table`, `.pc-card`, `.pd-table-card`, `.pd-treatment-table`, `.pd-debt-table`, `.bd-patient-tablecard`, `.report-table-card` (thêm kẻ header), `.org-history__table`, `.bd-stage-table`, `.inv-table`, `.tp-table`.
+  - Bảng HTML thường (nền, chữ, kẻ header): `.rs-slips`, `.report-daily-table` (bỏ một luật `th` bị lặp), `.bd-combo-table` / `.bd-combo-detail-table`, `.wsb-table` (bảng xếp lịch làm việc; ô thân giữ nguyên), `.am-table`, `.tp-group-table`, `.pdt-refund-table`.
+  - `/taxonomy`: chỉ đổi màu nền header `.bd-stage-table` và bảng combo, không đụng cấu trúc hay hành vi (CLAUDE.md §17).
+- **Không đổi, có chủ đích**: các bảng in / tờ giấy (`.pd-cover-table`, `.pq-sheet`, `.pq-dx__table`, `.report-print-table`, `.report-voucher-table`, `.pdt-slip-sheet-table`, `.rx-sheet-table`), bảng trong bài thư viện `.pd-lib-article`, lịch và DateNavigator.
+- **Kiểm tra giao diện** (bản build production, preview :8080 nối host :5000, đăng nhập thật; đọc computed style):
+  - `/patient`: mọi ô header `rgb(224,231,255)`, chữ `rgb(34,40,92)`, kẻ dọc `rgb(199,208,245)`; ô cố định "Thao tác" cùng màu.
+  - `/dashboard/cskh`: bấm sắp xếp, ô `column-sort` vẫn `rgb(224,231,255)`.
+  - `/materials`: ô checkbox chọn tất cả và rãnh thanh cuộn cùng dải màu.
+  - Lịch làm việc (`workSchedule=builder`): ô tick, Nhân viên, cột ngày thường và cuối tuần đều indigo; ô thân trắng như cũ.
+  - `/taxonomy/service`, `/report` (bảng thường và bảng tổng theo ngày ở tab Thanh toán), tab Chẩn đoán & Tư vấn của hồ sơ bệnh nhân (16 ô header): đúng 3 màu.
+  - `tsc -p tsconfig.app.json --noEmit` xanh; build production có đúng 1 chunk ngôn ngữ.
+- **E2E** (`taxonomy*` + `payment-qr` + `branch-*` trên bản build production, preview :8080 nối host :5000): **90/93 xanh**. 3 test đỏ sẵn, đã chứng minh bằng cách build `72527b28` (trước R-1075), preview :8175 và chạy riêng 3 test: đỏ y hệt, cùng thông báo lỗi:
+  - `taxonomy-dialogs:104`: `locator.click` hết giờ (DB local không có nhà cung cấp labo).
+  - `taxonomy-dialogs:256`: "the branch should have a service group".
+  - `taxonomy-import-api:708`: `locator.click` hết giờ (tài khoản test nhận 200, không phải 403).
+
+  Đây là lỗi dữ liệu/quyền ở local, giống R-997 / R-998 / R-999; không liên quan việc đổi màu.
+- **Mức retest**: 1 (CSS + token, không đổi hành vi). Chạy thêm bộ `/taxonomy` theo §17 vì có đổi `taxonomy.css`.
+
+## R-1076 (2026-10-29, mức 1: giao diện) Header lịch hẹn theo dải indigo của bảng (R-1075)
+
+- **Yêu cầu** (chủ dự án, sau R-1075): header lịch `/calendar` (hàng tên bác sĩ ở view Ngày) vẫn là nền xám nhạt cũ, lệch với header bảng vừa đổi. "Đổi luôn."
+- **Sửa (chỉ `features/appointments/components/calendar.css`, dùng 3 token của R-1075)**:
+  - View Ngày: `.dtl-corner` và `.dtl-doc` nền `--bd-table-head`, chữ `--bd-table-head-ink` (ô góc trước là `--bd-faint`). Kẻ cột `--bd-line` của `.dtl-col` / `.dtl-timecol` biến mất trên dải indigo, nên header phủ lên bằng `box-shadow: 1px 0 0 var(--bd-table-head-line)`.
+  - View Tuần: `.cal-week-time-header` và `.cal-week-day-header` nền indigo, kẻ dọc `--bd-table-head-line`. Ngày `--bd-table-head-ink`, thứ `--bd-muted` (trước là `#99a0bd`, quá nhạt trên indigo).
+  - **Hôm nay** trên view Tuần: nền `#eef0ff` cũ nhạt hơn dải nên trông như một lỗ hổng. Đổi thành gạch chân 2px màu `--bd-primary`; ngày vẫn màu chủ đạo.
+  - View Tháng: `.cal-month-weekday` nền indigo, chữ `--bd-table-head-ink`.
+  - Lịch mini trong dialog (Ngày theo giờ và theo bác sĩ, Tuần, Tháng): `.mcal-day-header`, `.mcal-week-header`, `.mcal-month-header` nền indigo, chữ và kẻ dọc theo token.
+- **Không đổi, có chủ đích**: cột giờ bên trái (`.dtl-tick`, `.cal-week-time-cell-abs`), cột tên bác sĩ ở lịch mini (`.mcal-day-doctor`, là tiêu đề hàng chứ không phải dải header), ô thân lịch, ô "hôm nay" ở thân Tuần/Tháng.
+- **Kiểm tra giao diện** (dev server :5173 nối host :5000, đăng nhập thật; đọc computed style và chụp ảnh):
+  - `/calendar` Ngày: góc "BÁC SĨ" và 7 cột bác sĩ `rgb(224,231,255)` / chữ `rgb(34,40,92)`, kẻ cột trong header `rgb(199,208,245)`.
+  - Tuần: header giờ và 7 ngày indigo; 29/10 gạch chân `rgb(99,102,241)` inset 2px. Tháng: 7 ô thứ indigo.
+  - Dialog "Tạo lịch hẹn" (mở rồi Esc, không lưu): lịch mini Ngày (cả hai kiểu), Tuần, Tháng đều đúng 3 màu.
+- **E2E**: không chạy. Chỉ đổi màu trong một file CSS, không đổi DOM, class hay hành vi.
+- **Mức retest**: 1.

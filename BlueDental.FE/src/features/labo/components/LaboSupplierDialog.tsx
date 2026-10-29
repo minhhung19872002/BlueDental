@@ -10,6 +10,7 @@ import {
 } from "../api/laboCatalogApi";
 import { AppDialog } from "@/components/AppDialog";
 import { FloatingField } from "@/components/FloatingField";
+import { LabelColorPicker } from "@/components/LabelColor";
 import { t } from "@/lib/i18n";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
@@ -30,6 +31,7 @@ interface FormValues {
   provinceCode?: string;
   wardCode?: string;
   address: string;
+  labelColor: string | null;
 }
 
 const EMPTY: FormValues = {
@@ -41,6 +43,7 @@ const EMPTY: FormValues = {
   provinceCode: undefined,
   wardCode: undefined,
   address: "",
+  labelColor: null,
 };
 
 /**
@@ -106,6 +109,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
             provinceCode: supplier.provinceCode ?? undefined,
             wardCode: supplier.wardCode ?? undefined,
             address: supplier.address ?? "",
+            labelColor: supplier.labelColor ?? null,
           }
         : EMPTY,
     );
@@ -138,6 +142,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
       provinceCode: values.provinceCode || undefined,
       wardCode: values.wardCode || undefined,
       address: values.address.trim() || undefined,
+      labelColor: values.labelColor,
     };
 
     try {
@@ -315,6 +320,10 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
         <FloatingField name="address" label={t("Common:Address")}>
           <Input maxLength={500} />
         </FloatingField>
+
+        <Form.Item name="labelColor" noStyle>
+          <LabelColorPicker title={t("Labo:Supplier:LabelColor")} previewText={name} />
+        </Form.Item>
       </Form>
     </AppDialog>
   );

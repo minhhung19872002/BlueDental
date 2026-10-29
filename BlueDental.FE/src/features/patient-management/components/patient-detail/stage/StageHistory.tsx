@@ -7,16 +7,12 @@ import type { TreatmentStageDto } from "@/features/treatment-management/api/stag
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageEditPencil } from "./StageEditPencil";
 import { NOTE_LIMIT } from "./StageForm";
+import { StageHistoryTeeth } from "./StageHistoryTeeth";
 import { StageNoteBullets } from "./StageNoteBullets";
 import { StageNoteInput } from "./StageNoteInput";
 import { StageRemarkCell } from "./StageRemarkCell";
 import { StageWarrantyButton } from "./StageWarrantyButton";
-import {
-  namedSteps,
-  type HistoryTooth,
-  type HistoryToothState,
-  type WarrantyState,
-} from "./stageModel";
+import { namedSteps, type HistoryTooth, type WarrantyState } from "./stageModel";
 
 /** One calendar day's stages, the way the reference groups its rows. */
 export interface StageDay {
@@ -61,12 +57,6 @@ export interface StageHistoryLeaves {
   /** treatmentLabo.create — "Tạo Labo". */
   labo: boolean;
 }
-
-const TOOTH_CLASS: Record<HistoryToothState, string | undefined> = {
-  idle: undefined,
-  worked: "pd-stage-histtooth--worked",
-  done: "pd-stage-histtooth--done",
-};
 
 /** The pencil that swaps a stage's note for an editor, in place. */
 function NoteCell({
@@ -193,17 +183,19 @@ export function StageHistory({
                 <div>
                   {day.stages.map((stage) => {
                     const images = imagesOf(stage.id);
-                    // A công đoạn continued by a later one is history: the
-                    // reference greys it out and drops its Tạo Labo. Several
-                    // chains can run on one line, each with its own live row.
+                    // A công đoạn continued by a later one is history: its
+                    // controls lock one by one and Tạo Labo goes. The reference
+                    // also fades the row; the owner dropped that (2026-10-29),
+                    // and data-superseded marks it, as aria-disabled would
+                    // announce its jaw button and pictures as disabled too.
+                    // Several chains can run on one line, each with a live row.
                     const live = !stage.isSuperseded;
                     const done = stage.completedAt !== null;
+                    const serviceName = stage.serviceName ?? stage.name;
                     return (
                       <div
-                        className={
-                          live ? "pd-stage-histrow" : "pd-stage-histrow pd-stage-histrow--off"
-                        }
-                        aria-disabled={!live}
+                        className="pd-stage-histrow"
+                        data-superseded={!live}
                         /*
                          * A slip can hold several service lines, each with its
                          * own live công đoạn, so a row has to say which line it
@@ -215,25 +207,8 @@ export function StageHistory({
                         key={stage.id}
                       >
                         <div>
-                          <p className="pd-stage-histservice">{stage.serviceName ?? stage.name}</p>
-                          {/* Tooth numbers only: the reference prints no
-                              surfaces on a công đoạn. Every tooth of the
-                              service is listed and this visit's ones are
-                              blue, so the day's work reads at a glance; a
-                              công đoạn written with no teeth stood for them
-                              all. A finished tooth is green from the row
-                              that finished it on — see historyTeeth. */}
-                          <div className="pd-stage-histteeth">
-                            {historyTeethOf(stage).map(({ tooth, state }) => (
-                              <span
-                                key={tooth.toothCode}
-                                className={TOOTH_CLASS[state]}
-                                data-state={state}
-                              >
-                                {tooth.toothCode}
-                              </span>
-                            ))}
-                          </div>
+                          <p className="pd-stage-histservice">{serviceName}</p>
+                          <StageHistoryTeeth teeth={historyTeethOf(stage)} serviceName={serviceName} />
                           {images.length > 0 && (
                             <div className="pd-stage-histshots">
                               <Image.PreviewGroup>

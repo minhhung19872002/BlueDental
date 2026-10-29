@@ -204,6 +204,30 @@ async function chipStates(form: Locator): Promise<string[]> {
   );
 }
 
+/**
+ * A history row's teeth sit behind its jaw button (owner, 2026-10-29): opens
+ * the read-only chart and hands back its teeth, in the order the chart draws
+ * them (Q1 runs 18 → 11, Q2 21 → 28). The locators retry, so they follow the
+ * row while the chart stays open.
+ */
+async function openRowChart(page: Page, row: Locator) {
+  await row.getByRole("button", { name: "Xem sơ đồ răng" }).click();
+  const chart = page.getByRole("dialog", { name: /^Sơ đồ răng – / });
+  await expect(chart.locator(".tc-cell").first()).toBeVisible();
+  const numbers = (cells: string) => chart.locator(`${cells} .tc-tooth__num`);
+  return {
+    chart,
+    /** Every tooth of the row's service; the rest of the mouth is greyed out. */
+    line: numbers('.tc-cell:not([data-access="off"])'),
+    worked: numbers(".tc-cell:not([data-done]):has(.tc-tooth--selected)"),
+    done: numbers(".tc-cell[data-done]:has(.tc-tooth--selected)"),
+    close: async () => {
+      await chart.locator(".ant-modal-footer").getByRole("button", { name: "Đóng" }).click();
+      await expect(chart).toBeHidden();
+    },
+  };
+}
+
 test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và bảo hành", () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(150_000);
@@ -342,10 +366,10 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(next.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([31]);
 
     // 32 is still open on the first visit, which stays live and keeps its history.
-    await expect(dialog.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`)).toHaveAttribute("aria-disabled", "false");
-    await expect(
-      dialog.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"] .pd-stage-histtooth--worked`),
-    ).toHaveText(["31", "32"]);
+    await expect(dialog.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`)).toHaveAttribute("data-superseded", "false");
+    const firstChart = await openRowChart(page, dialog.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`));
+    await expect(firstChart.worked).toHaveText(["31", "32"]);
+    await firstChart.close();
 
     // Next visit, from a fresh load: the card offers 31 (on the new visit) and
     // 32 (still on the first) — on the server's word.
@@ -375,9 +399,22 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     const last = await (await rest).json();
     expect(last.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([32]);
 
-    // Nothing left open on the first visit: now it is history.
-    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`)).toHaveAttribute("aria-disabled", "true");
-    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${next.id}"]`)).toHaveAttribute("aria-disabled", "false");
+    // Nothing left open on the first visit: now it is history — locked, but no
+    // longer faded (owner, 2026-10-29), and its teeth still open for a look.
+    const oldRow = again.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`);
+    await expect(oldRow).toHaveAttribute("data-superseded", "true");
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${next.id}"]`)).toHaveAttribute("data-superseded", "false");
+    await expect(oldRow).toHaveCSS("opacity", "1");
+    await expect(oldRow.locator(".pd-stage-rowactions").getByRole("checkbox")).toBeDisabled();
+    await expect(oldRow.getByRole("button", { name: "Tải ảnh" })).toBeDisabled();
+    await expect(oldRow.getByRole("button", { name: "Tạo Labo" })).toHaveCount(0);
+    await expect(oldRow.getByRole("button", { name: "Sửa ghi chú" })).toHaveCount(0);
+    const oldChart = await openRowChart(page, oldRow);
+    await expect(oldChart.line).toHaveText(["31", "32"]);
+    await expect(oldChart.worked).toHaveText(["31", "32"]);
+    // Only looked at: no tooth on it can be clicked.
+    await expect(oldChart.chart.locator(".tc-tooth:enabled")).toHaveCount(0);
+    await oldChart.close();
 
     // A superseded công đoạn is history on the server too.
     const reclosed = await call(page, "POST", `/api/v1/app/treatment-stages/${firstStage}/complete`);
@@ -388,7 +425,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await reopenStageDialog(page, line);
     await expect(
       stagePanel(page).locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`),
-    ).toHaveAttribute("aria-disabled", "true");
+    ).toHaveAttribute("data-superseded", "true");
   });
 
   test("two open chains of one line read as one card, continue tooth by tooth or together as one visit, and history marks each visit's teeth", async ({
@@ -401,16 +438,14 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     const dialog = await openStageDialog(page, line);
 
-    // History: every tooth of the service on each row, that visit's in blue.
-    const worked = (stageId: string) =>
-      dialog.locator(`.pd-stage-histrow[data-stage-id="${stageId}"] .pd-stage-histteeth > span`);
-    await expect(worked(chain11)).toHaveText(["11", "21", "22"]);
-    await expect(
-      dialog.locator(`.pd-stage-histrow[data-stage-id="${chain11}"] .pd-stage-histtooth--worked`),
-    ).toHaveText(["11"]);
-    await expect(
-      dialog.locator(`.pd-stage-histrow[data-stage-id="${chain21}"] .pd-stage-histtooth--worked`),
-    ).toHaveText(["21"]);
+    // History: each row's chart holds every tooth of the service, that visit's in blue.
+    const chart11 = await openRowChart(page, dialog.locator(`.pd-stage-histrow[data-stage-id="${chain11}"]`));
+    await expect(chart11.line).toHaveText(["11", "21", "22"]);
+    await expect(chart11.worked).toHaveText(["11"]);
+    await chart11.close();
+    const chart21 = await openRowChart(page, dialog.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`));
+    await expect(chart21.worked).toHaveText(["21"]);
+    await chart21.close();
 
     // One card for the line, however many chains are open on it.
     await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
@@ -444,8 +479,8 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     const again = stagePanel(page);
     await again.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
     await expect(again.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`)).toHaveCount(1);
-    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain11}"]`)).toHaveAttribute("aria-disabled", "true");
-    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`)).toHaveAttribute("aria-disabled", "false");
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain11}"]`)).toHaveAttribute("data-superseded", "true");
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`)).toHaveAttribute("data-superseded", "false");
 
     // Picking 11 and 21 together — two chains — is one visit: one request, one
     // công đoạn holding both, one history row (owner, 2026-10-03).
@@ -462,10 +497,10 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(visit.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([11, 21]);
     await expect(page.getByText("Tiếp tục công đoạn thành công")).toBeVisible();
     expect(continued).toHaveLength(1);
-    await expect(
-      again.locator(`.pd-stage-histrow[data-stage-id="${visit.id}"] .pd-stage-histtooth--worked`),
-    ).toHaveText(["11", "21"]);
-    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`)).toHaveAttribute("aria-disabled", "true");
+    const visitChart = await openRowChart(page, again.locator(`.pd-stage-histrow[data-stage-id="${visit.id}"]`));
+    await expect(visitChart.worked).toHaveText(["11", "21"]);
+    await visitChart.close();
+    await expect(again.locator(`.pd-stage-histrow[data-stage-id="${chain21}"]`)).toHaveAttribute("data-superseded", "true");
   });
 
   test("a finished tooth is green from the row that finished it on, blue before, and un-ticking takes it back", async ({
@@ -488,14 +523,23 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     const dialog = await openStageDialog(page, line);
     const row = (id: string) => dialog.locator(`.pd-stage-histrow[data-stage-id="${id}"]`);
-    const teethIn = (id: string, state: "worked" | "done") =>
-      row(id).locator(`.pd-stage-histteeth > span.pd-stage-histtooth--${state}`);
-    // The history lists the whole shared slip; earlier tests finish stages on it.
-    const lineDone = dialog.locator(`.pd-stage-histrow[data-line-id="${line.lineId}"] .pd-stage-histtooth--done`);
+    /** One row's chart: its blue teeth and its green ones, in drawn order (13 · 12 · 11). */
+    const expectTeeth = (teeth: Locator, codes: string[]) =>
+      codes.length === 0 ? expect(teeth).toHaveCount(0) : expect(teeth).toHaveText(codes);
+    const expectChart = async (id: string, worked: string[], done: string[]) => {
+      const chart = await openRowChart(page, row(id));
+      await expectTeeth(chart.worked, worked);
+      await expectTeeth(chart.done, done);
+      await chart.close();
+    };
+    const expectNothingFinished = async () => {
+      await expectChart(first, ["12", "11"], []);
+      await expectChart(second, ["11"], []);
+      await expectChart(later, ["13"], []);
+    };
 
     // Nothing finished yet: only blue.
-    await expect(teethIn(second, "worked")).toHaveText(["11"]);
-    await expect(lineDone).toHaveCount(0);
+    await expectNothingFinished();
 
     const toggle = (id: string, action: "complete" | "revert-status") => {
       const answered = page.waitForResponse(
@@ -513,17 +557,17 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     const expectFinished = async () => {
       // The visit that finished 11 shows it green…
-      await expect(teethIn(second, "done")).toHaveText(["11"]);
-      await expect(teethIn(second, "worked")).toHaveCount(0);
+      await expectChart(second, [], ["11"]);
       // …the visit before it keeps it blue…
-      await expect(teethIn(first, "worked")).toHaveText(["11", "12"]);
-      await expect(teethIn(first, "done")).toHaveCount(0);
+      await expectChart(first, ["12", "11"], []);
       // …and a later visit of another tooth shows it green beside its own blue.
-      await expect(teethIn(later, "done")).toHaveText(["11"]);
-      await expect(teethIn(later, "worked")).toHaveText(["13"]);
+      const chart = await openRowChart(page, row(later));
+      await expect(chart.worked).toHaveText(["13"]);
+      await expect(chart.done).toHaveText(["11"]);
+      await chart.chart.screenshot({ path: "test-results/stage-tooth-done.png" });
+      await chart.close();
     };
     await expectFinished();
-    await dialog.screenshot({ path: "test-results/stage-tooth-done.png" });
 
     // From the database, on a fresh load.
     await page.reload();
@@ -532,8 +576,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // Un-ticking Hoàn thành makes 11 an ordinary blue tooth again, everywhere.
     expect((await toggle(second, "revert-status")).ok()).toBe(true);
-    await expect(teethIn(second, "worked")).toHaveText(["11"]);
-    await expect(lineDone).toHaveCount(0);
+    await expectNothingFinished();
   });
 
   test("a warranty picks among the root's teeth, locks the line's Bảo hành until it is finished, and can follow itself", async ({
@@ -566,10 +609,14 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // The finished root is green; the warranty re-working 11·21 shows those
     // blue on its own row, and 22 — finished, untouched — stays green.
-    await expect(rootRow.locator(".pd-stage-histtooth--done")).toHaveText(["11", "21", "22"]);
+    const rootChart = await openRowChart(page, rootRow);
+    await expect(rootChart.done).toHaveText(["11", "21", "22"]);
+    await rootChart.close();
     const warrantyRow = dialog.locator(`.pd-stage-histrow[data-stage-id="${firstWarranty.id}"]`);
-    await expect(warrantyRow.locator(".pd-stage-histtooth--worked")).toHaveText(["11", "21"]);
-    await expect(warrantyRow.locator(".pd-stage-histtooth--done")).toHaveText(["22"]);
+    const warrantyChart = await openRowChart(page, warrantyRow);
+    await expect(warrantyChart.worked).toHaveText(["11", "21"]);
+    await expect(warrantyChart.done).toHaveText(["22"]);
+    await warrantyChart.close();
 
     // It waits under TIẾP TỤC BẢO HÀNH, and the line's Bảo hành is shut meanwhile.
     await expect(rootRow.getByRole("button", { name: "Bảo hành" })).toBeDisabled();
@@ -602,7 +649,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     const nextWarranty = await (await continued).json();
     expect(nextWarranty.isGuarantee).toBe(true);
     await expect(dialog.locator(`.pd-stage-histrow[data-stage-id="${firstWarranty.id}"]`)).toHaveAttribute(
-      "aria-disabled",
+      "data-superseded",
       "true",
     );
 
@@ -616,7 +663,9 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(dialog.locator(`.pd-stage-picks button[data-stage-id="${nextWarranty.id}"]`)).toHaveCount(0);
     await expect(rootRow.getByRole("button", { name: "Bảo hành" })).toBeEnabled();
     // Finished in turn, the warranty's own teeth go green again.
-    await expect(nextRow.locator(".pd-stage-histtooth--done")).toHaveText(["11", "21", "22"]);
+    const nextChart = await openRowChart(page, nextRow);
+    await expect(nextChart.done).toHaveText(["11", "21", "22"]);
+    await nextChart.close();
 
     // A warranty off the finished warranty offers the root's teeth again.
     await nextRow.getByRole("button", { name: "Bảo hành" }).click();

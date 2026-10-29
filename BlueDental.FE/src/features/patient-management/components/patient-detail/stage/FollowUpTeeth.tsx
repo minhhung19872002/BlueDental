@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Tooltip } from "antd";
 import { t } from "@/lib/i18n";
 import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
+import { StageChartButton } from "./StageChartButton";
 import { StageTeethDialog } from "./StageTeethDialog";
 
 interface Props {
@@ -58,16 +58,7 @@ export function FollowUpTeeth({ candidates, picked, onToggle, onChange }: Props)
             </button>
           );
         })}
-        <Tooltip title={t("Patient:Stage:ViewChart")}>
-          <button
-            type="button"
-            className="pd-stage-chartbtn"
-            aria-label={t("Patient:Stage:ViewChart")}
-            onClick={() => setCharting(true)}
-          >
-            <img src="/img/teeth/teeth.svg" alt="" draggable={false} />
-          </button>
-        </Tooltip>
+        <StageChartButton onClick={() => setCharting(true)} />
       </div>
 
       <StageTeethDialog

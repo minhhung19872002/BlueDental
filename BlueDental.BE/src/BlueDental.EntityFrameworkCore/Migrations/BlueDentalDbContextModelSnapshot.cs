@@ -4027,6 +4027,10 @@ namespace BlueDental.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("IsDeleted");
 
+                    b.Property<string>("LabelColor")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("LastModificationTime");

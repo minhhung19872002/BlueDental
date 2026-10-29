@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Modal } from "antd";
 import {
   DentitionRadio,
-  TOOTH_SURFACES,
   ToothChart,
   dentitionOf,
+  toothSelectionToPick,
   type Dentition,
-  type ToothPick,
 } from "@/components/ToothChart";
 import { t } from "@/lib/i18n";
 import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
@@ -21,14 +20,6 @@ interface Props {
   locked: boolean;
   onConfirm: (codes: number[]) => void;
   onClose: () => void;
-}
-
-/** A line's tooth as the chart draws it: the whole tooth, or its surfaces. */
-function toPick(tooth: ToothSelectionDto): ToothPick {
-  return {
-    fdi: tooth.toothCode,
-    surfaces: tooth.selected ? [] : TOOTH_SURFACES.filter((surface) => tooth[surface]),
-  };
 }
 
 /**
@@ -50,7 +41,7 @@ export function StageTeethDialog({ open, candidates, picked, locked, onConfirm, 
     () => new Map(candidates.map((tooth) => [tooth.toothCode, tooth])),
     [candidates],
   );
-  const enabled = useMemo(
+  const offered = useMemo(
     () => new Set(locked ? [] : candidates.map((tooth) => tooth.toothCode)),
     [candidates, locked],
   );
@@ -58,16 +49,16 @@ export function StageTeethDialog({ open, candidates, picked, locked, onConfirm, 
   useEffect(() => {
     if (!open) return;
     setDraft(picked);
-    setDentition(dentitionOf(candidates.map(toPick)));
+    setDentition(dentitionOf(candidates.map(toothSelectionToPick)));
   }, [open, picked, candidates]);
 
   const value = draft.flatMap((code) => {
     const tooth = byCode.get(code);
-    return tooth ? [toPick(tooth)] : [];
+    return tooth ? [toothSelectionToPick(tooth)] : [];
   });
 
   const toggle = (code: number) => {
-    if (!enabled.has(code)) return;
+    if (!offered.has(code)) return;
     setDraft((current) =>
       current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
     );
@@ -78,7 +69,6 @@ export function StageTeethDialog({ open, candidates, picked, locked, onConfirm, 
       open={open}
       onCancel={onClose}
       width="min(1024px, calc(100vw - 32px))"
-      className="pd-stage-chartdialog"
       title={t("Treatment:Tooth:ToothPicker")}
       footer={
         locked ? (
@@ -99,8 +89,8 @@ export function StageTeethDialog({ open, candidates, picked, locked, onConfirm, 
         <ToothChart
           value={value}
           dentition={dentition}
-          enabledTeeth={enabled}
-          surfacesReadOnly
+          offeredTeeth={offered}
+          interaction="tooth"
           onToggleTooth={toggle}
           onToggleSurface={toggle}
         />

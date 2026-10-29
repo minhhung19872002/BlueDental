@@ -895,6 +895,7 @@
 /* A column title stays on one line (owner, 2026-10-20). */
 .wsb-table th {
   white-space: nowrap;
+  border-right-color: var(--bd-table-head-line);
 }
 
 .wsb-th-check {
@@ -903,7 +904,7 @@
   z-index: 40;
   width: 44px;
   height: 48px;
-  background: #fff;
+  background: var(--bd-table-head);
   text-align: center;
   vertical-align: middle;
   padding: 0;
@@ -915,12 +916,12 @@
   z-index: 40;
   width: 216px;
   height: 48px;
-  background: #fff;
+  background: var(--bd-table-head);
   padding: 0 12px;
   text-align: left;
   font-size: 14px;
   font-weight: 700;
-  color: #171c33;
+  color: var(--bd-table-head-ink);
   vertical-align: middle;
 }
 
@@ -933,25 +934,25 @@
 }
 
 .wsb-th-day--weekday {
-  background: #f7f8fd;
+  background: var(--bd-table-head);
 }
 
 .wsb-th-day--weekend {
-  background: #f7f8fd;
+  background: var(--bd-table-head);
 }
 
 .wsb-th-day-label {
   display: block;
   font-size: 11px;
   font-weight: 600;
-  color: #5c6484;
+  color: var(--bd-table-head-ink);
 }
 
 .wsb-th-day-num {
   display: block;
   font-size: 15px;
   font-weight: 700;
-  color: #171c33;
+  color: var(--bd-table-head-ink);
 }
 
 .wsb-td-check {

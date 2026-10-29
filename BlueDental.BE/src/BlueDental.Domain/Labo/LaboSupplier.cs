@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
@@ -38,6 +39,13 @@ public class LaboSupplier : FullAuditedAggregateRoot<Guid>
     /// <summary>Blob name of the logo in MinIO, and the URL it is served from.</summary>
     public string? LogoFileId { get; private set; }
     public string? LogoPath { get; private set; }
+
+    /// <summary>
+    /// The badge colour the supplier's name wears on every Labo table, as
+    /// <c>#RRGGBB</c>. Null is "not chosen" and reads grey (R-1072, BA — the
+    /// reference has no such field).
+    /// </summary>
+    public string? LabelColor { get; private set; }
 
     public bool IsActive { get; private set; }
 
@@ -93,6 +101,30 @@ public class LaboSupplier : FullAuditedAggregateRoot<Guid>
         LogoPath = url;
         return this;
     }
+
+    /// <summary>
+    /// The chosen badge colour, stored upper-case so the same colour is one
+    /// value; blank clears it back to the default grey.
+    /// </summary>
+    public LaboSupplier SetLabelColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            LabelColor = null;
+            return this;
+        }
+
+        if (!HexColor.IsMatch(color))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.InvalidLabelColor)
+                .WithData("Color", color);
+        }
+
+        LabelColor = color.ToUpperInvariant();
+        return this;
+    }
+
+    private static readonly Regex HexColor = new("^#[0-9A-Fa-f]{6}$", RegexOptions.Compiled);
 
     public void Deactivate() => IsActive = false;
     public void Activate() => IsActive = true;

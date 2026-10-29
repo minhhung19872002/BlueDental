@@ -288,8 +288,8 @@
   font-size: 13px;
 }
 .rs-slips th {
-  background: var(--bd-bg-head);
-  color: var(--bd-muted);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   padding: 8px 10px;
   font-size: 11.5px;
   font-weight: 600;
@@ -307,6 +307,9 @@
 .rs-slips th:not(:last-child),
 .rs-slips td:not(:last-child) {
   border-right: 1px solid var(--bd-line);
+}
+.rs-slips th:not(:last-child) {
+  border-right-color: var(--bd-table-head-line);
 }
 .rs-slips .rs-slips-check {
   width: 36px;

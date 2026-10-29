@@ -22,6 +22,7 @@ export {
   isToothValueEmpty,
   jawLabel,
   toothPickToSelection,
+  toothSelectionToPick,
   toothSelectionsToValue,
   wholeJawOf,
   toothValueToSelections,

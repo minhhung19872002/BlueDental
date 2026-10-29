@@ -104,6 +104,10 @@ const FORM_NUMBER: Record<string, number> = {
   "Phiếu chăm sóc": 9,
 };
 
+/** A diagnosis too long for its blank's line, so it goes on to lines of its own (flowLines). */
+const LONG_DIAGNOSIS =
+  "S02.5 - Gãy răng (răng 18); K13.2 - Bạch sản niêm mạc miệng (răng 17); K12.2 - Viêm mô tế bào và áp xe miệng (răng 16); K08.3 - Chân răng còn sót lại (răng 14); K05.1 - Viêm lợi mạn (răng 25, 26)";
+
 /**
  * A sheet with nothing written on it, for the tests that assert what the
  * *record* answers, or what a blank form draws.
@@ -1422,7 +1426,7 @@ test.describe("Bệnh án", () => {
       ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
       ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Phiếu phẫu thuật/thủ thuật", "16.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu phẫu thuật/thủ thuật", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu chăm sóc", "15.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
     ];
@@ -1486,12 +1490,14 @@ test.describe("Bệnh án", () => {
    * of the sheet and of every printed page; the letterhead on the left margin;
    * MS / Số ngoại trú / Số lưu trữ a column of labels and a column of blanks
    * against the right margin; each vital sign on one line, its unit against the
-   * cell's right edge.
+   * cell's right edge. The blanks at the clinic's widths (R-1073): Địa chỉ,
+   * Tiền sử bệnh, Gia đình run to the right margin on the line they start on,
+   * and the lines a long Chẩn đoán goes on to reach it too.
    */
   test("mẫu 2: 15mm margins, the MS block and the vital signs lined up", async ({ page }) => {
     const margin = (15 / 25.4) * 96;
     await openMedicalRecord(page);
-    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt", { "outpatient-dental.text.43": LONG_DIAGNOSIS });
 
     const layout = await sheet(page)
       .locator(".nfc-tpl")
@@ -1516,6 +1522,11 @@ test.describe("Bệnh án", () => {
           idsRight: right - (ids?.getBoundingClientRect().right ?? 0),
           vitalLines: vitals.map((node) => node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight)),
           unitsRight: vitals.map((node) => (cell ? cell.getBoundingClientRect().right - parseFloat(getComputedStyle(cell).paddingRight) - rect(node.lastChild!).right : NaN)),
+          reaching: ["outpatient.patient.address", "outpatient.patient.history", "outpatient-dental.text.23"].map((id) => {
+            const node = root.querySelector(`[data-medical-record-field="${id}"]`)!;
+            return { right: right - node.getBoundingClientRect().right, lines: node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight) };
+          }),
+          flowed: Array.from(root.querySelectorAll('[data-flow-of="outpatient-dental.text.43"]')).map((node) => right - node.getBoundingClientRect().right),
         };
       });
 
@@ -1528,6 +1539,12 @@ test.describe("Bệnh án", () => {
     expect(layout.vitalLines, "vital signs").toHaveLength(5);
     for (const lines of layout.vitalLines) expect(lines, "one line each").toBeLessThan(1.6);
     for (const gap of layout.unitsRight) expect(Math.abs(gap), "units against the cell's edge").toBeLessThan(1);
+    for (const { right, lines } of layout.reaching) {
+      expect(lines, "the blank stays on its line").toBeLessThan(1.6);
+      expect(Math.abs(right), "the blank runs to the right margin").toBeLessThan(2);
+    }
+    expect(layout.flowed.length, "Chẩn đoán goes on to lines of its own").toBeGreaterThanOrEqual(1);
+    for (const right of layout.flowed) expect(Math.abs(right), "a line of its own reaches the right margin").toBeLessThan(1);
 
     // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
     await page.evaluate(() => {
@@ -1624,6 +1641,83 @@ test.describe("Bệnh án", () => {
   });
 
   /**
+   * Mẫu 7 as the clinic's own copy (2026-10-29, R-1073): 14px type, 15mm on
+   * every edge of the sheet and of every printed page, a line and a half
+   * between lines; the letterhead on the left margin; MS / Mã người bệnh a
+   * column of labels and a column of blanks against the right margin; the
+   * blanks after Chẩn đoán sau … Số đăng ký running to the right margin on the
+   * line they start on, and the lines a long Chẩn đoán trước goes on to
+   * reaching it too.
+   */
+  test("mẫu 7: 15mm margins, the letterhead, the MS block and the blanks to the right margin", async ({ page }) => {
+    const margin = (15 / 25.4) * 96;
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Phiếu phẫu thuật/thủ thuật", { "procedure-record.text.1": LONG_DIAGNOSIS });
+
+    const layout = await sheet(page)
+      .locator(".nfc-tpl")
+      .evaluate((root) => {
+        const style = getComputedStyle(root);
+        const box = root.getBoundingClientRect();
+        const left = box.left + parseFloat(style.paddingLeft);
+        const right = box.right - parseFloat(style.paddingRight);
+        const rect = (node: Node) => {
+          const range = root.ownerDocument.createRange();
+          range.selectNodeContents(node);
+          return range.getBoundingClientRect();
+        };
+        const ids = root.querySelector(".record-ids");
+        const blank = (id: string) => root.querySelector(`[data-medical-record-field="procedure-record.${id}"]`)!;
+        const reaching = ["text.2", "text.3", "text.4", "text.5", "text.6", "text.11", "text.31", "text.33", "text.34", "text.35"].map((id) => {
+          const node = blank(id);
+          return { id, right: right - node.getBoundingClientRect().right, lines: node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight) };
+        });
+        return {
+          fontSize: style.fontSize,
+          padding: ["Top", "Right", "Bottom", "Left"].map((edge) => parseFloat(style.getPropertyValue(`padding-${edge.toLowerCase()}`))),
+          lineHeight: parseFloat(getComputedStyle(blank("text.2").closest("p")!).lineHeight) / parseFloat(style.fontSize),
+          letterhead: rect(root.querySelector(":scope > table:first-child td:first-child > p")!).left - left,
+          labels: Array.from(ids?.querySelectorAll(".record-ids-label") ?? []).map((node) => node.getBoundingClientRect().left),
+          blanks: Array.from(ids?.querySelectorAll(".nfc-medical-record-text-field") ?? []).map((node) => node.getBoundingClientRect().left),
+          idsRight: right - (ids?.getBoundingClientRect().right ?? 0),
+          reaching,
+          flowed: Array.from(root.querySelectorAll('[data-flow-of="procedure-record.text.1"]')).map((node) => right - node.getBoundingClientRect().right),
+        };
+      });
+
+    expect(layout.fontSize, "type").toBe("14px");
+    for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
+    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
+    expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
+    expect(layout.labels, "MS labels").toHaveLength(2);
+    for (const at of layout.labels) expect(at, "labels in one column").toBeCloseTo(layout.labels[0], 0);
+    for (const at of layout.blanks) expect(at, "blanks in one column").toBeCloseTo(layout.blanks[0], 0);
+    expect(Math.abs(layout.idsRight), "MS block on the right margin").toBeLessThan(1);
+    for (const { id, right, lines } of layout.reaching) {
+      expect(lines, `${id} stays on its line`).toBeLessThan(1.6);
+      expect(Math.abs(right), `${id} runs to the right margin`).toBeLessThan(2);
+    }
+    expect(layout.flowed.length, "Chẩn đoán trước goes on to lines of its own").toBeGreaterThanOrEqual(1);
+    for (const right of layout.flowed) expect(Math.abs(right), "a line of its own reaches the right margin").toBeLessThan(1);
+
+    // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
+    await page.evaluate(() => {
+      window.print = () => undefined;
+    });
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+    const copy = page.locator(".mr-print-copy .nfc-tpl");
+    await expect(copy).toBeAttached();
+    await page.emulateMedia({ media: "print" });
+    const printed = await copy.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { page: style.getPropertyValue("page"), padding: style.paddingTop };
+    });
+    await page.emulateMedia({ media: "screen" });
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+  });
+
+  /**
    * A browser extension's block prints no page (clinic, 2026-10-29, R-1070).
    * An extension can put a block in the page that no print rule of the app's
    * hides — at the end of `<html>`, `display: … !important` inline, behind a
@@ -1636,6 +1730,7 @@ test.describe("Bệnh án", () => {
     test.slow();
     const outpatient = "Bệnh án ngoại trú Răng Hàm Mặt";
     const consent = "Giấy đồng ý thực hiện phẫu thuật/thủ thuật";
+    const procedure = "Phiếu phẫu thuật/thủ thuật";
     const treatment = "Phiếu tư vấn và xác nhận đồng ý điều trị";
 
     const extension = () =>
@@ -1681,6 +1776,9 @@ test.describe("Bệnh án", () => {
     expect(await printedPages([], true), `${consent} · printed pages`).toBe(2);
     await openFreshSheet(page, outpatient);
     expect(await printedPages([], true), `${outpatient} · printed pages`).toBe(3);
+    // Mẫu 7 on the same 15mm page since R-1073.
+    await openFreshSheet(page, procedure);
+    expect(await printedPages([], true), `${procedure} · printed pages`).toBe(1);
 
     // Mẫu 5 on the 5mm page, then mẫu 6 on the 15mm one: as many pages as the two print without the blocks.
     await openFreshSheet(page, treatment);

@@ -14,8 +14,10 @@ import { t } from "@/lib/i18n";
 import {
   PAYMENT_LEDGER_EXCEL_URL,
   usePaymentLedger,
+  type LedgerMethod,
   type PaymentLedgerItemDto,
 } from "../api/paymentLedgerApi";
+import { LedgerMethodSelect } from "../components/LedgerMethodSelect";
 import { PaymentLedgerKpis } from "../components/PaymentLedgerKpis";
 import { buildPaymentLedgerColumns } from "../components/paymentLedgerColumns";
 import "../components/billing.css";
@@ -53,11 +55,13 @@ export function BillingPage({ dialogs }: { dialogs: LedgerRowDialogs }) {
   const debouncedSearch = useDebounce(search, 350);
   const [period, setPeriod] = useState<Period>(() => ({ mode: "day", anchor: new Date() }));
   const range = periodRange(period);
+  const [method, setMethod] = useState<LedgerMethod | undefined>();
 
   const filters = {
     filter: debouncedSearch.trim() || undefined,
     fromDate: range?.from,
     toDate: range?.to,
+    method,
   };
   const { data, isLoading } = usePaymentLedger(branchId, {
     ...filters,
@@ -85,6 +89,11 @@ export function BillingPage({ dialogs }: { dialogs: LedgerRowDialogs }) {
     pagination.resetToFirstPage();
   };
 
+  const handleMethodChange = (next: LedgerMethod | undefined) => {
+    setMethod(next);
+    pagination.resetToFirstPage();
+  };
+
   const handleExport = async () => {
     try {
       await downloadFile(PAYMENT_LEDGER_EXCEL_URL, "thanh-toan.xlsx", filters);
@@ -109,6 +118,7 @@ export function BillingPage({ dialogs }: { dialogs: LedgerRowDialogs }) {
           value={search}
           onChange={handleSearchChange}
         />
+        <LedgerMethodSelect value={method} onChange={handleMethodChange} />
         <PeriodPicker value={period} onChange={handlePeriodChange} />
         {ability.canExport && (
           <div className="filter-toolbar-actions">

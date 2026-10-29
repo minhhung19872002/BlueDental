@@ -142,7 +142,7 @@
   font-size: 13.5px;
   font-weight: 600;
   letter-spacing: 0;
-  color: var(--bd-ink);
+  color: var(--bd-table-head-ink);
 }
 
 /* Static CSKH status badge — reference: rounded-full bg #f0f2fa text #5c6484. */

@@ -22,6 +22,18 @@ export const ledgerMethodLabels = (): Record<LedgerMethod, string> => ({
   [LEDGER_METHOD.OutstandingDebt]: t("Treatment:Debt:OutstandingDebt"),
 });
 
+/**
+ * The order the plan's payment dialog lays its pills out in. Spelled out
+ * because a record with number keys iterates 1 → 5.
+ */
+export const LEDGER_METHOD_ORDER: LedgerMethod[] = [
+  LEDGER_METHOD.Cash,
+  LEDGER_METHOD.Banking,
+  LEDGER_METHOD.EWallet,
+  LEDGER_METHOD.Card,
+  LEDGER_METHOD.OutstandingDebt,
+];
+
 /** Matches BlueDental.Billing.PaymentLedgerItemDto. */
 export interface PaymentLedgerItemDto {
   id: string;
@@ -54,6 +66,8 @@ export interface PaymentLedgerParams {
   /** `YYYY-MM-DD`, clinic-local, inclusive. */
   fromDate?: string;
   toDate?: string;
+  /** Only receipts paid this way; the totals follow it. */
+  method?: LedgerMethod;
   skipCount?: number;
   maxResultCount?: number;
 }

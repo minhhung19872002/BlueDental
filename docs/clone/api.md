@@ -1016,6 +1016,10 @@ Empty strings become `undefined` before sending. The dialog's own state keys
 differ from the wire keys: `phone → phoneNumber`, `contact → contactPerson`,
 `provinceCode → city`, `districtCode → district`, `wardCode → ward`.
 
+BlueDental only (R-1072, not on the reference): `labelColor` — `"#RRGGBB"` or
+`null` (grey badge) — on `GET/POST/PUT /api/v1/app/labo-suppliers`; anything
+else is 400. Labo orders carry it as `supplierLabelColor`.
+
 ---
 
 ## 3. Taxonomy — `taxonomyApi` (base `/v1/taxonomy/`)

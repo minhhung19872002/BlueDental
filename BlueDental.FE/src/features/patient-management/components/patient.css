@@ -188,7 +188,7 @@
    data under it (owner, 2026-10-20). */
 .bd-patient-tablecard .ant-table-thead > tr > th {
   border-bottom: 1px solid var(--bd-border);
-  background: var(--bd-bg);
+  background: var(--bd-table-head);
 }
 
 .bd-patient-tablecard .ant-table-thead > tr > th::before {

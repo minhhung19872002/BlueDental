@@ -80,6 +80,14 @@ export function toothPickToSelection(pick: ToothPick): ToothSelection {
   };
 }
 
+/** The inverse of toothPickToSelection: the whole tooth, or the surfaces picked on it. */
+export function toothSelectionToPick(row: ToothSelection): ToothPick {
+  return {
+    fdi: row.toothCode,
+    surfaces: row.selected ? [] : TOOTH_SURFACES.filter((surface) => row[surface]),
+  };
+}
+
 /** A jaw preset expands to every tooth of that jaw, each taken whole. */
 export function toothValueToSelections(value: ToothPickerValue): ToothSelection[] {
   const picks: ToothPick[] =
@@ -122,11 +130,5 @@ export function toothSelectionsToValue(selections: readonly ToothSelection[]): T
     if (lower && wholeTeeth.size === LOWER_TEETH.length) return { kind: "jaw", jaw: "lower" };
   }
 
-  return {
-    kind: "teeth",
-    teeth: selections.map((row) => ({
-      fdi: row.toothCode,
-      surfaces: row.selected ? [] : TOOTH_SURFACES.filter((surface) => row[surface]),
-    })),
-  };
+  return { kind: "teeth", teeth: selections.map(toothSelectionToPick) };
 }
