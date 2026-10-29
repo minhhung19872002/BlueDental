@@ -12097,3 +12097,36 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chỉ màn `/billing` và hai endpoint `GET /api/v1/app/payment-ledger` (+ `/excel`) đổi. Tham số mới là tuỳ chọn: bỏ trống thì kết quả y như trước.
   - Tab Thanh toán của kế hoạch, phiếu thu, HĐĐT không đổi. `/taxonomy` không đụng.
 - **Ngoài phạm vi**: lọc theo "Tài khoản nhận" (`PaymentAccountId`) chưa làm.
+
+## R-1072 (2026-10-29, mức 2: F-13 Labo) Màu nhãn nhà cung cấp Labo
+
+- **Yêu cầu** (BA, kèm ảnh bảng Nhà cung cấp Labo và dialog Tạo nhà cung cấp): "Thêm lựa chọn màu nhãn. Các tên nhà cung cấp sẽ hiển thị bag theo màu đã chọn (k thì mặc định xám)". Owner chốt 3 điểm:
+  - badge hiện ở **cả 3 bảng**: Nhà cung cấp Labo, Mẫu Labo, tab Labo của hồ sơ bệnh nhân;
+  - bảng màu: **Mặc định (xám) + 8 màu có sẵn + màu tùy ý**;
+  - kiểu badge: **nền đặc, chữ trắng**. Trên nền nhạt thì chữ tự đổi sang màu đậm.
+  - Bản gốc không có tính năng này, nên không có gì để so sánh hình.
+- **BE**:
+  - `LaboSupplier.LabelColor` (`varchar(7)`, null = xám), migration `20261029035423_AddLaboSupplierLabelColor`.
+  - Guard `SetLabelColor`: rỗng hoặc trắng → null; khác `#RRGGBB` → `BusinessException Labo:0014` ("Màu nhãn không hợp lệ."); hợp lệ thì lưu chữ hoa.
+  - `LaboSupplierInputDto.LabelColor` có `[RegularExpression]`, nên giá trị sai bị trả 400 trước khi vào domain.
+  - `LaboOrderDto.SupplierLabelColor`: `LaboAppService` tra nhà cung cấp theo `SupplierId`, giờ lấy cả entity (trước chỉ lấy tên). Phiếu chỉ có tên labo gõ tay (không có `SupplierId`) → xám.
+- **FE**:
+  - Component dùng chung `src/components/LabelColor/`:
+    - `LabelBadge`: màu đi qua `--bd-label-color`; YIQ ≥ 186 thì thêm `--light` (chữ `--bd-ink`).
+    - `LabelColorPicker`: `radiogroup` 9 ô gồm Mặc định + 8 màu; ô thứ 10 là `<input type=color>` "Màu tùy chọn"; dưới cùng là badge xem trước theo tên đang gõ.
+  - `LaboSupplierDialog` gắn picker vào `Form.Item name="labelColor"` (cuối form) và gửi `labelColor` khi Lưu.
+  - `LaboSupplierScreen`, `laboOrderColumns`, `patientLaboColumns` đổi tên thành badge (`LaboSupplierBadge` trong `laboOrderCells`).
+  - Key i18n mới: `Labo:Supplier:LabelColor`, `Common:LabelColor:{Default,Select,Custom,Preview}`.
+- **E2E** (bản build production, preview :8172 nối host riêng :5172 + DB copy `BlueDental_r1072`; không chặn API; có đăng nhập thật):
+  - `labo-supplier-color.spec` **3/3 xanh**:
+    - Tạo nhà cung cấp, chọn `#2671D8`: badge xem trước theo tên và màu, POST trả `labelColor` đúng. Reload: bảng đọc lại nền xanh, chữ trắng.
+    - Phiếu Labo mang nhà cung cấp đó có cùng badge trên Mẫu Labo và tab Labo của bệnh nhân.
+    - Sửa sang Mặc định: reload thấy xám `rgb(100,116,139)` ở bảng nhà cung cấp và Mẫu Labo.
+    - Màu tùy ý nhạt `#fef08a`: lưu được, chữ đậm, mở lại thấy đúng màu trong ô tùy chọn.
+    - `labelColor: "red"` → 400 và không có bản ghi nào được tạo.
+  - `labo*` **26/29**. Ba đỏ `labo-orders-actions:88` (href `?branch=BD-001` thay vì `?branchId=`), `labo-warranty:315` (ô ngày nhập mask) và `labo:156` (dòng mới nhất là phiếu seed không có bác sĩ) **cũng đỏ y hệt trên bản build HEAD** (preview :8173, cùng host và DB). R-1062 cũng đã ghi đúng ba đỏ này.
+  - Domain Labo **33/33** (thêm `LaboSupplierLabelColorTests`), Application Labo **35/35**, EF Labo **6/6**; `tsc -b` và eslint các file đổi đều xanh.
+- **Mức retest**: 2 (F-13).
+  - Chỉ màn Labo và tab Labo của hồ sơ thay đổi. Các trường mới đều là tuỳ chọn: bỏ trống thì vẫn như cũ (xám).
+  - `/taxonomy` không đụng.
+- **Ngoài phạm vi**: phiếu Labo in (PHIẾU ĐẶT HÀNG LABO) và dialog chi tiết phiếu vẫn hiển thị tên chữ thường, không có badge.

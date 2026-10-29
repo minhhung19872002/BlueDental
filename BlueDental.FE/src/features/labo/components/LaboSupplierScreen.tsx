@@ -11,6 +11,7 @@ import {
 import { LaboSupplierDialog } from "./LaboSupplierDialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { DataTable } from "@/components/DataTable";
+import { LabelBadge } from "@/components/LabelColor";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
@@ -113,7 +114,7 @@ export function LaboSupplierScreen({ canCreate, canUpdate, canDelete }: LaboSupp
       title: t("Labo:Supplier:Name"),
       render: (_, row) => (
         <div className="bd-min0">
-          <p className="bd-cat-name">{row.name}</p>
+          <LabelBadge color={row.labelColor} title={row.name}>{row.name}</LabelBadge>
           {row.contactPerson && <p className="bd-cat-subtle">{row.contactPerson}</p>}
         </div>
       ),

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Image, Tooltip } from "antd";
 import { EyeOutlined, FolderFilled, PlusOutlined, SafetyOutlined } from "@ant-design/icons";
+import { LabelBadge } from "@/components/LabelColor";
 import { StatusBadge } from "@/components/StatusBadge";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
@@ -28,6 +29,20 @@ export function LaboDatePill({ date, pill }: DatePillProps) {
       <StatusBadge label={t(pill.label)} bg={pill.bg} color={pill.color} />
     </div>
   );
+}
+
+interface SupplierBadgeProps {
+  name: string | undefined;
+  color: string | null | undefined;
+}
+
+/**
+ * The lab's name in the badge colour its Nhà cung cấp record chose, grey when
+ * none was or the order only carries a typed name (R-1072).
+ */
+export function LaboSupplierBadge({ name, color }: SupplierBadgeProps) {
+  if (!name) return <span>—</span>;
+  return <LabelBadge color={color} title={name}>{name}</LabelBadge>;
 }
 
 interface ImagesButtonProps {

@@ -158,13 +158,13 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             .Select(o => o.SupplierId!.Value)
             .Distinct()
             .ToList();
-        var suppliers = new Dictionary<Guid, string>();
+        var suppliers = new Dictionary<Guid, LaboSupplier>();
         if (supplierIds.Count > 0)
         {
             var supplierQuery = await _supplierRepository.GetQueryableAsync();
             suppliers = (await AsyncExecuter.ToListAsync(
                     supplierQuery.Where(s => supplierIds.Contains(s.Id))))
-                .ToDictionary(s => s.Id, s => s.Name);
+                .ToDictionary(s => s.Id);
         }
 
         var materialIds = entities
@@ -261,9 +261,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             dto.DentistJobTitle = StaffJobTitles.Lookup(dentistJobTitles, entity.DentistId);
             // The lab is a record where one was picked, and free text on the
             // older orders that only ever carried a name.
-            dto.SupplierName = entity.SupplierId.HasValue
+            var supplier = entity.SupplierId.HasValue
                 ? suppliers.GetValueOrDefault(entity.SupplierId.Value)
                 : null;
+            dto.SupplierName = supplier?.Name;
+            dto.SupplierLabelColor = supplier?.LabelColor;
             var material = entity.MaterialId.HasValue
                 ? materials.GetValueOrDefault(entity.MaterialId.Value)
                 : null;

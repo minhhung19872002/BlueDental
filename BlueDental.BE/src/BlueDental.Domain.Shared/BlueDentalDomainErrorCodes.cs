@@ -426,6 +426,8 @@ public static class BlueDentalDomainErrorCodes
         public const string CancelOnlyNew = "BlueDental:Labo:0012";
         /// <summary>"Ngày và giờ nhận dự kiến phải sau ngày và giờ gửi."</summary>
         public const string DueBeforeSent = "BlueDental:Labo:0013";
+        /// <summary>A supplier's label colour that is not #RRGGBB (R-1072).</summary>
+        public const string InvalidLabelColor = "BlueDental:Labo:0014";
     }
 
     public static class Promotions

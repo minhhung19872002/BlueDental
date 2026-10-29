@@ -1,0 +1,81 @@
+/* Màu nhãn (R-1072) — a record's name worn as a solid badge in a colour the
+   user picked, grey when none was. Shared by Nhà cung cấp Labo, Mẫu Labo and
+   the patient's Labo tab. */
+
+.bd-label-badge {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--bd-label-color, #64748b);
+  padding: 2px 8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* A pale custom colour cannot carry white text. */
+.bd-label-badge--light {
+  color: var(--bd-ink);
+}
+
+/* ── The picker ─────────────────────────────────────────────────────────── */
+
+.bd-label-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bd-label-swatch {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: var(--bd-label-color, #64748b);
+  color: var(--bd-muted);
+  cursor: pointer;
+  transition: transform 150ms;
+}
+
+.bd-label-swatch:hover {
+  transform: scale(1.1);
+}
+
+.bd-label-swatch:focus-visible,
+.bd-label-swatch:focus-within {
+  outline: 2px solid var(--bd-link);
+  outline-offset: 2px;
+}
+
+/* Untouched, the custom well is an outline with the palette glyph; once it
+   holds a colour it fills like the presets. */
+.bd-label-swatch--custom {
+  border: 1px dashed var(--bd-line);
+  background: var(--bd-label-color, transparent);
+}
+
+.bd-label-swatch--picked {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 0 4px var(--bd-ink);
+}
+
+.bd-label-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  border-radius: 12px;
+  background: var(--bd-bg);
+  padding: 12px 16px;
+}

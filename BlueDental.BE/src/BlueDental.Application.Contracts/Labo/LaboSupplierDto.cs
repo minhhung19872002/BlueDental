@@ -21,6 +21,10 @@ public class LaboSupplierDto : FullAuditedEntityDto<Guid>
     public string? WardCode { get; set; }
     public string? LogoFileId { get; set; }
     public string? LogoPath { get; set; }
+
+    /// <summary>"#RRGGBB", or null for the default grey badge (R-1072).</summary>
+    public string? LabelColor { get; set; }
+
     public bool IsActive { get; set; }
 }
 
@@ -55,6 +59,10 @@ public class LaboSupplierInputDto
 
     [MaxLength(500)]
     public string? Address { get; set; }
+
+    /// <summary>"#RRGGBB"; blank or absent means the default grey badge.</summary>
+    [RegularExpression("^(#[0-9a-fA-F]{6})?$")]
+    public string? LabelColor { get; set; }
 
     /// <summary>Ignored on update — a supplier does not move between branches.</summary>
     public Guid? ClinicBranchId { get; set; }

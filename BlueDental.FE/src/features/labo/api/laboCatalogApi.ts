@@ -28,6 +28,8 @@ export interface LaboSupplierDto {
   wardCode?: string | null;
   logoFileId?: string | null;
   logoPath?: string | null;
+  /** "#RRGGBB", or null for the default grey badge (R-1072). */
+  labelColor?: string | null;
   isActive: boolean;
   creationTime: string;
   lastModificationTime?: string | null;
@@ -43,6 +45,8 @@ export interface LaboSupplierInput {
   provinceCode?: string;
   wardCode?: string;
   address?: string;
+  /** "#RRGGBB"; null clears it back to grey. */
+  labelColor: string | null;
 }
 
 export interface LaboSupplierQuery {

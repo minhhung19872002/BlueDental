@@ -12,6 +12,7 @@ import {
   LaboDatePill,
   LaboImagesButton,
   LaboRowActions,
+  LaboSupplierBadge,
   type LaboRowActionHandlers,
 } from "./order-dialogs/laboOrderCells";
 
@@ -46,7 +47,7 @@ export function buildLaboOrderColumns({ branchId, ...actions }: Options): Column
       width: 180,
       render: (_, row) => (
         <div className="bd-labo-stack">
-          <p className="bd-cat-name">{row.supplierName ?? row.labProviderName}</p>
+          <LaboSupplierBadge name={row.supplierName ?? row.labProviderName} color={row.supplierLabelColor} />
           <span className="bd-labo-sub">{formatDate(row.creationTime)}</span>
         </div>
       ),

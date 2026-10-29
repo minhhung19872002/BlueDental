@@ -841,6 +841,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.WardCode).HasMaxLength(20);
             entity.Property(x => x.LogoFileId).HasMaxLength(400);
             entity.Property(x => x.LogoPath).HasMaxLength(1000);
+            entity.Property(x => x.LabelColor).HasMaxLength(7);
             // The list always asks for one branch at a time.
             entity.HasIndex(x => x.ClinicBranchId);
         });

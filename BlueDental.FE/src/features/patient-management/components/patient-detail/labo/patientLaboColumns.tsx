@@ -9,6 +9,7 @@ import {
   LaboDatePill,
   LaboImagesButton,
   LaboRowActions,
+  LaboSupplierBadge,
   type LaboRowActionHandlers,
 } from "@/features/labo/components/order-dialogs/laboOrderCells";
 
@@ -45,7 +46,14 @@ export function buildPatientLaboColumns(actions: LaboRowActionHandlers): TableCo
       ),
     },
     { title: t("Patient:QuoteSheet:PrescribingDoctor"), dataIndex: "dentistName", width: 150, render: dash },
-    { title: t("Patient:Labo:Supplier"), dataIndex: "labProviderName", width: 150, render: dash },
+    {
+      title: t("Patient:Labo:Supplier"),
+      dataIndex: "labProviderName",
+      width: 150,
+      render: (value: string | undefined, row) => (
+        <LaboSupplierBadge name={value} color={row.supplierLabelColor} />
+      ),
+    },
     { title: t("Patient:Labo:Material"), dataIndex: "materialName", width: 200, render: dash },
     { title: t("Patient:DentalChart:ToothNumber"), dataIndex: "toothNumbers", width: 96, render: dash },
     { title: t("Patient:Payment:Quantity"), dataIndex: "quantity", width: 76, align: "center" },
