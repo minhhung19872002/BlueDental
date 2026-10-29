@@ -12258,6 +12258,30 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **E2E**: không chạy. Chỉ đổi màu trong một file CSS, không đổi DOM, class hay hành vi.
 - **Mức retest**: 1.
 
+## R-1077 (2026-10-29, mức 2: F-30 Bệnh án → chưa có bộ hồ sơ) Chỉ còn bảng phiếu điều trị trong khung trắng, checkbox viền đậm
+
+- **Yêu cầu** (BA, kèm ảnh màn Bệnh án của bệnh nhân chưa có bộ hồ sơ):
+  - "Bỏ hiển thị phía trên, đưa phía dưới lên full view thêm khung nền trắng".
+  - "Tương tự lúc trước cho checkbox nổi bật lên (Check tất cả các checkbox)".
+  - Owner chốt: chỉ khung chứa bảng có nền trắng, không phải cả màn hình.
+  - Đây là thiết kế riêng của phòng khám (R-982), không có gì để so với bản gốc.
+- **FE** (chỉ FE, không đổi server, DB hay i18n):
+  - `RecordSetEmptyState`: bỏ icon, tiêu đề "Bệnh nhân chưa có bộ hồ sơ bệnh án", đoạn giải thích và 9 chip mục. Màn chỉ còn khung "Phiếu điều trị chưa thuộc bộ nào".
+  - `record-set.css`:
+    - `.rs-free` là khung trắng (`--bd-card`, viền `--bd-border`, bo 12px), rộng hết pane (bỏ `max-width: 900px` và căn giữa).
+    - Khung cao theo số dòng. Nhiều phiếu hơn chiều cao pane thì cuộn trong khung, header bảng dính trên cùng.
+    - Bỏ các luật `.rs-empty-icon`, `.rs-empty h2`, `.rs-empty-hint`, `.rs-empty-forms`.
+  - Checkbox của `SlipPickTable` (header và từng dòng) đổi viền sang `--bd-dim`, giống bảng toàn app (R-984). Ô bị khoá (disabled) giữ viền nhạt. Áp dụng cho cả màn trống và popup tạo/sửa bộ, vì hai nơi dùng chung bảng này.
+  - Key i18n `Patient:RecordSet:EmptyTitle` và `EmptyHint` không còn được dùng nhưng vẫn giữ trong `vi.json`/`en.json`.
+- **E2E** (bản build production, preview :8080 nối host :5000, không chặn API, có đăng nhập thật):
+  - `medical-record-set.spec` **3/3 xanh**. Ca đầu đổi kiểm tra: thấy heading "Phiếu điều trị chưa thuộc bộ nào" trong `.rs-free` và tiêu đề cũ không còn (`toHaveCount(0)`).
+  - Kiểm tra bằng mắt trên :8080 (1440×900):
+    - Bệnh nhân 9 phiếu: khung trắng full rộng, cuộn trong khung.
+    - Bệnh nhân 2 phiếu: khung cao vừa 2 dòng. Tick 1 dòng thì header ở trạng thái indeterminate, chip "Đã chọn 1/2 phiếu", nút "Tạo hồ sơ" bật.
+    - Ô chưa tick có viền `rgb(125,133,165)`.
+  - `tsc -b`, eslint, prettier các file đổi đều xanh.
+- **Mức retest**: 2 (F-30, phần bộ hồ sơ). Chỉ tab Bệnh án import `record-set.css`. `/taxonomy` không đụng.
+
 ## R-1079 (2026-10-29, mức 2: F-30 Bệnh án) Mẫu 10 "Hợp đồng thỏa thuận niềng răng" — biểu mẫu của phòng khám
 
 - **Yêu cầu (chủ dự án)**:

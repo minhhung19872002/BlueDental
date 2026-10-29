@@ -4214,8 +4214,9 @@ gốc**, nên không có mục UNKNOWN_REFERENCE_BEHAVIOR. Regression log: R-982
 
 - Phiếu bệnh án nằm trong **bộ hồ sơ**. Mỗi bộ gắn với một hoặc nhiều phiếu điều trị (DT).
   Mã bộ: `HS{Mã KH}-{DDMMYYYY}-xx`, xx đếm số bộ của bệnh nhân trong ngày (theo giờ phòng khám).
-- Chưa có bộ nào: màn hình trống liệt kê phiếu điều trị chưa thuộc bộ nào
-  (Phiếu · Chẩn đoán · Điều trị · Bác sĩ). Tick rồi "Tạo hồ sơ" mở popup tạo bộ.
+- Chưa có bộ nào: màn hình trống chỉ có một khung nền trắng rộng hết pane, liệt kê phiếu điều trị
+  chưa thuộc bộ nào (Phiếu · Chẩn đoán · Điều trị · Bác sĩ). Tick rồi "Tạo hồ sơ" mở popup tạo bộ.
+  Phần giới thiệu và 9 mục phía trên đã bỏ; checkbox viền đậm như bảng toàn app (R-1077).
 - Popup tạo / sửa bộ có hai phần:
   - 1. Phiếu điều trị: Phiếu · Chẩn đoán · Điều trị · Trạng thái phiếu · Trạng thái hồ sơ.
   - 2. Mục hiển thị: 10 mục (9 của bản gốc + mẫu 10 của phòng khám), bỏ tick chỉ ẩn khỏi mục lục.

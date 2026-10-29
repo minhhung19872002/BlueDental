@@ -46,9 +46,13 @@ test.describe("Bộ hồ sơ bệnh án", () => {
   }) => {
     await openBenhAn(page, patient.id);
 
-    // No set yet: the slips not in any set, each with its diagnosis.
-    await expect(page.getByText("Bệnh nhân chưa có bộ hồ sơ bệnh án")).toBeVisible();
+    // No set yet: only the slips not in any set, each with its diagnosis — the
+    // intro and the nine forms above them are gone (the clinic's ask).
     const free = page.locator(".rs-free");
+    await expect(
+      free.getByRole("heading", { name: "Phiếu điều trị chưa thuộc bộ nào" }),
+    ).toBeVisible();
+    await expect(page.getByText("Bệnh nhân chưa có bộ hồ sơ bệnh án")).toHaveCount(0);
     for (const slip of patient.slips) {
       await expect(free.getByRole("checkbox", { name: slip.code })).toBeVisible();
     }

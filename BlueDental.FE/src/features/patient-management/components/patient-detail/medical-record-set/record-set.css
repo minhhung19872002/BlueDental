@@ -158,15 +158,12 @@
 }
 .rs-picker-panel p,
 .rs-picker-list,
-.rs-empty-forms,
-.rs-empty h2,
-.rs-empty p,
+.rs-free p,
 .rs-free-head h3,
 .rs-dialog-section h3 {
   margin: 0;
 }
-.rs-picker-list,
-.rs-empty-forms {
+.rs-picker-list {
   padding: 0;
 }
 .rs-picker-panel {
@@ -314,6 +311,14 @@
 .rs-slips .rs-slips-check {
   width: 36px;
 }
+/* The tick boxes get a border that reads on white, as in the app's tables
+   (R-984): the theme's `colorBorder` (--bd-line) all but vanishes. Only the
+   variable is swapped, so hover and ticked keep AntD's own primary; a locked
+   slip's box keeps the faint disabled look. */
+.rs-slips .ant-checkbox:not(.ant-checkbox-disabled) {
+  --ant-color-border: var(--bd-dim);
+  border-width: 1.5px;
+}
 .rs-slip--checked td {
   background: var(--bd-blue-pale);
 }
@@ -447,66 +452,39 @@
   min-height: 240px;
   place-items: center;
 }
-.rs-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  overflow: auto;
-  padding: 32px 16px;
-  text-align: center;
-}
-.rs-empty-icon {
-  display: grid;
-  width: 52px;
-  height: 52px;
-  flex-shrink: 0;
-  place-items: center;
-  border-radius: 14px;
-  background: var(--bd-blue-pale);
-  color: var(--bd-blue);
-  font-size: 22px;
-}
-.rs-empty h2 {
-  color: var(--bd-ink);
-  font-size: 18px;
-  font-weight: 700;
-}
-.rs-empty-hint {
-  max-width: 560px;
-  color: var(--bd-sub);
-  font-size: 13px;
-}
-.rs-empty-forms {
-  display: flex;
-  max-width: 640px;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  list-style: none;
-}
-.rs-empty-forms li {
-  border-radius: var(--bd-radius-pill);
-  background: var(--form-tint);
-  color: var(--form-accent);
-  padding: 2px 10px;
-  font-size: 11.5px;
-  font-weight: 500;
-}
+/*
+ * No set yet: only the free slips, in a white card across the pane (the
+ * clinic's ask, 2026-10-29 — the intro and the nine forms above it are gone).
+ * The card is as tall as its rows; past the pane's height the rows scroll
+ * under a pinned header.
+ */
 .rs-free {
-  width: 100%;
-  max-width: 900px;
-  margin-top: 12px;
-  border: 1px solid var(--bd-line);
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
   border-radius: 12px;
-  text-align: left;
+  background: var(--bd-card);
 }
 .rs-free-head {
   display: flex;
+  flex-shrink: 0;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
+}
+.rs-free > .rs-free-body,
+.rs-free > .rs-free-body > .ant-spin-container {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+.rs-free .rs-slips th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 .rs-free-head > div {
   min-width: 0;
@@ -522,8 +500,10 @@
   font-size: 12px;
 }
 .rs-free .rs-slips-wrap {
+  min-height: 0;
+  overflow: auto;
   border-width: 1px 0 0;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0;
 }
 .rs-free-none {
   border-top: 1px solid var(--bd-line);
