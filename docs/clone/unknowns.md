@@ -3259,3 +3259,10 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
 - Log gồm 4 loại dòng: In để ký giấy, Lấy lại, Xuất, Hủy. In bản nháp không ghi như một file vì không lưu file nào.
 - "Mã hoá hết": mọi PDF/A đã xuất đều mã hoá AES-256-GCM (đã có từ P2610 phase 5), chữ ký khách và kế toán cũng lưu mã hoá. Bản nháp in không lưu nên không cần mã hoá.
 - Token điện tử vẫn khoá (phase 7, `0113`).
+- Log chống sửa (R-1082, chủ dự án đồng ý cách đề xuất, chỉ làm ở BE):
+  - Mỗi dòng log có số thứ tự trong phiếu và con dấu HMAC-SHA256 nối với dòng trước. Khoá HMAC suy ra từ `RECEIPT_VAULT_KEY` bằng HKDF.
+  - API log trả thêm `intact`, `unsealedCount` và `verified` cho từng dòng.
+  - Trigger PostgreSQL từ chối mọi UPDATE / DELETE / TRUNCATE trên `bd_payment_receipt_logs`.
+  - Dòng ghi trước R-1082 (chỉ có ở develop / staging / local) được đánh số theo thời gian và để nguyên không dấu. Chúng chỉ được nằm trước dòng có dấu đầu tiên.
+  - Chưa mã hoá theo cột, vì log chỉ có id + thời gian. Mã hoá ổ đĩa và backup để sau.
+  - Chưa có màn hình báo log bị sửa.

@@ -35,7 +35,7 @@ public sealed class ReceiptSigningController(IReceiptSigningAppService service) 
         service.PrintForPaperAsync(patientPaymentId);
 
     [HttpGet("{patientPaymentId:guid}/log")]
-    public Task<List<PaymentReceiptLogDto>> GetLogAsync(Guid patientPaymentId) =>
+    public Task<PaymentReceiptLogListDto> GetLogAsync(Guid patientPaymentId) =>
         service.GetLogAsync(patientPaymentId);
 }
 

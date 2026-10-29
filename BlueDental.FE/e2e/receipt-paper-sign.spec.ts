@@ -23,6 +23,7 @@ import {
  * Ký điện tử puts the accountant's saved signature above Người lập phiếu.
  * Every print, take-back, export and cancel is a line in the receipt's log:
  * when, by whom, how it was signed and by whom, and the file's SHA-256.
+ * Each line is sealed to the one before (R-1082), and every read checks it.
  *
  * Real stack only: real login, real ASP.NET Core API, real PostgreSQL, real
  * MinIO and Gotenberg; every follow-up is a separate request.
@@ -43,6 +44,8 @@ const LOG = { PrintedForPaper: 1, PaperTakenBack: 2, Exported: 3, Cancelled: 4 }
 const PRINTED = 6;
 
 interface LogLine {
+  sequence: number;
+  verified: boolean;
   action: number;
   at: string;
   userName: string | null;
@@ -66,11 +69,25 @@ const exportAs = (page: Page, receipt: Pick<Receipt, "id">, signMode: number) =>
 const saveSignature = (page: Page, signatureDataUrl: string) =>
   call(page, SIGNATURE_API, { method: "PUT", json: { signatureDataUrl, source: 1 } });
 
-/** The receipt's log as a separate request; `call` reads only objects, so the array is read here. */
+interface LogList {
+  items: LogLine[];
+  intact: boolean;
+  unsealedCount: number;
+}
+
+/**
+ * The receipt's log as a separate request. Every read also checks the seal
+ * chain (R-1082): numbered 1..n, each line verified against the one before.
+ */
 async function logOf(page: Page, receipt: Pick<Receipt, "id">): Promise<LogLine[]> {
   const res = await page.request.get(`${SIGNING_API}/${receipt.id}/log`, { headers: { Accept: "application/json" } });
   expect(res.status(), await res.text()).toBe(200);
-  return (await res.json()) as LogLine[];
+  const log = (await res.json()) as LogList;
+  expect(log.intact, JSON.stringify(log)).toBe(true);
+  expect(log.unsealedCount).toBe(0);
+  expect(log.items.map((line) => line.sequence)).toEqual(log.items.map((_, i) => i + 1));
+  expect(log.items.every((line) => line.verified)).toBe(true);
+  return log.items;
 }
 
 async function receiptRead(page: Page, receipt: Pick<Receipt, "id">): Promise<Record<string, unknown>> {

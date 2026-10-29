@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 
@@ -10,9 +11,17 @@ namespace BlueDental.Billing;
 /// the user and the moment. Kept apart from the receipt's own columns, which
 /// an edit or "Hủy phiên" clears, so nothing that happened is lost. Ids and
 /// times only: the payer's name stays on the frozen receipt content.
+/// <para>
+/// Each line is sealed to the one before it (<see cref="SealAfter"/>, R-1082),
+/// and the table refuses UPDATE, DELETE and TRUNCATE: a line changed, dropped
+/// or forged without the vault key shows in <see cref="ReceiptLogChain"/>.
+/// </para>
 /// </summary>
 public class PaymentReceiptLog : Entity<Guid>
 {
+    public const int MaxSealLength = 80;
+    private const string SealVersion = "receipt-log/v1";
+
     public Guid PatientPaymentId { get; private set; }
     public Guid ClinicBranchId { get; private set; }
     public ReceiptLogAction Action { get; private set; }
@@ -42,6 +51,15 @@ public class PaymentReceiptLog : Entity<Guid>
     /// <summary>Cancelled: one of the four fixed reasons, when the receipt had been exported.</summary>
     public PaymentCancelReason? CancelReasonCode { get; private set; }
 
+    /// <summary>1, 2, 3… within the receipt: the order the chain runs in.</summary>
+    public int Sequence { get; private set; }
+
+    /// <summary>
+    /// <see cref="IReceiptCipher.Mac"/> over this line and the previous line's
+    /// seal. Null only on lines written before R-1082.
+    /// </summary>
+    public string? Seal { get; private set; }
+
     protected PaymentReceiptLog() { }
 
     private PaymentReceiptLog(Guid id, PatientPayment payment, ReceiptLogAction action, DateTimeOffset at, Guid? userId)
@@ -50,9 +68,62 @@ public class PaymentReceiptLog : Entity<Guid>
         PatientPaymentId = payment.Id;
         ClinicBranchId = payment.ClinicBranchId;
         Action = action;
-        At = at;
+        At = Stored(at);
         UserId = userId;
     }
+
+    /// <summary>
+    /// Numbers the line after <paramref name="previous"/> (the receipt's last
+    /// line, or null for its first) and seals it to it. Once only.
+    /// </summary>
+    public void SealAfter(PaymentReceiptLog? previous, IReceiptCipher cipher)
+    {
+        if (Seal != null)
+        {
+            throw new InvalidOperationException("The receipt log line is already sealed.");
+        }
+
+        if (previous != null && previous.PatientPaymentId != PatientPaymentId)
+        {
+            throw new ArgumentException("The previous line belongs to another receipt.", nameof(previous));
+        }
+
+        Sequence = (previous?.Sequence ?? 0) + 1;
+        Seal = cipher.Mac(SealedText(previous?.Seal));
+    }
+
+    /// <summary>Whether the line still reads as it was sealed after a line sealed <paramref name="previousSeal"/>.</summary>
+    public bool IsSealedAfter(string? previousSeal, IReceiptCipher cipher) =>
+        Seal != null && cipher.MacMatches(SealedText(previousSeal), Seal);
+
+    private string SealedText(string? previousSeal) => string.Join('|',
+        SealVersion,
+        Id.ToString("D"),
+        PatientPaymentId.ToString("D"),
+        ClinicBranchId.ToString("D"),
+        Sequence.ToString(CultureInfo.InvariantCulture),
+        ((int)Action).ToString(CultureInfo.InvariantCulture),
+        Ticks(At),
+        UserId?.ToString("D"),
+        SignMode is { } signMode ? ((int)signMode).ToString(CultureInfo.InvariantCulture) : null,
+        AccountantSignerId?.ToString("D"),
+        Ticks(AccountantSignatureSavedAt),
+        Ticks(CustomerSignedAt),
+        CustomerSignedOnPaper switch { true => "1", false => "0", null => null },
+        FileSha256,
+        CancelReasonCode is { } reason ? ((int)reason).ToString(CultureInfo.InvariantCulture) : null,
+        previousSeal);
+
+    private static string? Ticks(DateTimeOffset? at) => at?.UtcTicks.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// UTC to the microsecond, as PostgreSQL keeps it: a time read back seals
+    /// to the same text it was sealed with.
+    /// </summary>
+    private static DateTimeOffset Stored(DateTimeOffset at) =>
+        new(at.UtcTicks - at.UtcTicks % TimeSpan.TicksPerMicrosecond, TimeSpan.Zero);
+
+    private static DateTimeOffset? Stored(DateTimeOffset? at) => at is { } value ? Stored(value) : null;
 
     public static PaymentReceiptLog PrintedForPaper(Guid id, PatientPayment payment) =>
         new(id, payment, ReceiptLogAction.PrintedForPaper,
@@ -79,8 +150,8 @@ public class PaymentReceiptLog : Entity<Guid>
         {
             SignMode = payment.SignMode,
             AccountantSignerId = payment.AccountantSignerId,
-            AccountantSignatureSavedAt = payment.AccountantSignatureSavedAt,
-            CustomerSignedAt = customerSignedAt,
+            AccountantSignatureSavedAt = Stored(payment.AccountantSignatureSavedAt),
+            CustomerSignedAt = Stored(customerSignedAt),
             CustomerSignedOnPaper = payment.IsSignedOnPaper,
             FileSha256 = payment.ReceiptFileSha256
         };

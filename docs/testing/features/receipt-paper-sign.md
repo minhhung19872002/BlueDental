@@ -1,4 +1,4 @@
-# F-84 — In phiếu thu để ký tay & chữ ký kế toán (P2910_02, R-1081)
+# F-84 — In phiếu thu để ký tay & chữ ký kế toán (P2910_02, R-1081, R-1082)
 
 Source: BA `P2910_02.drawio` plus the owner's four answers (29/10):
 print the draft at once, drop the description the BA struck out, the
@@ -92,7 +92,9 @@ line). It stores ids and times only, no PHI. Names are resolved when the log is
 read.
 
 `GET /api/v1/app/receipt-signing/{id}/log` (Payment.Read, branch-scoped) returns
-the lines oldest first. It still reads a cancelled (soft-deleted) receipt.
+`{ items, intact, unsealedCount }`, the lines oldest first (by `sequence`). It
+still reads a cancelled (soft-deleted) receipt. There is no screen for it yet
+(owner: not needed now).
 
 | BA asks for | Where it is |
 |---|---|
@@ -109,6 +111,61 @@ The `Exported` line's signer fields:
 
 The log also carries `PrintedForPaper` (1) and `PaperTakenBack` (2), and
 `FileSha256` on the export line.
+
+#### Tamper evidence (R-1082)
+
+- **Seal chain.** Each line has a `Sequence` (1, 2, 3… per receipt) and a
+  `Seal`. The seal is an HMAC-SHA256 over the line's fields and the seal of
+  the line before it, stored as `v1:` + 64 hex characters.
+  - The HMAC key is derived from `RECEIPT_VAULT_KEY` with HKDF-SHA256 (info
+    `bluedental/receipt-log/v1`), so the same key never both encrypts and
+    authenticates.
+  - Code: `PaymentReceiptLog.SealAfter` / `IsSealedAfter` and `ReceiptLogChain.Check`.
+  - Sealed fields: version, `Id`, `PatientPaymentId`, `ClinicBranchId`,
+    `Sequence`, `Action`, `At`, `UserId`, `SignMode`, `AccountantSignerId`,
+    `AccountantSignatureSavedAt`, `CustomerSignedAt`, `CustomerSignedOnPaper`,
+    `FileSha256`, `CancelReasonCode` and the previous seal.
+  - Times are kept in UTC to the microsecond, as PostgreSQL stores them, so a
+    line read back seals to the same text.
+- **Writing.** `ReceiptLogBook` seals the new line after the receipt's last
+  line and inserts it **without saving**. The line is saved together with the
+  rest of the caller's unit of work.
+  - A line written earlier in the same unit of work is remembered through
+    `IUnitOfWorkManager.Current.GetOrAddItem`, so two lines in one request
+    still chain. Otherwise the last saved line is read.
+  - Why no early save: `autoSave` flushes the whole DbContext, including the
+    caller's half-done change. Hủy phiếu then read its own cancel in
+    `GuardRefundsStillCoveredAsync` and refused itself with `Billing:0101`
+    (caught by the R-915 e2e).
+  - A unique index on (`PatientPaymentId`, `Sequence`) refuses two writers
+    that race for the same number when they save.
+- **Reading.** Each item carries `sequence` and `verified`. `intact` is false
+  when a line was changed, removed from the middle or the start, written
+  without the key, or numbered out of order.
+- **Database.** Triggers `bd_payment_receipt_logs_no_change` (BEFORE UPDATE OR
+  DELETE, per row) and `bd_payment_receipt_logs_no_truncate` (BEFORE TRUNCATE)
+  refuse any change with `insufficient_privilege`.
+- **Limits.**
+  - Removing the newest lines cannot be told from the chain alone. The
+    trigger is what stops that.
+  - The table owner can `DISABLE TRIGGER`. A line changed that way still fails
+    verification.
+  - Lines written before R-1082 exist only on develop, staging and local
+    databases (main has no log table yet). The migration numbers them by time
+    and leaves them unsealed. They count in `unsealedCount` and are accepted
+    only ahead of the first sealed line.
+  - Without `RECEIPT_VAULT_KEY`, every log write fails with `Billing:0107`:
+    - In phiếu thu;
+    - taking a receipt back from paper (Hủy phiên & sửa phiếu, or an edit);
+    - Xuất phiếu thu (it already needed the key);
+    - Hủy phiếu thu.
+- **Scripts.**
+  - `deploy/db/clear-all-except-catalog.sql` disables the TRUNCATE trigger
+    around its TRUNCATE and turns it back on afterwards.
+  - The patient hard-delete script does not touch the log table, which has no
+    foreign key to the receipt.
+- Disk and backup encryption belong to the infrastructure and come later.
+  Columns are not encrypted, because the log holds ids and times only.
 
 ### Encryption ("mã hóa hết")
 
@@ -132,6 +189,11 @@ A draft print is not stored and is not logged as a file.
   - `bd_accountant_signature_changes`, indexed on (UserId, ChangedAt);
   - new columns on `bd_patient_payments`: `PaperSignedAt`, `PaperSignedById`,
     `AccountantSignerId`, `AccountantSignatureSavedAt`.
+- Migration `20261029154727_SealedReceiptLog` (R-1082):
+  - `Sequence` (lines already there are numbered by time) and `Seal`
+    (varchar 80) on `bd_payment_receipt_logs`;
+  - a unique index on (PatientPaymentId, Sequence), replacing (PatientPaymentId, At);
+  - function `bd_payment_receipt_logs_append_only()` and its two triggers.
 - Error codes: `Billing:0117` (no saved signature), `0118` (over 200 KB) and
   `0119` (already on paper, cannot go to the iPad).
 
@@ -156,6 +218,26 @@ A draft print is not stored and is not logged as a file.
    - the confirm popup comes first;
    - the steps read "Ký tay trên giấy";
    - Ký điện tử signs and exports.
+
+Every log read in the spec also checks the seal chain (R-1082): `intact`,
+`unsealedCount` 0, sequence 1..n and every line `verified`.
+
+`Domain.Tests/Billing/ReceiptLogChainTests` (9 cases, R-1082):
+
+- a log read back as written is intact;
+- a changed field or time no longer verifies;
+- a line removed from the middle or the start breaks the chain;
+- a line sealed with another key does not verify;
+- unsealed lines are counted, and allowed only ahead of the sealed ones;
+- times are kept in UTC to the microsecond;
+- a line is sealed once, and only after a line of its own receipt;
+- the MAC depends on both the text and the key.
+
+Checked by hand with psql on the isolated database (R-1082):
+
+- UPDATE, DELETE and TRUNCATE are refused;
+- a line changed with the trigger disabled reads back `verified: false` and
+  `intact: false`.
 
 `e2e/invoice-request-api.spec.ts` "R-1081: the QR form names the service as the
 receipt does" covers both cases:

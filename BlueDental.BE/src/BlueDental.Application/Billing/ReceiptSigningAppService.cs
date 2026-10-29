@@ -74,7 +74,7 @@ public class ReceiptSigningAppService(
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
-    public async Task<List<PaymentReceiptLogDto>> GetLogAsync(Guid patientPaymentId)
+    public async Task<PaymentReceiptLogListDto> GetLogAsync(Guid patientPaymentId)
     {
         // A cancelled receipt is soft-deleted, and its log still reads; one gone with its slip is gone.
         PatientPayment payment;
@@ -89,9 +89,12 @@ public class ReceiptSigningAppService(
         }
 
         var lines = await logBook.OfAsync(patientPaymentId);
+        var check = ReceiptLogChain.Check(lines, cipher);
         var people = await receipts.FullNamesAsync(lines.SelectMany(x => new[] { x.UserId, x.AccountantSignerId }));
-        return lines.Select(x => new PaymentReceiptLogDto
+        var items = lines.Select(x => new PaymentReceiptLogDto
         {
+            Sequence = x.Sequence,
+            Verified = check.Verified.Contains(x.Id),
             Action = x.Action,
             At = x.At,
             UserName = PaymentReceiptContents.NameOf(people, x.UserId),
@@ -103,6 +106,13 @@ public class ReceiptSigningAppService(
             FileSha256 = x.FileSha256,
             CancelReasonCode = x.CancelReasonCode
         }).ToList();
+
+        return new PaymentReceiptLogListDto
+        {
+            Items = items,
+            Intact = check.Intact,
+            UnsealedCount = check.UnsealedCount
+        };
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Update)]

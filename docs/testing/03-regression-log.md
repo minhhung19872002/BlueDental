@@ -12562,3 +12562,53 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Token điện tử (Ký số, phase 7) chưa làm, vẫn `0113`.
   - Server prod cần `RECEIPT_VAULT_KEY` riêng trước khi merge lên main.
   - Kiểm tra API chạy bằng e2e stack thật trên DB riêng, chưa có bộ Application.Tests Testcontainers cho endpoint mới.
+
+## R-1082 (2026-10-29, mức 3: F-84 Log phiếu thu chống sửa) Chuỗi niêm phong HMAC + trigger chỉ thêm trên `bd_payment_receipt_logs`
+
+- **Yêu cầu** (ghi chú BA trong `P2910_02.drawio`: log phải "mã hóa hết"; chủ dự án đồng ý cách đề xuất, chỉ làm ở BE):
+  - Log phiếu thu không sửa, không xoá được mà không bị phát hiện.
+  - Khoá con suy ra từ `RECEIPT_VAULT_KEY`, không thêm biến môi trường mới.
+  - API log báo log còn nguyên hay không.
+  - Không mã hoá theo cột; mã hoá ổ đĩa và backup để sau.
+- **Sửa**:
+  - Domain:
+    - `ReceiptCipher.Mac` / `MacMatches`: HMAC-SHA256, khoá suy ra bằng HKDF-SHA256 (info `bluedental/receipt-log/v1`), lưu `v1:` + hex, so sánh `FixedTimeEquals`;
+    - `PaymentReceiptLog` thêm `Sequence` (1..n trong mỗi phiếu) + `Seal` (MAC của các trường của dòng + seal dòng trước), `SealAfter` / `IsSealedAfter`; giờ lưu UTC cắt về micro giây như PostgreSQL;
+    - `ReceiptLogChain.Check` (mới): dòng bị sửa, mất dòng ở giữa / đầu, ghi không có khoá, đánh số sai → không nguyên vẹn; dòng cũ chưa niêm phong chỉ được nằm trước dòng niêm phong đầu tiên.
+  - Application:
+    - `ReceiptLogBook` niêm phong dòng mới sau dòng cuối của phiếu và **không lưu sớm**: dòng đã ghi trong cùng unit of work được nhớ qua `IUnitOfWorkManager.Current.GetOrAddItem`, ngoài ra đọc dòng đã lưu cuối cùng.
+    - `GET receipt-signing/{id}/log` trả thêm `intact`, `unsealedCount`; mỗi dòng có `sequence`, `verified`.
+  - EF: cột `Sequence`, `Seal`; unique index (`PatientPaymentId`, `Sequence`); migration `20261029154727_SealedReceiptLog`:
+    - đánh số dòng cũ theo thời gian, để chưa niêm phong;
+    - function `bd_payment_receipt_logs_append_only()` + trigger `bd_payment_receipt_logs_no_change` (BEFORE UPDATE OR DELETE) và `bd_payment_receipt_logs_no_truncate` (BEFORE TRUNCATE), lỗi `insufficient_privilege`.
+  - `deploy/db/clear-all-except-catalog.sql`: tắt trigger TRUNCATE trong lúc xoá trắng rồi bật lại.
+- **Lỗi bắt được trong lúc test và đã sửa**:
+  - Bản đầu ghi log bằng `autoSave: true`. Lệnh này flush cả DbContext, gồm thay đổi đang dở của nơi gọi.
+  - Hủy phiếu đã thanh toán, khi dịch vụ còn phiếu thu khác, đọc lại chính lệnh hủy của mình trong `GuardRefundsStillCoveredAsync` và tự từ chối `Billing:0101` (403).
+  - E2E `invoice-request-api` R-915 bắt được. Sửa bằng cách bỏ `autoSave`, nhớ dòng theo unit of work như trên.
+- **E2E** (build production `vite preview` :8160 → host :5130 → PostgreSQL thật, DB riêng `BlueDental_p2910`, không chặn request):
+  - `receipt-paper-sign` (helper `logOf`): mỗi lần đọc log đều `intact`, `unsealedCount` 0, `sequence` 1..n, mọi dòng `verified`.
+  - Sau bản sửa: `invoice-request-api` + `receipt-paper-sign` + `receipt-cancel` **10/10** (gồm R-915).
+  - Hồi quy tiền sau bản sửa (17 spec còn lại: billing / e-invoice / payment / receipt / voucher / plan-detail): **58/59**.
+    - Đỏ 1: `vat-payment-einvoice-api:96`. Spec lấy "phiếu mở đầu tiên nhận được dòng mới"; lần này trúng DT14, phiếu đang có giảm giá cấp phiếu 20.000đ (kiểm bằng psql), nên dòng mới chỉ còn 881.818 thay vì 900.000.
+    - Test hỏng ngay ở bước thêm dòng, trước mọi thao tác phiếu thu, nên không do R-1082 (spec phụ thuộc dữ liệu).
+  - `receipt-ipad` (chạy riêng): **6/6**. Lần đầu có 1 ca `Failed to fetch` trong `createSlipViaApi` do trang chuyển hướng giữa lúc fetch; host vẫn trả 200, chạy lại xanh.
+  - Hồi quy mức 3 lần đầu (229 test, trước bản sửa): 215 xanh / 14 đỏ. 1 đỏ là lỗi thật ở trên (R-915). 13 đỏ còn lại không do R-1082 (R-1082 không đổi FE, không đổi luồng ghi nào ngoài log):
+    - `patient-medical-record` 203 / 593 / 1998;
+    - `patient` 1827, 2321, 2441, 2556, 2737, 2867, 3680, 3935 (cùng nhóm đỏ đã ghi ở F-82);
+    - `patient:1916` (chạy riêng vẫn đỏ): `paidByService` lấy patientId từ đoạn cuối URL. Từ P2610, `expectReceiptPage` chuyển trang sang `/billing/receipts/{id}`, nên account bị đọc theo id phiếu thu và không có phiếu điều trị nào. Lỗi của spec, có từ trước, chưa sửa;
+    - `qa-bugs-25-30:103` (TEMP-BUG25-OFF).
+  - Lần chạy lại đầu sau bản sửa: 5 ca timeout ở `openNewSlip` (`fixtures/ledgerReceipt.ts:202`). Nguyên nhân: bệnh nhân đầu danh sách đã có 16 phiếu và 3 thẻ "Dịch vụ đang điều trị" xếp 2 hàng, nên ở viewport 1280×720 thân bảng phiếu co gần bằng 0 và hàng nằm dưới header. Lỗi bố cục FE có sẵn, không do R-1082. Tạo một bệnh nhân mới lên đầu danh sách rồi chạy lại thì xanh.
+- **BE**: Domain **1218/1218** (9 ca `ReceiptLogChainTests`), Application **835/835**, HttpApi.Host **24/24**, EFCore **66/66**.
+- **Kiểm tay bằng psql** trên DB riêng:
+  - UPDATE / DELETE / TRUNCATE đều bị trigger chặn;
+  - tắt trigger rồi sửa một dòng → `intact` false, đúng dòng đó `verified` false;
+  - phiếu chỉ có dòng ghi trước R-1082 → `unsealedCount` 5.
+- **Mức retest**: 3 (đổi cách ghi log trong unit of work của In / sửa / xuất / hủy phiếu thu, dùng chung cho mọi spec tiền).
+- **Ngoài phạm vi / còn mở**:
+  - Chưa có màn hình báo log bị sửa (chủ dự án: chưa cần).
+  - Xoá các dòng mới nhất không phát hiện được chỉ bằng chuỗi; trigger là lớp chặn. Chủ bảng vẫn `DISABLE TRIGGER` được, dòng sửa kiểu đó vẫn bị phát hiện.
+  - Mã hoá ổ đĩa và backup để sau.
+  - Staging / prod phải chạy DbMigrator để có migration + trigger; prod cần `RECEIPT_VAULT_KEY` riêng trước khi main nhận P2610 / P2910.
+  - Bố cục bảng phiếu điều trị co thân bảng khi nhiều thẻ dịch vụ (đã thấy ở trên), chưa sửa, chờ chủ dự án.
+  - Spec `patient:1916` và `vat-payment-einvoice-api:96` cần sửa cách chọn dữ liệu (ở trên), chưa làm.

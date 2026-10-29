@@ -803,6 +803,13 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("PatientPaymentId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Seal")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
                     b.Property<short?>("SignMode")
                         .HasColumnType("smallint");
 
@@ -811,7 +818,8 @@ namespace BlueDental.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PatientPaymentId", "At");
+                    b.HasIndex("PatientPaymentId", "Sequence")
+                        .IsUnique();
 
                     b.ToTable("bd_payment_receipt_logs", (string)null);
                 });

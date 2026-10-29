@@ -2080,7 +2080,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.UserId, x.ChangedAt });
         });
 
-        // A receipt's log (P2910_02): append-only, ids and times only.
+        // A receipt's log (P2910_02): ids and times only, each line sealed to
+        // the one before; a trigger refuses UPDATE / DELETE / TRUNCATE (R-1082).
         builder.Entity<PaymentReceiptLog>(entity =>
         {
             entity.ToTable("bd_payment_receipt_logs");
@@ -2089,7 +2090,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.SignMode).HasConversion<short>();
             entity.Property(x => x.CancelReasonCode).HasConversion<short>();
             entity.Property(x => x.FileSha256).HasMaxLength(64);
-            entity.HasIndex(x => new { x.PatientPaymentId, x.At });
+            entity.Property(x => x.Seal).HasMaxLength(PaymentReceiptLog.MaxSealLength);
+            entity.HasIndex(x => new { x.PatientPaymentId, x.Sequence }).IsUnique();
         });
 
         builder.Entity<EInvoiceProviderConfig>(entity =>

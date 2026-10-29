@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using BlueDental.EInvoicing;
 using BlueDental.TreatmentManagement;
+using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
 
 namespace BlueDental.Billing;
@@ -53,6 +54,12 @@ public class ReceiptSigningSessionDto
 /// </summary>
 public class PaymentReceiptLogDto
 {
+    /// <summary>1, 2, 3… within the receipt.</summary>
+    public int Sequence { get; set; }
+
+    /// <summary>The line still matches its seal and the line before it (R-1082).</summary>
+    public bool Verified { get; set; }
+
     public ReceiptLogAction Action { get; set; }
     public DateTimeOffset At { get; set; }
     public string? UserName { get; set; }
@@ -63,6 +70,16 @@ public class PaymentReceiptLogDto
     public bool? CustomerSignedOnPaper { get; set; }
     public string? FileSha256 { get; set; }
     public PaymentCancelReason? CancelReasonCode { get; set; }
+}
+
+/// <summary>A receipt's log, with what checking its seals found (R-1082).</summary>
+public class PaymentReceiptLogListDto : ListResultDto<PaymentReceiptLogDto>
+{
+    /// <summary>No line changed, dropped from the middle or slipped in since it was written.</summary>
+    public bool Intact { get; set; }
+
+    /// <summary>Lines written before seals existed (R-1082); none on a new database.</summary>
+    public int UnsealedCount { get; set; }
 }
 
 /// <summary>Gửi tới iPad / Gửi lại.</summary>
@@ -90,8 +107,8 @@ public interface IReceiptSigningAppService : IApplicationService
     /// </summary>
     Task<ReceiptSigningStateDto> PrintForPaperAsync(Guid patientPaymentId);
 
-    /// <summary>The receipt's log, oldest first — a cancelled receipt's too.</summary>
-    Task<List<PaymentReceiptLogDto>> GetLogAsync(Guid patientPaymentId);
+    /// <summary>The receipt's log, oldest first — a cancelled receipt's too — and whether it is intact.</summary>
+    Task<PaymentReceiptLogListDto> GetLogAsync(Guid patientPaymentId);
 }
 
 // ── Clinic settings: Kết nối iPad ──────────────────────────────────────────

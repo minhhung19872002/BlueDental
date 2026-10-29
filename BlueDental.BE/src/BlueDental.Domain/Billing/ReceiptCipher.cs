@@ -1,5 +1,6 @@
 using System;
 using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
@@ -18,6 +19,16 @@ public interface IReceiptCipher
 
     byte[] Seal(byte[] plain);
     byte[] Open(byte[] sealedFile);
+
+    /// <summary>
+    /// HMAC-SHA256 of <paramref name="text"/>, as <c>v1:</c> + hex: what seals
+    /// each line of a receipt's log (<see cref="PaymentReceiptLog"/>), so a line
+    /// cannot be changed or forged without the vault key.
+    /// </summary>
+    string Mac(string text);
+
+    /// <summary>Whether <paramref name="mac"/> is <see cref="Mac"/> of <paramref name="text"/>, compared in constant time.</summary>
+    bool MacMatches(string text, string mac);
 }
 
 public class ReceiptVaultOptions
@@ -43,6 +54,7 @@ public class AesGcmReceiptCipher(IOptions<ReceiptVaultOptions> options) : IRecei
     private const byte FileVersion = 0x01;
     private const int NonceSize = 12;
     private const int TagSize = 16;
+    private static readonly byte[] MacKeyInfo = Encoding.UTF8.GetBytes("bluedental/receipt-log/v1");
 
     public string Encrypt(byte[] plain) => Prefix + Convert.ToBase64String(SealCore(plain));
 
@@ -74,6 +86,16 @@ public class AesGcmReceiptCipher(IOptions<ReceiptVaultOptions> options) : IRecei
 
         return OpenCore(sealedFile.AsSpan(1).ToArray());
     }
+
+    public string Mac(string text)
+    {
+        // A key of its own, derived from the vault key: one key never both encrypts and authenticates.
+        var macKey = HKDF.DeriveKey(HashAlgorithmName.SHA256, Key(), 32, info: MacKeyInfo);
+        return Prefix + Convert.ToHexStringLower(HMACSHA256.HashData(macKey, Encoding.UTF8.GetBytes(text)));
+    }
+
+    public bool MacMatches(string text, string mac) =>
+        CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(Mac(text)), Encoding.ASCII.GetBytes(mac));
 
     private byte[] SealCore(byte[] plain)
     {
