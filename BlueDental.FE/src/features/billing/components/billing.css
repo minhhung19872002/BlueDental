@@ -17,6 +17,11 @@
   color: var(--bd-hint);
 }
 
+/* Just wide enough for "Phương thức TT" and the longest method, "Ngân hàng" (R-1071). */
+.billing-method-filter {
+  width: 150px;
+}
+
 .billing-ledger-code {
   color: var(--bd-blue);
 }

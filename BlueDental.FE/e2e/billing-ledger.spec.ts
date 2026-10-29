@@ -1,4 +1,7 @@
+import { readFileSync } from "node:fs";
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import * as XLSX from "xlsx";
+import { pickOption } from "./fixtures/antd";
 import { BRANCH2_USER, login } from "./fixtures/auth";
 import {
   PAYMENTS_API,
@@ -55,6 +58,18 @@ async function expectSameDocument(page: Page): Promise<void> {
 
 function ledgerRow(page: Page, code: string): Locator {
   return page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: code });
+}
+
+/** "Xuất Excel" as clicked: the method the request carried and the workbook's text. */
+async function exportLedger(page: Page): Promise<{ method: string | null; text: string }> {
+  const download = page.waitForEvent("download");
+  const request = page.waitForRequest((req) => req.url().includes(`${LEDGER_API}/excel`));
+  await page.getByRole("button", { name: "Xuất Excel" }).click();
+  const method = new URL((await request).url()).searchParams.get("method");
+  const workbook = XLSX.read(readFileSync(await (await download).path()), { type: "buffer" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const text = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 }).flat().map(String).join("\n");
+  return { method, text };
 }
 
 let receipt: Receipt | undefined;
@@ -169,6 +184,72 @@ test.describe("Tài chính → Thanh toán", () => {
     await picker.getByRole("button", { name: "Tháng", exact: true }).click();
     await expect(picker.locator("input")).toHaveValue(`${pad(today.getMonth() + 1)}/${today.getFullYear()}`);
     await expect(row).toBeVisible();
+  });
+
+  // R-1071: one method at a time, and the cards and the Excel follow it.
+  test("Phương thức thanh toán narrows the list, both cards and the Excel to one method", async ({ page }) => {
+    expect(receipt).toBeDefined();
+    const saved = receipt!;
+    const other = saved.method === 2 ? 1 : 2;
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+
+    // Server: the method is part of the query, so the totals follow it.
+    const byMethod = (method: number) => call(page, `${LEDGER_API}?filter=${saved.code}&method=${method}`);
+    const own = await byMethod(saved.method);
+    expect(own.status).toBe(200);
+    expect(own.body.totalCount).toBe(1);
+    expect(own.body.totalAmount).toBe(saved.amount);
+    const elsewhere = await byMethod(other);
+    expect(elsewhere.status).toBe(200);
+    expect(elsewhere.body.totalCount).toBe(0);
+    expect(elsewhere.body.totalAmount).toBe(0);
+    expect((await byMethod(99)).status, "a method the clinic does not take").toBe(400);
+
+    await page.goto("/billing");
+    await page.getByPlaceholder(SEARCH).fill(saved.code);
+    const row = ledgerRow(page, saved.code);
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    const values = page.locator(".billing-kpi-value");
+
+    // The options come in the plan's payment-dialog order.
+    const select = page.getByRole("combobox", { name: "Phương thức thanh toán" });
+    await select.click();
+    await expect(page.locator(".ant-select-dropdown:visible .ant-select-item-option")).toHaveText([
+      "Tiền mặt",
+      "Ngân hàng",
+      "Ví momo",
+      "Quẹt thẻ",
+      "Dư nợ",
+    ]);
+    await page.keyboard.press("Escape");
+
+    // Another method: the row, both cards and the Excel all drop the receipt.
+    await pickOption(page, select, METHOD_LABELS[other]);
+    await expect(row).toHaveCount(0);
+    await expect(page.getByText(EMPTY_TEXT)).toBeVisible();
+    await expect(values.nth(0)).toHaveText(/^0/);
+    await expect(values.nth(1)).toHaveText("0");
+    const otherExport = await exportLedger(page);
+    expect(otherExport.method).toBe(String(other));
+    expect(otherExport.text).not.toContain(saved.code);
+
+    // Its own method brings all three back.
+    await pickOption(page, select, METHOD_LABELS[saved.method]);
+    await expect(row).toBeVisible();
+    await expect(values.nth(0)).toHaveText(new RegExp(`^${vnd(saved.amount)}`));
+    await expect(values.nth(1)).toHaveText("1");
+    const ownExport = await exportLedger(page);
+    expect(ownExport.method).toBe(String(saved.method));
+    expect(ownExport.text).toContain(saved.code);
+
+    // Cleared, every method is listed again.
+    await pickOption(page, select, METHOD_LABELS[other]);
+    await expect(row).toHaveCount(0);
+    await select.hover();
+    await page.locator(".billing-toolbar .ant-select-clear").click();
+    await expect(row).toBeVisible();
+    await expect(values.nth(1)).toHaveText("1");
   });
 
   test("Xem opens the receipt sheet and Xuất hoá đơn the e-invoice draft for that receipt", async ({ page }) => {

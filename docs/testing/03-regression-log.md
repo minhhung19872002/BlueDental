@@ -12065,3 +12065,35 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Các chức năng in khác (báo giá, yêu cầu hoá đơn, phiếu điều trị, `usePrintSheet`) dùng code riêng, không bị ảnh hưởng. `/taxonomy` cũng không.
   - Đã thêm dòng `printing.ts` / khối in `medical-record.css` vào `02-impact-map.md`.
 - **Chưa chắc**: chưa chứng minh host extension trên máy chủ dự án chính là thủ phạm (trên màn hình nó không sinh hộp nào). Sau khi deploy cần in lại mẫu 6 trên máy đó.
+
+## R-1071 (2026-10-29, mức 2: F-47 Tài chính → Thanh toán) Lọc theo phương thức thanh toán
+
+- **Yêu cầu** (chat của owner, kèm ảnh màn `/billing`): "thêm lọc theo phương thức thanh toán". Owner chốt 3 điểm:
+  - **chọn 1** phương thức mỗi lần (không chọn nhiều);
+  - hai thẻ "Tổng tiền đã thu" / "Số phiếu thanh toán" **đi theo** bộ lọc;
+  - làm trên `main`.
+- **BE**:
+  - `GetPaymentLedgerInput.Method` (`PaymentMethodKind?`).
+  - `PaymentLedgerAppService.FilteredAsync` lọc `x.Method == input.Method` ngay trong câu truy vấn, nên danh sách, `TotalCount`, `TotalAmount` và Xuất Excel dùng chung một bộ lọc.
+  - `ExportAsync` chép tay từng trường đầu vào, nên đã thêm `Method`. Thiếu dòng này thì Excel bỏ qua bộ lọc.
+  - Giá trị không có trong enum (`method=99`) → 400 do model binding chặn.
+- **FE**:
+  - `LedgerMethodSelect` (AntD `Select`, `allowClear`) đặt giữa ô tìm kiếm và Ngày/Tuần/Tháng.
+  - Thứ tự lựa chọn giống dialog thanh toán của kế hoạch (`LEDGER_METHOD_ORDER`): Tiền mặt, Ngân hàng, Ví momo, Quẹt thẻ, Dư nợ.
+  - Placeholder là "Phương thức TT" (key có sẵn `Treatment:Receipt:PaymentMethodShort`). `aria-label` giữ đủ "Phương thức thanh toán".
+  - Rộng 150px. Owner thấy 210px "dài, vừa đủ là được". Đo trên bản build: chữ placeholder 99px, ô chữ 109px, cả 5 phương thức đều không bị cắt (`scrollWidth == clientWidth`). Ở mobile, ô chiếm trọn một hàng như các control khác.
+  - Đổi phương thức thì quay về trang 1. Xoá lựa chọn thì hiện lại mọi phương thức.
+- **E2E** (bản build production, preview :8171 nối host riêng :5171 + DB copy `BlueDental_r1071` có Zalo tắt; không chặn API; có đăng nhập thật):
+  - `billing-ledger.spec` có ca mới "Phương thức thanh toán narrows the list, both cards and the Excel to one method":
+    - API: lọc đúng phương thức của phiếu → `totalCount` 1, `totalAmount` = số tiền; phương thức khác → 0 / 0; `method=99` → 400.
+    - Màn hình: thứ tự 5 lựa chọn đúng như trên.
+    - Chọn phương thức khác → dòng mất, hiện "Chưa có phiếu thanh toán", cả hai thẻ về 0. Excel gửi `method=<khác>` và file không có mã phiếu.
+    - Chọn lại đúng phương thức → dòng, thẻ và Excel (có mã phiếu) quay lại.
+    - Xoá lựa chọn → dòng hiện lại.
+  - Kết quả: `billing-ledger` **6/6 xanh**, `payment-permission-buttons` **2/2**, `payment-receipt-pdf` **4/4**, `routes` **20/20**.
+  - Lần chạy đầu, `payment-receipt-pdf:47` đỏ ("receipt template is missing") vì host riêng chạy từ thư mục build trong scratchpad, không có `wwwroot/templates`. Chạy lại với `--contentRoot` trỏ về project Host → xanh. Lỗi do môi trường, không do R-1071.
+  - `tsc -b` xanh; `dotnet build` Application + Host xanh; build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-47).
+  - Chỉ màn `/billing` và hai endpoint `GET /api/v1/app/payment-ledger` (+ `/excel`) đổi. Tham số mới là tuỳ chọn: bỏ trống thì kết quả y như trước.
+  - Tab Thanh toán của kế hoạch, phiếu thu, HĐĐT không đổi. `/taxonomy` không đụng.
+- **Ngoài phạm vi**: lọc theo "Tài khoản nhận" (`PaymentAccountId`) chưa làm.

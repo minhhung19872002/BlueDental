@@ -49,6 +49,9 @@ public class GetPaymentLedgerInput : PagedAndSortedResultRequestDto
 
     /// <summary>Last clinic-local day of the window, inclusive.</summary>
     public DateOnly? ToDate { get; set; }
+
+    /// <summary>Only receipts paid this way; the totals follow it (R-1071).</summary>
+    public PaymentMethodKind? Method { get; set; }
 }
 
 /// <summary>

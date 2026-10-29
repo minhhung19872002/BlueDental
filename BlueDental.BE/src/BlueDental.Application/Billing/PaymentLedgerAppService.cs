@@ -92,6 +92,7 @@ public class PaymentLedgerAppService : BlueDentalAppService, IPaymentLedgerAppSe
             Filter = input.Filter,
             FromDate = input.FromDate,
             ToDate = input.ToDate,
+            Method = input.Method,
             MaxResultCount = ExportLimit
         });
 
@@ -137,6 +138,11 @@ public class PaymentLedgerAppService : BlueDentalAppService, IPaymentLedgerAppSe
         {
             var to = ClinicCalendar.StartOfDay(input.ToDate.Value.AddDays(1));
             query = query.Where(x => x.PaidAt < to);
+        }
+
+        if (input.Method.HasValue)
+        {
+            query = query.Where(x => x.Method == input.Method.Value);
         }
 
         var patients = await _patients.GetQueryableAsync();
