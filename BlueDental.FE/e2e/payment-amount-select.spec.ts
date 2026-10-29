@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Locator } from "@playwright/test";
 import { login } from "./fixtures/auth";
-import { answerYes, call, money, openNewSlip, PAYMENTS_API, type Receipt } from "./fixtures/ledgerReceipt";
+import { call, money, openNewSlip, PAYMENTS_API, saveReceipt, type Receipt } from "./fixtures/ledgerReceipt";
 
 /**
  * R-1040 (BA, 2026-10-26): clicking an amount box in "Tạo phiếu thanh toán"
@@ -49,9 +49,8 @@ test("Tạo phiếu thanh toán highlights the amount on click", async ({ page }
   await expect.poll(() => selectedText(share)).toBe("");
 
   // Saved and read back with a separate request: the typed figure, not appended digits.
-  await dialog.getByRole("button", { name: "Lưu" }).click();
-  const receipt = await answerYes(page, dialog);
-  const stored = await call(page, `${PAYMENTS_API}?patientId=${receipt.patientId}&maxResultCount=1000`);
+  const receipt = await saveReceipt(page, dialog);
+  const stored = await call(page, `${PAYMENTS_API}?patientId=${receipt.patientId}&includePending=true&maxResultCount=1000`);
   const items = (stored.body.items ?? []) as Receipt[];
   expect(items.find((item) => item.id === receipt.id)?.amount).toBe(part);
 });

@@ -368,3 +368,50 @@
   color: var(--bd-muted);
   font-size: 12px;
 }
+
+/* Giảm giá thu ngân with the cashier's reason (P2910, step 6): accountant only. */
+.rcpt-discounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg-soft);
+  font-size: 13px;
+}
+.rcpt-discounts p {
+  margin: 0;
+}
+.rcpt-discounts-title {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.rcpt-discounts ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rcpt-discounts li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rcpt-discounts-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--bd-ink-3);
+}
+.rcpt-discounts-line b {
+  color: var(--bd-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rcpt-discounts small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}

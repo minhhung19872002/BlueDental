@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import * as XLSX from "xlsx";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { settleReceipt } from "./fixtures/ledgerReceipt";
 import { call, createRunStaff, deleteStaff, RUN_STAFF_PASSWORD, type RunStaff } from "./fixtures/timekeepingStaff";
 import { openSlipFor, type TreatingSlip as Slip } from "./fixtures/treatingSlip";
 
@@ -266,12 +267,9 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
     });
     expect(receipt.status, JSON.stringify(receipt.body.error)).toBe(200);
     receipts.push(receipt.body.id);
-    // A receipt is written "Chưa thanh toán"; exported and ✓ it counts (P2610).
+    // A receipt is written "Chưa thanh toán"; signed, exported and ✓ it counts (P2610).
     if (receipt.body.status !== PENDING) return;
-    for (const [step, method] of [["issue", "POST"], ["confirm", "PUT"]] as const) {
-      const moved = await call(admin, `${PAYMENTS}/${receipt.body.id}/${step}`, { method, branchId: BRANCH_ONE });
-      expect(moved.status, JSON.stringify(moved.body.error)).toBe(200);
-    }
+    await settleReceipt(admin, { id: receipt.body.id, clinicBranchId: BRANCH_ONE });
   }
 
   test.beforeAll(async ({ browser }) => {

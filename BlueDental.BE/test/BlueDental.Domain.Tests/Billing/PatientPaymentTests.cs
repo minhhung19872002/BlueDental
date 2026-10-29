@@ -21,7 +21,7 @@ public class PatientPaymentTests
 
     private static PatientPayment Record(
         decimal amount,
-        IEnumerable<(Guid, decimal)>? lines = null,
+        IEnumerable<PaymentLineDraft>? lines = null,
         PaymentMethodKind method = PaymentMethodKind.Cash,
         Guid? accountId = null,
         PaymentSplitMode split = PaymentSplitMode.Auto) =>
@@ -171,7 +171,7 @@ public class PatientPaymentTests
         refund.Lines.Single().Amount.ShouldBe(250_000m);
     }
 
-    private static PatientPayment Pending(decimal amount, IEnumerable<(Guid, decimal)> lines) =>
+    private static PatientPayment Pending(decimal amount, IEnumerable<PaymentLineDraft> lines) =>
         PatientPayment.Record(
             Guid.NewGuid(),
             patientId: Guid.NewGuid(),
@@ -255,7 +255,7 @@ public class PatientPaymentTests
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation);
     }
 
-    private static PatientPayment Issued(decimal amount, IEnumerable<(Guid, decimal)> lines) =>
+    private static PatientPayment Issued(decimal amount, IEnumerable<PaymentLineDraft> lines) =>
         Export(Pending(amount, lines), DateTimeOffset.UtcNow, Guid.NewGuid());
 
     private const string FileName = "receipts/branch/payment.pdf.enc";

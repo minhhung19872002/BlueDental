@@ -97,6 +97,11 @@ export interface PatientAdviseDto {
   grossAmount: number;
   discountAmount: number;
   effectiveAmount: number;
+  /**
+   * "Ưu đãi khi thanh toán" (P2910): what paid receipts let off the slip lines
+   * this advice became, VAT included. The list's rows only; 0 elsewhere.
+   */
+  paymentReliefAmount?: number;
   serviceName: string | null;
   staffName: string | null;
   secondStaffName: string | null;

@@ -12,6 +12,7 @@ using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using BlueDental.Printing;
 using BlueDental.TreatmentManagement;
+using BlueDental.TreatmentManagement.Values;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -285,11 +286,17 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         }
 
         var patient = await _patients.GetAsync(source.PatientId);
+        var sheet = await SheetOfAsync(source);
         var content = new PaymentReceiptContent(
             CustomerName: Blank(input.BuyerName) ?? patient.FullName,
-            TreatmentWork: string.Join(", ", (await TreatmentWorkAsync(source, lines)).Distinct()),
+            TreatmentWork: string.Join(", ", (sheet?.Lines.Select(l => l.Name).ToList()
+                ?? await TreatmentWorkAsync(source, lines)).Distinct()),
             PaidAmount: paid,
-            SlipTotal: source.Slip?.PayableAmount ?? source.MaxAmount,
+            // A receipt's Số tiền còn lại is its sheet's — after the other đợt
+            // and every relief (P2910) — as the exported PDF and the iPad say.
+            SlipTotal: sheet != null
+                ? sheet.Remaining + sheet.Amount
+                : source.Slip?.PayableAmount ?? source.MaxAmount,
             PayerName: patient.FullName,
             IssueDate: input.ArisingDate is { } day
                 ? DateOnly.FromDateTime(day)
@@ -344,6 +351,21 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         var serviceIds = charged.Select(s => s.ServiceId).Distinct().ToList();
         var names = (await _catalog.GetListAsync(c => serviceIds.Contains(c.Id))).ToDictionary(c => c.Id, c => c.Name);
         return charged.Select(s => names.GetValueOrDefault(s.ServiceId) ?? s.Code).ToList();
+    }
+
+    /// <summary>
+    /// The PHIẾU THU content of a slip's receipt — its "Tên trên phiếu" and
+    /// Số tiền còn lại; none for a whole slip or a receipt without one.
+    /// </summary>
+    private async Task<PaymentReceiptSnapshot?> SheetOfAsync(InvoiceSource source)
+    {
+        if (source.Payment is not { TreatmentPlanId: not null } payment)
+        {
+            return null;
+        }
+
+        var sheet = await LazyServiceProvider.LazyGetRequiredService<PaymentReceiptContents>().ContentOfAsync(payment);
+        return sheet.Lines.Count > 0 ? sheet : null;
     }
 
     /// <summary>Người lập phiếu: the signed-in user's full name, as the staff screens show it.</summary>
@@ -540,10 +562,20 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
 
         var slip = await LoadPlanAsync(treatmentPlanId!.Value);
         await _branchAccess.CheckAsync(slip.BranchId);
+        var settled = await SettlementOfAsync(slip);
         return new InvoiceSource(
-            // VAT included: the slip is invoiced at what the patient pays for it.
-            slip.BranchId, slip.PatientId, PlanIkeyOf(slip.Id), slip.PayableAmount,
-            ElectronicInvoicePaymentMethod.CashOrTransfer, null, slip, slip);
+            // VAT included: the slip is invoiced at what the patient pays for it,
+            // less what its paid receipts let it off (P2910).
+            slip.BranchId, slip.PatientId, PlanIkeyOf(slip.Id), slip.PayableAmount - slip.ReliefOffPayable(settled),
+            ElectronicInvoicePaymentMethod.CashOrTransfer, null, slip, slip, settled);
+    }
+
+    /// <summary>What the slip's paid receipts did to each of its lines.</summary>
+    private async Task<Dictionary<Guid, LineSettlement>> SettlementOfAsync(TreatmentPlan slip)
+    {
+        var paymentQuery = await _payments.WithDetailsAsync(x => x.Lines);
+        var payments = await AsyncExecuter.ToListAsync(paymentQuery.Where(x => x.TreatmentPlanId == slip.Id));
+        return LineSettlement.Of(slip, payments);
     }
 
     private async Task<TreatmentPlan> LoadPlanAsync(Guid id)
@@ -594,7 +626,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     {
         if (source.Payment == null)
         {
-            return SlipLines(source.Plan!, vatRate);
+            return SlipLines(source.Plan!, source.Settled ?? new Dictionary<Guid, LineSettlement>(), vatRate);
         }
 
         var parts = ReceiptParts(source);
@@ -623,10 +655,14 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     /// <summary>
     /// A whole slip, billed as the reference bills it — one line "Kế hoạch điều
     /// trị DT…", unit Răng — at its Thành tiền before VAT, with the services' VAT
-    /// on top. Services of different "% thuế" make one such line per rate.
+    /// on top. Services of different "% thuế" make one such line per rate. What
+    /// paid receipts let a line off (P2910) comes off before its VAT.
     /// </summary>
-    private List<ElectronicInvoiceLine> SlipLines(TreatmentPlan plan, int fallbackRate)
+    private List<ElectronicInvoiceLine> SlipLines(
+        TreatmentPlan plan, IReadOnlyDictionary<Guid, LineSettlement> settled, int fallbackRate)
     {
+        decimal ReliefOf(TreatmentService line) => settled.GetValueOrDefault(line.Id, LineSettlement.None).Relief;
+
         var name = L["Treatment:Plan:ServiceName", plan.Code].Value;
         var unit = L["Treatment:Invoice:UnitTooth"].Value;
         var byRate = plan.Services
@@ -647,12 +683,13 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
                 : $"{name} ({(group.Key < 0 ? L["Treatment:Invoice:TaxExempt"].Value : $"VAT {group.Key}%")})",
             unit,
             1m,
-            group.Sum(plan.ChargedAmountOf),
-            group.Sum(plan.TaxAmountOf),
+            group.Sum(line => plan.ChargedAmountOf(line, ReliefOf(line))),
+            group.Sum(line => plan.TaxAmountOf(line, ReliefOf(line))),
             group.Key)).ToList();
     }
 
-    private static List<(TreatmentService Service, decimal Quantity, decimal Amount)> ReceiptParts(InvoiceSource source)
+    private static List<(TreatmentService Service, decimal Quantity, decimal Amount, decimal? Tax)> ReceiptParts(
+        InvoiceSource source)
     {
         if (source.Slip == null)
         {
@@ -662,16 +699,18 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         var services = source.Slip.Services.ToDictionary(s => s.Id);
         return source.Payment!.Lines
             .Where(l => services.ContainsKey(l.TreatmentServiceId) && l.Amount > 0m)
-            .Select(l => (services[l.TreatmentServiceId], 1m, l.Amount))
+            .Select(l => (services[l.TreatmentServiceId], 1m, l.Amount, l.TaxAmount))
             .ToList();
     }
 
     /// <summary>
     /// One line per service of a receipt. What was collected is VAT included,
-    /// so each line backs its service's VAT out of the amount rather than adding it.
+    /// so each line takes its VAT out of the amount rather than adding it: the
+    /// VAT the đợt stored (P2910), so the đợt' invoices add up to the line's
+    /// VAT, or — on a receipt from before — backed out at the service's rate.
     /// </summary>
     private async Task<List<ElectronicInvoiceLine>> NameLinesAsync(
-        List<(TreatmentService Service, decimal Quantity, decimal Amount)> parts)
+        List<(TreatmentService Service, decimal Quantity, decimal Amount, decimal? Tax)> parts)
     {
         if (parts.Count == 0)
         {
@@ -685,13 +724,13 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         return parts.Select(p =>
         {
             entries.TryGetValue(p.Service.ServiceId, out var entry);
-            return ElectronicInvoiceDraft.LineFromGross(
-                entry?.Code ?? p.Service.Code,
-                entry?.Name ?? p.Service.Code,
-                entry?.Unit ?? unit,
-                p.Quantity,
-                p.Amount,
-                RateOf(p.Service));
+            var code = entry?.Code ?? p.Service.Code;
+            var name = entry?.Name ?? p.Service.Code;
+            return p.Tax is { } tax
+                ? ElectronicInvoiceDraft.LineOf(
+                    code, name, entry?.Unit ?? unit, p.Quantity, p.Amount - tax, tax, RateOf(p.Service))
+                : ElectronicInvoiceDraft.LineFromGross(
+                    code, name, entry?.Unit ?? unit, p.Quantity, p.Amount, RateOf(p.Service));
         }).ToList();
     }
 
@@ -768,5 +807,6 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         ElectronicInvoicePaymentMethod PaymentMethod,
         PatientPayment? Payment,
         TreatmentPlan? Plan,
-        TreatmentPlan? Slip);
+        TreatmentPlan? Slip,
+        IReadOnlyDictionary<Guid, LineSettlement>? Settled = null);
 }

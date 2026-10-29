@@ -5,6 +5,7 @@ import { Printer } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
 import { RECEIPT_STATUS, type PaymentReceiptDto } from "../../api/paymentReceiptApi";
+import { ReceiptCashierDiscounts } from "./ReceiptCashierDiscounts";
 import { cancelReasonText } from "./receiptStatus";
 
 interface Props {
@@ -77,6 +78,7 @@ export function ReceiptStatusPanel({ receipt, slipPath, print, pendingTitle, not
       <h3 className="rcpt-panel-title">{title}</h3>
       {notice}
       <div className="rcpt-panel-body">{view.body}</div>
+      <ReceiptCashierDiscounts discounts={receipt.cashierDiscounts} />
       {children}
       <div className="rcpt-panel-actions">
         {actions}

@@ -426,6 +426,14 @@ export function PatientAdviseCard({
               included: it asks the server what applies to an amount. */}
             <AdviseVoucherPicker plan={plan} disabled={!hasTicked} />
 
+            {/* TN giảm and payment-time vouchers on the paid receipts (P2910). */}
+            {plan.paymentRelief > 0 && (
+              <p className="pd-plan-row pd-plan-row--off">
+                <span>{t("Patient:PlanTotals:PaymentRelief")}</span>
+                <b>{minus(plan.paymentRelief)}</b>
+              </p>
+            )}
+
             <p className="pd-plan-row pd-plan-net">
               <span>{t("Patient:PlanTotals:Net")}</span>
               <b>{money(plan.net)}</b>

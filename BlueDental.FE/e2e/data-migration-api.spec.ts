@@ -1097,8 +1097,12 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
     expect(people.get(13)).toContain(`Thẻ lạ ${id}`);
     expect(people.get(14)).toContain("1000");
     expect(people.get(15)).toContain(String(takenCode));
-    expect(people.get(16)).toBe('Cột "Số điện thoại": "abc123" không phải số điện thoại (8–15 chữ số)');
-    expect(people.get(17)).toBe('Cột "Người giám hộ - SĐT": "0912" không phải số điện thoại (8–15 chữ số)');
+    expect(people.get(16)).toBe(
+      'Cột "Số điện thoại": "abc123" không phải số điện thoại (8–15 chữ số, hoặc +mã vùng cho số nước ngoài)',
+    );
+    expect(people.get(17)).toBe(
+      'Cột "Người giám hộ - SĐT": "0912" không phải số điện thoại (8–15 chữ số, hoặc +mã vùng cho số nước ngoài)',
+    );
 
     const visits = errorsOf(1);
     expect([...visits.keys()].sort((x, y) => x - y)).toEqual([2, 3, 4, 5, 6, 7]);
@@ -1255,7 +1259,10 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
     const [first, second, third] = receipts;
     expect(first).toMatchObject({ kind: 1, status: 2, method: 1, amount: 10_000_000, treatmentPlanCode: "DT01", paymentAccountId: null });
     expect(first.note).toBe("Nhập từ hệ thống cũ: PX1 — Đợt 1");
-    expect(first.lines).toEqual([{ treatmentServiceId: lineId(30_000_000), amount: 10_000_000 }]);
+    // Lines also carry the P2910 terms (receipt name, TN, voucher share, VAT); an old payment has none.
+    expect(first.lines).toMatchObject([
+      { treatmentServiceId: lineId(30_000_000), amount: 10_000_000, cashierDiscount: 0, voucherShare: 0 },
+    ]);
     expect(second).toMatchObject({ method: 2, amount: 20_000_000, paymentAccountId: expect.any(String) });
     expect(new Map(second.lines.map((l) => [l.treatmentServiceId, l.amount]))).toEqual(new Map([
       [lineId(600_000), 1_200_000],
@@ -1263,7 +1270,7 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
       [lineId(1_000_000), 800_000],
     ]));
     expect(third).toMatchObject({ method: 3, amount: 100_000, note: "Nhập từ hệ thống cũ: Chỉnh nha" });
-    expect(third.lines).toEqual([{ treatmentServiceId: lineId(1_000_000), amount: 100_000 }]);
+    expect(third.lines).toMatchObject([{ treatmentServiceId: lineId(1_000_000), amount: 100_000 }]);
     for (const [receipt, day] of [[first, "2021-02-15"], [second, "2021-04-01"], [third, "2021-05-06"]] as const) {
       expect(Date.parse(receipt.paidAt), receipt.code).toBe(clinicTime(`${day}T17:00:00`));
       expect(Date.parse(receipt.creationTime), receipt.code).toBe(clinicTime(`${day}T17:00:00`));

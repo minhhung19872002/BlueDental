@@ -439,6 +439,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>The stored PDF no longer matches the SHA-256 taken at export.</summary>
         public const string ReceiptFileTampered = "BlueDental:Billing:0115";
+
+        /// <summary>P2910: a line's TN giảm and voucher share let off more than it still owes.</summary>
+        public const string ReliefExceedsOutstanding = "BlueDental:Billing:0116";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

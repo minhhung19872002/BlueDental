@@ -115,6 +115,13 @@
 .rcpt-lines td {
   border-bottom: 1px dashed var(--bd-border-2);
 }
+/* What this receipt lets off the line (P2910), under its name. */
+.rcpt-lines-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}
 .rcpt-lines .rcpt-lines-money {
   width: 160px;
   font-variant-numeric: tabular-nums;

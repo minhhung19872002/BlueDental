@@ -392,7 +392,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(page.locator(".rcpt-sheet")).toContainText(/[A-ZĐ][a-zăâđêôơưáàảãạ].* đồng/);
     await expect(page.locator(".rcpt-sign-role")).toHaveText(["Người nộp tiền", "Kế toán / Người lập phiếu"]);
     await expect(page.locator(".rcpt-track-card .step-track-item--done")).toHaveCount(6);
-    await expect(page.getByRole("button", { name: "In phiếu thu" })).toBeVisible();
+    // A paid receipt shows the exported panel (R-1052), whose print button is "In phiếu".
+    await expect(page.getByRole("button", { name: "In phiếu", exact: true })).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL(/planTab=payment-v2/);
   });
@@ -1138,9 +1139,12 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
         has: page.locator("span", { hasText: new RegExp(`^${label}$`) }),
       });
     expect(money(await fact("Tổng tiền").locator("span").last().innerText())).toBe(grossOwed);
-    expect(money(await fact("Giảm giá").locator("span").last().innerText())).toBe(
+    // P2910 splits "Giảm giá" into the doctor's (on the slip), this đợt's TN giảm and voucher.
+    expect(money(await fact("Giảm giá bác sĩ").locator("span").last().innerText())).toBe(
       figures.discount + 50_000,
     );
+    expect(money(await fact("Giảm giá thu ngân").locator("span").last().innerText())).toBe(0);
+    expect(money(await fact("Voucher").locator("span").last().innerText())).toBe(0);
     expect(money(await fact("Tổng tiền sau giảm").locator("span").last().innerText())).toBe(owed);
     expect(money(await fact("Còn nợ cần thanh toán").locator("span").last().innerText())).toBe(owed);
 

@@ -132,6 +132,30 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     /// </summary>
     public PaymentReceiptSnapshot? ReceiptSnapshot { get; private set; }
 
+    public const int MaxVoucherCodeLength = 64;
+
+    /// <summary>
+    /// The voucher picked at payment time (P2910) — one per receipt, its use
+    /// held from the moment the receipt is written and given back when it is
+    /// cancelled or the voucher is taken off. Not the slip's own vouchers.
+    /// </summary>
+    public Guid? VoucherId { get; private set; }
+
+    /// <summary>The voucher's code as it was, so the receipt reads the same if the voucher is renamed.</summary>
+    public string? VoucherCode { get; private set; }
+
+    /// <summary>What the voucher took off, split over <see cref="Lines"/> as their <c>VoucherShare</c>.</summary>
+    public decimal VoucherAmount { get; private set; }
+
+    /// <summary>"Giảm giá thu ngân" over every line — kept here so a rollup needs no lines.</summary>
+    public decimal CashierDiscountTotal { get; private set; }
+
+    /// <summary>
+    /// Ưu đãi khi thanh toán: what this receipt lets off the slip without money.
+    /// Like <see cref="Amount"/> it counts only once the receipt is "Đã thanh toán".
+    /// </summary>
+    public decimal Relief => CashierDiscountTotal + VoucherAmount;
+
     /// <summary>Signed value for a rollup: a refund takes money back out.</summary>
     public decimal SignedAmount => Kind == PatientPaymentKind.Refund ? -Amount : Amount;
 
@@ -151,9 +175,10 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         string? note = null,
         Guid? paymentAccountId = null,
         PaymentSplitMode splitMode = PaymentSplitMode.Auto,
-        IEnumerable<(Guid TreatmentServiceId, decimal Amount)>? lines = null,
+        IEnumerable<PaymentLineDraft>? lines = null,
         Func<Guid>? lineIdFactory = null,
-        PatientPaymentStatus status = PatientPaymentStatus.Completed)
+        PatientPaymentStatus status = PatientPaymentStatus.Completed,
+        PaymentVoucherUse? voucher = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
 
@@ -172,12 +197,8 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
                 "Only a payment waits for confirmation; refunds and held money are settled when written.");
         }
 
-        if (amount <= 0m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Billing.InsufficientPaymentAmount,
-                "A money movement must be greater than zero.");
-        }
+        var drafts = (lines ?? []).ToList();
+        EnsureAmount(kind, amount, drafts);
 
         if (kind == PatientPaymentKind.Prepaid && treatmentPlanId.HasValue)
         {
@@ -216,17 +237,56 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
             Status = status
         };
 
-        payment.ReplaceLines(lines, lineIdFactory);
+        payment.ReplaceLines(drafts, lineIdFactory, voucher);
         return payment;
     }
 
-    private void ReplaceLines(
-        IEnumerable<(Guid TreatmentServiceId, decimal Amount)>? lines, Func<Guid>? lineIdFactory)
+    /// <summary>
+    /// A money movement is above zero — except a payment whose lines are let
+    /// off wholly by TN giảm or a voucher (P2910), which may collect nothing.
+    /// </summary>
+    private static void EnsureAmount(
+        PatientPaymentKind kind, decimal amount, IReadOnlyCollection<PaymentLineDraft> lines)
     {
-        _lines.Clear();
-        foreach (var (serviceId, share) in lines ?? [])
+        var relief = lines.Sum(line => line.Relief);
+        if (relief > 0m && kind != PatientPaymentKind.Payment)
         {
-            _lines.Add(new PatientPaymentLine(lineIdFactory?.Invoke() ?? Guid.NewGuid(), serviceId, share));
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "Only a payment can let a line off without money.");
+        }
+
+        if (amount < 0m || (amount == 0m && relief <= 0m))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InsufficientPaymentAmount,
+                "A money movement must be greater than zero.");
+        }
+    }
+
+    private void ReplaceLines(
+        IReadOnlyCollection<PaymentLineDraft> lines, Func<Guid>? lineIdFactory, PaymentVoucherUse? voucher)
+    {
+        if (lines.Select(line => line.TreatmentServiceId).Distinct().Count() != lines.Count
+            && lines.Any(line => line.Relief > 0m || line.ReceiptName != null))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "A service is named once on a receipt that lets it off or renames it.");
+        }
+
+        var voucherAmount = lines.Sum(line => line.VoucherShare);
+        if ((voucher is null) != (voucherAmount == 0m))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "A voucher share needs the voucher it comes from, and a voucher must take something off.");
+        }
+
+        _lines.Clear();
+        foreach (var line in lines)
+        {
+            _lines.Add(new PatientPaymentLine(lineIdFactory?.Invoke() ?? Guid.NewGuid(), line));
         }
 
         // The lines are how the receipt is spent; letting them disagree with the
@@ -237,6 +297,13 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
                 BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
                 "The receipt's service lines must add up to its total.");
         }
+
+        VoucherId = voucher?.VoucherId;
+        VoucherCode = voucher is null
+            ? null
+            : Check.NotNullOrWhiteSpace(voucher.Code, nameof(voucher.Code), MaxVoucherCodeLength);
+        VoucherAmount = voucherAmount;
+        CashierDiscountTotal = _lines.Sum(line => line.CashierDiscount);
     }
 
     private static void EnsureAccount(PatientPaymentKind kind, PaymentMethodKind method, Guid? paymentAccountId)
@@ -277,7 +344,8 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     ///
     /// The receipt's own total never changes: a share too big for the new line
     /// is split, and the remainder stays on the old one for the caller to
-    /// refund or leave as credit.
+    /// refund or leave as credit. Only money moves — what the receipt let off
+    /// the old line (TN giảm, voucher) was let off that line and stays on it.
     /// </summary>
     public decimal Redirect(
         Guid fromServiceId, Guid toServiceId, decimal limit, Func<Guid> lineIdFactory)
@@ -290,19 +358,25 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         var moved = 0m;
         foreach (var line in _lines.Where(l => l.TreatmentServiceId == fromServiceId).ToList())
         {
+            if (moved >= limit)
+            {
+                break;
+            }
+
             var take = Math.Min(line.Amount, limit - moved);
             if (take <= 0m)
             {
-                break;
+                continue;
             }
 
             _lines.Remove(line);
             _lines.Add(new PatientPaymentLine(lineIdFactory(), toServiceId, take));
 
-            if (take < line.Amount)
+            // The stored VAT was the old line's; both pieces back theirs out again.
+            var left = line.ToDraft() with { Amount = line.Amount - take, TaxAmount = null };
+            if (left.Amount + left.Relief > 0m)
             {
-                _lines.Add(
-                    new PatientPaymentLine(lineIdFactory(), fromServiceId, line.Amount - take));
+                _lines.Add(new PatientPaymentLine(lineIdFactory(), left));
             }
 
             moved += take;
@@ -505,8 +579,10 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     /// <summary>
     /// "Chỉnh sửa" on a receipt still "Chưa thanh toán": nothing has been
     /// collected, so everything the create dialog asked can be rewritten — the
-    /// split, the amount and its service lines, the channel and the note. The
-    /// caller re-checks each line against what the slip still owes.
+    /// split, the amount and its service lines, the channel and the note, and
+    /// from P2910 each line's name and TN giảm and the voucher. The caller
+    /// re-checks each line against what the slip still owes, and gives back
+    /// the old voucher's use when it is swapped or taken off.
     /// </summary>
     public PatientPayment Revise(
         PaymentSplitMode splitMode,
@@ -514,18 +590,14 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         decimal amount,
         Guid? paymentAccountId,
         string? note,
-        IEnumerable<(Guid TreatmentServiceId, decimal Amount)> lines,
-        Func<Guid> lineIdFactory)
+        IEnumerable<PaymentLineDraft> lines,
+        Func<Guid> lineIdFactory,
+        PaymentVoucherUse? voucher = null)
     {
         EnsurePending();
 
-        if (amount <= 0m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Billing.InsufficientPaymentAmount,
-                "A money movement must be greater than zero.");
-        }
-
+        var drafts = lines.ToList();
+        EnsureAmount(Kind, amount, drafts);
         EnsureAccount(Kind, method, paymentAccountId);
 
         SplitMode = splitMode;
@@ -533,7 +605,7 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         Amount = amount;
         PaymentAccountId = RequiresAccount(method) ? paymentAccountId : null;
         Note = note;
-        ReplaceLines(lines, lineIdFactory);
+        ReplaceLines(drafts, lineIdFactory, voucher);
         return this;
     }
 

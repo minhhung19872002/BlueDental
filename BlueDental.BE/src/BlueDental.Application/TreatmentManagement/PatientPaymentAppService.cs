@@ -8,7 +8,10 @@ using BlueDental.EInvoicing;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
+using BlueDental.Promotions;
 using BlueDental.Staff;
+using BlueDental.TreatmentManagement.Values;
+using BlueDental.Values;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -39,6 +42,8 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
     private readonly OrgChartScopeResolver _slipScope;
     private readonly PaymentReceiptContents _receipts;
     private readonly ReceiptSigningDesk _signing;
+    private readonly IRepository<Voucher, Guid> _vouchers;
+    private readonly IRepository<CatalogEntry, Guid> _catalog;
 
     public PatientPaymentAppService(
         IRepository<PatientPayment, Guid> repository,
@@ -51,7 +56,9 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         IRepository<InvoiceRequest, Guid> invoiceRequests,
         OrgChartScopeResolver slipScope,
         PaymentReceiptContents receipts,
-        ReceiptSigningDesk signing)
+        ReceiptSigningDesk signing,
+        IRepository<Voucher, Guid> vouchers,
+        IRepository<CatalogEntry, Guid> catalog)
     {
         _repository = repository;
         _planRepository = planRepository;
@@ -64,6 +71,8 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         _slipScope = slipScope;
         _receipts = receipts;
         _signing = signing;
+        _vouchers = vouchers;
+        _catalog = catalog;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -288,8 +297,9 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             await GuardRefundFitsAsync(input);
         }
 
-        var lines = await AllocateAsync(
-            input.Kind, input.TreatmentPlanId, input.SplitMode, input.TreatmentServiceIds, input.Items, input.Amount);
+        var allocation = await AllocateAsync(
+            new ReceiptContext(input.Kind, input.PatientId, input.TreatmentPlanId),
+            AllocationRequest.Of(input));
         var paidAt = input.PaidAt ?? Clock.Now;
         PatientPayment.EnsureNotAfterToday(paidAt, DateTimeOffset.UtcNow);
 
@@ -307,14 +317,15 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             input.Note,
             input.PaymentAccountId,
             input.SplitMode,
-            lines,
+            allocation.Lines,
             GuidGenerator.Create,
             // P2610 (owner 2026-10-27): a new payment is "Chưa thanh toán" and
             // moves no money until it is signed, exported and ✓ confirmed. A
             // refund or held money has no such flow and is written settled.
             input.Kind == PatientPaymentKind.Payment
                 ? PatientPaymentStatus.Pending
-                : PatientPaymentStatus.Completed);
+                : PatientPaymentStatus.Completed,
+            allocation.Voucher);
         payment.RequestRedInvoice(input.RedInvoiceRequested);
         if (payment.Kind == PatientPaymentKind.Payment)
         {
@@ -326,32 +337,65 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         return (await MapManyAsync([payment])).Single();
     }
 
+    /// <summary>The receipt a split is for; on a revise, also which one it is and the voucher it already holds.</summary>
+    private sealed record ReceiptContext(
+        PatientPaymentKind Kind,
+        Guid PatientId,
+        Guid? TreatmentPlanId,
+        Guid? ReceiptId = null,
+        Guid? HeldVoucherId = null);
+
+    /// <summary>What the dialog sent for the split, from "Tạo phiếu thanh toán" or "Chỉnh sửa".</summary>
+    private sealed record AllocationRequest(
+        PaymentSplitMode SplitMode,
+        IReadOnlyCollection<Guid> TreatmentServiceIds,
+        IReadOnlyCollection<PatientPaymentLineDto> Items,
+        decimal Amount,
+        IReadOnlyCollection<PaymentLineTermsDto> LineTerms,
+        Guid? VoucherId)
+    {
+        public static AllocationRequest Of(RecordPatientPaymentDto input) =>
+            new(input.SplitMode, input.TreatmentServiceIds, input.Items, input.Amount, input.LineTerms, input.VoucherId);
+
+        public static AllocationRequest Of(UpdatePatientPaymentDto input) =>
+            new(input.SplitMode, input.TreatmentServiceIds, input.Items, input.Amount, input.LineTerms, input.VoucherId);
+    }
+
     /// <summary>
-    /// Turns "these services, this much" into a share per service.
+    /// Turns "these services, this much" into the receipt's lines.
     ///
     /// Chia Tiền Thủ Công is taken as typed; Chia Tiền Tự Động is spread here
     /// rather than in the browser, because only the server knows what each line
     /// still owes. Either way the shares must add up to the receipt and no line
     /// may be pushed past its own Còn nợ — the reference's
-    /// <c>maxAllowedAmount</c> rule.
+    /// <c>maxAllowedAmount</c> rule. A payment is one đợt of its slip (P2910):
+    /// its TN giảm and voucher come off a line's Còn nợ before the money does,
+    /// and each line keeps the VAT inside its money.
     /// </summary>
-    private async Task<List<(Guid TreatmentServiceId, decimal Amount)>> AllocateAsync(
-        PatientPaymentKind kind,
-        Guid? treatmentPlanId,
-        PaymentSplitMode splitMode,
-        IReadOnlyCollection<Guid> treatmentServiceIds,
-        IReadOnlyCollection<PatientPaymentLineDto> items,
-        decimal amount)
+    private async Task<(List<PaymentLineDraft> Lines, PaymentVoucherUse? Voucher)> AllocateAsync(
+        ReceiptContext receipt,
+        AllocationRequest request)
     {
-        // Money held for the patient is not against any service.
-        if (kind == PatientPaymentKind.Prepaid || !treatmentPlanId.HasValue)
+        var paying = receipt.Kind == PatientPaymentKind.Payment;
+        if ((request.LineTerms.Count > 0 || request.VoucherId.HasValue)
+            && (!paying || !receipt.TreatmentPlanId.HasValue))
         {
-            return [];
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "Only a payment against a slip takes cashier discounts or a voucher.");
         }
 
-        var chosen = splitMode == PaymentSplitMode.Manual
-            ? items.Select(item => item.TreatmentServiceId).Distinct().ToList()
-            : treatmentServiceIds.Distinct().ToList();
+        // Money held for the patient is not against any service.
+        if (receipt.Kind == PatientPaymentKind.Prepaid || receipt.TreatmentPlanId is not { } planId)
+        {
+            return ([], null);
+        }
+
+        var chosen = (request.SplitMode == PaymentSplitMode.Manual
+                ? request.Items.Select(item => item.TreatmentServiceId)
+                : request.TreatmentServiceIds)
+            .Distinct()
+            .ToList();
 
         if (chosen.Count == 0)
         {
@@ -360,29 +404,56 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
                 "A receipt must name at least one service.");
         }
 
-        // Money coming in may not push a line past what it still owes; money
-        // going back out may not exceed what that line actually holds. Capping a
+        var (plan, before) = await SettlementOfAsync(planId);
+
+        // Money going back out may not exceed what a line actually holds. Capping a
         // refund by "BE:PaymentKind:StillOwed" refused every refund on a line paid in full.
-        var refunding = kind == PatientPaymentKind.Refund;
-        var cap = await CapByServiceAsync(treatmentPlanId.Value, chosen, refunding);
-
-        if (splitMode == PaymentSplitMode.Manual)
+        if (!paying)
         {
-            var manual = items
-                .Where(item => item.Amount > 0m)
-                .Select(item => (item.TreatmentServiceId, item.Amount))
-                .ToList();
-
-            foreach (var (serviceId, share) in manual)
-            {
-                GuardWithinCap(cap, serviceId, share, refunding);
-            }
-
-            return manual;
+            var collected = chosen.ToDictionary(
+                id => id,
+                id => Math.Max(0m, before.GetValueOrDefault(id, LineSettlement.None).Cash));
+            var refund = Spread(collected, chosen, request, refunding: true);
+            return (chosen
+                .Where(refund.ContainsKey)
+                .Select(id => new PaymentLineDraft(id, refund[id]))
+                .ToList(), null);
         }
 
-        var spread = new List<(Guid, decimal)>();
-        var left = amount;
+        var round = new PaymentRound(plan, before, chosen, TermsOf(request.LineTerms));
+        var voucher = request.VoucherId is { } voucherId
+            ? await UseVoucherAsync(round, plan, receipt, voucherId)
+            : null;
+        return (round.Drafts(Spread(round.Caps(), chosen, request, refunding: false)), voucher);
+    }
+
+    /// <summary>
+    /// Each line's money: as typed (Thủ Công), or poured over the lines in the
+    /// order they were ticked (Tự Động) — never past a line's cap.
+    /// </summary>
+    private static Dictionary<Guid, decimal> Spread(
+        IReadOnlyDictionary<Guid, decimal> cap,
+        IReadOnlyCollection<Guid> chosen,
+        AllocationRequest request,
+        bool refunding)
+    {
+        if (request.SplitMode == PaymentSplitMode.Manual)
+        {
+            var typed = request.Items
+                .Where(item => item.Amount > 0m)
+                .GroupBy(item => item.TreatmentServiceId)
+                .ToDictionary(group => group.Key, group => group.Sum(item => item.Amount));
+
+            foreach (var (serviceId, share) in typed)
+            {
+                GuardWithinCap(cap.GetValueOrDefault(serviceId), share, refunding);
+            }
+
+            return typed;
+        }
+
+        var spread = new Dictionary<Guid, decimal>();
+        var left = request.Amount;
 
         foreach (var serviceId in chosen)
         {
@@ -390,7 +461,7 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             var take = Math.Min(left, cap.GetValueOrDefault(serviceId));
             if (take <= 0m) continue;
 
-            spread.Add((serviceId, take));
+            spread[serviceId] = take;
             left -= take;
         }
 
@@ -405,13 +476,9 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         return spread;
     }
 
-    private static void GuardWithinCap(
-        IReadOnlyDictionary<Guid, decimal> cap,
-        Guid serviceId,
-        decimal share,
-        bool refunding)
+    private static void GuardWithinCap(decimal cap, decimal share, bool refunding)
     {
-        if (share <= cap.GetValueOrDefault(serviceId))
+        if (share <= cap)
         {
             return;
         }
@@ -422,46 +489,136 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
                 : BlueDentalDomainErrorCodes.Billing.PaymentExceedsOutstanding);
     }
 
+    /// <summary>The cashier's terms by service, TN giảm in whole đồng.</summary>
+    private static Dictionary<Guid, PaymentLineTerms> TermsOf(IReadOnlyCollection<PaymentLineTermsDto> terms)
+    {
+        if (terms.Select(term => term.TreatmentServiceId).Distinct().Count() != terms.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "A service is given cashier terms twice.");
+        }
+
+        return terms.ToDictionary(
+            term => term.TreatmentServiceId,
+            term => new PaymentLineTerms(
+                string.IsNullOrWhiteSpace(term.ReceiptName) ? null : term.ReceiptName.Trim(),
+                Vnd.Round(term.CashierDiscount),
+                string.IsNullOrWhiteSpace(term.CashierDiscountReason) ? null : term.CashierDiscountReason.Trim()));
+    }
+
     /// <summary>
-    /// The most each named line may take: what it still owes when money is
-    /// coming in, what it has actually collected when money is going back out.
-    /// Only "Hoàn tất" receipts count (the <see cref="ISettleable"/> filter), so
-    /// a pending receipt never blocks another and is re-checked when confirmed.
+    /// The slip, and what its receipts have done to each line: money net of
+    /// refunds, relief and VAT. Only "Hoàn tất" receipts count (the
+    /// <see cref="ISettleable"/> filter), so a pending receipt never blocks
+    /// another and is re-checked when confirmed.
     /// </summary>
-    private async Task<Dictionary<Guid, decimal>> CapByServiceAsync(
-        Guid treatmentPlanId,
-        IReadOnlyCollection<Guid> serviceIds,
-        bool refunding)
+    private async Task<(TreatmentPlan Plan, Dictionary<Guid, LineSettlement> Settled)> SettlementOfAsync(
+        Guid treatmentPlanId)
     {
         // WithDetails, or plan.Services comes back empty and every line reads
         // as owing nothing.
-        var planQuery = await _planRepository.WithDetailsAsync(x => x.Services);
+        var planQuery = await _planRepository.WithDetailsAsync(x => x.Services, x => x.AppliedVouchers);
         var plan = planQuery.Single(x => x.Id == treatmentPlanId);
 
-        var paymentQuery = await _repository.GetQueryableAsync();
-        var paid = paymentQuery
-            .Where(payment => payment.TreatmentPlanId == treatmentPlanId)
-            .SelectMany(payment => payment.Lines.Select(line => new
-            {
-                line.TreatmentServiceId,
-                Signed = payment.Kind == PatientPaymentKind.Refund ? -line.Amount : line.Amount
-            }))
-            .ToList()
-            .GroupBy(x => x.TreatmentServiceId)
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
+        var paymentQuery = await _repository.WithDetailsAsync(x => x.Lines);
+        var payments = paymentQuery.Where(payment => payment.TreatmentPlanId == treatmentPlanId).ToList();
 
-        // A line can only be collected up to what it is charged AFTER the slip
-        // discount and voucher, never its own EffectiveAmount: otherwise a
-        // voucher slip is paid at the pre-voucher price and Còn lại goes
-        // negative (BA item 23, R-585).
-        return plan.Services
-            .Where(line => serviceIds.Contains(line.Id))
-            .ToDictionary(
-                line => line.Id,
-                line => refunding
-                    ? Math.Max(0m, paid.GetValueOrDefault(line.Id))
-                    // VAT included: the receipt collects what the patient is asked to pay.
-                    : Math.Max(0m, plan.PayableAmountOf(line) - paid.GetValueOrDefault(line.Id)));
+        return (plan, LineSettlement.Of(plan, payments));
+    }
+
+    /// <summary>
+    /// Holds a use of the voucher picked at payment time (P2910) under the
+    /// slip's voucher rules. The patient's earlier uses are those on slips and
+    /// on receipts not cancelled — unpaid ones too, since they hold theirs —
+    /// but never this receipt's own.
+    /// </summary>
+    private async Task<PaymentVoucherUse> UseVoucherAsync(
+        PaymentRound round,
+        TreatmentPlan plan,
+        ReceiptContext receipt,
+        Guid voucherId)
+    {
+        var voucher = await _vouchers.FindAsync(voucherId)
+            ?? throw new BusinessException(
+                BlueDentalDomainErrorCodes.Promotions.VoucherNotFound,
+                "The picked voucher no longer exists.");
+
+        var self = receipt.ReceiptId ?? Guid.Empty;
+        List<(Guid VoucherId, Guid? TreatmentPlanId)> onReceipts;
+        // Every receipt still holding its use: pending and exported ones too,
+        // but not a cancelled one — cancelling gave the use back.
+        using (DataFilter.Disable<ISettleable>())
+        {
+            var paymentQuery = await _repository.GetQueryableAsync();
+            onReceipts = paymentQuery
+                .Where(payment => payment.PatientId == receipt.PatientId
+                    && payment.VoucherId != null
+                    && payment.Status != PatientPaymentStatus.Cancelled
+                    && payment.Id != self)
+                .Select(payment => new { VoucherId = payment.VoucherId!.Value, payment.TreatmentPlanId })
+                .ToList()
+                .Select(use => (use.VoucherId, use.TreatmentPlanId))
+                .ToList();
+        }
+
+        var planQuery = await _planRepository.GetQueryableAsync();
+        var onSlips = planQuery
+            .Where(slip => slip.PatientId == receipt.PatientId)
+            .SelectMany(slip => slip.AppliedVouchers)
+            .Count(applied => applied.VoucherId == voucherId);
+        var priorUses = onSlips + onReceipts.Count(use => use.VoucherId == voucherId);
+
+        var alongsideIds = plan.AppliedVouchers.Select(applied => applied.VoucherId)
+            .Concat(onReceipts.Where(use => use.TreatmentPlanId == plan.Id).Select(use => use.VoucherId))
+            .Distinct()
+            .ToList();
+        List<Voucher> alongside = alongsideIds.Count == 0
+            ? []
+            : await _vouchers.GetListAsync(other => alongsideIds.Contains(other.Id));
+
+        var held = voucherId == receipt.HeldVoucherId;
+        var use = round.UseVoucher(
+            voucher,
+            ClinicCalendar.DateOf(Clock.Now.ToUniversalTime()),
+            priorUses,
+            alongside,
+            await ServiceGroupsAsync(plan),
+            held);
+        if (!held)
+        {
+            await _vouchers.UpdateAsync(voucher);
+        }
+
+        return use;
+    }
+
+    /// <summary>A service voucher may name the group instead of the service (R-949).</summary>
+    private async Task<Dictionary<Guid, Guid>> ServiceGroupsAsync(TreatmentPlan plan)
+    {
+        var serviceIds = plan.Services.Select(s => s.ServiceId).Distinct().ToList();
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var catalogQuery = await _catalog.GetQueryableAsync();
+            return catalogQuery
+                .Where(c => serviceIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.TaxonomyId })
+                .ToList()
+                .ToDictionary(c => c.Id, c => c.TaxonomyId);
+        }
+    }
+
+    /// <summary>Gives back the use a receipt held; a voucher deleted since has none to take back.</summary>
+    private async Task ReleaseVoucherAsync(Guid voucherId)
+    {
+        var voucher = await _vouchers.FindAsync(voucherId);
+        if (voucher == null)
+        {
+            return;
+        }
+
+        voucher.Release();
+        await _vouchers.UpdateAsync(voucher);
     }
 
     /// <summary>
@@ -539,33 +696,50 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         }
 
         var refunding = payment.Kind == PatientPaymentKind.Refund;
-        var serviceIds = payment.Lines.Select(line => line.TreatmentServiceId).Distinct().ToList();
-        Dictionary<Guid, decimal> cap;
+        TreatmentPlan plan;
+        Dictionary<Guid, LineSettlement> settled;
         using (DataFilter.Enable<ISettleable>())
         {
-            cap = await CapByServiceAsync(planId, serviceIds, refunding);
+            (plan, settled) = await SettlementOfAsync(planId);
         }
 
-        foreach (var serviceId in serviceIds)
+        foreach (var lines in payment.Lines.GroupBy(line => line.TreatmentServiceId))
         {
-            GuardWithinCap(cap, serviceId, payment.AmountFor(serviceId), refunding);
+            var service = plan.Services.FirstOrDefault(line => line.Id == lines.Key);
+            var before = settled.GetValueOrDefault(lines.Key, LineSettlement.None);
+            // TN giảm and the voucher (P2910) come off what the line still owes
+            // before VAT; the money then off what is left of its Còn nợ.
+            var relief = lines.Sum(line => line.Relief);
+            if (relief > 0m && (service == null || relief > plan.PreTaxOutstandingOf(service, before)))
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.Billing.ReliefExceedsOutstanding);
+            }
+
+            var cap = refunding
+                ? Math.Max(0m, before.Cash)
+                : service == null ? 0m : plan.OutstandingOf(service, before.With(0m, relief, 0m));
+            GuardWithinCap(cap, lines.Sum(line => line.Amount), refunding);
         }
     }
 
     private async Task ReviseAsync(PatientPayment payment, UpdatePatientPaymentDto input)
     {
+        // A voucher taken off or swapped gives its use back; one kept keeps it.
+        var heldVoucherId = payment.VoucherId;
+        if (heldVoucherId.HasValue && heldVoucherId != input.VoucherId)
+        {
+            await ReleaseVoucherAsync(heldVoucherId.Value);
+            heldVoucherId = null;
+        }
+
         // Checked against collected money only: the cap query runs with the
         // filter back on, so neither this receipt nor any other pending one counts.
-        List<(Guid TreatmentServiceId, decimal Amount)> lines;
+        (List<PaymentLineDraft> Lines, PaymentVoucherUse? Voucher) allocation;
         using (DataFilter.Enable<ISettleable>())
         {
-            lines = await AllocateAsync(
-                payment.Kind,
-                payment.TreatmentPlanId,
-                input.SplitMode,
-                input.TreatmentServiceIds,
-                input.Items,
-                input.Amount);
+            allocation = await AllocateAsync(
+                new ReceiptContext(payment.Kind, payment.PatientId, payment.TreatmentPlanId, payment.Id, heldVoucherId),
+                AllocationRequest.Of(input));
         }
 
         payment.Revise(
@@ -574,8 +748,9 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             input.Amount,
             input.PaymentAccountId,
             string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim(),
-            lines,
-            GuidGenerator.Create);
+            allocation.Lines,
+            GuidGenerator.Create,
+            allocation.Voucher);
         payment.RequestRedInvoice(input.RedInvoiceRequested);
         if (payment.Kind == PatientPaymentKind.Payment)
         {
@@ -627,7 +802,8 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             CancelReasonCode = payment.CancelReasonCode,
             SignMode = payment.SignMode,
             HasFile = payment.HasReceiptFile,
-            Content = PaymentReceiptContents.ToDto(content)
+            Content = PaymentReceiptContents.ToDto(content),
+            CashierDiscounts = await _receipts.CashierDiscountsOfAsync(payment)
         };
     }
 
@@ -682,6 +858,12 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             await GuardRefundsStillCoveredAsync(payment);
         }
 
+        // The voucher picked at payment time (P2910) gets its use back.
+        if (payment.VoucherId is { } voucherId)
+        {
+            await ReleaseVoucherAsync(voucherId);
+        }
+
         // A signed e-invoice puts the money on a tax document: the receipt
         // stays. A draft only lives at the provider and goes with the receipt.
         var invoice = await _electronicInvoices.FirstOrDefaultAsync(x => x.PatientPaymentId == id);
@@ -714,14 +896,16 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         }
 
         var serviceIds = payment.Lines.Select(line => line.TreatmentServiceId).Distinct().ToList();
-        Dictionary<Guid, decimal> netPaid;
+        Dictionary<Guid, LineSettlement> settled;
         using (DataFilter.Enable<ISettleable>())
         using (DataFilter.Enable<ISoftDelete>())
         {
-            netPaid = await CapByServiceAsync(planId, serviceIds, refunding: true);
+            (_, settled) = await SettlementOfAsync(planId);
         }
 
-        if (serviceIds.Any(serviceId => netPaid.GetValueOrDefault(serviceId) < payment.AmountFor(serviceId)))
+        // Only money was refunded, never relief (P2910).
+        if (serviceIds.Any(serviceId =>
+                settled.GetValueOrDefault(serviceId, LineSettlement.None).Cash < payment.AmountFor(serviceId)))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Billing.PaymentCancelBelowRefunded);
         }
@@ -857,6 +1041,26 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             ? new Dictionary<Guid, string>()
             : planQuery.Where(x => planIds.Contains(x.Id)).ToDictionary(x => x.Id, x => x.Code);
 
+        // A line written before P2910 (and every refund line) has no VAT of its
+        // own: it is split out of the money at the service's rate, as before.
+        var unsplitPlanIds = items
+            .Where(x => x.TreatmentPlanId.HasValue && x.Lines.Any(line => line.TaxAmount == null))
+            .Select(x => x.TreatmentPlanId!.Value)
+            .Distinct()
+            .ToList();
+        var services = unsplitPlanIds.Count == 0
+            ? new Dictionary<Guid, TreatmentService>()
+            : (await _planRepository.WithDetailsAsync(x => x.Services))
+                .Where(x => unsplitPlanIds.Contains(x.Id))
+                .SelectMany(x => x.Services)
+                .ToDictionary(x => x.Id);
+
+        decimal TaxOf(PatientPaymentLine line) =>
+            line.TaxAmount
+            ?? (services.TryGetValue(line.TreatmentServiceId, out var service)
+                ? TreatmentPlan.TaxWithin(service, line.Amount)
+                : 0m);
+
         return items.Select(x => new PatientPaymentDto
         {
             Id = x.Id,
@@ -868,9 +1072,18 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
                 .Select(line => new PatientPaymentLineDto
                 {
                     TreatmentServiceId = line.TreatmentServiceId,
-                    Amount = line.Amount
+                    Amount = line.Amount,
+                    ReceiptName = line.ReceiptName,
+                    CashierDiscount = line.CashierDiscount,
+                    CashierDiscountReason = line.CashierDiscountReason,
+                    VoucherShare = line.VoucherShare,
+                    TaxAmount = TaxOf(line)
                 })
                 .ToList(),
+            VoucherId = x.VoucherId,
+            VoucherCode = x.VoucherCode,
+            VoucherAmount = x.VoucherAmount,
+            CashierDiscountTotal = x.CashierDiscountTotal,
             Kind = x.Kind,
             Method = x.Method,
             Amount = x.Amount,

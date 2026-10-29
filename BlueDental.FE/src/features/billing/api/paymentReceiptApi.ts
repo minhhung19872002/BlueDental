@@ -16,10 +16,26 @@ export type ReceiptCancelReason = (typeof RECEIPT_CANCEL_REASON)[keyof typeof RE
 export const RECEIPT_SIGN_MODE = { Unsigned: 1, Digital: 2 } as const;
 export type ReceiptSignMode = (typeof RECEIPT_SIGN_MODE)[keyof typeof RECEIPT_SIGN_MODE];
 
-/** Matches PaymentReceiptContentLineDto: one service the receipt pays, with its share. */
+/**
+ * Matches PaymentReceiptContentLineDto: one service the receipt pays, with its
+ * share — under the cashier's "Tên trên phiếu" — and what it let off (P2910).
+ */
 export interface ReceiptContentLineDto {
   name: string;
   amount: number;
+  /** Giảm giá thu ngân on the line; 0 on a sheet frozen before P2910. */
+  cashierDiscount: number;
+  /** The line's part of the receipt's voucher. */
+  voucherShare: number;
+  /** "Trong đó VAT": the VAT inside `amount`. */
+  taxAmount: number;
+}
+
+/** Matches PaymentReceiptDiscountDto: a TN giảm with the cashier's reason, for the accountant only. */
+export interface ReceiptCashierDiscountDto {
+  name: string;
+  amount: number;
+  reason: string | null;
 }
 
 /**
@@ -37,6 +53,11 @@ export interface ReceiptContentDto {
   amountInWords: string;
   slipTotal: number;
   paidBefore: number;
+  /** Ưu đãi đã dùng: TN giảm and vouchers of the slip's earlier paid receipts (P2910). */
+  reliefBefore: number;
+  /** What this receipt lets off without money: its TN giảm and voucher. */
+  relief: number;
+  voucherCode: string | null;
   /** What the slip still owes once this receipt is paid. */
   remaining: number;
   remainingInWords: string;
@@ -65,6 +86,8 @@ export interface PaymentReceiptDto {
   /** Whether an exported file is kept — receipts issued before P2610 phase 5 have none. */
   hasFile: boolean;
   content: ReceiptContentDto;
+  /** Step 6 (P2910): each TN giảm with its reason — never on the customer's sheet or iPad. */
+  cashierDiscounts: ReceiptCashierDiscountDto[];
 }
 
 export const paymentReceiptKeys = {

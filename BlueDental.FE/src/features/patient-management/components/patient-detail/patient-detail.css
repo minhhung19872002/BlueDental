@@ -3360,25 +3360,30 @@
   font-weight: 700;
 }
 
-/* One card per service that still owes money; a ticked one is outlined. */
+/* One card per service that still owes money; a ticked one is outlined. The
+   list grows with the cards — their đợt history and open terms (P2910) — and
+   the dialog body scrolls, rather than a short inner scroller. */
 .pd-newpay-lines {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin: 0;
   padding: 0;
-  max-height: 300px;
-  overflow-y: auto;
   list-style: none;
 }
 .pd-newpay-lines > li {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  flex-direction: column;
+  gap: 12px;
   border: 1px solid var(--bd-border);
   border-radius: 10px;
   padding: 12px;
   transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.pd-newpay-card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
 }
 .pd-newpay-lines > li.pd-newpay-card--on {
   border-color: var(--bd-primary);
@@ -3426,6 +3431,321 @@
   color: var(--bd-red);
   font-size: 12px;
   font-weight: 600;
+}
+
+/* ── Thanh toán nhiều đợt (P2910) ─────────────────────────────────────── */
+/* "Thanh toán nhiều đợt · đợt N" in purple, "BS giảm" in green, over the name. */
+.pd-newpay-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.pd-newpay-tag {
+  border-radius: var(--bd-radius-pill);
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-newpay-tag--round {
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+}
+.pd-newpay-tag--doctor {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.pd-newpay-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+.pd-newpay-chips > em {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-newpay-chip {
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+  font-size: 12px;
+}
+.pd-newpay-chip--voucher {
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+}
+/* Chưa thanh toán / Đã xuất phiếu thu / Đã thanh toán, in the system's receipt colours. */
+.pd-newpay-pill {
+  border-radius: var(--bd-radius-pill);
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pd-newpay-pill--pending {
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.pd-newpay-pill--issued {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+.pd-newpay-pill--done {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+/* "Các đợt thanh toán": a quiet panel inside the card, open by default. */
+.pd-newpay-history {
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--bd-bg-soft);
+}
+.pd-newpay-history > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--bd-sub);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-newpay-history > ol {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-newpay-history > ol > li {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  gap: 8px;
+  border-top: 1px solid var(--bd-line);
+  padding: 8px 0;
+}
+.pd-newpay-history-now {
+  margin: 0 -10px;
+  padding: 8px 10px !important;
+  background: var(--bd-blue-pale);
+}
+.pd-newpay-history-round {
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-newpay-history-main {
+  min-width: 0;
+}
+.pd-newpay-history-main > b {
+  display: block;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pd-newpay-history-main > small {
+  display: block;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-newpay-history-money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 13px;
+}
+.pd-newpay-history-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 8px;
+  color: var(--bd-sub);
+  font-size: 12px;
+}
+
+/* "✎ Chỉnh phiếu đợt N" folds and unfolds this đợt's terms on a ticked card. */
+.pd-newpay-editrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pd-newpay-editlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--bd-link);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-newpay-editlink[aria-expanded="true"] {
+  color: var(--bd-purple);
+}
+.pd-newpay-terms {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px dashed var(--bd-purple);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+.pd-newpay-terms .pd-newpay-hint {
+  margin-top: -4px;
+}
+.pd-newpay-terms-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pd-newpay-terms-field > span {
+  color: var(--bd-sub);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-newpay-terms-discount {
+  display: flex;
+  gap: 8px;
+}
+.pd-newpay-terms-discount > .ant-input,
+.pd-newpay-terms-discount > .ant-input-number {
+  flex: 1;
+  width: auto;
+}
+/* đ / % — a two-button segmented toggle. */
+.pd-newpay-unit {
+  display: inline-flex;
+  border: 1px solid var(--bd-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.pd-newpay-unit > button {
+  min-width: 40px;
+  border: 0;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--bd-sub);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pd-newpay-unit > button + button {
+  border-left: 1px solid var(--bd-border);
+}
+.pd-newpay-unit > button[aria-pressed="true"] {
+  background: var(--bd-link);
+  color: #fff;
+}
+.pd-newpay-terms-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Thủ công: each box's đợt and what it still owes, under the service name. */
+.pd-newpay-manual small {
+  display: block;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+/* The đợt's voucher: the picker, then what it takes off or how many apply. */
+.pd-newpay-voucher {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.pd-newpay-voucher-select.ant-select {
+  flex: 1;
+  min-width: 0;
+}
+.pd-newpay-voucher .pd-newpay-hint {
+  margin-top: 0;
+}
+.pd-newpay-voucher-off {
+  color: var(--bd-purple);
+  white-space: nowrap;
+}
+/* Thu đợt này | Còn nợ sau đợt này, side by side. */
+.pd-newpay-collect {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+.pd-newpay-collect > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--bd-bg-soft);
+}
+.pd-newpay-collect > div > span {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-newpay-collect > div > b {
+  color: var(--bd-ink);
+  font-size: 18px;
+}
+.pd-newpay-collect > div > b.pd-newpay-debt {
+  color: var(--bd-red);
+}
+.pd-newpay-collect small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+/* "Khách sẽ thấy trên phiếu": the receipt's lines as the customer checks them. */
+.pd-newpay-preview {
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.pd-newpay-preview-step {
+  border-radius: var(--bd-radius-pill);
+  padding: 1px 8px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+}
+.pd-newpay-preview > ul {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.pd-newpay-preview > ul > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px dashed var(--bd-line);
+  padding: 8px 0;
+  color: var(--bd-ink);
+}
+.pd-newpay-preview > ul > li small {
+  display: block;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-newpay-preview > ul > li > b {
+  white-space: nowrap;
 }
 .pd-newpay-required {
   color: var(--bd-red);

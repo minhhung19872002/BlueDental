@@ -251,14 +251,32 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         var vouchers = ids.Select(id => found.Single(v => v.Id == id)).ToList();
 
         var planQuery = await _planRepository.GetQueryableAsync();
-        var priorUses = planQuery
+        var onSlips = planQuery
             .Where(p => p.PatientId == plan.PatientId)
             .SelectMany(p => p.AppliedVouchers)
             .Where(v => ids.Contains(v.VoucherId))
-            .GroupBy(v => v.VoucherId)
-            .Select(g => new { VoucherId = g.Key, Count = g.Count() })
-            .ToList()
-            .ToDictionary(x => x.VoucherId, x => x.Count);
+            .Select(v => v.VoucherId)
+            .ToList();
+
+        // A voucher picked at payment time (P2910) is a use too, while its
+        // receipt is not cancelled — unpaid ones hold theirs.
+        List<Guid> onReceipts;
+        using (DataFilter.Disable<ISettleable>())
+        {
+            var paymentQuery = await _paymentRepository.GetQueryableAsync();
+            onReceipts = paymentQuery
+                .Where(p => p.PatientId == plan.PatientId
+                    && p.VoucherId != null
+                    && p.Status != PatientPaymentStatus.Cancelled
+                    && ids.Contains(p.VoucherId.Value))
+                .Select(p => p.VoucherId!.Value)
+                .ToList();
+        }
+
+        var priorUses = onSlips
+            .Concat(onReceipts)
+            .GroupBy(voucherId => voucherId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         // A service voucher may name the group instead of the service (R-949).
         var serviceIds = plan.Services.Select(s => s.ServiceId).Distinct().ToList();
@@ -350,14 +368,13 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         var plan = await LoadAsync(id);
         var line = plan.GetService(serviceLineId);
 
+        // A line a paid receipt let off (TN giảm / voucher, P2910) is as settled
+        // as one it collected money on.
         var paymentQuery = await _paymentRepository.WithDetailsAsync(x => x.Lines);
-        var paidOnLine = paymentQuery
-            .Where(p => p.TreatmentPlanId == plan.Id)
-            .ToList()
-            .SelectMany(p => p.Lines
-                .Where(l => l.TreatmentServiceId == line.Id)
-                .Select(l => p.Kind == PatientPaymentKind.Refund ? -l.Amount : l.Amount))
-            .Sum();
+        var settled = LineSettlement
+            .Of(plan, paymentQuery.Where(p => p.TreatmentPlanId == plan.Id).ToList())
+            .GetValueOrDefault(line.Id, LineSettlement.None);
+        var paidOnLine = settled.Cash + settled.Relief;
 
         var stageQuery = await _stageRepository.GetQueryableAsync();
         var lineStages = stageQuery.Where(s => s.TreatmentServiceId == line.Id).ToList();
@@ -964,17 +981,12 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             .GroupBy(s => s.TreatmentServiceId)
             .ToDictionary(g => g.Key, g => g.Select(s => s.Id).ToList());
 
-        // Đã thu of one line — its share of every receipt that named it. A
-        // receipt covers several services, so the money is read off its lines,
-        // not off the receipt total.
-        var paidByService = payments
-            .SelectMany(payment => payment.Lines.Select(line => new
-            {
-                line.TreatmentServiceId,
-                Signed = payment.Kind == PatientPaymentKind.Refund ? -line.Amount : line.Amount
-            }))
-            .GroupBy(x => x.TreatmentServiceId)
-            .ToDictionary(g => g.Key, g => g.Sum(x => x.Signed));
+        // Đã thu of one line — its share of every receipt that named it — and
+        // what those receipts let it off (P2910). A receipt covers several
+        // services, so both are read off its lines, not off the receipt total.
+        var settledByPlan = plans.ToDictionary(plan => plan.Id, plan => LineSettlement.Of(plan, payments));
+        LineSettlement SettledOn(TreatmentPlan plan, TreatmentService line) =>
+            settledByPlan[plan.Id].GetValueOrDefault(line.Id, LineSettlement.None);
 
         var lines = plans.SelectMany(p => p.Services).ToList();
         var serviceIds = lines
@@ -995,6 +1007,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             .ToList();
         var serviceNames = catalogRows.ToDictionary(c => c.Id, c => c.Name);
         var catalogPrices = catalogRows.ToDictionary(c => c.Id, c => c.Price);
+        var serviceGroups = catalogRows.ToDictionary(c => c.Id, c => c.TaxonomyId);
         var warrantyDays = catalogRows.ToDictionary(
             c => c.Id,
             c => c.ServiceConfig?.WarrantyDays ?? 0);
@@ -1106,6 +1119,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     Code = line.Code,
                     OriginalPrice = line.OriginalPrice,
                     CatalogPrice = catalogPrices.GetValueOrDefault(line.ServiceId),
+                    ServiceGroupId = serviceGroups.TryGetValue(line.ServiceId, out var group) ? group : null,
                     Price = line.Price,
                     Quantity = line.Quantity,
                     DiscountType = line.DiscountType,
@@ -1120,8 +1134,9 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     ChargedAmount = plan.ChargedAmountOf(line),
                     TaxRate = line.TaxRate,
                     TaxPercent = line.TaxPercent,
-                    TaxAmount = plan.TaxAmountOf(line),
-                    PayableAmount = plan.PayableAmountOf(line),
+                    // VAT once the paid receipts' relief is off (P2910).
+                    TaxAmount = plan.TaxAmountOf(line, SettledOn(plan, line).Relief),
+                    PayableAmount = plan.PayableAmountOf(line, SettledOn(plan, line).Relief),
                     Status = line.Status,
                     SortOrder = line.SortOrder,
                     ReplacedId = line.ReplacedId,
@@ -1143,12 +1158,15 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                         .OrderBy(s => s.SequenceNumber)
                         .Select(s => s.Note!)
                         .ToList(),
-                    PaidAmount = PaidOn(paidByService, line.Id),
+                    PaidAmount = SettledOn(plan, line).Cash,
                     // Còn nợ is what the line is charged after the slip discount
                     // (voucher included), so the lines' Còn nợ add up to Thành tiền
                     // and a receipt can never collect the pre-voucher price (R-585).
-                    // VAT included, like the receipt it is collected by.
-                    OutstandingAmount = Math.Max(0m, plan.PayableAmountOf(line) - PaidOn(paidByService, line.Id)),
+                    // VAT included, like the receipt it is collected by, and less
+                    // what paid receipts let it off (P2910).
+                    OutstandingAmount = plan.OutstandingOf(line, SettledOn(plan, line)),
+                    ReliefAmount = SettledOn(plan, line).Relief,
+                    PreTaxOutstandingAmount = plan.PreTaxOutstandingOf(line, SettledOn(plan, line)),
                     AfterCareStatus = AfterCareOn(careByStage, stagesByService, line.Id),
                     LabOrders = laboByService.TryGetValue(line.Id, out var labo) ? labo : [],
                     DiagnosisId = line.DiagnosisId,
@@ -1253,13 +1271,12 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         line.PayableAmount = 0m;
         line.PaidAmount = 0m;
         line.OutstandingAmount = 0m;
+        line.ReliefAmount = 0m;
+        line.PreTaxOutstandingAmount = 0m;
     }
 
     private static string? NameOf(IReadOnlyDictionary<Guid, string> names, Guid? id) =>
         id.HasValue && names.TryGetValue(id.Value, out var name) ? name : null;
-
-    private static decimal PaidOn(IReadOnlyDictionary<Guid, decimal> paidByService, Guid serviceLineId) =>
-        paidByService.TryGetValue(serviceLineId, out var paid) ? paid : 0m;
 
     private static CareStatus? AfterCareOn(
         IReadOnlyDictionary<Guid, CareStatus> careByStage,
@@ -1296,6 +1313,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         OutstandingDebt = summary.OutstandingDebt,
         OutstandingDebtConsumed = summary.OutstandingDebtConsumed,
         Prepaid = summary.Prepaid,
-        CarryOverAmount = summary.CarryOverAmount
+        CarryOverAmount = summary.CarryOverAmount,
+        Relief = summary.Relief
     };
 }

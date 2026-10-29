@@ -25,6 +25,12 @@ public class PaymentSummaryDto
     public decimal OutstandingDebtConsumed { get; set; }
     public decimal Prepaid { get; set; }
     public decimal? CarryOverAmount { get; set; }
+
+    /// <summary>
+    /// "Ưu đãi khi thanh toán" (P2910): TN giảm and payment-time vouchers of
+    /// paid receipts, with the VAT they took down — already off <see cref="Debt"/>.
+    /// </summary>
+    public decimal Relief { get; set; }
 }
 
 /// <summary>One step of a service — the reference's <c>service.stages[]</c> entry.</summary>
@@ -63,6 +69,13 @@ public class TreatmentServiceDto : EntityDto<Guid>
     /// Null when the catalog row is gone or carries no price.
     /// </summary>
     public decimal? CatalogPrice { get; set; }
+
+    /// <summary>
+    /// The service's group in Danh mục — a "Theo dịch vụ" voucher may name it
+    /// instead of the service (R-949), so the payment dialog can preview one (P2910).
+    /// </summary>
+    public Guid? ServiceGroupId { get; set; }
+
     public decimal Price { get; set; }
     public int Quantity { get; set; }
     public DiscountType DiscountType { get; set; }
@@ -151,6 +164,18 @@ public class TreatmentServiceDto : EntityDto<Guid>
 
     /// <summary>Còn nợ của dòng — what the payment dialog offers to collect.</summary>
     public decimal OutstandingAmount { get; set; }
+
+    /// <summary>
+    /// "Ưu đãi các đợt trước" (P2910): the TN giảm and payment-time voucher
+    /// the line's paid receipts let it off, before VAT.
+    /// </summary>
+    public decimal ReliefAmount { get; set; }
+
+    /// <summary>
+    /// Còn nợ chưa thuế (P2910): what the line still owes before VAT — the cap
+    /// on Giảm giá thu ngân and the base a payment-time voucher's % is taken on.
+    /// </summary>
+    public decimal PreTaxOutstandingAmount { get; set; }
 
     /// <summary>
     /// Chăm sóc sau điều trị. Null when no care record covers any of this line's
@@ -436,6 +461,39 @@ public class PatientPaymentLineDto
 {
     public Guid TreatmentServiceId { get; set; }
     public decimal Amount { get; set; }
+
+    /// <summary>"Tên trên phiếu" (P2910), read only — set through <see cref="PaymentLineTermsDto"/>.</summary>
+    public string? ReceiptName { get; set; }
+
+    /// <summary>TN giảm on this line, before VAT. Read only.</summary>
+    public decimal CashierDiscount { get; set; }
+
+    public string? CashierDiscountReason { get; set; }
+
+    /// <summary>This line's part of the receipt's voucher, before VAT. Read only.</summary>
+    public decimal VoucherShare { get; set; }
+
+    /// <summary>The VAT inside <see cref="Amount"/>. Read only.</summary>
+    public decimal TaxAmount { get; set; }
+}
+
+/// <summary>
+/// What the cashier set on one chosen service of a đợt (P2910): the name the
+/// PHIẾU THU prints and Giảm giá thu ngân in đồng — the dialog turns % into
+/// đồng before sending. The voucher's share is the server's to work out.
+/// </summary>
+public class PaymentLineTermsDto
+{
+    public Guid TreatmentServiceId { get; set; }
+
+    [StringLength(200)]
+    public string? ReceiptName { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public decimal CashierDiscount { get; set; }
+
+    [StringLength(500)]
+    public string? CashierDiscountReason { get; set; }
 }
 
 public class PatientPaymentDto : FullAuditedEntityDto<Guid>
@@ -487,6 +545,14 @@ public class PatientPaymentDto : FullAuditedEntityDto<Guid>
 
     /// <summary>"Xuất hóa đơn đỏ" was ticked when the receipt was written; nothing is issued yet.</summary>
     public bool RedInvoiceRequested { get; set; }
+
+    /// <summary>The voucher picked at payment time (P2910), its code as written and what it took off.</summary>
+    public Guid? VoucherId { get; set; }
+    public string? VoucherCode { get; set; }
+    public decimal VoucherAmount { get; set; }
+
+    /// <summary>Giảm giá thu ngân over every line.</summary>
+    public decimal CashierDiscountTotal { get; set; }
 }
 
 /// <summary>
@@ -524,6 +590,20 @@ public class PaymentReceiptDto
     public bool HasFile { get; set; }
 
     public PaymentReceiptContentDto Content { get; set; } = new();
+
+    /// <summary>
+    /// Giảm giá thu ngân with the cashier's reason, line by line (P2910) — for
+    /// the accountant, not printed on the PHIẾU THU.
+    /// </summary>
+    public List<PaymentReceiptDiscountDto> CashierDiscounts { get; set; } = new();
+}
+
+public class PaymentReceiptDiscountDto
+{
+    /// <summary>The line as the receipt names it.</summary>
+    public string Name { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string? Reason { get; set; }
 }
 
 /// <summary>What the PHIẾU THU says. See the domain's PaymentReceiptSnapshot.</summary>
@@ -538,6 +618,14 @@ public class PaymentReceiptContentDto
     public string AmountInWords { get; set; } = string.Empty;
     public decimal SlipTotal { get; set; }
     public decimal PaidBefore { get; set; }
+
+    /// <summary>Ưu đãi các đợt trước — TN giảm and vouchers of the slip's earlier paid receipts.</summary>
+    public decimal ReliefBefore { get; set; }
+
+    /// <summary>What this receipt lets off without money.</summary>
+    public decimal Relief { get; set; }
+
+    public string? VoucherCode { get; set; }
     public decimal Remaining { get; set; }
     public string RemainingInWords { get; set; } = string.Empty;
     public string CreatorName { get; set; } = string.Empty;
@@ -548,6 +636,11 @@ public class PaymentReceiptContentLineDto
 {
     public string Name { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+    public decimal CashierDiscount { get; set; }
+    public decimal VoucherShare { get; set; }
+
+    /// <summary>"Trong đó VAT".</summary>
+    public decimal TaxAmount { get; set; }
 }
 
 /// <summary>
@@ -601,6 +694,12 @@ public class UpdatePatientPaymentDto
 
     /// <summary>"Xuất hóa đơn đỏ" — only stored; the e-invoice is issued from another screen.</summary>
     public bool RedInvoiceRequested { get; set; }
+
+    /// <summary>See <see cref="RecordPatientPaymentDto.LineTerms"/>.</summary>
+    public List<PaymentLineTermsDto> LineTerms { get; set; } = new();
+
+    /// <summary>See <see cref="RecordPatientPaymentDto.VoucherId"/>. Null takes the voucher off and gives its use back.</summary>
+    public Guid? VoucherId { get; set; }
 }
 
 public class RecordPatientPaymentDto
@@ -637,6 +736,19 @@ public class RecordPatientPaymentDto
 
     /// <summary>"Xuất hóa đơn đỏ" — only stored; the e-invoice is issued from another screen.</summary>
     public bool RedInvoiceRequested { get; set; }
+
+    /// <summary>
+    /// P2910: Tên trên phiếu and TN giảm per chosen service — payments only. A
+    /// service with neither may be left out; one let off wholly by TN giảm or
+    /// the voucher may collect 0đ.
+    /// </summary>
+    public List<PaymentLineTermsDto> LineTerms { get; set; } = new();
+
+    /// <summary>
+    /// The voucher picked at payment time (P2910), payments only. Its use is
+    /// held from now and given back if the receipt is cancelled.
+    /// </summary>
+    public Guid? VoucherId { get; set; }
 }
 
 public class GetPatientPaymentListInput : PagedAndSortedResultRequestDto

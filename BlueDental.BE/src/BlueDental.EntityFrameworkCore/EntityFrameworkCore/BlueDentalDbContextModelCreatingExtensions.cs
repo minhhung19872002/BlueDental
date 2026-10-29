@@ -1246,11 +1246,17 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Ignore(x => x.HasReceiptFile);
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
             entity.Ignore(x => x.SignedAmount);
+            entity.Property(x => x.VoucherCode).HasMaxLength(PatientPayment.MaxVoucherCodeLength);
+            entity.Property(x => x.VoucherAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.CashierDiscountTotal).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.Relief);
             entity.HasMany(x => x.Lines)
                 .WithOne()
                 .HasForeignKey(x => x.PatientPaymentId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // Every rollup reads the lines (P2910: relief and VAT live there),
+            // so a receipt is never loaded without them.
+            entity.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
             entity.OwnsOne(x => x.ReceiptSnapshot, snapshot =>
             {
                 snapshot.ToJson();
@@ -1261,6 +1267,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.TreatmentPlanId);
             entity.HasIndex(x => new { x.ClinicBranchId, x.PaidAt });
             entity.HasIndex(x => x.PaymentAccountId);
+            entity.HasIndex(x => x.VoucherId);
         });
 
         builder.Entity<PatientPaymentLine>(entity =>
@@ -1268,6 +1275,13 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_patient_payment_lines");
             entity.ConfigureByConvention();
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.ReceiptName).HasMaxLength(PatientPaymentLine.MaxReceiptNameLength);
+            entity.Property(x => x.CashierDiscount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.CashierDiscountReason).HasMaxLength(PatientPaymentLine.MaxCashierDiscountReasonLength);
+            entity.Property(x => x.VoucherShare).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.TaxAmount).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.Relief);
+            entity.Ignore(x => x.Settled);
             entity.HasIndex(x => x.TreatmentServiceId);
         });
 

@@ -212,6 +212,77 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public decimal PayableAmountOf(TreatmentService line) => ChargedAmountOf(line) + TaxAmountOf(line);
 
+    /// <summary>
+    /// The line's VAT once receipts have let <paramref name="relief"/> off it
+    /// without money (P2910): TN giảm and payment-time vouchers come off before
+    /// VAT, so the tax is figured on what is left.
+    /// </summary>
+    public decimal TaxAmountOf(TreatmentService line, decimal relief) =>
+        line.TaxPercent == 0m ? 0m : Vnd.Round(ChargedAmountOf(line, relief) * line.TaxPercent / 100m);
+
+    /// <summary>What the patient pays for the line, VAT included, once <paramref name="relief"/> is off.</summary>
+    public decimal PayableAmountOf(TreatmentService line, decimal relief) =>
+        ChargedAmountOf(line, relief) + TaxAmountOf(line, relief);
+
+    /// <summary>The line's pre-VAT charge once <paramref name="relief"/> is off.</summary>
+    public decimal ChargedAmountOf(TreatmentService line, decimal relief) =>
+        Math.Max(0m, ChargedAmountOf(line) - relief);
+
+    /// <summary>
+    /// How far <paramref name="relief"/> brings the line's payable down — the
+    /// relief itself and the VAT that goes with it. What a rollup takes off the
+    /// slip's debt ("Ưu đãi khi thanh toán").
+    /// </summary>
+    public decimal ReliefOffPayableOf(TreatmentService line, decimal relief) =>
+        relief <= 0m ? 0m : PayableAmountOf(line) - PayableAmountOf(line, relief);
+
+    /// <summary><see cref="ReliefOffPayableOf"/> over the counted lines, or over <paramref name="lineIds"/> of them.</summary>
+    public decimal ReliefOffPayable(
+        IReadOnlyDictionary<Guid, LineSettlement> settled, IReadOnlySet<Guid>? lineIds = null) =>
+        CountedServices
+            .Where(line => lineIds is null || lineIds.Contains(line.Id))
+            .Sum(line => ReliefOffPayableOf(line, settled.GetValueOrDefault(line.Id, LineSettlement.None).Relief));
+
+    /// <summary>The counted lines' relief before VAT — what a report books as discount.</summary>
+    public decimal ReliefOn(IReadOnlyDictionary<Guid, LineSettlement> settled) =>
+        CountedServices.Sum(line => settled.GetValueOrDefault(line.Id, LineSettlement.None).Relief);
+
+    /// <summary>The VAT inside <paramref name="amount"/> of the line's money, backed out at its rate.</summary>
+    public static decimal TaxWithin(TreatmentService line, decimal amount) =>
+        line.TaxPercent == 0m ? 0m : Vnd.Round(amount * line.TaxPercent / (100m + line.TaxPercent));
+
+    /// <summary>Còn nợ of the line: its payable after relief less the money it has collected.</summary>
+    public decimal OutstandingOf(TreatmentService line, LineSettlement settled) =>
+        Math.Max(0m, PayableAmountOf(line, settled.Relief) - settled.Cash);
+
+    /// <summary>
+    /// Còn nợ chưa thuế: what the line still owes before VAT — the base a
+    /// payment-time voucher's % and a TN giảm in % are taken on (owner 2026-10-29).
+    /// </summary>
+    public decimal PreTaxOutstandingOf(TreatmentService line, LineSettlement settled) =>
+        Math.Max(0m, ChargedAmountOf(line) - settled.Relief - (settled.Cash - settled.Tax));
+
+    /// <summary>
+    /// The VAT of a đợt that collects <paramref name="amount"/> and lets
+    /// <paramref name="relief"/> off the line, after the đợt <paramref name="before"/>:
+    /// backed out of the money, or — on the đợt that clears the line — the
+    /// line's VAT after every relief less what the earlier đợt carried, so the
+    /// đợt add up to it and the rounding lands on the last (BA + owner 2026-10-29).
+    /// </summary>
+    public decimal RoundTaxOf(TreatmentService line, LineSettlement before, decimal relief, decimal amount)
+    {
+        if (line.TaxPercent == 0m || amount <= 0m)
+        {
+            return 0m;
+        }
+
+        var allRelief = before.Relief + relief;
+        var total = TaxAmountOf(line, allRelief);
+        var clears = PayableAmountOf(line, allRelief) - before.Cash - amount <= 0m;
+        var tax = clears ? total - before.Tax : TaxWithin(line, amount);
+        return Math.Clamp(tax, 0m, Math.Min(amount, Math.Max(0m, total - before.Tax)));
+    }
+
     /// <summary>Σ of the counted lines' VAT.</summary>
     public decimal TaxAmount => CountedServices.Sum(TaxAmountOf);
 
@@ -757,9 +828,9 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// Whether a service voucher reaches a line: its target list names the
     /// line's service, or the group the service sits in (the voucher form lets
-    /// the clinic tick either).
+    /// the clinic tick either). A payment-time voucher (P2910) reads it too.
     /// </summary>
-    private static bool Targets(Voucher voucher, TreatmentService line, IReadOnlyDictionary<Guid, Guid>? serviceGroups) =>
+    internal static bool Targets(Voucher voucher, TreatmentService line, IReadOnlyDictionary<Guid, Guid>? serviceGroups) =>
         voucher.TargetIds.Contains(line.ServiceId)
         || (serviceGroups != null
             && serviceGroups.TryGetValue(line.ServiceId, out var groupId)

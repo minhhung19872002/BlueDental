@@ -283,7 +283,8 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// Gives back the use a slip burnt, when that slip is deleted ("Xoá phiếu
     /// điều trị"): the slip is treated as never opened. Cancelling lines does
-    /// not come here — that use stays burnt (BA item 24).
+    /// not come here — that use stays burnt (BA item 24). A receipt's voucher
+    /// (P2910) comes back when the receipt is cancelled or revised without it.
     /// </summary>
     public Voucher Release()
     {

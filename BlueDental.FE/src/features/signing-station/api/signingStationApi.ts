@@ -19,7 +19,8 @@ export interface StationReceiptDto {
   remaining: number;
   remainingInWords: string;
   creatorName: string;
-  lines: { name: string; amount: number }[];
+  /** Under "Tên trên phiếu", with what this receipt lets off each (P2910). */
+  lines: { name: string; amount: number; cashierDiscount: number; voucherShare: number }[];
 }
 
 export interface SigningStationDto {

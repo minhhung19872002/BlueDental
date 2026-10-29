@@ -524,6 +524,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("CancelledById")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("CashierDiscountTotal")
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid>("ClinicBranchId")
                         .HasColumnType("uuid");
 
@@ -628,11 +631,23 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("TreatmentPlanId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("VoucherAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("VoucherCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("VoucherId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PaymentAccountId");
 
                     b.HasIndex("TreatmentPlanId");
+
+                    b.HasIndex("VoucherId");
 
                     b.HasIndex("ClinicBranchId", "PaidAt");
 
@@ -649,11 +664,28 @@ namespace BlueDental.Migrations
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<decimal>("CashierDiscount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("CashierDiscountReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("PatientPaymentId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ReceiptName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal?>("TaxAmount")
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid>("TreatmentServiceId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal>("VoucherShare")
+                        .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
 
@@ -10941,6 +10973,12 @@ namespace BlueDental.Migrations
                                 .IsRequired()
                                 .HasColumnType("text");
 
+                            b1.Property<decimal?>("Relief")
+                                .HasColumnType("numeric");
+
+                            b1.Property<decimal?>("ReliefBefore")
+                                .HasColumnType("numeric");
+
                             b1.Property<decimal>("Remaining")
                                 .HasColumnType("numeric");
 
@@ -10950,6 +10988,9 @@ namespace BlueDental.Migrations
 
                             b1.Property<decimal>("SlipTotal")
                                 .HasColumnType("numeric");
+
+                            b1.Property<string>("VoucherCode")
+                                .HasColumnType("text");
 
                             b1.HasKey("PatientPaymentId");
 
@@ -10972,9 +11013,18 @@ namespace BlueDental.Migrations
                                     b2.Property<decimal>("Amount")
                                         .HasColumnType("numeric");
 
+                                    b2.Property<decimal?>("CashierDiscount")
+                                        .HasColumnType("numeric");
+
                                     b2.Property<string>("Name")
                                         .IsRequired()
                                         .HasColumnType("text");
+
+                                    b2.Property<decimal?>("TaxAmount")
+                                        .HasColumnType("numeric");
+
+                                    b2.Property<decimal?>("VoucherShare")
+                                        .HasColumnType("numeric");
 
                                     b2.HasKey("PaymentReceiptSnapshotPatientPaymentId", "__synthesizedOrdinal");
 

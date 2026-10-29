@@ -35,11 +35,27 @@ public class PaymentReceiptSnapshot
 
     public string AmountInWords { get; private set; } = string.Empty;
 
-    /// <summary>The slip's payable total, VAT included.</summary>
+    /// <summary>
+    /// The slip's payable total, VAT included — from P2910 once the relief of
+    /// its paid receipts and of this one is off, with the VAT re-figured on
+    /// what is left, so <see cref="Remaining"/> reads straight off it.
+    /// </summary>
     public decimal SlipTotal { get; private set; }
 
     /// <summary>Net money the slip had collected ("Đã thanh toán" only) when this was written.</summary>
     public decimal PaidBefore { get; private set; }
+
+    /// <summary>
+    /// Ưu đãi đã dùng: TN giảm and payment-time vouchers of the slip's earlier
+    /// paid receipts (P2910). Null on a sheet frozen before P2910.
+    /// </summary>
+    public decimal? ReliefBefore { get; private set; }
+
+    /// <summary>What this receipt lets off without money — its TN giảm and voucher. Null before P2910.</summary>
+    public decimal? Relief { get; private set; }
+
+    /// <summary>The voucher this receipt is written with, as printed.</summary>
+    public string? VoucherCode { get; private set; }
 
     /// <summary>Số tiền còn lại: what the slip still owes once this receipt is paid.</summary>
     public decimal Remaining { get; private set; }
@@ -64,10 +80,14 @@ public class PaymentReceiptSnapshot
         decimal slipTotal,
         decimal paidBefore,
         string creatorName,
-        IEnumerable<PaymentReceiptSnapshotLine> lines)
+        IEnumerable<PaymentReceiptSnapshotLine> lines,
+        decimal reliefBefore = 0m,
+        string? voucherCode = null)
     {
         Check.NotNullOrWhiteSpace(planCode, nameof(planCode));
 
+        var lineList = lines.ToList();
+        var relief = lineList.Sum(line => line.Relief);
         var remaining = Math.Max(0m, slipTotal - paidBefore - amount);
         var snapshot = new PaymentReceiptSnapshot
         {
@@ -80,26 +100,45 @@ public class PaymentReceiptSnapshot
             AmountInWords = VietnameseAmountWords.Spell(amount),
             SlipTotal = slipTotal,
             PaidBefore = paidBefore,
+            ReliefBefore = reliefBefore,
+            Relief = relief,
+            VoucherCode = voucherCode,
             Remaining = remaining,
             RemainingInWords = VietnameseAmountWords.Spell(remaining),
             CreatorName = creatorName
         };
-        snapshot._lines.AddRange(lines.ToList());
+        snapshot._lines.AddRange(lineList);
         return snapshot;
     }
 }
 
 public class PaymentReceiptSnapshotLine
 {
+    /// <summary>The name the receipt prints: the cashier's "Tên trên phiếu", else the catalog's.</summary>
     public string Name { get; private set; } = string.Empty;
 
     public decimal Amount { get; private set; }
 
+    /// <summary>TN giảm on this line. Null on a sheet frozen before P2910 — read as none.</summary>
+    public decimal? CashierDiscount { get; private set; }
+
+    /// <summary>This line's part of the receipt's voucher. Null before P2910.</summary>
+    public decimal? VoucherShare { get; private set; }
+
+    /// <summary>"Trong đó VAT" — the VAT inside <see cref="Amount"/>. Null before P2910.</summary>
+    public decimal? TaxAmount { get; private set; }
+
+    public decimal Relief => (CashierDiscount ?? 0m) + (VoucherShare ?? 0m);
+
     protected PaymentReceiptSnapshotLine() { }
 
-    public PaymentReceiptSnapshotLine(string name, decimal amount)
+    public PaymentReceiptSnapshotLine(
+        string name, decimal amount, decimal cashierDiscount = 0m, decimal voucherShare = 0m, decimal taxAmount = 0m)
     {
         Name = Check.NotNullOrWhiteSpace(name, nameof(name));
         Amount = amount;
+        CashierDiscount = cashierDiscount;
+        VoucherShare = voucherShare;
+        TaxAmount = taxAmount;
     }
 }

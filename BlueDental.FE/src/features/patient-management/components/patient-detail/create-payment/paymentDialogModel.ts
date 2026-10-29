@@ -18,17 +18,6 @@ export interface SlipOption {
   owingCount: number;
 }
 
-/** What the services ticked in the dialog add up to ("Tổng tiền dịch vụ đã chọn"). */
-export interface SelectedTotals {
-  gross: number;
-  discount: number;
-  afterDiscount: number;
-  tax: number;
-  payable: number;
-  paid: number;
-  due: number;
-}
-
 const owing = (line: TreatmentServiceDto) => line.outstandingAmount > 0;
 
 /**
@@ -75,25 +64,4 @@ export function owingSlipOptions(slips: TreatmentPlanSlipDto[], keepId: string |
       (option) =>
         option.slip.id === keepId || (option.debt > 0 && option.slip.status !== PLAN_STATUS.Cancelled),
     );
-}
-
-/**
- * Gross prices and every discount — the line's own and its share of the slip
- * discount and voucher — so the block reads like the slip's own totals (R-586),
- * only over the ticked services.
- */
-export function selectedTotals(lines: TreatmentServiceDto[]): SelectedTotals {
-  const sum = (pick: (line: TreatmentServiceDto) => number) =>
-    lines.reduce((total, line) => total + pick(line), 0);
-  const gross = sum((line) => line.grossAmount);
-  const afterDiscount = sum((line) => line.chargedAmount);
-  return {
-    gross,
-    discount: gross - afterDiscount,
-    afterDiscount,
-    tax: sum((line) => line.taxAmount),
-    payable: sum((line) => line.payableAmount),
-    paid: sum((line) => line.paidAmount),
-    due: sum((line) => line.outstandingAmount),
-  };
 }

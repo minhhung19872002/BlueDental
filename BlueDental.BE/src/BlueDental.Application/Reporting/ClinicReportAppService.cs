@@ -12,6 +12,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement;
+using BlueDental.TreatmentManagement.Values;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
@@ -496,7 +497,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         var plans = await PlansAsync(input);
         if (plans.Count == 0) return [];
 
-        var payments = await PaymentsAsync(input);
+        var paymentsByPlan = (await PaymentsWithDetailsAsync(input)).ToLookup(p => p.TreatmentPlanId);
 
         var patientIds = plans.Select(p => p.PatientId).Distinct().ToList();
         var patientQuery = await _patientRepository.GetQueryableAsync();
@@ -519,14 +520,16 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         foreach (var plan in plans.OrderByDescending(p => p.CreationTime))
         {
             var patient = patients.GetValueOrDefault(plan.PatientId);
-            var paid = payments
-                .Where(p => p.TreatmentPlanId == plan.Id && p.Kind == PatientPaymentKind.Payment)
+            var planPayments = paymentsByPlan[plan.Id].ToList();
+            var paid = planPayments
+                .Where(p => p.Kind == PatientPaymentKind.Payment)
                 .Sum(p => p.Amount);
-            var refunded = payments
-                .Where(p => p.TreatmentPlanId == plan.Id && p.Kind == PatientPaymentKind.Refund)
+            var refunded = planPayments
+                .Where(p => p.Kind == PatientPaymentKind.Refund)
                 .Sum(p => p.Amount);
-            // Debt is what is owed, VAT included; revenue elsewhere stays pre-VAT.
-            var debtIncurred = plan.PayableAmount - paid;
+            // Debt is what is owed, VAT included, less what the paid receipts let
+            // off (TN giảm, voucher — P2910); revenue elsewhere stays pre-VAT.
+            var debtIncurred = plan.PayableAmount - plan.ReliefOffPayable(LineSettlement.Of(plan, planPayments)) - paid;
             if (debtIncurred <= 0) continue;
 
             // The reference lists every service of the plan and chips the cancelled / replaced ones.
@@ -615,7 +618,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
     [Authorize(BlueDentalAbilityPermissions.ReportSales.Read)]
     public async Task<SalesSummaryDto> GetSalesSummaryAsync(ClinicReportQueryDto input)
     {
-        var payments = await PaymentsAsync(input);
+        var payments = await PaymentsWithDetailsAsync(input);
         var plans = await PlansAsync(input);
 
         var collected = payments.Where(p => p.Kind == PatientPaymentKind.Payment).ToList();
@@ -625,7 +628,12 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
         var totalPaid = collected.Sum(p => p.Amount);
         var totalRefund = refunds.Sum(p => p.Amount);
 
-        var debtIncurred = plans.Sum(p => p.PayableAmount) - totalPaid;
+        // TN giảm and the payment-time voucher (P2910) are discount, not revenue,
+        // and the debt they let off is no longer owed.
+        var paymentsByPlan = payments.ToLookup(p => p.TreatmentPlanId);
+        var settled = plans.ToDictionary(p => p.Id, p => LineSettlement.Of(p, paymentsByPlan[p.Id]));
+        var relief = plans.Sum(p => p.ReliefOn(settled[p.Id]));
+        var debtIncurred = plans.Sum(p => p.PayableAmount - p.ReliefOffPayable(settled[p.Id])) - totalPaid;
         var prepaidDeposits = prepaid.Sum(p => p.Amount);
 
         // "BE:Field:CurrentDepositBalance" is what the clinic holds now, not the period's
@@ -638,7 +646,7 @@ public class ClinicReportAppService : BlueDentalAppService, IClinicReportAppServ
 
         return new SalesSummaryDto
         {
-            Revenue = plans.Sum(p => p.TotalAmount),
+            Revenue = plans.Sum(p => p.TotalAmount) - relief,
             ByCash = SumBy(collected, PaymentMethodKind.Cash),
             ByBanking = SumBy(collected, PaymentMethodKind.Banking),
             ByCard = SumBy(collected, PaymentMethodKind.Card),

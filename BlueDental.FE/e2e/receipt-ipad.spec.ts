@@ -176,7 +176,9 @@ test.describe.serial("iPad ký phiếu thu", () => {
     await expect(link).toContainText("Đường dẫn chỉ hiện một lần");
     pairingLink = await link.getByRole("textbox").inputValue();
     // The token rides after "#", so it never reaches the server's access log.
-    expect(pairingLink).toMatch(/^http:\/\/127\.0\.0\.1:8080\/sign\/pair#[A-Za-z0-9_-]{20,}$/);
+    // The link names the address staff opened, whatever host E2E_BASE_URL points at.
+    const origin = new URL(page.url()).origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    expect(pairingLink).toMatch(new RegExp(`^${origin}/sign/pair#[A-Za-z0-9_-]{20,}$`));
 
     // The list, read again after a reload: the new iPad, paired, not yet seen.
     await page.reload();

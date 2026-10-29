@@ -185,6 +185,11 @@ export interface PaymentSummaryDto {
   outstandingDebtConsumed: number;
   prepaid: number;
   carryOverAmount: number | null;
+  /**
+   * "Ưu đãi khi thanh toán" (P2910): TN giảm and payment-time vouchers of paid
+   * receipts, with the VAT they took down — already off `debt`.
+   */
+  relief: number;
 }
 
 /** One step of a service — the reference's service.stages[] entry. */
@@ -222,6 +227,11 @@ export interface TreatmentServiceDto {
    * "Giá gốc" on Tạo phiếu thanh toán. Null when the catalog row is gone or unpriced.
    */
   catalogPrice: number | null;
+  /**
+   * The service's group in Danh mục — a "Theo dịch vụ" voucher may name it
+   * instead of the service, so the payment dialog can preview one (P2910).
+   */
+  serviceGroupId: string | null;
   price: number;
   quantity: number;
   discountType: DiscountType;
@@ -276,6 +286,17 @@ export interface TreatmentServiceDto {
   paidAmount: number;
   /** Còn nợ of the line; what the payment dialog offers to collect. */
   outstandingAmount: number;
+  /**
+   * "Ưu đãi các đợt trước" (P2910): the TN giảm and payment-time voucher the
+   * line's paid receipts let it off, before VAT. `chargedAmount` is figured
+   * before it; `taxAmount`, `payableAmount` and `outstandingAmount` after.
+   */
+  reliefAmount: number;
+  /**
+   * Còn nợ chưa thuế (P2910): what the line still owes before VAT — the cap on
+   * Giảm giá thu ngân and the base a payment-time voucher's % is taken on.
+   */
+  preTaxOutstandingAmount: number;
   /** Null when no care record covers the line's stages — "Chưa chăm sóc". */
   afterCareStatus: CareStatusCode | null;
   /** The labo orders raised on this line, oldest first. */
@@ -433,6 +454,27 @@ export type PaymentSplitMode = (typeof SPLIT_MODE)[keyof typeof SPLIT_MODE];
 export interface PatientPaymentLineDto {
   treatmentServiceId: string;
   amount: number;
+  /** "Tên trên phiếu" (P2910), read only — set through `PaymentLineTermsDto`. */
+  receiptName?: string | null;
+  /** TN giảm on this line, before VAT. Read only. */
+  cashierDiscount?: number;
+  cashierDiscountReason?: string | null;
+  /** This line's part of the receipt's voucher, before VAT. Read only. */
+  voucherShare?: number;
+  /** The VAT inside `amount`. Read only. */
+  taxAmount?: number;
+}
+
+/**
+ * What the cashier set on one chosen service of a đợt (P2910): the name the
+ * PHIẾU THU prints and Giảm giá thu ngân in đồng — % is turned into đồng
+ * before sending. The voucher's share is the server's to work out.
+ */
+export interface PaymentLineTermsDto {
+  treatmentServiceId: string;
+  receiptName?: string | null;
+  cashierDiscount: number;
+  cashierDiscountReason?: string | null;
 }
 
 export interface PatientPaymentDto {
@@ -470,6 +512,12 @@ export interface PatientPaymentDto {
   cancelledByName: string | null;
   /** "Xuất hóa đơn đỏ" was ticked when the receipt was written; nothing is issued yet. */
   redInvoiceRequested: boolean;
+  /** The voucher picked at payment time (P2910), its code as written and what it took off. */
+  voucherId: string | null;
+  voucherCode: string | null;
+  voucherAmount: number;
+  /** Giảm giá thu ngân over every line. */
+  cashierDiscountTotal: number;
 }
 
 export interface PatientAccountDto {
@@ -521,6 +569,10 @@ export interface RecordPaymentInput {
   paymentAccountId?: string;
   /** "Xuất hóa đơn đỏ" — only stored; the e-invoice is issued from another screen (owner 2026-10-12). */
   redInvoiceRequested?: boolean;
+  /** Tên trên phiếu and TN giảm of the chosen services (P2910). */
+  lineTerms?: PaymentLineTermsDto[];
+  /** The voucher picked at payment time; the server checks it, splits it and holds a use. */
+  voucherId?: string | null;
 }
 
 /** Filters of `GET patient-payments`; the server pages and sorts by `paidAt` desc. */
@@ -661,6 +713,9 @@ export interface UpdatePaymentInput {
   note?: string | null;
   paymentAccountId?: string | null;
   redInvoiceRequested?: boolean;
+  lineTerms?: PaymentLineTermsDto[];
+  /** Null takes the voucher off and gives its use back. */
+  voucherId?: string | null;
 }
 
 export const treatmentKeys = {

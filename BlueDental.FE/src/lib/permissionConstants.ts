@@ -33,6 +33,9 @@ export const LegacyPermissions = {
   Staff: {
     View: `${PERMISSION_GROUP}.Staff.View`,
   },
+  Promotions: {
+    View: `${PERMISSION_GROUP}.Promotions.View`,
+  },
   SystemAdmin: {
     Users: `${PERMISSION_GROUP}.SystemAdmin.Users`,
     UsersCreate: `${PERMISSION_GROUP}.SystemAdmin.Users.Create`,

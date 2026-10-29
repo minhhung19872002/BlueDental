@@ -8,6 +8,7 @@ import {
   type PaymentReceiptDto,
   type ReceiptSignMode,
 } from "../../api/paymentReceiptApi";
+import { ReceiptCashierDiscounts } from "./ReceiptCashierDiscounts";
 
 interface Props {
   receipt: PaymentReceiptDto;
@@ -64,6 +65,7 @@ export function ReceiptExportedPanel({ receipt, print, download, onCreateNew }: 
           ))}
         </dl>
       )}
+      <ReceiptCashierDiscounts discounts={receipt.cashierDiscounts} />
       <ReceiptDoneActions print={print} download={download} onCreateNew={onCreateNew} />
     </aside>
   );

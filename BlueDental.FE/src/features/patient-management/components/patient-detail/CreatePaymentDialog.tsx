@@ -19,7 +19,7 @@ import {
 import { owingSlipOptions } from "./create-payment/paymentDialogModel";
 import { PaymentDateField } from "./create-payment/PaymentDateField";
 import { PaymentInfoPanel } from "./create-payment/PaymentInfoPanel";
-import { Fact, PaymentSelectedTotals } from "./create-payment/PaymentSelectedTotals";
+import { Fact } from "./create-payment/PaymentSelectedTotals";
 import { PaymentServiceList } from "./create-payment/PaymentServiceList";
 import { PaymentSlipPicker } from "./create-payment/PaymentSlipPicker";
 import { PaymentSteps } from "./create-payment/PaymentSteps";
@@ -78,6 +78,8 @@ export function CreatePaymentDialog({
   const slips = useMemo(() => plansQuery.data?.items ?? [], [plansQuery.data]);
   const payment = usePaymentForm({
     open,
+    patientId,
+    branchId,
     initialSlipId: plan?.id ?? null,
     focusServiceId,
     revision,
@@ -162,15 +164,7 @@ export function CreatePaymentDialog({
             />
           </section>
 
-          <PaymentServiceList
-            slipCode={payment.slip?.code ?? null}
-            lines={payment.lines}
-            picked={payment.form.picked}
-            onToggle={payment.toggle}
-            onToggleAll={payment.toggleAll}
-          />
-
-          <PaymentSelectedTotals totals={payment.totals} />
+          <PaymentServiceList payment={payment} />
         </div>
 
         <PaymentInfoPanel

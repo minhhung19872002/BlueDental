@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.PatientManagement;
+using BlueDental.TreatmentManagement.Values;
 using Volo.Abp;
 using Volo.Abp.Data;
 using Volo.Abp.DependencyInjection;
@@ -47,9 +48,11 @@ public class PaymentReceiptContents(
 
     /// <summary>
     /// What the PHIẾU THU says right now: the patient, the slip, each service
-    /// this receipt pays under its catalog name in slip order, and Số tiền còn
-    /// lại = the slip's payable total − what it has collected ("Đã thanh toán"
-    /// only, other receipts) − this receipt.
+    /// this receipt settles in slip order — under the cashier's "Tên trên
+    /// phiếu", else its catalog name, with its TN giảm, voucher share and the
+    /// VAT inside its money — and Số tiền còn lại = the slip's payable total
+    /// once the relief of the other paid receipts and of this one is off, its
+    /// VAT re-figured (P2910), − what the others collected − this receipt.
     /// </summary>
     public async Task<PaymentReceiptSnapshot> TakeAsync(PatientPayment payment, Guid? creatorId)
     {
@@ -58,26 +61,28 @@ public class PaymentReceiptContents(
         var plan = planQuery.Single(x => x.Id == planId);
 
         var patient = await patients.GetAsync(payment.PatientId);
-
-        var catalogIds = plan.Services.Select(s => s.ServiceId).Distinct().ToList();
-        var catalogNames = (await catalog.GetListAsync(c => catalogIds.Contains(c.Id)))
-            .ToDictionary(c => c.Id, c => c.Name);
+        var serviceNames = await ServiceNamesAsync(plan);
 
         var lines = plan.Services
             .OrderBy(s => s.SortOrder)
             .ThenByDescending(s => s.CreationTime)
-            .Select(s => (Line: s, Share: payment.AmountFor(s.Id)))
-            .Where(x => x.Share > 0m)
+            .Select(s => (Line: s, Parts: payment.Lines.Where(l => l.TreatmentServiceId == s.Id).ToList()))
+            .Where(x => x.Parts.Sum(l => l.Settled) > 0m)
             .Select(x => new PaymentReceiptSnapshotLine(
-                catalogNames.GetValueOrDefault(x.Line.ServiceId) ?? x.Line.Code, x.Share))
+                x.Parts.Select(l => l.ReceiptName).FirstOrDefault(n => n != null) ?? serviceNames[x.Line.Id],
+                x.Parts.Sum(l => l.Amount),
+                x.Parts.Sum(l => l.CashierDiscount),
+                x.Parts.Sum(l => l.VoucherShare),
+                x.Parts.Sum(l => l.TaxAmount ?? TreatmentPlan.TaxWithin(x.Line, l.Amount))))
             .ToList();
 
         var paymentQuery = await payments.GetQueryableAsync();
-        var paidBefore = paymentQuery
+        var others = paymentQuery
             .Where(x => x.TreatmentPlanId == planId && x.Id != payment.Id)
-            .Select(x => new { x.Kind, x.Amount })
-            .ToList()
-            .Sum(x => x.Kind == PatientPaymentKind.Refund ? -x.Amount : x.Amount);
+            .ToList();
+        var paidBefore = others.Sum(x => x.SignedAmount);
+        var reliefBefore = others.Sum(x => x.Relief);
+        var slipTotal = plan.PayableAmount - plan.ReliefOffPayable(LineSettlement.Of(plan, others.Append(payment)));
 
         var names = await FullNamesAsync([creatorId]);
         return PaymentReceiptSnapshot.Take(
@@ -87,10 +92,46 @@ public class PaymentReceiptContents(
             ClinicCalendar.DateOf(payment.PaidAt),
             payment.Method,
             payment.Amount,
-            plan.PayableAmount,
+            slipTotal,
             paidBefore,
             NameOf(names, creatorId) ?? currentUser.UserName ?? string.Empty,
-            lines);
+            lines,
+            reliefBefore,
+            payment.VoucherCode);
+    }
+
+    /// <summary>
+    /// Giảm giá thu ngân on each line of the receipt with the cashier's reason
+    /// — for the accountant on the receipt page (P2910 step 6). The customer's
+    /// sheet and the iPad never carry the reason.
+    /// </summary>
+    public async Task<List<PaymentReceiptDiscountDto>> CashierDiscountsOfAsync(PatientPayment payment)
+    {
+        var discounted = payment.Lines.Where(l => l.CashierDiscount > 0m).ToList();
+        if (discounted.Count == 0 || payment.TreatmentPlanId is not { } planId)
+        {
+            return [];
+        }
+
+        var planQuery = await plans.WithDetailsAsync(x => x.Services);
+        var serviceNames = await ServiceNamesAsync(planQuery.Single(x => x.Id == planId));
+        return discounted
+            .Select(l => new PaymentReceiptDiscountDto
+            {
+                Name = l.ReceiptName ?? serviceNames.GetValueOrDefault(l.TreatmentServiceId) ?? string.Empty,
+                Amount = l.CashierDiscount,
+                Reason = l.CashierDiscountReason
+            })
+            .ToList();
+    }
+
+    /// <summary>Each line of the slip under its catalog name, else its code.</summary>
+    private async Task<Dictionary<Guid, string>> ServiceNamesAsync(TreatmentPlan plan)
+    {
+        var catalogIds = plan.Services.Select(s => s.ServiceId).Distinct().ToList();
+        var catalogNames = (await catalog.GetListAsync(c => catalogIds.Contains(c.Id)))
+            .ToDictionary(c => c.Id, c => c.Name);
+        return plan.Services.ToDictionary(s => s.Id, s => catalogNames.GetValueOrDefault(s.ServiceId) ?? s.Code);
     }
 
     /// <summary>Staff as the printed sheets name them: họ + tên, else the login.</summary>
@@ -126,11 +167,21 @@ public class PaymentReceiptContents(
         AmountInWords = content.AmountInWords,
         SlipTotal = content.SlipTotal,
         PaidBefore = content.PaidBefore,
+        ReliefBefore = content.ReliefBefore ?? 0m,
+        Relief = content.Relief ?? 0m,
+        VoucherCode = content.VoucherCode,
         Remaining = content.Remaining,
         RemainingInWords = content.RemainingInWords,
         CreatorName = content.CreatorName,
         Lines = content.Lines
-            .Select(line => new PaymentReceiptContentLineDto { Name = line.Name, Amount = line.Amount })
+            .Select(line => new PaymentReceiptContentLineDto
+            {
+                Name = line.Name,
+                Amount = line.Amount,
+                CashierDiscount = line.CashierDiscount ?? 0m,
+                VoucherShare = line.VoucherShare ?? 0m,
+                TaxAmount = line.TaxAmount ?? 0m
+            })
             .ToList()
     };
 }

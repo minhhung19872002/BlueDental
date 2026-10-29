@@ -12465,3 +12465,42 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Dialog "Tạo lịch hẹn" (mở rồi Esc, không lưu): lịch mini Ngày (cả hai kiểu), Tuần, Tháng đều đúng 3 màu.
 - **E2E**: không chạy. Chỉ đổi màu trong một file CSS, không đổi DOM, class hay hành vi.
 - **Mức retest**: 1.
+
+## R-1080 (2026-10-29, mức 3: F-83 Thanh toán nhiều đợt P2910) Tạo phiếu thanh toán theo đợt: TN giảm, voucher lúc thanh toán, VAT theo đợt
+
+- **Yêu cầu** (BA `P2910.drawio`, chủ dự án chốt 11 câu + 4 điểm ngày 29/10):
+  - Thẻ dịch vụ có tag đợt (từ đợt 2), tag BS giảm, lịch sử đợt kèm trạng thái.
+  - Mỗi dòng có Tên trên phiếu, TN giảm (đ / %) kèm lý do; voucher chọn lúc thanh toán, chia đều.
+  - Khối 10 dòng tổng tiền, Thu đợt này (trong đó VAT), Còn nợ sau đợt này, "Khách sẽ thấy trên phiếu".
+  - Chốt: VAT tính sau ưu đãi theo đợt, lệch làm tròn dồn đợt cuối; voucher % trên Còn nợ chưa thuế; TN giảm trừ thật vào nợ khi phiếu Đã TT; chỉ sửa phiếu Chưa TT.
+  - Số R-1077 → R-1079 đã bị phiên khác dùng trên `origin/main`, nên mục này lấy R-1080.
+- **Sửa**:
+  - Domain: `Billing/PaymentRound` (trần từng dòng, chia voucher, VAT đợt), `PaymentVoucherUse`, `LineSettlement` (Cash / Relief / Tax), `TreatmentPlan.PreTaxOutstandingOf`; dòng phiếu thu thêm ReceiptName, CashierDiscount + lý do, VoucherShare, TaxAmount (nullable, phiếu cũ vẫn tách VAT như trước); phiếu thu thêm VoucherId / Code / Amount, CashierDiscountTotal; lỗi `Billing:0116`; migration `20261029094513_PaymentRounds`.
+  - Application: `PatientPaymentAppService` (Record / Revise / Cancel giữ và trả lượt voucher, trần theo Còn nợ mới); `PatientTreatmentAppService`, `PaymentSummary`, `PatientMoneyCalculator` trừ ưu đãi gồm phần VAT giảm theo; `PatientAdviseAppService` → `PaymentReliefAmount` cho TỔNG KẾ HOẠCH; `ClinicReportAppService` đưa TN + voucher vào Giảm giá; `ElectronicInvoiceAppService` dùng VAT đã lưu; `PaymentReceiptSnapshot` / `PaymentReceiptContents` thêm dòng TN, voucher, VAT.
+  - FE: `PaymentRoundHistory`, `PaymentLineTermsForm`, `PaymentVoucherPicker` (có ô tìm), `PaymentSelectedTotals`, `PaymentCollectBox`, `PaymentCustomerPreview`; `ReceiptLines` trên trang phiếu thu, iPad `/sign` và PDF; `ReceiptCashierDiscounts` (lý do TN, chỉ kế toán thấy ở bước 6); TỔNG KẾ HOẠCH thêm "Ưu đãi khi thanh toán" (chỉ hiện khi > 0).
+- **E2E** (build production `vite preview` :8160 → host :5130 → PostgreSQL thật, DB riêng `BlueDental_p2910`, không chặn request):
+  - `payment-rounds` **2/2**: 2 đợt có VAT 10% (đợt 2 thu VAT 375.000 = 875.000 − 500.000), TN 1.000.000, voucher 500.000 chia 250k/250k, 10 dòng tổng, preview, đọc lại qua API và trang phiếu thu, TỔNG KẾ HOẠCH 1.625.000; phiếu 0 đ giữ lượt voucher, huỷ thì trả lượt.
+  - Domain.Tests **1196/1196** (gồm 13 ca `PaymentRoundTests`; sửa `PatientPaymentTests`, `PatientListRollupTests`, `SlipSeenThroughLinesTests`).
+  - Hồi quy mức 3 (payment / receipt / voucher / e-invoice / plan / report / migration, 189 test): **168 xanh / 20 đỏ / 1 bỏ qua** (`MIGRATION_PERF`, opt-in).
+    - `receipt-ipad` 6/6, `receipt-page` 3/3, `plan-treating-scope` 19/19, `treatment-plan-detail` 13/13, `data-migration-api` 19/19, `payment-amount-select` 1/1, `report` 4/5, `consulting-delete-and-picker` 2/3.
+  - Spec cũ đã hỏng sẵn ở HEAD, sửa tối thiểu:
+    - `payment-amount-select`: import `answerYes` đã bị xoá từ `a6b73c80` → dùng `saveReceipt` + `includePending`.
+    - `treatment-plan-detail:395`: nút in trên panel đã xuất là "In phiếu" (R-1052).
+    - `plan-treating-scope`: `/issue` đã bỏ ở R-1049 → `settleReceipt` (ký, xuất, ✓).
+    - `receipt-ipad:179`: link ghép lấy origin của trang thay vì cứng :8080.
+    - `data-migration-api:1100-1101`: câu báo lỗi số điện thoại mới ("8–15 chữ số, hoặc +mã vùng…").
+  - Spec phải cập nhật theo P2910: `data-migration-api` ×2 (dòng phiếu thu có thêm trường mới → `toMatchObject`), `treatment-plan-detail:1142` ("Giảm giá" tách thành Giảm giá bác sĩ / thu ngân / Voucher).
+  - Đỏ ban đầu ở `receipt-page`: DB riêng chép từ DB dev mang theo 2 iPad đang ghép ("4234", "4324") nên phiếu mới tự gửi sang iPad. Đã thu hồi **chỉ trong `BlueDental_p2910`**; DB dev vẫn còn 2 iPad này.
+  - 20 đỏ còn lại không do P2910:
+    - `operations-reports` ×18: DB riêng không có số liệu vận hành; không đụng OperationsReport.
+    - `consulting-delete-and-picker:123`: thiếu dữ liệu tiền điều kiện.
+    - `report:294`: hai nhãn đã đổi từ trước — header Excel "Hình thức" (từ `2eec1e9e`) thay vì "Phương thức thanh toán", và ô Tạm ứng "Tiêu dùng tạm ứng" giờ là "Tiêu tạm ứng theo tiến độ". Vá tạm header thì phần Excel thanh toán xanh; đã trả spec về nguyên trạng.
+- **Mức retest**: 3 (đổi tiền nợ, VAT, voucher và nội dung phiếu thu dùng chung cho nhiều màn).
+- **Ngoài phạm vi / còn mở** (chi tiết `features/payment-rounds.md`):
+  - Xoá phiếu điều trị chưa trả lượt voucher do phiếu thu của nó giữ.
+  - Xác nhận phiếu khác thứ tự tạo có thể lệch VAT ±1 đ.
+  - Docx PHIẾU THU chưa có ghi chú ưu đãi theo dòng.
+  - Doanh số bác sĩ ở `OperationsReport` chưa trừ TN / voucher (chờ chủ dự án).
+  - TỔNG KẾ HOẠCH: ưu đãi gồm phần VAT giảm, còn Thành tiền chưa thuế; bản in báo giá chưa có dòng ưu đãi.
+  - Quyền Khuyến mãi → Xem chưa có trong role seed nào.
+  - Kiểm tra API chạy bằng e2e stack thật trên DB riêng, chưa có bộ Application.Tests Testcontainers.

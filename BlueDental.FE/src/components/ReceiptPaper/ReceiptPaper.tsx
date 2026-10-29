@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
 import { formatDateTime, formatVND } from "@/utils/format";
+import { ReceiptLines, type ReceiptPaperLine } from "./ReceiptLines";
 import "./receipt-paper.css";
 
 /** The clinic printed at the sheet's top: its logo and name. */
@@ -23,7 +24,7 @@ export interface ReceiptPaperData {
     remaining: number;
     remainingInWords: string;
     creatorName: string;
-    lines: readonly { name: string; amount: number }[];
+    lines: readonly ReceiptPaperLine[];
   };
 }
 
@@ -117,26 +118,7 @@ export function ReceiptPaper({ receipt, clinic, signature }: Props) {
         </Row>
       </div>
 
-      {content.lines.length > 0 && (
-        <table className="rcpt-lines">
-          <thead>
-            <tr>
-              <th scope="col">{t("Receipt:Sheet:Service")}</th>
-              <th scope="col" className="rcpt-lines-money">
-                {t("Receipt:Sheet:LineAmount")}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {content.lines.map((line, index) => (
-              <tr key={`${index}-${line.name}`}>
-                <td>{line.name}</td>
-                <td className="rcpt-lines-money">{formatVND(line.amount)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <ReceiptLines lines={content.lines} />
 
       <div className="rcpt-signs">
         <SignBox role={t("Receipt:Sheet:PayerSign")} name={content.payerName}>
