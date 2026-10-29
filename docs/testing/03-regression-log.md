@@ -12240,3 +12240,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 
   Đây là lỗi dữ liệu/quyền ở local, giống R-997 / R-998 / R-999; không liên quan việc đổi màu.
 - **Mức retest**: 1 (CSS + token, không đổi hành vi). Chạy thêm bộ `/taxonomy` theo §17 vì có đổi `taxonomy.css`.
+
+## R-1076 (2026-10-29, mức 1: giao diện) Header lịch hẹn theo dải indigo của bảng (R-1075)
+
+- **Yêu cầu** (chủ dự án, sau R-1075): header lịch `/calendar` (hàng tên bác sĩ ở view Ngày) vẫn là nền xám nhạt cũ, lệch với header bảng vừa đổi. "Đổi luôn."
+- **Sửa (chỉ `features/appointments/components/calendar.css`, dùng 3 token của R-1075)**:
+  - View Ngày: `.dtl-corner` và `.dtl-doc` nền `--bd-table-head`, chữ `--bd-table-head-ink` (ô góc trước là `--bd-faint`). Kẻ cột `--bd-line` của `.dtl-col` / `.dtl-timecol` biến mất trên dải indigo, nên header phủ lên bằng `box-shadow: 1px 0 0 var(--bd-table-head-line)`.
+  - View Tuần: `.cal-week-time-header` và `.cal-week-day-header` nền indigo, kẻ dọc `--bd-table-head-line`. Ngày `--bd-table-head-ink`, thứ `--bd-muted` (trước là `#99a0bd`, quá nhạt trên indigo).
+  - **Hôm nay** trên view Tuần: nền `#eef0ff` cũ nhạt hơn dải nên trông như một lỗ hổng. Đổi thành gạch chân 2px màu `--bd-primary`; ngày vẫn màu chủ đạo.
+  - View Tháng: `.cal-month-weekday` nền indigo, chữ `--bd-table-head-ink`.
+  - Lịch mini trong dialog (Ngày theo giờ và theo bác sĩ, Tuần, Tháng): `.mcal-day-header`, `.mcal-week-header`, `.mcal-month-header` nền indigo, chữ và kẻ dọc theo token.
+- **Không đổi, có chủ đích**: cột giờ bên trái (`.dtl-tick`, `.cal-week-time-cell-abs`), cột tên bác sĩ ở lịch mini (`.mcal-day-doctor`, là tiêu đề hàng chứ không phải dải header), ô thân lịch, ô "hôm nay" ở thân Tuần/Tháng.
+- **Kiểm tra giao diện** (dev server :5173 nối host :5000, đăng nhập thật; đọc computed style và chụp ảnh):
+  - `/calendar` Ngày: góc "BÁC SĨ" và 7 cột bác sĩ `rgb(224,231,255)` / chữ `rgb(34,40,92)`, kẻ cột trong header `rgb(199,208,245)`.
+  - Tuần: header giờ và 7 ngày indigo; 29/10 gạch chân `rgb(99,102,241)` inset 2px. Tháng: 7 ô thứ indigo.
+  - Dialog "Tạo lịch hẹn" (mở rồi Esc, không lưu): lịch mini Ngày (cả hai kiểu), Tuần, Tháng đều đúng 3 màu.
+- **E2E**: không chạy. Chỉ đổi màu trong một file CSS, không đổi DOM, class hay hành vi.
+- **Mức retest**: 1.
