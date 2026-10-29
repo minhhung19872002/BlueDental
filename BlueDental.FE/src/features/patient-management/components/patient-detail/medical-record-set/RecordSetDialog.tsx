@@ -154,7 +154,7 @@ export function RecordSetDialog({ mode, patientLabel, plans, saving, onSubmit, o
             </Button>
           </span>
         </header>
-        <p className="rs-dialog-hint">{t("Patient:RecordSet:Section2Hint")}</p>
+        <p className="rs-dialog-hint">{t("Patient:RecordSet:Section2Hint", ALL_FORMS.length)}</p>
         <div className="rs-forms">
           {MEDICAL_RECORD_FORMS.map((spec) => (
             <Checkbox

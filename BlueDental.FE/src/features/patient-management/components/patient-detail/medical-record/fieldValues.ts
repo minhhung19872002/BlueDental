@@ -40,6 +40,8 @@ export interface SheetPatientFacts {
   insuranceNumber?: string;
   /** The primary guardian as "Quan hệ - Họ tên - Số điện thoại". */
   guardian?: string;
+  /** The primary guardian's name alone, and only for a patient under 18. */
+  minorGuardianName?: string;
   country?: string;
   /** "male" / "female" / "other", or their Vietnamese names. */
   gender?: string;
@@ -106,6 +108,7 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   put(values, "patient.note", facts.note);
   put(values, "patient.insuranceNumber", facts.insuranceNumber);
   put(values, "patient.guardian", facts.guardian);
+  put(values, "patient.minorGuardianName", facts.minorGuardianName);
 
   const parts = facts.dateOfBirth?.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   if (parts) {
@@ -191,7 +194,8 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
  * out: its "II. CHẨN ĐOÁN" is written by hand at the consultation (clinic,
  * 2026-10-14). So is "Giấy đồng ý thực hiện phẫu thuật/thủ thuật": a patient
  * may carry many diagnosis slips and the sheet cannot tell which one the
- * operation is for, so the doctor writes it (clinic, 2026-10-16).
+ * operation is for, so the doctor writes it (clinic, 2026-10-16). The contract
+ * (mẫu 10) takes it as Bệnh án chỉnh nha does.
  */
 const DIAGNOSIS_FIELDS = [
   "outpatient-dental.text.43",
@@ -199,6 +203,7 @@ const DIAGNOSIS_FIELDS = [
   "custom.text.9959ffa6f36f45b89e42d5a486996216",
   "procedure-record.text.1",
   "care.diagnosis",
+  "orthodontic-contract.text.7",
 ] as const;
 
 /** One diagnosis as a sheet prints it. */

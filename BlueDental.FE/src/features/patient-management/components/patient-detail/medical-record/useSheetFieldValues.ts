@@ -11,6 +11,9 @@ import { RELATION_LABEL } from "../../../utils/guardian";
 import { branchFieldValues, FORM_CODE_VALUES, patientFieldValues, sheetPhone, type FieldValues } from "./fieldValues";
 import { materialCatalogKey, type SheetMaterial } from "./materials/materialField";
 
+/** Below this age a patient signs mẫu 10 with a parent or guardian. */
+const ADULT_AGE = 18;
+
 /** The three the forms know about; anything else prints nothing. */
 const GENDER_NAME: Record<number, string> = {
   [GENDER.Male]: "male",
@@ -45,16 +48,21 @@ function wholePhone(
   return shown?.includes("*") ? undefined : sheetPhone(shown);
 }
 
+/** The guardian the sheets print: the one ticked as primary contact, else the first listed. */
+function primaryGuardian(guardians: readonly PatientGuardianDto[]): PatientGuardianDto | undefined {
+  return guardians.find((item) => item.isPrimaryContact) ?? guardians[0];
+}
+
 /**
  * The primary guardian as "Quan hệ - Họ tên - Số điện thoại" (clinic,
- * 2026-10-16) — the one ticked as primary contact, else the first listed. A
- * relation of "Khác" prints what the desk wrote beside it, when it wrote any.
+ * 2026-10-16). A relation of "Khác" prints what the desk wrote beside it, when
+ * it wrote any.
  */
 function guardianLine(
   guardians: readonly PatientGuardianDto[],
   phones: MedicalRecordPhonesDto | undefined,
 ): string | undefined {
-  const guardian = guardians.find((item) => item.isPrimaryContact) ?? guardians[0];
+  const guardian = primaryGuardian(guardians);
   if (!guardian) return undefined;
 
   const relation =
@@ -112,13 +120,18 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
       .filter(Boolean)
       .join(", ");
 
+    // Mẫu 10 asks for a parent or guardian "nếu khách hàng chưa đủ 18 tuổi":
+    // not for an adult, nor for a patient whose age is not known.
+    const age = ageOf(patient.dateOfBirth);
+    const minor = age !== undefined && Number(age) < ADULT_AGE;
+
     return {
       ...FORM_CODE_VALUES,
       ...patientFieldValues({
         code: patient.patientCode,
         name: patient.fullName,
         dateOfBirth: patient.dateOfBirth ? formatDate(patient.dateOfBirth) : undefined,
-        age: ageOf(patient.dateOfBirth),
+        age,
         phone: wholePhone(phones, phones?.patientPhone, patient.phoneNumber),
         cccd: patient.nationalId ?? undefined,
         email: patient.email ?? undefined,
@@ -132,6 +145,7 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
         note: patient.note ?? undefined,
         insuranceNumber: patient.insuranceNumber ?? undefined,
         guardian: guardianLine(patient.guardians, phones),
+        minorGuardianName: minor ? primaryGuardian(patient.guardians)?.fullName : undefined,
         gender: GENDER_NAME[patient.gender],
       }),
       ...branchFieldValues(branch),

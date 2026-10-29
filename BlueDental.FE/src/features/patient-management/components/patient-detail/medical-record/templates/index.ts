@@ -8,9 +8,11 @@ import { SURGERY_CONSENT_TEMPLATE } from "./surgeryConsent";
 import { SURGERY_RECORD_TEMPLATE } from "./surgeryRecord";
 import { TREATMENT_FOLLOW_UP_TEMPLATE } from "./treatmentFollowUp";
 import { CARE_SHEET_TEMPLATE } from "./careSheet";
+import { ORTHODONTIC_CONTRACT_TEMPLATE } from "./orthodonticContract";
 
 /**
- * The blank form each of the nine records is printed from.
+ * The blank form each of the records is printed from: the reference's nine and
+ * the clinic's own mẫu 10.
  *
  * They are shipped with the app rather than fetched: the reference keeps a
  * per-clinic copy that a clinic may edit, but BlueDental has no editor for
@@ -27,6 +29,7 @@ export const MEDICAL_RECORD_TEMPLATES: Record<MedicalRecordForm, string> = {
   [MEDICAL_RECORD_FORM.SurgeryRecord]: SURGERY_RECORD_TEMPLATE,
   [MEDICAL_RECORD_FORM.TreatmentFollowUp]: TREATMENT_FOLLOW_UP_TEMPLATE,
   [MEDICAL_RECORD_FORM.CareSheet]: CARE_SHEET_TEMPLATE,
+  [MEDICAL_RECORD_FORM.OrthodonticContract]: ORTHODONTIC_CONTRACT_TEMPLATE,
 };
 
 export function templateOf(form: MedicalRecordForm): string {

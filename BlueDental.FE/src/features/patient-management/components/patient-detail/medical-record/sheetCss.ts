@@ -101,6 +101,9 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl[data-form="6"]{font-size:15px}
 /* 14px from the clinic's own copy, inside 15mm margins (R-1073). */
 .nfc-tpl[data-form="7"]{font-size:14px}
+/* Mẫu 10, the clinic's contract, set like mẫu 6 — the other consent it is
+   signed beside: 15px inside the same 15mm margins (R-1079). */
+.nfc-tpl[data-form="10"]{font-size:15px}
 .nfc-tpl h2{font-size:1em}
 .nfc-tpl h2 span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl>h2{margin:6px 0 2px}
@@ -140,11 +143,11 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl .record-ids>span:not(.record-ids-label){display:block;min-width:0}
 .nfc-tpl .record-ids .nfc-medical-record-text-field{width:100%;box-sizing:border-box}
 /* Mẫu 6 as the clinic's own copy (2026-10-29, R-1068), and mẫu 7 as its own
-   (2026-10-29, R-1073): a line and a half between lines, titles included; the
-   letterhead against the left margin and MS against the right; the first
-   column of a borderless table on the left margin — on mẫu 6 a box opening a
-   line too. After the paragraph rules above, which it overrides. */
-.nfc-tpl:is([data-form="6"],[data-form="7"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"]) h1:not([data-cover] *),.nfc-tpl:is([data-form="6"],[data-form="7"]) h2{line-height:1.5!important}
+   (2026-10-29, R-1073): a line and a half between lines, titles included (mẫu
+   10 too, R-1079); the letterhead against the left margin and MS against the
+   right; the first column of a borderless table on the left margin — on mẫu 6
+   a box opening a line too. After the paragraph rules above, which it overrides. */
+.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"]) h1:not([data-cover] *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"]) h2{line-height:1.5!important}
 .nfc-tpl:is([data-form="6"],[data-form="7"])>table:first-child>tbody>tr>td:first-child,
 .nfc-tpl:is([data-form="6"],[data-form="7"])>table[data-borderless]>tbody>tr>td:first-child{padding-left:0}
 .nfc-tpl:is([data-form="6"],[data-form="7"])>table:first-child>tbody>tr>td:last-child{padding-right:0}
@@ -153,7 +156,7 @@ export const SHEET_CSS = String.raw`
 /* On the 15mm forms a long blank's lines of its own (flowLines) reach the right
    margin, as the clinic's copies of mẫu 2 and mẫu 7 draw them (2026-10-29,
    R-1073). The text on them still breaks where the blank's first line did. */
-.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"]) [data-flow-of]{width:100%;min-width:0!important;max-width:none;box-sizing:border-box}
+.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]) [data-flow-of]{width:100%;min-width:0!important;max-width:none;box-sizing:border-box}
 @media print{
   .nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{border-bottom:0!important}
   .nfc-tpl .nfc-material-add{display:none}
@@ -282,6 +285,7 @@ const SHEET_FIELD_CSS = String.raw`
  * 2026-10-29, R-1067, R-1068 and R-1073): 15mm on every edge of every page,
  * so their pages are a named page with that margin — the A4 and the page
  * number still come from the rule above — and the sheet itself adds none.
+ * Mẫu 10, the clinic's contract, joined them (R-1079).
  *
  * Every other sheet is on a named page too, `margin-5mm`, which has no rule of
  * its own and so is exactly the page above (R-1070). Chrome starts a new page
@@ -301,7 +305,7 @@ const SHEET_PRINT_CSS = String.raw`
     @page margin-15mm{margin:15mm}
     @media print{
       .nfc-tpl{page:margin-5mm;width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
-      .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"]){page:margin-15mm;width:auto;margin:0;padding:0}
+      .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]){page:margin-15mm;width:auto;margin:0;padding:0}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
       .nfc-tpl .nfc-medical-record-checkbox{accent-color:#2671d8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
     }`;
@@ -313,11 +317,11 @@ const SHEET_PRINT_CSS = String.raw`
 export const SHEET_PAGE_CSS = String.raw`    html,body{margin:0;min-height:100%;background:#f0f0f0}
     body{padding:20px;box-sizing:border-box}
     .nfc-tpl{width:210mm;min-height:297mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.1)}
-    .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"]){padding:15mm}
+    .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]){padding:15mm}
     .nfc-tpl>hr{margin:28px 0;border:0;border-top:2px dashed #b7c0ce}
     ${SHEET_FIELD_CSS}
     @media print{html,body{width:210mm;height:auto!important;min-height:0!important;margin:0;padding:0;background:#fff}}
-    @media print{html:has(.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"])),html:has(.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"])) body{width:auto}}
+    @media print{html:has(.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"])),html:has(.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"])) body{width:auto}}
 ${SHEET_PRINT_CSS}
   `;
 
@@ -330,7 +334,7 @@ ${SHEET_PRINT_CSS}
  */
 export const PRINT_COPY_CSS = String.raw`${SHEET_CSS}
     .nfc-tpl{width:210mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff}
-    .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"]){padding:15mm}
+    .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]){padding:15mm}
     .nfc-tpl>hr{margin:0;border:0}
 ${SHEET_FIELD_CSS}
 ${SHEET_PRINT_CSS}

@@ -135,6 +135,15 @@ public class MedicalRecordSheetPlanDto
 
     /// <summary>The day the slip's last service was finished; null while it is still being treated.</summary>
     public DateOnly? EndDate { get; set; }
+
+    /// <summary>The slip's lines at their giá gốc, before anything is taken off — "Chi phí ban đầu" on mẫu 10.</summary>
+    public decimal GrossAmount { get; set; }
+
+    /// <summary>Every discount on the slip (lines, vouchers, slip level) — "Giảm giá" on mẫu 10.</summary>
+    public decimal DiscountAmount { get; set; }
+
+    /// <summary><see cref="GrossAmount"/> less <see cref="DiscountAmount"/>, before VAT — "Chi phí sau giảm giá".</summary>
+    public decimal TotalAmount { get; set; }
 }
 
 public class MedicalRecordSheetServiceDto

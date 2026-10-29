@@ -126,6 +126,10 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
                     DentistName = dentist?.PrintedName,
                     DentistPosition = dentist?.Position,
                     EndDate = planEnds[plan.Id],
+                    // As the slip's own totals read on Kế hoạch điều trị.
+                    GrossAmount = plan.ServicesGrossTotal,
+                    DiscountAmount = plan.TotalDiscountAmount,
+                    TotalAmount = plan.TotalAmount,
                 };
             }).ToList(),
             Services = lines.Select(line =>

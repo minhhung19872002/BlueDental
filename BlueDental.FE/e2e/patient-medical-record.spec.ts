@@ -2,7 +2,7 @@ import { expect, test, type FrameLocator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { createSlipViaApi } from "./fixtures/ledgerReceipt";
 import { SETS_API, openRecordWithSet } from "./fixtures/medicalRecordSet";
-import { call } from "./fixtures/timekeepingStaff";
+import { call, firstBranchId } from "./fixtures/timekeepingStaff";
 
 /**
  * Feature: Bệnh án — the record's second view, behind the header's
@@ -91,7 +91,7 @@ async function openLastSheet(page: Page, form: string) {
   await sheetReady(page);
 }
 
-/** The nine forms, by the number the API stores them under. */
+/** The forms, by the number the API stores them under. */
 const FORM_NUMBER: Record<string, number> = {
   "Bìa hồ sơ bệnh án": 1,
   "Bệnh án ngoại trú Răng Hàm Mặt": 2,
@@ -102,6 +102,7 @@ const FORM_NUMBER: Record<string, number> = {
   "Phiếu phẫu thuật/thủ thuật": 7,
   "Phiếu theo dõi điều trị": 8,
   "Phiếu chăm sóc": 9,
+  "Hợp đồng thỏa thuận niềng răng": 10,
 };
 
 /** A diagnosis too long for its blank's line, so it goes on to lines of its own (flowLines). */
@@ -200,12 +201,12 @@ test.describe("Bệnh án", () => {
     await login(page);
   });
 
-  test("the index lists the reference's nine forms and the view rides in the URL", async ({
+  test("the index lists the reference's nine forms, then the clinic's own, and the view rides in the URL", async ({
     page,
   }) => {
     await openMedicalRecord(page);
 
-    // The index, in the reference's own order and wording.
+    // The index, in the reference's own order and wording, then the clinic's mẫu 10.
     const forms = [
       "1. Bìa hồ sơ bệnh án",
       "2. Bệnh án ngoại trú Răng Hàm Mặt",
@@ -216,6 +217,7 @@ test.describe("Bệnh án", () => {
       "7. Phiếu phẫu thuật/thủ thuật",
       "8. Phiếu theo dõi điều trị",
       "9. Phiếu chăm sóc",
+      "10. Hợp đồng thỏa thuận niềng răng",
     ];
     await expect(page.locator(".pd-medical-form")).toHaveCount(forms.length);
     for (const label of forms) {
@@ -242,7 +244,7 @@ test.describe("Bệnh án", () => {
    * original. The counts are the reference's, taken off the same blanks.
    */
   test("every form draws the whole of its printed original", async ({ page }) => {
-    // Nine forms, each wiped and reloaded before it is counted.
+    // Ten forms, each wiped and reloaded before it is counted.
     test.slow();
     await openMedicalRecord(page);
 
@@ -262,6 +264,9 @@ test.describe("Bệnh án", () => {
       { form: "Phiếu phẫu thuật/thủ thuật", blanks: 39, boxes: 2, pages: 1 },
       { form: "Phiếu theo dõi điều trị", blanks: 111, boxes: 2, pages: 1 },
       { form: "Phiếu chăm sóc", blanks: 118, boxes: 2, pages: 1 },
+      // The clinic's .docx (2026-10-29): every dotted line a blank; the contract
+      // on two pages and the agreement attached to it on three.
+      { form: "Hợp đồng thỏa thuận niềng răng", blanks: 40, boxes: 0, pages: 5 },
     ];
 
     for (const item of expected) {
@@ -1203,6 +1208,16 @@ test.describe("Bệnh án", () => {
       ],
       ["Phiếu phẫu thuật/thủ thuật", { "procedure-record.text.1": diagnosed }],
       ["Phiếu chăm sóc", { "care.diagnosis": diagnosed }],
+      [
+        "Hợp đồng thỏa thuận niềng răng",
+        {
+          "orthodontic-contract.patient.address": address,
+          // Chẩn đoán as Bệnh án chỉnh nha prints it (R-1079).
+          "orthodontic-contract.text.7": diagnosed,
+          // An adult signs alone: the guardian on file is not printed as a parent.
+          "orthodontic-contract.text.29": "",
+        },
+      ],
     ];
 
     for (const [form, blanks] of expected) {
@@ -1226,6 +1241,69 @@ test.describe("Bệnh án", () => {
     await openSheet(page, "Phiếu tư vấn và xác nhận đồng ý điều trị");
     await expect(blank(page, "consultation.patient.address")).toHaveText(address);
     await expect(blank(page, "consultation.text.5")).toBeEmpty();
+  });
+
+  /**
+   * Mẫu 10 asks for a parent or guardian "nếu khách hàng chưa đủ 18 tuổi"
+   * (R-1079): for a patient under 18 the primary guardian's name is printed
+   * there. An adult's guardian is not — the test above.
+   */
+  test("mẫu 10 names the guardian of a patient under 18", async ({ page }) => {
+    const branch = "11111111-1111-1111-1111-111111111111";
+    const suffix = runId();
+    const born = new Date().getFullYear() - 10;
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    const patient = await call<{ id: string }>(page, "/api/v1/app/patients", {
+      method: "POST",
+      branchId: branch,
+      json: {
+        firstName: "Niềng Răng",
+        lastName: `Vị Thành Niên ${suffix}`,
+        gender: 2,
+        phoneNumber: `08${suffix.padStart(8, "0").slice(-8)}`,
+        dateOfBirth: `${born}-03-03`,
+        guardians: [
+          {
+            id: null,
+            linkedPatientId: null,
+            relation: 2,
+            relationNote: null,
+            proofType: null,
+            proofBlobName: null,
+            proofFileName: null,
+            fullName: `Mẹ Hợp Đồng ${suffix}`,
+            phone: `03${suffix.padStart(8, "0").slice(-8)}`,
+            nationalId: `0792${suffix.padStart(8, "0").slice(-8)}`,
+            dateOfBirth: null,
+            idIssuedOn: null,
+            idIssuedPlace: null,
+            gender: 2,
+            email: null,
+            occupationEntryId: null,
+            sameAddressAsPatient: true,
+            address: null,
+            isPrimaryContact: true,
+          },
+        ],
+        guardiansConsented: true,
+      },
+    });
+    expect(patient.status, JSON.stringify(patient.body)).toBe(200);
+
+    const treatment = await createSlipViaApi(page, patient.body.id);
+    const set = await call(page, SETS_API, {
+      method: "POST",
+      json: { patientId: patient.body.id, treatmentPlanIds: [treatment.id], visibleForms: [] },
+    });
+    expect(set.status, JSON.stringify(set.body)).toBe(200);
+
+    await page.goto(`/patient/${patient.body.id}?branchId=${branch}&view=medical-record`);
+    await expect(page.locator(".pd-medical-form").first()).toBeVisible();
+    await openSheet(page, "Hợp đồng thỏa thuận niềng răng");
+    await expect(blank(page, "orthodontic-contract.text.29")).toHaveText(`Mẹ Hợp Đồng ${suffix}`);
+    await expect(blank(page, "orthodontic-contract.patient.date-of-birth")).toHaveText(`03/03/${born}`);
   });
 
   test("Toàn màn hình spreads the sheet over the window and gives it back", async ({ page }) => {
@@ -1715,6 +1793,119 @@ test.describe("Bệnh án", () => {
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
     expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+  });
+
+  /**
+   * Mẫu 10 — Hợp đồng thỏa thuận niềng răng, the clinic's own form (.docx,
+   * 2026-10-29): the contract and the Bản thỏa thuận attached to it, set like
+   * mẫu 6 (R-1079) — 15px, a line and a half, 15mm on the sheet and on every
+   * printed page, the titles at 18pt. Bên B is answered from the record — the
+   * name in capitals, the code, CCCD — and so is the customer under III. Đồng ý
+   * điều trị; a dotted line after a label runs to the right margin, and what the
+   * clinic writes on the sheet comes back after a reload.
+   */
+  test("mẫu 10: the contract is filled from the record, keeps what is written and prints like mẫu 6", async ({ page }) => {
+    const margin = (15 / 25.4) * 96;
+    const form = "Hợp đồng thỏa thuận niềng răng";
+    await openMedicalRecord(page);
+    const patientId = new URL(page.url()).pathname.split("/")[2];
+    const branch = await firstBranchId(page);
+    const record = await call<{ patientCode: string; fullName: string; dateOfBirth: string | null; nationalId: string | null }>(
+      page,
+      `/api/v1/app/patients/${patientId}`,
+      { branchId: branch },
+    );
+    expect(record.status).toBe(200);
+    const patient = record.body;
+
+    await openFreshSheet(page, form);
+    await expect(blank(page, "orthodontic-contract.patient.name")).toHaveText(patient.fullName.trim().toUpperCase());
+    await expect(blank(page, "orthodontic-contract.patient.code")).toHaveText(patient.patientCode);
+    await expect(blank(page, "orthodontic-contract.patient.signer-name")).toHaveText(patient.fullName.trim());
+    if (patient.nationalId?.trim()) {
+      await expect(blank(page, "orthodontic-contract.patient.cccd")).toHaveText(patient.nationalId.trim());
+    }
+    if (patient.dateOfBirth) {
+      const [year, month, day] = patient.dateOfBirth.slice(0, 10).split("-");
+      await expect(blank(page, "orthodontic-contract.patient.date-of-birth")).toHaveText(`${day}/${month}/${year}`);
+    }
+    // Bên A and its representative are the clinic's print, not blanks.
+    await expect(sheet(page).locator(".nfc-tpl")).toContainText("Đại diện: Bác sĩ Bùi Văn Tới – Bác sĩ phụ trách");
+
+    const layout = await sheet(page)
+      .locator(".nfc-tpl")
+      .evaluate((root) => {
+        const style = getComputedStyle(root);
+        const right = root.getBoundingClientRect().right - parseFloat(style.paddingRight);
+        const ratio = (node: Element) =>
+          parseFloat(getComputedStyle(node).lineHeight) / parseFloat(getComputedStyle(node).fontSize);
+        // The blanks that end their line, as the .docx's dotted lines do; the
+        // record's own answers are left out, since a long one wraps as on any form.
+        const reaching = Array.from(root.querySelectorAll('[data-medical-record-field][data-field-full-width="false"]'))
+          .filter((node) => !node.textContent && !node.nextSibling && !node.parentElement?.nextSibling)
+          .map((node) => {
+            const box = node.getBoundingClientRect();
+            return {
+              id: node.getAttribute("data-medical-record-field"),
+              right: right - box.right,
+              lines: box.height / parseFloat(getComputedStyle(node).lineHeight),
+            };
+          });
+        const title = (text: string) =>
+          Array.from(root.querySelectorAll("h1")).find((node) => node.textContent?.includes(text));
+        return {
+          fontSize: style.fontSize,
+          padding: ["top", "right", "bottom", "left"].map((edge) => parseFloat(style.getPropertyValue(`padding-${edge}`))),
+          contract: ratio(root.querySelector('[data-medical-record-field="orthodontic-contract.text.7"]')!.closest("p")!),
+          agreement: ratio(Array.from(root.querySelectorAll("p")).find((node) => node.textContent?.startsWith("1. Một số vấn đề"))!),
+          titles: ["HỢP ĐỒNG THỎA THUẬN", "BẢN THỎA THUẬN"].map((text) => {
+            const node = title(text)!.querySelector("span")!;
+            return getComputedStyle(node).fontSize;
+          }),
+          reaching,
+        };
+      });
+    expect(layout.fontSize, "mẫu 6's type").toBe("15px");
+    for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
+    expect(layout.contract, "the contract a line and a half").toBeCloseTo(1.5, 2);
+    expect(layout.agreement, "the agreement too").toBeCloseTo(1.5, 2);
+    expect(layout.titles, "both titles at 18pt, as on the other forms").toEqual(["24px", "24px"]);
+    // The record answers several of them (Bên B, Chẩn đoán, the plan, the costs).
+    expect(layout.reaching.length, "the dotted lines that end a line").toBeGreaterThanOrEqual(8);
+    for (const { id, right, lines } of layout.reaching) {
+      expect(lines, `${id} stays on its line`).toBeLessThan(1.6);
+      expect(Math.abs(right), `${id} runs to the right margin`).toBeLessThan(4);
+    }
+
+    // What the clinic writes in the blanks the record leaves to the pen is the
+    // sheet's, and comes back after a reload.
+    const promise = `Đều răng, khớp cắn loại I ${runId()}`;
+    await blank(page, "orthodontic-contract.text.19").fill("24 tháng");
+    await blank(page, "orthodontic-contract.text.21").fill(promise);
+    await save(page);
+    await page.reload();
+    await openSheet(page, form);
+    await expect(blank(page, "orthodontic-contract.text.19")).toHaveText("24 tháng");
+    await expect(blank(page, "orthodontic-contract.text.21")).toHaveText(promise);
+
+    // On paper the margins are the page's, on every page — and each of the five
+    // pages fits its sheet of A4, so the job has exactly five.
+    await page.evaluate(() => {
+      window.print = () => undefined;
+    });
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+    const copy = page.locator(".mr-print-copy .nfc-tpl");
+    await expect(copy).toBeAttached();
+    await page.emulateMedia({ media: "print" });
+    const printed = await copy.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { page: style.getPropertyValue("page"), padding: style.paddingTop };
+    });
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    await page.emulateMedia({ media: "screen" });
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+    expect((pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length, "printed pages").toBe(5);
   });
 
   /**

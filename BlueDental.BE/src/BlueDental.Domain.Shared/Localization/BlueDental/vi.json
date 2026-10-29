@@ -3616,7 +3616,7 @@
     "Patient:RecordSet:TakenHint": "Phiếu đã thuộc bộ hồ sơ khác. Muốn đưa vào bộ này, hãy bỏ phiếu khỏi bộ đó trước.",
     "Patient:RecordSet:Section2": "2. Mục hiển thị",
     "Patient:RecordSet:ShownCount": "hiển thị {0}/{1}",
-    "Patient:RecordSet:Section2Hint": "Bộ hồ sơ luôn gồm đủ 9 mục; mục không tick chỉ bị ẩn khỏi mục lục.",
+    "Patient:RecordSet:Section2Hint": "Bộ hồ sơ luôn gồm đủ {0} mục; mục không tick chỉ bị ẩn khỏi mục lục.",
     "Patient:RecordSet:SelectAll": "Chọn tất cả",
     "Patient:RecordSet:ClearAll": "Bỏ chọn",
     "Patient:RecordSet:Footer": "{0} phiếu điều trị · {1} mục · hiển thị {2}",

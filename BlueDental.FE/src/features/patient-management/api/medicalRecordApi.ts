@@ -21,6 +21,7 @@ export const MEDICAL_RECORD_FORM = {
   SurgeryRecord: 7,
   TreatmentFollowUp: 8,
   CareSheet: 9,
+  OrthodonticContract: 10,
 } as const;
 
 export type MedicalRecordForm =

@@ -13,7 +13,7 @@ namespace BlueDental.PatientManagement;
 /// The clinic's own design (save/P1710.drawio, 2026-10-17), not the reference's:
 /// a patient may hold several sets, each numbered
 /// <c>HS{patient code}-{DDMMYYYY}-{nn}</c>, each showing a chosen subset of the
-/// nine forms in its index. A treatment slip sits in at most one live set.
+/// forms in its index. A treatment slip sits in at most one live set.
 ///
 /// A set is never removed — the sheets in it are part of the medical record.
 /// Cancelling it keeps it, read-only, at the bottom of the list and lets its
@@ -23,7 +23,7 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
 {
     public const int MaxCodeLength = 64;
 
-    /// <summary>The nine forms, in index order — what "show every form" means.</summary>
+    /// <summary>Every form, in index order — what "show every form" means.</summary>
     public static readonly IReadOnlyList<MedicalRecordForm> AllForms = Enum.GetValues<MedicalRecordForm>();
 
     private readonly List<MedicalRecordSetPlan> _plans = new();
@@ -43,8 +43,8 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// The forms left out of the index, one bit per form (bit n-1 for form n).
-    /// Stored as what is hidden so that a set made before a tenth form existed
-    /// would show it.
+    /// Stored as what is hidden so that a set made before a form existed shows
+    /// it — as every set opened before mẫu 10 (2026-10-29) does.
     /// </summary>
     public int HiddenFormMask { get; private set; }
 

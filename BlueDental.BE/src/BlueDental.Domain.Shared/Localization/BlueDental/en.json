@@ -3361,7 +3361,7 @@
     "Patient:RecordSet:TakenHint": "This slip belongs to another set. Take it out of that set first to add it here.",
     "Patient:RecordSet:Section2": "2. Sections shown",
     "Patient:RecordSet:ShownCount": "showing {0}/{1}",
-    "Patient:RecordSet:Section2Hint": "A set always holds all nine sections; an unticked one is only hidden from the index.",
+    "Patient:RecordSet:Section2Hint": "A set always holds all {0} sections; an unticked one is only hidden from the index.",
     "Patient:RecordSet:SelectAll": "Select all",
     "Patient:RecordSet:ClearAll": "Clear",
     "Patient:RecordSet:Footer": "{0} treatment slips · {1} sections · {2} shown",

@@ -12257,3 +12257,49 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Dialog "Tạo lịch hẹn" (mở rồi Esc, không lưu): lịch mini Ngày (cả hai kiểu), Tuần, Tháng đều đúng 3 màu.
 - **E2E**: không chạy. Chỉ đổi màu trong một file CSS, không đổi DOM, class hay hành vi.
 - **Mức retest**: 1.
+
+## R-1079 (2026-10-29, mức 2: F-30 Bệnh án) Mẫu 10 "Hợp đồng thỏa thuận niềng răng" — biểu mẫu của phòng khám
+
+- **Yêu cầu (chủ dự án)**:
+  - Kèm file `Hợp Đồng thỏa thuận niềng răng.docx`: thêm mẫu bệnh án số 10 "Hợp đồng thỏa thuận niềng răng" vào bộ hồ sơ. Bản gốc không có mẫu này → không có mục UNKNOWN_REFERENCE_BEHAVIOR.
+  - Sau khi thử: kiểu chữ mẫu 10 phải đồng bộ với các mẫu còn lại; xem thông tin nào điền sẵn được, theo các mẫu khác.
+- **Sửa — BE**:
+  - `MedicalRecordForm.OrthodonticContract = 10`. Không migration: `HiddenFormMask` lưu mục bị **ẩn**, nên bộ hồ sơ có từ trước hiện mẫu 10 mặc định. Test domain mới `A_set_saved_before_mau_10_existed_shows_it_and_keeps_what_it_hid`.
+  - `MedicalRecordSheetPlanDto` thêm `GrossAmount` / `DiscountAmount` / `TotalAmount` = `ServicesGrossTotal` / `TotalDiscountAmount` / `TotalAmount` của phiếu điều trị (cùng số màn Kế hoạch điều trị hiện).
+  - Câu "Bộ hồ sơ luôn gồm đủ 9 mục" (vi/en) đổi thành `{0}` lấy số mục thật.
+- **Sửa — FE**:
+  - `MEDICAL_RECORD_FORM.OrthodonticContract`; dòng 10 trong `medicalRecordForms.ts` (màu dòng 3, nối chu kỳ 7 màu).
+  - Template `templates/orthodonticContract.ts`, sinh từ chữ của file Word: 40 ô, 5 trang (hợp đồng 2, bản thỏa thuận 3 — đúng chỗ ngắt của file Word trước mục 17 và mục 5).
+  - Kiểu chữ theo mẫu 6 (`sheetCss.ts`, `medical-record.css`): 15px; vào nhóm giãn dòng 1,5 và nhóm lề `margin-15mm` của mẫu 2/6/7; quốc hiệu 14pt; hai tiêu đề `h1` 18pt căn giữa; khoảng cách đoạn / tiêu đề mục dùng chung. Không còn trang in riêng hay luật CSS riêng nào cho mẫu 10 ngoài cỡ chữ.
+  - Điền sẵn, mỗi ô theo tiền lệ một mẫu khác:
+    - Bên B: Họ và tên (in hoa), Mã hồ sơ, SĐT, Địa chỉ, CCCD.
+    - "1. Chẩn đoán": `DIAGNOSIS_FIELDS`, như mẫu 3.
+    - "- Kế hoạch điều trị": dịch vụ từng phiếu điều trị như IX mẫu 3; quá 5 dòng thì thêm dòng. `sheetFacts.ts` tách `planLines` / `putLines` dùng chung cho mẫu 3, mẫu 5, mẫu 10.
+    - II. Chi phí: cộng 3 số mới qua các phiếu trong bộ, in "45.000.000đ".
+    - III: Họ tên khách hàng, Ngày sinh; "Họ tên cha mẹ/người giám hộ" = người giám hộ chính **chỉ khi dưới 18 tuổi** (`patient.minorGuardianName`).
+  - Để trống: ngày ký, Cấp ngày / Nơi cấp CCCD (hồ sơ bệnh nhân không có), Nhổ răng, Phục hồi, Khí cụ, thời gian, Cam kết, chữ ký, Địa chỉ / SĐT cuối trang.
+- **Đo**:
+  - Bản đầu (13pt, lề của file Word) so với Word xuất PDF: ngắt dòng trùng bản Word.
+  - Bản đồng bộ: vùng viết 680px; trang 856 / 825 / 688 / 705 / 488px trên 986px; 28 ô có nhãn đều nằm một dòng và chạm lề phải (±2px). Ảnh đặt cạnh mẫu 6: cùng cỡ quốc hiệu, tiêu đề, thân chữ, giãn dòng, lề.
+- **Lỗi chủ dự án báo khi thử** ("Sửa bộ hồ sơ" tick mục 10 → toast thành công nhưng không lưu, giao diện không đổi):
+  - Nguyên nhân: host :5000 chạy bản build từ trước khi enum có mục 10. `MedicalRecordSet.AllForms` ở đó chỉ 9 mục; `ShowOnly` bỏ qua mục lạ mà vẫn trả 200.
+  - Bằng chứng: cùng bộ `HSBD269007-17082026-01` (`HiddenFormMask = 0`): host cũ trả `visibleForms=[1..9]`, host mới `[1..10]`.
+  - Xử lý: khởi động lại host. Ca `medical-record-set` thêm bước sửa bộ → bỏ tick / tick lại mục 10 → kiểm DB và mục lục sau reload.
+- **E2E** (thật, không chặn API, đăng nhập thật; lần cuối chạy trên dev :5173 + host :5000 build từ cây hiện tại, theo yêu cầu chỉ giữ một FE):
+  - Ca "mẫu 10: the contract is filled from the record, keeps what is written and prints like mẫu 6" → **xanh**: 15px, padding 15mm, dòng 1,5 cả hai phần, 2 tiêu đề 24px, ô chạm lề phải, giá trị từ hồ sơ, lưu + reload ô viết tay, "In biểu mẫu" ra `margin-15mm`, đúng 5 trang.
+  - Ca mới "mẫu 10 names the guardian of a patient under 18" → **xanh**. Ca "address and diagnoses" thêm mẫu 10 (địa chỉ, chẩn đoán; người lớn có người giám hộ → ô cha mẹ trống) → **xanh**.
+  - `medical-record-sheet-facts`: đặt giảm 100.000đ lên phiếu đầu; mẫu 10 có Kế hoạch điều trị 3 phiếu (5 dòng in + dòng thêm) và 3 số chi phí khớp sheet facts, ban đầu − giảm = sau giảm → **2/2 xanh**.
+  - `medical-record-set` → **3/3 xanh**; "every form draws…" (mẫu 10: 40 ô, 5 trang) và "every form shares mẫu 5's…" → **xanh**.
+  - Hồi quy `patient-medical-record` + `medical-record-drawing` (43 ca, 13 phút): **37 xanh / 6 đỏ**, không ca nào do mẫu 10:
+    - "the index lists…" (mục lục 10 dòng đều xanh, đỏ ở `.pd-profile-card`) và "picking the day…": đỏ cả trên HEAD sạch (R-1073).
+    - "picking a sheet from the folded index…", "leaving a sheet with unsaved writing…", "a browser extension's block…": thẻ phiếu của bệnh nhân test đang mang tên đã đổi ("Bìa hồ sơ", "Phiếu đồng ý điều trị") — dữ liệu, như R-1073. Không đổi tên lại dữ liệu chung.
+    - "the open sheet's card wears its own form's colour": đọc màu viền giữa transition (`oklab(…)`); chạy riêng `--repeat-each 3` → **3/3 xanh**.
+  - Ghi chú: ô dài (Chẩn đoán tự điền) chảy sang dòng nối tiếp; sửa dòng đầu không xoá các dòng sau — hành vi sẵn có của `flowLines`, như mẫu 3 / mẫu 7.
+  - `tsc -b`, `oxlint` xanh. BE Domain `MedicalRecordSet*` 12/12.
+- **Mức retest**: 2 (F-30 Bệnh án: mục lục, bộ hồ sơ, tờ + bản in, sheet facts; CSS tờ dùng chung). Sửa `02-impact-map.md`, mục mẫu 10 trong `docs/clone/pages/patient-detail.md`.
+- **Chưa chốt, chờ chủ dự án**:
+  - Ngày ký "Hôm nay, ngày … tháng … năm …": để trống, hay lấy ngày chọn phía trên tờ (như mẫu 4/5), hay ngày tạo phiếu?
+  - Địa chỉ / SĐT cuối trang là của khách hàng hay người giám hộ?
+  - Chi phí cộng **mọi** phiếu điều trị trong bộ (như bảng chi phí mẫu 5). Nếu bộ có cả phiếu không phải niềng răng thì số này lớn hơn giá trị hợp đồng.
+  - File Word đánh số phần thỏa thuận "I." → "Sự đồng ý…" (không "II.") → "III." — giữ nguyên văn.
+  - Server bỏ qua mục không biết mà vẫn trả 200; có thể đổi sang báo lỗi để lệch phiên bản FE/BE không còn "thành công giả".
