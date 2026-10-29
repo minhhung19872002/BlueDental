@@ -12130,3 +12130,54 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chỉ màn Labo và tab Labo của hồ sơ thay đổi. Các trường mới đều là tuỳ chọn: bỏ trống thì vẫn như cũ (xám).
   - `/taxonomy` không đụng.
 - **Ngoài phạm vi**: phiếu Labo in (PHIẾU ĐẶT HÀNG LABO) và dialog chi tiết phiếu vẫn hiển thị tên chữ thường, không có badge.
+
+## R-1073 (2026-10-29, mức 2: bệnh án mẫu 7, mẫu 2) Phiếu phẫu thuật/thủ thuật theo bản của phòng khám; ô trống mẫu 2 theo bản của phòng khám
+
+- **Yêu cầu (chủ dự án, kèm 3 file của phòng khám trong thư mục `Phiếu update`: `benh_an_ngoai_tru_2.html`, `phieu_dong_y_phau_thuat_1.html`, `phieu_phau_thuat_thu_thuat.html`)**: so style các mẫu bệnh án tương ứng với file (cỡ chữ…), khác chỗ nào thì sửa cho giống.
+  - Cách so: lấy CSS trong file diff với `SHEET_CSS` + `SHEET_PAGE_CSS`; render template bằng chính `renderSheetHtml` rồi diff với thân file sau khi bỏ giá trị đã điền.
+  - Mẫu 6: đã khớp từ R-1068. Chỉ còn khác ô MS: R-1069 cố ý cho MS hiện như chữ in, còn file được xuất trước R-1069.
+  - Mẫu 2: style đã khớp từ R-1067. Còn 31 ô trống trong file rộng hơn template (R-1067 đã chốt giữ nguyên). Chủ dự án chốt lần này: **lấy theo file**, như mẫu 6.
+  - Mẫu 7: chưa làm. File có khối "Chỉnh sửa 2026-10-29: mẫu 7": lề 15mm, chữ 14px, dòng 1,5, đầu phiếu sát lề trái, MS / Mã người bệnh thẳng cột sát lề phải. 10 ô trống kéo tới lề phải.
+  - File mẫu 2 và mẫu 7 còn kéo dòng nối tiếp của ô chữ dài (`flowLines`) rộng 680px, tức chạm lề phải.
+- **Trước đó**:
+  - Mẫu 7: chữ 16,5px. In lề `@page` 5mm cộng padding 7mm, trên màn hình padding 12mm. Dòng 1,3 (đoạn) / 1,2 (tiêu đề). MS và Mã người bệnh là một đoạn căn phải ngắt bằng `<br>`, nên hai ô không thẳng cột. Phần lớn ô trống 320px.
+  - Mẫu 2: ô trống theo số cũ (vd. Địa chỉ 480px, Tiền sử bệnh 500px, "Gia đình" 320px) và không có `box-sizing`. Ô `text.7` (256px + padding) vì thế rớt xuống dòng dưới, tờ cao hơn file 102px.
+- **Sửa (chỉ FE, không đổi server/DB/i18n)**:
+  - `sheetCss.ts`:
+    - `.nfc-tpl[data-form="7"]{font-size:14px}`, tách khỏi dòng 16,5px.
+    - Nhóm lề 15mm `:is([data-form="2"],[data-form="6"])` thêm `[data-form="7"]`: trang in `margin-15mm`, padding 15mm ở `SHEET_PAGE_CSS` / `PRINT_COPY_CSS`, và luật `html:has(…)`.
+    - Ba luật của mẫu 6 đổi selector thành `:is([data-form="6"],[data-form="7"])`: dòng 1,5; đầu phiếu sát lề trái, MS sát lề phải; cột đầu bảng không viền sát lề trái. Luật ô đánh dấu đầu dòng vẫn chỉ cho mẫu 6, vì file mẫu 7 không có.
+    - Luật lưới `p.record-ids` của mẫu 2 dùng chung cho mẫu 7 (`.nfc-tpl[data-form="7"] p.record-ids`).
+    - Thêm `.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"]) [data-flow-of]{width:100%;min-width:0!important;max-width:none;box-sizing:border-box}`: dòng nối tiếp chạm lề phải. Chữ trên dòng vẫn ngắt như cũ, theo bề rộng dòng đầu. Mẫu 6 được thêm cho cả nhóm 15mm đồng bộ; file mẫu 6 không có dòng nối tiếp nào để so.
+  - `medical-record.css` (khối in R-1070): `<html>` mang tên trang `margin-15mm` khi phiếu cuối là mẫu 2, 6 hoặc 7.
+  - `templates/surgeryRecord.ts`:
+    - Khối MS → `<p class="record-ids">`, nhãn bọc `span.record-ids-label`, ô bọc `span`, giống mẫu 2 (bỏ `<br>` và style căn phải). Chữ, id ô và thuộc tính ô giữ nguyên.
+    - 10 ô lấy số của phòng khám làm `min-width`, thêm `box-sizing: border-box`: text.2 320→475, text.3 320→482, text.4 320→554, text.5 320→582, text.6 320→590, text.11 40→269, text.31 430→421, text.33 320→583, text.34 320→515, text.35 320→440.
+    - Ô full-width (text.21–30, text.32) giữ nguyên: đã `width:100%`, đo ra đúng số của file.
+  - `templates/outpatientDental.ts`: 31 ô làm như trên, ví dụ Họ tên 190→235, Địa chỉ 480→574, Tiền sử bệnh 500→616, `text.18` 48→210, `text.23` 320→617, `text.43` 320→474, `text.58` 40→223, `text.108` 64→155. Ba ô vốn đã đúng số (hai ô 680px, `text.20` 560px) chỉ thêm `box-sizing`. Ô full-width giữ nguyên.
+  - Template nằm trong code, phiếu đã lưu chỉ giữ giá trị ô, nên phiếu cũ cũng hiện theo kiểu mới.
+- **Đo so với file của phòng khám**: script trong scratchpad render template (`renderSheetHtml` + `flowLongBlanks`) và file trong 2 iframe cùng khổ, xoá giá trị đã điền, rồi so toạ độ từng ô tính từ góc vùng viết.
+  - Mẫu 7: **39/39 ô trống + ô đánh dấu lệch ≤1px**. Ảnh chụp tờ **0 pixel khác** (ngưỡng 40/255). Cao 1123px, bằng file.
+  - Mẫu 2: **137/140 ≤1px** (trước khi sửa: 6/140). Cao 2907px, bằng file (trước: 3009px). 3 ô lệch là khối MS: R-1069 bỏ khung ô MS nên cột ô hẹp lại 170→128px. Ảnh chụp chỉ khác ở dải y 59–119, đúng khối MS.
+  - Mẫu 6: 48/49, không đổi; ô lệch là MS (R-1069).
+- **E2E** (bản build production, preview :8080 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec`:
+    - Ca "every form shares…": mẫu 7 đổi 16,5px → 14px, vẫn in 1 trang → **xanh**. 8 mẫu khác giữ nguyên số liệu (mẫu 2 vẫn 3 trang) và vẫn xanh.
+    - Ca R-1067 "mẫu 2: 15mm margins…" thêm kiểm tra → **xanh**: ô Địa chỉ, Tiền sử bệnh, Gia đình nằm trên một dòng và chạm lề phải (±2px); "5. Chẩn đoán" dài chảy sang dòng riêng, dòng đó chạm lề phải (±1px).
+    - Ca mới "mẫu 7: 15mm margins, the letterhead, the MS block and the blanks to the right margin" → **xanh**. Ca này kiểm:
+      - chữ 14px; padding 15mm 4 cạnh; giãn dòng ≈ 1,5 lần cỡ chữ;
+      - đầu phiếu chạm lề trái; 2 nhãn MS một cột, 2 ô một cột, khối chạm lề phải;
+      - 10 ô trên nằm một dòng và chạm lề phải (±2px);
+      - "Chẩn đoán trước" dài có dòng nối tiếp chạm lề phải;
+      - khi in, bản sao `.mr-print-copy` có `page: margin-15mm` và padding 0.
+    - Ca R-1070 "a browser extension's block…" thêm mẫu 7: có khối extension vẫn in 1 trang → **xanh 3/3** (`--repeat-each 3`).
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` + `medical-record-drawing` (43 ca, 8 phút, 1 worker): **37 xanh / 6 đỏ**.
+    - "the index lists…", "picking the day…": đã đỏ từ trước (R-1067…R-1070). Cũng đỏ y hệt trên bản build HEAD sạch `ea1eabc7` (`git archive` + junction `node_modules`, preview :8188).
+    - "a row of the treatment log…", "picking a sheet from the folded index…", "leaving a sheet with unsaved writing…": đỏ vì dữ liệu do các ca chạy trước để lại (thẻ "Bìa hồ sơ" thay vì "Bìa hồ sơ bệnh án"; hàng Phiếu chăm sóc chưa ra thẻ sau khi bấm Thêm). Chạy lại trên chính bản sửa → **xanh cả 3**.
+    - "a browser extension's block…": lần đó đỏ vì thẻ mẫu 5 đang mang tên "Phiếu đồng ý điều trị" (dữ liệu). Một lần chạy riêng khác đỏ vì "Failed to fetch". Sau đó chạy lại 3/3 xanh.
+  - `treatment-plan.spec` (9 ca; dialog "In bệnh án" in qua cùng `copySheetsForPrint`) → **9 xanh**.
+  - `tsc -b` (trong `npm run build`) xanh; `oxlint` xanh.
+- **Mức retest**: 2 (F-30 Bệnh án: mẫu 2 và mẫu 7, màn hình + bản in; khối in dùng chung). Không ảnh hưởng `/taxonomy`, vì chỉ tab hồ sơ import `sheetCss.ts`. Đã sửa 2 dòng trong `02-impact-map.md`.
+- **Còn lại, chưa làm**:
+  - Khối MS mẫu 2: cột ô rộng 128px thay vì 170px như file (hệ quả của R-1069). Muốn giữ 170px thì cần thêm độ rộng tối thiểu cho cột ô. Chờ chủ dự án.
+  - In thẳng tài liệu của tờ phiếu (không qua "In biểu mẫu") thì mẫu 2 ra 5 trang. HEAD sạch cũng vậy, và app không in theo đường này.
