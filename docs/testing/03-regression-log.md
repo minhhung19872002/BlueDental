@@ -12023,3 +12023,45 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - Ca R-1067 "mẫu 2: 15mm margins, the MS block…" (nhãn và ô thẳng cột, khối sát lề phải) và ca R-1068 "mẫu 6: 15mm margins…" → **xanh**.
     - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (36 ca, 5,2 phút, 1 worker): **32 xanh / 4 đỏ**, đúng 4 ca đỏ từ trước như trên.
     - `tsc -b` xanh; `oxlint` xanh; build có 1 chunk ngôn ngữ.
+
+## R-1070 (2026-10-29, mức 2: in bệnh án) Mẫu 2, mẫu 6 in ra không còn trang trắng ở cuối
+
+- **Báo lỗi (chủ dự án, trên production)**: "mục 6 lúc in biểu mẫu nó có trang rỗng dưới cùng".
+- **Nguyên nhân** (đo trên PDF của `page.pdf`, Chrome):
+  - Từ R-1067/R-1068, mẫu 2 và mẫu 6 in trên trang có tên `@page margin-15mm`. Các mẫu khác, và mọi thứ nằm ngoài phiếu, in trên trang không tên (5mm). Chrome luôn sang trang mới ở chỗ tên trang đổi.
+  - Lúc in, `body.mr-printing > *:not(.mr-print-copy)` ẩn phần còn lại của app. Nhưng extension của trình duyệt có thể chèn vào trang một khối mà CSS của trang không ẩn được:
+    - khối gắn thẳng vào `<html>`;
+    - khối có `display: … !important` inline;
+    - host của closed shadow root có `:host{display:…!important}`: `!important` trong shadow thắng `!important` bên ngoài, nên không luật nào của app ẩn được.
+  - Chrome của chủ dự án có đúng một host như vậy trong `<body>`.
+  - Khối đó, dù rỗng 0px, nằm sau mẫu 6 thì khác tên trang, nên thành một trang trắng ở cuối. Khối nằm trước bản sao thì thành trang trắng ở đầu. Khối `position: fixed/absolute` không gây ra.
+  - Máy không có extension như vậy thì không bị. Trước R-1067 chưa có tên trang, nên chưa có lỗi này.
+- **Sửa (chỉ FE, chỉ khi in; không đổi server, DB, i18n)**:
+  - `sheetCss.ts` `SHEET_PRINT_CSS`: các phiếu thường mang tên trang `margin-5mm`. Tên này không có luật `@page` riêng, nên vẫn là A4, lề 5mm, có số trang như cũ. Mẫu 2/6 giữ `margin-15mm`.
+  - `medical-record.css` (khối in): lúc in, `<html>` mang tên trang của phiếu cuối: `margin-5mm`, hoặc `margin-15mm` khi phiếu cuối là mẫu 2/6. Khối lạ phía sau vì thế cùng tên trang, không sang trang.
+  - `printing.ts` `copySheetsForPrint`: bản sao được đặt ở **đầu** `<body>` (`prepend`, trước đây là `append`), để khối lạ có sẵn trong trang luôn nằm sau nó. Chỉ sửa CSS thì vẫn còn một trường hợp: lệnh in nhiều phiếu mở đầu bằng mẫu khác, kết thúc bằng mẫu 2/6, và có khối đứng trước bản sao. Đo được 5 trang, trang 1 trắng.
+- **Đo trước khi sửa** (spec dò tạm, không commit; chèn khối giả extension):
+
+  | Lệnh in | Trước | Sau |
+  |---|---|---|
+  | Mẫu 6 | 3 (trang 3 trắng) | 2 |
+  | Mẫu 5 | 2 | 2 |
+  | Mẫu 5 + 6 | 5 (trang 5 trắng) | 4 |
+  | Mẫu 6 + 5 | 4 | 4 |
+
+  - Không có khối lạ thì bản sửa in giống hệt bản cũ: cùng số trang, chữ cùng vị trí, điểm ảnh lệch ≤3/255 (nhiễu). Đã đo ở mẫu 2, mẫu 5, mẫu 6, Toàn bộ (23 trang) và 5 + 6.
+- **E2E** (bản build production, preview :8160 nối host :5000, không chặn API, có đăng nhập thật):
+  - `patient-medical-record.spec` có ca mới "a browser extension's block in the page prints no blank page". Ca này chèn 4 khối: closed shadow `display:contents` và `display:block`, div `display:block !important` inline, div gắn vào `<html>`. Khối được chèn một lần trước khi bấm "In biểu mẫu" (như extension có sẵn trong trang) và một lần sau khi bản sao đã có. Kết quả mong đợi:
+    - mẫu 6 ra 2 trang, mẫu 2 ra 3 trang;
+    - Toàn bộ, chọn mẫu 5 + mẫu 6: số trang bằng lúc không có khối.
+  - Trên bản build cũ: **đỏ** (mẫu 6 ra 4 trang, trắng đầu và trắng cuối). Trên bản sửa: **xanh**.
+  - Ca "every form shares…" (số trang in của cả 9 mẫu không đổi) và hai ca 15mm R-1067/R-1068 (`page` của bản sao vẫn là `margin-15mm`) → **xanh**.
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` (37 ca, 1 worker): **33 xanh / 4 đỏ**. 4 ca đỏ đúng là 4 ca đã đỏ từ trước (R-1067): `sheet-facts:309`, "the index lists…", "the open sheet's card wears…", "picking the day…".
+  - `treatment-plan.spec` (9 ca, chạy cả file vì các ca nối tiếp nhau) → **9 xanh**, trong đó có ca in từ dialog "In bệnh án": bản sao vẫn là thứ duy nhất hiện trong `<body>` khi in.
+  - `tsc -b` (trong `npm run build`) xanh; `oxlint` xanh; build production có đúng 1 chunk ngôn ngữ.
+- **Mức retest**: 2 (F-30 Bệnh án, phần in).
+  - Bị ảnh hưởng: "In biểu mẫu" ở tab Bệnh án, và dialog "In bệnh án" ở kế hoạch điều trị (`PrintMedicalRecordDialog`, cũng gọi `copySheetsForPrint`).
+  - Màn hình không đổi: luật mới chỉ nằm trong `@media print`, và luật `<html>` chỉ áp khi body có `mr-printing`.
+  - Các chức năng in khác (báo giá, yêu cầu hoá đơn, phiếu điều trị, `usePrintSheet`) dùng code riêng, không bị ảnh hưởng. `/taxonomy` cũng không.
+  - Đã thêm dòng `printing.ts` / khối in `medical-record.css` vào `02-impact-map.md`.
+- **Chưa chắc**: chưa chứng minh host extension trên máy chủ dự án chính là thủ phạm (trên màn hình nó không sinh hộp nào). Sau khi deploy cần in lại mẫu 6 trên máy đó.

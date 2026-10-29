@@ -276,6 +276,14 @@ const SHEET_FIELD_CSS = String.raw`
  * named page with that margin — the A4 and the page number still come from the
  * rule above — and the sheet itself adds none.
  *
+ * Every other sheet is on a named page too, `margin-5mm`, which has no rule of
+ * its own and so is exactly the page above (R-1070). Chrome starts a new page
+ * wherever the page name changes, so anything printed after a 15mm sheet that
+ * is not on that name gets a page to itself — blank, when it is a browser
+ * extension's empty block the app cannot hide. The name lets the app's
+ * document wear the last sheet's page (medical-record.css) and leave nothing
+ * to change at.
+ *
  * This is the part that has to travel with the sheet wherever it is printed
  * from. Printing the sheet's *frame* from outside cannot honour it: an iframe
  * is one box to the printer, and it gets sliced wherever the outer page ends,
@@ -285,7 +293,7 @@ const SHEET_PRINT_CSS = String.raw`
     @page{size:A4;margin:5mm;@bottom-right{content:counter(page);font-family:'Times New Roman',Times,serif;font-size:10pt;color:#000}}
     @page margin-15mm{margin:15mm}
     @media print{
-      .nfc-tpl{width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
+      .nfc-tpl{page:margin-5mm;width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
       .nfc-tpl:is([data-form="2"],[data-form="6"]){page:margin-15mm;width:auto;margin:0;padding:0}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
       .nfc-tpl .nfc-medical-record-checkbox{accent-color:#2671d8;print-color-adjust:exact;-webkit-print-color-adjust:exact}

@@ -1624,6 +1624,72 @@ test.describe("Bệnh án", () => {
   });
 
   /**
+   * A browser extension's block prints no page (clinic, 2026-10-29, R-1070).
+   * An extension can put a block in the page that no print rule of the app's
+   * hides — at the end of `<html>`, `display: … !important` inline, behind a
+   * closed shadow root — and Chrome starts a page wherever the page name
+   * changes. On mẫu 2 and mẫu 6's 15mm page such a block printed a blank last
+   * page; one standing before a job that opens on another form and ends on
+   * one of them, a blank first page.
+   */
+  test("a browser extension's block in the page prints no blank page", async ({ page }) => {
+    test.slow();
+    const outpatient = "Bệnh án ngoại trú Răng Hàm Mặt";
+    const consent = "Giấy đồng ý thực hiện phẫu thuật/thủ thuật";
+    const treatment = "Phiếu tư vấn và xác nhận đồng ý điều trị";
+
+    const extension = () =>
+      page.evaluate(() => {
+        const shadowed = (display: string) => {
+          const host = document.createElement("div");
+          host.attachShadow({ mode: "closed" }).innerHTML = `<style>:host{display:${display}!important}</style><div></div>`;
+          return host;
+        };
+        const inline = document.createElement("div");
+        inline.style.setProperty("display", "block", "important");
+        document.body.append(shadowed("contents"), shadowed("block"), inline);
+        document.documentElement.append(document.createElement("div"));
+      });
+
+    /** Pages "In biểu mẫu" sends to the printer; `pick` is what the Toàn bộ view's list ticks. */
+    const printedPages = async (pick: string[], withExtension: boolean) => {
+      await page.evaluate(() => {
+        window.print = () => undefined;
+      });
+      // One block there from the start, as an extension's is — before the copy is made — and one added after.
+      if (withExtension) await extension();
+      await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+      if (pick.length) {
+        const all = page.getByRole("checkbox", { name: "Chọn tất cả phiếu bệnh án" });
+        await all.check();
+        await all.uncheck();
+        for (const form of pick) await page.getByRole("checkbox", { name: `Chọn ${form}` }).first().check();
+        await page.getByRole("button", { name: "In", exact: true }).click();
+      }
+      await expect(page.locator(".mr-print-copy > .nfc-tpl")).toHaveCount(Math.max(pick.length, 1));
+      if (withExtension) await extension();
+      await page.emulateMedia({ media: "print" });
+      const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+      await page.emulateMedia({ media: "screen" });
+      await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+      return (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+    };
+
+    await openMedicalRecord(page);
+    // Opening a fresh sheet reloads the page, which clears the blocks of the form before.
+    await openFreshSheet(page, consent);
+    expect(await printedPages([], true), `${consent} · printed pages`).toBe(2);
+    await openFreshSheet(page, outpatient);
+    expect(await printedPages([], true), `${outpatient} · printed pages`).toBe(3);
+
+    // Mẫu 5 on the 5mm page, then mẫu 6 on the 15mm one: as many pages as the two print without the blocks.
+    await openFreshSheet(page, treatment);
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "Toàn bộ" }).click();
+    const alone = await printedPages([treatment, consent], false);
+    expect(await printedPages([treatment, consent], true), "mẫu 5 + mẫu 6 · printed pages").toBe(alone);
+  });
+
+  /**
    * Mẫu 5, clinic 2026-10-16: "Chi tiết răng sứ" / "Chi tiết Implant" show only
    * for their ticked method and number themselves after "Bác sĩ điều trị";
    * "Loại" lists Danh mục → Vật liệu nha khoa, fills Hãng / Xuất xứ / Bảo hành
