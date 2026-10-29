@@ -316,8 +316,8 @@ async function openStageDialog(page: Page, serviceId: string) {
 /** The dialog's live công đoạn rows, narrowed to one service line when given. */
 function liveHistRows(dialog: Locator, lineId?: string) {
   const selector = lineId
-    ? `.pd-stage-histrow[aria-disabled="false"][data-line-id="${lineId}"]`
-    : '.pd-stage-histrow[aria-disabled="false"]';
+    ? `.pd-stage-histrow[data-superseded="false"][data-line-id="${lineId}"]`
+    : '.pd-stage-histrow[data-superseded="false"]';
   return dialog.locator(selector);
 }
 
@@ -2519,7 +2519,7 @@ test.describe("Bệnh nhân", () => {
     expect(dateCells.reduce((sum, cell) => sum + cell.rowSpan, 0)).toBe(spans.length);
   });
 
-  test("a continued công đoạn greys out and only its successor stays workable", async ({
+  test("a continued công đoạn locks its controls and only its successor stays workable", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
@@ -2533,14 +2533,17 @@ test.describe("Bệnh nhân", () => {
     const dialog = await openStageDialog(page, line.serviceId);
     const oldRow = dialog.locator(`.pd-stage-histrow[data-stage-id="${older}"]`);
     const newRow = dialog.locator(`.pd-stage-histrow[data-stage-id="${newer}"]`);
-    await expect(newRow).toHaveAttribute("aria-disabled", "false");
-    await expect(oldRow).toHaveAttribute("aria-disabled", "true");
+    await expect(newRow).toHaveAttribute("data-superseded", "false");
+    await expect(oldRow).toHaveAttribute("data-superseded", "true");
 
     // Only the successor keeps Tạo Labo, and only its Hoàn thành can be ticked.
     await expect(newRow.getByRole("button", { name: "Tạo Labo" })).toHaveCount(1);
     await expect(oldRow.getByRole("button", { name: "Tạo Labo" })).toHaveCount(0);
     await expect(oldRow.locator(".pd-stage-rowactions").getByRole("checkbox")).toBeDisabled();
-    await expect(oldRow).toHaveCSS("pointer-events", "none");
+    // The reference fades the old row and makes it inert; the owner dropped
+    // that (R-1074), so its jaw button and pictures still open.
+    await expect(oldRow).toHaveCSS("opacity", "1");
+    await expect(oldRow).toHaveCSS("pointer-events", "auto");
   });
 
   test("Đặt mới is built from the app's own fields, with the reference's blocks", async ({

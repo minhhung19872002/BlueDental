@@ -12181,3 +12181,33 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Còn lại, chưa làm**:
   - Khối MS mẫu 2: cột ô rộng 128px thay vì 170px như file (hệ quả của R-1069). Muốn giữ 170px thì cần thêm độ rộng tối thiểu cho cột ô. Chờ chủ dự án.
   - In thẳng tài liệu của tờ phiếu (không qua "In biểu mẫu") thì mẫu 2 ra 5 trang. HEAD sạch cũng vậy, và app không in theo đường này.
+
+## R-1074 (2026-10-29, mức 2: F-38 Chi tiết phiếu → LỊCH SỬ ĐIỀU TRỊ) Nút hàm răng thay cho chip răng, bỏ làm mờ dòng cũ
+
+- **Yêu cầu** (chat, kèm ảnh bảng LỊCH SỬ ĐIỀU TRỊ và icon hàm răng): "Bỏ hiển thị các răng, hiển thị hình hàm răng click chọn để xem lại. Bỏ phần làm mờ phía dưới". Owner chốt 3 điểm:
+  - dòng công đoạn cũ (đã được tiếp tục) **vẫn khoá** như trước, chỉ bỏ làm mờ;
+  - sơ đồ trong dialog **giữ màu** của R-696: răng dòng này làm xanh, răng đã xong xanh lá (quy tắc BA 2026-10-05), răng của dịch vụ chưa làm để trắng, răng ngoài dịch vụ xám;
+  - chỉ làm trên `main`.
+  - Bản gốc vẫn in chip răng và làm mờ dòng cũ (`opacity-50`), nên đây là **sai khác có chủ đích**, đã ghi ở `docs/clone/pages/patient-detail.md` (mục 6 của luồng công đoạn).
+- **FE**:
+  - `stage/StageChartButton.tsx` (mới): nút hàm răng 30px `.pd-stage-chartbtn` mang `/img/teeth/teeth.svg`, tooltip + `aria-label` `Patient:Stage:ViewChart`. Dùng chung cho nút sơ đồ của form công đoạn (`StageTeethPicker`, `FollowUpTeeth` — trước đây mỗi nơi tự viết) và dòng lịch sử.
+  - `stage/StageHistoryTeeth.tsx` (viết lại): `StageChartButton` mở modal "Sơ đồ răng – {dịch vụ}" gồm chú thích 3 màu, `DentitionRadio` (mở sẵn theo răng của dòng) và `ToothChart interaction="view"`; chân modal chỉ có `Đóng`. Dòng không có răng thì không có nút.
+  - `ToothChart`:
+    - prop `enabledTeeth` đổi tên thành `offeredTeeth` (răng chủ màn hình cho phép; còn lại xám, không bấm được).
+    - prop `interaction` thành union: `"open"` (mặc định) / `"tooth"` bắt buộc truyền `onToggleTooth` + `onToggleSurface`; `"view"` thì **không nhận** handler nào.
+    - mỗi ô nhận `ToothAccess` (`open` / `tooth` / `view` / `off`) và ghi ra `data-access`; CSS bám vào thuộc tính này thay cho các class `tc-cell--disabled` / `tc-chart--readonly` (đã bỏ). `view` vẽ như thường, con trỏ thường, không bấm được; `off` xám như trước.
+    - `doneTeeth` mới: ô mang `data-done`, đổi `--tc-blue` sang `--bd-success` nên răng đã xong tô xanh lá.
+  - `toothPicker.ts`: hàm mới `toothSelectionToPick` (ngược của `toothPickToSelection`), dùng cho `StageTeethDialog`, sơ đồ lịch sử và chính `toothSelectionsToValue` (trước đây dialog tự viết một bản).
+  - `StageHistory`: bỏ chip răng và bỏ rule làm mờ. Dòng cũ thôi mang `aria-disabled="true"` mà mang `data-superseded`, vì `aria-disabled` trên dòng khiến trình đọc màn hình và Playwright coi **mọi nút con** là disabled, kể cả nút hàm răng và ảnh. Các khoá từng nút giữ nguyên: mất bút chì sửa ghi chú, ô Hoàn thành và Tải ảnh disabled, không có Tạo Labo.
+  - CSS: bỏ `.pd-stage-histteeth` / `.pd-stage-histtooth*` và rule mờ; gộp kiểu nút sơ đồ vào một rule `.pd-stage-chartbtn`; thêm `.pd-stage-chartlegend` (3 ô màu).
+  - Key i18n mới: `Patient:Stage:ChartTitle`, `ChartWorked`, `ChartDone`, `ChartOutside`.
+- **E2E** (bản build production, preview :8181 nối host riêng :5130 build vào scratchpad, cùng DB; không chặn API; đăng nhập thật). Host riêng là bắt buộc: host chung :5000 của phiên khác vẫn trả bản dịch cũ nên tiêu đề dialog ra key thô.
+  - `treatment-stage-chain` đọc màu răng **trong sơ đồ** thay vì chip (helper `openRowChart`: danh sách răng của dịch vụ / đang làm / đã xong). Dòng cũ: `data-superseded="true"`, opacity 1, ô Hoàn thành và Tải ảnh disabled, nút hàm răng vẫn mở được và sơ đồ không có răng nào bấm được.
+  - `treatment-stage-chain` đọc trạng thái ô qua `data-access` / `data-done` (không dùng class), tìm nút qua tên "Xem sơ đồ răng".
+  - `patient.spec` (2 chỗ) và `stage-remark.spec` (1 chỗ) đổi `aria-disabled` của dòng lịch sử sang `data-superseded`.
+  - `patient.spec` "a continued công đoạn locks its controls…" (trước là "greys out"): dòng cũ phải **opacity 1, pointer-events auto** thay vì `pointer-events: none` của rule mờ.
+  - Trên build từ `main` 30d380e4 (đã pull) + R-1074: `treatment-stage-chain` **8/8**, `stage-remark` **2/2**, `stage-treatment-date` **4/4**, `stage-appointment-note` **2/2**, `treatment-stage` **2/2**, `patient` 2522 **1/1** xanh. Một lần đỏ `net::ERR_NO_BUFFER_SPACE` ở `stage-remark:247` (Windows hết socket) chạy lại xanh. `tsc -b` xanh, build production có đúng 1 chunk ngôn ngữ.
+  - Màn dùng `ToothChart` khác: `cskh-after-treatment`, `diagnosis-quick-create`, `plan-advisor-scope`, `service-priority-order`, `treatment-plan-detail`, `cross-screen-freshness` xanh; `patient` 2187/2280/2314/2370/2413/2434 và `cross-screen-freshness:232` đỏ (bấm quá 30s) khi chạy cuối một lượt 33 test, chạy riêng **8/8** xanh — dữ liệu e2e dồn lại, không do R-1074.
+  - Đỏ có sẵn, đỏ y hệt trên build HEAD sạch 30d380e4 (`git archive` + preview :8182, cùng host): `patient` 1821 (đầu mục dialog thanh toán), 2727 / 2857 / 3925 (thiếu dữ liệu seed: dòng có công đoạn mẫu, lịch hẹn đơn có bác sĩ trống).
+- **Mức retest**: 2 (F-38) + các màn dùng `ToothChart` (xem dòng mới trong `02-impact-map.md`): chọn răng ở kế hoạch, phiếu chẩn đoán, phiếu tư vấn, công đoạn. Không đổi BE ngoài 4 key dịch.
+- **Ngoài phạm vi**: bảng điều trị ở tab Hồ sơ và tờ in "In lịch sử điều trị" vẫn in số răng như cũ.

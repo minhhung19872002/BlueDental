@@ -219,7 +219,7 @@ test.describe("Lịch sử điều trị — Ghi chú", () => {
 
     panel = await openStageDialog(page, fixture);
     const old = historyRow(panel, fixture.stageId);
-    await expect(old).toHaveAttribute("aria-disabled", "true");
+    await expect(old).toHaveAttribute("data-superseded", "true");
     await expect(old.getByRole("button", { name: PENCIL })).toHaveCount(0);
     const late = await api(page, "PUT", `${STAGES}/${fixture.stageId}/remark`, { remark: "muộn" });
     expect(late.status, late.text).toBeGreaterThanOrEqual(400);

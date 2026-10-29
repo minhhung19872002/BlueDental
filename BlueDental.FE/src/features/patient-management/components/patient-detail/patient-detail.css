@@ -4027,17 +4027,24 @@
 .pd-stage-teeth > div > button.pd-stage-tooth--error {
   border-color: var(--bd-red);
 }
-/* The chart button beside the chips — the plan table's own teeth button. */
+/* The jaw button that opens a tooth chart — the plan table's own teeth button.
+   The second selector only outranks the chip rule above. */
+.pd-stage-chartbtn,
 .pd-stage-teeth > div > button.pd-stage-chartbtn {
+  display: inline-flex;
   width: 30px;
   min-width: 30px;
   height: 30px;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: var(--bd-radius);
   padding: 0;
   background: var(--bd-primary);
   opacity: 1;
+  cursor: pointer;
 }
+.pd-stage-chartbtn:hover,
 .pd-stage-teeth > div > button.pd-stage-chartbtn:hover {
   background: var(--bd-primary-strong);
 }
@@ -4065,6 +4072,38 @@
 .pd-stage-chart {
   margin-top: 16px;
   overflow-x: auto;
+}
+/* The history chart's key: one swatch per colour a tooth can wear. */
+.pd-stage-chartlegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-stage-chartlegend > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pd-stage-chartlegend > li::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--chartlegend-swatch);
+}
+.pd-stage-chartlegend--worked {
+  --chartlegend-swatch: var(--bd-primary);
+}
+.pd-stage-chartlegend--done {
+  --chartlegend-swatch: var(--bd-success);
+}
+.pd-stage-chartlegend--outside {
+  --chartlegend-swatch: var(--bd-line);
 }
 
 /* The chosen pictures, held until the form is saved. */
@@ -4324,13 +4363,6 @@
 .pd-stage-histrow + .pd-stage-histrow {
   border-top: 1px solid var(--bd-border);
 }
-/* Only a line's newest công đoạn stays workable; the reference fades the rest
-   and takes their pointer events away. */
-.pd-stage-histrow--off {
-  background: color-mix(in srgb, var(--bd-bg-head) 60%, transparent);
-  opacity: 0.5;
-  pointer-events: none;
-}
 .pd-stage-histrow > div {
   border-right: 1px solid var(--bd-border);
   padding: 16px;
@@ -4345,35 +4377,10 @@
   font-size: 14px;
   font-weight: 500;
 }
-.pd-stage-histteeth {
+/* The jaw button under the service name — the row's teeth live behind it. */
+.pd-stage-histrow .pd-stage-chartbtn {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   margin-top: 12px;
-}
-.pd-stage-histteeth > span {
-  display: inline-flex;
-  min-width: 36px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--bd-border);
-  border-radius: 6px;
-  padding: 4px;
-  background: #fff;
-  color: var(--bd-ink);
-  font-size: 12px;
-}
-/* The teeth this công đoạn worked on, among all of its service's. */
-.pd-stage-histteeth > span.pd-stage-histtooth--worked {
-  border-color: var(--bd-primary);
-  background: var(--bd-primary);
-  color: #fff;
-}
-/* Finished — on the row that finished it and every later one (BA, 2026-10-05). */
-.pd-stage-histteeth > span.pd-stage-histtooth--done {
-  border-color: var(--bd-success);
-  background: var(--bd-success);
-  color: #fff;
 }
 .pd-stage-histshots {
   display: flex;

@@ -270,18 +270,18 @@
  * A tooth the owner does not offer — on a công đoạn, one its service line does
  * not treat. Greyed and inert, so the teeth that can be picked stand out.
  */
-.tc-cell--disabled .tc-tooth,
+.tc-cell[data-access="off"] .tc-tooth,
 .tc-circle button:disabled {
   cursor: not-allowed;
 }
-.tc-cell--disabled .tc-tooth__img > img {
+.tc-cell[data-access="off"] .tc-tooth__img > img {
   filter: grayscale(1);
   opacity: 0.35;
 }
-.tc-cell--disabled .tc-tooth__num {
+.tc-cell[data-access="off"] .tc-tooth__num {
   color: var(--tc-line);
 }
-.tc-cell--disabled .tc-circle {
+.tc-cell[data-access="off"] .tc-circle {
   opacity: 0.4;
 }
 .tc-circle button:disabled:hover {
@@ -292,4 +292,15 @@
 }
 .tc-circle .tc-circle__center.active:disabled:hover {
   background: var(--tc-blue-soft);
+}
+
+/* A tooth that is only looked at: nothing reacts, nothing says "not allowed". */
+.tc-cell[data-access="view"] .tc-tooth,
+.tc-cell[data-access="view"] .tc-circle button {
+  cursor: default;
+}
+/* A finished tooth: its ring, number and surfaces turn from blue to green. */
+.tc-cell[data-done] {
+  --tc-blue: var(--bd-success);
+  --tc-blue-soft: var(--bd-green-pale);
 }
