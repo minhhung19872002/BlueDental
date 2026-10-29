@@ -14,8 +14,11 @@ using Volo.Abp.Guids;
 
 namespace BlueDental.Billing;
 
-/// <summary>Where an exported receipt went and the SHA-256 it must still have when read.</summary>
-public sealed record ExportedReceipt(string FileName, string Sha256);
+/// <summary>
+/// Where an exported receipt went, the SHA-256 it must still have when read,
+/// and when the customer signed it — on the iPad or on the printout.
+/// </summary>
+public sealed record ExportedReceipt(string FileName, string Sha256, DateTimeOffset CustomerSignedAt);
 
 /// <summary>
 /// "Xuất phiếu thu" (P2610 phase 5): the PHIẾU THU as the customer checked
@@ -41,21 +44,38 @@ public class ReceiptExporter(
     public const double SignatureMaxHeightMm = 18;
 
     private const string PayerPlaceholder = "{{PayerName}}";
+    private const string CashierPlaceholder = "{{CashierName}}";
 
-    public async Task<ExportedReceipt> ExportAsync(PatientPayment payment, ReceiptSignMode signMode)
+    /// <summary>
+    /// <paramref name="accountantSignaturePng"/> is the Ký điện tử image, set
+    /// above Người lập phiếu (P2910_02); the name below it stays the receipt's
+    /// creator. A receipt signed on paper has no customer drawing: the blank
+    /// lines stay for the pen.
+    /// </summary>
+    public async Task<ExportedReceipt> ExportAsync(
+        PatientPayment payment, ReceiptSignMode signMode, byte[]? accountantSignaturePng = null)
     {
         payment.EnsureIssuable(signMode);
 
-        var session = await sessions.FirstOrDefaultAsync(x => x.PatientPaymentId == payment.Id && x.ClosedAt == null);
-        if (session is not { IsSigned: true, SignatureCipher: { } signature })
+        byte[]? customerSignature = null;
+        var customerSignedAt = payment.PaperSignedAt;
+        if (customerSignedAt == null)
         {
-            throw new BusinessException(BlueDentalDomainErrorCodes.Billing.ReceiptNotSignedByCustomer);
+            var session = await sessions.FirstOrDefaultAsync(x => x.PatientPaymentId == payment.Id && x.ClosedAt == null);
+            if (session is not { SignedAt: { } signedAt, SignatureCipher: { } signature })
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.Billing.ReceiptNotSignedByCustomer);
+            }
+
+            customerSignature = cipher.Decrypt(signature);
+            customerSignedAt = signedAt;
         }
 
-        var pdf = await RenderAsync(payment, await contents.ContentOfAsync(payment), cipher.Decrypt(signature));
+        var pdf = await RenderAsync(
+            payment, await contents.ContentOfAsync(payment), customerSignature, accountantSignaturePng);
         var fileName = FileNameOf(payment);
         await blobs.SaveAsync(fileName, cipher.Seal(pdf), overrideExisting: true);
-        return new ExportedReceipt(fileName, Sha256Of(pdf));
+        return new ExportedReceipt(fileName, Sha256Of(pdf), customerSignedAt.Value);
     }
 
     public async Task<byte[]> ReadAsync(PatientPayment payment)
@@ -96,7 +116,8 @@ public class ReceiptExporter(
     /// The F-56 PHIẾU THU filled from the frozen content: Số tiền còn lại is
     /// the content's own, so the file says what the iPad showed.
     /// </summary>
-    private async Task<byte[]> RenderAsync(PatientPayment payment, PaymentReceiptSnapshot content, byte[] signaturePng)
+    private async Task<byte[]> RenderAsync(
+        PatientPayment payment, PaymentReceiptSnapshot content, byte[]? customerSignaturePng, byte[]? accountantSignaturePng)
     {
         var placeholders = new PaymentReceiptContent(
             CustomerName: content.PayerName,
@@ -107,9 +128,21 @@ public class ReceiptExporter(
             IssueDate: ClinicCalendar.DateOf(DateTime.SpecifyKind(payment.CreationTime, DateTimeKind.Utc)),
             CashierName: content.CreatorName).ToPlaceholders();
 
-        var docx = DocxPicture.PlaceAbove(
-            await template.LoadAsync(), PayerPlaceholder, signaturePng,
-            SignatureMaxWidthMm, SignatureMaxHeightMm, "customer-signature");
+        var docx = await template.LoadAsync();
+        if (customerSignaturePng != null)
+        {
+            docx = DocxPicture.PlaceAbove(
+                docx, PayerPlaceholder, customerSignaturePng,
+                SignatureMaxWidthMm, SignatureMaxHeightMm, "customer-signature");
+        }
+
+        if (accountantSignaturePng != null)
+        {
+            docx = DocxPicture.PlaceAbove(
+                docx, CashierPlaceholder, accountantSignaturePng,
+                SignatureMaxWidthMm, SignatureMaxHeightMm, "accountant-signature");
+        }
+
         docx = DocxTemplate.Fill(docx, placeholders);
         docx = payment.RedInvoiceRequested
             ? PaymentReceiptQr.Place(docx, invoiceRequests.PublicUrlOf(

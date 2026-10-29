@@ -333,6 +333,65 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_appointment_series", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.Billing.AccountantSignature", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<DateTimeOffset>("SavedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SignatureCipher")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<short>("Source")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("bd_accountant_signatures", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.Billing.AccountantSignatureChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("Source")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ChangedAt");
+
+                    b.ToTable("bd_accountant_signature_changes", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.Billing.InsuranceClaim", b =>
                 {
                     b.Property<Guid>("Id")
@@ -508,6 +567,12 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("AccountantSignatureSavedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AccountantSignerId")
+                        .HasColumnType("uuid");
+
                     b.Property<decimal>("Amount")
                         .HasColumnType("numeric(18,2)");
 
@@ -598,6 +663,12 @@ namespace BlueDental.Migrations
 
                     b.Property<DateTimeOffset>("PaidAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("PaperSignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PaperSignedById")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
@@ -694,6 +765,55 @@ namespace BlueDental.Migrations
                     b.HasIndex("TreatmentServiceId");
 
                     b.ToTable("bd_patient_payment_lines", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.Billing.PaymentReceiptLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AccountantSignatureSavedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AccountantSignerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Action")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short?>("CancelReasonCode")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CustomerSignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool?>("CustomerSignedOnPaper")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("FileSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("PatientPaymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short?>("SignMode")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientPaymentId", "At");
+
+                    b.ToTable("bd_payment_receipt_logs", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.Billing.ReceiptSigningSession", b =>

@@ -29,6 +29,31 @@ public sealed class ReceiptSigningController(IReceiptSigningAppService service) 
     [HttpPost("{patientPaymentId:guid}/resign")]
     public Task<ReceiptSigningStateDto> RequestResignAsync(Guid patientPaymentId) =>
         service.RequestResignAsync(patientPaymentId);
+
+    [HttpPost("{patientPaymentId:guid}/print-for-paper")]
+    public Task<ReceiptSigningStateDto> PrintForPaperAsync(Guid patientPaymentId) =>
+        service.PrintForPaperAsync(patientPaymentId);
+
+    [HttpGet("{patientPaymentId:guid}/log")]
+    public Task<List<PaymentReceiptLogDto>> GetLogAsync(Guid patientPaymentId) =>
+        service.GetLogAsync(patientPaymentId);
+}
+
+/// <summary>The accountant's own Ký điện tử signature (P2910_02).</summary>
+// Not audited: the save carries the drawing, which the audit log would keep in clear.
+[RemoteService]
+[Authorize]
+[DisableAuditing]
+[Route("api/v1/app/accountant-signature")]
+public sealed class AccountantSignatureController(IAccountantSignatureAppService service) : BlueDentalController
+{
+    /// <summary>204 when the user has none yet.</summary>
+    [HttpGet("mine")]
+    public Task<AccountantSignatureDto?> GetMineAsync() => service.GetMineAsync();
+
+    [HttpPut("mine")]
+    public Task<AccountantSignatureDto> SaveMineAsync([FromBody] SaveAccountantSignatureDto input) =>
+        service.SaveMineAsync(input);
 }
 
 /// <summary>Cài đặt → Kết nối iPad.</summary>

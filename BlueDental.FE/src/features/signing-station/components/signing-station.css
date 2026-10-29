@@ -131,6 +131,43 @@
   font-size: 18px;
 }
 
+/* "Cảm ơn quý khách" after "In phiếu thu" (P2910_02): who pays, how much, signed on paper. */
+.sst-message-text strong {
+  color: var(--bd-ink);
+}
+.sst-printed-box {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 8px 28px;
+  margin: 0;
+  padding: 14px 26px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  text-align: left;
+}
+.sst-printed-box dt {
+  color: var(--bd-ink-3);
+}
+.sst-printed-box dd {
+  margin: 0;
+}
+.sst-printed-payer {
+  font-weight: 600;
+}
+.sst-printed-amount {
+  color: var(--bd-primary);
+  font-weight: 700;
+}
+.sst-printed-note {
+  margin: 0;
+  color: var(--bd-ink-3);
+  font-size: 14px;
+}
+.sst-printed-back {
+  min-width: 200px;
+}
+
 /* Kiểm tra phiếu thu: the sheet, the column of cards beside it. */
 .sst-review {
   display: flex;

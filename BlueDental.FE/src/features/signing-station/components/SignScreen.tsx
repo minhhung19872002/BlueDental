@@ -2,7 +2,7 @@ import { Button } from "antd";
 import { Eraser, PenLine } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { formatMoneyUnit } from "@/utils/format";
-import { useSignaturePad } from "../hooks/useSignaturePad";
+import { useSignaturePad } from "@/hooks/useSignaturePad";
 
 interface Props {
   payerName: string;

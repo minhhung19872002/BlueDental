@@ -176,7 +176,8 @@ public class SigningStationAppService(
             return station;
         }
 
-        station.Stage = !session.IsOpen ? SigningStationStage.Issued
+        station.Stage = !session.IsOpen
+                ? session.CloseReason == SigningCloseReason.Printed ? SigningStationStage.Printed : SigningStationStage.Issued
             : session.CheckedAt == null ? SigningStationStage.Review
             : !session.IsSigned ? SigningStationStage.Signing
             : SigningStationStage.Signed;
@@ -189,17 +190,18 @@ public class SigningStationAppService(
         station.InvoiceRequested = await requests.AnyAsync(r =>
             r.PatientPaymentId == payment.Id && r.Status != InvoiceRequestStatus.Cancelled);
         station.IssuedAt = payment.IssuedAt;
+        station.PaperSignedAt = payment.PaperSignedAt;
         return station;
     }
 
-    /// <summary>"Phiếu thu đã được xuất" stays a little while after the export.</summary>
+    /// <summary>"Phiếu thu đã được xuất" (or "… đã được in") stays a little while after the close.</summary>
     private async Task<ReceiptSigningSession?> JustIssuedAsync(Guid clinicBranchId, DateTimeOffset now)
     {
         var since = now - ReceiptSigningSession.IssuedShownFor;
         var query = await sessions.GetQueryableAsync();
         var latest = await AsyncExecuter.FirstOrDefaultAsync(query
             .Where(x => x.ClinicBranchId == clinicBranchId
-                && x.CloseReason == SigningCloseReason.Issued
+                && (x.CloseReason == SigningCloseReason.Issued || x.CloseReason == SigningCloseReason.Printed)
                 && x.ClosedAt >= since)
             .OrderByDescending(x => x.ClosedAt));
         return latest != null && latest.ShowsIssued(now) ? latest : null;

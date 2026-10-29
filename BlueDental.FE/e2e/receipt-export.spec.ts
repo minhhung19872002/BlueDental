@@ -69,19 +69,19 @@ test.describe.serial("Xuất phiếu thu", () => {
     await withPairedIpad(page, written, async (token) => {
       await signOnStation(page, written, token);
 
-      // ── Ký số: not until the signing certificate is wired in ──────────────
+      // ── Token điện tử: not until the signing certificate is wired in ───────
       const digital = await exportAs(page, written, SIGN_MODE.Digital);
       expect(digital.status, JSON.stringify(digital.body)).toBe(403);
       expect(errorCode(digital.body)).toBe(DIGITAL_UNAVAILABLE);
       expect(await statusOf(page, written)).toBe(RECEIPT_STATUS.Pending);
 
-      // ── Không ký số: exported, kept, locked ───────────────────────────────
+      // ── Ký tay trực tiếp: exported, kept, locked ──────────────────────────
       const issued = await exportAs(page, written, SIGN_MODE.Unsigned);
       expect(issued.status, JSON.stringify(issued.body)).toBe(200);
       expect(issued.body.status).toBe(RECEIPT_STATUS.Issued);
     });
 
-    // A separate read: exported Không ký số with its file, and the session it was signed in is closed.
+    // A separate read: exported Ký tay trực tiếp with its file, and the session it was signed in is closed.
     const exported = await receiptRead(page, written);
     expect(exported.status).toBe(RECEIPT_STATUS.Issued);
     expect(exported.signMode).toBe(SIGN_MODE.Unsigned);

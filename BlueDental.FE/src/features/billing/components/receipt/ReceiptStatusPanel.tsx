@@ -1,12 +1,22 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "antd";
-import { Printer } from "lucide-react";
+import { Printer, Tablet } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { formatDateTime } from "@/utils/format";
+import { formatClockSeconds, formatDateTime } from "@/utils/format";
 import { RECEIPT_STATUS, type PaymentReceiptDto } from "../../api/paymentReceiptApi";
 import { ReceiptCashierDiscounts } from "./ReceiptCashierDiscounts";
 import { cancelReasonText } from "./receiptStatus";
+
+/** Where a waiting receipt stands with the customer. */
+export interface ReceiptWaiting {
+  /** Where the iPad stands, replacing "Chờ gửi tới iPad". */
+  title?: string;
+  /** The iPad callout under the heading, until the customer has signed. */
+  notice?: ReactNode;
+  /** Once signed on the iPad or on the printout: when, shown in the heading's chip. */
+  signed?: { at: string; paper: boolean };
+}
 
 interface Props {
   receipt: PaymentReceiptDto;
@@ -14,15 +24,13 @@ interface Props {
   slipPath: string;
   /** Left out while the signed receipt waits on the accountant's export. */
   print?: { run: () => void; pending: boolean };
-  /** While the receipt waits: where the iPad stands, replacing "Chờ gửi tới iPad". */
-  pendingTitle?: string;
-  /** While the receipt waits: the iPad callout under the heading. */
-  notice?: ReactNode;
+  /** While the receipt waits on the customer. */
+  waiting?: ReceiptWaiting;
   /** While the receipt waits: the iPad buttons, in the foot row before "In phiếu thu". */
   actions?: ReactNode;
   /** Once signed: the main button, beside Yêu cầu khách ký lại (Xuất phiếu thu). */
   primary?: ReactNode;
-  /** While the receipt waits: what the accountant does next (Xuất phiếu thu). */
+  /** Once signed: what the accountant does next (Xuất phiếu thu). */
   children?: ReactNode;
 }
 
@@ -56,28 +64,43 @@ const cancelledView = (receipt: PaymentReceiptDto): PanelView => ({
   ),
 });
 
+/** "Lúc 16:55:32" beside "Khách đã ký": a tablet for the iPad, a printer for paper (P2910_02). */
+function SignedChip({ at, paper }: { at: string; paper: boolean }) {
+  const Icon = paper ? Printer : Tablet;
+  return (
+    <span className="rcpt-signed-chip">
+      <Icon size={15} aria-hidden="true" />
+      {t("Receipt:Panel:At", formatClockSeconds(at))}
+    </span>
+  );
+}
+
 /**
  * The column beside the sheet: its heading, where the iPad stands, what the
  * receipt's state means, then the buttons in one row at the foot. A written
  * receipt waits here on the customer's iPad; it is still corrected or
- * cancelled on the slip. A waiting receipt can be printed, except while the
- * signed one waits on its export (the BA mock). Exported and paid receipts
- * have ReceiptExportedPanel instead.
+ * cancelled on the slip. Once the customer has signed, the heading carries
+ * the time and only the slip's link stays under it (P2910_02). Exported and
+ * paid receipts have ReceiptExportedPanel instead.
  */
-export function ReceiptStatusPanel({ receipt, slipPath, print, pendingTitle, notice, actions, primary, children }: Props) {
+export function ReceiptStatusPanel({ receipt, slipPath, print, waiting, actions, primary, children }: Props) {
   const slipLink = (
     <Link className="rcpt-panel-link" to={slipPath}>
       {t("Receipt:Panel:OpenSlip", receipt.content.planCode)}
     </Link>
   );
   const cancelled = receipt.status === RECEIPT_STATUS.Cancelled;
+  const signed = cancelled ? undefined : waiting?.signed;
   const view = cancelled ? cancelledView(receipt) : pendingView(slipLink);
-  const title = !cancelled && pendingTitle ? pendingTitle : view.title;
+  const title = !cancelled && waiting?.title ? waiting.title : view.title;
   return (
     <aside className="rcpt-panel" aria-label={t("Common:Status")}>
-      <h3 className="rcpt-panel-title">{title}</h3>
-      {notice}
-      <div className="rcpt-panel-body">{view.body}</div>
+      <div className="rcpt-panel-head">
+        <h3 className="rcpt-panel-title">{title}</h3>
+        {signed && <SignedChip at={signed.at} paper={signed.paper} />}
+      </div>
+      {!cancelled && !signed && waiting?.notice}
+      {signed ? slipLink : <div className="rcpt-panel-body">{view.body}</div>}
       <ReceiptCashierDiscounts discounts={receipt.cashierDiscounts} />
       {children}
       <div className="rcpt-panel-actions">

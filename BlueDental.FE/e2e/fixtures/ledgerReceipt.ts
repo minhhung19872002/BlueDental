@@ -276,8 +276,8 @@ const STATION_API = "/api/v1/public/signing-station";
 /** A real 1 × 1 PNG: what the station takes is a PNG data URL, decoded and re-checked on the server. */
 export const SIGNATURE_PNG =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-/** Matches BlueDental.Billing.ReceiptSignMode. */
-export const SIGN_MODE = { Unsigned: 1, Digital: 2 } as const;
+/** Matches BlueDental.Billing.ReceiptSignMode: Ký tay trực tiếp, Token điện tử, Ký điện tử (P2910_02). */
+export const SIGN_MODE = { Unsigned: 1, Digital: 2, Electronic: 3 } as const;
 /** Parallel workers share the branch's one iPad session; a send can take another's. */
 const EXPORT_ATTEMPTS = 5;
 

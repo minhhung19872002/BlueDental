@@ -3239,3 +3239,23 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
 - Sửa hồ sơ, giữ nguyên số nhưng đổi tên: vẫn kiểm trùng tên với người khác cùng số (`0035`).
 - Một số, nhiều cách gõ: số Việt Nam thiếu số 0 (9–10 chữ số) hoặc có `84` / `+84` / `0084` phía trước được hiểu là cùng một số và lưu dạng `0…`; số nước ngoài lưu dạng E.164 (`+61…`), gõ `0061 …` cũng vậy. Số nước ngoài gõ kèm số 0 đầu của quốc gia đó (`0` + số quốc gia) KHÔNG được coi là cùng số. Hàng lưu trước R-1057 thiếu 0 hoặc có 84 vẫn được tìm ra, không sửa dữ liệu cũ.
 - Ở tab Hồ sơ, khối Người giám hộ đứng trên khối Người dùng chung SĐT (như mock). Tiêu đề khối giữ chữ thường như các khối khác của tab, mock viết hoa "NGƯỜI DÙNG CHUNG SĐT".
+
+## P2910_02 — In phiếu thu ký tay & chữ ký kế toán (F-84, R-1081, 2026-10-29, BA P2910_02)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/billing/receipts/:id` (panel Trạng thái, stepper, PHIẾU THU), iPad `/sign`, `/invoice-request/:token`
+Control: nút "In phiếu thu" + popup xác nhận, "Hủy phiên & sửa phiếu", radio Hình thức ký số (Ký điện tử / Token điện tử / Ký tay trực tiếp), khung vẽ / tải ảnh chữ ký kế toán, "Dùng chữ ký này", log phiếu thu
+Reason: tính năng riêng của BlueDental theo `P2910_02.drawio`. Bản gốc không có nên không có gì để quan sát. Các quyết định đã chốt nằm ở `docs/testing/features/receipt-paper-sign.md`. Mock và ghi chú BA không nói những điểm dưới đây.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+- iPad hiện màn "đã in phiếu" 30 giây rồi về màn chờ, giống màn "Đã xuất phiếu thu".
+- In phiếu thu lần nữa: giữ giờ in và thu ngân của lần đầu, không ghi thêm dòng log; vẫn in lại bản nháp.
+- "Hủy phiên & sửa phiếu" và sửa phiếu (PUT) đều lấy phiếu về trạng thái chưa in giấy và ghi log "Lấy lại" (`PaperTakenBack`). Sau đó có thể gửi iPad lại hoặc in lại.
+- Khách ký giấy: "lúc khách ký" = giờ in phiếu (không có cách nào biết giờ khách ký thật trên giấy).
+- Hình thức ký số chọn sẵn Ký điện tử (mock tô sẵn ô này).
+- Chữ ký điện tử thuộc từng tài khoản, không theo chi nhánh. Đổi chữ ký thì thay chỗ cũ; phiếu đã xuất giữ ảnh cũ vì đã in vào PDF, log ghi lúc lưu chữ ký.
+- Ảnh tải lên: chọn được ảnh ≤ 2 MB, trình duyệt thu về khung 600 × 200 PNG; server chặn ở 200 KB (`0118`).
+- Log phiếu thu: chỉ có API (`GET receipt-signing/{id}/log`, quyền Payment.Read), chưa có màn hình xem. Log chỉ lưu id + thời gian, tên người đọc lúc xem, không lưu PHI. Phiếu đã hủy (xoá mềm) vẫn đọc được log.
+- Log gồm 4 loại dòng: In để ký giấy, Lấy lại, Xuất, Hủy. In bản nháp không ghi như một file vì không lưu file nào.
+- "Mã hoá hết": mọi PDF/A đã xuất đều mã hoá AES-256-GCM (đã có từ P2610 phase 5), chữ ký khách và kế toán cũng lưu mã hoá. Bản nháp in không lưu nên không cần mã hoá.
+- Token điện tử vẫn khoá (phase 7, `0113`).

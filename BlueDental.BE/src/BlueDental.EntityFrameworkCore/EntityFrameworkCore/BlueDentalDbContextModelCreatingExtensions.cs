@@ -1244,6 +1244,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.ReceiptFileName).HasMaxLength(PatientPayment.MaxReceiptFileNameLength);
             entity.Property(x => x.ReceiptFileSha256).HasMaxLength(PatientPayment.ReceiptFileSha256Length);
             entity.Ignore(x => x.HasReceiptFile);
+            entity.Ignore(x => x.IsSignedOnPaper);
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
             entity.Ignore(x => x.SignedAmount);
             entity.Property(x => x.VoucherCode).HasMaxLength(PatientPayment.MaxVoucherCodeLength);
@@ -2057,6 +2058,38 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
             entity.HasIndex(x => x.TokenHash).IsUnique();
             entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        // Ký điện tử (P2910_02): one saved signature per accountant, sealed,
+        // plus the log of every time it was changed.
+        builder.Entity<AccountantSignature>(entity =>
+        {
+            entity.ToTable("bd_accountant_signatures");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.SignatureCipher).IsRequired();
+            entity.Property(x => x.Source).HasConversion<short>();
+            entity.Ignore(x => x.Signer);
+            entity.HasIndex(x => x.UserId).IsUnique();
+        });
+
+        builder.Entity<AccountantSignatureChange>(entity =>
+        {
+            entity.ToTable("bd_accountant_signature_changes");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Source).HasConversion<short>();
+            entity.HasIndex(x => new { x.UserId, x.ChangedAt });
+        });
+
+        // A receipt's log (P2910_02): append-only, ids and times only.
+        builder.Entity<PaymentReceiptLog>(entity =>
+        {
+            entity.ToTable("bd_payment_receipt_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.Property(x => x.SignMode).HasConversion<short>();
+            entity.Property(x => x.CancelReasonCode).HasConversion<short>();
+            entity.Property(x => x.FileSha256).HasMaxLength(64);
+            entity.HasIndex(x => new { x.PatientPaymentId, x.At });
         });
 
         builder.Entity<EInvoiceProviderConfig>(entity =>

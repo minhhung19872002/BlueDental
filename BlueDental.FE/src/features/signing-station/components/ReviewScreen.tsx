@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Checkbox } from "antd";
 import { FileText } from "lucide-react";
+import { Emphasised } from "@/components/Emphasised";
 import { ReceiptPaper, type ReceiptClinic, type ReceiptPaperData } from "@/components/ReceiptPaper";
 import { t } from "@/lib/i18n";
 
@@ -12,15 +13,6 @@ interface Props {
   confirming: boolean;
   onRequestInvoice: () => void;
   onConfirm: () => void;
-}
-
-/** A bold phrase inside a sentence, as the BA's mock marks it with `**…**`. */
-function Emphasised({ text }: { text: string }) {
-  return (
-    <>
-      {text.split("**").map((part, index) => (index % 2 === 1 ? <strong key={index}>{part}</strong> : part))}
-    </>
-  );
 }
 
 /**

@@ -12504,3 +12504,61 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - TỔNG KẾ HOẠCH: ưu đãi gồm phần VAT giảm, còn Thành tiền chưa thuế; bản in báo giá chưa có dòng ưu đãi.
   - Quyền Khuyến mãi → Xem chưa có trong role seed nào.
   - Kiểm tra API chạy bằng e2e stack thật trên DB riêng, chưa có bộ Application.Tests Testcontainers.
+
+## R-1081 (2026-10-29, mức 3: F-84 In phiếu thu ký tay & chữ ký kế toán P2910_02) In phiếu thu để khách ký giấy, chữ ký kế toán, log phiếu thu
+
+- **Yêu cầu** (BA `P2910_02.drawio`; chủ dự án chốt 4 câu: in bản nháp ngay, bỏ phần mô tả BA gạch, chữ ký ở ô Người lập phiếu giữ tên, ảnh ≤ 2 MB tự thu nhỏ):
+  - Khối tổng tiền trên phiếu thu: nhãn rộng theo chữ, một dòng; số canh phải.
+  - Form yêu cầu xuất HĐ (`/invoice-request`): ô Dịch vụ lấy "Tên trên phiếu" của dòng phiếu thu.
+  - In phiếu thu: hỏi xác nhận, in bản nháp, khách ký tay trên giấy; phiên iPad đóng; bước 2–4 "Ký tay trên giấy", sang bước 5; chỉ còn "Hủy phiên & sửa phiếu".
+  - Kế toán: "Khách đã ký" + chip giờ; Ký điện tử (mặc định) / Token điện tử / Ký tay trực tiếp; vẽ hoặc tải ảnh chữ ký; chữ ký nằm trên ô Người lập phiếu, giữ tên.
+  - Ghi chú BA về log: thời gian xuất phiếu, người ký, thời gian hủy phiếu (nếu có), user + timestamp; mã hoá file khi đã xuất ("cứ mã hóa hết").
+- **Sửa**:
+  - Domain:
+    - `PatientPayment.SignOnPaper` (giữ lần in đầu) và lấy lại khi Hủy phiên / sửa phiếu;
+    - xuất Ký điện tử ghi `AccountantSignerId` + `AccountantSignatureSavedAt`;
+    - `AccountantSignature` (mỗi user một chữ ký, mã hoá `v1:`, ≤ 200 KB) + lịch sử đổi;
+    - `PaymentReceiptLog` (In / Lấy lại / Xuất / Hủy);
+    - `ReceiptSigningSession` đóng `Printed`, iPad hiện 30 s;
+    - lỗi `Billing:0117` / `0118` / `0119`;
+    - migration `20261029141918_PaperSignAndAccountantSignature`.
+  - Application:
+    - `ReceiptSigningAppService.PrintForPaperAsync` + `GetLogAsync`;
+    - `AccountantSignatureAppService` (`GET` / `PUT accountant-signature/mine`, không audit body);
+    - `ReceiptLogBook` ghi trong cùng unit of work;
+    - `ReceiptExporter` đặt chữ ký kế toán trên ô Người lập phiếu;
+    - `InvoiceRequestSources.ServiceNamesAsync` ưu tiên `ReceiptName`;
+    - `PatientPaymentAppService` (sửa / hủy) ghi log.
+  - FE:
+    - `ReceiptPaperConfirm`, `useReceiptPrint`, `ReceiptWaitingPanel`, `AccountantSignatureField` / `Pad`, `SignatureUploadPreview`, `utils/signatureImage.ts` (thu về 600 × 200);
+    - iPad `PrintedScreen`;
+    - panel Đã xuất thêm Xuất phiếu / Chữ ký kế toán / Khách ký;
+    - `useSignaturePad` chuyển lên `src/hooks/`;
+    - `Emphasised`.
+- **E2E** (build production `vite preview` :8160 → host :5130 → PostgreSQL thật, DB riêng `BlueDental_p2910`, không chặn request):
+  - `receipt-paper-sign` **5/5**:
+    - in giấy → phiên Printed, in lại giữ giờ đầu, log In → Xuất;
+    - Hủy phiên và sửa phiếu đều lấy lại phiếu, log ghi `PaperTakenBack`;
+    - Ký điện tử: không có chữ ký → `0117`, > 200 KB → `0118`; có chữ ký thì có trên phiếu xuất và trong log;
+    - chi nhánh 2 bị chặn;
+    - trên màn: popup xác nhận, các bước ghi "Ký tay trên giấy".
+  - `invoice-request-api` **3/3**: test R-1081 — đợt 1 không đặt tên → tên danh mục; đợt 2 đặt tên riêng → draft và form QR công khai hiện đúng tên đó.
+  - `receipt-ipad` **6/6** (chạy riêng, không song song với spec tiền).
+  - Hồi quy mức 3, 19 spec: **55/55**.
+    - Spec receipt: `receipt-cancel`, `receipt-export`, `receipt-exported`, `receipt-page`, `receipt-paper-sign`.
+    - Spec billing / e-invoice: `billing-ledger`, `einvoice-api`, `invoice-request-api`, `invoice-request-ui`, `vat-payment-einvoice-api`.
+    - Spec payment: `payment-amount-cap`, `payment-amount-select`, `payment-from-slip`, `payment-permission-buttons`, `payment-qr`, `payment-receipt-pdf`, `payment-rounds`, `payment-status`.
+    - Và `voucher`.
+  - Spec cập nhật theo nhãn mới:
+    - `receipt-exported`, `receipt-page`: dt / dd của panel;
+    - `receipt-cancel`: "Khách đã ký · Kế toán ký tay trực tiếp";
+    - `receipt-ipad`: tiêu đề + chip thay dòng trạng thái;
+    - `fixtures/ledgerReceipt.ts`: `SIGN_MODE`, `issueReceipt` xuất Ký tay trực tiếp.
+  - BE: Domain **1209/1209** (13 ca `ReceiptPaperSignTests`), Application **835/835**, HttpApi.Host **24/24**, EFCore **66/66**.
+  - Kiểm tay: blob PDF trong MinIO bắt đầu bằng 0x01, không chứa `%PDF`; chữ ký trong DB dạng `v1:`.
+- **Mức retest**: 3 (đổi luồng ký / xuất phiếu thu dùng chung cho mọi spec tiền qua `issueReceipt`).
+- **Ngoài phạm vi / còn mở** (chi tiết `features/receipt-paper-sign.md`, `docs/clone/unknowns.md` P2910_02):
+  - Log mới có API, chưa có màn hình xem.
+  - Token điện tử (Ký số, phase 7) chưa làm, vẫn `0113`.
+  - Server prod cần `RECEIPT_VAULT_KEY` riêng trước khi merge lên main.
+  - Kiểm tra API chạy bằng e2e stack thật trên DB riêng, chưa có bộ Application.Tests Testcontainers cho endpoint mới.

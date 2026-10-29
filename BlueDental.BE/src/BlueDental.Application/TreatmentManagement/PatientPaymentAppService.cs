@@ -633,7 +633,15 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         var payment = await GetWithLinesAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
 
+        var wasOnPaper = payment.IsSignedOnPaper;
         await ReviseAsync(payment, input);
+        if (wasOnPaper)
+        {
+            // What was signed on paper no longer says the same: logged as taken back.
+            await LazyServiceProvider.LazyGetRequiredService<ReceiptLogBook>()
+                .PaperTakenBackAsync(payment, Clock.Now, CurrentUser.Id);
+        }
+
         // The iPad must not keep the old figures; the cashier sends it again.
         await _signing.CloseOfPaymentAsync(payment, SigningCloseReason.Revised);
 
@@ -642,11 +650,12 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
     }
 
     /// <summary>
-    /// "Xuất phiếu thu" / "Ký số và xuất phiếu thu": once the customer has
-    /// signed on the iPad, the PHIẾU THU is written to PDF/A with their
-    /// signature, sealed and stored, and the receipt is locked as "Đã xuất
-    /// phiếu thu". It still moves no money — that waits for ✓
-    /// <see cref="ConfirmAsync"/>. Ký số is refused until phase 7.
+    /// "Xuất phiếu thu": once the customer has signed — on the iPad or on the
+    /// printed draft (P2910_02) — the PHIẾU THU is written to PDF/A with their
+    /// signature when there is one, and with the accountant's saved one under
+    /// Ký điện tử; sealed, stored, and the receipt is locked as "Đã xuất phiếu
+    /// thu". It still moves no money — that waits for ✓
+    /// <see cref="ConfirmAsync"/>. Token điện tử is refused until phase 7.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
     public async Task<PatientPaymentDto> ExportAsync(Guid id, ExportPatientPaymentDto input)
@@ -655,9 +664,23 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         var payment = await GetWithLinesAsync(id);
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
 
+        var signMode = input.SignMode!.Value;
+        payment.EnsureIssuable(signMode);
+
+        // Ký điện tử: the accountant's own saved signature, as it stands now.
+        var vault = LazyServiceProvider.LazyGetRequiredService<AccountantSignatureVault>();
+        AccountantSignature? signature = null;
+        if (signMode == ReceiptSignMode.Electronic)
+        {
+            signature = (CurrentUser.Id is { } userId ? await vault.OfAsync(userId) : null)
+                ?? throw new BusinessException(BlueDentalDomainErrorCodes.Billing.AccountantSignatureMissing);
+        }
+
         var file = await LazyServiceProvider.LazyGetRequiredService<ReceiptExporter>()
-            .ExportAsync(payment, input.SignMode!.Value);
-        payment.Issue(Clock.Now, CurrentUser.Id, input.SignMode.Value, file.FileName, file.Sha256);
+            .ExportAsync(payment, signMode, signature == null ? null : vault.PngOf(signature));
+        payment.Issue(Clock.Now, CurrentUser.Id, signMode, file.FileName, file.Sha256, signature?.Signer);
+        // The log keeps who exported and when, who signed and when (P2910_02).
+        await LazyServiceProvider.LazyGetRequiredService<ReceiptLogBook>().ExportedAsync(payment, file.CustomerSignedAt);
         // The iPad turns to "Phiếu thu đã được xuất".
         await _signing.CloseOfPaymentAsync(payment, SigningCloseReason.Issued);
 
@@ -783,7 +806,8 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
 
         var content = await _receipts.ContentOfAsync(payment);
-        var people = await _receipts.FullNamesAsync([payment.IssuedById, payment.CancelledById, payment.StaffId]);
+        var people = await _receipts.FullNamesAsync([
+            payment.IssuedById, payment.CancelledById, payment.StaffId, payment.PaperSignedById, payment.AccountantSignerId]);
         return new PaymentReceiptDto
         {
             Id = payment.Id,
@@ -801,6 +825,10 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
             CancelReason = payment.CancelReason,
             CancelReasonCode = payment.CancelReasonCode,
             SignMode = payment.SignMode,
+            PaperSignedAt = payment.PaperSignedAt,
+            PaperSignedByName = PaymentReceiptContents.NameOf(people, payment.PaperSignedById),
+            AccountantSignerName = PaymentReceiptContents.NameOf(people, payment.AccountantSignerId),
+            AccountantSignatureSavedAt = payment.AccountantSignatureSavedAt,
             HasFile = payment.HasReceiptFile,
             Content = PaymentReceiptContents.ToDto(content),
             CashierDiscounts = await _receipts.CashierDiscountsOfAsync(payment)
@@ -853,6 +881,11 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
         await _branchAccess.CheckAsync(payment.ClinicBranchId);
         var wasPaid = payment.IsCompleted && payment.Kind == PatientPaymentKind.Payment;
         payment.Cancel(input.ReasonCode, input.Reason, Clock.Now, CurrentUser.Id);
+        if (payment.Kind == PatientPaymentKind.Payment)
+        {
+            await LazyServiceProvider.LazyGetRequiredService<ReceiptLogBook>().CancelledAsync(payment);
+        }
+
         if (wasPaid)
         {
             await GuardRefundsStillCoveredAsync(payment);

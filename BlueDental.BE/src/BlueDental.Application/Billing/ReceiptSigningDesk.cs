@@ -38,6 +38,11 @@ public class ReceiptSigningDesk(
             throw new BusinessException(BlueDentalDomainErrorCodes.Billing.ReceiptNotSendable);
         }
 
+        if (payment.IsSignedOnPaper)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Billing.ReceiptSignedOnPaper);
+        }
+
         if (!await HasDeviceAsync(payment.ClinicBranchId))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Billing.SigningDeviceMissing);
@@ -81,6 +86,7 @@ public class ReceiptSigningDesk(
     public async Task SendIfFreeAsync(PatientPayment payment)
     {
         if (!payment.IsPending
+            || payment.IsSignedOnPaper
             || !await HasDeviceAsync(payment.ClinicBranchId)
             || await OpenOfBranchAsync(payment.ClinicBranchId) != null)
         {

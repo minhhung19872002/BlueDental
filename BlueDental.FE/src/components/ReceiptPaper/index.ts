@@ -1,1 +1,1 @@
-export { ReceiptPaper, type ReceiptClinic, type ReceiptPaperData, type ReceiptPaperSignature } from "./ReceiptPaper";
+export { ReceiptPaper, type ReceiptClinic, type ReceiptPaperData, type ReceiptPaperMarks, type ReceiptPaperSignature } from "./ReceiptPaper";

@@ -217,8 +217,10 @@ test.describe.serial("iPad ký phiếu thu", () => {
       await signOnIpad(ipad);
 
       // ── The PC, live: signed, the signature and its time on the payer box ───
-      await expect(ipadStatus(page)).toHaveText(/^Khách đã ký lúc \d{2}:\d{2}/);
+      // P2910_02: the heading says it, its time in a chip beside it; the iPad line is gone.
       await expect(panel(page).locator(".rcpt-panel-title")).toHaveText("Khách đã ký");
+      await expect(panel(page).locator(".rcpt-signed-chip")).toHaveText(/^Lúc \d{2}:\d{2}:\d{2}$/);
+      await expect(ipadStatus(page)).toHaveCount(0);
       await expect(page.locator(".rcpt-sheet .rcpt-sign-image")).toBeVisible();
       await expect(page.locator(".rcpt-sheet .rcpt-sign-time")).toHaveText(/^Ký lúc \d{2}\/\d{2}\/\d{4}/);
       await expectPcSteps(page, 4, "Kế toán kiểm tra");
@@ -241,19 +243,18 @@ test.describe.serial("iPad ký phiếu thu", () => {
       await signOnIpad(ipad);
       await expect(page.locator(".rcpt-sheet .rcpt-sign-image")).toBeVisible();
 
-      // ── "Kế toán kiểm tra & xuất": nothing picked for the accountant, Ký số not yet ──
+      // ── "Kế toán kiểm tra & xuất": Ký điện tử by default (P2910_02) ─────────
       const exportPanel = panel(page).locator(".rcpt-export");
       await expect(exportPanel).toContainText("Kế toán kiểm tra & xuất phiếu thu");
       // The button sits in the foot row beside Yêu cầu khách ký lại; Hủy phiên drops below (BA mock).
       const exportButton = panel(page).locator(".rcpt-panel-actions").getByRole("button", { name: "Xuất phiếu thu" });
-      await expect(exportButton).toBeDisabled();
       const rowOf = async (name: string) =>
         (await panel(page).getByRole("button", { name }).boundingBox())?.y ?? Number.NaN;
       await expect.poll(async () => (await rowOf("Xuất phiếu thu")) - (await rowOf("Yêu cầu khách ký lại"))).toBe(0);
       expect(await rowOf("Hủy phiên & sửa phiếu")).toBeGreaterThan(await rowOf("Xuất phiếu thu"));
-      await expect(exportPanel).toContainText("Chọn hình thức ký trước khi xuất.");
-      await expect(exportPanel.getByRole("radio", { name: /^Ký số/ })).toBeDisabled();
-      await exportPanel.getByRole("radio", { name: "Không ký số" }).check();
+      await expect(exportPanel.getByRole("radio", { name: "Ký điện tử" })).toBeChecked();
+      // This one is signed by hand: no saved signature needed (receipt-paper-sign covers Ký điện tử).
+      await exportPanel.getByRole("radio", { name: "Ký tay trực tiếp" }).check();
       await expect(exportButton).toBeEnabled();
 
       // ── Exported: the stored PDF opens in a new tab, the iPad says so, then waits again ──

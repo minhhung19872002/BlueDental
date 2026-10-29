@@ -1,5 +1,16 @@
 # F-81 phase 5 — Kế toán kiểm tra & xuất phiếu thu (R-1049)
 
+> **Superseded in part by P2910_02 (F-84, R-1081, see `receipt-paper-sign.md`).**
+>
+> Hình thức ký số is now a radio with three choices:
+>
+> - Ký điện tử (3): the default; uses the accountant's saved signature;
+> - Token điện tử (2): formerly "Ký số", still refused with `0113`;
+> - Ký tay trực tiếp (1): formerly "Không ký số".
+>
+> A receipt printed for paper exports without an iPad drawing. Where the text
+> below says "Ký số / Không ký số", read the new names.
+
 Source: BA P2610 (`P2610.drawio`), step "Kế toán kiểm tra & xuất". BlueDental only;
 the reference app has nothing like it. Phase 4 (iPad signing) is in
 `receipt-ipad-signing.md`.

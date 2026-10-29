@@ -8,7 +8,14 @@ import { ledgerMethodLabels } from "../../../api/paymentLedgerApi";
 const SIGNATURE_KEYS: Record<ReceiptSignMode, string> = {
   [RECEIPT_SIGN_MODE.Unsigned]: "Receipt:Cancel:SignedUnsigned",
   [RECEIPT_SIGN_MODE.Digital]: "Receipt:Cancel:SignedDigital",
+  [RECEIPT_SIGN_MODE.Electronic]: "Receipt:Cancel:SignedElectronic",
 };
+
+/** Printed for a hand signature (P2910_02) the customer signed the paper; else how it was exported. */
+function signatureOf(receipt: PaymentReceiptDto): string {
+  if (receipt.signMode) return t(SIGNATURE_KEYS[receipt.signMode]);
+  return receipt.paperSignedAt ? t("Receipt:Cancel:PaperSigned", formatDateTime(receipt.paperSignedAt)) : "—";
+}
 
 /**
  * "Phiếu thu gốc" (P2610 mock): the receipt being cancelled, as it was
@@ -23,7 +30,7 @@ export function ReceiptCancelSummary({ receipt }: { receipt: PaymentReceiptDto }
     ["Receipt:Cancel:Amount", <strong key="amount" className="rcpt-cancel-amount">{formatVND(content.amount)}</strong>],
     ["Receipt:Cancel:Method", ledgerMethodLabels()[content.method]],
     ["Receipt:Cancel:IssuedAt", receipt.issuedAt ? formatDateTime(receipt.issuedAt) : "—"],
-    ["Receipt:Cancel:Signature", receipt.signMode ? t(SIGNATURE_KEYS[receipt.signMode]) : "—"],
+    ["Receipt:Cancel:Signature", signatureOf(receipt)],
   ];
   return (
     <section className="rcpt-cancel-card" aria-labelledby="rcpt-cancel-original">

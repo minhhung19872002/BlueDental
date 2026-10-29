@@ -34,10 +34,19 @@ export interface ReceiptPaperSignature {
   signedAt: string;
 }
 
+/** How the boxes were signed off the iPad (P2910_02). */
+export interface ReceiptPaperMarks {
+  /** Printed for the customer to sign by hand at the counter. */
+  payerOnPaper: boolean;
+  /** Exported with the accountant's saved signature (Ký điện tử). */
+  accountantSigned: boolean;
+}
+
 interface Props {
   receipt: ReceiptPaperData;
   clinic: ReceiptClinic;
   signature?: ReceiptPaperSignature | null;
+  marks?: ReceiptPaperMarks;
 }
 
 /** "2026-10-27" → its day, month and year, as the paper reads them. */
@@ -67,7 +76,8 @@ function SignBox({ role, name, children }: { role: string; name: string; childre
   );
 }
 
-function PayerMark({ signature }: { signature?: ReceiptPaperSignature | null }) {
+function PayerMark({ signature, onPaper }: { signature?: ReceiptPaperSignature | null; onPaper: boolean }) {
+  if (onPaper) return <span className="rcpt-sign-chip rcpt-sign-chip--paper">{t("Receipt:Sheet:OnPaper")}</span>;
   if (!signature) {
     return <span className="rcpt-sign-chip rcpt-sign-chip--waiting">{t("Receipt:Sheet:AwaitingCustomer")}</span>;
   }
@@ -85,7 +95,7 @@ function PayerMark({ signature }: { signature?: ReceiptPaperSignature | null }) 
  * service never rewrites it. No Nợ / Có accounts: the BA took them off. The
  * accountant's page and the customer's iPad show the same sheet.
  */
-export function ReceiptPaper({ receipt, clinic, signature }: Props) {
+export function ReceiptPaper({ receipt, clinic, signature, marks }: Props) {
   const { content } = receipt;
   const paidOn = partsOf(content.paidOn);
   return (
@@ -122,10 +132,14 @@ export function ReceiptPaper({ receipt, clinic, signature }: Props) {
 
       <div className="rcpt-signs">
         <SignBox role={t("Receipt:Sheet:PayerSign")} name={content.payerName}>
-          <PayerMark signature={signature} />
+          <PayerMark signature={signature} onPaper={marks?.payerOnPaper ?? false} />
         </SignBox>
         <SignBox role={t("Receipt:Sheet:AccountantSign")} name={content.creatorName}>
-          <span className="rcpt-sign-chip">{t("Receipt:Sheet:NotSigned")}</span>
+          {marks?.accountantSigned ? (
+            <span className="rcpt-sign-chip rcpt-sign-chip--signed">{t("Receipt:Sheet:SignedElectronic")}</span>
+          ) : (
+            <span className="rcpt-sign-chip">{t("Receipt:Sheet:NotSigned")}</span>
+          )}
         </SignBox>
       </div>
     </article>

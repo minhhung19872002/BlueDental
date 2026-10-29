@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
@@ -20,6 +22,8 @@ public class ReceiptSigningAppService(
     IRepository<ReceiptSigningSession, Guid> sessions,
     ReceiptSigningDesk desk,
     IReceiptCipher cipher,
+    ReceiptLogBook logBook,
+    PaymentReceiptContents receipts,
     BranchAccessChecker branchAccess) : BlueDentalAppService, IReceiptSigningAppService
 {
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -42,7 +46,63 @@ public class ReceiptSigningAppService(
     {
         var payment = await PaymentAsync(patientPaymentId);
         await desk.CloseOfPaymentAsync(payment, SigningCloseReason.Cancelled);
+        if (payment.IsPending && payment.IsSignedOnPaper)
+        {
+            payment.TakeBackPaper();
+            await logBook.PaperTakenBackAsync(payment, Clock.Now, CurrentUser.Id);
+            await payments.UpdateAsync(payment, autoSave: true);
+        }
+
         return await StateOfAsync(payment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Payment.Update)]
+    public async Task<ReceiptSigningStateDto> PrintForPaperAsync(Guid patientPaymentId)
+    {
+        var payment = await PaymentAsync(patientPaymentId);
+        // Printing again keeps the first time, and writes no second line.
+        var first = !payment.IsSignedOnPaper;
+        payment.SignOnPaper(Clock.Now, CurrentUser.Id);
+        if (first)
+        {
+            await logBook.PrintedForPaperAsync(payment);
+        }
+
+        await payments.UpdateAsync(payment, autoSave: true);
+        await desk.CloseOfPaymentAsync(payment, SigningCloseReason.Printed);
+        return await StateOfAsync(payment);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
+    public async Task<List<PaymentReceiptLogDto>> GetLogAsync(Guid patientPaymentId)
+    {
+        // A cancelled receipt is soft-deleted, and its log still reads; one gone with its slip is gone.
+        PatientPayment payment;
+        using (DataFilter.Disable<Volo.Abp.ISoftDelete>())
+        {
+            payment = await PaymentAsync(patientPaymentId);
+        }
+
+        if (payment.IsDeleted && payment.Status != PatientPaymentStatus.Cancelled)
+        {
+            throw new EntityNotFoundException(typeof(PatientPayment), patientPaymentId);
+        }
+
+        var lines = await logBook.OfAsync(patientPaymentId);
+        var people = await receipts.FullNamesAsync(lines.SelectMany(x => new[] { x.UserId, x.AccountantSignerId }));
+        return lines.Select(x => new PaymentReceiptLogDto
+        {
+            Action = x.Action,
+            At = x.At,
+            UserName = PaymentReceiptContents.NameOf(people, x.UserId),
+            SignMode = x.SignMode,
+            AccountantSignerName = PaymentReceiptContents.NameOf(people, x.AccountantSignerId),
+            AccountantSignatureSavedAt = x.AccountantSignatureSavedAt,
+            CustomerSignedAt = x.CustomerSignedAt,
+            CustomerSignedOnPaper = x.CustomerSignedOnPaper,
+            FileSha256 = x.FileSha256,
+            CancelReasonCode = x.CancelReasonCode
+        }).ToList();
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Update)]

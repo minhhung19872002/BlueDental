@@ -442,6 +442,15 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>P2910: a line's TN giảm and voucher share let off more than it still owes.</summary>
         public const string ReliefExceedsOutstanding = "BlueDental:Billing:0116";
+
+        /// <summary>P2910_02: Ký điện tử picked by an accountant who has no saved signature yet.</summary>
+        public const string AccountantSignatureMissing = "BlueDental:Billing:0117";
+
+        /// <summary>P2910_02: an accountant's signature image over 200 KB once shrunk.</summary>
+        public const string AccountantSignatureTooLarge = "BlueDental:Billing:0118";
+
+        /// <summary>P2910_02: the receipt was printed for a hand signature, so the iPad is out of its flow.</summary>
+        public const string ReceiptSignedOnPaper = "BlueDental:Billing:0119";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";

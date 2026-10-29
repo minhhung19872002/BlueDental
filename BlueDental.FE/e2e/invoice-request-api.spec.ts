@@ -1,6 +1,15 @@
-import { expect, request as playwrightRequest, test, type APIRequestContext, type Page } from "@playwright/test";
+import { expect, request as playwrightRequest, test, type APIRequestContext } from "@playwright/test";
 import { BRANCH2_USER, login } from "./fixtures/auth";
-import { call, collectOnFirstLine, openNewSlip, PAYMENTS_API, type Receipt } from "./fixtures/ledgerReceipt";
+import {
+  call,
+  collectOnFirstLine,
+  openNewSlip,
+  PAYMENTS_API,
+  revisionOf,
+  settleReceipt,
+  writeOnFirstLine,
+  type Receipt,
+} from "./fixtures/ledgerReceipt";
 
 /**
  * F-71 Yêu cầu xuất HĐ (BA 2026-10-12): a receipt marked "Xuất hóa đơn đỏ"
@@ -338,6 +347,51 @@ test.describe("F-71 Yêu cầu xuất HĐ — real API", () => {
       for (const id of created) {
         await call(page, `${REQUESTS}/${id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
       }
+    }
+  });
+
+  // P2910_02: Dịch vụ on the QR form is the name the receipt printed
+  // ("Tên trên phiếu"), not the catalog's — and the staff draft agrees.
+  test("R-1081: the QR form names the service as the receipt does", async ({ page, baseURL }) => {
+    await login(page);
+    const { slip } = await openNewSlip(page);
+    await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
+
+    // Đợt 1 gives the line no name of its own: the catalog's is read.
+    const plain = await collectOnFirstLine(page, { redInvoice: true });
+    const plainDraft = await call(page, `${REQUESTS}/draft/${plain.id}`);
+    expect(plainDraft.status, JSON.stringify(plainDraft.body)).toBe(200);
+    expect(plainDraft.body.serviceName).toBe(slip.serviceName);
+
+    // Đợt 2 comes prefilled "… – Đợt 2"; the cashier's own wording wins.
+    const written = await writeOnFirstLine(page, { redInvoice: true });
+    const receiptName = `${slip.serviceName} – Đợt e2e ${written.code}`;
+
+    const named = await call(page, `${PAYMENTS_API}/${written.id}`, {
+      method: "PUT",
+      json: {
+        ...revisionOf(written),
+        redInvoiceRequested: true,
+        lineTerms: [{ treatmentServiceId: written.lines[0].treatmentServiceId, receiptName, cashierDiscount: 0 }],
+      },
+    });
+    expect(named.status, JSON.stringify(named.body)).toBe(200);
+    await settleReceipt(page, written);
+
+    const draft = await call(page, `${REQUESTS}/draft/${written.id}`);
+    expect(draft.status, JSON.stringify(draft.body)).toBe(200);
+    expect(draft.body.serviceName).toBe(receiptName);
+
+    const link = await call(page, `${REQUESTS}/links/${written.id}`, { method: "POST" });
+    expect(link.status, JSON.stringify(link.body)).toBe(200);
+    const phone = await anonymous(baseURL ?? "http://127.0.0.1:8080");
+    try {
+      const form = await json(await phone.get(`${PUBLIC}/${tokenOf(String(link.body.url))}`));
+      expect(form.status, JSON.stringify(form.body)).toBe(200);
+      expect(form.body.serviceName).toBe(receiptName);
+      expect(form.body.serviceName).not.toBe(slip.serviceName);
+    } finally {
+      await phone.dispose();
     }
   });
 });

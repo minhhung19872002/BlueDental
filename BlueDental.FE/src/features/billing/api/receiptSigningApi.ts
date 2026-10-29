@@ -4,7 +4,15 @@ import { ALWAYS_FRESH } from "@/lib/queryFreshness";
 import { paymentReceiptKeys } from "./paymentReceiptApi";
 
 /** Matches BlueDental.Billing.SigningCloseReason. */
-export const SIGNING_CLOSE_REASON = { Cancelled: 1, Issued: 2, ReceiptCancelled: 3, Revised: 4, Replaced: 5 } as const;
+export const SIGNING_CLOSE_REASON = {
+  Cancelled: 1,
+  Issued: 2,
+  ReceiptCancelled: 3,
+  Revised: 4,
+  Replaced: 5,
+  /** "In phiếu thu" → Xác nhận in: the customer signs the printout instead (P2910_02). */
+  Printed: 6,
+} as const;
 export type SigningCloseReason = (typeof SIGNING_CLOSE_REASON)[keyof typeof SIGNING_CLOSE_REASON];
 
 /** Matches ReceiptSigningSessionDto: one trip of the receipt to the iPad. */
@@ -45,6 +53,8 @@ const receiptSigningHttp = {
     api.post<ReceiptSigningStateDto>(`${BASE}/${paymentId}/send`, { replace }).then((r) => r.data),
   cancel: (paymentId: string) => api.post<ReceiptSigningStateDto>(`${BASE}/${paymentId}/cancel`).then((r) => r.data),
   resign: (paymentId: string) => api.post<ReceiptSigningStateDto>(`${BASE}/${paymentId}/resign`).then((r) => r.data),
+  printForPaper: (paymentId: string) =>
+    api.post<ReceiptSigningStateDto>(`${BASE}/${paymentId}/print-for-paper`).then((r) => r.data),
 };
 
 /** What the customer has done on the iPad; the hub says when to read it again. */
@@ -83,4 +93,12 @@ export function useCancelReceiptSigning(paymentId: string) {
 /** Yêu cầu khách ký lại. */
 export function useRequestReceiptResign(paymentId: string) {
   return useSigningMutation(() => receiptSigningHttp.resign(paymentId), paymentId);
+}
+
+/**
+ * "In phiếu thu" → Xác nhận in (P2910_02): the customer signs the printout
+ * by hand; an iPad session still open ends as Printed.
+ */
+export function usePrintReceiptForPaper(paymentId: string) {
+  return useSigningMutation(() => receiptSigningHttp.printForPaper(paymentId), paymentId);
 }

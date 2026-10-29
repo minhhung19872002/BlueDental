@@ -87,8 +87,27 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
 
     public Guid? IssuedById { get; private set; }
 
-    /// <summary>Ký số or Không ký số, as the accountant chose on the export.</summary>
+    /// <summary>Ký điện tử, Token điện tử or Ký tay trực tiếp, as the accountant chose on the export.</summary>
     public ReceiptSignMode? SignMode { get; private set; }
+
+    /// <summary>
+    /// "In phiếu thu" (P2910_02): when the draft was printed for the customer
+    /// to sign by hand at the counter instead of on the iPad.
+    /// </summary>
+    public DateTimeOffset? PaperSignedAt { get; private set; }
+
+    public Guid? PaperSignedById { get; private set; }
+
+    public bool IsSignedOnPaper => PaperSignedAt != null;
+
+    /// <summary>Ký điện tử: whose saved signature went on the exported PDF.</summary>
+    public Guid? AccountantSignerId { get; private set; }
+
+    /// <summary>
+    /// When that signature was saved — the BA's "user timestamp", kept apart
+    /// from <see cref="IssuedAt"/>.
+    /// </summary>
+    public DateTimeOffset? AccountantSignatureSavedAt { get; private set; }
 
     /// <summary>
     /// The exported PHIẾU THU (PDF/A, AES-encrypted) in blob storage. Null on a
@@ -558,7 +577,8 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         Guid? accountantId,
         ReceiptSignMode signMode,
         string receiptFileName,
-        string receiptFileSha256)
+        string receiptFileSha256,
+        ReceiptSigner? signer = null)
     {
         EnsureIssuable(signMode);
         Check.NotNullOrWhiteSpace(receiptFileName, nameof(receiptFileName), MaxReceiptFileNameLength);
@@ -567,12 +587,41 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
             throw new ArgumentException("A SHA-256 is 64 hex digits.", nameof(receiptFileSha256));
         }
 
+        if (signMode == ReceiptSignMode.Electronic && signer == null)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Billing.AccountantSignatureMissing);
+        }
+
         IssuedAt = issuedAt;
         IssuedById = accountantId;
         SignMode = signMode;
         ReceiptFileName = receiptFileName;
         ReceiptFileSha256 = receiptFileSha256;
+        AccountantSignerId = signMode == ReceiptSignMode.Electronic ? signer!.UserId : null;
+        AccountantSignatureSavedAt = signMode == ReceiptSignMode.Electronic ? signer!.SavedAt : null;
         Status = PatientPaymentStatus.Issued;
+        return this;
+    }
+
+    /// <summary>
+    /// "Xác nhận in" (P2910_02): the customer signs the printed draft instead
+    /// of the iPad, so the receipt goes straight to the accountant. Printing
+    /// again keeps the first time.
+    /// </summary>
+    public PatientPayment SignOnPaper(DateTimeOffset printedAt, Guid? printedById)
+    {
+        EnsurePending();
+        if (Kind != PatientPaymentKind.Payment)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Billing.ReceiptNotSendable);
+        }
+
+        if (PaperSignedAt == null)
+        {
+            PaperSignedAt = printedAt;
+            PaperSignedById = printedById;
+        }
+
         return this;
     }
 
@@ -606,6 +655,15 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         PaymentAccountId = RequiresAccount(method) ? paymentAccountId : null;
         Note = note;
         ReplaceLines(drafts, lineIdFactory, voucher);
+        // What was signed on paper no longer says the same.
+        return TakeBackPaper();
+    }
+
+    /// <summary>"Hủy phiên &amp; sửa phiếu" also ends a paper signing: the receipt waits for the iPad again.</summary>
+    public PatientPayment TakeBackPaper()
+    {
+        PaperSignedAt = null;
+        PaperSignedById = null;
         return this;
     }
 

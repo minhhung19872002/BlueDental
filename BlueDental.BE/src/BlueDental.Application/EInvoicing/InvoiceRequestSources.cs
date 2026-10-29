@@ -104,8 +104,8 @@ public class InvoiceRequestSources(
     }
 
     /// <summary>
-    /// Dịch vụ on the form: the services the receipt paid, by their catalog
-    /// name; a receipt without a slip falls back to its note.
+    /// Dịch vụ on the form: the services the receipt paid, by the receipt's
+    /// line name, else the catalog's; a receipt without a slip falls back to its note.
     /// </summary>
     public async Task<string> ServiceNameAsync(PatientPayment payment)
     {
@@ -125,10 +125,15 @@ public class InvoiceRequestSources(
 
         return receipts.ToDictionary(r => r.Id, r =>
         {
+            // The name the receipt itself gave the line ("… – Đợt 3", P2910_02)
+            // comes first; the catalog's when the cashier left it blank.
             var named = r.Lines
-                .Select(l => services.GetValueOrDefault(l.TreatmentServiceId))
-                .OfType<TreatmentService>()
-                .Select(s => catalogNames.GetValueOrDefault(s.ServiceId) ?? s.Code)
+                .Select(l => !string.IsNullOrWhiteSpace(l.ReceiptName)
+                    ? l.ReceiptName
+                    : services.GetValueOrDefault(l.TreatmentServiceId) is { } s
+                        ? catalogNames.GetValueOrDefault(s.ServiceId) ?? s.Code
+                        : null)
+                .OfType<string>()
                 .Distinct()
                 .ToList();
             return named.Count > 0 ? string.Join(", ", named) : r.Note ?? string.Empty;

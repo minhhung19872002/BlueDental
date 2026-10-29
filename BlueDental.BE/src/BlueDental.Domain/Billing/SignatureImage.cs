@@ -17,7 +17,14 @@ public static class SignatureImage
 
     private static readonly byte[] PngMagic = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
-    public static byte[] FromDataUrl(string? dataUrl)
+    public static byte[] FromDataUrl(string? dataUrl) =>
+        FromDataUrl(dataUrl, MaxBytes, BlueDentalDomainErrorCodes.Billing.SignatureInvalid);
+
+    /// <summary>
+    /// With a cap of its own and the error to give past it — the accountant's
+    /// Ký điện tử image is held to less than the iPad's (P2910_02).
+    /// </summary>
+    public static byte[] FromDataUrl(string? dataUrl, int maxBytes, string tooLargeCode)
     {
         if (dataUrl == null || !dataUrl.StartsWith(DataUrlPrefix, StringComparison.Ordinal))
         {
@@ -34,9 +41,14 @@ public static class SignatureImage
             throw Invalid();
         }
 
-        if (png.Length <= PngMagic.Length || png.Length > MaxBytes || !png.AsSpan(0, PngMagic.Length).SequenceEqual(PngMagic))
+        if (png.Length <= PngMagic.Length || !png.AsSpan(0, PngMagic.Length).SequenceEqual(PngMagic))
         {
             throw Invalid();
+        }
+
+        if (png.Length > maxBytes)
+        {
+            throw new BusinessException(tooLargeCode);
         }
 
         return png;

@@ -122,7 +122,14 @@ test.describe.serial("Tài chính → Phiếu thu", () => {
     await expectStepsDone(page, 6, null);
     await expect(panel.locator(".rcpt-panel-title")).toHaveText("Đã xuất phiếu thu");
     // The mock's column: how it was signed and kept (receipt-exported.spec covers the buttons).
-    await expect(panel.locator(".rcpt-done-fact dd")).toHaveText([/^Không ký số – /, "Chưa ký số", /^PDF\/A/]);
+    await expect(panel.locator(".rcpt-done-fact dd")).toHaveText([
+      / · /,
+      /^Ký tay trực tiếp – /,
+      "Ký tay trực tiếp trên phiếu in",
+      /^Trên iPad lúc /,
+      "Chưa ký số",
+      /^PDF\/A/,
+    ]);
 
     // ── Paid: still six; the same column under "Đã thanh toán", plus who confirmed ──
     // Already exported, so ✓ only.
@@ -135,7 +142,10 @@ test.describe.serial("Tài chính → Phiếu thu", () => {
     await expect(panel.locator(".rcpt-panel-title")).toHaveText("Đã thanh toán");
     await expect(panel.locator(".rcpt-done-icon")).toBeVisible();
     await expect(panel.locator(".rcpt-done-fact dt")).toHaveText([
-      "Hình thức ký",
+      "Xuất phiếu",
+      "Hình thức ký số",
+      "Chữ ký kế toán",
+      "Khách ký",
       "Ký số đơn vị",
       "Lưu trữ",
       "Xác nhận thanh toán",

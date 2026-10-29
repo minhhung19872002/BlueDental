@@ -6,35 +6,42 @@ import { useAbility } from "@/hooks/useAbility";
 import { extractApiError } from "@/lib/apiError";
 import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import { openReceiptTab, receiptCancelPath, showReceipt } from "@/lib/receiptTab";
-import { RECEIPT_STATUS, usePaymentReceipt, useReceiptPdf } from "../api/paymentReceiptApi";
+import { receiptCancelPath } from "@/lib/receiptTab";
+import { RECEIPT_SIGN_MODE, RECEIPT_STATUS, usePaymentReceipt, type PaymentReceiptDto } from "../api/paymentReceiptApi";
 import type { ReceiptSigningStateDto } from "../api/receiptSigningApi";
 import { planPaymentPath } from "../components/paymentLedgerColumns";
-import { ReceiptExportButton, ReceiptExportPanel } from "../components/receipt/ReceiptExportPanel";
 import { ReceiptExportedPanel } from "../components/receipt/ReceiptExportedPanel";
 import { ReceiptHeader } from "../components/receipt/ReceiptHeader";
-import { ReceiptIpadControls, ReceiptIpadStatus } from "../components/receipt/ReceiptIpadControls";
 import { ReceiptPageSkeleton } from "../components/receipt/ReceiptPageSkeleton";
 import { ReceiptStatusPanel } from "../components/receipt/ReceiptStatusPanel";
+import { ReceiptWaitingPanel } from "../components/receipt/ReceiptWaitingPanel";
 import { isCancellable } from "../components/receipt/receiptStatus";
-import { countedSession, receiptSteps } from "../components/receipt/receiptSteps";
+import { countedSession, customerSigned, receiptSteps } from "../components/receipt/receiptSteps";
+import { useAccountantSignature } from "../hooks/useAccountantSignature";
 import { useReceiptExport } from "../hooks/useReceiptExport";
 import { useReceiptIpad } from "../hooks/useReceiptIpad";
+import { useReceiptPrint } from "../hooks/useReceiptPrint";
 import "../components/receipt/receipt.css";
 
 /**
- * Tài chính → Phiếu thu (P2610): one receipt on its way from the counter to
- * the customer's signature — the step bar, the PHIẾU THU as written, and where
- * it stands, with the iPad buttons while it waits. "Tạo phiếu thanh toán"
- * lands here; the slip's Thanh toán tab opens it from the receipt's number or 👁.
+ * Tài chính → Phiếu thu (P2610, P2910_02): one receipt on its way from the
+ * counter to the customer's signature — the step bar, the PHIẾU THU as
+ * written, and where it stands: the iPad buttons and "In phiếu thu để ký tay"
+ * while it waits, the accountant's export once signed. "Tạo phiếu thanh
+ * toán" lands here; the slip's Thanh toán tab opens it from the receipt's
+ * number or 👁.
  */
 export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { data: receipt, isLoading, error } = usePaymentReceipt(id);
-  const pdf = useReceiptPdf();
   const ipad = useReceiptIpad(id);
   const exporter = useReceiptExport(id);
+  const printer = useReceiptPrint(id);
+  const waiting = receipt?.status === RECEIPT_STATUS.Pending;
+  const customer = receipt ? customerSigned(receipt, ipad.state?.session ?? null) : null;
+  // The saved signature is read only once the accountant's step is reached.
+  const signature = useAccountantSignature(waiting && customer !== null);
   // Hủy phiếu thu rides on payment.delete, as Huỷ on the slip's Thanh toán tab.
   const { canDelete: canCancel, canCreate } = useAbility("payment");
 
@@ -54,32 +61,11 @@ export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
   const slipPath = receipt.treatmentPlanId
     ? planPaymentPath(receipt.patientId, receipt.treatmentPlanId, receipt.clinicBranchId)
     : withBranch("/billing", receipt.clinicBranchId);
+  const exported = receipt.status === RECEIPT_STATUS.Issued || receipt.status === RECEIPT_STATUS.Completed;
 
-  const session = ipad.state?.session ?? null;
-
-  const waiting = receipt.status === RECEIPT_STATUS.Pending;
-  const exported =
-    receipt.status === RECEIPT_STATUS.Issued || receipt.status === RECEIPT_STATUS.Completed;
-  const signed = Boolean(session?.isOpen && session.signedAt);
-
-  // An exported receipt prints the file kept at export; before that, the template.
-  const handlePrint = () => {
-    if (receipt.hasFile) {
-      exporter.printStored();
-      return;
-    }
-    const tab = openReceiptTab();
-    pdf.mutate(receipt.id, {
-      onSuccess: (blob) => showReceipt(tab, blob),
-      // The failure itself is toasted by the global MutationCache.
-      onError: () => tab?.close(),
-    });
-  };
-
-  // Exported: Tải PDF saves the kept file; Tạo phiếu mới opens the slip's dialog (BA mock).
+  // Exported: In phiếu prints the file kept at export; Tải PDF saves it; Tạo phiếu mới opens the slip's dialog.
   // The number has "/" in it (THANHTOAN-1/DT1/2026), which no file name may hold.
-  const handleDownload = () =>
-    exporter.downloadStored(`${receipt.code.replace(/[\\/:*?"<>|]/g, "-")}.pdf`);
+  const handleDownload = () => exporter.downloadStored(`${receipt.code.replace(/[\\/:*?"<>|]/g, "-")}.pdf`);
   const newPaymentPath = receipt.treatmentPlanId
     ? planPaymentPath(receipt.patientId, receipt.treatmentPlanId, receipt.clinicBranchId, true)
     : null;
@@ -96,78 +82,49 @@ export function ReceiptPage({ clinic }: { clinic: ReceiptClinic }) {
         }
       />
       <section className="rcpt-track-card">
-        <StepTrack items={receiptSteps(receipt, session)} label={t("Receipt:Step:Label")} />
+        <StepTrack items={receiptSteps(receipt, ipad.state?.session ?? null)} label={t("Receipt:Step:Label")} />
       </section>
       <div className="rcpt-body">
-        <ReceiptPaper receipt={receipt} clinic={clinic} signature={signatureOf(ipad.state)} />
-        {exported ? (
+        <ReceiptPaper receipt={receipt} clinic={clinic} signature={signatureOf(ipad.state)} marks={marksOf(receipt)} />
+        {exported && (
           <ReceiptExportedPanel
             receipt={receipt}
-            print={{ run: handlePrint, pending: pdf.isPending || exporter.printingStored }}
-            download={
-              receipt.hasFile
-                ? { run: handleDownload, pending: exporter.downloadingStored }
-                : undefined
-            }
+            customer={customer}
+            print={{
+              run: receipt.hasFile ? exporter.printStored : printer.printDraft,
+              pending: printer.printing || exporter.printingStored,
+            }}
+            download={receipt.hasFile ? { run: handleDownload, pending: exporter.downloadingStored } : undefined}
             onCreateNew={canCreate && newPaymentPath ? () => navigate(newPaymentPath) : undefined}
           />
-        ) : (
-          <ReceiptStatusPanel
+        )}
+        {waiting && (
+          <ReceiptWaitingPanel
             receipt={receipt}
             slipPath={slipPath}
-            print={
-              waiting && signed
-                ? undefined
-                : { run: handlePrint, pending: pdf.isPending || exporter.printingStored }
-            }
-            pendingTitle={pendingTitleOf(ipad.state)}
-            notice={waiting && ipad.state && <ReceiptIpadStatus state={ipad.state} />}
-            actions={
-              waiting &&
-              ipad.state && (
-                <ReceiptIpadControls
-                  state={ipad.state}
-                  pendingAction={ipad.pendingAction}
-                  confirmReplace={ipad.confirmReplace}
-                  handlers={ipad}
-                />
-              )
-            }
-            primary={
-              waiting &&
-              signed && (
-                <ReceiptExportButton
-                  signMode={exporter.signMode}
-                  onExport={exporter.exportReceipt}
-                  exporting={exporter.exporting}
-                />
-              )
-            }
-          >
-            {waiting && signed && (
-              <ReceiptExportPanel
-                signMode={exporter.signMode}
-                onSignModeChange={exporter.setSignMode}
-                exporting={exporter.exporting}
-              />
-            )}
-          </ReceiptStatusPanel>
+            ipad={ipad}
+            printer={printer}
+            exporter={exporter}
+            signature={signature}
+          />
         )}
+        {!exported && !waiting && <ReceiptStatusPanel receipt={receipt} slipPath={slipPath} />}
       </div>
     </div>
   );
 }
 
-/** The customer's drawing goes in the Người nộp tiền box once signed. */
+/** The customer's drawing goes in the Người nộp tiền box once signed on the iPad. */
 function signatureOf(state: ReceiptSigningStateDto | null) {
   const session = countedSession(state?.session ?? null);
   if (!session?.signatureDataUrl || !session.signedAt) return null;
   return { dataUrl: session.signatureDataUrl, signedAt: session.signedAt };
 }
 
-/** The column's heading while the receipt waits, by what the customer has done. */
-function pendingTitleOf(state: ReceiptSigningStateDto | null): string | undefined {
-  const open = state?.session?.isOpen ? state.session : null;
-  if (!open) return undefined;
-  return open.signedAt ? t("Receipt:Panel:SignedTitle") : t("Receipt:Panel:AtIpadTitle");
+/** Signed on the printout; exported with the accountant's saved signature. */
+function marksOf(receipt: PaymentReceiptDto) {
+  return {
+    payerOnPaper: receipt.paperSignedAt !== null,
+    accountantSigned: receipt.issuedAt !== null && receipt.signMode === RECEIPT_SIGN_MODE.Electronic,
+  };
 }

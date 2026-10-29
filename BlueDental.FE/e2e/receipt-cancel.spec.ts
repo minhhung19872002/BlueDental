@@ -94,7 +94,7 @@ test.describe.serial("Tài chính → Phiếu thu → Hủy phiếu thu", () => 
     // Quay lại leaves it as it was.
     await page.locator(".rcpt-head").getByRole("button", { name: CANCEL }).click();
     await expect(page).toHaveURL(/\/cancel/);
-    await expect(page.getByRole("region", { name: "Phiếu thu gốc" })).toContainText("Khách đã ký · Không ký số");
+    await expect(page.getByRole("region", { name: "Phiếu thu gốc" })).toContainText("Khách đã ký · Kế toán ký tay trực tiếp");
     await page.getByRole("button", { name: "Quay lại" }).click();
     await expect(page.locator(".rcpt-head .rcpt-pill")).toHaveText("Đã xuất phiếu thu");
 

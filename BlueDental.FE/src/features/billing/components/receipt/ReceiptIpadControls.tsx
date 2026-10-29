@@ -8,6 +8,8 @@ import type { IpadAction } from "../../hooks/useReceiptIpad";
 
 interface Props {
   state: ReceiptSigningStateDto;
+  /** Printed for the customer to sign by hand: the iPad is out of it. */
+  paper: boolean;
   pendingAction: IpadAction | null;
   confirmReplace: boolean;
   handlers: {
@@ -47,12 +49,28 @@ export function ReceiptIpadStatus({ state }: { state: ReceiptSigningStateDto }) 
  * sửa phiếu; after the customer signed, Yêu cầu khách ký lại takes Gửi lại's
  * place, Xuất phiếu thu sits beside it and Hủy phiên drops to the line below.
  * When the iPad shows another receipt the cashier may wait, or end that
- * session and send this one.
+ * session and send this one. Printed for signing by hand (P2910_02), only Hủy
+ * phiên & sửa phiếu is left: it takes the receipt back from paper.
  */
-export function ReceiptIpadControls({ state, pendingAction, confirmReplace, handlers }: Props) {
+export function ReceiptIpadControls({ state, paper, pendingAction, confirmReplace, handlers }: Props) {
   const open = state.session?.isOpen ? state.session : null;
   const busy = pendingAction !== null;
   const loading = (action: IpadAction) => pendingAction === action;
+
+  const cancelButton = (below: boolean) => (
+    <Button
+      danger
+      className={below ? "rcpt-ipad-cancel-below" : undefined}
+      icon={<RotateCcw size={16} aria-hidden="true" />}
+      loading={loading("cancel")}
+      disabled={busy}
+      onClick={handlers.cancel}
+    >
+      {t("Receipt:Ipad:Cancel")}
+    </Button>
+  );
+
+  if (paper) return cancelButton(true);
 
   return (
     <>
@@ -80,16 +98,7 @@ export function ReceiptIpadControls({ state, pendingAction, confirmReplace, hand
                   {t("Receipt:Ipad:Resign")}
                 </Button>
               )}
-              <Button
-                danger
-                className={open.signedAt ? "rcpt-ipad-cancel-below" : undefined}
-                icon={<RotateCcw size={16} aria-hidden="true" />}
-                loading={loading("cancel")}
-                disabled={busy}
-                onClick={handlers.cancel}
-              >
-                {t("Receipt:Ipad:Cancel")}
-              </Button>
+              {cancelButton(Boolean(open.signedAt))}
             </>
           )}
         </>

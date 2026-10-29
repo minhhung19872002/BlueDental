@@ -45,9 +45,20 @@ test("an exported receipt reads as the mock: facts, In phiếu, Tải PDF and T�
   await expect(column.locator(".rcpt-done-sub")).toHaveText(
     /^Ghi nhận thanh toán lúc \d{2}:\d{2}:\d{2} ngày \d{2}\/\d{2}\/\d{4}$/,
   );
-  await expect(column.locator(".rcpt-done-fact dt")).toHaveText(["Hình thức ký", "Ký số đơn vị", "Lưu trữ"]);
+  // P2910_02: when and by whom it was exported, how each side signed.
+  await expect(column.locator(".rcpt-done-fact dt")).toHaveText([
+    "Xuất phiếu",
+    "Hình thức ký số",
+    "Chữ ký kế toán",
+    "Khách ký",
+    "Ký số đơn vị",
+    "Lưu trữ",
+  ]);
   await expect(column.locator(".rcpt-done-fact dd")).toHaveText([
-    /^Không ký số – .+ xác nhận$/,
+    /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}(:\d{2})? · .+$/,
+    /^Ký tay trực tiếp – .+ xác nhận$/,
+    "Ký tay trực tiếp trên phiếu in",
+    /^Trên iPad lúc \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/,
     "Chưa ký số",
     "PDF/A · tối thiểu 10 năm",
   ]);

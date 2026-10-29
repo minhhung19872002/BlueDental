@@ -62,3 +62,5 @@ export function useReceiptIpad(paymentId: string) {
     resign: handleResign,
   };
 }
+
+export type ReceiptIpad = ReturnType<typeof useReceiptIpad>;

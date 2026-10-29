@@ -3327,12 +3327,14 @@
 .pd-newpay-searchbox {
   margin-bottom: 16px;
 }
-/* Label column fixed at 150px with a wide gutter, and the value left-aligned
-   under it — not right-aligned across the card. */
+/* Each label on one line, as wide as its words, and the amount right-aligned
+   across the card (BA P2910_02) — "Đã thanh toán (các đợt trước)" no longer
+   wraps under a fixed 150px column. */
 .pd-newpay-fact {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 16px 40px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
   color: var(--bd-ink);
 }
 .pd-newpay-fact + .pd-newpay-fact {
@@ -3341,10 +3343,20 @@
 .pd-newpay-fact > span:first-child,
 .pd-newpay-fact > label {
   color: var(--bd-muted);
+  white-space: nowrap;
 }
-/* "Ngày thanh toán" is a picker on a new receipt (owner 2026-10-14). */
+.pd-newpay-fact > span:last-child {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* "Ngày thanh toán" is a picker on a new receipt (owner 2026-10-14): it keeps
+   the label column and sits under it, beside the other inputs of its section. */
 .pd-newpay-fact--field {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
   align-items: center;
+  gap: 16px 40px;
 }
 .pd-newpay-date {
   width: 160px;

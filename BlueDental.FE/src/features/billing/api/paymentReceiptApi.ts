@@ -12,8 +12,11 @@ export type ReceiptStatus = (typeof RECEIPT_STATUS)[keyof typeof RECEIPT_STATUS]
 export const RECEIPT_CANCEL_REASON = { WrongPayer: 1, WrongAmountOrService: 2, Duplicate: 3, Other: 4 } as const;
 export type ReceiptCancelReason = (typeof RECEIPT_CANCEL_REASON)[keyof typeof RECEIPT_CANCEL_REASON];
 
-/** Matches BlueDental.Billing.ReceiptSignMode — the accountant's choice on export. */
-export const RECEIPT_SIGN_MODE = { Unsigned: 1, Digital: 2 } as const;
+/**
+ * Matches BlueDental.Billing.ReceiptSignMode — the accountant's choice on
+ * export (P2910_02): Ký tay trực tiếp, Token điện tử, Ký điện tử.
+ */
+export const RECEIPT_SIGN_MODE = { Unsigned: 1, Digital: 2, Electronic: 3 } as const;
 export type ReceiptSignMode = (typeof RECEIPT_SIGN_MODE)[keyof typeof RECEIPT_SIGN_MODE];
 
 /**
@@ -83,6 +86,12 @@ export interface PaymentReceiptDto {
   cancelReasonCode: ReceiptCancelReason | null;
   /** How it was exported; null until then. */
   signMode: ReceiptSignMode | null;
+  /** "In phiếu thu" → Xác nhận in: the customer signs the printout by hand (P2910_02). */
+  paperSignedAt: string | null;
+  paperSignedByName: string | null;
+  /** Ký điện tử: whose saved signature went on the PDF, and when it was saved. */
+  accountantSignerName: string | null;
+  accountantSignatureSavedAt: string | null;
   /** Whether an exported file is kept — receipts issued before P2610 phase 5 have none. */
   hasFile: boolean;
   content: ReceiptContentDto;

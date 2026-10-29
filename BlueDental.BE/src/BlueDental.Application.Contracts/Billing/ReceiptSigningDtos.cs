@@ -47,6 +47,24 @@ public class ReceiptSigningSessionDto
     public string? SignatureDataUrl { get; set; }
 }
 
+/// <summary>
+/// One line of a receipt's log (P2910_02): what happened, who did it and
+/// when; an export also says how it was signed and by whom.
+/// </summary>
+public class PaymentReceiptLogDto
+{
+    public ReceiptLogAction Action { get; set; }
+    public DateTimeOffset At { get; set; }
+    public string? UserName { get; set; }
+    public ReceiptSignMode? SignMode { get; set; }
+    public string? AccountantSignerName { get; set; }
+    public DateTimeOffset? AccountantSignatureSavedAt { get; set; }
+    public DateTimeOffset? CustomerSignedAt { get; set; }
+    public bool? CustomerSignedOnPaper { get; set; }
+    public string? FileSha256 { get; set; }
+    public PaymentCancelReason? CancelReasonCode { get; set; }
+}
+
 /// <summary>Gửi tới iPad / Gửi lại.</summary>
 public class SendReceiptToDeviceDto
 {
@@ -65,6 +83,15 @@ public interface IReceiptSigningAppService : IApplicationService
 
     /// <summary>Yêu cầu khách ký lại.</summary>
     Task<ReceiptSigningStateDto> RequestResignAsync(Guid patientPaymentId);
+
+    /// <summary>
+    /// "In phiếu thu" → Xác nhận in (P2910_02): the customer signs the printed
+    /// draft at the counter; an open iPad session ends as Printed.
+    /// </summary>
+    Task<ReceiptSigningStateDto> PrintForPaperAsync(Guid patientPaymentId);
+
+    /// <summary>The receipt's log, oldest first — a cancelled receipt's too.</summary>
+    Task<List<PaymentReceiptLogDto>> GetLogAsync(Guid patientPaymentId);
 }
 
 // ── Clinic settings: Kết nối iPad ──────────────────────────────────────────
@@ -130,7 +157,10 @@ public enum SigningStationStage
     Signed = 4,
 
     /// <summary>Phiếu thu đã được xuất.</summary>
-    Issued = 5
+    Issued = 5,
+
+    /// <summary>Phiếu thu đã được in — the customer signs on paper at the counter (P2910_02).</summary>
+    Printed = 6
 }
 
 public class SigningStationDto
@@ -152,6 +182,9 @@ public class SigningStationDto
 
     /// <summary>Thời điểm on "Phiếu thu đã được xuất".</summary>
     public DateTimeOffset? IssuedAt { get; set; }
+
+    /// <summary>When "In phiếu thu" was confirmed, on "Phiếu thu đã được in".</summary>
+    public DateTimeOffset? PaperSignedAt { get; set; }
 }
 
 public class SignReceiptDto
@@ -184,6 +217,55 @@ public interface ISigningStationAppService : IApplicationService
 
     /// <summary>"Yêu cầu xuất hóa đơn" on the review screen.</summary>
     Task<SigningStationDto> RequestInvoiceAsync(string deviceToken, Guid sessionId, SubmitPublicInvoiceRequestDto input);
+}
+
+// ── The accountant's Ký điện tử signature (P2910_02) ───────────────────────
+
+/// <summary>The signed-in user's saved signature, decrypted for their own screen.</summary>
+public class AccountantSignatureDto
+{
+    /// <summary><c>data:image/png;base64,…</c>.</summary>
+    public string SignatureDataUrl { get; set; } = string.Empty;
+
+    public AccountantSignatureSource Source { get; set; }
+
+    /// <summary>"lưu dd/MM/yyyy" — also what an export keeps as the signer's timestamp.</summary>
+    public DateTimeOffset SavedAt { get; set; }
+
+    /// <summary>"Chữ ký của …".</summary>
+    public string UserName { get; set; } = string.Empty;
+}
+
+/// <summary>Lưu chữ ký (drawn) or Dùng chữ ký này (uploaded).</summary>
+public class SaveAccountantSignatureDto
+{
+    /// <summary>A PNG the browser has already shrunk to at most 600×200.</summary>
+    [Required]
+    [StringLength(AccountantSignatureConsts.MaxDataUrlLength)]
+    public string SignatureDataUrl { get; set; } = string.Empty;
+
+    [EnumDataType(typeof(AccountantSignatureSource))]
+    public AccountantSignatureSource Source { get; set; }
+}
+
+public static class AccountantSignatureConsts
+{
+    /// <summary>Raw PNG bytes the server keeps; the browser shrinks a ≤2 MB upload below this.</summary>
+    public const int MaxBytes = 200 * 1024;
+
+    /// <summary>
+    /// As loose as the iPad's, so an image just over <see cref="MaxBytes"/>
+    /// gets the "quá lớn" message rather than a bare validation error.
+    /// </summary>
+    public const int MaxDataUrlLength = SignatureImageConsts.MaxDataUrlLength;
+}
+
+public interface IAccountantSignatureAppService : IApplicationService
+{
+    /// <summary>Null when the user has none yet: the pad opens straight away.</summary>
+    Task<AccountantSignatureDto?> GetMineAsync();
+
+    Task<AccountantSignatureDto> SaveMineAsync(SaveAccountantSignatureDto input);
 }
 
 /// <summary>Tells the iPad and the cashier's screen that a session moved; ids only.</summary>

@@ -17,6 +17,8 @@ const DONE_BY_STAGE: Record<StationStage, number> = {
   [STATION_STAGE.Signing]: 2,
   [STATION_STAGE.Signed]: 3,
   [STATION_STAGE.Issued]: 4,
+  // The printed screen shows no bar; listed so every stage has a count.
+  [STATION_STAGE.Printed]: 4,
 };
 
 export function stationSteps(stage: StationStage): StepTrackItem[] {

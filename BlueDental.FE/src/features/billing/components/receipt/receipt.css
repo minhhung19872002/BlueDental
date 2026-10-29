@@ -152,6 +152,26 @@
   font-size: 17px;
   font-weight: 700;
 }
+/* "Khách đã ký" on the left, the "Lúc 16:55:32" chip on the right (P2910_02). */
+.rcpt-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.rcpt-signed-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .rcpt-panel-body {
   display: flex;
   flex-direction: column;
@@ -338,11 +358,11 @@
   margin-top: 1px;
 }
 
-/* ── Xuất phiếu thu, once the customer has signed (P2610 phase 5) ── */
+/* ── Kế toán kiểm tra & xuất phiếu thu, once the customer has signed
+   (P2910_02 mock): the mode boxes in one row, then what the mode needs ── */
 .rcpt-export {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 10px;
   padding: 14px 16px;
   border: 1px solid var(--bd-border);
@@ -358,15 +378,217 @@
   color: var(--bd-ink);
   font-weight: 600;
 }
+.rcpt-export-label {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
 .rcpt-export-modes {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.rcpt-export-mode {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  white-space: nowrap;
+}
+.rcpt-export-mode.ant-radio-wrapper-checked {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  box-shadow: 0 0 0 1px var(--bd-primary);
 }
 .rcpt-export-hint {
   display: block;
+  margin: 0;
   color: var(--bd-muted);
   font-size: 12px;
+}
+
+/* Token điện tử: plug the USB key, then Kết nối Token (P2610 phase 7). */
+.rcpt-token {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink-3);
+}
+.rcpt-token-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.rcpt-token-connect {
+  flex: 0 0 auto;
+}
+
+/* Ký tay trực tiếp: the printout is signed by hand. */
+.rcpt-export .rcpt-hand-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+  line-height: 1.5;
+}
+.rcpt-hand-notice svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* Ký điện tử: the saved signature (or the pad), its owner, Ký lại · Tải ảnh lên. */
+.rcpt-acsign-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rcpt-acsign-loading {
+  align-self: center;
+  padding: 16px 0;
+}
+.rcpt-acsign-saved {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  padding: 8px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+}
+.rcpt-acsign-saved img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.rcpt-acsign-pad {
+  position: relative;
+  height: 140px;
+  border: 1px dashed var(--bd-border-2);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+}
+.rcpt-acsign-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--bd-ink);
+  cursor: crosshair;
+  touch-action: none;
+}
+.rcpt-acsign-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--bd-muted);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.rcpt-acsign-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.rcpt-acsign-owner {
+  color: var(--bd-ink-3);
+}
+.rcpt-acsign-links {
+  display: flex;
+  gap: 4px;
+  margin-inline-start: auto;
+}
+.rcpt-acsign-links .ant-btn {
+  padding-inline: 4px;
+  font-weight: 600;
+}
+.rcpt-acsign-buttons {
+  display: flex;
+  gap: 8px;
+}
+.rcpt-export .rcpt-acsign-warning {
+  padding: 8px 12px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+}
+
+/* "In phiếu thu để ký tay?" (P2910_02 mock): icon, heading, text, Hủy · Xác nhận in. */
+.rcpt-paper-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.rcpt-paper-title {
+  margin: 16px 0 8px;
+  color: var(--bd-ink);
+  font-size: 20px;
+  font-weight: 700;
+}
+.rcpt-paper-text {
+  margin: 0;
+  color: var(--bd-ink-3);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.rcpt-paper-text strong {
+  color: var(--bd-ink);
+}
+.rcpt-paper-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Xem ảnh chữ ký (P2910_02 mock): the picture on white, on a grey stage. */
+.rcpt-upload-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg-soft);
+}
+.rcpt-upload-image {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 3 / 1;
+  padding: 8px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  object-fit: contain;
+}
+.rcpt-upload-file {
+  margin: 10px 0 0;
+  color: var(--bd-ink-3);
+  font-size: 13px;
+}
+.rcpt-upload-other.ant-btn {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+
+@media (max-width: 640px) {
+  .rcpt-export-modes {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Giảm giá thu ngân with the cashier's reason (P2910, step 6): accountant only. */

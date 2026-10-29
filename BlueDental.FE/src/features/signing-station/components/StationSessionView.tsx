@@ -12,6 +12,7 @@ import {
   type StationReceiptDto,
 } from "../api/signingStationApi";
 import { InvoiceRequestForm } from "./InvoiceRequestForm";
+import { PrintedScreen } from "./PrintedScreen";
 import { ReviewScreen } from "./ReviewScreen";
 import { SignScreen } from "./SignScreen";
 import { STATION_LOGO, StationShell } from "./StationShell";
@@ -77,9 +78,23 @@ export function StationSessionView({ station }: Props) {
     setInvoiceOpen(true);
   };
 
-  if (station.stage === STATION_STAGE.Issued) {
+  if (station.stage === STATION_STAGE.Issued || station.stage === STATION_STAGE.Printed) {
     if (issuedDone) return frame(<IdleScreen />, null);
+  }
+  if (station.stage === STATION_STAGE.Issued) {
     return frame(<IssuedScreen amount={receipt.amount} issuedAt={station.issuedAt} onDone={handleIssuedDone} />, station.stage);
+  }
+  // Printed for a hand signature: the iPad's steps were never walked, so no step bar.
+  if (station.stage === STATION_STAGE.Printed) {
+    return frame(
+      <PrintedScreen
+        paymentCode={paymentCode}
+        payerName={receipt.payerName}
+        amount={receipt.amount}
+        onDone={handleIssuedDone}
+      />,
+      null,
+    );
   }
   if (station.stage === STATION_STAGE.Signed) {
     return frame(<ThanksScreen signatureDataUrl={station.signatureDataUrl} />, station.stage);

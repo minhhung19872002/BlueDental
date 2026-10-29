@@ -583,8 +583,16 @@ public class PaymentReceiptDto
     public string? CancelReason { get; set; }
     public PaymentCancelReason? CancelReasonCode { get; set; }
 
-    /// <summary>Ký số / Không ký số, once exported.</summary>
+    /// <summary>Ký điện tử / Token điện tử / Ký tay trực tiếp, once exported.</summary>
     public ReceiptSignMode? SignMode { get; set; }
+
+    /// <summary>"In phiếu thu" → Xác nhận in: the customer signs the printed draft (P2910_02).</summary>
+    public DateTimeOffset? PaperSignedAt { get; set; }
+    public string? PaperSignedByName { get; set; }
+
+    /// <summary>Ký điện tử: whose saved signature is on the PDF, and when it was saved.</summary>
+    public string? AccountantSignerName { get; set; }
+    public DateTimeOffset? AccountantSignatureSavedAt { get; set; }
 
     /// <summary>The exported PDF is stored: "In phiếu thu" prints that file.</summary>
     public bool HasFile { get; set; }

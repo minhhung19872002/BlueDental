@@ -118,9 +118,13 @@ public class ReceiptSigningSession : CreationAuditedAggregateRoot<Guid>
         CloseReason = reason;
     }
 
-    /// <summary>The iPad's "Phiếu thu đã được xuất" screen, for a little while after the export.</summary>
+    /// <summary>
+    /// The iPad's "Phiếu thu đã được xuất" — or, after "In phiếu thu",
+    /// "Phiếu thu đã được in" — screen, for a little while after the close.
+    /// </summary>
     public bool ShowsIssued(DateTimeOffset now) =>
-        CloseReason == SigningCloseReason.Issued && ClosedAt is { } closed && now - closed < IssuedShownFor;
+        CloseReason is SigningCloseReason.Issued or SigningCloseReason.Printed
+        && ClosedAt is { } closed && now - closed < IssuedShownFor;
 
     public void EnsureOpen()
     {

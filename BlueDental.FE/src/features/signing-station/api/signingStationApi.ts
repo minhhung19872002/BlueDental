@@ -5,7 +5,7 @@ import { readDeviceToken } from "./deviceToken";
 // ── DTO mirror (SigningStationDto) ──────────────────────────────────────────
 
 /** Matches BlueDental.Billing.SigningStationStage: which screen the iPad shows. */
-export const STATION_STAGE = { Idle: 1, Review: 2, Signing: 3, Signed: 4, Issued: 5 } as const;
+export const STATION_STAGE = { Idle: 1, Review: 2, Signing: 3, Signed: 4, Issued: 5, Printed: 6 } as const;
 export type StationStage = (typeof STATION_STAGE)[keyof typeof STATION_STAGE];
 
 /** Matches PaymentReceiptContentDto: what the PHIẾU THU says, frozen when written. */
@@ -35,6 +35,8 @@ export interface SigningStationDto {
   /** A "Yêu cầu xuất hóa đơn" is already live for this receipt. */
   invoiceRequested: boolean;
   issuedAt: string | null;
+  /** When "In phiếu thu" was confirmed, on "Cảm ơn quý khách" (P2910_02). */
+  paperSignedAt: string | null;
 }
 
 /** Matches SubmitPublicInvoiceRequestDto; a blank personal field keeps the one on file. */
