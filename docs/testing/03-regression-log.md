@@ -12233,5 +12233,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Lịch làm việc (`workSchedule=builder`): ô tick, Nhân viên, cột ngày thường và cuối tuần đều indigo; ô thân trắng như cũ.
   - `/taxonomy/service`, `/report` (bảng thường và bảng tổng theo ngày ở tab Thanh toán), tab Chẩn đoán & Tư vấn của hồ sơ bệnh nhân (16 ô header): đúng 3 màu.
   - `tsc -p tsconfig.app.json --noEmit` xanh; build production có đúng 1 chunk ngôn ngữ.
-- **E2E**: E2E_RESULT_PENDING
+- **E2E** (`taxonomy*` + `payment-qr` + `branch-*` trên bản build production, preview :8080 nối host :5000): **90/93 xanh**. 3 test đỏ sẵn, đã chứng minh bằng cách build `72527b28` (trước R-1075), preview :8175 và chạy riêng 3 test: đỏ y hệt, cùng thông báo lỗi:
+  - `taxonomy-dialogs:104`: `locator.click` hết giờ (DB local không có nhà cung cấp labo).
+  - `taxonomy-dialogs:256`: "the branch should have a service group".
+  - `taxonomy-import-api:708`: `locator.click` hết giờ (tài khoản test nhận 200, không phải 403).
+
+  Đây là lỗi dữ liệu/quyền ở local, giống R-997 / R-998 / R-999; không liên quan việc đổi màu.
 - **Mức retest**: 1 (CSS + token, không đổi hành vi). Chạy thêm bộ `/taxonomy` theo §17 vì có đổi `taxonomy.css`.
