@@ -49,20 +49,42 @@ public class LaboAppServiceContractTests
         var dto = typeof(CreateLaboOrderDto);
         dto.GetProperty("PatientId").ShouldNotBeNull();
         dto.GetProperty("BranchId").ShouldNotBeNull();
-        dto.GetProperty("LabProviderName").ShouldNotBeNull();
+        dto.GetProperty("SupplierId").ShouldNotBeNull();
+    }
+
+    /// <summary>P2910_03 dropped Làm tiếp công đoạn / Bảo hành child orders.</summary>
+    [Fact]
+    public void CreateLaboOrderDto_Should_No_Longer_Raise_Child_Orders()
+    {
+        typeof(CreateLaboOrderDto).GetProperty("ParentOrderId").ShouldBeNull();
+        typeof(CreateLaboOrderDto).GetProperty("Kind").ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("UpdateAsync")]
+    [InlineData("CancelAsync")]
+    [InlineData("DeleteAsync")]
+    [InlineData("ReceiveAsync")]
+    [InlineData("CheckAsync")]
+    [InlineData("ActivateWarrantyAsync")]
+    public void Workflow_Action_Should_Exist_On_Interface(string name)
+    {
+        _interfaceType.GetMethod(name).ShouldNotBeNull();
     }
 
     [Fact]
-    public void CreateLaboOrderDto_Should_Carry_ParentOrderId_For_Child_Orders()
+    public void Old_Status_And_Detail_Actions_Should_Be_Gone()
     {
-        typeof(CreateLaboOrderDto).GetProperty("ParentOrderId")!
-            .PropertyType.ShouldBe(typeof(Guid?));
+        _interfaceType.GetMethod("SaveDetailAsync").ShouldBeNull();
+        _interfaceType.GetMethod("ChangeStatusAsync").ShouldBeNull();
     }
 
     [Fact]
-    public void SaveDetailAsync_Should_Exist_On_Interface()
+    public void SaveLaboOrderDto_Should_Carry_The_Submit_Flag_And_Teeth()
     {
-        _interfaceType.GetMethod("SaveDetailAsync").ShouldNotBeNull();
+        var dto = typeof(SaveLaboOrderDto);
+        dto.GetProperty("Submit")!.PropertyType.ShouldBe(typeof(bool));
+        dto.GetProperty("Teeth")!.PropertyType.ShouldBe(typeof(List<int>));
     }
 
     [Fact]
@@ -84,14 +106,15 @@ public class LaboAppServiceContractTests
     }
 
     [Fact]
-    public void LaboOrderDto_Should_Expose_What_The_Child_Form_Prefills()
+    public void LaboOrderDto_Should_Expose_What_The_Workflow_Dialog_Reads()
     {
         var dto = typeof(LaboOrderDto);
         foreach (var name in new[]
                  {
                      "ParentOrderId", "TreatmentPlanId", "TreatmentPlanCode",
                      "TreatmentPlanDentistName", "TreatmentServiceName", "TreatmentServiceStatus",
-                     "BiteName", "FinishLineName", "RhythmName", "LaboServiceName"
+                     "BiteName", "FinishLineName", "RhythmName", "LaboServiceName",
+                     "Teeth", "Rounds", "ReturnCount", "IsWarrantyExpired"
                  })
         {
             dto.GetProperty(name).ShouldNotBeNull(name);

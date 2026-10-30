@@ -824,7 +824,49 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.OrderCode).IsUnique().HasFilter("\"ParentOrderId\" IS NULL");
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => x.TreatmentStageId);
+            entity.HasIndex(x => x.TreatmentServiceId);
             entity.HasIndex(x => x.ParentOrderId);
+
+            // P2910_03: each tooth carries its check result and warranty card,
+            // each Nhận hàng · lần N its own row.
+            entity.HasMany(x => x.Teeth)
+                .WithOne()
+                .HasForeignKey(x => x.LaboOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasMany(x => x.Rounds)
+                .WithOne()
+                .HasForeignKey(x => x.LaboOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Rounds).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        builder.Entity<LaboOrderTooth>(entity =>
+        {
+            entity.ToTable("bd_labo_order_teeth");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.CheckResult).HasConversion<short>();
+            entity.Property(x => x.DefectNote).HasMaxLength(1000);
+            entity.Property(x => x.WarrantyCardCode).HasMaxLength(50);
+            entity.Property(x => x.ManufacturerSerial).HasMaxLength(100);
+            entity.Property(x => x.WarrantyConditions).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.LaboOrderId, x.ToothNumber }).IsUnique();
+        });
+
+        builder.Entity<LaboOrderRound>(entity =>
+        {
+            entity.ToTable("bd_labo_order_rounds");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Outcome).HasConversion<short>();
+            entity.Property(x => x.ReturnDescription).HasMaxLength(2000);
+            entity.OwnsMany(x => x.ToothResults, r =>
+            {
+                r.ToJson();
+                r.Property(x => x.Result).HasConversion<short>();
+                r.Property(x => x.Note).HasMaxLength(1000);
+            });
+            entity.Navigation(x => x.ToothResults).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.LaboOrderId, x.RoundNo }).IsUnique();
         });
 
         builder.Entity<LaboSupplier>(entity =>
@@ -1124,7 +1166,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PatientId, x.TakenAt });
             entity.HasIndex(x => new { x.PatientId, x.Ordering });
             entity.HasIndex(x => x.TreatmentStageId);
-            entity.HasIndex(x => x.LaboOrderId);
+            entity.HasIndex(x => new { x.LaboOrderId, x.LaboRoundNo });
         });
 
         // Phieu benh an cua benh nhan

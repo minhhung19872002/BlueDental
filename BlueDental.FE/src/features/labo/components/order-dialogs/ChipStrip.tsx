@@ -23,12 +23,14 @@ interface Props {
   value?: string;
   empty: string;
   dimmed?: boolean;
+  /** A read-only order: only the chosen chip is shown, and it cannot be let go. */
+  disabled?: boolean;
   search?: ChipSearch;
   onChange?: (value: string | undefined) => void;
 }
 
 /**
- * One of the reference's chip strips: the choices in a two-row carousel with
+ * One of the reference's chip strips: the choices in a one-row carousel with
  * a round arrow on each side, a dashed pill in place of an empty list, and a
  * chip that is clicked again to let go of the choice. Shaped as a form
  * control (value/onChange) so a Form.Item can carry its rule and paint the
@@ -37,10 +39,14 @@ interface Props {
  * With `search`, a box beside the label hides the chips that do not match,
  * blind to case and marks. The choice outlives its chip being hidden.
  */
-export function ChipStrip({ id, label, options, value, empty, dimmed, search, onChange }: Props) {
+export function ChipStrip({ id, label, options, value, empty, dimmed, disabled, search, onChange }: Props) {
   const { status } = Form.Item.useStatus();
   const query = search?.query ?? "";
-  const shown = query ? options.filter((option) => matchesSearch(option.label, query)) : options;
+  const shown = disabled
+    ? options.filter((option) => option.value === value)
+    : query
+      ? options.filter((option) => matchesSearch(option.label, query))
+      : options;
   const scroller = useChipScroller(shown.length);
   const scrollerRef = scroller.ref;
   const className = [
@@ -76,7 +82,7 @@ export function ChipStrip({ id, label, options, value, empty, dimmed, search, on
               placeholder={search.placeholder}
               aria-label={search.placeholder}
               value={search.query}
-              disabled={dimmed || options.length === 0}
+              disabled={disabled || dimmed || options.length === 0}
               onChange={(event) => search.onQuery(event.target.value)}
               // Enter in a text box would submit the order form.
               onPressEnter={(event) => event.preventDefault()}
@@ -104,6 +110,7 @@ export function ChipStrip({ id, label, options, value, empty, dimmed, search, on
                 key={option.value}
                 className={value === option.value ? "active" : undefined}
                 aria-pressed={value === option.value}
+                disabled={disabled}
                 onClick={() => pick(option.value)}
               >
                 {option.label}

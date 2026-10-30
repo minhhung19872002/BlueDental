@@ -21,8 +21,8 @@ interface Props {
    * "Tải ảnh" well and the "Xóa ảnh" corners (docs/clone/pages/labo.md §2.6).
    */
   readOnly?: boolean;
-  onAdd: (files: File[]) => void;
-  onRemove: (tile: LaboPictureTile) => void;
+  onAdd?: (files: File[]) => void;
+  onRemove?: (tile: LaboPictureTile) => void;
 }
 
 /**
@@ -47,7 +47,7 @@ export function LaboPictureWell({ tiles, busy, readOnly, onAdd, onRemove }: Prop
             multiple
             hidden
             onChange={(event) => {
-              onAdd(Array.from(event.target.files ?? []));
+              onAdd?.(Array.from(event.target.files ?? []));
               // Cleared so choosing the same file twice still fires a change.
               if (fileInput.current) fileInput.current.value = "";
             }}
@@ -82,7 +82,7 @@ export function LaboPictureWell({ tiles, busy, readOnly, onAdd, onRemove }: Prop
                   className="pd-labo-gallery-remove"
                   aria-label={t("Patient:Labo:RemoveImage", tile.name)}
                   disabled={busy}
-                  onClick={() => onRemove(tile)}
+                  onClick={() => onRemove?.(tile)}
                 >
                   <CloseOutlined />
                 </button>

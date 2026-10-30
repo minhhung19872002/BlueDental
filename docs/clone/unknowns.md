@@ -3266,3 +3266,21 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
   - Dòng ghi trước R-1082 (chỉ có ở develop / staging / local) được đánh số theo thời gian và để nguyên không dấu. Chúng chỉ được nằm trước dòng có dấu đầu tiên.
   - Chưa mã hoá theo cột, vì log chỉ có id + thời gian. Mã hoá ổ đĩa và backup để sau.
   - Chưa có màn hình báo log bị sửa.
+
+## P2910_03 — Quy trình Labo mới (F-85, R-1083, 2026-10-30, BA P2910_03)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: hồ sơ bệnh nhân → tab Labo, popup Labo 3 bước (Đặt hàng / Nhận hàng & kiểm tra / Bảo hành), LỊCH SỬ ĐIỀU TRỊ, phiếu điều trị → cột Phiếu Labo, `/labo/mau-labo`
+Control: Hủy phiếu (tab 1), Chi phí phát sinh, Thời hạn bảo hành, khoá ô Hoàn thành công đoạn, thao tác ở dòng Bảo hành, tên phòng khám trên thẻ, Lần BH
+Reason: quy trình riêng của BlueDental theo `P2910_03.drawio`, bản gốc vẫn dùng phiếu Labo cũ nên không có gì để quan sát. Các quyết định chủ dự án đã chốt nằm ở `docs/testing/features/labo-workflow.md`. Mock, ghi chú BA và sơ đồ trạng thái không nói những điểm dưới đây.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. Nháp → Đã hủy: sơ đồ trạng thái không có mũi tên này, nhưng footer tab Đặt hàng có "Hủy phiếu". Phiếu Nháp bấm Hủy phiếu vẫn sang Đã hủy và ở lại danh sách; icon xoá ở danh sách thì xoá mềm phiếu Nháp (chỉ Nháp, `Labo:0030`).
+2. Chi phí phát sinh: chỉ hiện "0 đ", ô xám disabled, không lưu.
+3. Ngày hết hạn bảo hành = ngày bắt đầu + N tháng (cùng ngày của tháng đích; ngày 31 rơi vào tháng ngắn thì lùi về ngày cuối tháng).
+4. Phiếu tạo từ tab Labo (không gắn công đoạn) khoá ô Hoàn thành của mọi công đoạn cùng dịch vụ có ngày điều trị từ ngày tạo phiếu trở đi.
+5. Phiếu ở Bảo hành không có thao tác thêm trên danh sách (BA chưa vẽ). Kích hoạt thêm răng: Xem → tab Bảo hành.
+6. Tên phòng khám trên thẻ bảo hành xem trước lấy từ thông tin chi nhánh, không viết cứng "Nha Khoa Đức Hạnh Premium".
+7. Lần BH luôn 0 cho tới đợt Tiếp nhận bảo hành.
+8. Mẫu Giao Trễ / Mẫu Chưa Nhận ở `/labo` chia theo ngày: hạn giao trước hôm nay là trễ, hạn hôm nay vẫn là chưa nhận (chủ dự án chốt 2026-10-30). Nháp và Đã hủy chỉ hiện ở Tất cả.
+9. Dữ liệu cũ: phiếu Hoàn thành cũ có mọi răng Đạt, ngày Đạt = ngày nhận (hoặc ngày sửa cuối); phiếu đã nhận cũ có lần nhận 1. Phiếu con cũ (Làm tiếp công đoạn / Bảo hành) vẫn xem được, không tạo mới.

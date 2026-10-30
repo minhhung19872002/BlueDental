@@ -7,12 +7,13 @@ import {
   useLaboMaterialOptions,
   useLaboSupplierOptions,
   useLaboTaxonomyOptions,
-  type CreateLaboOrderInput,
   type PickerOption,
 } from "@/hooks/useLaboPickers";
-import { useLaboPictures, type LaboPictures } from "./useLaboPictures";
+import type { LaboOrderDto, LaboOrderImageDto } from "@/features/labo/api/laboApi";
+import type { LaboOrderFields } from "@/features/labo/api/laboMutations";
+import { useLaboPictureTiles, type LaboPictureTiles } from "./useLaboPictureTiles";
 
-/** The fields every labo order form shares, whichever tab it is on. */
+/** The fields of the Đặt hàng tab. */
 export interface LaboOrderValues {
   /** Picked in the header when the dialog opens from the Labo tab. */
   planId?: string;
@@ -31,21 +32,31 @@ export interface LaboOrderValues {
   sentTime: Dayjs | null;
   dueDate: Dayjs | null;
   dueTime: Dayjs | null;
-  /** Every tooth the source offers, and the ones still ticked. */
+  /** The FDI numbers the order carries: every tooth of its source (P2910_03). */
   teeth: string[];
-  picked: string[];
 }
 
 export type LaboOrderSeed = Partial<LaboOrderValues> & Pick<LaboOrderValues, "teeth">;
 
-export interface LaboOrderForm extends Omit<LaboPictures, "reset"> {
+export interface LaboOrderForm extends Omit<LaboPictureTiles, "reset"> {
   form: FormInstance<LaboOrderValues>;
-  toggleTooth: (label: string) => void;
-  setAllTeeth: (checked: boolean) => void;
+  /** A sent or cancelled order, or a Nháp the user may not edit: every control is shown, none moves. */
+  readOnly: boolean;
   options: Record<
     "suppliers" | "services" | "materials" | "bites" | "finishLines" | "rhythms",
     PickerOption[]
   >;
+}
+
+export interface LaboOrderFormSetup {
+  branchId: string;
+  open: boolean;
+  seed: LaboOrderSeed;
+  /** Re-applies the seed when it changes: the công đoạn, the order, or the dialog opening. */
+  seedKey: string;
+  /** The order's saved pictures, put back on the strip with the seed. */
+  savedImages: LaboOrderImageDto[];
+  readOnly: boolean;
 }
 
 /** The one rule the reference puts on its required fields, worded its way. */
@@ -64,13 +75,40 @@ export function fromSeed(seed: LaboOrderSeed): LaboOrderValues {
     sentTime: now,
     dueDate: null,
     dueTime: null,
-    picked: seed.teeth,
     ...seed,
   };
 }
 
 /**
- * Teeth and picks are read here with `preserve`: they never sit in a
+ * A saved order back in the form, with the teeth it was saved with; a Nháp
+ * saved before its line named any takes the line's.
+ */
+export function orderSeed(order: LaboOrderDto, lineTeeth: string[] = []): LaboOrderSeed {
+  const saved = order.teeth.map((tooth) => String(tooth.toothNumber));
+  const teeth = saved.length > 0 ? saved : lineTeeth;
+  const sent = order.sentAt ? dayjs(order.sentAt) : dayjs();
+  const due = order.dueAt ? dayjs(order.dueAt) : null;
+  return {
+    dentistId: order.dentistId,
+    supplierId: order.supplierId,
+    serviceGroupId: order.laboServiceId,
+    materialId: order.materialId,
+    biteId: order.biteId,
+    finishLineId: order.finishLineId,
+    rhythmId: order.rhythmId,
+    shade: order.toothShade ?? "",
+    quantity: String(saved.length > 0 ? order.quantity : teeth.length),
+    notes: order.notes ?? "",
+    sentDate: sent,
+    sentTime: sent,
+    dueDate: due,
+    dueTime: due,
+    teeth,
+  };
+}
+
+/**
+ * The teeth and Số lượng are read here with `preserve`: they never sit in a
  * Form.Item, and without it useWatch drops values no field registered.
  */
 export function useLaboValue<K extends keyof LaboOrderValues>(
@@ -81,27 +119,24 @@ export function useLaboValue<K extends keyof LaboOrderValues>(
 }
 
 /**
- * Option lists and the tooth row behind the AntD form the labo dialogs share.
- * The seed is re-applied whenever `seedKey` changes — the công đoạn, the parent
- * order, or the dialog opening — so a dialog reopened on another row never
- * shows the last one's values. Validation lives on the fields themselves.
+ * Option lists and the picture strip behind the Đặt hàng tab.
+ * The seed is re-applied whenever `seedKey` changes, so a dialog reopened on
+ * another row never shows the last one's values. Validation lives on the
+ * fields themselves.
  */
 export function useLaboOrderForm(
   form: FormInstance<LaboOrderValues>,
-  branchId: string,
-  open: boolean,
-  seed: LaboOrderSeed,
-  seedKey: string,
+  { branchId, open, seed, seedKey, savedImages, readOnly }: LaboOrderFormSetup,
 ): LaboOrderForm {
-  const { pictures, previews, addPictures, removePicture, reset } = useLaboPictures();
-  const seedRef = useRef(seed);
-  seedRef.current = seed;
+  const { reset, ...pictures } = useLaboPictureTiles();
+  const seedRef = useRef({ seed, savedImages });
+  seedRef.current = { seed, savedImages };
 
   useEffect(() => {
     if (!open) return;
     form.resetFields();
-    form.setFieldsValue(fromSeed(seedRef.current));
-    reset();
+    form.setFieldsValue(fromSeed(seedRef.current.seed));
+    reset(seedRef.current.savedImages);
   }, [form, open, seedKey, reset]);
 
   const serviceGroupId = useLaboValue(form, "serviceGroupId");
@@ -112,27 +147,9 @@ export function useLaboOrderForm(
   const rhythms = useLaboTaxonomyOptions(LABO_TAXONOMY.rhythm, branchId, open);
   const materials = useLaboMaterialOptions(branchId, serviceGroupId);
 
-  /**
-   * Số lượng is the count of ticked teeth, 0 once they are all unticked. A
-   * tick also clears the "Vui lòng chọn răng." a failed Lưu may have left.
-   */
-  const setPicked = (picked: string[]) => {
-    form.setFields([{ name: "picked", value: picked, errors: [] }]);
-    form.setFieldsValue({ quantity: String(picked.length) });
-  };
-
   return {
     form,
-    toggleTooth: (label) => {
-      const teeth: string[] = form.getFieldValue("teeth") ?? [];
-      const picked: string[] = form.getFieldValue("picked") ?? [];
-      setPicked(
-        picked.includes(label)
-          ? picked.filter((item) => item !== label)
-          : teeth.filter((item) => item === label || picked.includes(item)),
-      );
-    },
-    setAllTeeth: (checked) => setPicked(checked ? (form.getFieldValue("teeth") ?? []) : []),
+    readOnly,
     options: {
       suppliers: suppliers.data ?? [],
       services: services.data ?? [],
@@ -141,43 +158,25 @@ export function useLaboOrderForm(
       finishLines: finishLines.data ?? [],
       rhythms: rhythms.data ?? [],
     },
-    pictures,
-    previews,
-    addPictures,
-    removePicture,
+    ...pictures,
   };
 }
 
-/** The part of the payload the shared fields decide. */
+/** The part of the payload the form's own fields decide. */
 export function laboOrderBody(
   values: LaboOrderValues,
-  suppliers: PickerOption[],
-): Pick<
-  CreateLaboOrderInput,
-  | "labProviderName"
-  | "supplierId"
-  | "materialId"
-  | "biteId"
-  | "finishLineId"
-  | "rhythmId"
-  | "toothNumbers"
-  | "toothShade"
-  | "quantity"
-  | "notes"
-  | "sentAt"
-  | "dueAt"
-> {
+): Omit<LaboOrderFields, "estimatedCost" | "treatmentServiceId" | "treatmentStageId" | "submit" | "pictures"> {
   return {
-    labProviderName: suppliers.find((row) => row.value === values.supplierId)?.label ?? "",
+    dentistId: values.dentistId,
     supplierId: values.supplierId,
     materialId: values.materialId,
     biteId: values.biteId,
     finishLineId: values.finishLineId,
     rhythmId: values.rhythmId,
-    toothNumbers: values.picked.join(", ") || undefined,
-    toothShade: values.shade.trim() || undefined,
+    teeth: (values.teeth ?? []).map(Number).filter((fdi) => fdi > 0),
+    toothShade: values.shade?.trim() || undefined,
     quantity: Number(values.quantity) || 1,
-    notes: values.notes.trim() || undefined,
+    notes: values.notes?.trim() || undefined,
     // The reference collects each day and hour apart; the server takes one stamp of each.
     sentAt: stamp(values.sentDate, values.sentTime)?.toISOString(),
     dueAt: stamp(values.dueDate, values.dueTime)?.toISOString(),

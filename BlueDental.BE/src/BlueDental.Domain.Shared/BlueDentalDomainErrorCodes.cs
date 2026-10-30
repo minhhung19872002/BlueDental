@@ -497,6 +497,40 @@ public static class BlueDentalDomainErrorCodes
         public const string DueBeforeSent = "BlueDental:Labo:0013";
         /// <summary>A supplier's label colour that is not #RRGGBB (R-1072).</summary>
         public const string InvalidLabelColor = "BlueDental:Labo:0014";
+
+        // P2910_03 workflow (F-85).
+        /// <summary>Tạo phiếu Labo with a required order field still empty.</summary>
+        public const string OrderIncomplete = "BlueDental:Labo:0015";
+        /// <summary>Hình ảnh gửi Labo: at least one picture, at most five.</summary>
+        public const string ImageCountInvalid = "BlueDental:Labo:0016";
+        /// <summary>Số lượng nhận outside 1 … Số lượng đặt.</summary>
+        public const string ReceivedQuantityInvalid = "BlueDental:Labo:0017";
+        public const string ReceivedBeforeSent = "BlueDental:Labo:0018";
+        /// <summary>A tooth waiting for its check has no Đạt / Lỗi.</summary>
+        public const string ToothResultsIncomplete = "BlueDental:Labo:0019";
+        public const string ToothNotOnOrder = "BlueDental:Labo:0020";
+        /// <summary>Trả toàn bộ / Trả hàng bị lỗi with no tooth marked Lỗi.</summary>
+        public const string ReturnNeedsDefect = "BlueDental:Labo:0021";
+        /// <summary>Xác nhận Labo đạt while a tooth is marked Lỗi.</summary>
+        public const string NotAllPassed = "BlueDental:Labo:0022";
+        /// <summary>Mô tả gửi Labo, Ngày trả hàng or Hẹn Labo giao lại missing.</summary>
+        public const string ReturnDetailsRequired = "BlueDental:Labo:0023";
+        public const string RedeliveryBeforeReturn = "BlueDental:Labo:0024";
+        /// <summary>Ảnh kiểm tra is required once a tooth is marked Lỗi.</summary>
+        public const string CheckImagesRequired = "BlueDental:Labo:0025";
+        /// <summary>Kích hoạt bảo hành before the order is Hoàn thành.</summary>
+        public const string WarrantyNotAvailable = "BlueDental:Labo:0026";
+        /// <summary>Only a passed tooth whose warranty is not active yet.</summary>
+        public const string ToothNotWarrantable = "BlueDental:Labo:0027";
+        public const string WarrantyStartBeforePass = "BlueDental:Labo:0028";
+        public const string WarrantyMonthsInvalid = "BlueDental:Labo:0029";
+        public const string DeleteOnlyDraft = "BlueDental:Labo:0030";
+        /// <summary>A later công đoạn of the service while its labo order has not passed QC.</summary>
+        public const string StageLockedByLabo = "BlueDental:Labo:0031";
+        /// <summary>Dịch vụ điều trị that is not one of this customer's plan lines.</summary>
+        public const string TreatmentServiceMismatch = "BlueDental:Labo:0032";
+        /// <summary>Hoàn thành of a service line while its labo order has not passed QC.</summary>
+        public const string ServiceLockedByLabo = "BlueDental:Labo:0033";
     }
 
     public static class Promotions

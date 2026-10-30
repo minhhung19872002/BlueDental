@@ -8,6 +8,7 @@ import { formatToothCodes } from "../../api/consultingApi";
 import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
 import { LineMoney } from "../plan/LineMoney";
 import { DiscountBreakdown } from "./DiscountBreakdown";
+import { PlanLaboCell } from "./PlanLaboCell";
 import { ServiceStatusMenu, type ServiceAction } from "./ServiceStatusMenu";
 import { ServiceStatusPill } from "./ServiceStatusPill";
 import {
@@ -27,6 +28,8 @@ export interface ServiceRowActions {
   onEdit?: (row: PlanDetailRow) => void;
   /** "Xóa". Left out without treatmentConsultation.delete; shown only on lines still "Đã tạo". */
   onDelete?: (row: PlanDetailRow) => void;
+  /** The LABO code under "Phiếu Labo": opens the shared Labo dialog on that order. */
+  onLabo?: (orderId: string) => void;
 }
 
 /**
@@ -187,7 +190,7 @@ function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
 }
 
 /**
- * The BA's nine columns (2026-10-15): the reference's fifteen cut down, Chẩn
+ * The BA's nine columns (2026-10-15), Phiếu Labo after Trạng thái (P2910_03): the reference's fifteen cut down, Chẩn
  * đoán moved after Bác sĩ điều trị and the status pulled out of the name cell.
  * No drag grip — the order is the slip's.
  */
@@ -200,6 +203,8 @@ export function buildServiceColumns(actions: ServiceRowActions): TableColumnsTyp
     column("teeth", t("Treatment:PlanDetail:Col:Teeth"), 100, (row) => dash(formatToothCodes(row.service.teeth))),
     // The widest pill ("Đang điều trị") and "N lần" beside it.
     column("status", t("Common:Status"), 156, (row) => <StatusCell row={row} />),
+    // P2910_03: the chip and "LABO-YYYYMMDDn" side by side, "Dự kiến giao: dd/MM/yyyy HH:mm" under them.
+    column("labo", t("Treatment:PlanDetail:Col:Labo"), 200, (row) => <PlanLaboCell row={row} onOpen={actions.onLabo} />),
     column("price", t("Treatment:Pricing:UnitPrice"), 112, (row) => <UnitPriceCell row={row} />, { align: "right" }),
     column("discount", t("Treatment:Pricing:Discount"), 104, (row) => <DiscountCell row={row} />, { align: "right" }),
     column("amount", t("Treatment:Pricing:NetAmount"), 116, (row) => <NetAmountCell row={row} />, { align: "right" }),

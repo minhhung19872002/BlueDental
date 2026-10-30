@@ -268,6 +268,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       "Chẩn đoán",
       "Răng",
       "Trạng thái",
+      // F-85 (P2910_03): the Labo order of each line, "Không áp dụng" when none.
+      "Phiếu Labo",
       "Đơn giá",
       "Giảm giá",
       "Thành tiền",
@@ -759,11 +761,11 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(dialog.getByRole("button", { name: "Lưu" })).toBeEnabled();
     await expect(page.locator(".ant-message, [data-sonner-toast]")).toHaveCount(0);
 
-    // Persisted: the patient's Labo tab now files the slip as Đã huỷ on both pills.
+    // Persisted: the patient's Labo tab now files the slip as Đã hủy on both pills.
     await page.goto(`${patientUrl}?tab=labo`);
     const laboRow = page.locator("tr.ant-table-row", { hasText: orderCode }).first();
     await expect(laboRow).toBeVisible();
-    await expect(laboRow).toContainText("Đã huỷ");
+    await expect(laboRow).toContainText("Đã hủy");
     // And the dialog no longer carries the block once reopened.
     await page.goto(slipUrl);
     await page

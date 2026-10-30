@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
+import type { LaboStatus } from "@/features/labo/api/laboApi";
 import type { ToothSelectionDto } from "./consultingApi";
 
 import { t } from "@/lib/i18n";
@@ -84,6 +85,20 @@ export interface TreatmentStageDto {
    */
   treatmentDate: string;
   creationTime: string;
+  /** "LABO-xxxx · trạng thái" on the công đoạn that raised a labo order (P2910_03). */
+  labo: TreatmentStageLaboDto | null;
+  /** "Khoá: phiếu Labo chưa QC đạt" — the server refuses Hoàn thành while it holds. */
+  completeLockedByLabo: boolean;
+  /** The order "Kích hoạt bảo hành" opens; only on the line's latest công đoạn. */
+  laboWarrantyOrder: TreatmentStageLaboDto | null;
+}
+
+/** A labo order as the history names it. */
+export interface TreatmentStageLaboDto {
+  orderId: string;
+  orderCode: string;
+  status: LaboStatus;
+  isWarrantyExpired: boolean;
 }
 
 export interface TreatmentStageProgressDto {

@@ -142,8 +142,11 @@ export const ENTITY_QUERY_ROOTS = {
   invoiceRequest: [INVOICE_REQUESTS],
   laboOrder: [
     ["labo-orders"],
-    // The slip counts a line's open orders, which gates Chuyển đổi dịch vụ.
+    // The slip counts a line's open orders, which gates Chuyển đổi dịch vụ,
+    // and its Phiếu Labo column reads the order's status.
     PATIENT_TREATMENTS,
+    // LỊCH SỬ ĐIỀU TRỊ: the order chip, the Hoàn thành lock and Kích hoạt bảo hành.
+    ["treatment-stages"] satisfies RootOf<typeof stageKeys>,
     // Pictures sent with an order are filed into Hình ảnh.
     ["patient-images"] satisfies RootOf<typeof patientImageKeys>,
   ],

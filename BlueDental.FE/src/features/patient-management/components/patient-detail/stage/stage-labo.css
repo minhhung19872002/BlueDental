@@ -1,0 +1,35 @@
+/* LỊCH SỬ ĐIỀU TRỊ's Labo parts (P2910_03): the order chip, the Hoàn thành lock note. */
+
+.pd-stage-labo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin-top: 8px;
+}
+
+.pd-stage-labo .ant-tag {
+  margin-inline-end: 0;
+  white-space: normal;
+}
+
+.pd-stage-labo .pd-stage-labo-view.ant-btn {
+  height: auto;
+  padding: 0;
+  font-size: 12px;
+  color: var(--bd-link);
+}
+
+.pd-stage-labo-lock {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: -6px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--bd-red);
+}
+
+.pd-stage-labo-lock > .anticon {
+  margin-top: 2px;
+}

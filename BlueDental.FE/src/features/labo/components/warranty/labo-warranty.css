@@ -1,0 +1,432 @@
+/* Labo workflow tab 3 "Bảo hành" — a warranty card per Đạt tooth (P2910_03). */
+
+.pd-labo-warranty-done {
+  font-size: 18px;
+  color: var(--bd-green);
+}
+
+.pd-labo-warranty-box {
+  margin-bottom: 14px;
+  padding: 12px 14px 4px;
+  border: 1px solid var(--bd-green);
+  border-radius: 10px;
+  background: var(--bd-green-pale);
+}
+
+.pd-labo-warranty-box-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pd-labo-warranty-box-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.pd-labo-warranty-step {
+  margin-bottom: 12px;
+}
+
+.pd-labo-warranty-step-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.pd-labo-warranty-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pd-labo-warranty-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-pill);
+  font-size: 13px;
+  color: var(--bd-sub);
+  background: var(--bd-card);
+  cursor: pointer;
+}
+
+.pd-labo-warranty-pick--on {
+  border-color: var(--bd-purple);
+  color: var(--bd-card);
+  background: var(--bd-purple);
+}
+
+.pd-labo-warranty-pick:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pd-labo-warranty-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+/* The form zeroes item margins, so the card spaces its rows itself — 16px
+   leaves room for the next row's floating label. */
+.pd-labo-warranty-tooth {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 10px;
+  padding: 10px 12px 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+  background: var(--bd-card);
+}
+
+.pd-labo-warranty-tooth-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pd-labo-warranty-tooth-head > strong {
+  white-space: nowrap;
+}
+
+.pd-labo-warranty-tooth-head > :last-child {
+  margin-left: auto;
+}
+
+.pd-labo-warranty-tooth-caption {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+/* Mock: the bold title on the left, the six chips and Khác (tháng) beside it. */
+.pd-labo-warranty-duration-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-labo-warranty-duration-label {
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--bd-ink);
+}
+
+.pd-labo-warranty-durations {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-labo-warranty-duration {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--bd-border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--bd-sub);
+  background: var(--bd-card);
+  cursor: pointer;
+}
+
+.pd-labo-warranty-duration--on {
+  border-color: var(--bd-purple);
+  color: var(--bd-purple);
+  background: var(--bd-purple-pale);
+}
+
+.pd-labo-warranty-duration:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Outranks the dialog's full-width field + InputNumber so the box sits after
+   the chips, as tall as they are. */
+.pd-labo-dialog .pd-labo-warranty-durations .pd-labo-warranty-custom-field {
+  width: 110px;
+  --ff-input-height: 32px;
+}
+
+.pd-labo-dialog .pd-labo-warranty-durations .pd-labo-warranty-custom {
+  width: 100%;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.pd-labo-dialog .pd-labo-warranty-custom .ant-input-number-input {
+  height: 30px;
+  font-size: 13px;
+}
+
+.pd-labo-warranty-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* Mock: a slate card before activation, purple after, the clinic logo on top. */
+.pd-labo-warranty-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 14px 16px 12px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  box-shadow: var(--bd-shadow-lift);
+  cursor: pointer;
+}
+
+.pd-labo-warranty-card--inactive {
+  color: var(--bd-card);
+  background: linear-gradient(135deg, #5f6b85, #94a3b8);
+}
+
+.pd-labo-warranty-card--active {
+  color: var(--bd-card);
+  background: linear-gradient(135deg, var(--bd-purple), var(--bd-violet));
+}
+
+.pd-labo-warranty-card--expired {
+  border-color: var(--bd-red);
+  color: var(--bd-sub);
+  background: var(--bd-red-pale);
+}
+
+.pd-labo-warranty-card--focused {
+  border-color: var(--bd-gold);
+  box-shadow: var(--bd-shadow-focus);
+}
+
+.pd-labo-warranty-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 15px;
+}
+
+.pd-labo-warranty-card-head > :last-child {
+  margin-left: auto;
+}
+
+.pd-labo-warranty-card-pill {
+  padding: 2px 10px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+/* The clinic's logo, round, on the card and on its preview. */
+.pd-labo-warranty-logo {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bd-card);
+}
+
+.pd-labo-warranty-card-code {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.pd-labo-warranty-card-what {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Track drawn from the text colour, so it reads on slate, purple and red alike. */
+.pd-labo-warranty-card-bar {
+  position: relative;
+  height: 4px;
+  margin: 6px 0 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+.pd-labo-warranty-card-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--pd-warranty-elapsed, 0) * 100%);
+  background: var(--bd-gold);
+}
+
+.pd-labo-warranty-card-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  opacity: 0.85;
+}
+
+.pd-labo-warranty-table {
+  margin-bottom: 4px;
+}
+
+.pd-labo-warranty-code {
+  white-space: nowrap;
+}
+
+.pd-labo-warranty-info {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 20px;
+  /* Room for the first row's floating labels under the tabs. */
+  padding-top: 6px;
+}
+
+/* 16px rows leave room for each floating label. */
+.pd-labo-warranty-info-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 12px;
+}
+
+.pd-labo-warranty-info-wide,
+.pd-labo-warranty-info-fields .pd-labo-warranty-note {
+  grid-column: 1 / -1;
+}
+
+.pd-labo-warranty-preview {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  gap: 6px;
+  padding: 18px 20px 20px;
+  border-radius: 16px;
+  font-size: 13px;
+  color: var(--bd-card);
+  background: linear-gradient(135deg, var(--bd-purple), #5b8def);
+  box-shadow: var(--bd-shadow-pop);
+}
+
+.pd-labo-warranty-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.pd-labo-warranty-preview-head > span {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.pd-labo-warranty-preview-name {
+  font-size: 20px;
+  line-height: 1.3;
+}
+
+.pd-labo-warranty-history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0 0 0 4px;
+  list-style: none;
+}
+
+.pd-labo-warranty-history-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 16px;
+  border-left: 2px solid var(--bd-border);
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-warranty-history-item strong {
+  position: relative;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bd-ink);
+}
+
+.pd-labo-warranty-history-item strong::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: -22px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bd-muted);
+}
+
+.pd-labo-warranty-history-item--active strong::before {
+  background: var(--bd-purple);
+}
+
+.pd-labo-warranty-history-item--passed strong::before {
+  background: var(--bd-green);
+}
+
+@media (max-width: 640px) {
+  .pd-labo-warranty-cards,
+  .pd-labo-warranty-info,
+  .pd-labo-warranty-info-fields {
+    grid-template-columns: 1fr;
+  }
+
+  /* Răng and its badge share the line; the caption takes the next one whole. */
+  .pd-labo-warranty-tooth-head {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .pd-labo-warranty-tooth-caption {
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  .pd-labo-warranty-duration-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* Tablet: the preview card drops under the fields rather than squeezing them. */
+@media (max-width: 1100px) {
+  .pd-labo-warranty-info {
+    grid-template-columns: 1fr;
+  }
+
+  .pd-labo-warranty-preview {
+    max-width: 440px;
+  }
+}

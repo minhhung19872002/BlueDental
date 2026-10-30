@@ -1,0 +1,222 @@
+/* Labo workflow tab 2 "Nhận hàng & kiểm tra" and the summary card tabs 2–3 share (P2910_03). */
+
+/* Phiếu dịch vụ Labo + Tên khách hàng, locked, above tab 2's summary. */
+.pd-labo-dialog .pd-labo-identity {
+  margin-bottom: 14px;
+}
+
+.pd-labo-summary-card {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  background: var(--bd-bg-soft);
+}
+
+.pd-labo-summary-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pd-labo-summary-label {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-summary-value {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bd-ink);
+  text-overflow: ellipsis;
+}
+
+.pd-labo-summary-card .pd-labo-summary-link {
+  height: auto;
+  padding: 0;
+  font-weight: 500;
+  color: var(--bd-link);
+}
+
+.pd-labo-check-section {
+  margin-bottom: 14px;
+}
+
+.pd-labo-check-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pd-labo-check-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.pd-labo-check-head .ant-btn {
+  margin-left: auto;
+}
+
+.pd-labo-check-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--bd-primary);
+}
+
+.pd-labo-check-badge--fail {
+  background: var(--bd-red);
+}
+
+.pd-labo-check-aside {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-check-aside--required {
+  color: var(--bd-red);
+}
+
+.pd-labo-check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Row gap only shows once the grid wraps (2 columns at 640px); it keeps the
+     next row's floating label off the field above. */
+  gap: 16px 12px;
+}
+
+.pd-labo-check-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pd-labo-check-control {
+  width: 100%;
+}
+
+.pd-labo-tooth-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-labo-tooth-row {
+  display: grid;
+  grid-template-columns: 72px auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+}
+
+.pd-labo-tooth-row--locked {
+  background: var(--bd-bg-soft);
+}
+
+.pd-labo-tooth-no {
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.pd-labo-tooth-row .ant-form-item {
+  margin-bottom: 0;
+}
+
+.pd-labo-tooth-toggle {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.pd-labo-tooth-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--bd-sub);
+  background: var(--bd-card);
+  cursor: pointer;
+}
+
+.pd-labo-tooth-choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pd-labo-tooth-choice--pass {
+  border-color: var(--bd-green);
+  color: var(--bd-green);
+  background: var(--bd-green-pale);
+}
+
+.pd-labo-tooth-choice--fail {
+  border-color: var(--bd-red);
+  color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+
+span.pd-labo-tooth-choice {
+  justify-self: start;
+  cursor: default;
+}
+
+.pd-labo-conclusion {
+  margin-bottom: 14px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--bd-red);
+  border-radius: 10px;
+  background: var(--bd-red-pale);
+}
+
+/* The form zeroes item margins; the dates' floating labels need room below Mô tả. */
+.pd-labo-conclusion .pd-labo-check-grid {
+  margin-top: 16px;
+}
+
+.pd-labo-conclusion-reason {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.pd-labo-conclusion .pd-labo-required {
+  color: var(--bd-red);
+}
+
+.pd-labo-history-sub {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+@media (max-width: 640px) {
+  .pd-labo-summary-card,
+  .pd-labo-check-grid,
+  .pd-labo-check-grid--three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pd-labo-tooth-row {
+    grid-template-columns: 1fr;
+  }
+}

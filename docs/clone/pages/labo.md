@@ -747,3 +747,29 @@ when the child is a plain `Input`. It predates this work, fires on every dialog
 in the app that pairs the two, and the component is shared with the finished
 Danh mục screen — so it wants its own change with that screen's suite run
 against it.
+
+## 10. P2910_03 — quy trình Labo mới (F-85, R-1083, 2026-10-30)
+
+**BA requirement, not the reference.** BA `P2910_03.drawio` replaces the
+Labo order flow in BlueDental; app.nfcdental.com still runs the order
+described in §1–§9, so from here on BlueDental deliberately differs from it.
+Decisions, statuses, guards, data and tests are in
+`docs/testing/features/labo-workflow.md`; assumptions taken without the BA
+are in `docs/clone/unknowns.md` (P2910_03).
+
+What in §1–§9 no longer describes BlueDental:
+
+- The hand status select (`LaboStatusSelect`), the detail footer and the
+  `PUT {id}/detail` status write are gone. Statuses are Nháp / Đã gửi Labo /
+  Chờ kiểm tra / Trả hàng / Hoàn thành / Đã hủy / Bảo hành (+ Hết hạn bảo hành,
+  computed); Giao trễ and Replaced are no longer stored.
+- The child-order dialogs (Làm tiếp công đoạn, Bảo hành) and their plus /
+  shield row actions are gone; old child orders still open read-only.
+- Every entry point — tab Labo, "Tạo Labo" on a công đoạn, the plan column,
+  the `/labo` eye — opens one 3-step dialog: Đặt hàng / Nhận hàng & kiểm tra /
+  Bảo hành.
+- `/labo` Mẫu Labo: status pill instead of the select; the sample chips are
+  recomputed from the new statuses and the due day (table in the feature
+  doc).
+- The order form fields, chip strips (Vật liệu search R-1062), supplier label
+  colour (R-1072) and print sheet are kept as cloned.

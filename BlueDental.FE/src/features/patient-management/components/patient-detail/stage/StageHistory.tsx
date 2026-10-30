@@ -4,10 +4,13 @@ import { PictureOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
+import { LABO_STATUS } from "@/features/labo/api/laboApi";
+import type { LaboStep } from "@/features/labo/components/workflow/laboWorkflowSteps";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageEditPencil } from "./StageEditPencil";
 import { NOTE_LIMIT } from "./StageForm";
 import { StageHistoryTeeth } from "./StageHistoryTeeth";
+import { StageLaboChip, StageLaboLockNote, StageLaboWarrantyButton } from "./StageLaboParts";
 import { StageNoteBullets } from "./StageNoteBullets";
 import { StageNoteInput } from "./StageNoteInput";
 import { StageRemarkCell } from "./StageRemarkCell";
@@ -37,6 +40,8 @@ interface Props {
   onComplete: (stage: TreatmentStageDto) => void;
   onUpload: (stage: TreatmentStageDto) => void;
   onCreateLabo: (stage: TreatmentStageDto) => void;
+  /** "Xem phiếu Labo" and "Kích hoạt bảo hành": the shared Labo dialog on a saved order. */
+  onOpenLabo: (orderId: string, step?: LaboStep) => void;
   /** Bảo hành, offered in place of Tạo Labo once a công đoạn is finished. */
   onWarranty: (stage: TreatmentStageDto) => void;
   /** Which of the reference's warranty controls a finished row shows. */
@@ -56,6 +61,10 @@ export interface StageHistoryLeaves {
   warranty: boolean;
   /** treatmentLabo.create — "Tạo Labo". */
   labo: boolean;
+  /** treatmentLabo.read — "Xem phiếu Labo" beside the order chip. */
+  laboRead: boolean;
+  /** treatmentLabo.update — "Kích hoạt bảo hành". */
+  laboUpdate: boolean;
 }
 
 /** The pencil that swaps a stage's note for an editor, in place. */
@@ -149,6 +158,7 @@ export function StageHistory({
   onComplete,
   onUpload,
   onCreateLabo,
+  onOpenLabo,
   onWarranty,
   warrantyOf,
   historyTeethOf,
@@ -192,6 +202,10 @@ export function StageHistory({
                     const live = !stage.isSuperseded;
                     const done = stage.completedAt !== null;
                     const serviceName = stage.serviceName ?? stage.name;
+                    // P2910_03: the order this công đoạn raised, and the one
+                    // waiting on "Kích hoạt bảo hành" on the line's latest row.
+                    const { labo, laboWarrantyOrder, completeLockedByLabo } = stage;
+                    const raisedLabo = labo !== null && labo.status !== LABO_STATUS.Cancelled;
                     return (
                       <div
                         className="pd-stage-histrow"
@@ -209,6 +223,12 @@ export function StageHistory({
                         <div>
                           <p className="pd-stage-histservice">{serviceName}</p>
                           <StageHistoryTeeth teeth={historyTeethOf(stage)} serviceName={serviceName} />
+                          {labo && (
+                            <StageLaboChip
+                              labo={labo}
+                              onView={can.laboRead ? () => onOpenLabo(labo.orderId) : undefined}
+                            />
+                          )}
                           {images.length > 0 && (
                             <div className="pd-stage-histshots">
                               <Image.PreviewGroup>
@@ -252,14 +272,16 @@ export function StageHistory({
                           {/* Turns both ways: the reference keeps a
                               `revert-status` beside its `status`, so un-ticking
                               re-opens the công đoạn. Only an earlier công đoạn
-                              of the line, or one mid-request, is locked. */}
+                              of the line, one mid-request, or one waiting on
+                              the line's labo order to pass QC is locked. */}
                           <Checkbox
                             checked={done}
-                            disabled={!can.complete || !live || completingId === stage.id}
+                            disabled={!can.complete || !live || completingId === stage.id || completeLockedByLabo}
                             onChange={() => onComplete(stage)}
                           >
                             {t("Patient:Misc:Done")}
                           </Checkbox>
+                          {completeLockedByLabo && <StageLaboLockNote />}
                           {can.update && (
                             <Button
                               block
@@ -272,7 +294,8 @@ export function StageHistory({
                             </Button>
                           )}
                           {/* A finished công đoạn swaps Tạo Labo for Bảo hành;
-                              a continued one offers neither. */}
+                              a continued one offers neither, nor does one whose
+                              labo order still stands (its chip opens it). */}
                           {done
                             ? can.warranty && (
                                 <StageWarrantyButton
@@ -281,11 +304,17 @@ export function StageHistory({
                                 />
                               )
                             : live &&
-                              can.labo && (
+                              can.labo &&
+                              !raisedLabo && (
                                 <Button block type="primary" onClick={() => onCreateLabo(stage)}>
                                   {t("Patient:Labo:Create")}
                                 </Button>
                               )}
+                          {laboWarrantyOrder && can.laboUpdate && (
+                            <StageLaboWarrantyButton
+                              onClick={() => onOpenLabo(laboWarrantyOrder.orderId, "warranty")}
+                            />
+                          )}
                         </div>
                       </div>
                     );

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import { useSearchParams } from "react-router-dom";
 import { DataTable } from "@/components/DataTable";
 import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
@@ -9,102 +8,57 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import {
-  LABO_ORDER_KIND,
   useLaboStats,
   usePatientLaboOrders,
   type LaboOrderDto,
-  type LaboOrderKind,
-  type LaboStatsDto,
+  type LaboStatusFilter,
 } from "@/features/labo/api/laboApi";
+import { LaboDeleteOrderDialog } from "@/features/labo/components/workflow/LaboDeleteOrderDialog";
+import { LaboStatusFilterCards } from "@/features/labo/components/workflow/LaboStatusFilterCards";
+import { LaboWorkflowDialog } from "@/features/labo/components/workflow/LaboWorkflowDialog";
+import { useLaboWorkflowUrl } from "@/features/labo/components/workflow/useLaboWorkflowUrl";
 import type { PatientDto } from "../../../types/patient";
-import { LaboDetailDialog } from "@/features/labo/components/order-dialogs/LaboDetailDialog";
-import { PATIENT_DETAIL_MODE } from "@/features/labo/components/order-dialogs/laboDetailMode";
-import { LaboOrderTabsDialog } from "@/features/labo/components/order-dialogs/LaboOrderTabsDialog";
-import { LABO_MODAL_PARAM, LABO_ROW_PARAM, type LaboModalKey } from "@/features/labo/components/order-dialogs/laboModalKeys";
 import { buildPatientLaboColumns } from "./patientLaboColumns";
 
-/**
- * The three stat cards over the table, same as on Lịch hẹn; each filters the
- * list on the order kind, and each reads its number off the stats endpoint.
- */
-function laboCounters(): ReadonlyArray<{
-  kind: LaboOrderKind;
-  label: string;
-  tone: "green" | "amber" | "red";
-  stat: keyof Pick<LaboStatsDto, "new" | "continueStage" | "guarantee">;
-}> {
-  return [
-    { kind: LABO_ORDER_KIND.New, label: t("Patient:Labo:KindNew"), tone: "green", stat: "new" },
-    {
-      kind: LABO_ORDER_KIND.ContinueStage,
-      label: t("Patient:Labo:KindContinue"),
-      tone: "amber",
-      stat: "continueStage",
-    },
-    { kind: LABO_ORDER_KIND.Guarantee, label: t("Patient:Labo:KindWarranty"), tone: "red", stat: "guarantee" },
-  ];
-}
-
-/** Tab 6 of the patient record: the patient's labo orders and the order dialog. */
+/** Tab 6 of the patient record: the patient's labo orders and the one Labo dialog. */
 export function PatientLaboTab({ patient }: { patient: PatientDto }) {
   const ability = useAbility("treatmentLabo");
   const branchId = useCurrentBranchId();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [kind, setKind] = useState<LaboOrderKind | null>(null);
-  const [detail, setDetail] = useState<LaboOrderDto | null>(null);
+  const dialog = useLaboWorkflowUrl();
+  const [statusFilter, setStatusFilter] = useState<LaboStatusFilter | null>(null);
+  const [deleting, setDeleting] = useState<LaboOrderDto | null>(null);
   const pagination = useTablePagination(20);
 
   // The server pages and filters; the tab never holds more than one page.
   const page = usePatientLaboOrders({
     patientId: patient.id,
-    kind: kind ?? undefined,
+    statusFilter: statusFilter ?? undefined,
     skipCount: pagination.skipCount,
     maxResultCount: pagination.maxResultCount,
   });
-  // The counters count the whole record, not the page or the counter pressed.
   const stats = useLaboStats({ patientId: patient.id });
 
-  const rows = page.data?.items ?? [];
-  const totalCount = page.data?.totalCount ?? 0;
-
-  const toggleKind = (next: LaboOrderKind) => {
-    setKind((current) => (current === next ? null : next));
+  const handleFilterChange = (next: LaboStatusFilter | null) => {
+    setStatusFilter(next);
     pagination.resetToFirstPage();
   };
 
-  const openDialog = (key: LaboModalKey, order?: LaboOrderDto) => {
-    const next = new URLSearchParams(searchParams);
-    next.set(LABO_MODAL_PARAM, key);
-    if (order) next.set(LABO_ROW_PARAM, order.id);
-    else next.delete(LABO_ROW_PARAM);
-    setSearchParams(next, { replace: true });
-  };
-
-  const columns = buildPatientLaboColumns({
-    onDetail: setDetail,
-    onContinue: ability.canCreate ? (order) => openDialog("continue-process", order) : undefined,
-    onWarranty: ability.canCreate ? (order) => openDialog("warranty", order) : undefined,
-  });
+  const columns = buildPatientLaboColumns(
+    {
+      onDetail: (order) => dialog.openOrder(order.id),
+      onCheck: ability.canUpdate ? (order) => dialog.openOrder(order.id, "check") : undefined,
+      onWarranty: ability.canUpdate ? (order) => dialog.openOrder(order.id, "warranty") : undefined,
+      onDelete: ability.canDelete ? setDeleting : undefined,
+    },
+    { patientId: patient.id, branchId },
+  );
 
   return (
     <section className="pd-pane pd-pane--fill">
       <div className="pd-record-toolbar">
-        <div className="pd-stat-row pd-stat-row--equal">
-          {laboCounters().map(({ kind: counterKind, label, tone, stat }) => (
-            <button
-              type="button"
-              key={counterKind}
-              aria-pressed={kind === counterKind}
-              className={`pd-stat pd-stat--${tone}${kind === counterKind ? " active" : ""}`}
-              onClick={() => toggleKind(counterKind)}
-            >
-              <strong>{stats.data?.[stat] ?? 0}</strong>
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
+        <LaboStatusFilterCards stats={stats.data} selected={statusFilter} onChange={handleFilterChange} />
         {ability.canCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => openDialog("new-order")}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={dialog.openCreate}>
             {t("Patient:Labo:CreateSlip")}
           </Button>
         )}
@@ -114,26 +68,22 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
           rowKey="id"
           loading={page.isLoading}
           columns={columns}
-          dataSource={rows}
+          dataSource={page.data?.items ?? []}
           locale={{ emptyText: t("Common:NoData") }}
-          pagination={pagination.buildConfig(totalCount, countedTotal(t("Patient:Misc:LaboSlip")))}
+          pagination={pagination.buildConfig(
+            page.data?.totalCount ?? 0,
+            countedTotal(t("Patient:Misc:LaboSlip")),
+          )}
         />
       </div>
-      <LaboOrderTabsDialog
+      <LaboWorkflowDialog
+        target={dialog.target}
         branchId={branchId}
         patient={{ id: patient.id, code: patient.patientCode, name: patient.fullName }}
+        onStepChange={dialog.setStep}
+        onClose={dialog.close}
       />
-      <LaboDetailDialog
-        order={detail}
-        branchId={branchId}
-        patient={{
-          code: patient.patientCode,
-          name: patient.fullName,
-          dateOfBirth: patient.dateOfBirth,
-        }}
-        mode={PATIENT_DETAIL_MODE}
-        onClose={() => setDetail(null)}
-      />
+      <LaboDeleteOrderDialog order={deleting} onClose={() => setDeleting(null)} />
     </section>
   );
 }

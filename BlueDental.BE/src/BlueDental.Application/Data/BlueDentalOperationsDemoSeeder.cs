@@ -293,37 +293,26 @@ public class BlueDentalOperationsDemoSeeder(
 
         for (var i = 0; i < 8; i++)
         {
+            // Nháp only: Tạo phiếu Labo (P2910_03) needs a plan line, pictures
+            // and the rest of the Đặt hàng tab, which demo data does not have.
             var order = new LaboOrder(
                 DemoId("1102", i + 1),
                 $"LB26-{i + 1:D4}",
                 patients[i % patients.Count].Id,
                 _branchId,
-                LaboSuppliers[i % LaboSuppliers.Length].Name,
-                random.Next(2, 30) * 500_000m,
-                dentistId: staffIds[i % staffIds.Count],
-                toothNumbers: (11 + i).ToString(),
-                workDescription: LaboMaterials[i % LaboMaterials.Length].Name,
-                dueAt: new DateTimeOffset(today.AddDays(random.Next(2, 21)).ToDateTime(new TimeOnly(9, 0)), TimeSpan.Zero),
-                // Point at the records, not just their names, so the table's
-                // supplier and material columns have something to resolve.
-                supplierId: suppliers[i % suppliers.Count].Id,
-                materialId: materials[i % materials.Count].Id);
-
-            // One of each state the labo screen filters on.
-            if (i % 4 >= 1)
-            {
-                order.Send();
-            }
-
-            if (i % 4 >= 2)
-            {
-                order.Receive();
-            }
-
-            if (i % 4 == 3)
-            {
-                order.Complete();
-            }
+                new LaboOrderDetails
+                {
+                    LabProviderName = LaboSuppliers[i % LaboSuppliers.Length].Name,
+                    EstimatedCost = random.Next(2, 30) * 500_000m,
+                    DentistId = staffIds[i % staffIds.Count],
+                    Teeth = [11 + i],
+                    WorkDescription = LaboMaterials[i % LaboMaterials.Length].Name,
+                    DueAt = new DateTimeOffset(today.AddDays(random.Next(2, 21)).ToDateTime(new TimeOnly(9, 0)), TimeSpan.Zero),
+                    // Point at the records, not just their names, so the table's
+                    // supplier and material columns have something to resolve.
+                    SupplierId = suppliers[i % suppliers.Count].Id,
+                    MaterialId = materials[i % materials.Count].Id,
+                });
 
             orders.Add(order);
         }

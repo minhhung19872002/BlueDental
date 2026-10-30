@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
+using BlueDental.Labo;
 using BlueDental.Organizations;
 using BlueDental.Staff;
 using BlueDental.Permissions;
@@ -33,6 +34,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     private readonly BranchAccessChecker _branchAccess;
     private readonly StageTeethPolicy _teethPolicy;
     private readonly AfterTreatmentCareRecorder _afterTreatmentCare;
+    private readonly IRepository<LaboOrder, Guid> _laboRepository;
+    private readonly LaboStagePolicy _laboPolicy;
 
     public TreatmentStageAppService(
         IRepository<TreatmentStage, Guid> repository,
@@ -41,7 +44,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         StageTeethPolicy teethPolicy,
-        AfterTreatmentCareRecorder afterTreatmentCare)
+        AfterTreatmentCareRecorder afterTreatmentCare,
+        IRepository<LaboOrder, Guid> laboRepository,
+        LaboStagePolicy laboPolicy)
     {
         _repository = repository;
         _catalogRepository = catalogRepository;
@@ -50,6 +55,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         _branchAccess = branchAccess;
         _teethPolicy = teethPolicy;
         _afterTreatmentCare = afterTreatmentCare;
+        _laboRepository = laboRepository;
+        _laboPolicy = laboPolicy;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Read)]
@@ -270,6 +277,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     public async Task<TreatmentStageDto> CompleteAsync(Guid id)
     {
         var stage = await LoadAsync(id);
+        await GuardNotLockedByLaboAsync(stage);
         stage.Complete();
         await _repository.UpdateAsync(stage, autoSave: true);
 
@@ -426,6 +434,22 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         await _planRepository.UpdateAsync(plan, autoSave: true);
     }
 
+    /// <summary>
+    /// Hoàn thành waits for the line's labo orders (P2910_03): the same rule
+    /// the history greys the tick out by — see <see cref="LaboStagePolicy"/>.
+    /// </summary>
+    private async Task GuardNotLockedByLaboAsync(TreatmentStage stage)
+    {
+        var orders = await _laboRepository.GetListAsync(o => o.TreatmentServiceId == stage.TreatmentServiceId);
+        if (orders.Count > 0
+            && _laboPolicy.LocksCompletion(stage, await StagesOfLineAsync(stage.TreatmentServiceId), orders))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Labo.StageLockedByLabo,
+                "A labo order of the service is not QC-passed yet.");
+        }
+    }
+
     private async Task<TreatmentStage> LoadAsync(Guid id)
     {
         var stage = await _repository.GetAsync(id);
@@ -546,14 +570,71 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             serviceNames,
             users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName),
             StaffJobTitles.Of(users),
-            stageNames);
+            stageNames,
+            await LaboOfAsync(items));
+    }
+
+    /// <summary>
+    /// The Labo chip, the Hoàn thành lock and the Kích hoạt bảo hành order of
+    /// each công đoạn, read against every công đoạn of its line — a page of the
+    /// history may hold only some of them.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<Guid, StageLabo>> LaboOfAsync(IReadOnlyCollection<TreatmentStage> items)
+    {
+        var lineIds = items.Select(x => x.TreatmentServiceId).Distinct().ToList();
+        var orderQuery = await _laboRepository.WithDetailsAsync();
+        var ordersByLine = orderQuery
+            .Where(o => o.TreatmentServiceId != null && lineIds.Contains(o.TreatmentServiceId.Value))
+            .ToList()
+            .GroupBy(o => o.TreatmentServiceId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        if (ordersByLine.Count == 0)
+        {
+            return new Dictionary<Guid, StageLabo>();
+        }
+
+        var laboLineIds = ordersByLine.Keys.ToList();
+        var stageQuery = await _repository.GetQueryableAsync();
+        var stagesByLine = stageQuery
+            .Where(x => laboLineIds.Contains(x.TreatmentServiceId))
+            .ToList()
+            .GroupBy(x => x.TreatmentServiceId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
+        TreatmentStageLaboDto? ChipOf(LaboOrder? order) => order is null ? null : new TreatmentStageLaboDto
+        {
+            OrderId = order.Id,
+            OrderCode = order.OrderCode,
+            Status = order.Status,
+            IsWarrantyExpired = order.IsWarrantyExpiredOn(today)
+        };
+
+        return items
+            .Where(stage => ordersByLine.ContainsKey(stage.TreatmentServiceId))
+            .ToDictionary(stage => stage.Id, stage =>
+            {
+                var orders = ordersByLine[stage.TreatmentServiceId];
+                var siblings = stagesByLine.GetValueOrDefault(stage.TreatmentServiceId) ?? [stage];
+                return new StageLabo(
+                    ChipOf(_laboPolicy.OrderRaisedOn(stage, orders)),
+                    stage.Status != TreatmentStageStatus.Completed
+                        && _laboPolicy.LocksCompletion(stage, siblings, orders),
+                    ChipOf(_laboPolicy.OrderAwaitingWarranty(stage, siblings, orders)));
+            });
     }
 
     private sealed record StageLookups(
         IReadOnlyDictionary<Guid, string> ServiceNames,
         IReadOnlyDictionary<Guid, string> StaffNames,
         IReadOnlyDictionary<Guid, string> JobTitles,
-        IReadOnlyDictionary<Guid, string> ServiceStageNames);
+        IReadOnlyDictionary<Guid, string> ServiceStageNames,
+        IReadOnlyDictionary<Guid, StageLabo> Labo);
+
+    private sealed record StageLabo(
+        TreatmentStageLaboDto? Chip,
+        bool CompleteLocked,
+        TreatmentStageLaboDto? WarrantyOrder);
 
     private static string? NameOf(Guid? staffId, StageLookups lookups) =>
         staffId.HasValue && lookups.StaffNames.TryGetValue(staffId.Value, out var name) ? name : null;
@@ -605,6 +686,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         StaffJobTitle = lookups.JobTitles.GetValueOrDefault(entity.StaffId),
         SecondStaffJobTitle = StaffJobTitles.Lookup(lookups.JobTitles, entity.SecondStaffId),
         SubStaffName = NameOf(entity.SubStaffId, lookups),
+        Labo = lookups.Labo.GetValueOrDefault(entity.Id)?.Chip,
+        CompleteLockedByLabo = lookups.Labo.GetValueOrDefault(entity.Id)?.CompleteLocked ?? false,
+        LaboWarrantyOrder = lookups.Labo.GetValueOrDefault(entity.Id)?.WarrantyOrder,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

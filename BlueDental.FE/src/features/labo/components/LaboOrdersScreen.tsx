@@ -1,12 +1,9 @@
 import { useState } from "react";
 import { Button, Select } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
-import { useSearchParams } from "react-router-dom";
 import {
   useLaboOrderList,
-  LABO_KIND_CONFIG,
   LABO_SAMPLE_FILTER,
-  LABO_STATUS_CONFIG,
   type LaboOrderDto,
   type LaboSampleFilter,
 } from "../api/laboApi";
@@ -24,17 +21,17 @@ import { countedTotal } from "@/utils/countedTotal";
 import { exportToExcel } from "@/utils/exportExcel";
 import { formatDate, formatDateTime } from "@/utils/format";
 import { foldFilterOption } from "@/utils/foldForSearch";
-import { LaboOrderDialogHost } from "./LaboOrderDialogHost";
+import { laboStatusPill } from "../api/laboStatus";
 import { buildLaboOrderColumns } from "./laboOrderColumns";
-import { LABO_MODAL_PARAM, LABO_ROW_PARAM, type LaboModalKey } from "./order-dialogs/laboModalKeys";
+import { LaboDetailDialog } from "./order-dialogs/LaboDetailDialog";
 
 /**
  * Mẫu Labo.
  *
  * The reference gives this screen no create button — a new labo order is
- * raised from the patient's own screen — but every row can open its detail
- * and raise "Tiếp tục công đoạn" / "Bảo hành" on itself, the same dialogs the
- * patient's Labo tab uses. See docs/clone/pages/labo.md §2.
+ * raised from the patient's own screen. Since P2910_03 a row only opens its
+ * read-only detail: receiving, checking and warranty run on the patient's
+ * Labo tab. See docs/clone/pages/labo.md §2.
  */
 
 /** The four filters the reference puts above the table, keyed as it keys them. */
@@ -65,9 +62,8 @@ function exportOrders(items: LaboOrderDto[]) {
     patientName: row.patientName ?? "",
     treatmentPlan: row.treatmentPlanCode ?? "",
     sentDate: row.sentAt ? formatDateTime(row.sentAt) : "",
-    kind: t(LABO_KIND_CONFIG[row.kind].label),
     deliveryDate: row.dueAt ? formatDateTime(row.dueAt) : "",
-    status: t(LABO_STATUS_CONFIG[row.status].label),
+    status: t(laboStatusPill(row).label),
     dentistName: row.dentistName ?? "",
     materialName: row.materialName ?? "",
     teeth: row.toothNumbers ?? "",
@@ -82,9 +78,8 @@ function exportOrders(items: LaboOrderDto[]) {
       { header: t("Labo:Orders:CustomerName"), key: "patientName" },
       { header: t("Labo:Orders:TreatmentSlip"), key: "treatmentPlan" },
       { header: t("Labo:Orders:SentDate"), key: "sentDate" },
-      { header: t("Labo:Orders:Status"), key: "kind" },
       { header: t("Labo:Orders:DeliveryDate"), key: "deliveryDate" },
-      { header: t("Labo:Orders:DeliveryStatus"), key: "status" },
+      { header: t("Common:Status"), key: "status" },
       { header: t("Labo:Orders:DentistAssigned"), key: "dentistName" },
       { header: t("Labo:Orders:Material"), key: "materialName" },
       { header: t("Labo:Orders:Teeth"), key: "teeth" },
@@ -96,18 +91,13 @@ function exportOrders(items: LaboOrderDto[]) {
 interface LaboOrdersScreenProps {
   /** `laboTemplate:export` — without it the Xuất Excel button is hidden. */
   canExport?: boolean;
-  /** `laboTemplate:update` — the detail dialog's status, pictures and Lưu. */
-  canUpdate?: boolean;
 }
 
-export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps) {
+export function LaboOrdersScreen({ canExport }: LaboOrdersScreenProps) {
   const branchId = useCurrentBranchId();
-  // Staging gates the row's plus and shield on `treatmentLabo:create` and the
-  // detail's "Tạo Lịch Hẹn Mới" on `appointment:create` — not on this tab's
-  // own subject (docs/clone/pages/labo.md §2.6, R-532).
-  const canRaiseChild = useAbility("treatmentLabo").canCreate;
+  // Staging gates the detail's "Tạo Lịch Hẹn Mới" on `appointment:create` —
+  // not on this tab's own subject (docs/clone/pages/labo.md §2.6, R-532).
   const canCreateAppointment = useAbility("appointment").canCreate;
-  const [searchParams, setSearchParams] = useSearchParams();
   const [tab, setTab] = useState<SampleTabKey>("all");
   const [period, setPeriod] = useState<Period>({ mode: null, anchor: new Date() });
   const [patientId, setPatientId] = useState<string | undefined>();
@@ -139,20 +129,7 @@ export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps
     pagination.resetToFirstPage();
   };
 
-  /** The child-order dialog is URL-driven, keyed on the parent row. */
-  const openChildDialog = (key: LaboModalKey, order: LaboOrderDto) => {
-    const next = new URLSearchParams(searchParams);
-    next.set(LABO_MODAL_PARAM, key);
-    next.set(LABO_ROW_PARAM, order.id);
-    setSearchParams(next, { replace: true });
-  };
-
-  const columns = buildLaboOrderColumns({
-    branchId,
-    onDetail: setDetail,
-    onContinue: canRaiseChild ? (order) => openChildDialog("continue-process", order) : undefined,
-    onWarranty: canRaiseChild ? (order) => openChildDialog("warranty", order) : undefined,
-  });
+  const columns = buildLaboOrderColumns({ branchId, onDetail: setDetail });
 
   return (
     <div className="bd-labo-screen">
@@ -221,13 +198,11 @@ export function LaboOrdersScreen({ canExport, canUpdate }: LaboOrdersScreenProps
         </div>
       </div>
 
-      <LaboOrderDialogHost
+      <LaboDetailDialog
+        order={detail}
         branchId={branchId}
-        rows={items}
-        detail={detail}
-        canUpdate={Boolean(canUpdate)}
         canCreateAppointment={canCreateAppointment}
-        onCloseDetail={() => setDetail(null)}
+        onClose={() => setDetail(null)}
       />
     </div>
   );

@@ -4,10 +4,15 @@ import { t } from "@/lib/i18n";
 import { ChipStrip } from "./ChipStrip";
 import { requiredRule, useLaboValue, type LaboOrderForm } from "./useLaboOrderForm";
 
-/** Lựa chọn dịch vụ → Vật liệu: the material waits for a service group. */
+/**
+ * Lựa chọn dịch vụ → Vật liệu: the material waits for a service group. Each
+ * strip is one row (BA P2910_03 DNBX-17): the master data can name many
+ * choices, so both carry a search box and the chips slide sideways.
+ */
 export function LaboMaterialStrips({ form }: { form: LaboOrderForm }) {
   const { options } = form;
   const serviceGroupId = useLaboValue(form.form, "serviceGroupId");
+  const [serviceQuery, setServiceQuery] = useState("");
   const [materialQuery, setMaterialQuery] = useState("");
 
   const handleServiceGroupChange = () => {
@@ -22,6 +27,13 @@ export function LaboMaterialStrips({ form }: { form: LaboOrderForm }) {
           label={t("Patient:Quote:ServiceSelection")}
           options={options.services}
           empty={t("Common:NoData")}
+          disabled={form.readOnly}
+          search={{
+            query: serviceQuery,
+            onQuery: setServiceQuery,
+            placeholder: t("Labo:Material:SearchService"),
+            noMatch: t("Labo:Material:NoServiceMatch"),
+          }}
           // Runs after the Form.Item stored the group: a new group (or none), a fresh material and search.
           onChange={handleServiceGroupChange}
         />
@@ -32,6 +44,7 @@ export function LaboMaterialStrips({ form }: { form: LaboOrderForm }) {
           options={options.materials}
           empty={serviceGroupId ? t("Patient:Labo:NoMaterial") : t("Patient:Stage:SelectServiceFirst")}
           dimmed={!serviceGroupId}
+          disabled={form.readOnly}
           search={{
             query: materialQuery,
             onQuery: setMaterialQuery,

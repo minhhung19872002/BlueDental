@@ -39,6 +39,9 @@ public class UploadPatientImageDto
     public Guid? TreatmentStageId { get; set; }
     /// <summary>The labo order the picture was attached to, from its detail dialog.</summary>
     public Guid? LaboOrderId { get; set; }
+
+    /// <summary>The Labo check round this is an Ảnh kiểm tra of (P2910_03).</summary>
+    public int? LaboRoundNo { get; set; }
     public string? Note { get; set; }
 
     /// <summary>Giai đoạn điều trị; the tab sends whatever its filter is set to, "BE:Treatment:BeforeTreatment" otherwise.</summary>

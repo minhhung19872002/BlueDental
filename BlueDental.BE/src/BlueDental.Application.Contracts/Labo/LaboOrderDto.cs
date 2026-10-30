@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using BlueDental.TreatmentManagement;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Content;
@@ -38,7 +39,7 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public Guid? TreatmentServiceId { get; set; }
     public Guid? TreatmentStageId { get; set; }
 
-    /// <summary>The order this one continues or guarantees; null on Đặt mới.</summary>
+    /// <summary>The order an old child order continued or guaranteed; null on every order since P2910_03.</summary>
     public Guid? ParentOrderId { get; set; }
 
     public string? SupplierName { get; set; }
@@ -49,6 +50,8 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
 
     /// <summary>The labo service (Dịch vụ - vật liệu group) the material belongs to: "BE:LaboField:CurrentService" on the child form.</summary>
     public string? LaboServiceName { get; set; }
+    /// <summary>That group's id, so a reopened Nháp lands on its Lựa chọn dịch vụ chip.</summary>
+    public Guid? LaboServiceId { get; set; }
     public string? DentistName { get; set; }
     /// <summary>Chức danh of the doctor above — printed sheets name a doctor by it, else by the name.</summary>
     public string? DentistJobTitle { get; set; }
@@ -67,15 +70,30 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public string? TreatmentServiceName { get; set; }
     public TreatmentServiceStatus? TreatmentServiceStatus { get; set; }
 
-    /// <summary>Mẫu Giao Trễ — status LateDelivery, the reference's lateDelivery; nothing is derived from the due date.</summary>
+    /// <summary>Mẫu Giao Trễ — still at the lab (Sent / Returned) past the day it was due.</summary>
     public bool IsOverdue { get; set; }
 
-    /// <summary>Mẫu Chưa Nhận — written and not back from the lab (Draft, Sent, InProgress), the reference's created.</summary>
+    /// <summary>Mẫu Chưa Nhận — still at the lab (Sent / Returned).</summary>
     public bool IsAwaitingReturn { get; set; }
 
     /// <summary>
-    /// The pictures attached on the order's detail dialog — the reference's
-    /// <c>imageLabos</c>, behind "Xem file phòng khám gửi về".
+    /// Bảo hành whose every activated card has run out — "Hết hạn bảo hành",
+    /// read against today's clinic date, never stored (P2910_03).
+    /// </summary>
+    public bool IsWarrantyExpired { get; set; }
+
+    /// <summary>Số lần trả hàng.</summary>
+    public int ReturnCount { get; set; }
+
+    /// <summary>The order's teeth with their check result and warranty card.</summary>
+    public List<LaboOrderToothDto> Teeth { get; set; } = [];
+
+    /// <summary>Lịch sử nhận hàng &amp; trả hàng, oldest first.</summary>
+    public List<LaboOrderRoundDto> Rounds { get; set; } = [];
+
+    /// <summary>
+    /// The pictures of the order: those sent to the lab (RoundNo null) and
+    /// each round's Ảnh kiểm tra.
     /// </summary>
     public List<LaboOrderImageDto> Images { get; set; } = [];
 }
@@ -85,22 +103,51 @@ public class LaboOrderImageDto
     public Guid Id { get; set; }
     public string Url { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
+
+    /// <summary>The check round this is an Ảnh kiểm tra of; null for Hình ảnh gửi Labo.</summary>
+    public int? RoundNo { get; set; }
 }
 
-/// <summary>
-/// "Lưu" on the detail dialog: the status picked plus any pictures added.
-/// Multipart, so the pictures ride along the way they do on create.
-/// </summary>
-public class SaveLaboOrderDetailDto
+public class LaboOrderToothDto
 {
-    public LaboStatus Status { get; set; }
+    public int ToothNumber { get; set; }
+    public LaboToothCheckResult CheckResult { get; set; }
+    public string? DefectNote { get; set; }
+    public DateTimeOffset? PassedAt { get; set; }
+    public string? WarrantyCardCode { get; set; }
+    public string? ManufacturerSerial { get; set; }
+    public DateOnly? WarrantyStartDate { get; set; }
+    public int? WarrantyMonths { get; set; }
+    public DateOnly? WarrantyEndDate { get; set; }
+    public string? WarrantyConditions { get; set; }
+    public DateTimeOffset? WarrantyActivatedAt { get; set; }
 
-    /// <summary>
-    /// The saved pictures still on the dialog's strip. When given, every other
-    /// picture of the order is removed — the reference's <c>imageLaboIds</c>.
-    /// </summary>
-    public List<Guid>? KeepImageIds { get; set; }
-    public List<IRemoteStreamContent>? Pictures { get; set; }
+    /// <summary>The card ran out before today's clinic date.</summary>
+    public bool IsWarrantyExpired { get; set; }
+}
+
+public class LaboOrderRoundDto
+{
+    public int RoundNo { get; set; }
+    public DateTimeOffset ReceivedAt { get; set; }
+    public int ReceivedQuantity { get; set; }
+    public Guid? ReceiverId { get; set; }
+    public string? ReceiverName { get; set; }
+    public DateTimeOffset? CheckedAt { get; set; }
+    public LaboRoundOutcome Outcome { get; set; }
+    public string? ReturnDescription { get; set; }
+    public DateTimeOffset? ReturnedAt { get; set; }
+    public DateTimeOffset? RedeliveryDueAt { get; set; }
+    public List<LaboRoundToothResultDto> ToothResults { get; set; } = [];
+}
+
+public class LaboRoundToothResultDto
+{
+    public int ToothNumber { get; set; }
+    public LaboToothCheckResult Result { get; set; }
+
+    /// <summary>Ghi chú lỗi; only on a Lỗi tooth.</summary>
+    public string? Note { get; set; }
 }
 
 /// <summary>The filter chips above the Mẫu Labo table.</summary>
@@ -112,78 +159,188 @@ public enum LaboSampleFilter
     Returned = 3
 }
 
-/// <summary>Counters on the patient's Labo tab.</summary>
+/// <summary>The six filter cards on the patient's Labo tab (P2910_03).</summary>
+public enum LaboStatusFilter
+{
+    Draft = 1,
+    Returned = 2,
+    AwaitingCheck = 3,
+    Completed = 4,
+    InWarranty = 5,
+    WarrantyExpired = 6
+}
+
+/// <summary>Counters behind the Labo tab's filter cards and the Mẫu Labo chips.</summary>
 public class LaboStatsDto
 {
     public int Total { get; set; }
-    public int New { get; set; }
-    public int ContinueStage { get; set; }
-    public int Guarantee { get; set; }
-    public int AwaitingReturn { get; set; }
-    public int Overdue { get; set; }
+    public int Draft { get; set; }
     public int Returned { get; set; }
+    public int AwaitingCheck { get; set; }
+    public int Completed { get; set; }
+    public int InWarranty { get; set; }
+    public int WarrantyExpired { get; set; }
+
+    /// <summary>Mẫu Chưa Nhận — Sent / Returned, not yet overdue.</summary>
+    public int AwaitingReturn { get; set; }
+
+    /// <summary>Mẫu Giao Trễ.</summary>
+    public int Overdue { get; set; }
+
+    /// <summary>Mẫu Đã Nhận — back from the lab at least once.</summary>
+    public int Received { get; set; }
 }
 
-public class CreateLaboOrderDto
+/// <summary>
+/// The Đặt hàng tab. "Lưu nháp" posts it with <see cref="Submit"/> false;
+/// "Tạo phiếu Labo" with true, which saves and sends in one request so a
+/// half-filled order never reaches the lab and a refused one is not kept.
+/// </summary>
+public class SaveLaboOrderDto
 {
-    public Guid PatientId { get; set; }
-    public Guid BranchId { get; set; }
     public Guid? DentistId { get; set; }
-    public string LabProviderName { get; set; } = default!;
-    public string? ToothNumbers { get; set; }
-    public string? WorkDescription { get; set; }
-    public DateTimeOffset? DueAt { get; set; }
-    public decimal EstimatedCost { get; set; }
-    public LaboOrderKind Kind { get; set; } = LaboOrderKind.New;
     public Guid? SupplierId { get; set; }
     public Guid? MaterialId { get; set; }
     public Guid? BiteId { get; set; }
     public Guid? FinishLineId { get; set; }
     public Guid? RhythmId { get; set; }
 
-    /// <summary>Số phiếu Labo. Omit and the server allocates the next one.</summary>
-    public string? OrderCode { get; set; }
-    /// <summary>Nội dung.</summary>
-    public string? Notes { get; set; }
-    /// <summary>Ngày gửi + Giờ gửi, which the reference prefills with "now".</summary>
-    public DateTimeOffset? SentAt { get; set; }
+    /// <summary>Răng: FDI numbers.</summary>
+    public List<int> Teeth { get; set; } = [];
+
     /// <summary>Màu răng.</summary>
     public string? ToothShade { get; set; }
+
     /// <summary>Số lượng.</summary>
     public int Quantity { get; set; } = 1;
-    /// <summary>Set when the order was raised from a treatment row's "BE:Perm:CreateLabo".</summary>
+    public string? WorkDescription { get; set; }
+
+    /// <summary>Nội dung / chỉ định cho Labo.</summary>
+    public string? Notes { get; set; }
+
+    /// <summary>Ngày gửi + Giờ gửi.</summary>
+    public DateTimeOffset? SentAt { get; set; }
+
+    /// <summary>Ngày nhận dự kiến + Giờ nhận.</summary>
+    public DateTimeOffset? DueAt { get; set; }
+    public decimal EstimatedCost { get; set; }
+
+    /// <summary>Dịch vụ điều trị — the plan line the order is for.</summary>
     public Guid? TreatmentServiceId { get; set; }
+
+    /// <summary>The công đoạn the order was raised from; null from the Labo tab.</summary>
     public Guid? TreatmentStageId { get; set; }
 
-    /// <summary>
-    /// Required when Kind is ContinueStage or Guarantee: the order being
-    /// continued / guaranteed. Code, service line and công đoạn are copied
-    /// from it and the values sent for those are ignored.
-    /// </summary>
-    public Guid? ParentOrderId { get; set; }
+    /// <summary>True on "Tạo phiếu Labo": the order goes to Đã gửi Labo.</summary>
+    public bool Submit { get; set; }
 
-    /// <summary>
-    /// Tải ảnh: the pictures picked in the dialog. They are filed into the
-    /// patient's Hình ảnh under the plan and công đoạn the order was raised
-    /// from, in the same unit of work as the order — one multipart request,
-    /// all or nothing.
-    /// </summary>
+    /// <summary>Hình ảnh gửi Labo picked in the dialog — at most five with those kept.</summary>
     public List<IRemoteStreamContent>? Pictures { get; set; }
 }
 
-public class UpdateLaboOrderDto
+public class CreateLaboOrderDto : SaveLaboOrderDto
 {
-    public string LabProviderName { get; set; } = default!;
-    public string? ToothNumbers { get; set; }
-    public string? WorkDescription { get; set; }
-    public string? Notes { get; set; }
-    public DateTimeOffset? DueAt { get; set; }
-    public decimal EstimatedCost { get; set; }
+    public Guid PatientId { get; set; }
+    public Guid BranchId { get; set; }
+
+    /// <summary>Số phiếu Labo. Omit and the server allocates the next one.</summary>
+    public string? OrderCode { get; set; }
+}
+
+public class UpdateLaboOrderDto : SaveLaboOrderDto
+{
+    /// <summary>
+    /// The saved pictures still on the dialog. Every other picture sent to
+    /// the lab is removed; null keeps them all.
+    /// </summary>
+    public List<Guid>? KeepImageIds { get; set; }
+}
+
+/// <summary>"Kiểm tra hàng": the receive part of Nhận hàng · lần N.</summary>
+public class ReceiveLaboOrderDto
+{
+    /// <summary>Ngày nhận thực tế.</summary>
+    public DateTimeOffset ReceivedAt { get; set; }
+
+    /// <summary>Số lượng nhận.</summary>
+    public int ReceivedQuantity { get; set; }
+}
+
+/// <summary>Kết luận of a check.</summary>
+public enum LaboCheckConclusion
+{
+    /// <summary>Xác nhận Labo đạt.</summary>
+    Pass = 1,
+
+    /// <summary>Trả toàn bộ.</summary>
+    ReturnAll = 2,
+
+    /// <summary>Trả hàng bị lỗi.</summary>
+    ReturnDefective = 3
+}
+
+public class LaboToothCheckDto
+{
+    public int ToothNumber { get; set; }
+    public LaboToothCheckResult Result { get; set; }
+
+    /// <summary>Ghi chú lỗi.</summary>
+    public string? Note { get; set; }
+}
+
+/// <summary>
+/// "Kiểm tra từng răng" + "Kết luận". Multipart, so the Ảnh kiểm tra ride
+/// along and are kept only if the check is.
+/// </summary>
+public class CheckLaboOrderDto
+{
+    public List<LaboToothCheckDto> Teeth { get; set; } = [];
+    public LaboCheckConclusion Conclusion { get; set; }
+
+    /// <summary>Mô tả gửi Labo.</summary>
+    public string? Description { get; set; }
+
+    /// <summary>Ngày trả hàng.</summary>
+    public DateTimeOffset? ReturnedAt { get; set; }
+
+    /// <summary>Hẹn Labo giao lại.</summary>
+    public DateTimeOffset? RedeliveryDueAt { get; set; }
+
+    /// <summary>Ảnh kiểm tra.</summary>
+    public List<IRemoteStreamContent>? Pictures { get; set; }
+}
+
+public class LaboWarrantyCardDto
+{
+    public int ToothNumber { get; set; }
+
+    /// <summary>Ngày bắt đầu bảo hành.</summary>
+    public DateOnly StartDate { get; set; }
+
+    /// <summary>Thời hạn bảo hành, in months.</summary>
+    public int Months { get; set; }
+
+    /// <summary>Mã thẻ hãng / serial.</summary>
+    [StringLength(100)]
+    public string? ManufacturerSerial { get; set; }
+
+    /// <summary>Điều kiện / ghi chú.</summary>
+    [StringLength(1000)]
+    public string? Conditions { get; set; }
+}
+
+/// <summary>"Kích hoạt bảo hành (n răng)".</summary>
+public class ActivateLaboWarrantyDto
+{
+    public List<LaboWarrantyCardDto> Cards { get; set; } = [];
 }
 
 public class GetLaboOrderListInput : PagedAndSortedResultRequestDto
 {
     public LaboSampleFilter? SampleFilter { get; set; }
+
+    /// <summary>The Labo tab's filter card.</summary>
+    public LaboStatusFilter? StatusFilter { get; set; }
     public LaboOrderKind? Kind { get; set; }
     public Guid? BranchId { get; set; }
     public Guid? PatientId { get; set; }

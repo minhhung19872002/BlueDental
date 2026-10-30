@@ -4123,11 +4123,113 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("ParentOrderId");
 
+                    b.HasIndex("TreatmentServiceId");
+
                     b.HasIndex("TreatmentStageId");
 
                     b.HasIndex("BranchId", "Status");
 
                     b.ToTable("bd_labo_orders", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.Labo.LaboOrderRound", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CheckedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LaboOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Outcome")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ReceivedQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ReceiverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RedeliveryDueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReturnDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset?>("ReturnedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RoundNo")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LaboOrderId", "RoundNo")
+                        .IsUnique();
+
+                    b.ToTable("bd_labo_order_rounds", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.Labo.LaboOrderTooth", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("CheckResult")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("DefectNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("LaboOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ManufacturerSerial")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("PassedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ToothNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("WarrantyActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WarrantyActivatedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("WarrantyCardCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("WarrantyConditions")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateOnly?>("WarrantyEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("WarrantyMonths")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("WarrantyStartDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LaboOrderId", "ToothNumber")
+                        .IsUnique();
+
+                    b.ToTable("bd_labo_order_teeth", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.Labo.LaboSupplier", b =>
@@ -5864,6 +5966,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("LaboOrderId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("LaboRoundNo")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("LastModificationTime");
@@ -5902,9 +6007,9 @@ namespace BlueDental.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LaboOrderId");
-
                     b.HasIndex("TreatmentStageId");
+
+                    b.HasIndex("LaboOrderId", "LaboRoundNo");
 
                     b.HasIndex("PatientId", "Ordering");
 
@@ -11257,6 +11362,55 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueDental.Labo.LaboOrderRound", b =>
+                {
+                    b.HasOne("BlueDental.Labo.LaboOrder", null)
+                        .WithMany("Rounds")
+                        .HasForeignKey("LaboOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsMany("BlueDental.Labo.LaboRoundToothResult", "ToothResults", b1 =>
+                        {
+                            b1.Property<Guid>("LaboOrderRoundId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Note")
+                                .HasMaxLength(1000)
+                                .HasColumnType("character varying(1000)");
+
+                            b1.Property<short>("Result")
+                                .HasColumnType("smallint");
+
+                            b1.Property<int>("ToothNumber")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("LaboOrderRoundId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_labo_order_rounds");
+
+                            b1.ToJson("ToothResults");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboOrderRoundId");
+                        });
+
+                    b.Navigation("ToothResults");
+                });
+
+            modelBuilder.Entity("BlueDental.Labo.LaboOrderTooth", b =>
+                {
+                    b.HasOne("BlueDental.Labo.LaboOrder", null)
+                        .WithMany("Teeth")
+                        .HasForeignKey("LaboOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("BlueDental.Marketing.TicketActivity", b =>
                 {
                     b.HasOne("BlueDental.Marketing.Ticket", null)
@@ -12010,6 +12164,13 @@ namespace BlueDental.Migrations
             modelBuilder.Entity("BlueDental.Inventory.MaterialAllocation", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("BlueDental.Labo.LaboOrder", b =>
+                {
+                    b.Navigation("Rounds");
+
+                    b.Navigation("Teeth");
                 });
 
             modelBuilder.Entity("BlueDental.PatientManagement.MedicalRecordSet", b =>

@@ -328,6 +328,11 @@ function liveHistRows(dialog: Locator, lineId?: string) {
   return dialog.locator(selector);
 }
 
+/** The P2910_03 Labo dialog — the only one with the three step tabs. */
+function laboWorkflowDialog(page: Page) {
+  return page.getByRole("dialog").filter({ has: page.locator(".pd-labo-steps") });
+}
+
 /**
  * Ticks Hoàn thành on the dialog's live công đoạn and waits for the server.
  *
@@ -2438,7 +2443,7 @@ test.describe("Bệnh nhân", () => {
     ).toHaveText("Thanh toán");
   });
 
-  test("Tạo Labo opens Đặt mới filled from the công đoạn", async ({ page }) => {
+  test("Tạo Labo opens Đặt hàng filled from the công đoạn", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const { serviceId } = await openPatientWithTreatment(page, "stageable");
 
@@ -2459,25 +2464,27 @@ test.describe("Bệnh nhân", () => {
 
     await rows.first().getByRole("button", { name: "Tạo Labo" }).click();
 
-    const labo = page.getByRole("dialog", { name: "Đặt mới" });
-    await expect(labo).toBeVisible();
-    // The four facts the công đoạn already knows open filled and disabled.
-    const facts = ["Tên khách hàng", "Kế hoạch điều trị", "Dịch vụ điều trị", "Bác sĩ chỉ định"];
-    for (const label of facts) {
-      const input = labo.locator(".floating-field", { hasText: label }).locator("input");
+    // The P2910_03 workflow dialog, opened on its first step.
+    const labo = laboWorkflowDialog(page);
+    await expect(labo.getByRole("heading", { level: 2 })).toHaveText("Đặt hàng");
+    // The three facts the công đoạn already knows open filled and locked; the
+    // locked fields carry their label as their accessible name. Bác sĩ chỉ
+    // định is a picker on this dialog, so it is not among them.
+    for (const name of ["Tên khách hàng", "Kế hoạch điều trị", "Dịch vụ điều trị"]) {
+      const input = labo.getByRole("textbox", { name, exact: true });
       await expect(input).toBeDisabled();
       await expect(input).not.toHaveValue("");
     }
-    // Số phiếu Labo comes from the server in the reference's own shape and,
-    // like Số lượng, is shown locked as the reference does.
-    const code = labo.locator(".floating-field", { hasText: "Số phiếu Labo" }).locator("input");
+    // Số phiếu Labo comes from the server in the reference's own shape and is
+    // shown locked as the reference does.
+    const code = labo.getByRole("textbox", { name: "Số phiếu Labo", exact: true });
     await expect(code).toBeDisabled();
     await expect(code).toHaveValue(/^LABO-\d{8}\d+$/);
-    await expect(
-      labo.locator(".floating-field", { hasText: "Số lượng" }).locator("input"),
-    ).toBeDisabled();
-    await expect(labo.getByText("Chọn dịch vụ trước")).toBeVisible();
-    await expect(labo.getByRole("button", { name: "Lưu" })).toBeVisible();
+    // Số lượng is the count of the công đoạn's teeth, read beside the chart
+    // button rather than typed (P2910_03).
+    await expect(labo.locator(".floating-field", { hasText: "Số lượng" })).toHaveCount(0);
+    await expect(labo.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
+    await expect(labo.getByRole("button", { name: "Tạo phiếu Labo" })).toBeVisible();
   });
 
   test("the treatment table is one row per công đoạn, grouped by day", async ({ page }) => {
@@ -2553,7 +2560,7 @@ test.describe("Bệnh nhân", () => {
     await expect(oldRow).toHaveCSS("pointer-events", "auto");
   });
 
-  test("Đặt mới is built from the app's own fields, with the reference's blocks", async ({
+  test("Đặt hàng is built from the app's own fields, with the reference's blocks", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
@@ -2567,8 +2574,8 @@ test.describe("Bệnh nhân", () => {
     const live = liveHistRows(dialog, line.serviceId).first();
     await live.getByRole("button", { name: "Tạo Labo" }).click();
 
-    const labo = page.getByRole("dialog", { name: "Đặt mới" });
-    await expect(labo).toBeVisible();
+    const labo = laboWorkflowDialog(page);
+    await expect(labo.getByRole("heading", { level: 2 })).toHaveText("Đặt hàng");
 
     // Eleven required fields, each carrying the reference's red asterisk inside
     // its own floating label — the app's shared field wrapper, not markup
@@ -2579,24 +2586,24 @@ test.describe("Bệnh nhân", () => {
       "rgb(229, 72, 77)",
     );
 
-    // The pickers are the app's SearchSelect, the same widget the reference uses.
-    await expect(labo.locator(".ss-wrapper")).toHaveCount(4);
+    // The pickers are the app's SearchSelect, the same widget the reference
+    // uses: Bác sĩ chỉ định, Nhà cung cấp, Đường hoàn tất, Khớp cắn, Kiểu nhịp.
+    await expect(labo.locator(".ss-wrapper")).toHaveCount(5);
 
-    // Two chip strips with the reference's own empty pills, then the teeth row.
+    // Two chip strips, each under its label and search box, then the teeth row.
     await expect(labo.locator(".pd-labo-strip-head > p")).toHaveText([/Lựa chọn dịch vụ/, /Vật liệu/]);
-    await expect(labo.getByText("Chọn dịch vụ trước")).toBeVisible();
-    // The teeth row follows the line it was opened from: chips with "Chọn tất
-    // cả" when the line names teeth, the "(Trống)" pill and no tick box when it
-    // is a whole-mouth line (R-310) — and the stageable pick may be either.
+    // Nothing to pick on the teeth row (P2910_03): the order takes every tooth
+    // of its công đoạn, shown on a view-only chart with "Số lượng: N" beside it,
+    // or a plain note when the line names no tooth — the stageable pick may be
+    // either.
     const teethRow = labo.locator(".pd-labo-teeth");
-    await expect(teethRow).toContainText(/Chọn tất cả|\(Trống\)/);
-    if ((await teethRow.locator("button").count()) > 0) {
-      await expect(teethRow).toContainText("Chọn tất cả");
+    await expect(teethRow.locator(".ant-checkbox")).toHaveCount(0);
+    if ((await teethRow.getByRole("button", { name: "Xem sơ đồ răng" }).count()) > 0) {
+      await expect(teethRow).toContainText(/Số lượng: \d+/);
     } else {
-      await expect(teethRow).toContainText("(Trống)");
-      await expect(teethRow.locator(".ant-checkbox")).toHaveCount(0);
+      await expect(teethRow.getByRole("button")).toHaveCount(0);
     }
-    await expect(labo.locator(".pd-labo-drop")).toBeVisible();
+    await expect(labo.getByRole("button", { name: "Tải ảnh" })).toBeVisible();
 
     // A floating label rests muted and only takes the accent while its field
     // has focus, the way the reference draws it — not accented the moment it
@@ -2622,11 +2629,11 @@ test.describe("Bệnh nhân", () => {
       { name: "labo-a.png", mimeType: "image/png", buffer: png },
       { name: "labo-b.png", mimeType: "image/png", buffer: png },
     ]);
-    const drafts = labo.locator(".pd-labo-drafts > div");
+    const drafts = labo.getByRole("button", { name: /^Xem ảnh labo-[ab]\.png$/ });
     await expect(drafts).toHaveCount(2);
     await expect(drafts.first().locator("img")).toBeVisible();
 
-    await drafts.first().getByRole("button").click();
+    await labo.getByRole("button", { name: "Xóa ảnh labo-a.png" }).click();
     await expect(drafts).toHaveCount(1);
   });
 

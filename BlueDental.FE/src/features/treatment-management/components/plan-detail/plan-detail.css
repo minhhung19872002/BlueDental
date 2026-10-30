@@ -1220,3 +1220,49 @@ a.pdt-crumb:hover {
     transform: rotate(360deg);
   }
 }
+
+/* Phiếu Labo (P2910_03): the chip and the LABO code on one line, "Dự kiến giao" under them. */
+.pdt-labo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pdt-labo-head {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.pdt-labo-head .ant-tag {
+  margin-inline-end: 0;
+}
+.pdt-labo-code {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--bd-link);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pdt-labo-code:hover {
+  text-decoration: underline;
+}
+.pdt-labo-due,
+.pdt-labo-none {
+  color: var(--tp-label);
+  font-size: 12px;
+}
+
+/* "Hoàn thành" in Đổi trạng thái while a labo order of the line has not passed QC (P2910_03). */
+.pdt-status-locked {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4;
+}
+
+.pdt-status-locked > small {
+  font-size: 12px;
+  color: var(--bd-red);
+}

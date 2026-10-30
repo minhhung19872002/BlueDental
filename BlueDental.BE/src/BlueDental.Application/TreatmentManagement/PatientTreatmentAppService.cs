@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -412,7 +412,17 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     public async Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId)
     {
         var plan = await LoadAsync(id);
-        var line = plan.GetService(serviceLineId).Complete();
+        var line = plan.GetService(serviceLineId);
+        // BA P2910_03: a service whose labo order has not passed QC cannot be
+        // completed — the same rule that locks its later công đoạn.
+        if (await HasOpenLaboOrderAsync(serviceLineId))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Labo.ServiceLockedByLabo,
+                "A labo order of the service is not QC-passed yet.");
+        }
+
+        line.Complete();
         plan.CloseIfAllServicesDone();
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
@@ -517,8 +527,8 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     /// "Hủy phiếu Labo": the reference (2026-09-24) issues one
     /// <c>PUT /orders/{id}/update-status {status: canceled, statusClinic: canceled}</c>
     /// per order of the line and then reloads the slip; the line's own status
-    /// is untouched. Orders already received, completed, cancelled or replaced
-    /// are left as they are.
+    /// is untouched. Since P2910_03 every unfinished order (Nháp through Trả
+    /// hàng) is cancelled; QC-passed and cancelled ones are left as they are.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
     public async Task<TreatmentPlanSlipDto> CancelServiceLaboOrdersAsync(Guid id, Guid serviceLineId)
@@ -544,23 +554,30 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     /// <summary>
     /// The reference's guard on cancel and convert (2026-09-24): a line whose
     /// labo order is still with the labo answers 400
-    /// "Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ.".
+    /// "Dịch vụ có đơn labo chưa hoàn tất, không thể huỷ.". Since P2910_03 an
+    /// order is finished once it passed QC (Hoàn thành / Bảo hành) or was
+    /// cancelled — <see cref="LaboOrder.IsUnfinished"/>.
     /// </summary>
     private async Task GuardNoOpenLaboOrderAsync(Guid serviceLineId)
     {
-        var blocked = await _laboRepository.AnyAsync(o =>
-            o.TreatmentServiceId == serviceLineId
-            && o.Status != LaboStatus.Received
-            && o.Status != LaboStatus.Completed
-            && o.Status != LaboStatus.Rejected
-            && o.Status != LaboStatus.Replaced);
-        if (blocked)
+        if (await HasOpenLaboOrderAsync(serviceLineId))
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasOpenLaboOrder,
                 "The service line has a labo order that is not finished yet.");
         }
     }
+
+    /// <summary>
+    /// A labo order of the line that is neither QC-passed (Hoàn thành / Bảo
+    /// hành) nor cancelled — Nháp counts (owner 2026-10-30, decision 9).
+    /// </summary>
+    private Task<bool> HasOpenLaboOrderAsync(Guid serviceLineId) =>
+        _laboRepository.AnyAsync(o =>
+            o.TreatmentServiceId == serviceLineId
+            && o.Status != LaboStatus.Completed
+            && o.Status != LaboStatus.Warranty
+            && o.Status != LaboStatus.Cancelled);
 
     /// <summary>
     /// "Chuyển đổi dịch vụ" — closes the line and writes the one that takes its
@@ -1059,7 +1076,8 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     OrderCode = o.OrderCode,
                     Status = o.Status,
                     Kind = o.Kind,
-                    IsUnfinished = o.IsUnfinished
+                    IsUnfinished = o.IsUnfinished,
+                    DueAt = o.DueAt
                 })
                 .ToList());
 

@@ -212,6 +212,8 @@ export interface TreatmentServiceLaboOrderDto {
   kind: number;
   /** Still with the labo: the line cannot be cancelled or converted yet. */
   isUnfinished: boolean;
+  /** "Dự kiến giao" under the Phiếu Labo chip. */
+  dueAt: string | null;
 }
 
 export interface TreatmentServiceDto {

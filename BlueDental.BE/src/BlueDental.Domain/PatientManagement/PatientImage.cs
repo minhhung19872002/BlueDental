@@ -29,6 +29,13 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
     /// <summary>Phiếu Labo this image was attached to on the order's detail dialog, when it was.</summary>
     public Guid? LaboOrderId { get; private set; }
 
+    /// <summary>
+    /// Ảnh kiểm tra: the receive-and-check round of <see cref="LaboOrderId"/>
+    /// the picture was taken in (P2910_03). Null on the pictures sent to the lab
+    /// with the order itself.
+    /// </summary>
+    public int? LaboRoundNo { get; private set; }
+
     /// <summary>Name of the blob in object storage.</summary>
     public string BlobName { get; private set; } = string.Empty;
 
@@ -73,7 +80,8 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
         string? note = null,
         PatientImageType type = PatientImageType.Before,
         int ordering = 1,
-        Guid? laboOrderId = null)
+        Guid? laboOrderId = null,
+        int? laboRoundNo = null)
     {
         Check.NotNullOrWhiteSpace(blobName, nameof(blobName));
         Check.NotNullOrWhiteSpace(fileName, nameof(fileName));
@@ -109,7 +117,8 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
             Note = note,
             Type = type,
             Ordering = ordering,
-            LaboOrderId = laboOrderId
+            LaboOrderId = laboOrderId,
+            LaboRoundNo = laboOrderId.HasValue ? laboRoundNo : null
         };
     }
 

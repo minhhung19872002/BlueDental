@@ -74,6 +74,26 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     public string? SecondStaffJobTitle { get; set; }
     public string? SubStaffName { get; set; }
     public string? ServiceName { get; set; }
+
+    /// <summary>"LABO-xxxx · trạng thái" on the công đoạn that raised a labo order.</summary>
+    public TreatmentStageLaboDto? Labo { get; set; }
+
+    /// <summary>
+    /// "Khoá: phiếu Labo chưa QC đạt" — a labo order of the line raised before
+    /// this công đoạn is not QC-passed yet, so Hoàn thành is refused (P2910_03).
+    /// </summary>
+    public bool CompleteLockedByLabo { get; set; }
+
+    /// <summary>The order "Kích hoạt bảo hành" opens; set on the line's latest công đoạn only.</summary>
+    public TreatmentStageLaboDto? LaboWarrantyOrder { get; set; }
+}
+
+public class TreatmentStageLaboDto
+{
+    public Guid OrderId { get; set; }
+    public string OrderCode { get; set; } = string.Empty;
+    public BlueDental.Labo.LaboStatus Status { get; set; }
+    public bool IsWarrantyExpired { get; set; }
 }
 
 public class CreateTreatmentStageDto

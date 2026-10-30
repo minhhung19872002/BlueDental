@@ -12717,3 +12717,44 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Staging / prod phải chạy DbMigrator để có migration + trigger; prod cần `RECEIPT_VAULT_KEY` riêng trước khi main nhận P2610 / P2910.
   - Bố cục bảng phiếu điều trị co thân bảng khi nhiều thẻ dịch vụ (đã thấy ở trên), chưa sửa, chờ chủ dự án.
   - Spec `patient:1916` và `vat-payment-einvoice-api:96` cần sửa cách chọn dữ liệu (ở trên), chưa làm.
+
+## R-1083 (2026-10-30, mức 3: F-85 Quy trình Labo mới P2910_03) Đặt hàng / Nhận hàng & kiểm tra / Bảo hành, kiểm tra từng răng, khoá công đoạn
+
+- **Yêu cầu** (BA `P2910_03.drawio` + 12 câu chủ dự án chốt 2026-10-30, bảng quyết định ở `features/labo-workflow.md`):
+  - Một popup 3 bước cho mọi lối vào phiếu Labo.
+  - Nhận hàng → Chờ kiểm tra; kiểm tra từng răng Đạt / Lỗi; Trả hàng có khung Kết luận đúng ảnh chủ dự án; nhận lại lần N chỉ kiểm lại răng lỗi (Trả toàn bộ kiểm lại hết).
+  - Kích hoạt bảo hành từng răng khi cả phiếu QC đạt; Hết hạn bảo hành tính lúc đọc; không gửi thẻ.
+  - Hoàn thành công đoạn sau bị khoá khi phiếu chưa QC đạt; cột Phiếu Labo trên phiếu điều trị; tab Labo 6 thẻ lọc; `/labo` bỏ chọn trạng thái tay.
+- **Sửa**:
+  - Domain: `LaboOrder` viết lại thành máy trạng thái (Draft 1 … Warranty 7, lỗi `Labo:0015`–`0030`), `LaboOrderTooth`, `LaboOrderRound` + `LaboRoundToothResult`, `LaboStagePolicy`; bỏ phiếu con và chọn trạng thái tay.
+  - Application / API: `POST` / `PUT labo-orders` (JSON hoặc multipart, cờ `Submit`), `POST {id}/cancel`, `DELETE {id}` (chỉ Nháp), `POST {id}/receive`, `POST {id}/check` (multipart), `POST {id}/warranty`; `TreatmentStageAppService` chặn Hoàn thành công đoạn bị khoá (`Labo:0031`); `Labo:0032` khi dòng dịch vụ không thuộc bệnh nhân của phiếu.
+  - EF: migration `20261030022639_LaboWorkflowP291003` — bảng răng, bảng lần nhận (jsonb), `bd_patient_images.LaboRoundNo`, đổi trạng thái cũ một `CASE` (1→1; 2, 3, 7→2; 4→3; 5→5; 6, 8→6), tách răng, phiếu Hoàn thành cũ có mọi răng Đạt, phiếu đã nhận có lần 1.
+  - FE: `features/labo/components/workflow/`, `check/`, `warranty/`; `PlanLaboCell`, `StageLaboParts`; xoá `LaboOrderTabsDialog`, các dialog phiếu con, `LaboStatusSelect`, `LaboDetailFooter`, `stage/LaboOrderDialog`.
+- **Spec viết lại theo luồng mới**:
+  - Mới: `labo-workflow` (3), `labo-api` (8), `labo-tab-list` (2), fixture `e2e/fixtures/laboApi.ts`.
+  - Viết lại: `labo` (14; `:65` đổi theo chip mẫu chia theo ngày hẹn giao), `labo-orders-actions` (3), `labo-orders-permissions` (1), `labo-detail` (1), `labo-material-search` (1).
+  - **Bỏ `labo-warranty.spec.ts`**: test chính của nó là phiếu con Bảo hành, đã bỏ cùng F-85 (quyết định 4); hai test còn lại (dialog trong URL, phân trang / lọc server của tab Labo) chuyển sang `labo-tab-list`.
+  - `treatment-plan-detail`: bảng Chi tiết điều trị có thêm cột "Phiếu Labo" (quyết định 10); phiếu Labo bị hủy giờ đọc "Đã hủy" (nhãn trạng thái mới theo BA) thay vì "Đã huỷ" của nhãn Rejected cũ. Hồi quy mức 3 bắt được cả hai.
+- **E2E** (build production `vite preview` :8170 → host :5140 → PostgreSQL thật, DB riêng `BlueDental_p291003`, không chặn request):
+  - 9 spec Labo: **36/36**.
+  - Hồi quy mức 3 (`stage-*`, `treatment-*`, `plan-*`, `branch-*`, `payment-from-slip`, 96 test) lần đầu 79 xanh / 5 đỏ / 12 không chạy:
+    - `treatment-plan-detail:188`: cột Phiếu Labo, lỗi của spec (ở trên); spec chạy nối tiếp nên 12 test sau không chạy. Sửa spec, chạy lại **13/13**, gồm test chặn chuyển đổi khi còn phiếu Labo mở.
+    - `plan-service-delete` 61 / 97 / 123: timeout ở `openNewSlip` (`fixtures/ledgerReceipt.ts:202`), cùng lỗi bố cục bảng phiếu đã ghi ở R-1082. Tạo bệnh nhân mới lên đầu danh sách rồi chạy lại: **4/4**.
+    - `stage-staff-pickers:163`: tìm nút "Thanh toán" trong Chi tiết phiếu, nút đã bỏ khỏi trang phiếu từ R-956 (`PlanStageSection.tsx`, F-85 không sửa file này). Đỏ có từ trước.
+  - Kết quả sau cùng: **95/96**.
+- **BE**: Domain **1247/1247**, Application **836/842**, EFCore **68/68**, HttpApi.Host **24/24**. 6 đỏ ở Application là `PaymentReceiptTemplateTests` (FileNotFoundException `PHIẾU THU.docx`): build với `--artifacts-path` ngoài repo nên không thấy file mẫu; không do F-85.
+- **FE**: `tsc` sạch, oxlint 0 lỗi, vitest 3/3, build production ổn.
+- **Mức retest**: 3 (đổi aggregate `LaboOrder`, migration dữ liệu, chặn Hoàn thành công đoạn dùng chung cho mọi màn công đoạn, thêm cột vào bảng phiếu điều trị).
+- **Ngoài phạm vi / còn mở**:
+  - Tiếp nhận bảo hành (Lần BH, phiếu BH1) để đợt sau; "Lần BH" luôn 0.
+  - "Tạo Labo" vẫn hiện ở công đoạn khác của dòng đã có phiếu đang chạy (cho phép phiếu thứ hai).
+  - Các điểm tự chọn khi BA chưa nói: `docs/clone/unknowns.md` (P2910_03), chờ chủ dự án xác nhận.
+  - Staging / prod phải chạy DbMigrator để có migration.
+- **Bổ sung cùng ngày (mức 3, câu hỏi 2 và 3 của chủ dự án)**:
+  - BA: "Nếu Dịch vụ có phiếu Labo có trạng thái <> Đạt chất lượng → vẫn cho tiếp tục các công đoạn… nhưng không cho hoàn thành". Trước đây chỉ ô Hoàn thành của công đoạn bị khoá; giờ Hoàn thành cả dòng dịch vụ cũng bị khoá.
+    - Server: `PatientTreatmentAppService.CompleteServiceAsync` trả 403 `BlueDental:Labo:0033` khi dòng có phiếu chưa QC đạt và chưa huỷ (Nháp cũng tính). Cùng điều kiện với `GuardNoOpenLaboOrderAsync` (helper `HasOpenLaboOrderAsync`).
+    - Màn hình: menu Đổi trạng thái trên phiếu điều trị làm mờ Hoàn thành, kèm dòng "Khoá: phiếu Labo chưa QC đạt" (`ServiceStatusMenu`, đọc `labOrders[].isUnfinished`).
+    - Không chặn đường nhập dữ liệu cũ (data migration) và seeder.
+  - Các ô khoá của tab Đặt hàng (Tên khách hàng, Kế hoạch / Dịch vụ điều trị, Số phiếu Labo, Số lượng) dùng `LaboLockedField`: ô nhập có tên truy cập bằng chính nhãn. Không sửa `FloatingLabel` dùng chung, để khỏi phải retest /taxonomy.
+  - E2E: `labo-api` thêm test Hoàn thành dịch vụ (Nháp → 0033, huỷ; phiếu đã gửi → 0033; QC đạt → 200, dòng = Hoàn thành). `labo-workflow` kiểm thêm menu khoá / mở và tìm các ô khoá bằng `getByRole("textbox", { name })`.
+  - Chạy trên build production :8170 → host :5140 → DB `BlueDental_p291003`: `labo-api` + `labo-workflow` **12/12**; các spec Labo còn lại + `treatment-plan-detail`, `plan-treating-scope`, `cskh-after-treatment` (dùng menu Đổi trạng thái) **60/60**. BE build sạch, FE `tsc` + oxlint sạch.

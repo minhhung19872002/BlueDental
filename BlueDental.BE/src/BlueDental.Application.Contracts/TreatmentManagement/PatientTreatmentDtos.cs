@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
@@ -51,6 +51,8 @@ public class TreatmentServiceLaboOrderDto : EntityDto<Guid>
     public BlueDental.Labo.LaboOrderKind Kind { get; set; }
     /// <summary>Still with the labo: blocks cancelling / converting the line.</summary>
     public bool IsUnfinished { get; set; }
+    /// <summary>"Dự kiến giao" under the Phiếu Labo chip.</summary>
+    public DateTimeOffset? DueAt { get; set; }
 }
 
 public class TreatmentServiceDto : EntityDto<Guid>

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
@@ -102,58 +102,3 @@ export function useNextLaboCode(enabled: boolean) {
   });
 }
 
-/** What "Đặt mới" posts. Mirrors BlueDental.Labo.CreateLaboOrderDto. */
-export interface CreateLaboOrderInput {
-  patientId: string;
-  branchId: string;
-  dentistId?: string;
-  labProviderName: string;
-  orderCode?: string;
-  supplierId?: string;
-  materialId?: string;
-  biteId?: string;
-  finishLineId?: string;
-  rhythmId?: string;
-  toothNumbers?: string;
-  toothShade?: string;
-  quantity: number;
-  notes?: string;
-  sentAt?: string;
-  dueAt?: string;
-  estimatedCost: number;
-  treatmentServiceId?: string;
-  treatmentStageId?: string;
-  /** 1 Đặt mới (default) · 2 Làm tiếp công đoạn · 3 Bảo hành. */
-  kind?: number;
-  /** Required for kind 2 and 3: the order being continued / guaranteed. */
-  parentOrderId?: string;
-  /** Tải ảnh: filed into Hình ảnh under the order's plan and công đoạn, in the same request. */
-  pictures?: File[];
-}
-
-/**
- * The order goes up as multipart so its pictures ride along: one request,
- * and the server writes the order and the pictures in one unit of work.
- * Fields that are unset stay out of the form so the server keeps its defaults.
- */
-function toOrderForm({ pictures, ...fields }: CreateLaboOrderInput): FormData {
-  const form = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    if (value !== undefined && value !== null) form.append(key, String(value));
-  }
-  for (const file of pictures ?? []) form.append("pictures", file);
-  return form;
-}
-
-export function useCreateLaboOrder() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (input: CreateLaboOrderInput) =>
-      api.post("/v1/app/labo-orders", toOrderForm(input)).then((r) => r.data),
-    meta: { invalidates: ["laboOrder"] },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["labo-next-code"] });
-    },
-  });
-}

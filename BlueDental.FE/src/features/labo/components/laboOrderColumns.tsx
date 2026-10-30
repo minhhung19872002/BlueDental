@@ -1,22 +1,20 @@
 import { Link } from "react-router-dom";
 import type { ColumnsType } from "antd/es/table";
+import { StatusBadge } from "@/components/StatusBadge";
 import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
+import type { LaboOrderDto } from "../api/laboApi";
+import { laboStatusPill } from "../api/laboStatus";
+import { LaboSendDueCell } from "./order-dialogs/LaboSendDueCell";
 import {
-  LABO_KIND_CONFIG,
-  LABO_STATUS_CONFIG,
-  type LaboOrderDto,
-} from "../api/laboApi";
-import {
-  LaboDatePill,
   LaboImagesButton,
   LaboRowActions,
   LaboSupplierBadge,
   type LaboRowActionHandlers,
 } from "./order-dialogs/laboOrderCells";
 
-interface Options extends LaboRowActionHandlers {
+interface Options extends Pick<LaboRowActionHandlers, "onDetail"> {
   /** Rides on the patient and treatment-slip links, as on the reference. */
   branchId: string;
 }
@@ -24,12 +22,14 @@ interface Options extends LaboRowActionHandlers {
 const dash = (value: string | undefined) => value ?? <span className="bd-cat-num">—</span>;
 
 /**
- * Mẫu Labo — the reference's eleven columns (docs/clone/pages/labo.md §2.4):
- * the code, the supplier over its creation date, the customer and the
- * treatment slip as links into the patient record, the two date/pill pairs,
- * the dentist, material and teeth, the returned-file folder and Thao tác.
+ * Mẫu Labo — the reference's columns (docs/clone/pages/labo.md §2.4) with
+ * P2910_03's Gửi → Hẹn giao and Trạng thái in place of the two date/pill
+ * pairs: the code, the supplier over its creation date, the customer and the
+ * treatment slip as links into the patient record, the dentist, material and
+ * teeth, the returned-file folder and Thao tác (Xem only — the workflow runs
+ * on the patient record).
  */
-export function buildLaboOrderColumns({ branchId, ...actions }: Options): ColumnsType<LaboOrderDto> {
+export function buildLaboOrderColumns({ branchId, onDetail }: Options): ColumnsType<LaboOrderDto> {
   const patientHref = (row: LaboOrderDto) => withBranch(`/patient/${row.patientId}`, branchId);
   const planHref = (row: LaboOrderDto) =>
     withBranch(`/patient/${row.patientId}/treatment-plan/${row.treatmentPlanId}`, branchId);
@@ -79,16 +79,19 @@ export function buildLaboOrderColumns({ branchId, ...actions }: Options): Column
         ),
     },
     {
-      key: "sentAt",
-      title: t("Patient:Labo:SentDateStatus"),
-      width: 192,
-      render: (_, row) => <LaboDatePill date={row.sentAt} pill={LABO_KIND_CONFIG[row.kind]} />,
+      key: "sentDue",
+      title: t("Labo:Column:SentDue"),
+      width: 150,
+      render: (_, row) => <LaboSendDueCell order={row} />,
     },
     {
-      key: "dueAt",
-      title: t("Patient:Labo:DeliveryStatus"),
-      width: 204,
-      render: (_, row) => <LaboDatePill date={row.dueAt} pill={LABO_STATUS_CONFIG[row.status]} />,
+      key: "status",
+      title: t("Common:Status"),
+      width: 160,
+      render: (_, row) => {
+        const pill = laboStatusPill(row);
+        return <StatusBadge label={t(pill.label)} bg={pill.bg} color={pill.color} />;
+      },
     },
     {
       key: "dentistName",
@@ -123,15 +126,7 @@ export function buildLaboOrderColumns({ branchId, ...actions }: Options): Column
       width: 112,
       align: "center",
       fixed: "right",
-      render: (_, row) => (
-        <LaboRowActions
-          row={row}
-          detailLabel={t("Patient:Labo:View")}
-          onDetail={actions.onDetail}
-          onContinue={actions.onContinue}
-          onWarranty={actions.onWarranty}
-        />
-      ),
+      render: (_, row) => <LaboRowActions row={row} detailLabel={t("Patient:Labo:View")} onDetail={onDetail} />,
     },
   ];
 }

@@ -42,6 +42,16 @@
   align-content: start;
   gap: 16px;
 }
+/*
+ * Đặt hàng below the header, as the BA's mock lays it out (P2910_03, DNBX-17
+ * and DNBX-99): every row is its label in a fixed column, then the row's
+ * content on the same line. A chip strip is the exception (owner 2026-10-30):
+ * its label and search box on one line, the chips under them in one row that
+ * slides sideways, as many as the master data names.
+ */
+.pd-labo-form {
+  --pd-labo-row-label: 150px;
+}
 .pd-labo-strip {
   margin-top: 16px;
 }
@@ -51,19 +61,20 @@
 /* The label, and on Vật liệu the search box right after it (R-1062). */
 .pd-labo-strip-head {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 16px;
   margin: 0 0 8px;
 }
 .pd-labo-strip-head > p {
+  width: var(--pd-labo-row-label);
   margin: 0;
   color: var(--bd-ink);
   font-size: 14px;
   font-weight: 600;
 }
 .pd-labo-strip-search {
-  flex: 0 1 240px;
-  min-width: 0;
+  width: 200px;
 }
 .pd-labo-emptypill {
   display: inline-flex;
@@ -74,13 +85,6 @@
   padding: 0 16px;
   color: rgb(var(--pd-field-label));
   font-size: 13px;
-}
-/* The reference centres this dashed placeholder across the strip. Real chips
-   stay left-aligned, so only the empty case is centred. */
-.pd-labo-strip > .pd-labo-emptypill {
-  display: flex;
-  width: fit-content;
-  margin-inline: auto;
 }
 /*
  * The reference's chip carousel (staging, 2026-09-08): a round 32px arrow on
@@ -126,7 +130,7 @@
   flex: 1;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
-  grid-template-rows: repeat(2, max-content);
+  grid-template-rows: max-content;
   gap: 8px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -165,42 +169,73 @@
   color: #fff;
   box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
 }
+/* Răng: the chart button and "Số lượng: N" after the label (BA DNBX-19/20). */
 .pd-labo-teeth {
   display: flex;
   align-items: center;
-  gap: 12px;
-  overflow-x: auto;
+  gap: 16px;
   margin-top: 16px;
-  padding-bottom: 4px;
 }
 .pd-labo-teeth > p {
   flex-shrink: 0;
+  width: var(--pd-labo-row-label);
   margin: 0;
+  color: var(--bd-ink);
   font-size: 14px;
   font-weight: 600;
 }
-.pd-labo-teeth > div {
-  display: flex;
-  flex-shrink: 0;
-  gap: 8px;
-}
-.pd-labo-teeth > div > span {
-  display: inline-flex;
+.pd-labo-teeth .pd-labo-chartbtn {
+  width: 36px;
   min-width: 36px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--bd-border);
-  border-radius: 4px;
-  padding: 4px;
-  background: #fff;
-  color: var(--bd-ink);
-  font-size: 13px;
+  height: 36px;
 }
-.pd-labo-teeth > div > span.active {
-  border-color: transparent;
-  background: var(--bd-primary);
-  color: #fff;
+.pd-labo-teeth-count {
+  color: var(--bd-sub);
+  font-size: 14px;
+}
+.pd-labo-teeth-count > b {
+  color: var(--bd-ink);
+}
+/* Màu răng, Đường hoàn tất, Khớp cắn and Kiểu nhịp two by two, on the
+   header's own 20px grid (owner 2026-10-30). */
+.pd-labo-specs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+/* Hình ảnh gửi Labo: the pictures, then the Tải ảnh well, beside the label. */
+.pd-labo-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.pd-labo-row-label {
+  flex-shrink: 0;
+  width: var(--pd-labo-row-label);
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 14px;
   font-weight: 600;
+}
+.pd-labo-row .pd-labo-pictures {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+.pd-labo-row .pd-labo-gallery {
+  margin: 0;
+}
+.pd-labo-row .pd-labo-well {
+  order: 1;
+}
+.pd-labo-row .pd-labo-gallery-tile {
+  width: 110px;
+  height: 110px;
 }
 /* Plain text where the chips would sit, until a treatment line is picked
    (staging: 14px/400 in the label grey). */
@@ -217,91 +252,34 @@
   min-height: 92px;
   padding: 12px;
 }
-/*
- * The reference's square drop tile, not a wide button: 80×80, dashed #b9c4d4,
- * the label in link blue, and the hover fills rather than only recolouring —
- * the same treatment the Hình ảnh tab's Tải ảnh already carries.
- */
-.pd-labo-drop {
-  display: flex;
-  width: 80px;
-  height: 80px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin-top: 16px;
-  border: 1px dashed var(--pd-dash);
-  border-radius: 8px;
-  background: #fff;
-  color: var(--bd-primary);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.pd-labo-drop > span {
-  max-width: 100%;
-  overflow: hidden;
-  font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pd-labo-drop:hover {
-  border-color: var(--bd-primary);
-  color: var(--bd-primary);
-  background: var(--pd-upload-hover);
-}
-
 @media (max-width: 900px) {
   .pd-labo-dialog .pd-labo-grid {
     grid-template-columns: 1fr;
   }
 }
-
-/*
- * Chosen pictures, held as drafts until the order is saved.
- *
- * Sized to the 80×80 Tải ảnh tile they sit beside so the two read as one strip.
- * The reference's own draft rendering is UNKNOWN_REFERENCE_BEHAVIOR: reaching
- * it means attaching a file to a production form, which may upload on select —
- * and no Labo order on staging carries an image to read the saved form back
- * from. See docs/clone/unknowns.md.
- */
-.pd-labo-drafts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 12px;
-}
-.pd-labo-drafts > div {
-  position: relative;
-  width: 80px;
-  height: 80px;
-  overflow: hidden;
-  border: 1px solid var(--pd-dash-soft);
-  border-radius: 8px;
-}
-.pd-labo-drafts img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.pd-labo-drafts button {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  display: flex;
-  width: 22px;
-  height: 22px;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(27 42 65 / 20%);
-  color: var(--bd-ink);
-  cursor: pointer;
+/* A phone stacks every row: the label on its own line, its content under it.
+   Răng stays on one line — its button and count are short. */
+@media (max-width: 640px) {
+  .pd-labo-strip-head,
+  .pd-labo-teeth,
+  .pd-labo-row {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+  .pd-labo-strip-head > p,
+  .pd-labo-row-label {
+    width: 100%;
+  }
+  .pd-labo-teeth > p {
+    width: auto;
+  }
+  .pd-labo-strip-search {
+    width: 100%;
+  }
+  .pd-labo-specs {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
 }
 
 /*
@@ -359,118 +337,6 @@
   opacity: 1;
 }
 
-/* ── Labo tab: the order dialog's pills and the child tabs ────────────────
-   Measured on the reference on 2026-09-08 (docs/clone/pages/patient-detail.md,
-   Tab 6): a 40px track with 4px padding and 8px radius, the active pill filled;
-   the order select 350px wide over a 24px gap; the summary lines and the
-   "Lựa chọn dịch vụ:" radio row. The accent follows the app's primary, not the
-   reference's blue, as the owner asked on 2026-09-07. */
-.pd-labo-tabs .pill-tabs {
-  gap: 4px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  border-radius: 8px;
-  padding: 4px;
-  background: var(--bd-bg-soft);
-}
-.pd-labo-tabs .pill-tab {
-  flex-shrink: 0;
-  border: 0;
-  border-radius: 8px;
-  padding: 8px 16px;
-  background: transparent;
-  color: var(--bd-sub);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-}
-.pd-labo-tabs .pill-tab:hover {
-  color: var(--bd-primary);
-}
-.pd-labo-tabs .pill-tab--active,
-.pd-labo-tabs .pill-tab--active:hover {
-  background: var(--bd-primary);
-  color: #fff;
-}
-.pd-labo-tabs .pill-tabs-row + * {
-  margin-top: 24px;
-}
-.pd-labo-order-select {
-  width: 350px;
-  max-width: 100%;
-  margin-bottom: 20px;
-}
-.pd-labo-radio {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-  margin-top: 16px;
-}
-.pd-labo-radio > p {
-  margin: 0;
-  color: var(--bd-ink);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 21px;
-}
-/* "Dịch vụ hiện tại: … / Vật liệu: …" under "Theo vật liệu cũ" — 24px below
-   the radios, 16px between the two lines, the value 16px after its label. */
-.pd-labo-summary {
-  margin-top: 24px;
-}
-.pd-labo-summary > p {
-  margin: 0;
-  color: var(--bd-ink);
-  font-size: 14px;
-  line-height: 21px;
-}
-.pd-labo-summary > p + p {
-  margin-top: 16px;
-}
-.pd-labo-summary b {
-  font-weight: 600;
-}
-.pd-labo-summary > p > span {
-  margin-left: 16px;
-}
-/* "Chọn tất cả" reads words-then-box on the reference: 13px, 8px apart. */
-.pd-labo-teeth .pd-labo-select-all {
-  flex-direction: row-reverse;
-  flex-shrink: 0;
-  font-size: 13px;
-}
-.pd-labo-teeth .pd-labo-select-all > span:not(.ant-checkbox) {
-  padding-inline-start: 0;
-}
-/* The locked patient picker of Làm tiếp công đoạn / Bảo hành: its value in
-   the label grey at half strength, as the reference greys a disabled combobox. */
-.pd-labo-child-dialog .ss-wrapper--disabled .ss-value--selected {
-  color: rgb(var(--pd-field-label) / 50%);
-  font-weight: 400;
-}
-/* The teeth are buttons on the tab's forms (a tooth can be dropped from the
-   child order) and read-outs on the công đoạn's; both wear the same chip. */
-.pd-labo-teeth > div > button {
-  display: inline-flex;
-  min-width: 36px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--bd-border);
-  border-radius: 4px;
-  padding: 4px;
-  background: #fff;
-  color: var(--bd-ink);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-.pd-labo-teeth > div > button.active {
-  border-color: transparent;
-  background: var(--bd-primary);
-  color: #fff;
-  font-weight: 600;
-}
 /* The body's side padding, declared once because the pinned footer below
    has to undo exactly this much: AntD's own 20px was winning over the
    footer's -24px margins, which left it 8px wider than the body and gave the
@@ -478,9 +344,10 @@
    `20px 16px 24px` on a phone. */
 .pd-labo-dialog {
   --pd-labo-body-x: 24px;
+  --pd-labo-body-top: 12px;
 }
 .ant-modal.pd-labo-dialog .ant-modal-body {
-  padding: 12px var(--pd-labo-body-x) 24px;
+  padding: var(--pd-labo-body-top) var(--pd-labo-body-x) 24px;
   overflow-x: hidden;
 }
 /* Pinned under the scrolling body, as on the reference; the negative margin
@@ -488,7 +355,8 @@
 .pd-labo-footer {
   position: sticky;
   bottom: -24px;
-  z-index: 1;
+  /* Above the floating labels (.floating-field-label is 5) scrolling under it. */
+  z-index: 6;
   display: flex;
   justify-content: flex-end;
   margin: 20px calc(-1 * var(--pd-labo-body-x)) -24px;
@@ -499,9 +367,7 @@
 @media (max-width: 640px) {
   .pd-labo-dialog {
     --pd-labo-body-x: 16px;
-  }
-  .ant-modal.pd-labo-dialog .ant-modal-body {
-    padding-top: 20px;
+    --pd-labo-body-top: 20px;
   }
 }
 .pd-labo-footer .ant-btn {
@@ -581,8 +447,7 @@
   font-size: 12px;
   margin-top: 4px;
 }
-.pd-labo-strip--error .pd-labo-strip-head > p,
-.pd-labo-teeth--error > p {
+.pd-labo-strip--error .pd-labo-strip-head > p {
   color: var(--bd-red);
 }
 
@@ -646,28 +511,11 @@
 .pd-labo-detail-footer {
   gap: 12px;
 }
-/* Lưu on Mẫu Labo is the reference's min-w-[100px]. */
-.pd-labo-detail-footer .pd-labo-save {
-  min-width: 100px;
-}
 
-/* ── Mẫu Labo's editable detail (staging, 2026-09-24; labo.md §2.6) ────────
-   The Trạng thái select sits under the fourth block at 350×40 with an 8px
-   radius; under the blocks the Tải ảnh well is a 110px dashed square with the
+/* ── Mẫu Labo's detail (staging, 2026-09-24; labo.md §2.6) ──────────────────
+   Under the blocks the Tải ảnh well is a 110px dashed square with the
    image-plus glyph at 28px, and the pictures follow as 150px tiles with the
    "Xóa ảnh" button 32px square in the corner. */
-.pd-labo-status {
-  width: 350px;
-  max-width: 100%;
-}
-.pd-labo-status .ant-select {
-  width: 100%;
-}
-.pd-labo-status .ant-select .ant-select-selector {
-  height: 40px;
-  border-color: var(--pd-dash-soft);
-  border-radius: 8px;
-}
 .pd-labo-pictures {
   margin-top: 24px;
 }
@@ -820,4 +668,165 @@
   padding-top: 64px;
   font-size: 13px;
   font-weight: 700;
+}
+.pd-labo-act.ant-btn.pd-labo-act--danger,
+.pd-labo-act.ant-btn.pd-labo-act--danger:not(:disabled):hover,
+.pd-labo-act.ant-btn.pd-labo-act--danger:not(:disabled):active {
+  color: var(--bd-red);
+}
+/* The tag under Gửi → Hẹn giao (P2910_03): grey while waiting, red once late. */
+.pd-labo-due {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+.pd-labo-due--late {
+  font-weight: 600;
+  color: var(--bd-red);
+}
+
+/* ── The Labo workflow dialog (P2910_03) ─────────────────────────────────────
+   Title + status pill, then the three numbered steps on one rail, the step's
+   hint under them, and a footer whose hint sits left of the buttons.
+   The head lives in the body (its title follows the step on screen) but wears
+   the app's modal header: full bleed, 20px/650, hairline under it, pinned
+   while the body scrolls — the pinned footer's trick, mirrored to the top. */
+.pd-labo-workflow-head {
+  position: sticky;
+  top: calc(-1 * var(--pd-labo-body-top));
+  /* Above the floating labels (5) and the footer (6) scrolling under it. */
+  z-index: 7;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: calc(-1 * var(--pd-labo-body-top)) calc(-1 * var(--pd-labo-body-x)) 0;
+  border-bottom: 1px solid var(--bd-line-soft);
+  /* The right side clears the modal's ✕. */
+  padding: 18px calc(var(--pd-labo-body-x) + 32px) 18px var(--pd-labo-body-x);
+  background: var(--bd-surface, #fff);
+}
+.pd-labo-workflow-head .bd-modal-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 28px;
+  color: var(--bd-ink);
+}
+.pd-labo-steps {
+  display: flex;
+  gap: 4px;
+  margin-top: 16px;
+  overflow-x: auto;
+  border-radius: 8px;
+  padding: 4px;
+  background: var(--bd-bg-soft);
+}
+.pd-labo-step {
+  display: inline-flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--bd-sub);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pd-labo-step:not(:disabled):hover {
+  color: var(--bd-primary);
+}
+.pd-labo-step:disabled {
+  color: var(--bd-muted);
+  cursor: not-allowed;
+}
+.pd-labo-step-no {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bd-border);
+  color: var(--bd-sub);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-labo-step--active,
+.pd-labo-step--active:not(:disabled):hover {
+  background: var(--bd-primary);
+  color: #fff;
+}
+.pd-labo-step--active .pd-labo-step-no {
+  background: #fff;
+  color: var(--bd-primary);
+}
+/* A phone shares the rail three ways, the long label wrapping, so the third
+   step never hides off the edge. */
+@media (max-width: 640px) {
+  .pd-labo-step {
+    flex: 1 1 0;
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+    line-height: 18px;
+    text-align: center;
+    white-space: normal;
+  }
+  .pd-labo-step-no {
+    flex-shrink: 0;
+  }
+}
+.pd-labo-step-hint {
+  margin: 12px 0 16px;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-labo-step-footer {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pd-labo-footer-hint {
+  flex: 1 1 240px;
+  min-width: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+/* Shrinks below its buttons' sum so they wrap instead of pushing the last one
+   off a narrow dialog. */
+.pd-labo-footer-actions {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+}
+/* A phone gives the buttons their own full-width line, shared evenly. */
+@media (max-width: 640px) {
+  .pd-labo-footer-actions {
+    flex-basis: 100%;
+    gap: 8px;
+  }
+  .pd-labo-footer-actions > .ant-btn {
+    flex: 1 1 auto;
+  }
+}
+.pd-labo-loading {
+  display: grid;
+  min-height: 240px;
+  place-items: center;
+  color: var(--bd-muted);
+}
+.pd-labo-plan-link {
+  color: var(--bd-link);
+  font-weight: 500;
 }
