@@ -151,6 +151,12 @@ public class PatientCodeEstimateDto
     public string Code { get; set; } = default!;
 }
 
+/// <summary>Answer to the dialog's duplicate check on "Mã khách hàng", asked when the box loses focus.</summary>
+public class PatientCodeAvailabilityDto
+{
+    public bool Exists { get; set; }
+}
+
 /// <summary>Answer to the dialog's duplicate-phone check.</summary>
 public class PhoneAvailabilityDto
 {

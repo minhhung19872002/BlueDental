@@ -5,19 +5,20 @@ import {
 
 /**
  * "Mục lục bệnh án" — the nine printed forms the reference offers, in its own
- * order and wording, each with the tint and accent it draws the row in.
+ * order and wording, then the clinic's own (mẫu 10), each with the tint and
+ * accent it draws the row in.
  *
  * The colours cycle through seven: rows 8 and 9 repeat rows 1 and 2, which is
- * what the reference does. Measured off its own computed styles — see
- * docs/clone/pages/patient-detail.md §Bệnh án.
+ * what the reference does, and row 10 carries the cycle on to row 3's. Measured
+ * off its own computed styles — see docs/clone/pages/patient-detail.md §Bệnh án.
  */
 export interface MedicalRecordFormSpec {
   form: MedicalRecordForm;
   /** Position in the index, as the reference numbers them. */
   index: number;
   /**
-   * The form's own printed name. Left untranslated on purpose: the nine forms
-   * are Vietnamese medical documents in both languages, and this is also the
+   * The form's own printed name. Left untranslated on purpose: the forms are
+   * Vietnamese medical documents in both languages, and this is also the
    * title a new sheet is saved under.
    */
   label: string;
@@ -28,7 +29,7 @@ export interface MedicalRecordFormSpec {
   /** Icon chip background. */
   iconBg: string;
   /**
-   * Whether the form has any blanks to type into. All nine do, now that each is
+   * Whether the form has any blanks to type into. All of them do, now that each is
    * drawn from its printed original — "Phiếu Tư Vấn Tổng Quát" carries
    * twenty-three, which the earlier hand-drawn version of it did not.
    */
@@ -154,6 +155,17 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     tint: "#f0fbf9",
     accent: "#22b5a6",
     iconBg: "#d8f6f2",
+  },
+  {
+    // The clinic's own contract and the agreement attached to it (.docx,
+    // 2026-10-29); the reference has no tenth form.
+    form: MEDICAL_RECORD_FORM.OrthodonticContract,
+    fillable: true,
+    index: 10,
+    label: "Hợp đồng thỏa thuận niềng răng",
+    tint: "#fff7f1",
+    accent: "#d97a40",
+    iconBg: "#ffe6d5",
   },
 ];
 

@@ -243,6 +243,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.bd-patient-money--total {
+  color: var(--bd-link);
+  font-weight: 600;
+}
+
 .bd-patient-money--in {
   color: var(--bd-green);
   font-weight: 600;
@@ -442,6 +447,13 @@
 
 .bd-patient-dialog .ant-form-item {
   margin-bottom: 16px;
+}
+
+/* An error line (~22px) is taller than that gap: without room it runs into
+   the next field's floated label, e.g. "Mã khách hàng đã tồn tại" over
+   "Họ và tên". */
+.bd-patient-dialog .ant-form-item-with-help {
+  margin-bottom: 32px;
 }
 
 /* Every control in the dialog fills its column; a date picker does not by

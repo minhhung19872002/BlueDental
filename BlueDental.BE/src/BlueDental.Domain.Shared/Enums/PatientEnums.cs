@@ -77,8 +77,9 @@ public enum ToothStatus
 
 /// <summary>
 /// The printed forms "BE:Treatment:MedRecordTOC" offers, in the reference's own order and
-/// wording. The layout of each is printed on the sheet; only the cells the
-/// clinic fills in are stored, so this enum names the form and nothing else.
+/// wording, then the clinic's own after them. The layout of each is printed on
+/// the sheet; only the cells the clinic fills in are stored, so this enum names
+/// the form and nothing else.
 /// </summary>
 public enum MedicalRecordForm
 {
@@ -108,6 +109,13 @@ public enum MedicalRecordForm
 
     /// <summary>9. Phiếu chăm sóc</summary>
     CareSheet = 9,
+
+    /// <summary>
+    /// 10. Hợp đồng thỏa thuận niềng răng — the clinic's own contract, with the
+    /// "Bản thỏa thuận &amp; đồng ý" attached to it (clinic's .docx, 2026-10-29).
+    /// The reference has no such form.
+    /// </summary>
+    OrthodonticContract = 10,
 }
 
 /// <summary>

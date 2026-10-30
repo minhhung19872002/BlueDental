@@ -49,7 +49,7 @@ export const TimelineColumn = React.memo(function TimelineColumn({
     >
       <div className="dtl-doc" title={title}>
         <span className="dtl-name">{name}</span>
-        <span className="dtl-count">{patients}</span>
+        {patients > 0 && <span className="dtl-count">{patients}</span>}
       </div>
       <div className="dtl-track">
         <TimelineSlots doctorId={doctorId} slots={slots} onCellClick={unassigned ? undefined : onCellClick} />

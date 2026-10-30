@@ -48,6 +48,20 @@ public class MedicalRecordSetTests
     }
 
     [Fact]
+    public void A_set_saved_before_mau_10_existed_shows_it_and_keeps_what_it_hid()
+    {
+        // Saved when there were nine forms, with mẫu 2 and mẫu 9 unticked: bits 1 and 8.
+        var set = ASet();
+        typeof(MedicalRecordSet).GetProperty(nameof(MedicalRecordSet.HiddenFormMask))!
+            .SetValue(set, (1 << 1) | (1 << 8));
+
+        set.VisibleForms.ShouldNotContain(MedicalRecordForm.OutpatientDental);
+        set.VisibleForms.ShouldNotContain(MedicalRecordForm.CareSheet);
+        set.VisibleForms.ShouldContain(MedicalRecordForm.OrthodonticContract);
+        MedicalRecordSet.AllForms[^1].ShouldBe(MedicalRecordForm.OrthodonticContract);
+    }
+
+    [Fact]
     public void A_fresh_slip_or_one_whose_lines_have_not_started_is_not_started()
     {
         var plan = APlan();

@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import type {
   SheetFactsDto,
+  SheetFactsPlanDto,
   SheetFactsServiceDto,
   SheetFactsVisitDto,
 } from "../../../api/medicalRecordSetApi";
@@ -31,13 +32,19 @@ export interface SheetFactFormats {
 
 /** Mẫu 5, II. Chẩn đoán: the two printed lines, then lines added under the second. */
 const CONSENT_DIAGNOSIS_LINES = ["consultation.text.5", "consultation.text.6"];
-const CONSENT_DIAGNOSIS_EXTRA_LINE = (at: number) => `custom.line.${CONSENT_DIAGNOSIS_LINES.at(-1)}.${at}`;
 
 /** Bệnh án chỉnh nha, IX. Kế hoạch điều trị: the seven lines under "Loại mắc cài". */
 const ORTHODONTIC_PLAN_LINES = Array.from({ length: 7 }, (_, at) => `orthodontic.text.${105 + at}`);
 
-/** Lines past the seventh are added under it, as Enter adds them (`custom.line.<anchor>.<n>`). */
-const ORTHODONTIC_EXTRA_LINE = (at: number) => `custom.line.${ORTHODONTIC_PLAN_LINES.at(-1)}.${at}`;
+/** Mẫu 10, "- Kế hoạch điều trị:": the blank after the label and the four lines under it. */
+const CONTRACT_PLAN_LINES = Array.from({ length: 5 }, (_, at) => `orthodontic-contract.text.${11 + at}`);
+
+/** Mẫu 10, II. Chi phí niềng răng: Chi phí ban đầu, Giảm giá, Chi phí sau giảm giá. */
+const CONTRACT_COST = {
+  gross: "orthodontic-contract.text.25",
+  discount: "orthodontic-contract.text.26",
+  total: "orthodontic-contract.text.27",
+} as const;
 
 const TRACKING_ROW = (row: number, cell: string) => `treatment-tracking.page-1.row-${row}.${cell}`;
 
@@ -75,6 +82,19 @@ function putDay(values: FieldValues, keys: readonly [string, string, string], da
   keys.forEach((key, at) => put(values, key, parts[at]));
 }
 
+/**
+ * Lines into a form's printed blanks, one each; past the last, lines added
+ * under it, as Enter adds them (`custom.line.<anchor>.<n>`).
+ */
+function putLines(values: FieldValues, printed: readonly string[], lines: readonly string[]) {
+  lines.forEach((line, at) => {
+    const blank = printed[at];
+    if (blank) put(values, blank, line);
+    // Even empty: an added line exists only while it has a value.
+    else values[`custom.line.${printed.at(-1)}.${at - printed.length + 1}`] = line;
+  });
+}
+
 /** Bìa hồ sơ bệnh án. */
 function coverValues(facts: SheetFactsDto, values: FieldValues) {
   put(values, "cover.text.1", facts.storageCode);
@@ -95,11 +115,10 @@ function numberValues(facts: SheetFactsDto, values: FieldValues) {
 }
 
 /**
- * Bệnh án chỉnh nha, IX: every service of every slip, one a line, slip by slip
- * — each slip's services under its name, a blank line between slips (owner,
- * 2026-10-19). Past the seven printed lines the sheet grows lines of its own.
+ * Every service of every slip, one a line, slip by slip — each slip's services
+ * under its name, a blank line between slips (owner, 2026-10-19).
  */
-function orthodonticValues(facts: SheetFactsDto, values: FieldValues, teeth: TeethLabel) {
+function planLines(facts: SheetFactsDto, teeth: TeethLabel): string[] {
   const lines: string[] = [];
   for (const plan of facts.plans) {
     const services = facts.services.filter((service) => service.treatmentPlanId === plan.treatmentPlanId);
@@ -108,13 +127,28 @@ function orthodonticValues(facts: SheetFactsDto, values: FieldValues, teeth: Tee
     lines.push(`Phiếu điều trị ${plan.planCode}`);
     lines.push(...services.map((service) => serviceLine(service, teeth)));
   }
+  return lines;
+}
 
-  lines.forEach((line, at) => {
-    const printed = ORTHODONTIC_PLAN_LINES[at];
-    if (printed) put(values, printed, line);
-    // Even empty: an added line exists only while it has a value.
-    else values[ORTHODONTIC_EXTRA_LINE(at - ORTHODONTIC_PLAN_LINES.length + 1)] = line;
-  });
+/** Bệnh án chỉnh nha, IX; past the seven printed lines the sheet grows lines of its own. */
+function orthodonticValues(facts: SheetFactsDto, values: FieldValues, teeth: TeethLabel) {
+  putLines(values, ORTHODONTIC_PLAN_LINES, planLines(facts, teeth));
+}
+
+/**
+ * Hợp đồng thỏa thuận niềng răng (mẫu 10): "- Kế hoạch điều trị" as mẫu 3's IX
+ * lists it, and II. Chi phí as the slips' own totals on Kế hoạch điều trị,
+ * added up over the set — "45.000.000đ", as the contract writes its fees.
+ */
+function orthodonticContractValues(facts: SheetFactsDto, values: FieldValues, formats: SheetFactFormats) {
+  putLines(values, CONTRACT_PLAN_LINES, planLines(facts, formats.teeth));
+  if (facts.plans.length === 0) return;
+
+  const sum = (amount: (plan: SheetFactsPlanDto) => number) =>
+    facts.plans.reduce((total, plan) => total + amount(plan), 0);
+  put(values, CONTRACT_COST.gross, `${formats.money(sum((plan) => plan.grossAmount))}đ`);
+  put(values, CONTRACT_COST.discount, `${formats.money(sum((plan) => plan.discountAmount))}đ`);
+  put(values, CONTRACT_COST.total, `${formats.money(sum((plan) => plan.totalAmount))}đ`);
 }
 
 /**
@@ -151,11 +185,7 @@ function treatmentConsentValues(facts: SheetFactsDto, values: FieldValues, forma
     const teeth = service.toothCodes.length ? formats.teeth(service.toothCodes) : "";
     return teeth ? `${teeth} - ${label}` : label;
   });
-  formats.consentLines(distinct(diagnoses).join("; ")).forEach((line, at) => {
-    const printed = CONSENT_DIAGNOSIS_LINES[at];
-    if (printed) put(values, printed, line);
-    else values[CONSENT_DIAGNOSIS_EXTRA_LINE(at - CONSENT_DIAGNOSIS_LINES.length + 1)] = line;
-  });
+  putLines(values, CONSENT_DIAGNOSIS_LINES, formats.consentLines(distinct(diagnoses).join("; ")));
 
   // "1. Bác sĩ điều trị", VII's "Tôi đã được Bác sĩ …" (printed bold) and the
   // name under VII's "BÁC SĨ ĐIỀU TRỊ": the oldest slip's doctor only (owner, 2026-10-19).
@@ -245,7 +275,7 @@ function treatmentDetail(visits: readonly SheetFactsVisitDto[], teeth: TeethLabe
   return lines.join("\n");
 }
 
-/** Every blank the set's slips answer, across the nine forms. */
+/** Every blank the set's slips answer, across the forms. */
 export function sheetFactFieldValues(facts: SheetFactsDto | undefined, formats: SheetFactFormats): FieldValues {
   const values: FieldValues = {};
   if (!facts) return values;
@@ -256,5 +286,6 @@ export function sheetFactFieldValues(facts: SheetFactsDto | undefined, formats: 
   generalConsultationValues(facts, values);
   treatmentConsentValues(facts, values, formats);
   treatmentTrackingValues(facts, values, formats.teeth);
+  orthodonticContractValues(facts, values, formats);
   return values;
 }

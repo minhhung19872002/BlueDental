@@ -462,22 +462,24 @@
   color: var(--bd-table-head-ink);
 }
 
-/* BA 2026-10-16: số bệnh nhân beside the doctor's name */
+/* BA 2026-10-16: số bệnh nhân beside the doctor's name;
+   BA 2026-10-29: a red circle with white figures, and no chip at all for 0.
+   Square box so one or two digits sit in a true circle; three would stretch it. */
 .dtl-count {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
+  min-width: 20px;
   height: 20px;
   box-sizing: border-box;
-  padding: 0 6px;
-  border: 1px solid var(--bd-blue-light);
+  padding: 0 3px;
   border-radius: var(--bd-radius-pill);
-  background: var(--bd-purple-pale);
-  color: var(--bd-primary);
+  background: var(--bd-red);
+  color: #fff;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 

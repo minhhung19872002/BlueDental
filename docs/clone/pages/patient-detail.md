@@ -4214,11 +4214,12 @@ gốc**, nên không có mục UNKNOWN_REFERENCE_BEHAVIOR. Regression log: R-982
 
 - Phiếu bệnh án nằm trong **bộ hồ sơ**. Mỗi bộ gắn với một hoặc nhiều phiếu điều trị (DT).
   Mã bộ: `HS{Mã KH}-{DDMMYYYY}-xx`, xx đếm số bộ của bệnh nhân trong ngày (theo giờ phòng khám).
-- Chưa có bộ nào: màn hình trống liệt kê phiếu điều trị chưa thuộc bộ nào
-  (Phiếu · Chẩn đoán · Điều trị · Bác sĩ). Tick rồi "Tạo hồ sơ" mở popup tạo bộ.
+- Chưa có bộ nào: màn hình trống chỉ có một khung nền trắng rộng hết pane, liệt kê phiếu điều trị
+  chưa thuộc bộ nào (Phiếu · Chẩn đoán · Điều trị · Bác sĩ). Tick rồi "Tạo hồ sơ" mở popup tạo bộ.
+  Phần giới thiệu và 9 mục phía trên đã bỏ; checkbox viền đậm như bảng toàn app (R-1077).
 - Popup tạo / sửa bộ có hai phần:
   - 1. Phiếu điều trị: Phiếu · Chẩn đoán · Điều trị · Trạng thái phiếu · Trạng thái hồ sơ.
-  - 2. Mục hiển thị: 9 mục, bỏ tick chỉ ẩn khỏi mục lục.
+  - 2. Mục hiển thị: 10 mục (9 của bản gốc + mẫu 10 của phòng khám), bỏ tick chỉ ẩn khỏi mục lục.
 - Quy tắc chọn phiếu điều trị:
   - Phiếu "chưa điều trị" (nhãn Đã tạo) được thêm, bỏ ra, hoặc chuyển từ bộ khác sang.
   - Phiếu đã bắt đầu điều trị mà đã thuộc một bộ thì bị khoá, không bỏ ra, không chuyển bộ.
@@ -4237,3 +4238,51 @@ gốc**, nên không có mục UNKNOWN_REFERENCE_BEHAVIOR. Regression log: R-982
 - Bỏ ô tick đóng dấu trên thẻ phiếu. Ẩn ô chọn Bác sĩ phía trên tờ phiếu.
 - Phiếu có trước khi có bộ: migration `MedicalRecordSets` gom phiếu của mỗi bệnh nhân vào một bộ
   (chưa gắn phiếu điều trị), đặt mã theo ngày của phiếu đầu tiên.
+
+## Bệnh án — Mẫu 10: Hợp đồng thỏa thuận niềng răng (biểu mẫu của phòng khám, 2026-10-29)
+
+Biểu mẫu riêng của phòng khám, dựng từ file Word của phòng khám
+("Hợp Đồng thỏa thuận niềng răng.docx"). **Bản gốc không có mẫu này**, nên không có
+mục UNKNOWN_REFERENCE_BEHAVIOR.
+
+- Enum `MedicalRecordForm.OrthodonticContract = 10`, template
+  `medical-record/templates/orthodonticContract.ts`, id ô `orthodontic-contract.*`.
+- Mục lục: dòng "10. Hợp đồng thỏa thuận niềng răng", màu nối tiếp chu kỳ 7 màu (trùng dòng 3).
+- Bộ hồ sơ tạo trước ngày có mẫu 10 vẫn hiện mẫu 10: `HiddenFormMask` lưu mục bị ẩn, mẫu mới
+  không có bit nên mặc định hiện. Không cần migration. Câu gợi ý "Bộ hồ sơ luôn gồm đủ {0} mục"
+  trong popup lấy số mục thật. Host chạy bản build cũ (enum 9 mục) bỏ qua mục 10 khi lưu mà vẫn
+  trả 200 — phải khởi động lại host sau khi cập nhật (R-1079).
+- Gồm hai phần, 5 trang:
+  - Hợp đồng (2 trang): ngắt trước "3. Cam kết về kết quả điều trị". Chỗ ngắt của file Word trước
+    "- Sau khi được tháo mắc cài" chỉ để sửa phân trang trong Word; ở cỡ chữ mới giữ nó thì trang 1
+    tràn khổ, nên bỏ.
+  - Bản thỏa thuận & đồng ý (3 trang): đúng các chỗ ngắt trang của file Word (trước mục 17 và
+    trước mục 5 của "Sự đồng ý và thỏa thuận").
+- Trình bày đồng bộ với các mẫu khác, theo mẫu 6 (giấy đồng ý, cũng là văn xuôi có ô trống)
+  (chủ dự án, 2026-10-29): Times New Roman 15px, giãn dòng 1.5 cho mọi đoạn và tiêu đề, lề 15mm
+  (nhóm `margin-15mm` cùng mẫu 2/6/7), quốc hiệu 14pt, hai tiêu đề `h1` 18pt căn giữa, tiêu đề mục
+  in đậm cùng cỡ thân chữ, khoảng cách đoạn dùng chung. Bản thỏa thuận vẫn canh đều, các mục đánh
+  số thụt đầu dòng như file Word. Đường chấm sau nhãn chạy tới lề phải (độ rộng đo bằng Chromium,
+  chừa 2px).
+- Điền sẵn (sửa được trên phiếu), mỗi ô theo tiền lệ của một mẫu khác:
+  - Bên B: Họ và tên (in hoa), Mã hồ sơ, Số điện thoại, Địa chỉ, Số CCCD — như các mẫu khác.
+  - "1. Chẩn đoán": các chẩn đoán của bệnh nhân, như mẫu 3 (`DIAGNOSIS_FIELDS`).
+  - "- Kế hoạch điều trị": dịch vụ của từng phiếu điều trị trong bộ như mục IX mẫu 3 ("Phiếu điều
+    trị DTxx", rồi "Răng 16 - dịch vụ", một dòng trống giữa hai phiếu). Quá 5 dòng in sẵn thì tự
+    thêm dòng `custom.line.orthodontic-contract.text.15.n`.
+  - II. Chi phí: cộng các phiếu điều trị trong bộ (cùng phạm vi bảng chi phí mẫu 5), theo đúng số
+    của từng phiếu trên Kế hoạch điều trị: Chi phí ban đầu = `ServicesGrossTotal`, Giảm giá =
+    `TotalDiscountAmount` (giảm dòng, voucher dịch vụ, giảm cấp phiếu, voucher KHĐT), Chi phí sau
+    giảm giá = `TotalAmount` (chưa VAT). In dạng "45.000.000đ" như bảng phí của hợp đồng. Server
+    gửi ba số này trong sheet facts (`grossAmount`, `discountAmount`, `totalAmount` của từng phiếu).
+  - III. Đồng ý điều trị: Họ tên khách hàng (như hồ sơ, không in hoa), Ngày/tháng/năm sinh; "Họ
+    tên cha mẹ/người giám hộ" = người giám hộ chính, **chỉ khi khách hàng dưới 18 tuổi** (đúng như
+    nhãn). Người lớn hoặc không rõ ngày sinh thì để trống.
+- Để trống cho viết tay: ngày ký, Cấp ngày / Nơi cấp CCCD (hồ sơ bệnh nhân không lưu hai trường
+  này — chỉ người giám hộ có), Nhổ răng, Phục hồi – Phục hình, Khí cụ, thời gian điều trị / duy
+  trì, Cam kết, chữ ký, Địa chỉ / Số điện thoại cuối trang (file Word không nói là của khách hàng
+  hay người giám hộ).
+- Bên A (Công ty, địa chỉ, MST, đại diện Bác sĩ Bùi Văn Tới) và bảng phí là chữ in của file Word,
+  không phải ô nhập.
+- Giữ nguyên văn file Word: phần bản thỏa thuận đánh số "I." rồi "Sự đồng ý và thỏa thuận…" (không
+  có "II.") rồi "III. Đồng ý điều trị".

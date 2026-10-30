@@ -72,6 +72,12 @@ export interface SheetFactsPlanDto {
   dentistPosition: string | null;
   /** `YYYY-MM-DD`; null while the slip is still being treated. */
   endDate: string | null;
+  /** The lines at their giá gốc, before anything is taken off. */
+  grossAmount: number;
+  /** Every discount on the slip: lines, vouchers, slip level. */
+  discountAmount: number;
+  /** `grossAmount − discountAmount`, before VAT. */
+  totalAmount: number;
 }
 
 export interface SheetFactsServiceDto {

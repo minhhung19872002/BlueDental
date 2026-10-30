@@ -12466,6 +12466,111 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **E2E**: không chạy. Chỉ đổi màu trong một file CSS, không đổi DOM, class hay hành vi.
 - **Mức retest**: 1.
 
+## R-1077 (2026-10-29, mức 2: F-30 Bệnh án → chưa có bộ hồ sơ) Chỉ còn bảng phiếu điều trị trong khung trắng, checkbox viền đậm
+
+- **Yêu cầu** (BA, kèm ảnh màn Bệnh án của bệnh nhân chưa có bộ hồ sơ):
+  - "Bỏ hiển thị phía trên, đưa phía dưới lên full view thêm khung nền trắng".
+  - "Tương tự lúc trước cho checkbox nổi bật lên (Check tất cả các checkbox)".
+  - Owner chốt: chỉ khung chứa bảng có nền trắng, không phải cả màn hình.
+  - Đây là thiết kế riêng của phòng khám (R-982), không có gì để so với bản gốc.
+- **FE** (chỉ FE, không đổi server, DB hay i18n):
+  - `RecordSetEmptyState`: bỏ icon, tiêu đề "Bệnh nhân chưa có bộ hồ sơ bệnh án", đoạn giải thích và 9 chip mục. Màn chỉ còn khung "Phiếu điều trị chưa thuộc bộ nào".
+  - `record-set.css`:
+    - `.rs-free` là khung trắng (`--bd-card`, viền `--bd-border`, bo 12px), rộng hết pane (bỏ `max-width: 900px` và căn giữa).
+    - Khung cao theo số dòng. Nhiều phiếu hơn chiều cao pane thì cuộn trong khung, header bảng dính trên cùng.
+    - Bỏ các luật `.rs-empty-icon`, `.rs-empty h2`, `.rs-empty-hint`, `.rs-empty-forms`.
+  - Checkbox của `SlipPickTable` (header và từng dòng) đổi viền sang `--bd-dim`, giống bảng toàn app (R-984). Ô bị khoá (disabled) giữ viền nhạt. Áp dụng cho cả màn trống và popup tạo/sửa bộ, vì hai nơi dùng chung bảng này.
+  - Key i18n `Patient:RecordSet:EmptyTitle` và `EmptyHint` không còn được dùng nhưng vẫn giữ trong `vi.json`/`en.json`.
+- **E2E** (bản build production, preview :8080 nối host :5000, không chặn API, có đăng nhập thật):
+  - `medical-record-set.spec` **3/3 xanh**. Ca đầu đổi kiểm tra: thấy heading "Phiếu điều trị chưa thuộc bộ nào" trong `.rs-free` và tiêu đề cũ không còn (`toHaveCount(0)`).
+  - Kiểm tra bằng mắt trên :8080 (1440×900):
+    - Bệnh nhân 9 phiếu: khung trắng full rộng, cuộn trong khung.
+    - Bệnh nhân 2 phiếu: khung cao vừa 2 dòng. Tick 1 dòng thì header ở trạng thái indeterminate, chip "Đã chọn 1/2 phiếu", nút "Tạo hồ sơ" bật.
+    - Ô chưa tick có viền `rgb(125,133,165)`.
+  - `tsc -b`, eslint, prettier các file đổi đều xanh.
+- **Mức retest**: 2 (F-30, phần bộ hồ sơ). Chỉ tab Bệnh án import `record-set.css`. `/taxonomy` không đụng.
+
+## R-1078 (2026-10-29, mức 2: F-02 Bệnh nhân + view Ngày Lịch hẹn) Mã khách hàng tự nhập, check trùng khi blur; màu 3 cột tiền; chip số lịch hẹn đỏ
+
+- **Yêu cầu** (chủ dự án, kèm 3 ảnh):
+  - Dialog "Tạo hồ sơ": ô "Mã khách hàng" không tự tăng nữa, để trống cho người dùng nhập. Logic tự tăng cũ comment lại để dùng sau. Khi rời ô (blur) thì check trùng và hiện lỗi.
+  - Danh sách bệnh nhân: chữ cột Số tiền màu xanh dương, Thực thu xanh lá, Công nợ đỏ.
+  - Lịch hẹn khách hàng, view Ngày: chip số lượng sau tên bác sĩ nền đỏ, chữ trắng; 0 thì không hiện chip.
+- **BE**:
+  - `GET /api/v1/app/patients/check-code?code=&excludeId=` → `PatientCodeAvailabilityDto { exists }`, quyền `Patient.Read`.
+  - Cùng điều kiện với lúc lưu (`IsCodeTakenAsync`, dùng chung với `EnsureCodeIsFreeAsync`): unique trên **toàn hệ thống** (index `PatientCode` unique, không theo chi nhánh), tính cả hồ sơ đã xoá mềm. `excludeId` để màn sửa không báo trùng với chính mã của mình. Mã rỗng → `exists: false` (tham số `string?`, không bị 400).
+  - Key i18n mới `Patient:Form:CodeTaken` ("Mã khách hàng đã tồn tại").
+  - Không đổi `RegisterAsync`: để trống mã thì server **vẫn tự cấp mã kế tiếp** (`ResolveCodeAsync`), vì các luồng tạo hồ sơ khác (Lịch tạm, import…) dựa vào đó.
+- **FE**:
+  - `PatientEditorDialog`: `useEffect` điền `estimate.data.sequence` vào `codeSequence` được comment lại. `code-estimate` vẫn gọi để lấy prefix (`DH26`).
+  - `usePatientCodeRule` (hook mới): rule AntD `validateTrigger: "onBlur"` gọi `useCheckPatientCode` (`fetchQuery`, `staleTime: 0`). Chỉ hỏi khi ô là chữ số; gõ lại thì lỗi mất (rule pattern chạy onChange thay danh sách lỗi), blur lại thì check lại. Bấm Lưu thì `validateFields` cũng chạy rule này.
+  - Server trả `BlueDental:Patient:0002` khi lưu (trùng do ai đó vừa lưu) → lỗi dưới ô mã, không toast.
+  - Ô mã dùng `alwaysFloat`: khi trống, label nằm trên viền, không đè lên prefix.
+  - `patient.css`: `.bd-patient-dialog .ant-form-item-with-help { margin-bottom: 32px }`. Dòng lỗi (~22px) cao hơn khoảng cách 16px, trước đó đè lên label nổi của ô kế tiếp ("Mã khách hàng đã tồn tại" chồng lên "Họ và tên"). Áp dụng cho mọi ô có lỗi trong dialog.
+  - `PatientTable`: `Money` bắt buộc `tone`; Số tiền `--total` (`--bd-link` #2671d8), Thực thu `--in` (`--bd-green`), Công nợ `--due` (`--bd-red`). Tô **cả số 0** (trước chỉ tô số > 0). Ô bị che tiền (`moneyHidden`) vẫn màu nhạt. Dùng `--bd-link` vì `--bd-blue` của dự án là tím indigo #6366f1 (màu primary).
+  - `TimelineColumn`: `patients > 0` mới render `.dtl-count`; `calendar.css` `.dtl-count` nền `--bd-red`, chữ `#fff`, bỏ viền. `title` của header vẫn có "N bệnh nhân".
+    - Owner thấy chip "méo" (22×20 thành bầu dục): đổi thành hình tròn 20×20 (`min-width` 20, `padding 0 3px` để 2 chữ số vẫn tròn, `line-height: 1`). Đo trên bản build ở 4×: cả 5 chip đều 20×20; nét chữ số cách trên/dưới 6/6px, trái/phải lệch ≤ 0,6px (chữ "1" vốn lệch). `appointment-day-timeline` **7/7 xanh**.
+- **E2E** (bản build production, preview :8080 nối host local :5000; không chặn API; có đăng nhập thật):
+  - `patient-code-check.spec` mới **2/2 xanh**:
+    - API: mã mới → `exists:false`; tạo hồ sơ với mã đó → `true`; `excludeId` của chính hồ sơ → `false`; mã rỗng → `false`; lưu hồ sơ thứ hai cùng mã → 403 `Patient:0002`. Tài khoản chi nhánh 2: check → `true` và lưu → 403 (một mã cho mọi chi nhánh, check khớp với save).
+    - UI: ô mã trống, prefix hiện đúng. Gõ mã đã có: chưa báo lỗi khi đang gõ, rời ô thì hiện "Mã khách hàng đã tồn tại". Sửa sang mã trống → lỗi mất, blur không báo. Lưu → reload thấy `[mã]` trong danh sách, check-code trả `true`.
+  - `appointment-day-timeline.spec`: bước tìm kiếm không ra ai đổi từ `.dtl-count` = "0" sang **không có chip**.
+  - Chạy cùng `appointment-day-timeline`, `appointment-shown-hours`, `patient-national-id`, `patient-scan-id`, `patient-shared-phone-ui`, `plan-treating-scope`: **43/43 xanh**. Sau khi sửa CSS khoảng cách lỗi chạy lại `patient-code-check`, `patient-national-id`, `patient-scan-id`: **9/9 xanh**.
+  - Application.Tests `ApplicationServiceInterception` + `PatientAppServiceContract` **12/12**. `tsc` xanh, eslint các file đổi xanh (lỗi `react-hooks/exhaustive-deps` ở `PatientProfileTab.tsx` có sẵn, không thuộc thay đổi này).
+  - Ảnh chụp bản build local đã đối chiếu cả 3 màn (dialog trống / dialog báo trùng / bảng / header lịch).
+- **Mức retest**: 2 (F-02 dialog hồ sơ + danh sách; view Ngày của Lịch hẹn).
+  - Endpoint mới chỉ đọc. `RegisterAsync` / `UpdateAsync` không đổi hành vi.
+  - `/taxonomy` không đụng.
+- **Chưa chốt / ngoài phạm vi**:
+  - Ô mã chưa bắt buộc: để trống thì server vẫn tự cấp mã. Nếu muốn bắt buộc nhập thì thêm `required` ở FE và chặn ở `RegisterAsync`.
+  - Check trùng cho biết một mã đã có ở chi nhánh khác (chỉ có/không, không lộ hồ sơ). Lúc lưu vốn cũng từ chối như vậy.
+
+## R-1079 (2026-10-29, mức 2: F-30 Bệnh án) Mẫu 10 "Hợp đồng thỏa thuận niềng răng" — biểu mẫu của phòng khám
+
+- **Yêu cầu (chủ dự án)**:
+  - Kèm file `Hợp Đồng thỏa thuận niềng răng.docx`: thêm mẫu bệnh án số 10 "Hợp đồng thỏa thuận niềng răng" vào bộ hồ sơ. Bản gốc không có mẫu này → không có mục UNKNOWN_REFERENCE_BEHAVIOR.
+  - Sau khi thử: kiểu chữ mẫu 10 phải đồng bộ với các mẫu còn lại; xem thông tin nào điền sẵn được, theo các mẫu khác.
+- **Sửa — BE**:
+  - `MedicalRecordForm.OrthodonticContract = 10`. Không migration: `HiddenFormMask` lưu mục bị **ẩn**, nên bộ hồ sơ có từ trước hiện mẫu 10 mặc định. Test domain mới `A_set_saved_before_mau_10_existed_shows_it_and_keeps_what_it_hid`.
+  - `MedicalRecordSheetPlanDto` thêm `GrossAmount` / `DiscountAmount` / `TotalAmount` = `ServicesGrossTotal` / `TotalDiscountAmount` / `TotalAmount` của phiếu điều trị (cùng số màn Kế hoạch điều trị hiện).
+  - Câu "Bộ hồ sơ luôn gồm đủ 9 mục" (vi/en) đổi thành `{0}` lấy số mục thật.
+- **Sửa — FE**:
+  - `MEDICAL_RECORD_FORM.OrthodonticContract`; dòng 10 trong `medicalRecordForms.ts` (màu dòng 3, nối chu kỳ 7 màu).
+  - Template `templates/orthodonticContract.ts`, sinh từ chữ của file Word: 40 ô, 5 trang (hợp đồng 2, bản thỏa thuận 3 — đúng chỗ ngắt của file Word trước mục 17 và mục 5).
+  - Kiểu chữ theo mẫu 6 (`sheetCss.ts`, `medical-record.css`): 15px; vào nhóm giãn dòng 1,5 và nhóm lề `margin-15mm` của mẫu 2/6/7; quốc hiệu 14pt; hai tiêu đề `h1` 18pt căn giữa; khoảng cách đoạn / tiêu đề mục dùng chung. Không còn trang in riêng hay luật CSS riêng nào cho mẫu 10 ngoài cỡ chữ.
+  - Điền sẵn, mỗi ô theo tiền lệ một mẫu khác:
+    - Bên B: Họ và tên (in hoa), Mã hồ sơ, SĐT, Địa chỉ, CCCD.
+    - "1. Chẩn đoán": `DIAGNOSIS_FIELDS`, như mẫu 3.
+    - "- Kế hoạch điều trị": dịch vụ từng phiếu điều trị như IX mẫu 3; quá 5 dòng thì thêm dòng. `sheetFacts.ts` tách `planLines` / `putLines` dùng chung cho mẫu 3, mẫu 5, mẫu 10.
+    - II. Chi phí: cộng 3 số mới qua các phiếu trong bộ, in "45.000.000đ".
+    - III: Họ tên khách hàng, Ngày sinh; "Họ tên cha mẹ/người giám hộ" = người giám hộ chính **chỉ khi dưới 18 tuổi** (`patient.minorGuardianName`).
+  - Để trống: ngày ký, Cấp ngày / Nơi cấp CCCD (hồ sơ bệnh nhân không có), Nhổ răng, Phục hồi, Khí cụ, thời gian, Cam kết, chữ ký, Địa chỉ / SĐT cuối trang.
+- **Đo**:
+  - Bản đầu (13pt, lề của file Word) so với Word xuất PDF: ngắt dòng trùng bản Word.
+  - Bản đồng bộ: vùng viết 680px; trang 856 / 825 / 688 / 705 / 488px trên 986px; 28 ô có nhãn đều nằm một dòng và chạm lề phải (±2px). Ảnh đặt cạnh mẫu 6: cùng cỡ quốc hiệu, tiêu đề, thân chữ, giãn dòng, lề.
+- **Lỗi chủ dự án báo khi thử** ("Sửa bộ hồ sơ" tick mục 10 → toast thành công nhưng không lưu, giao diện không đổi):
+  - Nguyên nhân: host :5000 chạy bản build từ trước khi enum có mục 10. `MedicalRecordSet.AllForms` ở đó chỉ 9 mục; `ShowOnly` bỏ qua mục lạ mà vẫn trả 200.
+  - Bằng chứng: cùng bộ `HSBD269007-17082026-01` (`HiddenFormMask = 0`): host cũ trả `visibleForms=[1..9]`, host mới `[1..10]`.
+  - Xử lý: khởi động lại host. Ca `medical-record-set` thêm bước sửa bộ → bỏ tick / tick lại mục 10 → kiểm DB và mục lục sau reload.
+- **E2E** (thật, không chặn API, đăng nhập thật; lần cuối chạy trên dev :5173 + host :5000 build từ cây hiện tại, theo yêu cầu chỉ giữ một FE):
+  - Ca "mẫu 10: the contract is filled from the record, keeps what is written and prints like mẫu 6" → **xanh**: 15px, padding 15mm, dòng 1,5 cả hai phần, 2 tiêu đề 24px, ô chạm lề phải, giá trị từ hồ sơ, lưu + reload ô viết tay, "In biểu mẫu" ra `margin-15mm`, đúng 5 trang.
+  - Ca mới "mẫu 10 names the guardian of a patient under 18" → **xanh**. Ca "address and diagnoses" thêm mẫu 10 (địa chỉ, chẩn đoán; người lớn có người giám hộ → ô cha mẹ trống) → **xanh**.
+  - `medical-record-sheet-facts`: đặt giảm 100.000đ lên phiếu đầu; mẫu 10 có Kế hoạch điều trị 3 phiếu (5 dòng in + dòng thêm) và 3 số chi phí khớp sheet facts, ban đầu − giảm = sau giảm → **2/2 xanh**.
+  - `medical-record-set` → **3/3 xanh**; "every form draws…" (mẫu 10: 40 ô, 5 trang) và "every form shares mẫu 5's…" → **xanh**.
+  - Hồi quy `patient-medical-record` + `medical-record-drawing` (43 ca, 13 phút): **37 xanh / 6 đỏ**, không ca nào do mẫu 10:
+    - "the index lists…" (mục lục 10 dòng đều xanh, đỏ ở `.pd-profile-card`) và "picking the day…": đỏ cả trên HEAD sạch (R-1073).
+    - "picking a sheet from the folded index…", "leaving a sheet with unsaved writing…", "a browser extension's block…": thẻ phiếu của bệnh nhân test đang mang tên đã đổi ("Bìa hồ sơ", "Phiếu đồng ý điều trị") — dữ liệu, như R-1073. Không đổi tên lại dữ liệu chung.
+    - "the open sheet's card wears its own form's colour": đọc màu viền giữa transition (`oklab(…)`); chạy riêng `--repeat-each 3` → **3/3 xanh**.
+  - Ghi chú: ô dài (Chẩn đoán tự điền) chảy sang dòng nối tiếp; sửa dòng đầu không xoá các dòng sau — hành vi sẵn có của `flowLines`, như mẫu 3 / mẫu 7.
+  - `tsc -b`, `oxlint` xanh. BE Domain `MedicalRecordSet*` 12/12.
+- **Mức retest**: 2 (F-30 Bệnh án: mục lục, bộ hồ sơ, tờ + bản in, sheet facts; CSS tờ dùng chung). Sửa `02-impact-map.md`, mục mẫu 10 trong `docs/clone/pages/patient-detail.md`.
+- **Chưa chốt, chờ chủ dự án**:
+  - Ngày ký "Hôm nay, ngày … tháng … năm …": để trống, hay lấy ngày chọn phía trên tờ (như mẫu 4/5), hay ngày tạo phiếu?
+  - Địa chỉ / SĐT cuối trang là của khách hàng hay người giám hộ?
+  - Chi phí cộng **mọi** phiếu điều trị trong bộ (như bảng chi phí mẫu 5). Nếu bộ có cả phiếu không phải niềng răng thì số này lớn hơn giá trị hợp đồng.
+  - File Word đánh số phần thỏa thuận "I." → "Sự đồng ý…" (không "II.") → "III." — giữ nguyên văn.
+  - Server bỏ qua mục không biết mà vẫn trả 200; có thể đổi sang báo lỗi để lệch phiên bản FE/BE không còn "thành công giả".
+
 ## R-1080 (2026-10-29, mức 3: F-83 Thanh toán nhiều đợt P2910) Tạo phiếu thanh toán theo đợt: TN giảm, voucher lúc thanh toán, VAT theo đợt
 
 - **Yêu cầu** (BA `P2910.drawio`, chủ dự án chốt 11 câu + 4 điểm ngày 29/10):

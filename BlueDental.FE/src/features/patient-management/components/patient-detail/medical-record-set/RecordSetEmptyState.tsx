@@ -1,15 +1,15 @@
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { Button, Spin } from "antd";
-import { FileAddOutlined, PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import type { RecordSetPlanDto } from "../../../api/medicalRecordSetApi";
-import { MEDICAL_RECORD_FORMS } from "../medicalRecordForms";
 import { SlipPickTable } from "./SlipPickTable";
 
 /**
- * Bệnh án for a patient with no bộ hồ sơ yet: what a set is, the nine forms it
- * holds, and the treatment slips not in any set — tick the ones of one course
- * of treatment and "Tạo hồ sơ" opens the set dialog with them already picked.
+ * Bệnh án for a patient with no bộ hồ sơ yet: a white card of the treatment
+ * slips not in any set — tick the ones of one course of treatment and
+ * "Tạo hồ sơ" opens the set dialog with them already picked. The intro and the
+ * nine forms above it are gone (the clinic's ask, 2026-10-29).
  */
 
 interface Props {
@@ -36,23 +36,6 @@ export function RecordSetEmptyState({ freeSlips, loading, onCreate }: Props) {
 
   return (
     <section className="pd-pane pd-pane--fill rs-empty">
-      <span className="rs-empty-icon" aria-hidden="true">
-        <FileAddOutlined />
-      </span>
-      <h2>{t("Patient:RecordSet:EmptyTitle")}</h2>
-      <p className="rs-empty-hint">{t("Patient:RecordSet:EmptyHint")}</p>
-
-      <ul className="rs-empty-forms">
-        {MEDICAL_RECORD_FORMS.map((spec) => (
-          <li
-            key={spec.form}
-            style={{ "--form-tint": spec.tint, "--form-accent": spec.accent } as CSSProperties}
-          >
-            {spec.index}. {spec.label}
-          </li>
-        ))}
-      </ul>
-
       <div className="rs-free">
         <header className="rs-free-head">
           <div>
@@ -74,7 +57,7 @@ export function RecordSetEmptyState({ freeSlips, loading, onCreate }: Props) {
           )}
         </header>
 
-        <Spin spinning={loading}>
+        <Spin spinning={loading} className="rs-free-body">
           {freeSlips.length === 0 && !loading ? (
             <p className="rs-free-none">{t("Patient:RecordSet:NoFreeSlips")}</p>
           ) : (

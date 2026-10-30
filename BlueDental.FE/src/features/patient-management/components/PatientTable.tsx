@@ -34,11 +34,10 @@ function statusLabel(status: TreatmentStatusCode): string {
   return t("Patient:Debt:NoTransactions");
 }
 
-/** A money cell; `tone` colours a non-zero amount (Thực thu green, Công nợ red). */
-function Money({ row, amount, tone }: { row: PatientListItem; amount: number; tone?: "in" | "due" }) {
+/** A money cell; each column has its colour, zero included (Số tiền blue, Thực thu green, Công nợ red). */
+function Money({ row, amount, tone }: { row: PatientListItem; amount: number; tone: "total" | "in" | "due" }) {
   if (row.moneyHidden) return <span className="bd-patient-money bd-patient-money--hidden">{MONEY_MASK}</span>;
-  const className = ["bd-patient-money", tone && amount > 0 && `bd-patient-money--${tone}`].filter(Boolean).join(" ");
-  return <span className={className}>{formatVND(amount)}</span>;
+  return <span className={`bd-patient-money bd-patient-money--${tone}`}>{formatVND(amount)}</span>;
 }
 
 /** Every blank cell in the reference is an em dash in the muted text colour. */
@@ -134,7 +133,7 @@ export function PatientTable({
       title: t("Patient:Payment:AmountField"),
       width: 112,
       align: "right",
-      render: (_, row) => <Money row={row} amount={row.totalAmount} />,
+      render: (_, row) => <Money row={row} amount={row.totalAmount} tone="total" />,
     },
     {
       key: "totalRevenue",

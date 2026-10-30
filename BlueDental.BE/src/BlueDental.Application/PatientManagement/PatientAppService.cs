@@ -99,6 +99,22 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         };
     }
 
+    /// <summary>
+    /// The dialog asks when "Mã khách hàng" loses focus, so a taken code is
+    /// flagged before the rest of the form is filled. The same rule the save
+    /// applies: one code across every branch, deleted records included.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
+    public async Task<PatientCodeAvailabilityDto> CheckCodeAsync(string? code, Guid? excludeId = null)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return new PatientCodeAvailabilityDto { Exists = false };
+        }
+
+        return new PatientCodeAvailabilityDto { Exists = await IsCodeTakenAsync(code.Trim(), excludeId) };
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
     public async Task<PhoneAvailabilityDto> CheckPhoneAsync(string phone, Guid? excludeId = null)
     {
@@ -927,15 +943,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
 
     private async Task<string> EnsureCodeIsFreeAsync(string code, Guid? excludeId)
     {
-        // A deleted record keeps its code — the unique index still counts it.
-        bool taken;
-        using (DataFilter.Disable<ISoftDelete>())
-        {
-            var query = await _repository.GetQueryableAsync();
-            taken = query.Any(p => p.PatientCode == code && (!excludeId.HasValue || p.Id != excludeId.Value));
-        }
-
-        if (taken)
+        if (await IsCodeTakenAsync(code, excludeId))
         {
             throw new Volo.Abp.BusinessException(
                 BlueDentalDomainErrorCodes.PatientManagement.DuplicatePatientCode,
@@ -943,6 +951,17 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         }
 
         return code;
+    }
+
+    private async Task<bool> IsCodeTakenAsync(string code, Guid? excludeId)
+    {
+        // A deleted record keeps its code — the unique index still counts it.
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var query = await _repository.GetQueryableAsync();
+            return await AsyncExecuter.AnyAsync(
+                query.Where(p => p.PatientCode == code && (!excludeId.HasValue || p.Id != excludeId.Value)));
+        }
     }
 
     /// <summary>

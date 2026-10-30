@@ -17,6 +17,7 @@ import { PATIENT_PHONE_PATTERN } from "../utils/patientPhone";
 import {
   buildPatientPayload,
   DUPLICATE_NAME_ON_PHONE,
+  DUPLICATE_PATIENT_CODE,
   DUPLICATE_NATIONAL_ID,
   DUPLICATE_PHONE,
   EMPTY_PATIENT_FORM,
@@ -31,6 +32,7 @@ import {
 } from "../utils/patientEditorForm";
 import { PatientAddressColumn } from "./PatientAddressColumn";
 import { useGuardianSubject } from "../hooks/useGuardianSubject";
+import { usePatientCodeRule } from "../hooks/usePatientCodeRule";
 import { useHolderNavigation } from "../hooks/useHolderNavigation";
 import { usePatientGuardians } from "../hooks/usePatientGuardians";
 import { usePatientNameCasing } from "../hooks/usePatientNameCasing";
@@ -78,6 +80,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
   const sourceTaxonomyId = Form.useWatch("sourceTaxonomyId", form);
   const provinceCode = Form.useWatch("provinceCode", form);
 
+  // Still asked for the prefix ("DH26"); its sequence is no longer filled in.
   const estimate = usePatientCodeEstimate(open && !patient);
   const { holders, masked } = usePhoneHolders(phone, patient);
   const link = useSharedPhoneLink(holders.owners, prefill?.sharedPhoneAnchorId);
@@ -94,6 +97,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     ? splitPatientCode(patient.patientCode)
     : { prefix: estimate.data?.prefix ?? "", sequence: estimate.data?.sequence ?? "" };
 
+  const codeRule = usePatientCodeRule(codePrefix, patient?.id);
   const subject = useGuardianSubject(form, codePrefix);
   const guardianMissing = subject.summary.required && guardians.group.guardians.length === 0;
 
@@ -120,13 +124,15 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     // `guardians.reset` and `link.reset` are stable callbacks; they are left out of the list on purpose.
   }, [open, patient, prefill, form]);
 
-  // The suggestion only arrives once the dialog is open, so it is filled in
-  // when it lands rather than in the reset above.
-  useEffect(() => {
-    if (open && !patient && estimate.data) {
-      form.setFieldValue("codeSequence", estimate.data.sequence);
-    }
-  }, [open, patient, estimate.data, form]);
+  // Auto-increment is off (BA 2026-10-29): "Mã khách hàng" opens empty and the
+  // desk types it; usePatientCodeRule checks it on blur. Kept for when the
+  // suggestion comes back — the suggestion only arrives once the dialog is
+  // open, so it was filled in when it landed rather than in the reset above.
+  // useEffect(() => {
+  //   if (open && !patient && estimate.data) {
+  //     form.setFieldValue("codeSequence", estimate.data.sequence);
+  //   }
+  // }, [open, patient, estimate.data, form]);
 
   usePatientNameCasing(form, uppercase, fullName);
 
@@ -179,6 +185,10 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
       const failure = describeApiError(error);
       // A refused field is a field error, not a toast: it goes under the box
       // it was typed in, on the pane that box sits on.
+      if (failure.code === DUPLICATE_PATIENT_CODE) {
+        form.setFields([{ name: "codeSequence", errors: [t("Patient:Form:CodeTaken")] }]);
+        return;
+      }
       if (failure.code === DUPLICATE_NATIONAL_ID) {
         setTab("basic");
         form.setFields([{ name: "nationalId", errors: [failure.message] }]);
@@ -256,6 +266,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
           <Col xs={24} md={12} lg={8}>
             <PatientSourceColumn
               codePrefix={codePrefix}
+              codeRule={codeRule}
               createdAt={patient?.creationTime ?? null}
               sourceTaxonomyId={sourceTaxonomyId}
               onAddSource={() => setAddingSource(true)}

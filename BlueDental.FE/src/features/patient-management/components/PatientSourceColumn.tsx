@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 import { Button, Checkbox, Form, Input } from "antd";
+import type { Rule } from "antd/es/form";
 import { PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
@@ -11,6 +12,8 @@ import { PERSON_NAME_PATTERN } from "@/utils/vietnameseName";
 interface Props {
   /** The fixed half of the code, greyed inside the field. */
   codePrefix: string;
+  /** The duplicate check run when "Mã khách hàng" loses focus. */
+  codeRule: Rule;
   createdAt: string | null;
   sourceTaxonomyId?: string;
   onAddSource: () => void;
@@ -27,6 +30,7 @@ interface Props {
  */
 export function PatientSourceColumn({
   codePrefix,
+  codeRule,
   createdAt,
   sourceTaxonomyId,
   onAddSource,
@@ -46,10 +50,14 @@ export function PatientSourceColumn({
 
   return (
     <>
+      {/* Opens empty for the desk to type; the label stays on the border so it
+          never sits over the greyed prefix. */}
       <FloatingField
         label={t("Patient:Col:PatientCodeLong")}
         name="codeSequence"
-        rules={[{ pattern: /^\d*$/, message: t("Patient:Form:CodeDigitsOnly") }]}
+        alwaysFloat
+        validateTrigger={["onChange", "onBlur"]}
+        rules={[{ pattern: /^\d*$/, message: t("Patient:Form:CodeDigitsOnly") }, codeRule]}
       >
         <Input
           prefix={<span className="bd-patient-codeprefix">{codePrefix}</span>}

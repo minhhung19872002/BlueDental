@@ -46,9 +46,13 @@ test.describe("Bộ hồ sơ bệnh án", () => {
   }) => {
     await openBenhAn(page, patient.id);
 
-    // No set yet: the slips not in any set, each with its diagnosis.
-    await expect(page.getByText("Bệnh nhân chưa có bộ hồ sơ bệnh án")).toBeVisible();
+    // No set yet: only the slips not in any set, each with its diagnosis — the
+    // intro and the nine forms above them are gone (the clinic's ask).
     const free = page.locator(".rs-free");
+    await expect(
+      free.getByRole("heading", { name: "Phiếu điều trị chưa thuộc bộ nào" }),
+    ).toBeVisible();
+    await expect(page.getByText("Bệnh nhân chưa có bộ hồ sơ bệnh án")).toHaveCount(0);
     for (const slip of patient.slips) {
       await expect(free.getByRole("checkbox", { name: slip.code })).toBeVisible();
     }
@@ -65,8 +69,9 @@ test.describe("Bộ hồ sơ bệnh án", () => {
       await expect(dialog.getByRole("checkbox", { name: slip.code })).toBeChecked();
     }
     await dialog.getByRole("checkbox", { name: "9. Phiếu chăm sóc" }).uncheck();
+    // The reference's nine forms and the clinic's mẫu 10.
     await expect(dialog).toContainText(
-      `${patient.slips.length} phiếu điều trị · 9 mục · hiển thị 8`,
+      `${patient.slips.length} phiếu điều trị · 10 mục · hiển thị 9`,
     );
     await dialog.getByRole("button", { name: "Tạo bộ hồ sơ" }).click();
     await expect(page.getByText("Đã tạo bộ hồ sơ").first()).toBeVisible();
@@ -83,7 +88,7 @@ test.describe("Bộ hồ sơ bệnh án", () => {
     await expect(picker(page)).toContainText(
       `${patient.diagnosisSlipCode} - ${patient.slips.at(-1)!.code}`,
     );
-    await expect(page.locator(".pd-medical-form")).toHaveCount(8);
+    await expect(page.locator(".pd-medical-form")).toHaveCount(9);
     await expect(page.locator(".pd-medical-form", { hasText: "Phiếu chăm sóc" })).toHaveCount(0);
 
     // Both slips are now held: none is left free.
@@ -103,7 +108,25 @@ test.describe("Bộ hồ sơ bệnh án", () => {
     // A reload reads it all back.
     await page.reload();
     await expect(picker(page)).toContainText(set.code);
-    await expect(page.locator(".pd-medical-form")).toHaveCount(8);
+    await expect(page.locator(".pd-medical-form")).toHaveCount(9);
+
+    // Mục hiển thị is edited the same way, the clinic's mẫu 10 included:
+    // unticked it leaves the set and the index, ticked again both have it back.
+    for (const [shown, rows] of [
+      [false, 8],
+      [true, 9],
+    ] as const) {
+      const edit = await openFromPicker(page, `Sửa bộ hồ sơ ${set.code}`);
+      await expect(edit).toContainText("Bộ hồ sơ luôn gồm đủ 10 mục");
+      const contract = edit.getByRole("checkbox", { name: "10. Hợp đồng thỏa thuận niềng răng" });
+      await (shown ? contract.check() : contract.uncheck());
+      await edit.getByRole("button", { name: "Lưu" }).click();
+      await expect
+        .poll(async () => (await setsOf(page, patient.id))[0].visibleForms.includes(10))
+        .toBe(shown);
+      await page.reload();
+      await expect(page.locator(".pd-medical-form")).toHaveCount(rows);
+    }
   });
 
   test("a sheet is cancelled with a reason, kept as Đã hủy, and can no longer change", async ({
