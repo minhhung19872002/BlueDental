@@ -97,6 +97,7 @@ public class BlueDentalDbContext :
     public DbSet<TreatmentPlan> TreatmentPlans { get; set; }
     public DbSet<TreatmentPlanVoucher> TreatmentPlanVouchers { get; set; }
     public DbSet<ServiceWarrantyCard> ServiceWarrantyCards { get; set; }
+    public DbSet<WarrantyCardSequence> WarrantyCardSequences { get; set; }
     public DbSet<TreatmentRecord> TreatmentRecords { get; set; }
     public DbSet<Prescription> Prescriptions { get; set; }
     public DbSet<DiagnosticRecord> DiagnosticRecords { get; set; }

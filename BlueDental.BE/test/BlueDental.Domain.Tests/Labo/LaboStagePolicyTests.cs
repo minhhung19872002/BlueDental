@@ -92,7 +92,7 @@ public class LaboStagePolicyTests
         _policy.LocksCompletion(after, [raised, after], [passed]).ShouldBeFalse();
         _policy.LocksCompletion(
                 after, [raised, after],
-                [passed.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], CheckedAt, null)])
+                [passed.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], ["BH-T-01"], CheckedAt, null)])
             .ShouldBeFalse();
     }
 
@@ -138,7 +138,7 @@ public class LaboStagePolicyTests
 
         order.Receive(Guid.NewGuid(), tenth, 1, null).ReturnToLab(
             [new(11, LaboToothCheckResult.Passed), new(21, LaboToothCheckResult.Failed, "Hở bờ")],
-            new LaboReturnRequest(false, "Làm lại 21", tenth, tenth.AddHours(20), 1),
+            new LaboReturnRequest(false, "Làm lại 21", tenth, tenth.AddHours(20), [21]),
             tenth);
         _policy.LocksCompletion(day10, stages, [order]).ShouldBeTrue();
         _policy.LocksCompletion(day11, stages, [order]).ShouldBeTrue();

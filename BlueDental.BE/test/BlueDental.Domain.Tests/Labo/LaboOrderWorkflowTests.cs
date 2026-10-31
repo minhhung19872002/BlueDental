@@ -44,7 +44,7 @@ public class LaboOrderWorkflowTests
     private static LaboRoundToothResult Fail(int tooth) => new(tooth, LaboToothCheckResult.Failed, "Hở bờ");
 
     private static LaboReturnRequest Return(bool all) => new(
-        all, "Làm lại sứ", CheckedAt, new DateTimeOffset(2026, 10, 15, 9, 0, 0, Clinic), 1);
+        all, "Làm lại sứ", CheckedAt, new DateTimeOffset(2026, 10, 15, 9, 0, 0, Clinic), [11, 21]);
 
     private static void ShouldFail(Action action, string code) =>
         Should.Throw<BusinessException>(action).Code.ShouldBe(code);
@@ -390,7 +390,22 @@ public class LaboOrderWorkflowTests
     public void Return_Should_Need_A_Check_Picture()
     {
         ShouldFail(
-            () => Received(11).ReturnToLab([Fail(11)], Return(all: false) with { CheckImageCount = 0 }, CheckedAt),
+            () => Received(11).ReturnToLab([Fail(11)], Return(all: false) with { PicturedTeeth = [] }, CheckedAt),
+            BlueDentalDomainErrorCodes.Labo.CheckImagesRequired);
+    }
+
+    [Fact]
+    public void Return_Should_Need_A_Picture_On_Every_Failed_Tooth()
+    {
+        // P3110 REQ-D6: two Lỗi teeth, a picture on only one of them.
+        var error = Should.Throw<BusinessException>(() => Received(11, 21).ReturnToLab(
+            [Fail(11), Fail(21)], Return(all: false) with { PicturedTeeth = [11] }, CheckedAt));
+        error.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.CheckImagesRequired);
+        error.Data["tooth"].ShouldBe(21);
+
+        // A picture on a Đạt tooth does not stand in for a Lỗi one.
+        ShouldFail(
+            () => Received(11, 21).ReturnToLab([Pass(11), Fail(21)], Return(all: false) with { PicturedTeeth = [11] }, CheckedAt),
             BlueDentalDomainErrorCodes.Labo.CheckImagesRequired);
     }
 
@@ -400,7 +415,7 @@ public class LaboOrderWorkflowTests
         var order = Received(11, 21);
         order.ReturnToLab([Pass(11), Fail(21)], Return(all: false), CheckedAt);
 
-        ShouldFail(() => order.ActivateWarranty([new(11, DateOnly.FromDateTime(CheckedAt.Date), 12)], CheckedAt, null),
+        ShouldFail(() => order.ActivateWarranty([new(11, DateOnly.FromDateTime(CheckedAt.Date), 12)], ["BH-T-01"], CheckedAt, null),
             BlueDentalDomainErrorCodes.Labo.WarrantyNotAvailable);
     }
 
@@ -411,11 +426,11 @@ public class LaboOrderWorkflowTests
         var activatedAt = new DateTimeOffset(2026, 11, 2, 9, 0, 0, Clinic);
 
         order.ActivateWarranty(
-            [new(21, new DateOnly(2026, 11, 2), 24, " SN-1 ", " ")], activatedAt, null);
+            [new(21, new DateOnly(2026, 11, 2), 24, " SN-1 ", " ")], ["BH-DT01-02-02112026-03"], activatedAt, null);
 
         order.Status.ShouldBe(LaboStatus.Warranty);
         var tooth = order.Teeth.Single(t => t.ToothNumber == 21);
-        tooth.WarrantyCardCode.ShouldBe("BH-2611-0291-21");
+        tooth.WarrantyCardCode.ShouldBe("BH-DT01-02-02112026-03");
         tooth.WarrantyEndDate.ShouldBe(new DateOnly(2028, 11, 2));
         tooth.ManufacturerSerial.ShouldBe("SN-1");
         tooth.WarrantyConditions.ShouldBeNull();
@@ -426,9 +441,9 @@ public class LaboOrderWorkflowTests
     public void Warranty_Should_Refuse_A_Tooth_Already_Activated()
     {
         var order = Received(11).ConfirmPassed([Pass(11)], CheckedAt);
-        order.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], CheckedAt, null);
+        order.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], ["BH-T-01"], CheckedAt, null);
 
-        ShouldFail(() => order.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], CheckedAt, null),
+        ShouldFail(() => order.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], ["BH-T-01"], CheckedAt, null),
             BlueDentalDomainErrorCodes.Labo.ToothNotWarrantable);
     }
 
@@ -439,7 +454,7 @@ public class LaboOrderWorkflowTests
     {
         var order = Received(11).ConfirmPassed([Pass(11)], CheckedAt);
 
-        ShouldFail(() => order.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), months)], CheckedAt, null),
+        ShouldFail(() => order.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), months)], ["BH-T-01"], CheckedAt, null),
             BlueDentalDomainErrorCodes.Labo.WarrantyMonthsInvalid);
     }
 
@@ -448,7 +463,7 @@ public class LaboOrderWorkflowTests
     {
         var order = Received(11).ConfirmPassed([Pass(11)], CheckedAt);
 
-        ShouldFail(() => order.ActivateWarranty([new(11, new DateOnly(2026, 10, 7), 12)], CheckedAt, null),
+        ShouldFail(() => order.ActivateWarranty([new(11, new DateOnly(2026, 10, 7), 12)], ["BH-T-01"], CheckedAt, null),
             BlueDentalDomainErrorCodes.Labo.WarrantyStartBeforePass);
     }
 
@@ -457,7 +472,7 @@ public class LaboOrderWorkflowTests
     {
         var order = Received(11, 21).ConfirmPassed([Pass(11), Pass(21)], CheckedAt);
         order.ActivateWarranty(
-            [new(11, new DateOnly(2026, 10, 8), 1), new(21, new DateOnly(2026, 10, 8), 2)], CheckedAt, null);
+            [new(11, new DateOnly(2026, 10, 8), 1), new(21, new DateOnly(2026, 10, 8), 2)], ["BH-T-01", "BH-T-02"], CheckedAt, null);
         var expired = LaboOrder.WarrantyExpiredOn(new DateOnly(2026, 12, 9)).Compile();
 
         order.IsWarrantyExpiredOn(new DateOnly(2026, 12, 8)).ShouldBeFalse();
@@ -508,7 +523,7 @@ public class LaboOrderWorkflowTests
         LaboStatus.Returned => Received(11).ReturnToLab([Fail(11)], Return(all: false), CheckedAt),
         LaboStatus.Completed => Received(11).ConfirmPassed([Pass(11)], CheckedAt),
         LaboStatus.Warranty => Received(11).ConfirmPassed([Pass(11)], CheckedAt)
-            .ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], CheckedAt, null),
+            .ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], ["BH-T-01"], CheckedAt, null),
         _ => throw new ArgumentOutOfRangeException(nameof(status))
     };
 }

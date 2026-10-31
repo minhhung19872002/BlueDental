@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using BlueDental.TreatmentManagement;
 using BlueDental.TreatmentManagement.Values;
 using Shouldly;
@@ -30,13 +31,13 @@ public class ServiceWarrantyCardTests
     private static IReadOnlyList<ServiceWarrantyCard> Activate(
         TreatmentService line, IReadOnlyCollection<int?> already, params ServiceWarrantyActivation[] cards) =>
         ServiceWarrantyCard.ActivateAll(
-            Guid.NewGuid, line, Terms, already, cards, DateTimeOffset.UtcNow, Guid.NewGuid());
+            Guid.NewGuid, line, Terms, already, cards, WarrantyTestCodes.For(cards.Length), DateTimeOffset.UtcNow, Guid.NewGuid());
 
     private static void ShouldRefuse(Action act, string code) =>
         Should.Throw<BusinessException>(act).Code.ShouldBe(code);
 
     [Fact]
-    public void Each_tooth_gets_its_own_card_coded_after_the_line_and_start_day()
+    public void Each_tooth_gets_its_own_card_under_the_number_it_was_issued()
     {
         var line = Line(true, 36, 37);
 
@@ -44,7 +45,7 @@ public class ServiceWarrantyCardTests
             new ServiceWarrantyActivation(36, Finished, 12, " Không dùng răng cắn vật cứng "),
             new ServiceWarrantyActivation(37, Finished, 12));
 
-        cards.Select(c => c.Code).ShouldBe(["BH-DT01-01-30102026-36", "BH-DT01-01-30102026-37"]);
+        cards.Select(c => c.Code).ShouldBe(["BH-TEST-01", "BH-TEST-02"]);
         cards[0].EndDate.ShouldBe(new DateOnly(2027, 10, 30));
         cards[0].DurationMonths.ShouldBe(12);
         cards[0].DurationDays.ShouldBeNull();
@@ -64,12 +65,11 @@ public class ServiceWarrantyCardTests
     }
 
     [Fact]
-    public void A_toothless_line_takes_one_card_numbered_00()
+    public void A_toothless_line_takes_one_card()
     {
         var line = Line(true);
 
-        Activate(line, NoneYet, new ServiceWarrantyActivation(null, Finished)).Single()
-            .Code.ShouldBe("BH-DT01-01-30102026-00");
+        Activate(line, NoneYet, new ServiceWarrantyActivation(null, Finished)).Single().ToothNumber.ShouldBeNull();
         ShouldRefuse(() => Activate(line, [null], new ServiceWarrantyActivation(null, Finished)),
             BlueDentalDomainErrorCodes.TreatmentManagement.WarrantyToothInvalid);
     }
@@ -86,7 +86,7 @@ public class ServiceWarrantyCardTests
     {
         ShouldRefuse(() => ServiceWarrantyCard.ActivateAll(
                 Guid.NewGuid, Line(true, 11), new ServiceWarrantyTerms(0, Finished), NoneYet,
-                [new ServiceWarrantyActivation(11, Finished)], DateTimeOffset.UtcNow, null),
+                [new ServiceWarrantyActivation(11, Finished)], WarrantyTestCodes.For(1), DateTimeOffset.UtcNow, null),
             BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasNoWarranty);
     }
 
@@ -135,5 +135,53 @@ public class ServiceWarrantyCardTests
 
         card.IsExpiredOn(card.EndDate).ShouldBeFalse();
         card.IsExpiredOn(card.EndDate.AddDays(1)).ShouldBeTrue();
+    }
+
+    // R-1090 (BA over G5): xx runs from 01 per line and start day, Dịch vụ and Labo counted together.
+    [Fact]
+    public async Task Two_cards_on_one_line_and_day_are_numbered_01_and_02()
+    {
+        var numberer = new InMemoryWarrantyCardNumberer();
+        var lineId = Guid.NewGuid();
+
+        var codes = await numberer.IssueAsync(lineId, "DT01-02", [Finished, Finished]);
+
+        codes.ShouldBe(["BH-DT01-02-30102026-01", "BH-DT01-02-30102026-02"]);
+    }
+
+    [Fact]
+    public async Task Another_start_day_counts_again_from_01()
+    {
+        var numberer = new InMemoryWarrantyCardNumberer();
+        var lineId = Guid.NewGuid();
+        await numberer.IssueAsync(lineId, "DT01-02", [Finished, Finished]);
+
+        var codes = await numberer.IssueAsync(lineId, "DT01-02", [Finished.AddDays(2), Finished]);
+
+        codes.ShouldBe(["BH-DT01-02-01112026-01", "BH-DT01-02-30102026-03"]);
+    }
+
+    [Fact]
+    public async Task A_Labo_card_after_a_dental_card_on_the_same_line_and_day_takes_the_next_number()
+    {
+        var numberer = new InMemoryWarrantyCardNumberer();
+        var lineId = Guid.NewGuid();
+        var dental = await numberer.IssueAsync(lineId, "DT01-02", [Finished]);
+
+        var labo = await numberer.IssueAsync(lineId, "DT01-02", [Finished, Finished]);
+
+        dental.ShouldBe(["BH-DT01-02-30102026-01"]);
+        labo.ShouldBe(["BH-DT01-02-30102026-02", "BH-DT01-02-30102026-03"]);
+        // Another line keeps its own count.
+        (await numberer.IssueAsync(Guid.NewGuid(), "DT01-03", [Finished])).ShouldBe(["BH-DT01-03-30102026-01"]);
+    }
+
+    [Fact]
+    public void Each_card_needs_its_code()
+    {
+        Should.Throw<ArgumentException>(() => ServiceWarrantyCard.ActivateAll(
+            Guid.NewGuid, Line(true, 11, 21), Terms, NoneYet,
+            [new ServiceWarrantyActivation(11, Finished), new ServiceWarrantyActivation(21, Finished)],
+            WarrantyTestCodes.For(1), DateTimeOffset.UtcNow, null));
     }
 }

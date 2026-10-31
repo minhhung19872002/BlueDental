@@ -74,7 +74,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
 
     /// <summary>One service line of a plan, as the order form names it.</summary>
     private sealed record ServiceLineInfo(
-        Guid PlanId, string PlanCode, Guid PlanDentistId, Guid PatientId, Guid ServiceId, TreatmentServiceStatus Status);
+        Guid PlanId, string PlanCode, Guid PlanDentistId, Guid PatientId, Guid ServiceId, TreatmentServiceStatus Status,
+        string LineCode);
 
     /// <summary>
     /// The service lines a set of orders were raised from, keyed by line id.
@@ -98,7 +99,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             foreach (var line in plan.Services.Where(s => lineIds.Contains(s.Id)))
             {
                 result[line.Id] = new ServiceLineInfo(
-                    plan.Id, plan.Code, plan.DentistId, plan.PatientId, line.ServiceId, line.Status);
+                    plan.Id, plan.Code, plan.DentistId, plan.PatientId, line.ServiceId, line.Status, line.Code);
             }
         }
 
@@ -809,20 +810,30 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         }
         else
         {
-            var savedImages = roundNo.HasValue
-                ? await _imageRepository.CountAsync(x => x.LaboOrderId == order.Id && x.LaboRoundNo == roundNo)
-                : 0;
+            var pictured = pictures.Where(p => p.ToothNumber.HasValue).Select(p => p.ToothNumber!.Value).ToHashSet();
+            if (roundNo.HasValue)
+                pictured.UnionWith(await SavedPicturedTeethAsync(order.Id, roundNo.Value));
             order.ReturnToLab(results, new LaboReturnRequest(
                 input.Conclusion == LaboCheckConclusion.ReturnAll,
                 input.Description,
                 input.ReturnedAt,
                 input.RedeliveryDueAt,
-                savedImages + pictures.Count), now);
+                pictured), now);
         }
 
         await _repository.UpdateAsync(order, autoSave: true);
         await AttachPicturesAsync(order, pictures, roundNo);
         return await ToDtoAsync(order);
+    }
+
+    /// <summary>The teeth already holding a Hình ảnh lỗi filed under this round.</summary>
+    private async Task<List<int>> SavedPicturedTeethAsync(Guid orderId, int roundNo)
+    {
+        var query = await _imageRepository.GetQueryableAsync();
+        return await AsyncExecuter.ToListAsync(query
+            .Where(x => x.LaboOrderId == orderId && x.LaboRoundNo == roundNo && x.LaboToothNumber != null)
+            .Select(x => x.LaboToothNumber!.Value)
+            .Distinct());
     }
 
     /// <summary>
@@ -854,7 +865,16 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             .Select(c => new LaboWarrantyActivation(c.ToothNumber, c.StartDate, c.Months, c.ManufacturerSerial, c.Conditions))
             .ToList();
         var photos = CardPhotosOf(input);
-        order.ActivateWarranty(cards, DateTimeOffset.UtcNow, CurrentUser.Id);
+        // A Labo card is numbered on its service line, shared with the line's Dịch vụ cards.
+        if (order.TreatmentServiceId is not { } lineId
+            || !(await GetServiceLinesAsync([lineId])).TryGetValue(lineId, out var line))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.WarrantyNeedsServiceLine);
+        }
+
+        var codes = await LazyServiceProvider.LazyGetRequiredService<IWarrantyCardNumberer>()
+            .IssueAsync(lineId, line.LineCode, cards.Select(c => c.StartDate).ToList());
+        order.ActivateWarranty(cards, codes, DateTimeOffset.UtcNow, CurrentUser.Id);
         await _repository.UpdateAsync(order, autoSave: true);
         await AttachPicturesAsync(order, photos, roundNo: null);
         return await ToDtoAsync(order);

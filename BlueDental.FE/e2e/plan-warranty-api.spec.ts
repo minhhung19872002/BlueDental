@@ -169,10 +169,10 @@ function shift(iso: string, { days = 0, months = 0 }: { days?: number; months?: 
   return date.toISOString().slice(0, 10);
 }
 
-/** D4: BH-{mã phiếu dịch vụ}-{ddMMyyyy}-{răng, 00 when none}. */
-function cardCode(lineCode: string, start: string, tooth: number | null): string {
+/** D4 (R-1090): BH-{mã dòng dịch vụ}-{ddMMyyyy}-{xx}, xx from 01 per line and start day. */
+function cardCode(lineCode: string, start: string, number: number): string {
   const [y, m, d] = start.split("-");
-  return `BH-${lineCode}-${d}${m}${y}-${String(tooth ?? 0).padStart(2, "0")}`;
+  return `BH-${lineCode}-${d}${m}${y}-${String(number).padStart(2, "0")}`;
 }
 
 async function openSession(browser: Browser, credentials: { userName: string; password: string }) {
@@ -290,8 +290,9 @@ test.describe("Slip Bảo hành tab API (P3110 phase B)", () => {
     expect(reread.pendingCount).toBe(before.pendingCount);
     const cards = reread.cards.filter((card) => card.lineId === line.lineId);
     expect(cards.map((card) => card.code)).toEqual([
-      cardCode(ready.lineCode, later, 37),
-      cardCode(ready.lineCode, today, 36),
+      // Another start day counts again from 01; the refused batches above handed theirs back.
+      cardCode(ready.lineCode, later, 1),
+      cardCode(ready.lineCode, today, 1),
     ]);
     expect(cards[1]).toMatchObject({
       kind: Kind.Dental,
@@ -321,7 +322,7 @@ test.describe("Slip Bảo hành tab API (P3110 phase B)", () => {
     ]);
   });
 
-  test("a line without teeth gets one card coded 00, its Ảnh thẻ named tooth 0", async ({
+  test("a line without teeth gets one card numbered 01, its Ảnh thẻ named tooth 0", async ({
     page,
   }) => {
     const today = clinicToday();
@@ -348,7 +349,7 @@ test.describe("Slip Bảo hành tab API (P3110 phase B)", () => {
     expect(made.status, made.text).toBe(200);
 
     const card = (await overview(page, line)).cards.find((one) => one.lineId === line.lineId);
-    expect(card).toMatchObject({ code: cardCode(row.lineCode, today, null), toothNumber: null });
+    expect(card).toMatchObject({ code: cardCode(row.lineCode, today, 1), toothNumber: null });
     expect(card!.photos.map((photo) => photo.side)).toEqual([CardSide.Back]);
     expect((await rowOf(page, line)).dental).toBe(Cell.Activated);
   });
@@ -507,7 +508,7 @@ test.describe("Slip Bảo hành tab API (P3110 phase B)", () => {
     expect(closed.openRequests).toBe(before.openRequests);
     expect(closed.doneRequests).toBe(before.doneRequests + 1);
 
-    const code26 = cardCode(row.lineCode, today, 26);
+    const code26 = cardCode(row.lineCode, today, 1);
     const events = closed.history.filter((event) => event.lineId === line.lineId);
     expect(events.map((event) => [event.kind, event.teeth, event.cardCodes])).toEqual([
       [Event.RequestDone, [26], [code26]],

@@ -570,6 +570,8 @@ public static class BlueDentalDomainErrorCodes
         public const string DefectDescriptionRequired = "BlueDental:Labo:0035";
         /// <summary>Ảnh thẻ for a tooth not being activated, or two of one face (P3110 REQ-E1).</summary>
         public const string WarrantyCardPhotoInvalid = "BlueDental:Labo:0036";
+        /// <summary>Kích hoạt bảo hành on an order with no service line: its card number has none to count on (P3110 R-1090).</summary>
+        public const string WarrantyNeedsServiceLine = "BlueDental:Labo:0037";
     }
 
     public static class Promotions

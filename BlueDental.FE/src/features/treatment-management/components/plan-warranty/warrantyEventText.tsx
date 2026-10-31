@@ -17,7 +17,7 @@ export const EVENT_SOURCE: Record<WarrantyEventSource, { label: string; tone: st
   [WARRANTY_EVENT_SOURCE.Treatment]: { label: "Treatment:Warranty:Source:Treatment", tone: "treatment" },
 };
 
-/** "BH-2611-0291-11, -21": the first card in full, the next ones by their own tail when they share its stem. */
+/** "BH-DT01-02-01112026-01, -02": the first card in full, the next ones by their own tail when they share its stem. */
 export function compactCodes(codes: readonly string[]): string {
   const [first, ...rest] = codes;
   if (!first) return "";

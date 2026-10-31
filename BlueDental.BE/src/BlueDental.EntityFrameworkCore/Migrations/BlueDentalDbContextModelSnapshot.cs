@@ -8597,9 +8597,11 @@ namespace BlueDental.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Code");
-
                     b.HasIndex("TreatmentPlanId");
+
+                    b.HasIndex("TreatmentServiceId", "Code")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("TreatmentServiceId", "ToothNumber")
                         .IsUnique()
@@ -9115,6 +9117,22 @@ namespace BlueDental.Migrations
                     b.HasIndex("TreatmentServiceId", "SequenceNumber");
 
                     b.ToTable("bd_treatment_stages", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.TreatmentManagement.WarrantyCardSequence", b =>
+                {
+                    b.Property<Guid>("TreatmentServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("LastNo")
+                        .HasColumnType("integer");
+
+                    b.HasKey("TreatmentServiceId", "StartDate");
+
+                    b.ToTable("bd_warranty_card_sequences", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.Zalo.ZaloOaConnection", b =>

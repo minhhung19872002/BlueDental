@@ -286,6 +286,8 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(summary.locator(".pd-labo-summary-fact")).toHaveCount(9);
       await expect(summary).toContainText(orderCode);
       await expect(summary).toContainText("Ngày giao dự kiến");
+      // P3110 REQ-C2: Ngày gửi / Ngày giao dự kiến are days, no hour.
+      await expect(summary).not.toContainText(/\d{2}:\d{2}/);
 
       // P3110 m279: B. waits behind «Kiểm tra Labo»; nothing to conclude yet.
       const start = dialog.locator(".pd-labo-start-card");
@@ -325,13 +327,18 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(row21.getByRole("button", { name: "Thu gọn" })).toBeVisible();
 
       await row21.getByLabel("Mô tả gửi Labo · R21").fill(note);
+      await typeDate(dialog.getByLabel("Hẹn Labo giao lại"), pickerStamp(5, 10).slice(0, 10));
+      // REQ-D6 (R-1093): a Lỗi tooth without its own picture turns its group red.
+      await dialog.getByRole("button", { name: "Trả hàng bị lỗi (1 răng)" }).click();
+      const missing = row21.getByRole("alert");
+      await expect(missing).toHaveText("Vui lòng tải ít nhất một hình ảnh lỗi cho R21");
       await row21.locator(".pd-labo-defect input[type=file]").setInputFiles({
         name: "kiem-tra.png",
         mimeType: "image/png",
         buffer: PNG,
       });
       await expect(row21).toContainText("1 ảnh R21 đã tải");
-      await typeDate(dialog.getByLabel("Hẹn Labo giao lại"), pickerStamp(5, 10));
+      await expect(missing).toHaveCount(0);
 
       // The history shows the round being entered, by tooth (m189).
       const history = dialog.locator(".pd-labo-check-section").filter({ hasText: "Lịch sử nhận hàng & trả hàng · theo răng" });
@@ -339,6 +346,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(history.locator(".pd-labo-check-aside")).toHaveText("1 lần nhận · Đã trả: R21 1");
       await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText(note);
       await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText("Trả lần 1");
+      // Hẹn giao lại reads as a day only (m294).
+      await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText(pickerStamp(5, 10).slice(0, 10));
+      await expect(history.locator("tbody tr").filter({ hasText: "R21" })).not.toContainText(/\d{2}:\d{2}/);
 
       await dialog.getByRole("button", { name: "Trả hàng bị lỗi (1 răng)" }).click();
       // The return uploads the pictures to MinIO first; under a full run that takes a while.
@@ -447,7 +457,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       const warranted = await read(page, orderId);
       expect(warranted.status).toBe(LaboStatus.Warranty);
       const code11 = warranted.teeth?.find((tooth) => tooth.toothNumber === 11)?.warrantyCardCode ?? "";
-      expect(code11).toMatch(/^BH-\d{4}-\w{4}-11$/);
+      // R-1090: BH-{mã dòng dịch vụ}-{ddMMyyyy}-01, the line's first card of the day.
+      const day = pickerStamp(0, 0).slice(0, 10).replaceAll("/", "");
+      expect(code11).toMatch(new RegExp(`^BH-DT\\d+-\\d+-${day}-01$`));
       expect(warranted.teeth?.find((tooth) => tooth.toothNumber === 11)?.warrantyMonths).toBe(6);
       expect(warranted.teeth?.find((tooth) => tooth.toothNumber === 21)?.warrantyCardCode).toBeNull();
       expect(warranted.images.filter((image) => image.warrantyCardSide != null).map((image) => [image.toothNumber, image.warrantyCardSide])).toEqual([
@@ -490,6 +502,8 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       const cell = planRow.locator(".pdt-labo");
       await expect(cell.locator(".ant-tag")).toHaveText("Bảo hành");
       await expect(cell.locator(".pdt-labo-due")).toContainText("Đã nhận: ");
+      // REQ-C2 (R-1092): a day, no hour.
+      await expect(cell.locator(".pdt-labo-due")).not.toContainText(/\d{2}:\d{2}/);
       await expect(cell.locator(".pdt-labo-code")).toHaveText(orderCode);
 
       const done = await statusMenuDone(page, planRow);

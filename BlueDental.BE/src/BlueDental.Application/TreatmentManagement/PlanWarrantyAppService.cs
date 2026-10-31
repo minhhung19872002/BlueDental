@@ -90,14 +90,19 @@ public class PlanWarrantyAppService : BlueDentalAppService, IPlanWarrantyAppServ
             .Select(c => c.ToothNumber)
             .ToList();
 
+        var requested = input.Cards
+            .Select(c => new ServiceWarrantyActivation(c.ToothNumber, c.StartDate, c.Months, c.Conditions))
+            .ToList();
+        // Numbered in this request's transaction: a refused activation hands its numbers back.
+        var codes = await LazyServiceProvider.LazyGetRequiredService<IWarrantyCardNumberer>()
+            .IssueAsync(line.Id, line.Code, requested.Select(c => c.StartDate).ToList());
         var cards = ServiceWarrantyCard.ActivateAll(
             GuidGenerator.Create,
             line,
             new ServiceWarrantyTerms(warrantyDays, PlanWarrantyOverviewBuilder.CompletedOn(line, stages)),
             activated,
-            input.Cards
-                .Select(c => new ServiceWarrantyActivation(c.ToothNumber, c.StartDate, c.Months, c.Conditions))
-                .ToList(),
+            requested,
+            codes,
             DateTimeOffset.UtcNow,
             CurrentUser.Id);
         await _cardRepository.InsertManyAsync(cards, autoSave: true);

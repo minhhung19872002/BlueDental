@@ -37,7 +37,7 @@ public class WarrantyCoverTests
         ServiceWarrantyCard.ActivateAll(
             Guid.NewGuid, line, new ServiceWarrantyTerms(365, null), [],
             teeth.Select(t => new ServiceWarrantyActivation(t, Start, months)).ToList(),
-            CheckedAt, null);
+            WarrantyTestCodes.For(teeth.Length), CheckedAt, null);
 
     private static LaboOrder Order(Guid lineId, int months, params int[] teeth)
     {
@@ -61,7 +61,9 @@ public class WarrantyCoverTests
             .ConfirmPassed(teeth.Select(t => new LaboRoundToothResult(t, LaboToothCheckResult.Passed)).ToList(), CheckedAt);
         return months == 0
             ? order
-            : order.ActivateWarranty(teeth.Select(t => new LaboWarrantyActivation(t, Start, months)).ToList(), CheckedAt, null);
+            : order.ActivateWarranty(
+                teeth.Select(t => new LaboWarrantyActivation(t, Start, months)).ToList(),
+                WarrantyTestCodes.For(teeth.Length), CheckedAt, null);
     }
 
     private static List<ToothSelection> Teeth(params int[] codes) =>

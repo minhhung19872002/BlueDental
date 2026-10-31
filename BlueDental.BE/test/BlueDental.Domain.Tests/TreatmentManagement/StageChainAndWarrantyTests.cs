@@ -73,7 +73,8 @@ public class StageChainAndWarrantyTests
         int?[] cardTeeth = teeth.Length == 0 ? [null] : teeth.Select(t => (int?)t).ToArray();
         var cards = ServiceWarrantyCard.ActivateAll(
             Guid.NewGuid, line, new ServiceWarrantyTerms(365, null), [],
-            cardTeeth.Select(t => new ServiceWarrantyActivation(t, today, 12)).ToList(), Now, null);
+            cardTeeth.Select(t => new ServiceWarrantyActivation(t, today, 12)).ToList(),
+            WarrantyTestCodes.For(cardTeeth.Length), Now, null);
         return WarrantyCover.Resolve(WarrantyCardKind.Dental, null, line.Id, cards, [], today);
     }
 

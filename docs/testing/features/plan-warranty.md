@@ -12,7 +12,7 @@ the service-table parts (phase A) in the regression log R-1084.
 | # | Topic | Decision |
 |---|---|---|
 | D1 | "Bảo hành dịch vụ" in LỊCH SỬ ĐIỀU TRỊ | Goes to the slip's **Bảo hành** tab, on that line |
-| D4 | Dental card code | `BH-{line code}-{ddMMyyyy of start}-{tooth, 2 digits; 00 = line without teeth}`. The line code (`DT01-03`) already holds the slip code |
+| D4 | Dental card code | `BH-{line code}-{ddMMyyyy of start}-{xx}`, xx a 2-digit number from 01 per line and start day, Dịch vụ and Labo cards counted together, reserved in the activation's transaction by an upsert on `bd_warranty_card_sequences` (R-1090; was the tooth number, 00 for a line without teeth — cards made before keep their code). The line code (`DT01-03`) already holds the slip code |
 | D5 | Lượt | None anywhere: no Lượt column, no visit count |
 | D6 | Bảo hành column on the service table | Status chips only (Nha khoa / Labo), no second line, no YCBH code |
 | D9 | Bảo hành dịch vụ popup (no mock) | Built on the frame of Labo step 3 Bảo hành |

@@ -2,7 +2,7 @@ import type { TableColumnsType } from "antd";
 import dayjs from "dayjs";
 import { DataTable } from "@/components/DataTable";
 import { t } from "@/lib/i18n";
-import { formatDateTime } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 import { LABO_TOOTH_RESULT, type LaboOrderDto, type LaboToothResult } from "@/features/labo/api/laboApi";
 import { historyAside, toothHistoryRows, type LaboLiveCheck, type LaboToothHistoryRow } from "./laboCheckHistory";
 import type { LaboTone } from "./laboCheckRules";
@@ -58,7 +58,7 @@ function buildColumns(): TableColumnsType<LaboToothHistoryRow> {
       title: t("Labo:Check:History:RedeliveryDueAt"),
       dataIndex: "redeliveryDueAt",
       width: 140,
-      render: (value: string | null | undefined) => formatDateTime(value) || "—",
+      render: (value: string | null | undefined) => formatDate(value) || "—",
     },
   ];
 }

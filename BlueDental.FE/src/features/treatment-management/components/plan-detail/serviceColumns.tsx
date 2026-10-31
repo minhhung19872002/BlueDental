@@ -206,7 +206,7 @@ export function buildServiceColumns(
     column("teeth", t("Treatment:PlanDetail:Col:Teeth"), 100, (row) => dash(formatToothCodes(row.service.teeth))),
     // The widest pill ("Đang điều trị").
     column("status", t("Common:Status"), 140, (row) => <StatusCell row={row} />),
-    // P3110 (m385): pill, "LABO-YYYYMMDDn", "Đã nhận: dd/MM/yyyy HH:mm", "+N phiếu trước · Xem tất cả ›" stacked.
+    // P3110 (m385): pill, "LABO-YYYYMMDDn", "Đã nhận: dd/MM/yyyy", "+N phiếu trước · Xem tất cả ›" stacked.
     column("labo", t("Treatment:PlanDetail:Col:Labo"), 200, (row) => <PlanLaboCell row={row} onOpen={actions.onLabo} />),
     // P3110 REQ-A10 (m390): the widest chip is "Nha khoa · Chưa đủ điều kiện".
     column("warranty", t("Treatment:PlanDetail:Col:Warranty"), 210, (row) => (

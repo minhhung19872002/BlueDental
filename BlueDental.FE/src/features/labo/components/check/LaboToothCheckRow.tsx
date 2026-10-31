@@ -53,8 +53,7 @@ export function LaboToothCheckRow({ tooth, order, check }: Props) {
           roundNo={check.roundNo}
           returns={{ no: count, pastNotes: returnNotes(order, no) }}
           tiles={check.tiles}
-          busy={check.busy || !check.editable}
-          hidden={folded}
+          state={{ busy: check.busy || !check.editable, hidden: folded, picturesMissing: check.picturesMissing(no) }}
         />
       )}
     </li>

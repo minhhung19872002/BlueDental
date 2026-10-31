@@ -1269,7 +1269,17 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 .AreNullsDistinct(false)
                 .HasFilter("\"IsDeleted\" = false");
             entity.HasIndex(x => x.TreatmentPlanId);
-            entity.HasIndex(x => x.Code);
+            // R-1090: a number is issued once per line (the shared count in bd_warranty_card_sequences).
+            entity.HasIndex(x => new { x.TreatmentServiceId, x.Code })
+                .IsUnique()
+                .HasFilter("\"IsDeleted\" = false");
+        });
+
+        // The running xx of BH-{line}-{ddMMyyyy}-{xx}, shared by Dịch vụ and Labo cards (R-1090).
+        builder.Entity<WarrantyCardSequence>(entity =>
+        {
+            entity.ToTable("bd_warranty_card_sequences");
+            entity.HasKey(x => new { x.TreatmentServiceId, x.StartDate });
         });
 
         // Voucher da dung tren phieu dieu tri (appliedCoupons)

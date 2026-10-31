@@ -53,6 +53,7 @@ interface StageRow {
 interface SlipRow {
   services: {
     id: string;
+    code: string;
     status: number;
     labOrders: { id: string; status: number; isUnfinished: boolean; dueAt: string | null }[];
   }[];
@@ -217,10 +218,14 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(noDetails.body.error?.code).toBe(code(23));
     const noPicture = await check(page, orderId, { teeth: mixed, conclusion: Conclusion.ReturnDefective, ...returnDetails });
     expect(noPicture.body.error?.code).toBe(code(25));
+    // A loose Ảnh kiểm tra does not stand in for R21's own Hình ảnh lỗi (REQ-D6).
+    const loosePicture = await check(page, orderId, { teeth: mixed, conclusion: Conclusion.ReturnDefective, ...returnDetails }, 1);
+    expect(loosePicture.body.error?.code).toBe(code(25));
+    expect(loosePicture.body.error?.message).toContain("21");
     expect((await read(page, orderId)).status).toBe(LaboStatus.AwaitingCheck);
 
     // Trả hàng bị lỗi: 11 stays Đạt, 21 goes back, Hẹn Labo giao lại is the new due stamp.
-    const returned = await check(page, orderId, { teeth: mixed, conclusion: Conclusion.ReturnDefective, ...returnDetails }, 1);
+    const returned = await check(page, orderId, { teeth: mixed, conclusion: Conclusion.ReturnDefective, ...returnDetails }, 0, [21]);
     expect(returned.status, returned.text).toBe(200);
     expect(returned.body.status).toBe(LaboStatus.Returned);
     expect(returned.body.returnCount).toBe(1);
@@ -269,9 +274,11 @@ test.describe("Labo workflow API (P2910_03)", () => {
     ]);
     expect(first.status, first.text).toBe(200);
     expect(first.body.status).toBe(LaboStatus.Warranty);
-    const yymm = clinicToday().slice(2, 7).replace("-", "");
+    // R-1090: BH-{mã dòng dịch vụ}-{ddMMyyyy}-{xx}, xx counted per line and start day.
+    const [y, m, d] = clinicToday().split("-");
+    const stem = `BH-${(await slipLine(page, line))!.code}-${d}${m}${y}`;
     const card11 = first.body.teeth?.find((t) => t.toothNumber === 11);
-    expect(card11?.warrantyCardCode).toBe(`BH-${yymm}-${draft.body.orderCode!.slice(-4)}-11`);
+    expect(card11?.warrantyCardCode).toBe(`${stem}-01`);
     expect(card11?.warrantyMonths).toBe(12);
     expect(first.body.teeth?.find((t) => t.toothNumber === 21)?.warrantyCardCode).toBeNull();
 
@@ -279,6 +286,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(twice.body.error?.code).toBe(code(27));
     const second = await activateWarranty(page, orderId, [{ toothNumber: 21, startDate: clinicToday(), months: 24 }]);
     expect(second.status, second.text).toBe(200);
+    expect(second.body.teeth?.find((t) => t.toothNumber === 21)?.warrantyCardCode).toBe(`${stem}-02`);
 
     // Read back with separate requests: the order, the filter cards, the counters.
     const reread = await read(page, orderId);
@@ -317,7 +325,8 @@ test.describe("Labo workflow API (P2910_03)", () => {
         returnedAt: new Date().toISOString(),
         redeliveryDueAt: daysFromNow(4),
       },
-      1,
+      0,
+      [21],
     );
     expect(returned.status, returned.text).toBe(200);
     expect(returned.body.teeth?.every((t) => t.checkResult !== ToothResult.Passed)).toBe(true);
@@ -353,6 +362,11 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const wrongTooth = await check(page, order.id, { teeth: passedTeeth, conclusion: Conclusion.ReturnDefective, ...dates }, 0, [11]);
     expect(wrongTooth.status).toBe(403);
     expect(wrongTooth.body.error?.code).toBe(code(20));
+    // Two Lỗi teeth, a Hình ảnh lỗi on R11 only: R21 is named (REQ-D6).
+    const onePictured = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11]);
+    expect(onePictured.status).toBe(403);
+    expect(onePictured.body.error?.code).toBe(code(25));
+    expect(onePictured.body.error?.message).toContain("21");
     // Ảnh kiểm tra may come from the Lỗi rows alone.
     const first = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11, 21]);
     expect(first.status, first.text).toBe(200);

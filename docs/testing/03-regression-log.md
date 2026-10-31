@@ -12816,3 +12816,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Tràn chữ thẻ Labo (01/11, form TIẾP TỤC BẢO HÀNH)**: "1 Labo · chọn ở Nội dung điều trị" chạy sang cột Nội dung vì `.app-main button { white-space: nowrap }` (0,1,1) thắng `.pd-wcard` → `.pd-wcards .pd-wcard { white-space: normal; min-width: 0 }`. `warranty-stage` thêm kiểm tra khung chữ nằm trong thẻ: đỏ trên bản cũ, xanh sau sửa, 2/2.
 - **Tên thẻ trái (01/11, m415)**: owner chỉ mock — ô chọn thẻ bên trái đổi "Nha khoa" → **"Dịch vụ"** (en "Service"), bỏ giả định G21; chip / cột ở tab Bảo hành giữ "Nha khoa" (m348). Hành vi note m415 đã có: chọn Dịch vụ → cột Nội dung điều trị chỉ còn ô nội dung (không select Labo). `warranty-stage` thêm kiểm tra tên thẻ, 2/2.
 - **Bỏ chọn thẻ (01/11)**: owner "khi t chọn labo thì k unselect được" → bấm lại thẻ đang chọn thì bỏ chọn (`onPick(undefined)`), xoá luôn phiếu Labo đã chọn và răng đã tick (`pickPatch` kind `undefined` → `teeth: []`); chuỗi đang mở vẫn khoá như cũ. FE-only (`StageWarrantyCardPick`, `StageWarrantyForm`, `useStageComposer`, `useWarrantyCovers`). `warranty-stage` thêm bước chọn → bỏ chọn (`aria-pressed` false, select Labo biến mất) → chọn lại, 2/2.
+
+## R-1090 (2026-11-01, mức 2: F-86 P3110 sửa sau review) Mã thẻ bảo hành `BH-{mã dòng dịch vụ}-{ddMMyyyy}-{xx}`, xx đếm chung Dịch vụ + Labo
+
+- **Yêu cầu**: `xx` không còn là số răng — chạy từ 01 theo (dòng dịch vụ + ngày bắt đầu BH), thẻ Dịch vụ và thẻ Labo dùng chung một bộ đếm; số cấp cùng giao dịch với thẻ, liên tiếp trong một lần kích hoạt; mã không trùng. Sửa D4 / G5 trong `docs/wip/p3110-labo-warranty-plan.md`.
+- **Sửa BE**: `WarrantyCardCode` (định dạng + `IssueAsync`), `IWarrantyCardNumberer` / `EfCoreWarrantyCardNumberer` — một câu `INSERT … ON CONFLICT DO UPDATE … RETURNING` trên bảng mới `bd_warranty_card_sequences (TreatmentServiceId, StartDate, LastNo)`: khoá dòng làm lần kích hoạt thứ hai chờ giao dịch đầu, giao dịch lỗi thì số được trả lại (không có race đọc-rồi-chèn kiểu `NextOrderCodeAsync`). `ServiceWarrantyCard.ActivateAll` / `LaboOrder.ActivateWarranty` nhận mã từ ngoài, bỏ `CodeFor`. Index unique lọc soft-delete `(TreatmentServiceId, Code)` thay index `Code` (mã dòng `DT01-02` lặp giữa bệnh nhân nên không unique toàn cục được). Migration `20261031182508_WarrantyCardNumberR1090`.
+- **Phiếu Labo không gắn dòng dịch vụ**: không bịa mã — kích hoạt bị từ chối `Labo:0037` (`WarrantyNeedsServiceLine`). **Chờ owner quyết** (DB thật có 248/401 phiếu không có dòng).
+- **Thẻ cũ** (đuôi = số răng) trên develop / staging: **không đổi**, chờ owner. Rủi ro: một dòng + một ngày cấp > 10 thẻ mới có thể đụng mã cũ dạng `-11`, `-21`… → index unique từ chối (500). DB thử: 129 thẻ dịch vụ / 33 mã khác nhau, trùng chỉ giữa bệnh nhân, không trùng trong một dòng; thẻ Labo 154/154 khác nhau.
+- **FE**: cột Mã thẻ ở bước Bảo hành Labo hiện "—" trước khi kích hoạt (không còn đoán trước mã).
+- **Test**: Domain `ServiceWarrantyCardTests` (đánh số 01.. theo dòng + ngày, thẻ Labo đếm chung), `LaboOrderWorkflowTests` (mã từ ngoài), fixture `WarrantyTestCodes` — Domain 1280, EF 68 xanh; e2e `labo-api` (R11 = `-01`, R21 lần sau = `-02`), `plan-warranty-api` (đợt bị từ chối trả số lại, ngày khác đếm lại 01), `warranty-stage-api` (thẻ Labo `-01` rồi Dịch vụ `-02`; **ca mới**: 3 lần kích hoạt gửi cùng lúc trên một dòng một ngày → 01..05 không trùng, mỗi đợt liên tiếp, ngày mai lại 01), `labo-workflow` (`^BH-DT\d+-\d+-{ddMMyyyy}-01$`).
+
+## R-1091 (2026-11-01, mức 1: F-86 P3110 sửa sau review) `.pd-labo-check-grid--three` cho form thẻ từng răng
+
+- **Lỗi**: `LaboWarrantyToothForm` dùng lớp `pd-labo-check-grid--three` nhưng CSS chưa có → 3 ô (Ngày bắt đầu bảo hành* / Số serial nhà sản xuất / Ngày hết hạn) không chia 3 cột như m374.
+- **Sửa**: `labo-check.css` thêm `grid-template-columns: repeat(3, minmax(0, 1fr))`. So ảnh với m374.
+
+## R-1092 (2026-11-01, mức 2: F-86 P3110 REQ-C2) Ngày Labo không có giờ
+
+- **Yêu cầu REQ-C2**: chỉ ngày, không giờ.
+- **Sửa FE**: `LaboOrderSummaryCard`, `LaboRoundHistoryTable`, cột Phiếu Labo "Đã nhận: dd/MM/yyyy" (`PlanLaboCell`), `LaboConclusionBox` — ô "Ngày trả" và "Hẹn Labo giao lại" bỏ `showTime` (đây là ngày trả / hẹn giao lại, không phải giờ nhận thực tế; giờ nhận ở mục A giữ nguyên). Gửi `startOf("day")` nên luật "hẹn giao lại sau ngày trả" so theo ngày.
+- **Test**: `labo-workflow` nhập ngày dạng `dd/MM/yyyy`, kiểm tra ô "Đã nhận" không chứa `hh:mm`.
+
+## R-1093 (2026-11-01, mức 2: F-86 P3110 REQ-D6) Mỗi răng Lỗi phải có ≥1 ảnh lỗi của chính nó
+
+- **Yêu cầu REQ-D6** (owner chọn "Mỗi răng Lỗi ≥1 ảnh"): thiếu ảnh ở răng nào thì báo đúng răng đó.
+- **Sửa BE**: kiểm tra trả hàng theo răng — răng Lỗi không có ảnh gắn `LaboToothNumber` → `Labo:0025` kèm `tooth`.
+- **Sửa FE**: bấm "Trả hàng bị lỗi" khi thiếu ảnh → mở mọi nhóm đang thu gọn, nhóm răng đó viền đỏ ô tải ảnh + dòng đỏ `role="alert"` "Vui lòng tải ít nhất một hình ảnh lỗi cho R..", không gửi request; tải ảnh xong dòng đỏ mất.
+- **Test**: BE Domain `LaboOrderWorkflowTests` (hai răng Lỗi, chỉ R11 có ảnh → 0025 kèm `tooth` 21; răng Đạt có ảnh không tính); e2e `labo-workflow` bước D6 (bấm trả khi R21 chưa có ảnh → alert, tải ảnh → alert mất, trả thành công).
+- **Hồi quy chung R-1090..R-1093** (vite preview bản build production :8180 + host cô lập :5150 trên DB `BlueDental_p291003`, PostgreSQL thật, không chặn API): `labo-api` + `labo-workflow` + `plan-warranty-api` + `warranty-stage-api` 27/27; đợt 2 (`plan-warranty-*`, `warranty-stage*`, `labo*`, `treatment-plan-detail`, `treatment-stage*`, `stage-*`) 49 xanh / 3 đỏ / 11 không chạy (bỏ qua theo `describe.serial` sau test đỏ). Chạy riêng lại: `labo-orders-actions` 3/3 (đỏ đợt chung là ca chập chờn :141 đã biết); `treatment-plan-detail` 13/13 — đỏ đợt chung là do môi trường: host cô lập chạy với `--contentRoot .` rơi vào thư mục build nên không thấy `PHIẾU THU.docx` (`PaymentReceipt:0001`), chạy lại với content root tuyệt đối là xanh; `stage-staff-pickers:163` đỏ sẵn từ R-956 (xem trên), không thuộc P3110. BE: Domain 1280 / EF 68 xanh, Application 843 (6 `PaymentReceiptTemplateTests` đỏ chỉ khi build ra đường dẫn scratchpad, không liên quan). `tsc` sạch.

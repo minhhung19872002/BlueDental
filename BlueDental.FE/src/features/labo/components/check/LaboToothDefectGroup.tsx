@@ -11,8 +11,8 @@ interface Props {
   /** "trả Labo lần k" — this tooth's own return number — and the notes it went back with before. */
   returns: { no: number; pastNotes: string[] };
   tiles: LaboPictureTiles;
-  busy: boolean;
-  hidden: boolean;
+  /** `picturesMissing`: Trả hàng bị lỗi was refused for this tooth having no picture (REQ-D6). */
+  state: { busy: boolean; hidden: boolean; picturesMissing: boolean };
 }
 
 /**
@@ -20,11 +20,13 @@ interface Props {
  * Labo, saved per tooth. Folded by «Thu gọn» it stays mounted, so its note
  * is still validated.
  */
-export function LaboToothDefectGroup({ tooth, roundNo, returns, tiles, busy, hidden }: Props) {
+export function LaboToothDefectGroup({ tooth, roundNo, returns, tiles, state }: Props) {
   const set = tiles.tilesOf(tooth);
   const { no: returnNo, pastNotes } = returns;
+  const { busy, hidden, picturesMissing } = state;
+  const groupClass = ["pd-labo-defect", picturesMissing && "pd-labo-defect--missing"].filter(Boolean).join(" ");
   return (
-    <div className="pd-labo-defect" hidden={hidden}>
+    <div className={groupClass} hidden={hidden}>
       <div className="pd-labo-defect-head">
         <strong>{t("Labo:Check:DefectTitle", tooth, returnNo)}</strong>
         {pastNotes.length > 0 && (
@@ -40,6 +42,11 @@ export function LaboToothDefectGroup({ tooth, roundNo, returns, tiles, busy, hid
         onAdd={(files) => tiles.addPictures(tooth, files)}
         onRemove={tiles.removeTile}
       />
+      {picturesMissing && (
+        <span className="pd-labo-defect-error" role="alert">
+          {t("Labo:Check:PicturesRequired", tooth)}
+        </span>
+      )}
       <FloatingField
         name={["teeth", toothKey(tooth), "note"]}
         label={t("Labo:Check:DefectNoteLabel", tooth, roundNo)}

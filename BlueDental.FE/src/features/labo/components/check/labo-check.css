@@ -141,6 +141,11 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Bảo hành's per-tooth card fields (m374, R-1091). */
+.pd-labo-check-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .pd-labo-check-control {
   width: 100%;
 }
@@ -427,6 +432,17 @@
 .pd-labo-defectwell:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* A Lỗi tooth refused for having no Hình ảnh lỗi (REQ-D6, R-1093). */
+.pd-labo-defect--missing .pd-labo-defectwell {
+  border: 1px solid var(--bd-red);
+  color: var(--bd-red);
+}
+
+.pd-labo-defect-error {
+  font-size: 12px;
+  color: var(--bd-red);
 }
 
 .pd-labo-conclusion {

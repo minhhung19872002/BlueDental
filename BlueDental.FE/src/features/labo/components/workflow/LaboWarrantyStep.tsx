@@ -33,7 +33,7 @@ export function LaboWarrantyStep({ patient, order, onShowOrder, onClose }: Props
   const restoration = restorationName(order);
   const rows = warrantyTeeth(order).map((tooth) => ({
     tooth,
-    code: warrantyCardCode(order, tooth),
+    code: warrantyCardCode(tooth),
     cardPhotos: cardPhotoUrls(order, tooth.toothNumber),
   }));
   const canActivate = warranty.editable && warranty.open;

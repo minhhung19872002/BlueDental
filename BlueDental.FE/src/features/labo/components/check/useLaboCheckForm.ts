@@ -52,6 +52,8 @@ export interface LaboCheckForm {
   failed: number[];
   /** Hình ảnh lỗi, one set per tooth. */
   tiles: LaboPictureTiles;
+  /** A Lỗi tooth left without Hình ảnh lỗi after a refused Trả hàng bị lỗi (REQ-D6, R-1093). */
+  picturesMissing: (tooth: number) => boolean;
   /** The Lỗi groups folded with «Thu gọn». */
   collapsed: ReadonlySet<number>;
   toggleCollapsed: (tooth: number) => void;
@@ -78,6 +80,7 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
   const tiles = useLaboPictureTiles();
   const [form] = Form.useForm<LaboCheckValues>();
   const [collapsed, setCollapsed] = useState<ReadonlySet<number>>(new Set());
+  const [picturesChecked, setPicturesChecked] = useState(false);
 
   const round = openRound(order);
   const teeth = dueTeeth(order);
@@ -139,8 +142,12 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
     const noteFields = failed.map((tooth) => ["teeth", toothKey(tooth), "note"]);
     if (!(await validate([...RECEIVE_FIELDS, ...toothFields, ...(returning ? [...noteFields, ...RETURN_FIELDS] : [])]))) return;
     const toothPictures = returning ? tiles.upload(failed).toothPictures : [];
-    if (returning && toothPictures.length === 0) {
-      toast.error(t("Labo:Check:PicturesRequired"));
+    // P3110 REQ-D6: every Lỗi tooth carries its own Hình ảnh lỗi.
+    const unpictured = returning ? failed.find((tooth) => !toothPictures.some((picture) => picture.tooth === tooth)) : undefined;
+    if (unpictured !== undefined) {
+      setPicturesChecked(true);
+      setCollapsed(new Set());
+      toast.error(t("Labo:Check:PicturesRequired", unpictured));
       return;
     }
     const values: LaboCheckValues = form.getFieldsValue(true);
@@ -154,12 +161,14 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
           const result = pick?.result ?? LABO_TOOTH_RESULT.Passed;
           return { toothNumber: tooth, result, note: result === LABO_TOOTH_RESULT.Failed ? pick?.note?.trim() : undefined };
         }),
-        returnedAt: returning ? values.returnedAt?.toISOString() : undefined,
-        redeliveryDueAt: returning ? values.redeliveryDueAt?.toISOString() : undefined,
+        // Days only (R-1092): the server's "after" check then compares days too.
+        returnedAt: returning ? values.returnedAt?.startOf("day").toISOString() : undefined,
+        redeliveryDueAt: returning ? values.redeliveryDueAt?.startOf("day").toISOString() : undefined,
         toothPictures,
       });
       toast.success(t(returning ? "Labo:Check:Returned" : "Labo:Check:Passed"));
       tiles.reset([]);
+      setPicturesChecked(false);
       onDone();
     } catch {
       // The global MutationCache toasts the server's message; the tab stays for the fix.
@@ -185,6 +194,7 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
     verdict: checkVerdict(numbers, picks),
     failed,
     tiles,
+    picturesMissing: (tooth) => picturesChecked && tiles.tilesOf(tooth).length === 0,
     collapsed,
     toggleCollapsed,
     live: round ? { teeth: numbers, picks, redeliveryDueAt: redeliveryDueAt?.toISOString() } : null,

@@ -54,12 +54,12 @@ export function warrantyState(tooth: LaboOrderToothDto): LaboWarrantyState {
 }
 
 /**
- * Mã thẻ: the stored one once activated; before that the code the server
- * will give it if activated this month — BH-{yyMM}-{last 4 of the order}-{tooth}.
+ * Mã thẻ: the stored one once activated, "—" before. The server numbers it
+ * on activation — BH-{mã dòng dịch vụ}-{ddMMyyyy}-{xx}, xx shared with the
+ * line's other cards of that day (R-1090) — so no number can be foretold.
  */
-export function warrantyCardCode(order: LaboOrderDto, tooth: LaboOrderToothDto, today: Dayjs = dayjs()): string {
-  if (tooth.warrantyCardCode) return tooth.warrantyCardCode;
-  return `BH-${today.format("YYMM")}-${order.orderCode.slice(-4)}-${tooth.toothNumber}`;
+export function warrantyCardCode(tooth: LaboOrderToothDto): string {
+  return tooth.warrantyCardCode ?? "—";
 }
 
 /** A `YYYY-MM-DD` card date as DD/MM/YYYY, read as a calendar day (no time zone shift). */

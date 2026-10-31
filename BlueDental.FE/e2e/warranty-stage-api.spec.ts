@@ -44,6 +44,8 @@ const LABO_ORDER_INVALID = code(60);
 const TOOTH_NOT_COVERED = code(61);
 
 const WARRANTY_SERVICE: SpecService = { name: "DV BẢO HÀNH E2E", warrantyDays: 365 };
+const LABO_ACTIVATED = 3;
+const DENTAL_ACTIVATED = 4;
 const REQUEST_OPENED = 5;
 
 interface WarrantyEvent {
@@ -85,10 +87,10 @@ function refusedWith(
   expect(res.body.error?.code).toBe(errorCode);
 }
 
-/** D4: BH-{mã phiếu dịch vụ}-{ddMMyyyy}-{răng}. */
-function cardCode(lineCode: string, start: string, tooth: number): string {
+/** D4 (R-1090): BH-{mã dòng dịch vụ}-{ddMMyyyy}-{xx}, xx from 01 per line and start day. */
+function cardCode(lineCode: string, start: string, number: number): string {
   const [y, m, d] = start.split("-");
-  return `BH-${lineCode}-${d}${m}${y}-${String(tooth).padStart(2, "0")}`;
+  return `BH-${lineCode}-${d}${m}${y}-${String(number).padStart(2, "0")}`;
 }
 
 test.describe("Warranty công đoạn under a picked card (P3110 phase F)", () => {
@@ -145,7 +147,7 @@ test.describe("Warranty công đoạn under a picked card (P3110 phase F)", () =
       (e) => e.lineId === line.lineId && e.kind === REQUEST_OPENED,
     );
     expect(opened.map((e) => [e.teeth, e.cardCodes, e.laboOrderCode])).toEqual([
-      [[36], [cardCode(lineCode, today, 36)], null],
+      [[36], [cardCode(lineCode, today, 1)], null],
     ]);
   });
 
@@ -222,5 +224,63 @@ test.describe("Warranty công đoạn under a picked card (P3110 phase F)", () =
     expect(opened.map((e) => [e.teeth, e.cardCodes, e.laboOrderCode])).toEqual([
       [[11], laboCard.cardCodes, order.orderCode],
     ]);
+    // R-1090: the Labo card and the Dịch vụ card after it share the line's count for the day.
+    const lineCode = (await overview(page, line)).rows.find((row) => row.lineId === line.lineId)!.lineCode;
+    const dentalCard = history.find((e) => e.lineId === line.lineId && e.kind === DENTAL_ACTIVATED)!;
+    expect([laboCard.cardCodes, dentalCard.cardCodes]).toEqual([
+      [cardCode(lineCode, today, 1)],
+      [cardCode(lineCode, today, 2)],
+    ]);
+  });
+
+  test("activations sent at once on one line and day take distinct, consecutive card numbers (R-1090)", async ({
+    page,
+  }) => {
+    const id = runId();
+    const today = clinicToday();
+    const tomorrow = new Date(Date.parse(`${today}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+    const line = await freshLine(page, { service: WARRANTY_SERVICE, teeth: [11, 21, 36, 37, 46, 47] });
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const order = await sentOrder(
+      page,
+      orderBody(catalog, line, id, { teeth: [11, 21], treatmentServiceId: line.lineId }),
+    );
+    expect((await receive(page, order.id, 2)).status).toBe(200);
+    await passAll(page, order.id, [11, 21]);
+    expect((await completeLine(page, line)).status).toBe(200);
+
+    // One Labo batch and two Dịch vụ batches in flight together, all starting today.
+    const results = await Promise.all([
+      activateWarranty(
+        page,
+        order.id,
+        [11, 21].map((toothNumber) => ({ toothNumber, startDate: today, months: 12 })),
+      ),
+      activateDental(page, line, [{ toothNumber: 36, startDate: today }]),
+      activateDental(
+        page,
+        line,
+        [37, 46].map((toothNumber) => ({ toothNumber, startDate: today })),
+      ),
+    ]);
+    for (const res of results) expect(res.status, res.text).toBe(200);
+    // A later start day counts again from 01.
+    expect((await activateDental(page, line, [{ toothNumber: 47, startDate: tomorrow }])).status).toBe(200);
+
+    // Read back with a separate request.
+    const after = await overview(page, line);
+    const lineCode = after.rows.find((row) => row.lineId === line.lineId)!.lineCode;
+    const batches = after.history
+      .filter((e) => e.lineId === line.lineId && (e.kind === LABO_ACTIVATED || e.kind === DENTAL_ACTIVATED))
+      .map((e) => [...e.cardCodes].sort());
+    const numbers = (codes: string[]) => codes.map((one) => Number(one.slice(one.lastIndexOf("-") + 1)));
+    const todayStem = cardCode(lineCode, today, 1).slice(0, -2);
+    const todays = batches.filter((codes) => codes[0].startsWith(todayStem));
+    expect(todays.flat().sort()).toEqual([1, 2, 3, 4, 5].map((n) => cardCode(lineCode, today, n)));
+    for (const codes of todays) {
+      const [first, ...rest] = numbers(codes);
+      expect(rest).toEqual(rest.map((_, i) => first + i + 1));
+    }
+    expect(batches.filter((codes) => !todays.includes(codes))).toEqual([[cardCode(lineCode, tomorrow, 1)]]);
   });
 });

@@ -280,8 +280,8 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// Trả toàn bộ / Trả hàng bị lỗi. With "bị lỗi" the Đạt teeth stay Đạt
     /// (and show on the Bảo hành tab); with "toàn bộ" every tooth goes back and
     /// is checked again. Hẹn Labo giao lại becomes the due stamp. Each Lỗi
-    /// tooth carries its own Mô tả gửi Labo (P3110 REQ-D6); the round's
-    /// description is the caller's, or those joined.
+    /// tooth carries its own Mô tả gửi Labo and at least one Hình ảnh lỗi
+    /// (P3110 REQ-D6); the round's description is the caller's, or those joined.
     /// </summary>
     public LaboOrder ReturnToLab(
         IReadOnlyCollection<LaboRoundToothResult> results, LaboReturnRequest request, DateTimeOffset checkedAt)
@@ -297,8 +297,11 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ReturnDetailsRequired);
         if (redeliveryDueAt <= returnedAt)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RedeliveryBeforeReturn);
-        if (request.CheckImageCount < 1)
-            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.CheckImagesRequired);
+        var unpictured = checks.FirstOrDefault(c =>
+            c.Result == LaboToothCheckResult.Failed && !request.PicturedTeeth.Contains(c.ToothNumber));
+        if (unpictured is not null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.CheckImagesRequired)
+                .WithData("tooth", unpictured.ToothNumber);
 
         foreach (var check in checks)
         {
@@ -329,13 +332,16 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// card. Only once the whole order is Hoàn thành; the first card moves it
     /// to Bảo hành.
     /// </summary>
+    /// <param name="codes">Each card's number from <c>WarrantyCardCode.IssueAsync</c> on the order's service line, in card order.</param>
     public LaboOrder ActivateWarranty(
-        IReadOnlyCollection<LaboWarrantyActivation> cards, DateTimeOffset activatedAt, Guid? activatedById)
+        IReadOnlyList<LaboWarrantyActivation> cards, IReadOnlyList<string> codes, DateTimeOffset activatedAt, Guid? activatedById)
     {
         if (Status is not (LaboStatus.Completed or LaboStatus.Warranty))
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.WarrantyNotAvailable);
         if (cards.Count == 0 || cards.Select(c => c.ToothNumber).Distinct().Count() != cards.Count)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothNotWarrantable);
+        if (codes.Count != cards.Count)
+            throw new ArgumentException("One code per card.", nameof(codes));
 
         var teeth = cards.Select(card => (card, tooth: ToothOf(card.ToothNumber))).ToList();
         foreach (var (card, tooth) in teeth)
@@ -348,25 +354,18 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
                 throw new BusinessException(BlueDentalDomainErrorCodes.Labo.WarrantyStartBeforePass);
         }
 
-        foreach (var (card, tooth) in teeth)
+        foreach (var ((card, tooth), code) in teeth.Zip(codes))
         {
             var trimmed = card with
             {
                 ManufacturerSerial = Blank(card.ManufacturerSerial),
                 Conditions = Blank(card.Conditions)
             };
-            tooth.ActivateWarranty(WarrantyCardCode(activatedAt, tooth.ToothNumber), trimmed, activatedAt, activatedById);
+            tooth.ActivateWarranty(code, trimmed, activatedAt, activatedById);
         }
 
         Status = LaboStatus.Warranty;
         return this;
-    }
-
-    /// <summary><c>BH-{yyMM of activation}-{last 4 of the order code}-{tooth}</c>, e.g. BH-2611-0291-21.</summary>
-    public string WarrantyCardCode(DateTimeOffset activatedAt, int toothNumber)
-    {
-        var tail = OrderCode.Length > 4 ? OrderCode[^4..] : OrderCode;
-        return $"BH-{ClinicCalendar.DateOf(activatedAt):yyMM}-{tail}-{toothNumber}";
     }
 
     private void Apply(LaboOrderDetails details)

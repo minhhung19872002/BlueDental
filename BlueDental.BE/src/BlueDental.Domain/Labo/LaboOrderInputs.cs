@@ -57,13 +57,16 @@ public record LaboToothSpec(
     Guid? BiteId,
     string? LabNote);
 
-/// <summary>Kết luận of a check that sends teeth back.</summary>
+/// <summary>
+/// Kết luận of a check that sends teeth back. <see cref="PicturedTeeth"/>
+/// are the teeth holding at least one Hình ảnh lỗi in this round.
+/// </summary>
 public record LaboReturnRequest(
     bool ReturnAll,
     string? Description,
     DateTimeOffset? ReturnedAt,
     DateTimeOffset? RedeliveryDueAt,
-    int CheckImageCount);
+    IReadOnlyCollection<int> PicturedTeeth);
 
 /// <summary>One tooth's card on "Kích hoạt bảo hành".</summary>
 public record LaboWarrantyActivation(

@@ -1,7 +1,7 @@
 import { StatusBadge } from "@/components/StatusBadge";
 import { t } from "@/lib/i18n";
 import { withBranch } from "@/lib/clinicBranch";
-import { formatDate, formatDateTime } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 import { LABO_STATUS } from "@/features/labo/api/laboApi";
 import { laboStatusPill } from "@/features/labo/api/laboStatus";
 import type { TreatmentServiceLaboOrderDto } from "../../api/treatmentPlanApi";
@@ -17,10 +17,10 @@ export function shownLaboOrder(row: PlanDetailRow): TreatmentServiceLaboOrderDto
   return standingOrders(row).at(-1) ?? null;
 }
 
-/** "Đã nhận: dd/MM/yyyy HH:mm" once it came back, "Dự kiến giao: dd/MM/yyyy" before (P3110: no hour on the due day). */
+/** "Đã nhận: dd/MM/yyyy" once it came back, "Dự kiến giao: dd/MM/yyyy" before — days only (REQ-C2, R-1092). */
 function OrderDate({ order }: { order: TreatmentServiceLaboOrderDto }) {
   if (order.receivedAt) {
-    return <span className="pdt-labo-due">{t("Treatment:PlanDetail:Labo:ReceivedAt", formatDateTime(order.receivedAt))}</span>;
+    return <span className="pdt-labo-due">{t("Treatment:PlanDetail:Labo:ReceivedAt", formatDate(order.receivedAt))}</span>;
   }
   if (!order.dueAt) return null;
   return <span className="pdt-labo-due">{t("Treatment:PlanDetail:Labo:DueAt", formatDate(order.dueAt))}</span>;

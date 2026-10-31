@@ -25,7 +25,7 @@ public class ServiceWarrantyCard : FullAuditedAggregateRoot<Guid>
     /// <summary>FDI number; null on a line that treats no tooth.</summary>
     public int? ToothNumber { get; private set; }
 
-    /// <summary><c>BH-{line code}-{ddMMyyyy start}-{tooth, 00 when none}</c> (owner D4, G5).</summary>
+    /// <summary><see cref="WarrantyCardCode"/>: <c>BH-{line code}-{ddMMyyyy start}-{xx}</c>.</summary>
     public string Code { get; private set; } = string.Empty;
 
     public DateOnly StartDate { get; private set; }
@@ -48,12 +48,14 @@ public class ServiceWarrantyCard : FullAuditedAggregateRoot<Guid>
     /// before any is written, so one bad tooth leaves the line untouched.
     /// </summary>
     /// <param name="activatedTeeth">Teeth (null = the toothless card) already carded on this line.</param>
+    /// <param name="codes">Each card's number from <see cref="WarrantyCardCode.IssueAsync"/>, in card order.</param>
     public static IReadOnlyList<ServiceWarrantyCard> ActivateAll(
         Func<Guid> newId,
         TreatmentService line,
         ServiceWarrantyTerms terms,
         IReadOnlyCollection<int?> activatedTeeth,
-        IReadOnlyCollection<ServiceWarrantyActivation> cards,
+        IReadOnlyList<ServiceWarrantyActivation> cards,
+        IReadOnlyList<string> codes,
         DateTimeOffset activatedAt,
         Guid? activatedById)
     {
@@ -78,20 +80,19 @@ public class ServiceWarrantyCard : FullAuditedAggregateRoot<Guid>
                 throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.WarrantyStartBeforeCompletion);
         }
 
+        if (codes.Count != cards.Count)
+            throw new ArgumentException("One code per card.", nameof(codes));
+
         return cards
-            .Select(card => new ServiceWarrantyCard(newId(), line, card, terms.WarrantyDays, activatedAt, activatedById))
+            .Select((card, i) => new ServiceWarrantyCard(newId(), line, card, codes[i], terms.WarrantyDays, activatedAt, activatedById))
             .ToList();
     }
 
     /// <summary>The last day the card covers is past.</summary>
     public bool IsExpiredOn(DateOnly today) => EndDate < today;
 
-    /// <summary>D4: <c>BH-DT01-03-30102026-36</c>.</summary>
-    public static string CodeFor(string lineCode, DateOnly startDate, int? toothNumber)
-        => $"BH-{lineCode}-{startDate:ddMMyyyy}-{toothNumber ?? 0:D2}";
-
     private ServiceWarrantyCard(
-        Guid id, TreatmentService line, ServiceWarrantyActivation card, int warrantyDays,
+        Guid id, TreatmentService line, ServiceWarrantyActivation card, string code, int warrantyDays,
         DateTimeOffset activatedAt, Guid? activatedById) : base(id)
     {
         BranchId = line.ClinicBranchId;
@@ -99,7 +100,7 @@ public class ServiceWarrantyCard : FullAuditedAggregateRoot<Guid>
         TreatmentPlanId = line.TreatmentPlanId;
         TreatmentServiceId = line.Id;
         ToothNumber = card.ToothNumber;
-        Code = CodeFor(line.Code, card.StartDate, card.ToothNumber);
+        Code = code;
         StartDate = card.StartDate;
         DurationMonths = card.Months;
         DurationDays = card.Months.HasValue ? null : warrantyDays;

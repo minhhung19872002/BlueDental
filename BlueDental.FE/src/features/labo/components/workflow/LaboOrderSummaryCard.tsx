@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Button } from "antd";
 import { RightOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import { formatDateTime } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 import type { LaboOrderDto } from "@/features/labo/api/laboApi";
 import { LaboSupplierBadge } from "../order-dialogs/laboOrderCells";
 
@@ -22,7 +22,7 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-const dateOrDash = (value: string | null | undefined) => formatDateTime(value) || "—";
+const dateOrDash = (value: string | null | undefined) => formatDate(value) || "—";
 
 /**
  * The order at a glance above tabs 2 and 3, three by three as P3110 m175 /
