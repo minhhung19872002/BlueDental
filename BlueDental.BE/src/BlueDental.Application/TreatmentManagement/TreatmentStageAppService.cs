@@ -36,6 +36,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     private readonly AfterTreatmentCareRecorder _afterTreatmentCare;
     private readonly IRepository<LaboOrder, Guid> _laboRepository;
     private readonly LaboStagePolicy _laboPolicy;
+    private readonly IRepository<ServiceWarrantyCard, Guid> _cardRepository;
 
     public TreatmentStageAppService(
         IRepository<TreatmentStage, Guid> repository,
@@ -46,7 +47,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         StageTeethPolicy teethPolicy,
         AfterTreatmentCareRecorder afterTreatmentCare,
         IRepository<LaboOrder, Guid> laboRepository,
-        LaboStagePolicy laboPolicy)
+        LaboStagePolicy laboPolicy,
+        IRepository<ServiceWarrantyCard, Guid> cardRepository)
     {
         _repository = repository;
         _catalogRepository = catalogRepository;
@@ -57,6 +59,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         _afterTreatmentCare = afterTreatmentCare;
         _laboRepository = laboRepository;
         _laboPolicy = laboPolicy;
+        _cardRepository = cardRepository;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Read)]
@@ -147,26 +150,27 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         var lineStages = await StagesOfLineAsync(input.TreatmentServiceId);
 
         Guid? warrantyRootStageId = null;
+        WarrantyCover? cover = null;
         if (input.IsGuarantee)
         {
-            var source = lineStages.FirstOrDefault(s => s.Id == input.WarrantySourceStageId)
-                ?? throw new BusinessException(
-                    BlueDentalDomainErrorCodes.TreatmentManagement.WarrantySourceInvalid,
-                    "A warranty names the finished công đoạn it is raised from.");
+            // A line finished by hand has no công đoạn to continue (REQ-B8); a
+            // named source must still be one of the line's.
+            TreatmentStage? source = null;
+            if (input.WarrantySourceStageId.HasValue)
+            {
+                source = lineStages.FirstOrDefault(s => s.Id == input.WarrantySourceStageId)
+                    ?? throw new BusinessException(
+                        BlueDentalDomainErrorCodes.TreatmentManagement.WarrantySourceInvalid,
+                        "A warranty continues from a finished công đoạn of its line.");
 
-            // The root is the ordinary công đoạn the warranty chain started from;
-            // a warranty raised off a warranty inherits the one before it.
-            warrantyRootStageId = source.IsGuarantee ? source.WarrantyRootStageId : source.Id;
+                // The root is the ordinary công đoạn the warranty chain started from;
+                // a warranty raised off a warranty inherits the one before it.
+                warrantyRootStageId = source.IsGuarantee ? source.WarrantyRootStageId : source.Id;
+            }
+
             var root = lineStages.FirstOrDefault(s => s.Id == warrantyRootStageId);
-
-            _teethPolicy.EnsureWarranty(
-                source,
-                root,
-                lineTeeth,
-                lineStages,
-                teeth,
-                await WarrantyDaysAsync(input.ServiceId),
-                Clock.Now);
+            cover = await WarrantyCoverAsync(input);
+            _teethPolicy.EnsureWarranty(source, root, lineTeeth, lineStages, teeth, cover);
         }
         else
         {
@@ -194,6 +198,10 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             warrantyRootStageId: warrantyRootStageId,
             treatmentDate: input.TreatmentDate);
         stage.SetRemark(input.Remark);
+        if (cover is not null)
+        {
+            stage.WorkUnder(cover);
+        }
 
         await _repository.InsertAsync(stage, autoSave: true);
 
@@ -440,7 +448,10 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     /// </summary>
     private async Task GuardNotLockedByLaboAsync(TreatmentStage stage)
     {
-        var orders = await _laboRepository.GetListAsync(o => o.TreatmentServiceId == stage.TreatmentServiceId);
+        // With teeth: the day the last tooth passed QC decides the lock (P3110 note 27).
+        var orders = await _laboRepository.GetListAsync(
+            o => o.TreatmentServiceId == stage.TreatmentServiceId,
+            includeDetails: true);
         if (orders.Count > 0
             && _laboPolicy.LocksCompletion(stage, await StagesOfLineAsync(stage.TreatmentServiceId), orders))
         {
@@ -504,12 +515,21 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return query.Where(x => x.TreatmentServiceId == treatmentServiceId).ToList();
     }
 
-    /// <summary>The warranty period the service's configuration carries, in days.</summary>
-    private async Task<int> WarrantyDaysAsync(Guid serviceId)
+    /// <summary>The card a new warranty công đoạn names, checked valid today (REQ-F3..F5).</summary>
+    private async Task<WarrantyCover> WarrantyCoverAsync(CreateTreatmentStageDto input)
     {
-        var query = await _catalogRepository.WithDetailsAsync(c => c.ServiceConfig);
-        var entry = query.FirstOrDefault(x => x.Id == serviceId);
-        return entry?.ServiceConfig?.WarrantyDays ?? 0;
+        var lineId = input.TreatmentServiceId;
+        var cards = await _cardRepository.GetListAsync(c => c.TreatmentServiceId == lineId);
+        var orderQuery = await _laboRepository.WithDetailsAsync();
+        var orders = orderQuery.Where(o => o.TreatmentServiceId == lineId).ToList();
+
+        return WarrantyCover.Resolve(
+            input.WarrantyKind,
+            input.WarrantyLaboOrderId,
+            lineId,
+            cards,
+            orders,
+            ClinicCalendar.DateOf(Clock.Now));
     }
 
     private async Task<List<TreatmentStage>> StagesOfServiceAsync(Guid treatmentServiceId)
@@ -575,9 +595,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     }
 
     /// <summary>
-    /// The Labo chip, the Hoàn thành lock and the Kích hoạt bảo hành order of
-    /// each công đoạn, read against every công đoạn of its line — a page of the
-    /// history may hold only some of them.
+    /// The Labo chip, the Hoàn thành lock (and the order behind it) and the
+    /// "BN có n phiếu" count of each công đoạn, read against every công đoạn of
+    /// its line — a page of the history may hold only some of them.
     /// </summary>
     private async Task<IReadOnlyDictionary<Guid, StageLabo>> LaboOfAsync(IReadOnlyCollection<TreatmentStage> items)
     {
@@ -607,7 +627,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             OrderId = order.Id,
             OrderCode = order.OrderCode,
             Status = order.Status,
-            IsWarrantyExpired = order.IsWarrantyExpiredOn(today)
+            IsWarrantyExpired = order.IsWarrantyExpiredOn(today),
+            QualityPassedOn = order.QualityPassedOn
         };
 
         return items
@@ -616,11 +637,13 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             {
                 var orders = ordersByLine[stage.TreatmentServiceId];
                 var siblings = stagesByLine.GetValueOrDefault(stage.TreatmentServiceId) ?? [stage];
+                var lockingOrder = stage.Status == TreatmentStageStatus.Completed
+                    ? null
+                    : _laboPolicy.LockingOrder(stage, siblings, orders);
                 return new StageLabo(
                     ChipOf(_laboPolicy.OrderRaisedOn(stage, orders)),
-                    stage.Status != TreatmentStageStatus.Completed
-                        && _laboPolicy.LocksCompletion(stage, siblings, orders),
-                    ChipOf(_laboPolicy.OrderAwaitingWarranty(stage, siblings, orders)));
+                    ChipOf(lockingOrder),
+                    orders.Count(o => o.Status != LaboStatus.Cancelled));
             });
     }
 
@@ -633,8 +656,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
 
     private sealed record StageLabo(
         TreatmentStageLaboDto? Chip,
-        bool CompleteLocked,
-        TreatmentStageLaboDto? WarrantyOrder);
+        TreatmentStageLaboDto? LockingOrder,
+        int LineOrderCount);
 
     private static string? NameOf(Guid? staffId, StageLookups lookups) =>
         staffId.HasValue && lookups.StaffNames.TryGetValue(staffId.Value, out var name) ? name : null;
@@ -664,6 +687,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         ContinuedToothCodes = entity.ContinuedToothCodes.ToList(),
         ContinuedFromId = entity.ContinuedFromId,
         WarrantyRootStageId = entity.WarrantyRootStageId,
+        WarrantyKind = entity.WarrantyKind,
+        WarrantyLaboOrderId = entity.WarrantyLaboOrderId,
         StartedAt = entity.StartedAt,
         CompletedAt = entity.CompletedAt,
         Teeth = PatientDiagnosisAppService.ToToothDtos(entity.Teeth),
@@ -687,8 +712,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         SecondStaffJobTitle = StaffJobTitles.Lookup(lookups.JobTitles, entity.SecondStaffId),
         SubStaffName = NameOf(entity.SubStaffId, lookups),
         Labo = lookups.Labo.GetValueOrDefault(entity.Id)?.Chip,
-        CompleteLockedByLabo = lookups.Labo.GetValueOrDefault(entity.Id)?.CompleteLocked ?? false,
-        LaboWarrantyOrder = lookups.Labo.GetValueOrDefault(entity.Id)?.WarrantyOrder,
+        CompleteLockedByLabo = lookups.Labo.GetValueOrDefault(entity.Id)?.LockingOrder is not null,
+        CompleteLockedByLaboOrder = lookups.Labo.GetValueOrDefault(entity.Id)?.LockingOrder,
+        LineLaboOrderCount = lookups.Labo.GetValueOrDefault(entity.Id)?.LineOrderCount ?? 0,
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

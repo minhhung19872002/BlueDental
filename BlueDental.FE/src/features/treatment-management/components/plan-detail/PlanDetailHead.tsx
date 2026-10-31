@@ -28,23 +28,42 @@ const STATS: Stat[] = [
   { key: "outstandingDebt", label: "Treatment:PlanDetail:Stat:OutstandingDebt", tone: "amber" },
 ];
 
+/** Bảo hành's count and its orange "k chờ" (P3110 REQ-B1); absent until read. */
+export interface WarrantyTabCounts {
+  count: number;
+  pending: number;
+}
+
 interface Props {
   tab: PlanTabKey;
   /** The tabs this user may open — the money tabs need payment.read. */
   tabs: readonly PlanTabKey[];
   payment: PaymentSummaryDto;
+  warranty?: WarrantyTabCounts;
   onTabChange: (tab: PlanTabKey) => void;
+}
+
+/** "Bảo hành 6 · 2 chờ": the count always (0 included, m348), the badge only when something waits. */
+function WarrantyCounts({ counts }: { counts: WarrantyTabCounts }) {
+  return (
+    <>
+      <span className="pdt-tab-count">{counts.count}</span>
+      {counts.pending > 0 && (
+        <span className="pdt-tab-pending">{t("Treatment:Warranty:TabPending", counts.pending)}</span>
+      )}
+    </>
+  );
 }
 
 /**
  * The slip's tab strip: the same white strip and pills as the patient record's
  * tab row (BA 2026-10-15), with the money summary on its right. The summary
  * belongs to the money tabs only (Thanh toán, Hoàn tiền, Dư nợ) — "Chi tiết
- * điều trị" leaves it out (owner 2026-10-15). The actions stay in the card
+ * điều trị" and "Bảo hành" leave it out (owner 2026-10-15, mock P3110). The actions stay in the card
  * below, beside the table they act on.
  */
-export function PlanDetailHead({ tab, tabs, payment, onTabChange }: Props) {
-  const showStats = tab !== PLAN_TAB.detail;
+export function PlanDetailHead({ tab, tabs, payment, warranty, onTabChange }: Props) {
+  const showStats = tab !== PLAN_TAB.detail && tab !== PLAN_TAB.warranty;
   return (
     <div className="pdt-tabrow">
       <div className="bd-tabbar">
@@ -59,6 +78,7 @@ export function PlanDetailHead({ tab, tabs, payment, onTabChange }: Props) {
               onClick={() => onTabChange(key)}
             >
               {t(PLAN_TAB_LABELS[key])}
+              {key === PLAN_TAB.warranty && warranty && <WarrantyCounts counts={warranty} />}
             </button>
           ))}
         </div>

@@ -16,6 +16,21 @@ public class LaboOrderTooth : Entity<Guid>
     /// <summary>FDI number, 11–48 or 51–85.</summary>
     public int ToothNumber { get; private set; }
 
+    /// <summary>Màu răng; several shades are written "A1/A2/A3".</summary>
+    public string? Shade { get; private set; }
+
+    /// <summary>Đường hoàn tất, a Labo taxonomy row.</summary>
+    public Guid? FinishLineId { get; private set; }
+
+    /// <summary>Kiểu nhịp, a Labo taxonomy row.</summary>
+    public Guid? RhythmId { get; private set; }
+
+    /// <summary>Khớp cắn, a Labo taxonomy row (owner D3: a column after Kiểu nhịp).</summary>
+    public Guid? BiteId { get; private set; }
+
+    /// <summary>Ghi chú cho Labo.</summary>
+    public string? LabNote { get; private set; }
+
     /// <summary>What the clinic has accepted so far; None while a check is due.</summary>
     public LaboToothCheckResult CheckResult { get; private set; }
 
@@ -47,6 +62,18 @@ public class LaboOrderTooth : Entity<Guid>
         new() { Id = id, LaboOrderId = laboOrderId, ToothNumber = toothNumber };
 
     public bool IsWarrantyActivated => WarrantyActivatedAt.HasValue;
+
+    /// <summary>Màu răng and Đường hoàn tất — what Gửi Labo needs on every tooth.</summary>
+    public bool HasRequiredSpec => !string.IsNullOrWhiteSpace(Shade) && FinishLineId.HasValue;
+
+    internal void SetSpec(string? shade, Guid? finishLineId, Guid? rhythmId, Guid? biteId, string? labNote)
+    {
+        Shade = string.IsNullOrWhiteSpace(shade) ? null : shade.Trim();
+        FinishLineId = finishLineId;
+        RhythmId = rhythmId;
+        BiteId = biteId;
+        LabNote = string.IsNullOrWhiteSpace(labNote) ? null : labNote.Trim();
+    }
 
     /// <summary>A tooth whose card has run out: the day after its end date.</summary>
     public bool IsWarrantyExpiredOn(DateOnly today) =>

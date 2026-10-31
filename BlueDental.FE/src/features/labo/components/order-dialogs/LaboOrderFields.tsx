@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import { Input } from "antd";
+import { Form, Input } from "antd";
 import { FloatingField } from "@/components/FloatingField";
-import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
+import { isBridge } from "./laboToothSpecs";
 import { LaboPictureWell } from "./LaboPictureWell";
 import { LaboToothRow } from "./LaboToothRow";
-import { requiredRule, useLaboValue, type LaboOrderForm } from "./useLaboOrderForm";
+import { LaboToothSpecTable } from "./LaboToothSpecTable";
+import { useLaboValue, type LaboOrderForm } from "./useLaboOrderForm";
+import "./labo-order-rows.css";
 
 interface Props {
   form: LaboOrderForm;
@@ -13,56 +15,49 @@ interface Props {
   code: string;
   /** What the tooth row shows in place of the chart button when there is no tooth. */
   emptyTeeth: ReactNode;
-  /** While Lưu nháp / Tạo phiếu Labo is uploading. */
+  /** While Lưu nháp / Gửi Labo is uploading. */
   busy: boolean;
 }
 
 /**
- * The lower half of the Đặt hàng tab, laid out as the BA's mock (P2910_03,
- * DNBX-99): Răng with its chart button and Số lượng, then Màu răng / Đường hoàn
- * tất / Khớp cắn and Kiểu nhịp — not on the mock, kept rather than dropped —
- * two by two (owner 2026-10-30), the pictures beside their label, and Nội
- * dung the full width at the bottom.
+ * The lower half of the Đặt hàng tab, laid out as the BA's mock (P3110 m134 /
+ * m139): Răng with the teeth picked and Số lượng, Thông số từng răng, the
+ * common pictures — none required (REQ-C3) — and Nội dung the full width at
+ * the bottom.
  */
 export function LaboOrderFields({ form, code, emptyTeeth, busy }: Props) {
-  const { options } = form;
   const teeth = useLaboValue(form.form, "teeth") ?? [];
-  const quantity = useLaboValue(form.form, "quantity") ?? "";
+  const shared = useLaboValue(form.form, "sharedSpec") ?? false;
+  const specs = useLaboValue(form.form, "specs");
+  const rhythmName = (id: string) => form.options.rhythms.find((rhythm) => rhythm.value === id)?.label ?? "";
+
+  // Runs after the Form.Item stored the teeth: Số lượng is the number picked.
+  const handleTeethChange = (picked: string[]) => form.form.setFieldsValue({ quantity: String(picked.length) });
 
   return (
     <>
-      <LaboToothRow teeth={teeth} quantity={String(quantity)} code={code} empty={emptyTeeth} />
+      <Form.Item
+        name="teeth"
+        rules={[{ type: "array", min: 1, message: t("Treatment:Tooth:ToothRequired") }]}
+      >
+        <LaboToothRow
+          bridge={isBridge(teeth, specs, shared, rhythmName)}
+          code={code}
+          empty={emptyTeeth}
+          readOnly={form.readOnly}
+          onChange={handleTeethChange}
+        />
+      </Form.Item>
 
-      <div className="pd-labo-specs">
-        <FloatingField
-          name="shade"
-          label={t("Patient:DentalChart:ToothColor")}
-          required
-          rules={requiredRule(t("Labo:Workflow:RequiredShade"))}
-        >
-          <Input maxLength={100} />
-        </FloatingField>
-        <FloatingField name="finishLineId" label={t("Patient:Viewer:CompletedPath")}>
-          <SearchSelect allowClear options={options.finishLines} />
-        </FloatingField>
-        <FloatingField name="biteId" label={t("Patient:DentalChart:Occlusion")}>
-          <SearchSelect allowClear options={options.bites} />
-        </FloatingField>
-        <FloatingField name="rhythmId" label={t("Patient:DentalChart:RhythmType")}>
-          <SearchSelect allowClear options={options.rhythms} />
-        </FloatingField>
-      </div>
+      <LaboToothSpecTable form={form} busy={busy} />
 
-      <div className="pd-labo-row">
-        <p className="pd-labo-row-label">
-          {t("Labo:Workflow:OrderImages")}
-          <span className="floating-field-required">*</span>
-        </p>
+      <div className="pd-labo-row pd-labo-row--common">
+        <p className="pd-labo-row-label">{t("Labo:Workflow:CommonImages")}</p>
         <LaboPictureWell
-          tiles={form.tiles}
+          tiles={form.tilesOf("common")}
           busy={busy}
           readOnly={form.readOnly}
-          onAdd={form.addPictures}
+          onAdd={(files) => form.addPictures("common", files)}
           onRemove={form.removeTile}
         />
       </div>

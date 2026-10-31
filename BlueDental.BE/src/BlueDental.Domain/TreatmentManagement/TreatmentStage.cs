@@ -161,6 +161,15 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public Guid? WarrantyRootStageId { get; private set; }
 
+    /// <summary>
+    /// For a warranty công đoạn: the card it is worked under — Nha khoa or Labo
+    /// (P3110 REQ-F3). Null on ordinary công đoạn and on warranties written before it.
+    /// </summary>
+    public WarrantyCardKind? WarrantyKind { get; private set; }
+
+    /// <summary>Labo warranty: the order picked in "Chọn phiếu Labo" (REQ-F4).</summary>
+    public Guid? WarrantyLaboOrderId { get; private set; }
+
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
 
@@ -283,7 +292,7 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
                 .Where(tooth => carried.TrueForAll(each => each.ToothCode != tooth.ToothCode)));
         }
 
-        return Add(
+        var next = Add(
             id,
             PatientId,
             ClinicBranchId,
@@ -304,6 +313,23 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             continuedFromId: Id,
             warrantyRootStageId: WarrantyRootStageId,
             treatmentDate: treatmentDate);
+        next.WarrantyKind = WarrantyKind;
+        next.WarrantyLaboOrderId = WarrantyLaboOrderId;
+        return next;
+    }
+
+    /// <summary>Names the card a warranty công đoạn is worked under (REQ-F3).</summary>
+    public void WorkUnder(WarrantyCover cover)
+    {
+        if (!IsGuarantee)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
+                "Only a warranty công đoạn is worked under a warranty card.");
+        }
+
+        WarrantyKind = cover.Kind;
+        WarrantyLaboOrderId = cover.LaboOrderId;
     }
 
     /// <summary>

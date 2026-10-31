@@ -51,8 +51,12 @@ public class TreatmentServiceLaboOrderDto : EntityDto<Guid>
     public BlueDental.Labo.LaboOrderKind Kind { get; set; }
     /// <summary>Still with the labo: blocks cancelling / converting the line.</summary>
     public bool IsUnfinished { get; set; }
-    /// <summary>"Dự kiến giao" under the Phiếu Labo chip.</summary>
+    /// <summary>"Dự kiến giao" under the Phiếu Labo chip until the order comes back.</summary>
     public DateTimeOffset? DueAt { get; set; }
+    /// <summary>"Đã nhận" under the chip once the latest delivery came back (P3110).</summary>
+    public DateTimeOffset? ReceivedAt { get; set; }
+    /// <summary>A Bảo hành order whose every card has run out reads "Hết hạn bảo hành".</summary>
+    public bool IsWarrantyExpired { get; set; }
 }
 
 public class TreatmentServiceDto : EntityDto<Guid>

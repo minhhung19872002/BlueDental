@@ -8,12 +8,16 @@ import {
   type TreatmentServiceDto,
 } from "../../api/treatmentPlanApi";
 
-/** The four sub-screens, keyed as the reference writes them in `planTab=`. */
+/**
+ * The sub-screens, keyed as the reference writes them in `planTab=`; Bảo hành
+ * is ours (P3110), reached from "Bảo hành dịch vụ" with `line=` naming the row.
+ */
 export const PLAN_TAB = {
   detail: "detail",
   payment: "payment-v2",
   refund: "refund",
   debt: "debt",
+  warranty: "warranty",
 } as const;
 export type PlanTabKey = (typeof PLAN_TAB)[keyof typeof PLAN_TAB];
 
@@ -22,7 +26,11 @@ export const PLAN_TAB_KEYS: PlanTabKey[] = [
   PLAN_TAB.payment,
   PLAN_TAB.refund,
   PLAN_TAB.debt,
+  PLAN_TAB.warranty,
 ];
+
+/** A slip without the money tabs still offers Bảo hành (P3110 REQ-B1). */
+export const PLAN_TAB_KEYS_NO_PAYMENT: PlanTabKey[] = [PLAN_TAB.detail, PLAN_TAB.warranty];
 
 /** i18n keys; wrap with t() at render time. */
 export const PLAN_TAB_LABELS: Record<PlanTabKey, string> = {
@@ -30,6 +38,7 @@ export const PLAN_TAB_LABELS: Record<PlanTabKey, string> = {
   [PLAN_TAB.payment]: "Treatment:PlanDetail:Tab:Payment",
   [PLAN_TAB.refund]: "Treatment:PlanDetail:Tab:Refund",
   [PLAN_TAB.debt]: "Treatment:PlanDetail:Tab:Debt",
+  [PLAN_TAB.warranty]: "Treatment:PlanDetail:Tab:Warranty",
 };
 
 export function isPlanTab(value: string | null): value is PlanTabKey {

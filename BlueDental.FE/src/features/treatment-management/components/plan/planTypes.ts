@@ -195,9 +195,11 @@ export function planDetailPath(
   planId: string,
   branchId: string,
   tab?: PlanTabKey,
+  lineId?: string,
 ): string {
   const params = new URLSearchParams();
   if (tab) params.set("planTab", tab);
+  if (lineId) params.set("line", lineId);
   const branchCode = branchCodeOf(branchId);
   if (branchCode) params.set("branch", branchCode);
   const search = params.toString();

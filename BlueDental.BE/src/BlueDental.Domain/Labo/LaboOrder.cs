@@ -20,7 +20,10 @@ namespace BlueDental.Labo;
 /// </summary>
 public class LaboOrder : FullAuditedAggregateRoot<Guid>
 {
-    /// <summary>Hình ảnh gửi Labo: at least one and at most this many to submit.</summary>
+    /// <summary>
+    /// Ảnh đính kèm chung, and the pictures of one tooth's row: at most this
+    /// many, none required (P3110).
+    /// </summary>
     public const int MaxOrderImages = 5;
 
     /// <summary>Thời hạn bảo hành "Khác" is capped so the end date stays a real date.</summary>
@@ -69,8 +72,15 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// <summary>Where the file the clinic sent back was stored, on old orders.</summary>
     public string? AttachmentUrl { get; private set; }
 
-    /// <summary>Màu răng.</summary>
+    /// <summary>
+    /// Màu răng of the first tooth. Since P3110 each tooth carries its own
+    /// spec; this and the Bite/FinishLine/Rhythm columns mirror the first row
+    /// for the readers that predate it (Mẫu Labo list, print, export).
+    /// </summary>
     public string? ToothShade { get; private set; }
+
+    /// <summary>"Dùng chung 1 thông số cho tất cả răng" was ticked.</summary>
+    public bool SharedSpec { get; private set; }
 
     /// <summary>Số lượng. Always at least one unit of work.</summary>
     public int Quantity { get; private set; } = 1;
@@ -111,6 +121,14 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// <summary>Số lần trả hàng.</summary>
     public int ReturnCount => _rounds.Count(r => r.IsReturn);
 
+    /// <summary>
+    /// "Đã trả: n lần" of one tooth (P3110 REQ-D5): the returns in which that
+    /// tooth was Lỗi. A tooth that was Đạt rides along on Trả toàn bộ uncounted.
+    /// </summary>
+    public int ToothReturnCount(int toothNumber) =>
+        _rounds.Count(r => r.IsReturn && r.ToothResults.Any(
+            t => t.ToothNumber == toothNumber && t.Result == LaboToothCheckResult.Failed));
+
     /// <summary>Đạt QC: Hoàn thành or Bảo hành, expired or not.</summary>
     public bool IsQualityPassed => Status is LaboStatus.Completed or LaboStatus.Warranty;
 
@@ -119,6 +137,16 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// neither cancelled nor converted, and the later công đoạn stay locked.
     /// </summary>
     public bool IsUnfinished => Status != LaboStatus.Cancelled && !IsQualityPassed;
+
+    /// <summary>
+    /// The clinic day the order's last tooth passed QC (P3110): công đoạn
+    /// worked before it stay locked. Null until QC passed — and on an order
+    /// passed without its teeth loaded.
+    /// </summary>
+    public DateOnly? QualityPassedOn =>
+        IsQualityPassed && _teeth.Any(t => t.PassedAt.HasValue)
+            ? ClinicCalendar.DateOf(_teeth.Where(t => t.PassedAt.HasValue).Max(t => t.PassedAt!.Value))
+            : null;
 
     /// <summary>Kích hoạt bảo hành is still on offer: QC passed, and a passed tooth has no card yet.</summary>
     public bool HasTeethAwaitingWarranty =>
@@ -147,29 +175,33 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// Tạo phiếu Labo: every required field of the Đặt hàng tab is filled and
-    /// 1–<see cref="MaxOrderImages"/> pictures go with it. The tab locks.
+    /// Gửi Labo: every required field of Đặt hàng is filled, and every tooth
+    /// has its Màu răng and Đường hoàn tất. Pictures are optional (P3110).
+    /// The tab locks.
     /// </summary>
-    public LaboOrder Submit(int imageCount)
+    public LaboOrder Submit()
     {
         EnsureStatus(LaboStatus.Draft);
         if (!TreatmentServiceId.HasValue || !DentistId.HasValue || !SupplierId.HasValue
             || !MaterialId.HasValue || !SentAt.HasValue || !DueAt.HasValue
-            || _teeth.Count == 0 || string.IsNullOrWhiteSpace(ToothShade)
-            || string.IsNullOrWhiteSpace(LabProviderName))
+            || _teeth.Count == 0 || string.IsNullOrWhiteSpace(LabProviderName))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.OrderIncomplete);
         }
 
-        EnsureImageCount(imageCount, submitting: true);
+        var missing = _teeth.FirstOrDefault(t => !t.HasRequiredSpec);
+        if (missing is not null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothSpecIncomplete)
+                .WithData("tooth", missing.ToothNumber);
+
         Status = LaboStatus.Sent;
         return this;
     }
 
-    /// <summary>The order's pictures: never more than five, and at least one once submitted.</summary>
-    public static void EnsureImageCount(int imageCount, bool submitting)
+    /// <summary>A set of the order's pictures — the shared ones, or one tooth's: never more than five.</summary>
+    public static void EnsureImageCount(int imageCount)
     {
-        if (imageCount > MaxOrderImages || (submitting && imageCount < 1))
+        if (imageCount > MaxOrderImages)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ImageCountInvalid);
     }
 
@@ -247,7 +279,9 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// <summary>
     /// Trả toàn bộ / Trả hàng bị lỗi. With "bị lỗi" the Đạt teeth stay Đạt
     /// (and show on the Bảo hành tab); with "toàn bộ" every tooth goes back and
-    /// is checked again. Hẹn Labo giao lại becomes the due stamp.
+    /// is checked again. Hẹn Labo giao lại becomes the due stamp. Each Lỗi
+    /// tooth carries its own Mô tả gửi Labo (P3110 REQ-D6); the round's
+    /// description is the caller's, or those joined.
     /// </summary>
     public LaboOrder ReturnToLab(
         IReadOnlyCollection<LaboRoundToothResult> results, LaboReturnRequest request, DateTimeOffset checkedAt)
@@ -255,9 +289,11 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         var (round, checks) = ValidateCheck(results);
         if (checks.All(c => c.Result != LaboToothCheckResult.Failed))
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ReturnNeedsDefect);
-        if (string.IsNullOrWhiteSpace(request.Description)
-            || request.ReturnedAt is not { } returnedAt
-            || request.RedeliveryDueAt is not { } redeliveryDueAt)
+        var undescribed = checks.FirstOrDefault(c => c.Result == LaboToothCheckResult.Failed && c.Note is null);
+        if (undescribed is not null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.DefectDescriptionRequired)
+                .WithData("tooth", undescribed.ToothNumber);
+        if (request.ReturnedAt is not { } returnedAt || request.RedeliveryDueAt is not { } redeliveryDueAt)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ReturnDetailsRequired);
         if (redeliveryDueAt <= returnedAt)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RedeliveryBeforeReturn);
@@ -279,8 +315,10 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
                 tooth.Reopen();
         }
 
-        round.Return(checks, checkedAt, request.ReturnAll,
-            request.Description.Trim(), returnedAt, redeliveryDueAt);
+        var description = Blank(request.Description) ?? string.Join("; ", checks
+            .Where(c => c.Result == LaboToothCheckResult.Failed)
+            .Select(c => $"R{c.ToothNumber}: {c.Note}"));
+        round.Return(checks, checkedAt, request.ReturnAll, description, returnedAt, redeliveryDueAt);
         DueAt = redeliveryDueAt;
         Status = LaboStatus.Returned;
         return this;
@@ -338,25 +376,59 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         LabProviderName = details.LabProviderName?.Trim() ?? string.Empty;
         SupplierId = details.SupplierId;
         MaterialId = details.MaterialId;
-        BiteId = details.BiteId;
-        FinishLineId = details.FinishLineId;
-        RhythmId = details.RhythmId;
-        ToothShade = Blank(details.ToothShade);
         Quantity = details.Quantity < 1 ? 1 : details.Quantity;
         WorkDescription = Blank(details.WorkDescription);
         Notes = Blank(details.Notes);
         EstimatedCost = details.EstimatedCost;
         TreatmentServiceId = details.TreatmentServiceId;
         TreatmentStageId = details.TreatmentStageId;
-        SentAt = details.SentAt;
-        SetDueAt(details.DueAt);
+        SentAt = DayOf(details.SentAt);
+        SetDueAt(DayOf(details.DueAt));
         SetTeeth(details.Teeth);
+        SetToothSpecs(details);
     }
 
     /// <summary>
-    /// "Ngày và giờ nhận dự kiến phải sau ngày và giờ gửi": a due stamp at or
-    /// before the sent stamp is refused.
+    /// Thông số từng răng. A caller that sends no rows (pre-P3110) gives every
+    /// tooth the order-level values (G8). The order-level columns then mirror
+    /// the first tooth.
     /// </summary>
+    private void SetToothSpecs(LaboOrderDetails details)
+    {
+        SharedSpec = details.SharedSpec;
+        var specs = details.ToothSpecs?.GroupBy(s => s.ToothNumber).ToDictionary(g => g.Key, g => g.Last());
+        foreach (var tooth in _teeth)
+        {
+            if (specs is null)
+                tooth.SetSpec(details.ToothShade, details.FinishLineId, details.RhythmId, details.BiteId, null);
+            else if (specs.TryGetValue(tooth.ToothNumber, out var spec))
+                tooth.SetSpec(spec.Shade, spec.FinishLineId, spec.RhythmId, spec.BiteId, spec.LabNote);
+            else
+                tooth.SetSpec(null, null, null, null, null);
+        }
+
+        var first = details.Teeth.Count == 0 ? null : ToothOf(details.Teeth[0]);
+        if (first is null)
+        {
+            // A draft without teeth keeps whatever order-level values it was given.
+            ToothShade = specs is null ? Blank(details.ToothShade) : null;
+            FinishLineId = specs is null ? details.FinishLineId : null;
+            RhythmId = specs is null ? details.RhythmId : null;
+            BiteId = specs is null ? details.BiteId : null;
+            return;
+        }
+
+        ToothShade = first.Shade;
+        FinishLineId = first.FinishLineId;
+        RhythmId = first.RhythmId;
+        BiteId = first.BiteId;
+    }
+
+    /// <summary>Ngày gửi / Ngày nhận dự kiến are days (P3110): kept as the clinic's midnight.</summary>
+    private static DateTimeOffset? DayOf(DateTimeOffset? stamp) =>
+        stamp is { } value ? ClinicCalendar.StartOfDay(ClinicCalendar.DateOf(value)) : null;
+
+    /// <summary>"Ngày nhận dự kiến phải sau ngày gửi": a due day on or before the sent day is refused.</summary>
     private void SetDueAt(DateTimeOffset? dueAt)
     {
         if (dueAt.HasValue && SentAt.HasValue && dueAt.Value <= SentAt.Value)

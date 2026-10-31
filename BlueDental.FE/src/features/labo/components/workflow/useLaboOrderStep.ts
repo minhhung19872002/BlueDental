@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Form } from "antd";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
@@ -38,6 +39,8 @@ export interface LaboOrderStep {
   picksSource: boolean;
   editable: boolean;
   saving: boolean;
+  /** The order «Gửi Labo & in phiếu» just sent, while its Phiếu Labo prints. */
+  printing: LaboOrderDto | null;
   saveDraft: () => Promise<void>;
   submit: () => Promise<void>;
 }
@@ -55,13 +58,15 @@ function lineTeeth(plans: TreatmentPlanSlipDto[], lineId: string | undefined): s
 
 /**
  * The Đặt hàng tab: Lưu nháp keeps a Nháp (only the plan, line and doctor are
- * needed), Tạo phiếu Labo checks every field and at least one picture and
- * sends it — Đã gửi Labo, the tab locked from then on.
+ * needed), «Gửi Labo & in phiếu» checks every field — pictures are optional
+ * (P3110 REQ-C3) — sends it and prints its Phiếu Labo: Đã gửi Labo, the tab
+ * locked from then on.
  */
 export function useLaboOrderStep({ branchId, patientId, order, source, plans, onDone }: LaboOrderStepSetup): LaboOrderStep {
   const ability = useAbility("treatmentLabo");
   const save = useSaveLaboOrder();
   const [antForm] = Form.useForm<LaboOrderValues>();
+  const [printing, setPrinting] = useState<LaboOrderDto | null>(null);
   const isNew = order === undefined;
   const picksSource = isNew && !source;
   const editable = ability.canCreate && (isNew || order.status === LABO_STATUS.Draft);
@@ -87,6 +92,8 @@ export function useLaboOrderStep({ branchId, patientId, order, source, plans, on
 
   const persist = async (submit: boolean) => {
     const values = antForm.getFieldsValue(true) as LaboOrderValues;
+    // Only the mode on screen goes: a tooth's own pictures in shared mode are dropped, and the other way round.
+    const pictures = form.upload(values.sharedSpec ? [0] : laboOrderBody(values).teeth);
     const picked = picksSource ? sourceFromPick(plans, values.planId, values.lineId, values.dentistId) : null;
     const fields = {
       ...laboOrderBody(values),
@@ -94,16 +101,18 @@ export function useLaboOrderStep({ branchId, patientId, order, source, plans, on
       treatmentServiceId: order?.treatmentServiceId ?? source?.treatmentServiceId ?? picked?.treatmentServiceId,
       treatmentStageId: order?.treatmentStageId ?? source?.treatmentStageId,
       submit,
-      pictures: form.pictures,
+      pictures: pictures.pictures,
+      toothPictures: pictures.toothPictures,
     };
     try {
-      await save.mutateAsync(
+      const saved = await save.mutateAsync(
         order
-          ? { id: order.id, keepImageIds: form.keepImageIds, fields }
+          ? { id: order.id, keepImageIds: pictures.keepImageIds, fields }
           : { patientId, branchId, orderCode: nextCode || undefined, fields },
       );
       toast.success(t(submit ? "Labo:Workflow:Submitted" : "Labo:Workflow:DraftSaved"));
-      onDone();
+      if (submit) setPrinting(saved);
+      else onDone();
     } catch {
       // The global MutationCache toasts the server's message; the dialog stays for the fix.
     }
@@ -126,10 +135,6 @@ export function useLaboOrderStep({ branchId, patientId, order, source, plans, on
       antForm.scrollToField(antForm.getFieldsError().find((field) => field.errors.length)?.name ?? []);
       return;
     }
-    if (form.tiles.length === 0) {
-      toast.error(t("Labo:Workflow:ImagesRequired"));
-      return;
-    }
     await persist(true);
   };
 
@@ -140,6 +145,7 @@ export function useLaboOrderStep({ branchId, patientId, order, source, plans, on
     picksSource,
     editable,
     saving: save.isPending,
+    printing,
     saveDraft,
     submit,
   };

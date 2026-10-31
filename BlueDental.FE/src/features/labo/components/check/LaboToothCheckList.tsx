@@ -1,94 +1,73 @@
-import { Form, Input } from "antd";
-import { CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
-import { LABO_TOOTH_RESULT, type LaboToothResult } from "@/features/labo/api/laboApi";
-import { toothKey } from "./laboCheckRules";
+import type { LaboOrderDto, LaboOrderToothDto } from "@/features/labo/api/laboApi";
+import { LaboTeethHead } from "./LaboTeethHead";
+import { LaboToothCheckRow } from "./LaboToothCheckRow";
+import { LaboReturnCount, LaboToothShade, LaboToothWarranty } from "./LaboToothCells";
+import { passedRoundNo, passedTeeth, teethTally } from "./laboCheckRules";
+import type { LaboCheckForm } from "./useLaboCheckForm";
 
-interface ToggleProps {
-  value?: LaboToothResult;
-  onChange?: (value: LaboToothResult) => void;
-  disabled?: boolean;
-  tooth: number;
+/** "Đạt lần k · đã lắp dd/mm" once its warranty is on, else "Đạt lần k · chờ lắp" (P3110 REQ-D7, G13). */
+function passedLabel(order: LaboOrderDto, tooth: LaboOrderToothDto): string {
+  const roundNo = passedRoundNo(order, tooth.toothNumber) ?? 1;
+  return tooth.warrantyActivatedAt
+    ? t("Labo:Check:PassedFitted", roundNo, dayjs(tooth.warrantyActivatedAt).format("DD/MM"))
+    : t("Labo:Check:PassedAwaitFit", roundNo);
 }
 
-const CHOICES = [
-  { result: LABO_TOOTH_RESULT.Passed, label: "Labo:Check:Pass", icon: <CheckOutlined />, tone: "pass" },
-  { result: LABO_TOOTH_RESULT.Failed, label: "Labo:Check:Fail", icon: <CloseOutlined />, tone: "fail" },
-] as const;
-
-/** Đạt / Lỗi as two pressed-state buttons, driven by the Form.Item around it. */
-function ToothResultToggle({ value, onChange, disabled, tooth }: ToggleProps) {
+/** A tooth that passed on an earlier delivery: greyed, nothing to pick (m342 Răng 13). */
+function PassedToothRow({ order, tooth, inCheck }: { order: LaboOrderDto; tooth: LaboOrderToothDto; inCheck: boolean }) {
   return (
-    <div className="pd-labo-tooth-toggle" role="group" aria-label={t("Labo:Check:ToothLabel", tooth)}>
-      {CHOICES.map((choice) => {
-        const pressed = value === choice.result;
-        return (
-          <button
-            key={choice.result}
-            type="button"
-            aria-pressed={pressed}
-            disabled={disabled}
-            className={["pd-labo-tooth-choice", pressed && `pd-labo-tooth-choice--${choice.tone}`]
-              .filter(Boolean)
-              .join(" ")}
-            onClick={() => onChange?.(choice.result)}
-          >
-            {choice.icon}
-            {t(choice.label)}
-          </button>
-        );
-      })}
-    </div>
+    <li className="pd-labo-tooth-row pd-labo-tooth-row--locked">
+      <div className="pd-labo-tooth-line">
+        <span className="pd-labo-tooth-no">{t("Labo:Check:ToothLabel", tooth.toothNumber)}</span>
+        <LaboToothShade shade={tooth.shade} />
+        <span className="pd-labo-tooth-passed">
+          <b>{passedLabel(order, tooth)}</b>
+          {inCheck && <small>{t("Labo:Check:NotInDelivery")}</small>}
+        </span>
+        <LaboReturnCount count={tooth.returnCount} />
+        <LaboToothWarranty tooth={tooth} passed />
+      </div>
+    </li>
   );
 }
 
-interface Props {
-  /** The teeth still to check this round. */
-  teeth: number[];
-  /** Passed on an earlier round; shown locked. */
-  passed: number[];
-  editable: boolean;
-}
-
-/** B. Kiểm tra từng răng: a result per tooth, and what is wrong with a Lỗi one. */
-export function LaboToothCheckList({ teeth, passed, editable }: Props) {
+/** B. Kiểm tra & kết luận từng răng: a row per due tooth, then the ones passed before. */
+export function LaboToothCheckList({ order, check }: { order: LaboOrderDto; check: LaboCheckForm }) {
+  const tally = teethTally(
+    check.teeth.map((tooth) => tooth.toothNumber),
+    check.picks,
+    order.teeth.length,
+  );
   return (
     <section className="pd-labo-check-section">
-      <header className="pd-labo-check-head">
-        <span className="pd-labo-check-badge">B</span>
-        <h3>{t("Labo:Check:TeethTitle")}</h3>
-        <span className="pd-labo-check-aside">{t("Labo:Check:TeethHint")}</span>
-      </header>
+      <LaboTeethHead status={tally.label} tone={tally.tone} />
+      <ul className="pd-labo-tooth-list">
+        {check.teeth.map((tooth) => (
+          <LaboToothCheckRow key={tooth.toothNumber} tooth={tooth} order={order} check={check} />
+        ))}
+        {passedTeeth(order).map((tooth) => (
+          <PassedToothRow key={tooth.toothNumber} order={order} tooth={tooth} inCheck />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * B. once every tooth has passed (Hoàn thành / Bảo hành): the same greyed rows,
+ * read-only, so "đã lắp dd/mm" and the activated card stay in sight (m342).
+ */
+export function LaboPassedTeethList({ order }: { order: LaboOrderDto }) {
+  const teeth = passedTeeth(order);
+  if (teeth.length === 0 || teeth.length < order.teeth.length) return null;
+  return (
+    <section className="pd-labo-check-section">
+      <LaboTeethHead status={t("Labo:Check:TallyAllPassed", teeth.length, teeth.length)} tone="pass" />
       <ul className="pd-labo-tooth-list">
         {teeth.map((tooth) => (
-          <li key={tooth} className="pd-labo-tooth-row">
-            <span className="pd-labo-tooth-no">{t("Labo:Check:ToothLabel", tooth)}</span>
-            <Form.Item
-              name={["teeth", toothKey(tooth), "result"]}
-              rules={[{ required: true, message: t("Labo:Check:ResultRequired") }]}
-              className="pd-labo-tooth-field"
-            >
-              <ToothResultToggle tooth={tooth} disabled={!editable} />
-            </Form.Item>
-            <Form.Item noStyle dependencies={[["teeth", toothKey(tooth), "result"]]}>
-              {({ getFieldValue }) =>
-                getFieldValue(["teeth", toothKey(tooth), "result"]) === LABO_TOOTH_RESULT.Failed && (
-                  <Form.Item name={["teeth", toothKey(tooth), "note"]} className="pd-labo-tooth-note">
-                    <Input placeholder={t("Labo:Check:DefectNote")} maxLength={500} disabled={!editable} />
-                  </Form.Item>
-                )
-              }
-            </Form.Item>
-          </li>
-        ))}
-        {passed.map((tooth) => (
-          <li key={tooth} className="pd-labo-tooth-row pd-labo-tooth-row--locked">
-            <span className="pd-labo-tooth-no">{t("Labo:Check:ToothLabel", tooth)}</span>
-            <span className="pd-labo-tooth-choice pd-labo-tooth-choice--pass">
-              <CheckOutlined />
-              {t("Labo:Check:PassedEarlier")}
-            </span>
-          </li>
+          <PassedToothRow key={tooth.toothNumber} order={order} tooth={tooth} inCheck={false} />
         ))}
       </ul>
     </section>

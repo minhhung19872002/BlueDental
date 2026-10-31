@@ -7,24 +7,24 @@ using Volo.Abp.Domain.Services;
 namespace BlueDental.Labo;
 
 /// <summary>
-/// What a service line's labo orders do to its công đoạn (P2910_03, owner
-/// decision 9, 2026-10-30):
+/// What a service line's labo orders do to its công đoạn (P2910_03 owner
+/// decision 9, reworked by P3110 note 27, 2026-10-31):
 /// <list type="bullet">
-///   <item>while an order is unfinished — not cancelled, not yet QC-passed — the
-///         công đoạn that raised it and every one worked after it cannot be
-///         ticked Hoàn thành; they can still be continued. The raising one was
-///         exempt until the owner's 2026-10-30 review (BA: "disable checkbox
-///         Hoàn thành"); those worked before it stay free;</item>
+///   <item>the công đoạn that raised an order and every one worked after it
+///         cannot be ticked Hoàn thành until the order has passed QC for every
+///         tooth — and then only on a công đoạn dated on or after the day it
+///         passed: "ngày 10 pass 1 răng → ngày 10 vẫn khoá; ngày 11 pass hết →
+///         ngày 11 mới cho Hoàn thành". Those worked before the raising one
+///         stay free; a cancelled order locks nothing;</item>
 ///   <item>an order raised from the patient's Labo tab has no công đoạn: it locks
 ///         every công đoạn of the line dated on or after the day it was written
-///         (ASSUMED — docs/clone/unknowns.md);</item>
-///   <item>"Kích hoạt bảo hành" is offered on the line's latest công đoạn while
-///         one of its orders is QC-passed with a passed tooth still without a card.</item>
+///         (ASSUMED — docs/clone/unknowns.md).</item>
 /// </list>
 /// "On or after" is the order the công đoạn were worked in: treatment day, then the
 /// order they were written in.
 ///
-/// Stateless: the caller loads the line's công đoạn and orders and hands them in.
+/// Stateless: the caller loads the line's công đoạn and orders — with their
+/// teeth, which date the QC pass — and hands them in.
 /// </summary>
 public class LaboStagePolicy : IDomainService
 {
@@ -32,10 +32,23 @@ public class LaboStagePolicy : IDomainService
         TreatmentStage stage,
         IReadOnlyCollection<TreatmentStage> lineStages,
         IEnumerable<LaboOrder> lineOrders) =>
-        lineOrders.Any(order =>
-            order.IsUnfinished
-            && order.TreatmentServiceId == stage.TreatmentServiceId
-            && IsWorkedOnOrAfter(stage, order, lineStages));
+        LockingOrder(stage, lineStages, lineOrders) is not null;
+
+    /// <summary>
+    /// The order the "🔒 Khoá: LABO-xxx chưa kiểm tra" note names (mock m38): the
+    /// newest one still holding <paramref name="stage"/> back, unfinished ones first.
+    /// </summary>
+    public LaboOrder? LockingOrder(
+        TreatmentStage stage,
+        IReadOnlyCollection<TreatmentStage> lineStages,
+        IEnumerable<LaboOrder> lineOrders) =>
+        lineOrders
+            .Where(order => order.TreatmentServiceId == stage.TreatmentServiceId
+                && Holds(order, stage)
+                && IsWorkedOnOrAfter(stage, order, lineStages))
+            .OrderBy(order => order.IsUnfinished)
+            .ThenBy(order => order.CreationTime)
+            .LastOrDefault();
 
     /// <summary>The order the công đoạn's chip names: its newest live order, else its newest cancelled one.</summary>
     public LaboOrder? OrderRaisedOn(TreatmentStage stage, IEnumerable<LaboOrder> lineOrders) =>
@@ -45,14 +58,10 @@ public class LaboStagePolicy : IDomainService
             .ThenBy(order => order.CreationTime)
             .LastOrDefault();
 
-    /// <summary>The order "Kích hoạt bảo hành" opens, when <paramref name="stage"/> is the line's latest công đoạn.</summary>
-    public LaboOrder? OrderAwaitingWarranty(
-        TreatmentStage stage,
-        IReadOnlyCollection<TreatmentStage> lineStages,
-        IEnumerable<LaboOrder> lineOrders) =>
-        lineStages.MaxBy(WorkOrder)?.Id == stage.Id
-            ? lineOrders.Where(order => order.HasTeethAwaitingWarranty).MaxBy(order => order.CreationTime)
-            : null;
+    /// <summary>Unfinished, or passed only after the day the công đoạn was worked.</summary>
+    private static bool Holds(LaboOrder order, TreatmentStage stage) =>
+        order.IsUnfinished
+        || (order.QualityPassedOn is { } passedOn && stage.TreatmentDate < passedOn);
 
     private static bool IsWorkedOnOrAfter(
         TreatmentStage stage,

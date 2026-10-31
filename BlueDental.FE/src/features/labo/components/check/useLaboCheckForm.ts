@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Form, type FormInstance } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { toast } from "sonner";
@@ -10,14 +10,17 @@ import {
   LABO_TOOTH_RESULT,
   type LaboCheckConclusion,
   type LaboOrderDto,
+  type LaboOrderToothDto,
 } from "@/features/labo/api/laboApi";
 import { useCheckLaboOrder, useReceiveLaboOrder } from "@/features/labo/api/laboMutations";
-import { useLaboPictures, type LaboPictures } from "../order-dialogs/useLaboPictures";
+import { useLaboPictureTiles, type LaboPictureTiles } from "../order-dialogs/useLaboPictureTiles";
+import type { LaboLiveCheck } from "./laboCheckHistory";
 import {
   checkVerdict,
-  composeDescription,
   dueTeeth,
+  failedTeeth,
   isCheckOpen,
+  latestReturnNote,
   openRound,
   receiveRoundNo,
   toothKey,
@@ -29,7 +32,6 @@ export interface LaboCheckValues {
   receivedAt?: Dayjs;
   receivedQuantity?: number;
   teeth?: LaboToothPicks;
-  description?: string;
   returnedAt?: Dayjs;
   redeliveryDueAt?: Dayjs;
 }
@@ -37,49 +39,52 @@ export interface LaboCheckValues {
 export interface LaboCheckForm {
   form: FormInstance<LaboCheckValues>;
   editable: boolean;
+  /** «Kiểm tra Labo» was pressed: the delivery is in and B. lists the teeth (P3110 REQ-D4). */
+  started: boolean;
   busy: boolean;
   roundNo: number;
-  /** "lần N" of the Trả hàng this check would record. */
-  returnNo: number;
   receiverName: string;
   /** The teeth B. lists for a result; the passed ones stay passed. */
-  teeth: number[];
+  teeth: LaboOrderToothDto[];
+  picks: LaboToothPicks | undefined;
   verdict: LaboCheckVerdict;
-  pictures: LaboPictures;
-  saveReceive: () => Promise<void>;
+  /** The Lỗi teeth now: what Trả hàng bị lỗi sends back. */
+  failed: number[];
+  /** Hình ảnh lỗi, one set per tooth. */
+  tiles: LaboPictureTiles;
+  /** The Lỗi groups folded with «Thu gọn». */
+  collapsed: ReadonlySet<number>;
+  toggleCollapsed: (tooth: number) => void;
+  /** The check on screen, for the history's "đang nhập" round. */
+  live: LaboLiveCheck | null;
+  start: () => Promise<void>;
   conclude: (conclusion: LaboCheckConclusion) => Promise<void>;
 }
 
 const RECEIVE_FIELDS = ["receivedAt", "receivedQuantity"];
-const RETURN_FIELDS = ["description", "returnedAt", "redeliveryDueAt"];
+const RETURN_FIELDS = ["returnedAt", "redeliveryDueAt"];
 
 /**
- * Tab 2 "Nhận hàng & kiểm tra": A. records the delivery (round N), B. takes a
- * Đạt / Lỗi per tooth, and the conclusion either confirms the Labo passed or
- * sends the faulty work back with C. Kết luận. A conclusion first saves the
- * delivery — the server amends an open round, so saving it twice is harmless.
+ * Tab 2 "Nhận hàng & kiểm tra": A. records the delivery, «Kiểm tra Labo»
+ * saves it and opens B., where each tooth is Đạt or Lỗi with its own Mô tả
+ * gửi Labo and Hình ảnh lỗi (P3110 REQ-D4–D6). A conclusion first saves the
+ * delivery again — the server amends an open round, so that is harmless.
  */
 export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboCheckForm {
   const ability = useAbility("treatmentLabo");
   const userName = useAuthStore((s) => s.user?.name) ?? "";
   const receive = useReceiveLaboOrder();
   const check = useCheckLaboOrder();
-  const pictures = useLaboPictures();
+  const tiles = useLaboPictureTiles();
   const [form] = Form.useForm<LaboCheckValues>();
+  const [collapsed, setCollapsed] = useState<ReadonlySet<number>>(new Set());
 
   const round = openRound(order);
   const teeth = dueTeeth(order);
+  const numbers = teeth.map((tooth) => tooth.toothNumber);
   const picks = Form.useWatch("teeth", form);
-  const verdict = checkVerdict(teeth, picks);
-
-  // Mô tả gửi Labo follows the Lỗi notes until someone writes their own text.
-  const composed = useRef("");
-  const description = composeDescription(teeth, picks);
-  useEffect(() => {
-    const current = form.getFieldValue("description") ?? "";
-    if (current === "" || current === composed.current) form.setFieldValue("description", description);
-    composed.current = description;
-  }, [description, form]);
+  const redeliveryDueAt = Form.useWatch("redeliveryDueAt", form);
+  const failed = failedTeeth(numbers, picks);
 
   useEffect(() => {
     form.setFieldsValue({
@@ -87,7 +92,19 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
       receivedQuantity: round?.receivedQuantity ?? order.quantity,
       returnedAt: dayjs(),
     });
-  }, [form, round, order.quantity]);
+  }, [form, round?.receivedAt, round?.receivedQuantity, order.quantity]);
+
+  // A tooth that went back starts from the note it went back with (REQ-D6).
+  // The order is refetched often; only a new round prefills again.
+  const roundNo = round?.roundNo;
+  useEffect(() => {
+    if (roundNo === undefined) return;
+    for (const tooth of order.teeth) {
+      const note = latestReturnNote(order, tooth.toothNumber);
+      const path: ["teeth", string, "note"] = ["teeth", toothKey(tooth.toothNumber), "note"];
+      if (note && !form.getFieldValue(path)) form.setFieldValue(path, note);
+    }
+  }, [form, roundNo]);
 
   const receiveBody = (values: LaboCheckValues) => ({
     id: order.id,
@@ -100,16 +117,17 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
       await form.validateFields(names);
       return true;
     } catch {
+      setCollapsed(new Set());
       form.scrollToField(form.getFieldsError().find((field) => field.errors.length)?.name ?? []);
       return false;
     }
   };
 
-  const saveReceive = async () => {
+  const start = async () => {
     if (!(await validate(RECEIVE_FIELDS))) return;
     try {
       await receive.mutateAsync(receiveBody(form.getFieldsValue(true)));
-      toast.success(t("Labo:Check:Received"));
+      toast.success(t("Labo:Check:Started"));
     } catch {
       // The global MutationCache toasts the server's message.
     }
@@ -117,9 +135,11 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
 
   const conclude = async (conclusion: LaboCheckConclusion) => {
     const returning = conclusion !== LABO_CHECK_CONCLUSION.Pass;
-    const toothFields = teeth.map((tooth) => ["teeth", toothKey(tooth), "result"]);
-    if (!(await validate([...RECEIVE_FIELDS, ...toothFields, ...(returning ? RETURN_FIELDS : [])]))) return;
-    if (returning && pictures.pictures.length === 0) {
+    const toothFields = numbers.map((tooth) => ["teeth", toothKey(tooth), "result"]);
+    const noteFields = failed.map((tooth) => ["teeth", toothKey(tooth), "note"]);
+    if (!(await validate([...RECEIVE_FIELDS, ...toothFields, ...(returning ? [...noteFields, ...RETURN_FIELDS] : [])]))) return;
+    const toothPictures = returning ? tiles.upload(failed).toothPictures : [];
+    if (returning && toothPictures.length === 0) {
       toast.error(t("Labo:Check:PicturesRequired"));
       return;
     }
@@ -129,35 +149,46 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
       await check.mutateAsync({
         id: order.id,
         conclusion,
-        teeth: teeth.map((tooth) => {
+        teeth: numbers.map((tooth) => {
           const pick = values.teeth?.[toothKey(tooth)];
           const result = pick?.result ?? LABO_TOOTH_RESULT.Passed;
-          return { toothNumber: tooth, result, note: result === LABO_TOOTH_RESULT.Failed ? pick?.note : undefined };
+          return { toothNumber: tooth, result, note: result === LABO_TOOTH_RESULT.Failed ? pick?.note?.trim() : undefined };
         }),
-        description: returning ? values.description : undefined,
         returnedAt: returning ? values.returnedAt?.toISOString() : undefined,
         redeliveryDueAt: returning ? values.redeliveryDueAt?.toISOString() : undefined,
-        pictures: returning ? pictures.pictures : [],
+        toothPictures,
       });
       toast.success(t(returning ? "Labo:Check:Returned" : "Labo:Check:Passed"));
-      pictures.reset();
+      tiles.reset([]);
       onDone();
     } catch {
       // The global MutationCache toasts the server's message; the tab stays for the fix.
     }
   };
 
+  const toggleCollapsed = (tooth: number) =>
+    setCollapsed((current) => {
+      const next = new Set(current);
+      if (!next.delete(tooth)) next.add(tooth);
+      return next;
+    });
+
   return {
     form,
     editable: ability.canUpdate && isCheckOpen(order),
+    started: round !== undefined,
     busy: receive.isPending || check.isPending,
     roundNo: receiveRoundNo(order),
-    returnNo: order.returnCount + 1,
     receiverName: round?.receiverName ?? userName,
     teeth,
-    verdict,
-    pictures,
-    saveReceive,
+    picks,
+    verdict: checkVerdict(numbers, picks),
+    failed,
+    tiles,
+    collapsed,
+    toggleCollapsed,
+    live: round ? { teeth: numbers, picks, redeliveryDueAt: redeliveryDueAt?.toISOString() } : null,
+    start,
     conclude,
   };
 }

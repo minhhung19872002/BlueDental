@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
+import type { WarrantyCardSide } from "@/components/WarrantyCardPhotos";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -77,13 +78,32 @@ export interface LaboOrderImageDto {
   fileName: string;
   /** The check round this is an Ảnh kiểm tra of; absent for Hình ảnh gửi Labo. */
   roundNo?: number | null;
+  /** The tooth row it belongs to: FDI, 0 for the "Dùng chung" row, absent for Ảnh đính kèm chung (P3110). */
+  toothNumber?: number | null;
+  /** Set on an Ảnh thẻ bảo hành (P3110 REQ-E1): the face of the tooth's card it shows. */
+  warrantyCardSide?: WarrantyCardSide | null;
 }
+
+/** A warranty card photo is the tooth's, not one of the pictures sent to or checked from the Labo. */
+export const isWarrantyCardPhoto = (image: LaboOrderImageDto): boolean => image.warrantyCardSide != null;
 
 /** One tooth of the order, with its check result and warranty card. */
 export interface LaboOrderToothDto {
   toothNumber: number;
+  /** Thông số từng răng (P3110). */
+  shade?: string | null;
+  finishLineId?: string | null;
+  finishLineName?: string | null;
+  rhythmId?: string | null;
+  rhythmName?: string | null;
+  biteId?: string | null;
+  biteName?: string | null;
+  /** Ghi chú cho Labo. */
+  labNote?: string | null;
   checkResult: LaboToothResult;
   defectNote?: string | null;
+  /** Đã trả n lần: the returns where this tooth was Lỗi (P3110 REQ-D5). */
+  returnCount: number;
   passedAt?: string | null;
   warrantyCardCode?: string | null;
   manufacturerSerial?: string | null;
@@ -164,6 +184,8 @@ export interface LaboOrderDto {
   finishLineName?: string;
   rhythmName?: string;
   toothShade?: string;
+  /** "Dùng chung 1 thông số cho tất cả răng" was ticked. */
+  sharedSpec?: boolean;
   quantity: number;
   treatmentServiceId?: string;
   treatmentStageId?: string;

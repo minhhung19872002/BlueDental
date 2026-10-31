@@ -1,5 +1,4 @@
-import { Button, DatePicker, InputNumber } from "antd";
-import { InboxOutlined } from "@ant-design/icons";
+import { DatePicker, InputNumber } from "antd";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { LaboLockedField } from "../order-dialogs/LaboLockedField";
@@ -10,22 +9,18 @@ interface Props {
   orderedQuantity: number;
   receiverName: string;
   editable: boolean;
-  busy: boolean;
-  onSave: () => void;
 }
 
-/** A. Nhận hàng · lần N: when the delivery came in and how many pieces. */
-export function LaboReceiveSection({ roundNo, orderedQuantity, receiverName, editable, busy, onSave }: Props) {
+/**
+ * A. Nhận hàng · lần N: when the delivery came in and how many pieces. No save
+ * button of its own (P3110 m279) — «Kiểm tra Labo» or the conclusion saves it.
+ */
+export function LaboReceiveSection({ roundNo, orderedQuantity, receiverName, editable }: Props) {
   return (
     <section className="pd-labo-check-section">
       <header className="pd-labo-check-head">
         <span className="pd-labo-check-badge">A</span>
         <h3>{t("Labo:Check:ReceiveTitle", roundNo)}</h3>
-        {editable && (
-          <Button size="small" icon={<InboxOutlined />} loading={busy} disabled={busy} onClick={onSave}>
-            {t("Labo:Check:SaveReceive")}
-          </Button>
-        )}
       </header>
       <div className="pd-labo-check-grid">
         <FloatingField
@@ -39,6 +34,7 @@ export function LaboReceiveSection({ roundNo, orderedQuantity, receiverName, edi
             showTime={{ format: "HH:mm", minuteStep: 5 }}
             needConfirm={false}
             format="DD/MM/YYYY HH:mm"
+            disabled={!editable}
             className="pd-labo-check-control"
           />
         </FloatingField>
@@ -56,7 +52,13 @@ export function LaboReceiveSection({ roundNo, orderedQuantity, receiverName, edi
             },
           ]}
         >
-          <InputNumber min={1} max={orderedQuantity} precision={0} className="pd-labo-check-control" />
+          <InputNumber
+            min={1}
+            max={orderedQuantity}
+            precision={0}
+            disabled={!editable}
+            className="pd-labo-check-control"
+          />
         </FloatingField>
         {/* Same floating label as the two inputs beside them, so the row lines up. */}
         <LaboLockedField label={t("Labo:Check:OrderedQuantity")} value={String(orderedQuantity)} required={false} />

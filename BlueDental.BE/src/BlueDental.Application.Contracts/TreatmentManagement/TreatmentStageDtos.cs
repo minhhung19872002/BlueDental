@@ -56,6 +56,12 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     /// <summary>On a warranty: the ordinary công đoạn it descends from.</summary>
     public Guid? WarrantyRootStageId { get; set; }
 
+    /// <summary>On a warranty: the card it is worked under (P3110 REQ-F3).</summary>
+    public WarrantyCardKind? WarrantyKind { get; set; }
+
+    /// <summary>On a Labo warranty: the order picked (REQ-F4).</summary>
+    public Guid? WarrantyLaboOrderId { get; set; }
+
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public List<ToothSelectionDto> Teeth { get; set; } = new();
@@ -79,13 +85,17 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     public TreatmentStageLaboDto? Labo { get; set; }
 
     /// <summary>
-    /// "Khoá: phiếu Labo chưa QC đạt" — a labo order of the line raised before
-    /// this công đoạn is not QC-passed yet, so Hoàn thành is refused (P2910_03).
+    /// "🔒 Khoá: LABO-xxx chưa kiểm tra" — a labo order of the line raised on or
+    /// before this công đoạn had not passed QC by its treatment day, so Hoàn
+    /// thành is refused (P2910_03, dated by P3110 note 27).
     /// </summary>
     public bool CompleteLockedByLabo { get; set; }
 
-    /// <summary>The order "Kích hoạt bảo hành" opens; set on the line's latest công đoạn only.</summary>
-    public TreatmentStageLaboDto? LaboWarrantyOrder { get; set; }
+    /// <summary>The order behind <see cref="CompleteLockedByLabo"/> — named by the note, opened by "Xem phiếu Labo ›".</summary>
+    public TreatmentStageLaboDto? CompleteLockedByLaboOrder { get; set; }
+
+    /// <summary>"BN có n phiếu" beside Tạo Labo (P3110 m7): the line's orders, cancelled ones left out.</summary>
+    public int LineLaboOrderCount { get; set; }
 }
 
 public class TreatmentStageLaboDto
@@ -94,6 +104,9 @@ public class TreatmentStageLaboDto
     public string OrderCode { get; set; } = string.Empty;
     public BlueDental.Labo.LaboStatus Status { get; set; }
     public bool IsWarrantyExpired { get; set; }
+
+    /// <summary>The day its last tooth passed QC; null until then. Names why a passed order still locks (P3110 note 27).</summary>
+    public DateOnly? QualityPassedOn { get; set; }
 }
 
 public class CreateTreatmentStageDto
@@ -124,11 +137,17 @@ public class CreateTreatmentStageDto
     public bool IsGuarantee { get; set; }
 
     /// <summary>
-    /// Required with <see cref="IsGuarantee"/>: the finished công đoạn the
-    /// warranty is raised from. The server checks it is live, finished and inside
-    /// the service's warranty period, and bounds the teeth by its root's.
+    /// With <see cref="IsGuarantee"/>: the finished công đoạn the warranty
+    /// continues from — null on a line finished without one (P3110 REQ-B8). The
+    /// server checks it is live and finished, and bounds the teeth by its root's.
     /// </summary>
     public Guid? WarrantySourceStageId { get; set; }
+
+    /// <summary>Required with <see cref="IsGuarantee"/>: "Nha khoa" or "Labo" (REQ-F3).</summary>
+    public WarrantyCardKind? WarrantyKind { get; set; }
+
+    /// <summary>Required with a Labo <see cref="WarrantyKind"/>: "Chọn phiếu Labo" (REQ-F4).</summary>
+    public Guid? WarrantyLaboOrderId { get; set; }
 
 
     /// <summary>

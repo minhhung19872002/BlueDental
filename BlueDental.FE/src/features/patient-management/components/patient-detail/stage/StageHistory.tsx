@@ -1,20 +1,17 @@
 import { useState, type Ref } from "react";
-import { Button, Checkbox, Image } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import { Button, Image } from "antd";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
-import { LABO_STATUS } from "@/features/labo/api/laboApi";
-import type { LaboStep } from "@/features/labo/components/workflow/laboWorkflowSteps";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageEditPencil } from "./StageEditPencil";
 import { NOTE_LIMIT } from "./StageForm";
 import { StageHistoryTeeth } from "./StageHistoryTeeth";
-import { StageLaboChip, StageLaboLockNote, StageLaboWarrantyButton } from "./StageLaboParts";
+import { StageLaboChip } from "./StageLaboParts";
 import { StageNoteBullets } from "./StageNoteBullets";
 import { StageNoteInput } from "./StageNoteInput";
 import { StageRemarkCell } from "./StageRemarkCell";
-import { StageWarrantyButton } from "./StageWarrantyButton";
+import { StageRowActions, type StageHistoryLeaves, type StageRowHandlers } from "./StageRowActions";
 import { namedSteps, type HistoryTooth, type WarrantyState } from "./stageModel";
 
 /** One calendar day's stages, the way the reference groups its rows. */
@@ -24,7 +21,9 @@ export interface StageDay {
   stages: TreatmentStageDto[];
 }
 
-interface Props {
+export type { StageHistoryLeaves } from "./StageRowActions";
+
+interface Props extends StageRowHandlers {
   days: StageDay[];
   total: number;
   imagesOf: (stageId: string) => PatientImageDto[];
@@ -37,34 +36,12 @@ interface Props {
   onSaveNote: (stage: TreatmentStageDto, note: string) => void;
   /** Ghi chú; resolves true once the server took it. */
   onSaveRemark: (stage: TreatmentStageDto, remark: string) => Promise<boolean>;
-  onComplete: (stage: TreatmentStageDto) => void;
-  onUpload: (stage: TreatmentStageDto) => void;
-  onCreateLabo: (stage: TreatmentStageDto) => void;
-  /** "Xem phiếu Labo" and "Kích hoạt bảo hành": the shared Labo dialog on a saved order. */
-  onOpenLabo: (orderId: string, step?: LaboStep) => void;
-  /** Bảo hành, offered in place of Tạo Labo once a công đoạn is finished. */
-  onWarranty: (stage: TreatmentStageDto) => void;
   /** Which of the reference's warranty controls a finished row shows. */
   warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
   /** Every tooth of the row's service, each marked worked, done or neither. */
   historyTeethOf: (stage: TreatmentStageDto) => HistoryTooth[];
   /** The slip page watches the block to show its "back to top" button. */
   ref?: Ref<HTMLDivElement>;
-}
-
-export interface StageHistoryLeaves {
-  /** treatmentStage.update — the note pencil and "Tải ảnh". */
-  update: boolean;
-  /** treatmentStage.complete — the "Hoàn thành" tick. */
-  complete: boolean;
-  /** treatmentStage.create — "Bảo hành" writes a new công đoạn. */
-  warranty: boolean;
-  /** treatmentLabo.create — "Tạo Labo". */
-  labo: boolean;
-  /** treatmentLabo.read — "Xem phiếu Labo" beside the order chip. */
-  laboRead: boolean;
-  /** treatmentLabo.update — "Kích hoạt bảo hành". */
-  laboUpdate: boolean;
 }
 
 /** The pencil that swaps a stage's note for an editor, in place. */
@@ -164,6 +141,7 @@ export function StageHistory({
   historyTeethOf,
   ref,
 }: Props) {
+  const handlers: StageRowHandlers = { onComplete, onUpload, onCreateLabo, onOpenLabo, onWarranty };
   return (
     <div className="pd-stage-history" ref={ref}>
       <header>
@@ -200,12 +178,8 @@ export function StageHistory({
                     // announce its jaw button and pictures as disabled too.
                     // Several chains can run on one line, each with a live row.
                     const live = !stage.isSuperseded;
-                    const done = stage.completedAt !== null;
                     const serviceName = stage.serviceName ?? stage.name;
-                    // P2910_03: the order this công đoạn raised, and the one
-                    // waiting on "Kích hoạt bảo hành" on the line's latest row.
-                    const { labo, laboWarrantyOrder, completeLockedByLabo } = stage;
-                    const raisedLabo = labo !== null && labo.status !== LABO_STATUS.Cancelled;
+                    const { labo } = stage;
                     return (
                       <div
                         className="pd-stage-histrow"
@@ -268,54 +242,14 @@ export function StageHistory({
                           </ul>
                         </div>
 
-                        <div className="pd-stage-rowactions">
-                          {/* Turns both ways: the reference keeps a
-                              `revert-status` beside its `status`, so un-ticking
-                              re-opens the công đoạn. Only an earlier công đoạn
-                              of the line, one mid-request, or one waiting on
-                              the line's labo order to pass QC is locked. */}
-                          <Checkbox
-                            checked={done}
-                            disabled={!can.complete || !live || completingId === stage.id || completeLockedByLabo}
-                            onChange={() => onComplete(stage)}
-                          >
-                            {t("Patient:Misc:Done")}
-                          </Checkbox>
-                          {completeLockedByLabo && <StageLaboLockNote />}
-                          {can.update && (
-                            <Button
-                              block
-                              icon={<PictureOutlined />}
-                              disabled={!live}
-                              loading={uploadingFor === stage.id}
-                              onClick={() => onUpload(stage)}
-                            >
-                              {t("Patient:Photo:Upload")}
-                            </Button>
-                          )}
-                          {/* A finished công đoạn swaps Tạo Labo for Bảo hành;
-                              a continued one offers neither, nor does one whose
-                              labo order still stands (its chip opens it). */}
-                          {done
-                            ? can.warranty && (
-                                <StageWarrantyButton
-                                  state={warrantyOf(stage)}
-                                  onClick={() => onWarranty(stage)}
-                                />
-                              )
-                            : live &&
-                              can.labo &&
-                              !raisedLabo && (
-                                <Button block type="primary" onClick={() => onCreateLabo(stage)}>
-                                  {t("Patient:Labo:Create")}
-                                </Button>
-                              )}
-                          {laboWarrantyOrder && can.laboUpdate && (
-                            <StageLaboWarrantyButton
-                              onClick={() => onOpenLabo(laboWarrantyOrder.orderId, "warranty")}
-                            />
-                          )}
-                        </div>
+                        <StageRowActions
+                          stage={stage}
+                          can={can}
+                          completing={completingId === stage.id}
+                          uploading={uploadingFor === stage.id}
+                          warranty={warrantyOf(stage)}
+                          handlers={handlers}
+                        />
                       </div>
                     );
                   })}

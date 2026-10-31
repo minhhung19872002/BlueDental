@@ -8,7 +8,7 @@ namespace BlueDental.Labo;
 
 /// <summary>
 /// What a line's labo orders do to its công đoạn (P2910_03, owner decision 9):
-/// the Hoàn thành lock, the chip and the Kích hoạt bảo hành offer.
+/// the Hoàn thành lock — dated by the QC pass since P3110 — and the chip.
 /// </summary>
 public class LaboStagePolicyTests
 {
@@ -38,6 +38,7 @@ public class LaboStagePolicyTests
             MaterialId = Guid.NewGuid(),
             Teeth = teeth.Length == 0 ? [11] : teeth,
             ToothShade = "A2",
+            FinishLineId = Guid.NewGuid(),
             SentAt = SentAt,
             DueAt = SentAt.AddDays(7),
             TreatmentServiceId = _line,
@@ -45,7 +46,7 @@ public class LaboStagePolicyTests
         });
 
     private static LaboOrder Passed(LaboOrder order) =>
-        order.Submit(1).Receive(Guid.NewGuid(), CheckedAt, 1, null)
+        order.Submit().Receive(Guid.NewGuid(), CheckedAt, 1, null)
             .ConfirmPassed([.. order.Teeth.Select(t => new LaboRoundToothResult(t.ToothNumber, LaboToothCheckResult.Passed))], CheckedAt);
 
     private static LaboOrder WrittenOn(LaboOrder order, int day)
@@ -62,7 +63,7 @@ public class LaboStagePolicyTests
         var sameDayLater = Stage(3, 22, hour: 10);
         var after = Stage(4, 25);
         TreatmentStage[] stages = [before, raised, sameDayLater, after];
-        LaboOrder[] orders = [Order(raised).Submit(1)];
+        LaboOrder[] orders = [Order(raised).Submit()];
 
         _policy.LocksCompletion(before, stages, orders).ShouldBeFalse();
         _policy.LocksCompletion(raised, stages, orders).ShouldBeTrue();
@@ -121,36 +122,43 @@ public class LaboStagePolicyTests
         _policy.OrderRaisedOn(Stage(2, 25), [live]).ShouldBeNull();
     }
 
+    /// <summary>
+    /// P3110 note 27: "ngày 10 pass 1 răng → ngày 10 vẫn khoá; ngày 11 pass hết →
+    /// ngày 11 mới cho Hoàn thành". The day the last tooth passed decides.
+    /// </summary>
     [Fact]
-    public void Warranty_Should_Be_Offered_On_The_Latest_Stage_Only()
+    public void Stage_Should_Unlock_Only_From_The_Day_The_Last_Tooth_Passed()
     {
-        var raised = Stage(1, 20);
-        var latest = Stage(2, 25);
-        TreatmentStage[] stages = [raised, latest];
-        var passed = Passed(Order(raised, 11, 21));
+        var day10 = Stage(1, 10);
+        var day11 = Stage(2, 11);
+        TreatmentStage[] stages = [day10, day11];
+        var order = Order(day10, 11, 21).Submit();
+        var tenth = new DateTimeOffset(2026, 10, 10, 15, 0, 0, Clinic);
+        var eleventh = new DateTimeOffset(2026, 10, 11, 10, 0, 0, Clinic);
 
-        _policy.OrderAwaitingWarranty(latest, stages, [passed]).ShouldBe(passed);
-        _policy.OrderAwaitingWarranty(raised, stages, [passed]).ShouldBeNull();
+        order.Receive(Guid.NewGuid(), tenth, 1, null).ReturnToLab(
+            [new(11, LaboToothCheckResult.Passed), new(21, LaboToothCheckResult.Failed, "Hở bờ")],
+            new LaboReturnRequest(false, "Làm lại 21", tenth, tenth.AddHours(20), 1),
+            tenth);
+        _policy.LocksCompletion(day10, stages, [order]).ShouldBeTrue();
+        _policy.LocksCompletion(day11, stages, [order]).ShouldBeTrue();
+
+        order.Receive(Guid.NewGuid(), eleventh, 1, null)
+            .ConfirmPassed([new(21, LaboToothCheckResult.Passed)], eleventh);
+        order.QualityPassedOn.ShouldBe(new DateOnly(2026, 10, 11));
+        _policy.LockingOrder(day10, stages, [order]).ShouldBe(order);
+        _policy.LocksCompletion(day11, stages, [order]).ShouldBeFalse();
     }
 
     [Fact]
-    public void Warranty_Offer_Should_Stay_Until_Every_Passed_Tooth_Has_A_Card()
+    public void Lock_Should_Name_The_Unfinished_Order_Over_A_Late_Passed_One()
     {
-        var latest = Stage(1, 20);
-        var order = Passed(Order(latest, 11, 21));
+        var raised = Stage(1, 5);
+        var passedLate = WrittenOn(Passed(Order(raised)), 5);
+        var unfinished = WrittenOn(Order(raised).Submit(), 1);
+        TreatmentStage[] stages = [raised];
 
-        order.ActivateWarranty([new(11, new DateOnly(2026, 10, 8), 12)], CheckedAt, null);
-        _policy.OrderAwaitingWarranty(latest, [latest], [order]).ShouldBe(order);
-
-        order.ActivateWarranty([new(21, new DateOnly(2026, 10, 8), 12)], CheckedAt, null);
-        _policy.OrderAwaitingWarranty(latest, [latest], [order]).ShouldBeNull();
-    }
-
-    [Fact]
-    public void Warranty_Should_Not_Be_Offered_Before_Quality_Passes()
-    {
-        var latest = Stage(1, 20);
-
-        _policy.OrderAwaitingWarranty(latest, [latest], [Order(latest).Submit(1)]).ShouldBeNull();
+        _policy.LockingOrder(raised, stages, [passedLate, unfinished]).ShouldBe(unfinished);
+        _policy.LockingOrder(raised, stages, [passedLate]).ShouldBe(passedLate);
     }
 }

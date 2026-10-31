@@ -42,7 +42,13 @@ export function LaboWarrantyActivationBox({ order, warranty }: Props) {
               {t("Labo:Warranty:FormTitle")}
             </h4>
             {picked.map((tooth) => (
-              <LaboWarrantyToothForm key={tooth.toothNumber} tooth={tooth} caption={caption} />
+              <LaboWarrantyToothForm
+                key={tooth.toothNumber}
+                tooth={tooth}
+                caption={caption}
+                photos={warranty.photos}
+                busy={warranty.busy}
+              />
             ))}
           </div>
         )}

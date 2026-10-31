@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, Modal } from "antd";
 import { CalendarOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import type { LaboOrderDto } from "@/features/labo/api/laboApi";
+import { isWarrantyCardPhoto, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { laboStatusPill } from "@/features/labo/api/laboStatus";
 import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { LaboDetailFacts } from "./LaboDetailFacts";
@@ -52,7 +52,9 @@ export function LaboDetailDialog({ order, branchId, canCreateAppointment, onClos
           <>
             <LaboDetailFacts facts={laboOrderFacts(order, patient)} pill={laboStatusPill(order)} />
             <LaboPictureWell
-              tiles={order.images.map((image) => ({ key: image.id, url: image.url, name: image.fileName }))}
+              tiles={order.images
+                .filter((image) => !isWarrantyCardPhoto(image))
+                .map((image) => ({ key: image.id, url: image.url, name: image.fileName }))}
               busy={false}
               readOnly
             />

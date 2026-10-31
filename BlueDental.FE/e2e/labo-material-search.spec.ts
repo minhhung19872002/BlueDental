@@ -2,14 +2,15 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login } from "./fixtures/auth";
 
 /**
- * Feature: the Đặt hàng step of the patient's Labo dialog — the search box
- * beside "Vật liệu" (R-1062, a BlueDental addition the reference does not have).
+ * Feature: the Đặt hàng step of the patient's Labo dialog — finding a material
+ * by name (R-1062, a BlueDental addition). Since P3110 (REQ-C4/C5) the box
+ * lives in the «Xem thêm vật liệu» popup instead of beside the strip.
  * The Bảo hành child order it also covered went with P2910_03 (F-85): a
  * warranty is now a card per tooth, with no new order and no material.
  *
- * Real stack: login through the screen, the strips read the real catalog, Lưu
+ * Real stack: login through the screen, the rows read the real catalog, Lưu
  * posts to the real API and a reload reads the row back. The only shortcut is
- * seeding one dedicated group with three materials, through the endpoints the
+ * seeding one dedicated group with four materials, through the endpoints the
  * Labo catalog screens call, with the browser's own cookie.
  */
 
@@ -22,11 +23,12 @@ interface Seeded {
   supplierName: string;
 }
 
-/** A group of its own, so its chips are exactly these three on every run. */
+/** A group of its own, so its popup lists exactly these four on every run: one more than the row shows. */
 const GROUP = "Dịch vụ tìm vật liệu e2e";
 const ZIRCONIA = "Sứ Zirconia Aizir (e2e tìm)";
 const EMAX = "Sứ Emax (e2e tìm)";
 const DENTURE = "Răng tháo lắp Đức (e2e tìm)";
+const TITAN = "Sứ kim loại Titan (e2e tìm)";
 
 /** A patient owning a slip with an open service line, in that slip's branch. */
 async function findStageablePatient(page: Page): Promise<Target> {
@@ -112,7 +114,7 @@ async function seedCatalog(page: Page, branchId: string): Promise<Seeded> {
       }
       return { supplierName: supplier.name };
     },
-    { branchId, group: GROUP, materials: [ZIRCONIA, EMAX, DENTURE] },
+    { branchId, group: GROUP, materials: [ZIRCONIA, EMAX, DENTURE, TITAN] },
   );
 }
 
@@ -145,23 +147,52 @@ function rowsWithCode(page: Page, code: string) {
     .filter({ has: page.locator("td", { hasText: new RegExp(`^${code}$`) }) });
 }
 
-/** The chips shown, in any order: the server sorts the catalog its own way. */
-async function expectChips(chips: Locator, names: string[]) {
+/** The names shown, in any order: the server sorts the catalog its own way. */
+async function expectNames(items: Locator, names: string[]) {
   await expect
-    .poll(async () => (await chips.allTextContents()).map((text) => text.trim()).sort())
+    .poll(async () => (await items.allTextContents()).map((text) => text.trim()).sort())
     .toEqual([...names].sort());
 }
 
-/** Lựa chọn dịch vụ and Vật liệu, the box beside the latter and its chips. */
-function materialStrips(dialog: Locator) {
-  const strips = dialog.locator(".pd-labo-strip");
-  const material = strips.nth(1);
+/** Dịch vụ and Vật liệu (P3110 m134): their chips and their «Xem thêm» pills. */
+function choiceRows(dialog: Locator) {
+  const rows = dialog.locator(".pd-labo-choice");
+  const material = rows.nth(1);
   return {
-    services: strips.nth(0).locator(".pd-labo-chips button"),
+    service: rows.nth(0),
+    services: rows.nth(0).locator(".pd-labo-choice-chip"),
     material,
-    search: material.getByRole("textbox", { name: "Tìm kiếm vật liệu" }),
-    chips: material.locator(".pd-labo-chips button"),
+    chips: material.locator(".pd-labo-choice-chip"),
+    more: material.getByRole("button", { name: "Xem thêm vật liệu" }),
   };
+}
+
+/** The «Xem thêm» popup open on top of the dialog. */
+function choicePopup(page: Page, title: string) {
+  const popup = page.locator(".pd-labo-pick").filter({ hasText: title });
+  return {
+    popup,
+    search: popup.getByRole("textbox"),
+    names: popup.locator(".pd-labo-pick-row b"),
+    row: (name: string) => popup.getByRole("radio").filter({ hasText: name }),
+  };
+}
+
+/** The dedicated group: its chip when the row shows it, else found through «Xem thêm dịch vụ». */
+async function pickGroup(page: Page, dialog: Locator) {
+  const rows = choiceRows(dialog);
+  const chip = rows.services.filter({ hasText: GROUP });
+  if ((await chip.count()) > 0) {
+    await chip.click();
+    return;
+  }
+  await rows.service.getByRole("button", { name: "Xem thêm dịch vụ" }).click();
+  const services = choicePopup(page, "Chọn dịch vụ Labo");
+  // Blind to case and marks, on the service's name (R-1051).
+  await services.search.fill("dich vu tim vat lieu e2e");
+  await services.row(GROUP).click();
+  await services.popup.getByRole("button", { name: "Chọn dịch vụ" }).click();
+  await expect(services.popup).toBeHidden();
 }
 
 test.describe("Labo dialog — Vật liệu search (R-1062)", () => {
@@ -170,7 +201,7 @@ test.describe("Labo dialog — Vật liệu search (R-1062)", () => {
     await login(page);
   });
 
-  test("narrows the chips accent-blind, keeps the pick, saves the draft", async ({
+  test("finds the material accent-blind in the popup, keeps the pick, saves the draft", async ({
     page,
   }) => {
     const target = await findStageablePatient(page);
@@ -181,77 +212,80 @@ test.describe("Labo dialog — Vật liệu search (R-1062)", () => {
     await page.locator(".pd-record-toolbar").getByRole("button", { name: "Tạo phiếu Labo" }).click();
     const dialog = page.getByRole("dialog").filter({ has: page.locator(".pd-labo-steps") });
     await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Đặt hàng");
-    const strips = materialStrips(dialog);
+    const rows = choiceRows(dialog);
 
-    // ── Both strips have a box; Vật liệu's waits for a service group ─────
-    await expect(dialog.locator(".pd-labo-strip-search")).toHaveCount(2);
-    await expect(strips.material.locator(".pd-labo-strip-head > p")).toHaveText(/Vật liệu/);
-    await expect(strips.search).toBeDisabled();
-    await expect(strips.material).toContainText("Chọn dịch vụ trước");
+    // ── Vật liệu waits for a service; then three chips and «Xem thêm» ────
+    await expect(rows.material.locator(".pd-labo-choice-label")).toHaveText(/Vật liệu/);
+    await expect(rows.material.locator(".pd-labo-emptypill")).toHaveText("Chọn dịch vụ trước");
+    await expect(rows.more).toHaveCount(0);
 
-    await strips.services.filter({ hasText: GROUP }).click();
-    await expect(strips.search).toBeEnabled();
-    await expect(strips.chips).toHaveCount(3);
+    await pickGroup(page, dialog);
+    await expect(rows.services.filter({ hasText: GROUP })).toHaveAttribute("aria-pressed", "true");
+    await expect(rows.chips).toHaveCount(3);
+    await expect(rows.more).toBeVisible();
 
     // ── Accent- and case-blind, on any part of the name (R-1051) ─────────
-    await strips.search.fill("zirconia");
-    await expectChips(strips.chips, [ZIRCONIA]);
-    await strips.search.fill("su");
-    await expectChips(strips.chips, [ZIRCONIA, EMAX]);
-    await strips.search.fill("DUC");
-    await expectChips(strips.chips, [DENTURE]);
-    await strips.search.fill("không có vật liệu này");
-    await expect(strips.chips).toHaveCount(0);
-    await expect(strips.material.locator(".pd-labo-emptypill")).toHaveText(
-      "Không tìm thấy vật liệu",
-    );
+    await rows.more.click();
+    const materials = choicePopup(page, "Chọn vật liệu");
+    await expect(materials.popup.locator(".pd-labo-pick-count")).toHaveText("4 vật liệu");
+    await expectNames(materials.names, [ZIRCONIA, EMAX, DENTURE, TITAN]);
+    await materials.search.fill("zirconia");
+    await expectNames(materials.names, [ZIRCONIA]);
+    await materials.search.fill("su");
+    await expectNames(materials.names, [ZIRCONIA, EMAX, TITAN]);
+    await materials.search.fill("DUC");
+    await expectNames(materials.names, [DENTURE]);
+    await materials.search.fill("không có vật liệu này");
+    await expect(materials.names).toHaveCount(0);
+    await expect(materials.popup.locator(".pd-labo-pick-none")).toHaveText("Không có dữ liệu");
 
-    // ── The pick outlives its chip being filtered out ─────────────────────
-    await strips.search.fill("emax");
-    await strips.chips.filter({ hasText: EMAX }).click();
-    await expect(strips.chips.filter({ hasText: EMAX })).toHaveAttribute("aria-pressed", "true");
-    await strips.search.fill("duc");
-    await expectChips(strips.chips, [DENTURE]);
-    await strips.search.fill("");
-    await expect(strips.chips).toHaveCount(3);
-    await expect(strips.chips.filter({ hasText: EMAX })).toHaveAttribute("aria-pressed", "true");
-
-    // ── Enter in the box does not submit the half-filled form ─────────────
-    await strips.search.fill("emax");
-    await strips.search.press("Enter");
+    // ── Enter in the box picks nothing and does not submit the form ──────
+    await materials.search.fill("emax");
+    await materials.search.press("Enter");
     // Validation runs async, so an absence is only worth checking after a beat.
     await page.waitForTimeout(800);
     await expect(dialog.locator(".ant-form-item-explain-error")).toHaveCount(0);
-    await expect(dialog).toBeVisible();
+    await expect(materials.popup).toBeVisible();
+    await expect(materials.popup.getByRole("button", { name: "Chọn vật liệu" })).toBeDisabled();
 
-    // ── Sent without a material: the label and hint go red, the box does not ─
-    await strips.chips.filter({ hasText: EMAX }).click();
-    await expect(strips.chips.filter({ hasText: EMAX })).toHaveAttribute("aria-pressed", "false");
-    await dialog.locator(".pd-labo-footer").getByRole("button", { name: "Tạo phiếu Labo" }).click();
-    await expect(strips.material).toHaveClass(/pd-labo-strip--error/);
-    await expect(
-      dialog.locator(".ant-form-item-explain-error", { hasText: "Vui lòng chọn vật liệu." }),
-    ).toBeVisible();
-    await expect(strips.material.locator(".pd-labo-strip-search")).not.toHaveClass(/status-error/);
-    await expect(dialog).toBeVisible();
+    // ── One pick (radio), applied only by the footer's button ────────────
+    await materials.row(EMAX).click();
+    await expect(materials.row(EMAX)).toHaveAttribute("aria-checked", "true");
+    await expect(materials.popup.locator(".pd-labo-pick-foot")).toContainText(EMAX);
+    await materials.popup.getByRole("button", { name: "Chọn vật liệu" }).click();
+    await expect(materials.popup).toBeHidden();
+    await expect(rows.chips.filter({ hasText: EMAX })).toHaveAttribute("aria-pressed", "true");
 
-    // ── Another group clears the box with the material ───────────────────
-    const otherGroup = strips.services.filter({ hasNotText: GROUP }).first();
+    // ── The popup opens on the pick; a pick past the first three still shows, last ─
+    await rows.more.click();
+    await expect(materials.search).toHaveValue("");
+    await expect(materials.row(EMAX)).toHaveAttribute("aria-checked", "true");
+    await materials.popup.getByRole("button", { name: "Hủy" }).click();
+    await expect(materials.popup).toBeHidden();
+    const shown = (await rows.chips.allTextContents()).map((text) => text.trim());
+    const outside = [ZIRCONIA, EMAX, DENTURE, TITAN].find((name) => !shown.includes(name))!;
+    await rows.more.click();
+    await materials.row(outside).dblclick();
+    await expect(materials.popup).toBeHidden();
+    await expect(rows.chips).toHaveCount(3);
+    await expect(rows.chips.nth(2)).toHaveText(outside);
+    await expect(rows.chips.nth(2)).toHaveAttribute("aria-pressed", "true");
+
+    // ── Another service lets go of the material ──────────────────────────
+    const otherGroup = rows.services.filter({ hasNotText: GROUP }).first();
     if ((await otherGroup.count()) > 0) {
       await otherGroup.click();
-      await expect(strips.search).toHaveValue("");
-      await expect(strips.material.locator('.pd-labo-chips [aria-pressed="true"]')).toHaveCount(0);
-      await strips.services.filter({ hasText: GROUP }).click();
-      await expect(strips.chips).toHaveCount(3);
-      await expect(strips.chips.filter({ hasText: EMAX })).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      );
+      await expect(rows.material.locator('[aria-pressed="true"]')).toHaveCount(0);
+      await pickGroup(page, dialog);
+      await expect(rows.chips).toHaveCount(3);
+      await expect(rows.material.locator('[aria-pressed="true"]')).toHaveCount(0);
     }
 
-    // ── Picked through the box, kept as a Nháp, read back after a reload ─
-    await strips.search.fill("zircon");
-    await strips.chips.filter({ hasText: ZIRCONIA }).click();
+    // ── Picked through the popup, kept as a Nháp, read back after a reload ─
+    await rows.more.click();
+    await materials.search.fill("zircon");
+    await materials.row(ZIRCONIA).click();
+    await materials.popup.getByRole("button", { name: "Chọn vật liệu" }).click();
     await pickOption(page, field(dialog, "Dịch vụ điều trị"));
     await ensureDoctor(dialog, page);
     await pickOption(page, field(dialog, "Nhà cung cấp"), seeded.supplierName);

@@ -13,6 +13,7 @@ import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { LaboWorkflowDialog } from "@/features/labo/components/workflow/LaboWorkflowDialog";
 import { usePatientAdvises } from "../../api/consultingQueries";
+import { usePlanWarrantyOverview } from "../../api/planWarrantyApi";
 import {
   PLAN_STATUS,
   useCancelServiceLine,
@@ -162,7 +163,11 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over stable mutations
     [plan.id, canEditLines, consultation.canDelete, canReadLabo],
   );
-  const columns = useMemo(() => buildServiceColumns(actions), [actions]);
+  const warranty = usePlanWarrantyOverview(plan.id);
+  const columns = useMemo(() => {
+    const rows = new Map((warranty.data?.rows ?? []).map((row) => [row.lineId, row]));
+    return buildServiceColumns(actions, (lineId) => rows.get(lineId));
+  }, [actions, warranty.data]);
 
   // Held steady between renders: the form refills itself whenever this changes.
   const editTarget = useMemo<LineEditTarget | null>(

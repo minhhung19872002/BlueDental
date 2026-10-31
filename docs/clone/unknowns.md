@@ -3284,3 +3284,44 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
 7. Lần BH luôn 0 cho tới đợt Tiếp nhận bảo hành.
 8. Mẫu Giao Trễ / Mẫu Chưa Nhận ở `/labo` chia theo ngày: hạn giao trước hôm nay là trễ, hạn hôm nay vẫn là chưa nhận (chủ dự án chốt 2026-10-30). Nháp và Đã hủy chỉ hiện ở Tất cả.
 9. Dữ liệu cũ: phiếu Hoàn thành cũ có mọi răng Đạt, ngày Đạt = ngày nhận (hoặc ngày sửa cuối); phiếu đã nhận cũ có lần nhận 1. Phiếu con cũ (Làm tiếp công đoạn / Bảo hành) vẫn xem được, không tạo mới.
+
+## P3110 — Labo + Bảo hành (F-86, 2026-10-31, BA P3110)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: popup Labo bước 3 Bảo hành (Kích hoạt bảo hành từng răng)
+Control: Ảnh thẻ bảo hành Mặt trước / Mặt sau (REQ-E1), panel Thông tin thẻ / Lịch sử (REQ-E2)
+Reason: quy trình riêng của BlueDental theo `P3110.drawio`; bản gốc không có ảnh thẻ bảo hành nên không có gì để quan sát. Kế hoạch + quyết định: `docs/wip/p3110-labo-warranty-plan.md`.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. Ảnh thẻ chỉ gửi cùng lúc bấm "Kích hoạt bảo hành"; răng đã kích hoạt **chưa** thêm / thay / xoá ảnh thẻ được (BA chỉ vẽ ô ảnh trong form kích hoạt). Ảnh đã lưu xem lại ở cột "Ảnh thẻ" của bảng thẻ (bấm để phóng to).
+2. Mỗi mặt một ảnh; định dạng và giới hạn dung lượng như ảnh hồ sơ (`validateImageFile`).
+3. Ảnh thẻ không lẫn vào ảnh phiếu Labo (dải ảnh Đặt hàng, popup chi tiết, nút hồ sơ ở danh sách).
+4. P2910_03 mục 6 (tên phòng khám trên thẻ xem trước) không còn áp dụng: REQ-E2 bỏ panel Thông tin thẻ.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: phiếu điều trị — tab Bảo hành; Chi tiết phiếu — tab TIẾP TỤC BẢO HÀNH (P3110 B/F)
+Control: Bảo hành dịch vụ (kích hoạt thẻ nha khoa), Thẻ bảo hành áp dụng, Dịch vụ bảo hành · Labo, cột Bảo hành của bảng dịch vụ
+Reason: tính năng riêng của BlueDental theo `P3110.drawio`; bản gốc không có tab này. Giả định G16–G25 ở `docs/wip/p3110-labo-warranty-plan.md` §4, tóm tắt ở `docs/testing/features/plan-warranty.md`.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. (G23) Công đoạn bảo hành chỉ mở được khi dòng còn ít nhất một thẻ hợp lệ (thẻ nha khoa `EndDate ≥ hôm nay` hoặc răng Labo đã kích hoạt còn hạn). Trước P3110 dùng số ngày bảo hành của danh mục tính từ ngày điều trị — dòng chưa kích hoạt thẻ nay **không** tạo công đoạn bảo hành được nữa.
+2. (G16) Ngày hoàn thành của dòng = ngày điều trị muộn nhất của các công đoạn thường đã hoàn thành; dòng hoàn thành tay lấy ngày sửa cuối. Ngày bắt đầu thẻ không được trước ngày này.
+3. (G18–G20) Bảng tình trạng / thẻ không phân trang; thời hạn ghi theo chip đã chọn ("1 năm", "6 tháng"), thẻ "Theo danh mục" ghi "{n} ngày"; dòng phụ sự kiện kích hoạt = `BS. {bác sĩ} · {thời hạn}`.
+4. (G21) Ô thẻ bên trái ghi "Nha khoa" (m415 vẽ "Dịch vụ").
+5. (G22) "Bác sĩ hỗ trợ" = trường nhân sự thứ hai đã có trên form công đoạn.
+6. (G24) Popup "Tạo bảo hành" cũ bị bỏ: nút "Bảo hành dịch vụ" ở lịch sử và icon bảo hành ở bảng điều trị của hồ sơ đều sang tab Bảo hành của phiếu.
+7. (G25) Dropdown Labo: dòng 1 nhà cung cấp, dòng 2 `{vật liệu} R.. · Hạn ..`.
+8. Chip cột Bảo hành ghi "Nha khoa · Đã kích hoạt" (không ghi số thẻ; m390 vẽ "Nha khoa 2 thẻ").
+9. (G6) Thẻ nha khoa chưa huỷ / sửa được sau khi kích hoạt.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: bảng dịch vụ phiếu điều trị, LỊCH SỬ ĐIỀU TRỊ, popup Labo bước 1 Đặt hàng / bước 2 Nhận hàng & kiểm tra (P3110 A/C/D)
+Control: "Xem tất cả ›", Dùng chung thông số, nhóm Lỗi theo răng, Trả hàng bị lỗi / Trả toàn bộ
+Reason: tính năng riêng của BlueDental theo `P3110.drawio`. Bảng đầy đủ G1–G15 ở `docs/wip/p3110-labo-warranty-plan.md` §4.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. (G1) "Xem tất cả ›" mở tab Labo của hồ sơ bệnh nhân trong tab trình duyệt mới.
+2. (G2/G8) Dùng chung: thông số và ảnh của dòng chung gắn cho mọi răng; phiếu cũ hiện thông số cấp phiếu cho mọi răng.
+3. (G7) Nút "Trả hàng bị lỗi" màu tím theo note BA, dù m306/m307 vẽ đỏ.
+4. (G9–G13) Thu gọn nhóm Lỗi chỉ ẩn phần nhập; "Không đạt n/n → trả toàn bộ" chỉ khi mọi răng của phiếu Lỗi; răng Đạt lần trước khoá `Đạt lần k · chờ lắp / đã lắp dd/mm`; Trả toàn bộ mở lại mọi răng; "Đã trả: n lần" tính luôn lần sắp bấm.
+5. (G14/G15) Ô màu cạnh "Răng N" là chip ngà cố định; lần kiểm tra sau điền sẵn mô tả lần trả gần nhất, không điền sẵn ảnh.

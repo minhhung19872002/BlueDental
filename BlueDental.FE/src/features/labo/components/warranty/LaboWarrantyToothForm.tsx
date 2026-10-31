@@ -2,6 +2,7 @@ import { DatePicker, Form, Input } from "antd";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
 import { StatusBadge } from "@/components/StatusBadge";
+import { WarrantyCardPhotos, type WarrantyCardDrafts } from "@/components/WarrantyCardPhotos";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
 import type { LaboOrderToothDto } from "@/features/labo/api/laboApi";
@@ -16,6 +17,9 @@ interface Props {
   tooth: LaboOrderToothDto;
   /** "Sứ Zirconia · LABO-202610291". */
   caption: string;
+  /** The Ảnh thẻ bảo hành picked so far, keyed by tooth. */
+  photos: WarrantyCardDrafts;
+  busy: boolean;
 }
 
 /** Thiếu ngày bắt đầu, thời hạn — or Đủ thông tin once both are in. */
@@ -32,9 +36,10 @@ function Readiness({ card }: { card: LaboWarrantyCardValues | undefined }) {
 
 /**
  * 2. One tooth's card: Ngày bắt đầu (not before the day it passed), Mã thẻ
- * hãng, Thời hạn — Ngày hết hạn follows from the two — and Điều kiện.
+ * hãng, Thời hạn — Ngày hết hạn follows from the two — Điều kiện and the
+ * optional Ảnh thẻ bảo hành, front and back (P3110 REQ-E1).
  */
-export function LaboWarrantyToothForm({ tooth, caption }: Props) {
+export function LaboWarrantyToothForm({ tooth, caption, photos, busy }: Props) {
   const key = toothKey(tooth.toothNumber);
   const card: LaboWarrantyCardValues | undefined = Form.useWatch(["cards", key]);
   const end = warrantyEndDate(card?.startDate, card?.months);
@@ -88,6 +93,15 @@ export function LaboWarrantyToothForm({ tooth, caption }: Props) {
       <FloatingField name={["cards", key, "conditions"]} label={t("Labo:Warranty:Conditions")}>
         <Input maxLength={1000} />
       </FloatingField>
+      <div className="pd-labo-warranty-duration-row">
+        <span className="pd-labo-warranty-duration-label">{t("Labo:Warranty:CardPhotos")}</span>
+        <WarrantyCardPhotos
+          urls={photos.urlsOf(tooth.toothNumber)}
+          disabled={busy}
+          onPick={(side, file) => photos.pick(tooth.toothNumber, side, file)}
+          onRemove={(side) => photos.remove(tooth.toothNumber, side)}
+        />
+      </div>
     </article>
   );
 }

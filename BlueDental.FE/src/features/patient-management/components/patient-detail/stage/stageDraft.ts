@@ -1,3 +1,7 @@
+import {
+  WARRANTY_CARD_KIND,
+  type WarrantyCardKind,
+} from "@/features/treatment-management/api/planWarrantyApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import { t } from "@/lib/i18n";
 import { todayIsoDate } from "@/utils/todayIsoDate";
@@ -26,6 +30,12 @@ export interface StageDraft {
   /** Tooth codes the công đoạn will take. */
   teeth: number[];
   /**
+   * TIẾP TỤC BẢO HÀNH only: "Thẻ bảo hành áp dụng" (P3110 REQ-F3) and, under
+   * Labo, the order worked under (REQ-F4). An open chain carries its own.
+   */
+  warrantyKind: WarrantyCardKind | undefined;
+  warrantyLaboOrderId: string | undefined;
+  /**
    * Names for the people the form started with, so a picker whose first page
    * does not hold them still prints a name rather than an id.
    */
@@ -52,6 +62,9 @@ export interface StaffFallback {
  *   đoạn, and every tooth still open, any of which can be dropped one by one.
  *
  * Nội dung điều trị always starts blank: it is this visit's note, not the last.
+ *
+ * A new warranty (a TIẾP TỤC BẢO HÀNH card with no chain yet) starts with no
+ * card picked and so no tooth: the teeth follow the card picked.
  */
 export function initialDraft(
   item: StageItem,
@@ -64,13 +77,17 @@ export function initialDraft(
     treatmentDate: todayIsoDate(),
     pending: [],
     steps: [],
-    teeth: toothCodes(item.teeth),
+    teeth: item.tab === "continueWarranty" && item.stages.length === 0 ? [] : toothCodes(item.teeth),
+    warrantyKind: undefined,
+    warrantyLaboOrderId: undefined,
   };
 
   const [stage] = item.stages;
   if (stage) {
     return {
       ...base,
+      warrantyKind: stage.warrantyKind ?? undefined,
+      warrantyLaboOrderId: stage.warrantyLaboOrderId ?? undefined,
       staffId: stage.staffId,
       subStaffId: stage.subStaffId ?? undefined,
       secondStaffId: stage.secondStaffId ?? undefined,
@@ -133,6 +150,19 @@ export const isDraftDirty = (draft: StageDraft): boolean =>
   draft.note.trim().length > 0 || draft.remark.trim().length > 0 || draft.pending.length > 0;
 
 /**
+ * A new warranty names its card, and under Labo the order (P3110 REQ-F3/F4);
+ * the server refuses either missing (Treatment:0058 / 0060).
+ */
+function warrantyErrors(draft: StageDraft, item: StageItem): Pick<StageFieldErrors, "warranty" | "laboOrder"> {
+  if (item.tab !== "continueWarranty" || item.stages.length > 0) return {};
+  if (draft.warrantyKind === undefined) return { warranty: t("Patient:Stage:RequiredWarrantyCard") };
+  if (draft.warrantyKind === WARRANTY_CARD_KIND.Labo && !draft.warrantyLaboOrderId) {
+    return { laboOrder: t("Patient:Stage:RequiredLaboWarranty") };
+  }
+  return {};
+}
+
+/**
  * The reference's schema for every form it saves (`validateStageModalItems`):
  * doctor, at least one tooth and the treatment note, each reported under its
  * own field. The note's 1000-character cap is the textarea's own.
@@ -149,6 +179,7 @@ export function draftErrors(draft: StageDraft, item: StageItem): StageFieldError
       teethPicked: item.teeth.length === 0 || draft.teeth.length > 0,
     }),
     treatmentDate: draft.treatmentDate ? undefined : t("Patient:Stage:RequiredTreatmentDate"),
+    ...warrantyErrors(draft, item),
   };
   return hasStageFieldError(errors) ? errors : null;
 }

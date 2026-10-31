@@ -12758,3 +12758,61 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Các ô khoá của tab Đặt hàng (Tên khách hàng, Kế hoạch / Dịch vụ điều trị, Số phiếu Labo, Số lượng) dùng `LaboLockedField`: ô nhập có tên truy cập bằng chính nhãn. Không sửa `FloatingLabel` dùng chung, để khỏi phải retest /taxonomy.
   - E2E: `labo-api` thêm test Hoàn thành dịch vụ (Nháp → 0033, huỷ; phiếu đã gửi → 0033; QC đạt → 200, dòng = Hoàn thành). `labo-workflow` kiểm thêm menu khoá / mở và tìm các ô khoá bằng `getByRole("textbox", { name })`.
   - Chạy trên build production :8170 → host :5140 → DB `BlueDental_p291003`: `labo-api` + `labo-workflow` **12/12**; các spec Labo còn lại + `treatment-plan-detail`, `plan-treating-scope`, `cskh-after-treatment` (dùng menu Đổi trạng thái) **60/60**. BE build sạch, FE `tsc` + oxlint sạch.
+
+## R-1084 (2026-10-31, mức 2: F-86 P3110 phase A) Bảng dịch vụ phiếu điều trị + LỊCH SỬ ĐIỀU TRỊ theo BA P3110
+
+- **Yêu cầu** (BA `P3110.drawio`, truy vết REQ-A1…A10 ở `docs/wip/p3110-labo-warranty-plan.md` §2A; chủ dự án chốt D1–D9 ngày 2026-10-31):
+  - Cột Trạng thái bỏ chữ "N lần"; cột Phiếu Labo = chip trạng thái phiếu mới nhất (không tính phiếu huỷ) + mã phiếu bấm mở popup + "Xem tất cả ›" mở tab Labo hồ sơ trong tab trình duyệt mới (G1).
+  - Chip luôn theo trạng thái thật (lỗi "vẫn Chờ Labo" sau khi hoàn thành: popup đóng thì làm mới kế hoạch).
+  - Ô Hành động công đoạn: chưa có phiếu → "Tạo Labo"; có phiếu → "BN có n phiếu", không sửa.
+  - Công đoạn bị khoá: dòng đỏ `🔒 Khoá: LABO-xxx chưa kiểm tra` + "Xem phiếu Labo ›" (mở bước 2), Tải ảnh vẫn bấm được; mở khoá khi mọi răng Đạt.
+  - Bỏ nút "Kích hoạt bảo hành" trên công đoạn; nút xanh đổi nhãn "Bảo hành dịch vụ" → tab Bảo hành của phiếu, đúng dòng (D1).
+  - REQ-A10 (cột Bảo hành) làm ở phase F, xem R-1089.
+- **Mức retest**: 2 (chỉ FE phiếu điều trị / công đoạn). Spec chạy lại trong R-1089: `treatment-plan-detail`, `treatment-stage*`, `labo-workflow`, `patient.spec -g Labo`.
+
+## R-1085 (2026-10-31, mức 2: F-86 P3110 phase C) Popup Labo bước 1 · Đặt hàng theo mock
+
+- **Yêu cầu** REQ-C1…C10 (mock m105/m106/m134/m139/m142/m143/m149/m154/m158):
+  - Header "Đặt hàng" + chip trạng thái + thanh 3 bước; bỏ Giờ gửi / Giờ nhận (giờ tạo lấy `CreationTime`); Ảnh đính kèm chung không bắt buộc (BE bỏ đòi ≥ 1 ảnh khi gửi, vẫn tối đa 5).
+  - Dịch vụ Labo / Vật liệu: 3 chip đầu + "Xem thêm" mở modal chọn một (`LaboChoiceList` / `LaboChoiceModal` / `LaboChoiceRow`, thay `ChipStrip` / `LaboChipStrips`); chọn dịch vụ lọc vật liệu; ô tìm R-1062 chuyển vào modal.
+  - Nút "Răng" mở sơ đồ chọn răng, đếm số răng; dòng R12… chỉ hiển thị.
+  - Bảng **Thông số từng răng** (`LaboToothSpecTable` / `LaboToothSpecRow`): Màu răng*, Đường hoàn tất*, Kiểu nhịp, Khớp cắn (sau Kiểu nhịp, D3), Ảnh từng răng lên MinIO (D7); "Dùng chung 1 thông số" gộp một dòng nhưng lưu tách từng răng.
+  - Footer Huỷ · Lưu nháp · "Gửi Labo & in phiếu".
+- **Sửa**: `LaboOrderTooth` thêm thông số theo răng, migration `20261031102022_LaboToothSpecP3110`; ảnh gắn răng.
+- **Sửa UI sau phản hồi chủ dự án (2026-10-31, "lỗi UI này")**: trong bảng Thông số từng răng, nút "+" cột Ảnh bị đẩy xuống thấp hơn ô nhập vì `.pd-labo-pictures` (margin-top 24px của ô ảnh chi tiết, `labo-order-dialog.css`) thắng `.pd-labo-pictures--cell` cùng độ ưu tiên; dòng thiếu thông số tô hồng đậm. Sửa `labo-order-rows.css`: biến thể dùng hai class `.pd-labo-pictures.pd-labo-pictures--cell`, nền dòng thiếu `color-mix(--bd-red-pale 45%, --bd-card)` như m139. `labo-workflow` thêm phép kiểm "+" nằm cùng đường giữa với ô Màu răng (lệch ≤ 2px).
+- **E2E**: labo-workflow 4/4, patient Đặt hàng 2/2, labo-api 11/11, các spec Labo khác 25/25; BE Labo Domain 65, EF 8, App 42. So ảnh m134/m139/m158.
+
+## R-1086 (2026-10-31, mức 2: F-86 P3110 phase D) Popup Labo bước 2 · Nhận hàng & kiểm tra theo răng
+
+- **Yêu cầu** REQ-D1…D12 (m175–m189, m238, m279–m307, m342):
+  - Card tóm tắt 3×3; ô "Răng" bỏ SL / Màu; bỏ nút "Lưu nhận hàng"; card khoá "Chưa bắt đầu kiểm tra" + nút chuyển Chờ kiểm tra (`LaboCheckStartCard`).
+  - Mỗi răng: Đạt / Lỗi, "Đã trả n lần" đếm theo lần trả (≥ 2 chữ đỏ nền đỏ nhạt); răng lỗi có nhóm mô tả + ảnh lỗi lưu riêng (`LaboToothDefectGroup`), lần sau hiện lại lần gần nhất; răng đã Đạt mờ; răng đã kích hoạt BH hiện mã thẻ.
+  - Bỏ Chi phí phát sinh; footer `Trả toàn bộ (n răng)` / `Trả hàng bị lỗi (n răng)` (nút tím, REQ-D11 thắng mock đỏ); lịch sử nhận / trả theo răng.
+- **Sửa**: BE mô tả + ảnh lỗi theo răng, `returnCount` / `returnHistory` theo răng, bỏ chi phí phát sinh khỏi kết luận.
+- **E2E**: labo* 41/41, patient Labo 2/2 (một timeout khởi động nguội, chạy lại xanh). So ảnh m279/m278/m294/m342/m189. Giả định G9–G15 (`docs/clone/unknowns.md`).
+
+## R-1087 (2026-10-31, mức 2: F-86 P3110 phase E) Popup Labo bước 3 · Bảo hành: ảnh thẻ Mặt trước / Mặt sau
+
+- **Yêu cầu** REQ-E1 (ảnh thẻ không bắt buộc, giống chụp CCCD), REQ-E2 (bỏ "Thông tin thẻ / Lịch sử" trong popup, lịch sử chuyển sang tab Bảo hành).
+- **Sửa**: `PatientImage.WarrantyCardSide` (migration `20261031135031_WarrantyCardPhotoP3110`), kích hoạt bảo hành multipart kèm ảnh thẻ, lỗi `Labo:0036`; module dùng chung `src/components/WarrantyCardPhotos/`; xoá `LaboWarrantyToothTabs`, `LaboWarrantyCardInfo`, `LaboWarrantyHistory` (logic sang `PlanWarrantyHistory`, R-1088). Ảnh thẻ không lẫn vào ảnh phiếu.
+- **E2E**: labo-api REQ-E1 (sai răng / trùng mặt / lệch số → 0036, mặt 3 → 400), labo-workflow tải Mặt trước → reload → cột Ảnh thẻ; labo* 42/42, patient Labo 2/2; Domain Labo + PatientImage 80/80. So ảnh m374. Chưa thêm / thay ảnh sau khi kích hoạt (unknowns).
+
+## R-1088 (2026-10-31, mức 2: F-86 P3110 phase B) Tab "Bảo hành" trên trang phiếu điều trị + thẻ bảo hành nha khoa
+
+- **Yêu cầu** REQ-B1…B7 (m348/m360/m361/m366/m371), D4/D5/D9; chi tiết ở `docs/testing/features/plan-warranty.md`.
+- **Sửa**: domain `ServiceWarrantyCard` (mã `BH-{mã dòng}-{ddMMyyyy}-{răng|00}`), `WarrantyCover`, `PatientImage.ServiceWarrantyCardId`, migration `20261031142735_ServiceWarrantyCardP3110`, lỗi `Treatment:0053..0057`; `PlanWarrantyAppService` + `PlanWarrantyOverviewBuilder` + `PlanWarrantyHistory`, `PlanWarrantyController`; FE `plan-warranty/` (3 card, `ServiceWarrantyDialog`, lọc "Xem thẻ ›" / "Lịch sử ↓"), badge "k chờ" + "Hôm nay".
+- **E2E**: `plan-warranty-api` 7/7, `plan-warranty-tab` 3/3, `--repeat-each=2` 20/20 (sau khi sắp `cardCodes` theo mã cho ổn định). `treatment-plan-detail` sửa spec vì có thêm tab "Bảo hành". Domain 11 ca mới.
+- **Có sẵn, không thuộc P3110** (ghi lại, không sửa): `TreatmentPlan.DiscountShareParts` âm → 500 trên phiếu dùng chung DT10 (spec mới dùng `freshSlip`); race `IX_bd_labo_orders_OrderCode` ở `NextOrderCodeAsync` khi hai phiên chạy chung host.
+
+## R-1089 (2026-10-31 → 2026-11-01, mức 3: F-86 P3110 phase F) Công đoạn bảo hành theo thẻ + chip Bảo hành trên bảng dịch vụ
+
+- **Yêu cầu** REQ-F1…F7 (m390/m394/m395/m400/m401/m412/m415), REQ-B8 (dòng có thẻ còn hạn vào TIẾP TỤC BẢO HÀNH), phần chip của REQ-A10 (cột "Bảo hành" sau "Phiếu Labo"); chi tiết ở `docs/testing/features/plan-warranty.md`.
+- **Sửa BE**: `TreatmentStage.WarrantyKind` (1 Nha khoa / 2 Labo) + `WarrantyLaboOrderId` (chép sang khi Tiếp tục), migration `20261031160612_StageWarrantyCardP3110`; `WarrantyCover` quyết định răng được phép; lỗi `Treatment:0058` (thiếu loại thẻ), `0059` (không có thẻ Nha khoa còn hạn), `0060` (phiếu Labo không thuộc dòng / đã huỷ / không có răng kích hoạt còn hạn, hoặc Nha khoa khi dòng đã gửi Labo), `0061` (răng ngoài thẻ). **Đổi hành vi (G23):** trước đây công đoạn bảo hành được mở khi `WarrantyDays` của danh mục, tính từ ngày điều trị, chưa hết; nay theo thẻ — chưa kích hoạt thẻ thì không mở được.
+- **Sửa FE**: form TIẾP TỤC BẢO HÀNH cùng khung 4 cột, "Thẻ bảo hành áp dụng *" hai card (loại không có thẻ còn hạn mờ + bất động), select "Dịch vụ bảo hành · Labo *" (dòng 1 nhà cung cấp, dòng 2 `{vật liệu} R.. · Hạn ..`, G25), răng theo thẻ; chuỗi đang mở giữ thẻ + phiếu, khoá. Bỏ popup "Tạo bảo hành" cũ — "Bảo hành dịch vụ" và icon bảo hành mở tab Bảo hành của phiếu (G24). `PlanWarrantyChips` trên bảng dịch vụ. Tái khám không đổi.
+- **Lỗi UI "lỗi UI này" (01/11, bảng Thông số từng răng)**: ô "+" cột Ảnh lệch xuống dưới so với ô nhập (lớp biến thể `.pd-labo-pictures--cell` thua `margin-top: 24px` của `.pd-labo-pictures` vì cùng độ ưu tiên) → đổi thành hai lớp; dòng thiếu thông tin hồng đậm → `color-mix(--bd-red-pale 45%, --bd-card)` như m139. Spec `labo-workflow` thêm kiểm tra "+" nằm giữa dòng (±2px) với ô Màu răng.
+- **E2E mới**: `warranty-stage-api` 2/2, `warranty-stage` 2/2. **Sửa spec**: `stage-treatment-date`, `treatment-stage-chain`, `medical-record-sheet-facts`, `patient.spec` (bảo hành nay cần thẻ đã kích hoạt), `treatment-plan-detail` (thêm cột "Bảo hành", 13/13). BE: Domain `StageChainAndWarrantyTests` + `LaboStagePolicyTests`, App `StageChainContractTests` xanh.
+- **Hồi quy (mức 3 — đổi luật công đoạn dùng chung)**: `labo*` + `branch-isolation` / `branch-code-url` / `branch-switcher` + `stage-treatment-date` 53/53, `patient.spec` phần Labo/bảo hành 2/2, `labo-workflow` 4/4 (có kiểm tra căn "+"), `treatment-plan-detail` 13/13; đợt trước 48/50 — 2 đỏ **không thuộc P3110**: `stage-staff-pickers:163` đỏ sẵn từ R-956; `medical-record-sheet-facts:169` đỏ do dữ liệu — fixture lấy chẩn đoán đầu danh mục ("Chẩn đoán nhanh E2E 895956", spec khác tạo 30/10), tờ bệnh án ngắt chữ theo bề rộng ô (`lineFit.ts`) nên "895956" xuống dòng chấm kế; P3110 không sửa file tờ bệnh án nào. Ảnh so khớp m139 sau sửa ("+" giữa dòng, nền hồng nhạt).
+- **Bước 2 sau Bảo hành (01/11, m342 REQ-D7/D8)**: phiếu Hoàn thành / Bảo hành mất hẳn mục B ở "Nhận hàng & kiểm tra" → thêm `LaboPassedTeethList`: khi mọi răng đã đạt, B hiện chỉ đọc (dòng mờ "Đạt lần k · đã lắp dd/mm" / "chờ lắp", "BH Labo: đã kích hoạt · mã"), không còn dòng "không có trong lần giao này", không nút Đạt/Lỗi. `labo-workflow` thêm bước mở lại tab 2 sau kích hoạt R11 → 4/4.
+- **Tràn chữ thẻ Labo (01/11, form TIẾP TỤC BẢO HÀNH)**: "1 Labo · chọn ở Nội dung điều trị" chạy sang cột Nội dung vì `.app-main button { white-space: nowrap }` (0,1,1) thắng `.pd-wcard` → `.pd-wcards .pd-wcard { white-space: normal; min-width: 0 }`. `warranty-stage` thêm kiểm tra khung chữ nằm trong thẻ: đỏ trên bản cũ, xanh sau sửa, 2/2.
+- **Tên thẻ trái (01/11, m415)**: owner chỉ mock — ô chọn thẻ bên trái đổi "Nha khoa" → **"Dịch vụ"** (en "Service"), bỏ giả định G21; chip / cột ở tab Bảo hành giữ "Nha khoa" (m348). Hành vi note m415 đã có: chọn Dịch vụ → cột Nội dung điều trị chỉ còn ô nội dung (không select Labo). `warranty-stage` thêm kiểm tra tên thẻ, 2/2.
+- **Bỏ chọn thẻ (01/11)**: owner "khi t chọn labo thì k unselect được" → bấm lại thẻ đang chọn thì bỏ chọn (`onPick(undefined)`), xoá luôn phiếu Labo đã chọn và răng đã tick (`pickPatch` kind `undefined` → `teeth: []`); chuỗi đang mở vẫn khoá như cũ. FE-only (`StageWarrantyCardPick`, `StageWarrantyForm`, `useStageComposer`, `useWarrantyCovers`). `warranty-stage` thêm bước chọn → bỏ chọn (`aria-pressed` false, select Labo biến mất) → chọn lại, 2/2.

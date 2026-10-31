@@ -26,6 +26,7 @@ public class LaboOrderWorkflowTests
         MaterialId = Guid.NewGuid(),
         Teeth = teeth,
         ToothShade = "A2",
+        FinishLineId = Guid.NewGuid(),
         Quantity = 2,
         SentAt = SentAt,
         DueAt = DueAt,
@@ -36,7 +37,7 @@ public class LaboOrderWorkflowTests
         new(Guid.NewGuid(), "LABO-202610010291", Guid.NewGuid(), Guid.NewGuid(), Complete(teeth));
 
     private static LaboOrder Received(params int[] teeth) =>
-        Draft(teeth).Submit(1).Receive(Guid.NewGuid(), ReceivedAt, 1, null);
+        Draft(teeth).Submit().Receive(Guid.NewGuid(), ReceivedAt, 1, null);
 
     private static LaboRoundToothResult Pass(int tooth) => new(tooth, LaboToothCheckResult.Passed);
 
@@ -91,30 +92,103 @@ public class LaboOrderWorkflowTests
     [Fact]
     public void Submit_Should_Move_A_Complete_Draft_To_Sent()
     {
-        Draft(11).Submit(1).Status.ShouldBe(LaboStatus.Sent);
+        Draft(11).Submit().Status.ShouldBe(LaboStatus.Sent);
     }
 
     [Fact]
     public void Submit_Should_Refuse_A_Draft_Missing_A_Required_Field()
     {
         var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
-            Complete(11) with { ToothShade = " " });
+            Complete(11) with { MaterialId = null });
 
-        ShouldFail(() => order.Submit(1), BlueDentalDomainErrorCodes.Labo.OrderIncomplete);
+        ShouldFail(() => order.Submit(), BlueDentalDomainErrorCodes.Labo.OrderIncomplete);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(6)]
-    public void Submit_Should_Need_One_To_Five_Pictures(int images)
+    [Fact]
+    public void Submit_Should_Name_The_Tooth_Missing_Its_Finish_Line()
     {
-        ShouldFail(() => Draft(11).Submit(images), BlueDentalDomainErrorCodes.Labo.ImageCountInvalid);
+        var finish = Guid.NewGuid();
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(11, 12, 13) with
+            {
+                ToothSpecs =
+                [
+                    new LaboToothSpec(11, "A1", finish, null, null, null),
+                    new LaboToothSpec(12, "A1/A2", finish, null, null, null),
+                    new LaboToothSpec(13, "A2", null, null, null, null)
+                ]
+            });
+
+        var error = Should.Throw<BusinessException>(() => order.Submit());
+        error.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.ToothSpecIncomplete);
+        error.Data["tooth"].ShouldBe(13);
+    }
+
+    [Fact]
+    public void Each_Tooth_Should_Keep_Its_Own_Spec_And_The_Order_Mirror_The_First()
+    {
+        var (a, b) = (Guid.NewGuid(), Guid.NewGuid());
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(21, 11) with
+            {
+                ToothSpecs =
+                [
+                    new LaboToothSpec(11, "B1", b, null, null, " cạnh cắn "),
+                    new LaboToothSpec(21, "A1/A2", a, null, null, null)
+                ]
+            }).Submit();
+
+        var tooth11 = order.Teeth.Single(t => t.ToothNumber == 11);
+        tooth11.Shade.ShouldBe("B1");
+        tooth11.FinishLineId.ShouldBe(b);
+        tooth11.LabNote.ShouldBe("cạnh cắn");
+        order.ToothShade.ShouldBe("A1/A2");
+        order.FinishLineId.ShouldBe(a);
+    }
+
+    [Fact]
+    public void A_Caller_Without_Tooth_Rows_Should_Give_Every_Tooth_The_Order_Values()
+    {
+        var order = Draft(11, 12);
+
+        order.Teeth.ShouldAllBe(t => t.Shade == "A2" && t.FinishLineId == order.FinishLineId);
+    }
+
+    [Fact]
+    public void Submit_Should_Go_Without_Pictures()
+    {
+        Draft(11).Submit().Status.ShouldBe(LaboStatus.Sent);
+    }
+
+    [Fact]
+    public void A_Set_Of_Pictures_Should_Hold_At_Most_Five()
+    {
+        LaboOrder.EnsureImageCount(5);
+        ShouldFail(() => LaboOrder.EnsureImageCount(6), BlueDentalDomainErrorCodes.Labo.ImageCountInvalid);
+    }
+
+    [Fact]
+    public void Sent_And_Due_Should_Be_Kept_As_Clinic_Days()
+    {
+        var order = Draft(11);
+
+        order.SentAt.ShouldBe(new DateTimeOffset(2026, 10, 1, 0, 0, 0, Clinic));
+        order.DueAt.ShouldBe(new DateTimeOffset(2026, 10, 8, 0, 0, 0, Clinic));
+    }
+
+    [Fact]
+    public void Draft_Should_Refuse_A_Due_Day_Equal_To_The_Sent_Day()
+    {
+        ShouldFail(
+            () => new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+                Complete(11) with { DueAt = SentAt.AddHours(5) }),
+            BlueDentalDomainErrorCodes.Labo.DueBeforeSent);
     }
 
     [Fact]
     public void Sent_Order_Should_No_Longer_Be_Editable()
     {
-        var order = Draft(11).Submit(1);
+        var order = Draft(11).Submit();
 
         ShouldFail(() => order.UpdateDraft(Complete(11)), BlueDentalDomainErrorCodes.Labo.InvalidTransition);
     }
@@ -146,7 +220,7 @@ public class LaboOrderWorkflowTests
     [Fact]
     public void Receive_Should_Refuse_A_Quantity_Above_The_Order()
     {
-        var order = Draft(11).Submit(1);
+        var order = Draft(11).Submit();
 
         ShouldFail(() => order.Receive(Guid.NewGuid(), ReceivedAt, 3, null),
             BlueDentalDomainErrorCodes.Labo.ReceivedQuantityInvalid);
@@ -155,7 +229,7 @@ public class LaboOrderWorkflowTests
     [Fact]
     public void Receive_Should_Refuse_A_Day_Before_Sent()
     {
-        var order = Draft(11).Submit(1);
+        var order = Draft(11).Submit();
 
         ShouldFail(() => order.Receive(Guid.NewGuid(), SentAt.AddDays(-1), 1, null),
             BlueDentalDomainErrorCodes.Labo.ReceivedBeforeSent);
@@ -205,7 +279,7 @@ public class LaboOrderWorkflowTests
     [Fact]
     public void Check_Should_Refuse_An_Order_Not_Awaiting_It()
     {
-        ShouldFail(() => Draft(11).Submit(1).ConfirmPassed([Pass(11)], CheckedAt),
+        ShouldFail(() => Draft(11).Submit().ConfirmPassed([Pass(11)], CheckedAt),
             BlueDentalDomainErrorCodes.Labo.InvalidTransition);
     }
 
@@ -264,12 +338,44 @@ public class LaboOrderWorkflowTests
     }
 
     [Fact]
-    public void Return_Should_Need_A_Description_And_Both_Dates()
+    public void Return_Should_Need_Each_Defective_Tooth_Described_And_Both_Dates()
     {
-        ShouldFail(() => Received(11).ReturnToLab([Fail(11)], Return(all: false) with { Description = " " }, CheckedAt),
-            BlueDentalDomainErrorCodes.Labo.ReturnDetailsRequired);
+        var undescribed = Should.Throw<BusinessException>(() => Received(11, 21).ReturnToLab(
+            [Fail(11), new(21, LaboToothCheckResult.Failed, " ")], Return(all: false), CheckedAt));
+        undescribed.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.DefectDescriptionRequired);
+        undescribed.Data["tooth"].ShouldBe(21);
         ShouldFail(() => Received(11).ReturnToLab([Fail(11)], Return(all: false) with { RedeliveryDueAt = null }, CheckedAt),
             BlueDentalDomainErrorCodes.Labo.ReturnDetailsRequired);
+    }
+
+    [Fact]
+    public void Return_Without_A_Description_Should_Keep_The_Teeth_Descriptions_Joined()
+    {
+        var order = Received(11, 21);
+        order.ReturnToLab(
+            [new(11, LaboToothCheckResult.Failed, "Lệch màu"), new(21, LaboToothCheckResult.Failed, "Hở bờ")],
+            Return(all: true) with { Description = null }, CheckedAt);
+
+        order.LatestRound!.ReturnDescription.ShouldBe("R11: Lệch màu; R21: Hở bờ");
+        order.LatestRound.ToothResults.Select(r => r.Note).ShouldBe(["Lệch màu", "Hở bờ"]);
+    }
+
+    [Fact]
+    public void Tooth_Return_Count_Should_Count_Only_The_Returns_It_Failed()
+    {
+        // R11 Đạt rides along on a Trả toàn bộ uncounted; R21 fails twice.
+        var order = Received(11, 21);
+        order.ReturnToLab([Pass(11), Fail(21)], Return(all: true), CheckedAt);
+        order.Receive(Guid.NewGuid(), ReceivedAt.AddDays(7), 1, null);
+        order.ReturnToLab([Pass(11), Fail(21)], Return(all: false) with
+        {
+            ReturnedAt = CheckedAt.AddDays(7),
+            RedeliveryDueAt = CheckedAt.AddDays(10)
+        }, CheckedAt.AddDays(7));
+
+        order.ReturnCount.ShouldBe(2);
+        order.ToothReturnCount(11).ShouldBe(0);
+        order.ToothReturnCount(21).ShouldBe(2);
     }
 
     [Fact]
@@ -384,7 +490,7 @@ public class LaboOrderWorkflowTests
     public void Only_A_Draft_Should_Be_Deletable()
     {
         Should.NotThrow(() => Draft(11).EnsureDeletable());
-        ShouldFail(() => Draft(11).Submit(1).EnsureDeletable(), BlueDentalDomainErrorCodes.Labo.DeleteOnlyDraft);
+        ShouldFail(() => Draft(11).Submit().EnsureDeletable(), BlueDentalDomainErrorCodes.Labo.DeleteOnlyDraft);
     }
 
     [Fact]
@@ -397,7 +503,7 @@ public class LaboOrderWorkflowTests
     private static LaboOrder InStatus(LaboStatus status) => status switch
     {
         LaboStatus.Draft => Draft(11),
-        LaboStatus.Sent => Draft(11).Submit(1),
+        LaboStatus.Sent => Draft(11).Submit(),
         LaboStatus.AwaitingCheck => Received(11),
         LaboStatus.Returned => Received(11).ReturnToLab([Fail(11)], Return(all: false), CheckedAt),
         LaboStatus.Completed => Received(11).ConfirmPassed([Pass(11)], CheckedAt),

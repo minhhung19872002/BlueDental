@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using BlueDental.PatientManagement;
 using BlueDental.TreatmentManagement;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Content;
@@ -35,6 +36,9 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public Guid? RhythmId { get; set; }
     public string? AttachmentUrl { get; set; }
     public string? ToothShade { get; set; }
+
+    /// <summary>"Dùng chung 1 thông số cho tất cả răng" was ticked (P3110).</summary>
+    public bool SharedSpec { get; set; }
     public int Quantity { get; set; }
     public Guid? TreatmentServiceId { get; set; }
     public Guid? TreatmentStageId { get; set; }
@@ -106,14 +110,33 @@ public class LaboOrderImageDto
 
     /// <summary>The check round this is an Ảnh kiểm tra of; null for Hình ảnh gửi Labo.</summary>
     public int? RoundNo { get; set; }
+
+    /// <summary>The tooth row it belongs to (P3110): FDI, 0 = every tooth, null = Ảnh đính kèm chung.</summary>
+    public int? ToothNumber { get; set; }
+
+    /// <summary>Set on a photo of <see cref="ToothNumber"/>'s warranty card (P3110 REQ-E1), which is not a picture of the work.</summary>
+    public WarrantyCardSide? WarrantyCardSide { get; set; }
 }
 
 public class LaboOrderToothDto
 {
     public int ToothNumber { get; set; }
+
+    /// <summary>Thông số từng răng (P3110).</summary>
+    public string? Shade { get; set; }
+    public Guid? FinishLineId { get; set; }
+    public string? FinishLineName { get; set; }
+    public Guid? RhythmId { get; set; }
+    public string? RhythmName { get; set; }
+    public Guid? BiteId { get; set; }
+    public string? BiteName { get; set; }
+    public string? LabNote { get; set; }
     public LaboToothCheckResult CheckResult { get; set; }
     public string? DefectNote { get; set; }
     public DateTimeOffset? PassedAt { get; set; }
+
+    /// <summary>"Đã trả: n lần" (P3110 REQ-D5): the returns in which this tooth was Lỗi.</summary>
+    public int ReturnCount { get; set; }
     public string? WarrantyCardCode { get; set; }
     public string? ManufacturerSerial { get; set; }
     public DateOnly? WarrantyStartDate { get; set; }
@@ -146,7 +169,7 @@ public class LaboRoundToothResultDto
     public int ToothNumber { get; set; }
     public LaboToothCheckResult Result { get; set; }
 
-    /// <summary>Ghi chú lỗi; only on a Lỗi tooth.</summary>
+    /// <summary>Mô tả gửi Labo of this tooth (P3110 REQ-D6); only on a Lỗi tooth.</summary>
     public string? Note { get; set; }
 }
 
@@ -208,8 +231,17 @@ public class SaveLaboOrderDto
     /// <summary>Răng: FDI numbers.</summary>
     public List<int> Teeth { get; set; } = [];
 
-    /// <summary>Màu răng.</summary>
+    /// <summary>Màu răng — read only from a caller that sends no <see cref="ToothSpecs"/>.</summary>
     public string? ToothShade { get; set; }
+
+    /// <summary>
+    /// Thông số từng răng (P3110), one row per tooth of <see cref="Teeth"/>.
+    /// Null keeps the pre-P3110 contract: the order-level fields go to every tooth.
+    /// </summary>
+    public List<LaboToothSpecDto>? ToothSpecs { get; set; }
+
+    /// <summary>"Dùng chung 1 thông số cho tất cả răng".</summary>
+    public bool SharedSpec { get; set; }
 
     /// <summary>Số lượng.</summary>
     public int Quantity { get; set; } = 1;
@@ -218,10 +250,10 @@ public class SaveLaboOrderDto
     /// <summary>Nội dung / chỉ định cho Labo.</summary>
     public string? Notes { get; set; }
 
-    /// <summary>Ngày gửi + Giờ gửi.</summary>
+    /// <summary>Ngày gửi — the day counts, the time is dropped.</summary>
     public DateTimeOffset? SentAt { get; set; }
 
-    /// <summary>Ngày nhận dự kiến + Giờ nhận.</summary>
+    /// <summary>Ngày nhận dự kiến — the day counts, the time is dropped.</summary>
     public DateTimeOffset? DueAt { get; set; }
     public decimal EstimatedCost { get; set; }
 
@@ -234,8 +266,31 @@ public class SaveLaboOrderDto
     /// <summary>True on "Tạo phiếu Labo": the order goes to Đã gửi Labo.</summary>
     public bool Submit { get; set; }
 
-    /// <summary>Hình ảnh gửi Labo picked in the dialog — at most five with those kept.</summary>
+    /// <summary>Ảnh đính kèm chung picked in the dialog — at most five with those kept, none required.</summary>
     public List<IRemoteStreamContent>? Pictures { get; set; }
+
+    /// <summary>Pictures of the tooth rows (cột Ảnh); <see cref="ToothPictureTeeth"/> names each one's tooth.</summary>
+    public List<IRemoteStreamContent>? ToothPictures { get; set; }
+
+    /// <summary>The tooth of each <see cref="ToothPictures"/> entry, same order: FDI, or 0 for the "Dùng chung" row.</summary>
+    public List<int>? ToothPictureTeeth { get; set; }
+}
+
+/// <summary>One row of the Thông số từng răng table.</summary>
+public class LaboToothSpecDto
+{
+    public int ToothNumber { get; set; }
+
+    /// <summary>Màu răng; several written "A1/A2/A3".</summary>
+    [StringLength(100)]
+    public string? Shade { get; set; }
+    public Guid? FinishLineId { get; set; }
+    public Guid? RhythmId { get; set; }
+    public Guid? BiteId { get; set; }
+
+    /// <summary>Ghi chú cho Labo.</summary>
+    [StringLength(1000)]
+    public string? LabNote { get; set; }
 }
 
 public class CreateLaboOrderDto : SaveLaboOrderDto
@@ -284,7 +339,7 @@ public class LaboToothCheckDto
     public int ToothNumber { get; set; }
     public LaboToothCheckResult Result { get; set; }
 
-    /// <summary>Ghi chú lỗi.</summary>
+    /// <summary>Mô tả gửi Labo of this tooth (P3110 REQ-D6); required on a Lỗi tooth when returning.</summary>
     public string? Note { get; set; }
 }
 
@@ -297,7 +352,10 @@ public class CheckLaboOrderDto
     public List<LaboToothCheckDto> Teeth { get; set; } = [];
     public LaboCheckConclusion Conclusion { get; set; }
 
-    /// <summary>Mô tả gửi Labo.</summary>
+    /// <summary>
+    /// Mô tả gửi Labo of the whole return. Optional since P3110: left blank,
+    /// the round keeps the teeth's descriptions joined.
+    /// </summary>
     public string? Description { get; set; }
 
     /// <summary>Ngày trả hàng.</summary>
@@ -306,8 +364,14 @@ public class CheckLaboOrderDto
     /// <summary>Hẹn Labo giao lại.</summary>
     public DateTimeOffset? RedeliveryDueAt { get; set; }
 
-    /// <summary>Ảnh kiểm tra.</summary>
+    /// <summary>Ảnh kiểm tra not tied to a tooth (pre-P3110 callers).</summary>
     public List<IRemoteStreamContent>? Pictures { get; set; }
+
+    /// <summary>Hình ảnh lỗi of the Lỗi teeth (P3110 REQ-D6); <see cref="ToothPictureTeeth"/> names each one's tooth.</summary>
+    public List<IRemoteStreamContent>? ToothPictures { get; set; }
+
+    /// <summary>The tooth of each <see cref="ToothPictures"/> entry, same order.</summary>
+    public List<int>? ToothPictureTeeth { get; set; }
 }
 
 public class LaboWarrantyCardDto
@@ -333,6 +397,16 @@ public class LaboWarrantyCardDto
 public class ActivateLaboWarrantyDto
 {
     public List<LaboWarrantyCardDto> Cards { get; set; } = [];
+
+    /// <summary>
+    /// Ảnh thẻ, optional (P3110 REQ-E1); <see cref="CardPhotoTeeth"/> and
+    /// <see cref="CardPhotoSides"/> name each one's tooth and face, same order.
+    /// </summary>
+    public List<IRemoteStreamContent>? CardPhotos { get; set; }
+
+    public List<int>? CardPhotoTeeth { get; set; }
+
+    public List<WarrantyCardSide>? CardPhotoSides { get; set; }
 }
 
 public class GetLaboOrderListInput : PagedAndSortedResultRequestDto

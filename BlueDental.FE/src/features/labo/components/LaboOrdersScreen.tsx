@@ -19,7 +19,7 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
 import { exportToExcel } from "@/utils/exportExcel";
-import { formatDate, formatDateTime } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 import { foldFilterOption } from "@/utils/foldForSearch";
 import { laboStatusPill } from "../api/laboStatus";
 import { buildLaboOrderColumns } from "./laboOrderColumns";
@@ -61,8 +61,8 @@ function exportOrders(items: LaboOrderDto[]) {
     createdAt: formatDate(row.creationTime),
     patientName: row.patientName ?? "",
     treatmentPlan: row.treatmentPlanCode ?? "",
-    sentDate: row.sentAt ? formatDateTime(row.sentAt) : "",
-    deliveryDate: row.dueAt ? formatDateTime(row.dueAt) : "",
+    sentDate: row.sentAt ? formatDate(row.sentAt) : "",
+    deliveryDate: row.dueAt ? formatDate(row.dueAt) : "",
     status: t(laboStatusPill(row).label),
     dentistName: row.dentistName ?? "",
     materialName: row.materialName ?? "",

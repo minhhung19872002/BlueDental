@@ -137,7 +137,7 @@ export function buildTreatmentRows(
           stageId: stage.id,
           stageDone: stage.status === STAGE_STATUS.Completed,
           isWarranty: stage.isGuarantee,
-          warranty: warrantyState(stage, service, lineStages),
+          warranty: warrantyState(stage, service),
           createdAt: stage.treatmentDate,
           writtenAt: stage.creationTime,
           stageNote: stage.note,

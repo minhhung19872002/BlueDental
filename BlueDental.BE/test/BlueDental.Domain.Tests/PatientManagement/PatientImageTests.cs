@@ -36,6 +36,22 @@ public class PatientImageTests
     }
 
     [Theory]
+    [InlineData(true, WarrantyCardSide.Back)]
+    [InlineData(false, null)]
+    public void A_Warranty_Card_Face_Is_Kept_Only_On_A_Labo_Picture(bool onLaboOrder, WarrantyCardSide? expected)
+    {
+        var image = PatientImage.Attach(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            "patients/x/1.png", "1.png", "image/png", 1024,
+            Guid.NewGuid(), DateTimeOffset.UtcNow,
+            laboOrderId: onLaboOrder ? Guid.NewGuid() : null,
+            laboToothNumber: 11,
+            warrantyCardSide: WarrantyCardSide.Back);
+
+        Assert.Equal(expected, image.WarrantyCardSide);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(-3)]
     public void Attach_Rejects_A_Position_Below_One(int ordering)

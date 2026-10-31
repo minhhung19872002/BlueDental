@@ -44,9 +44,14 @@ export interface ApiResult<T> {
 
 export interface LaboToothView {
   toothNumber: number;
+  shade?: string | null;
+  finishLineId?: string | null;
+  labNote?: string | null;
   checkResult: number;
   defectNote: string | null;
   passedAt: string | null;
+  /** Lần trả hàng that sent this tooth back as Lỗi (REQ-D5). */
+  returnCount: number;
   warrantyCardCode: string | null;
   warrantyStartDate: string | null;
   warrantyMonths: number | null;
@@ -85,7 +90,15 @@ export interface LaboOrderView {
   treatmentStageId: string | null;
   teeth: LaboToothView[];
   rounds: LaboRoundView[];
-  images: { id: string; url: string; roundNo: number | null }[];
+  /** toothNumber: null on Ảnh đính kèm chung, 0 on the "Dùng chung" row, else the tooth (P3110). */
+  images: {
+    id: string;
+    url: string;
+    roundNo: number | null;
+    toothNumber?: number | null;
+    /** Mặt trước 1 / Mặt sau 2 on an Ảnh thẻ bảo hành (P3110 REQ-E1), else null. */
+    warrantyCardSide?: number | null;
+  }[];
 }
 
 export interface Paged<T> {
@@ -103,6 +116,10 @@ export interface CallOptions {
   form?: Record<string, FormValue>;
   /** How many 1×1 PNGs go under `pictures` with the form. */
   pictures?: number;
+  /** One 1×1 PNG per entry under `toothPictures`, the entry its tooth (0 = "Dùng chung"). */
+  toothPictures?: readonly number[];
+  /** One 1×1 PNG per entry under `cardPhotos`, beside its `cardPhotoTeeth` and `cardPhotoSides`. */
+  cardPhotos?: readonly CardPhoto[];
 }
 
 /** One request from the logged-in page: cookie session + antiforgery header + JSON Accept. */
@@ -132,6 +149,15 @@ export async function call<T = unknown>(page: Page, url: string, options: CallOp
         for (let i = 0; i < (options.pictures ?? 0); i++) {
           form.append("pictures", new Blob([bytes], { type: "image/png" }), `labo-${i + 1}.png`);
         }
+        (options.toothPictures ?? []).forEach((tooth, i) => {
+          form.append("toothPictures", new Blob([bytes], { type: "image/png" }), `rang-${tooth}-${i + 1}.png`);
+          form.append("toothPictureTeeth", String(tooth));
+        });
+        (options.cardPhotos ?? []).forEach(({ tooth, side }) => {
+          form.append("cardPhotos", new Blob([bytes], { type: "image/png" }), `card-${tooth}-${side}.png`);
+          form.append("cardPhotoTeeth", String(tooth));
+          form.append("cardPhotoSides", String(side));
+        });
         body = form;
       }
       const res = await fetch(url, { method: options.method ?? "GET", credentials: "include", headers, body });
@@ -148,15 +174,17 @@ export async function call<T = unknown>(page: Page, url: string, options: CallOp
   ) as Promise<ApiResult<T>>;
 }
 
-/** What an order picks from the branch's catalogs: the ordering dentist, the lab and its material. */
+/** What an order picks from the branch's catalogs: the ordering dentist, the lab, its material and a finish line. */
 export interface LaboCatalog {
   dentistId: string;
   supplierId: string;
   supplierName: string;
   materialId: string;
+  /** Đường hoàn tất: with Màu răng, what every tooth needs before Gửi Labo (P3110 REQ-C1). */
+  finishLineId: string;
 }
 
-/** The branch's first lab, labo_material group, material and dentist — each created only when missing. */
+/** The branch's first lab, labo_material group, material, finish line and dentist — each created only when missing. */
 export async function laboCatalog(page: Page, branchId: string, id: string): Promise<LaboCatalog> {
   const first = async (url: string) => {
     const res = await call<Paged<{ id: string; name: string }>>(page, url, { branchId });
@@ -182,10 +210,19 @@ export async function laboCatalog(page: Page, branchId: string, id: string): Pro
   const material =
     (await first(`/api/v1/app/labo-materials?ClinicBranchId=${branchId}&TaxonomyId=${group.id}&MaxResultCount=1`)) ??
     (await create("/api/v1/app/labo-materials", { name: `Vật liệu e2e ${id}`, taxonomyId: group.id, clinicBranchId: branchId }));
+  const finishLine =
+    (await first(`/api/v1/app/taxonomies?ClinicBranchId=${branchId}&Group=labo_finish_line&MaxResultCount=1`)) ??
+    (await create("/api/v1/app/taxonomies", { group: "labo_finish_line", name: `Đường hoàn tất e2e ${id}`, clinicBranchId: branchId }));
   const dentist = await first("/api/v1/app/staff?MaxResultCount=1&Role=1");
   expect(dentist, "the demo clinic should have a dentist").toBeTruthy();
 
-  return { dentistId: dentist!.id, supplierId: supplier.id, supplierName: supplier.name, materialId: material.id };
+  return {
+    dentistId: dentist!.id,
+    supplierId: supplier.id,
+    supplierName: supplier.name,
+    materialId: material.id,
+    finishLineId: finishLine.id,
+  };
 }
 
 /** A service line of a slip, with what a công đoạn on it needs. */
@@ -198,23 +235,31 @@ export interface LaboLine {
   serviceName: string;
 }
 
-const LABO_SERVICE = "DV LABO E2E";
-let laboServiceId: string | undefined;
+/** A catalog service the specs put on their lines: its name and Danh mục's "Thời gian bảo hành (ngày)". */
+export interface SpecService {
+  name: string;
+  warrantyDays: number;
+}
 
-/**
- * The catalog service the Labo specs put on their lines, reused across runs:
- * no picture needed to finish a công đoạn, no warranty days of its own.
- */
-async function laboService(page: Page): Promise<string> {
-  if (laboServiceId) return laboServiceId;
+/** The Labo specs' service: no picture needed to finish a công đoạn, no warranty days of its own. */
+export const LABO_SERVICE: SpecService = { name: "DV LABO E2E", warrantyDays: 0 };
+const serviceIds = new Map<string, string>();
+
+/** `service`, reused across runs and created only when missing. */
+async function specService(page: Page, service: SpecService): Promise<string> {
+  const known = serviceIds.get(service.name);
+  if (known) return known;
   const found = await call<Paged<{ id: string; name: string }>>(
     page,
-    `/api/v1/app/catalog-entries?ClinicBranchId=${BRANCH_ONE}&Group=care_service&IsDeleted=false&IsActive=true&Filter=${encodeURIComponent(LABO_SERVICE)}&MaxResultCount=20`,
+    `/api/v1/app/catalog-entries?ClinicBranchId=${BRANCH_ONE}&Group=care_service&IsDeleted=false&IsActive=true&Filter=${encodeURIComponent(service.name)}&MaxResultCount=20`,
     { branchId: BRANCH_ONE },
   );
   expect(found.status, found.text).toBe(200);
-  const existing = found.body.items?.find((item) => item.name === LABO_SERVICE);
-  if (existing) return (laboServiceId = existing.id);
+  const existing = found.body.items?.find((item) => item.name === service.name);
+  if (existing) {
+    serviceIds.set(service.name, existing.id);
+    return existing.id;
+  }
 
   const groups = await call<Paged<{ id: string }>>(
     page,
@@ -227,7 +272,7 @@ async function laboService(page: Page): Promise<string> {
     json: {
       clinicBranchId: BRANCH_ONE,
       taxonomyId: groups.body.items![0].id,
-      name: LABO_SERVICE,
+      name: service.name,
       price: 100000,
       stages: [],
       serviceConfig: {
@@ -241,13 +286,14 @@ async function laboService(page: Page): Promise<string> {
         showToothOnInvoice: false,
         revenueByStage: false,
         requireStageSequence: false,
-        warrantyDays: 0,
+        warrantyDays: service.warrantyDays,
         laboSupplierIds: [],
       },
     },
   });
   expect(made.status, made.text).toBe(200);
-  return (laboServiceId = made.body.id!);
+  serviceIds.set(service.name, made.body.id!);
+  return made.body.id!;
 }
 
 interface SlipRow {
@@ -259,29 +305,47 @@ interface SlipRow {
   services: { id: string; serviceId: string; serviceName: string | null }[];
 }
 
+/** What a fresh line is made of; every field optional. */
+export interface LineOptions {
+  /** The slip to add to; by default the newest open branch-1 slip. */
+  planId?: string;
+  service?: SpecService;
+  teeth?: readonly number[];
+  /** TreatmentServiceStatus: 1 Đã tạo (default), 3 Hoàn thành. */
+  status?: number;
+}
+
 /**
  * A fresh Created line of the Labo service on a branch-1 slip — the newest
  * open one, or `planId` — added through the slip's own `POST services`.
  * The spec drives it from there, so no seeded line is used up.
  */
 export async function laboLine(page: Page, planId?: string): Promise<LaboLine> {
+  return serviceLine(page, { planId });
+}
+
+/** A fresh line as {@link laboLine} adds it, of any spec service, teeth and status. */
+export async function serviceLine(page: Page, options: LineOptions = {}): Promise<LaboLine> {
+  const { planId, service = LABO_SERVICE, teeth = [], status = 1 } = options;
   await page.goto("/patient");
   await assertRealApiTraffic(page, "/api/v1/app/patients");
-  const serviceId = await laboService(page);
+  const serviceId = await specService(page, service);
 
-  const slips = await call<Paged<SlipRow>>(page, `${PLANS}?maxResultCount=300`, { branchId: BRANCH_ONE });
-  expect(slips.status, slips.text).toBe(200);
-  // 5 = Completed, 6 = Cancelled: a closed slip takes no new line.
-  const slip = (slips.body.items ?? [])
-    .filter((one) => (planId ? one.id === planId : one.branchId === BRANCH_ONE && one.status !== 5 && one.status !== 6))
-    .sort((a, b) => b.creationTime.localeCompare(a.creationTime))[0];
-  expect(slip, "branch 1 should have an open slip").toBeTruthy();
+  const slip = planId ? await slipOf(page, planId) : await newestOpenSlip(page);
 
   const known = new Set(slip.services.map((line) => line.id));
   const added = await call<SlipRow>(page, `${PLANS}/${slip.id}/services`, {
     method: "POST",
     branchId: slip.branchId,
-    json: { serviceId, price: 100000, quantity: 1, discountType: 0, discountValue: 0, status: 1 },
+    json: {
+      serviceId,
+      price: 100000,
+      quantity: 1,
+      discountType: 0,
+      discountValue: 0,
+      status,
+      teeth: teeth.map((toothCode) => ({ toothCode, selected: true })),
+    },
   });
   expect(added.status, added.text).toBe(200);
   const line = added.body.services?.find((one) => !known.has(one.id));
@@ -292,8 +356,88 @@ export async function laboLine(page: Page, planId?: string): Promise<LaboLine> {
     lineId: line!.id,
     branchId: slip.branchId,
     serviceId,
-    serviceName: line!.serviceName ?? LABO_SERVICE,
+    serviceName: line!.serviceName ?? service.name,
   };
+}
+
+async function slipOf(page: Page, planId: string): Promise<SlipRow> {
+  const slip = await call<SlipRow>(page, `${PLANS}/${planId}`, { branchId: BRANCH_ONE });
+  expect(slip.status, slip.text).toBe(200);
+  return slip.body as SlipRow;
+}
+
+async function newestOpenSlip(page: Page): Promise<SlipRow> {
+  const slips = await call<Paged<SlipRow>>(page, `${PLANS}?maxResultCount=300`, { branchId: BRANCH_ONE });
+  expect(slips.status, slips.text).toBe(200);
+  // 5 = Completed, 6 = Cancelled: a closed slip takes no new line.
+  const slip = (slips.body.items ?? [])
+    .filter((one) => one.branchId === BRANCH_ONE && one.status !== 5 && one.status !== 6)
+    .sort((a, b) => b.creationTime.localeCompare(a.creationTime))[0];
+  expect(slip, "branch 1 should have an open slip").toBeTruthy();
+  return slip;
+}
+
+/**
+ * A slip of its own for a spec whose counts must not ride on the shared one:
+ * a new branch-1 patient, one accepted advise of the Labo service, and the
+ * slip opened from it. Returns the slip's id, for {@link serviceLine}.
+ */
+export async function freshSlip(page: Page, tag: string): Promise<string> {
+  await page.goto("/patient");
+  await assertRealApiTraffic(page, "/api/v1/app/patients");
+  const serviceId = await specService(page, LABO_SERVICE);
+  const staff = await call<Paged<{ id: string }>>(page, "/api/v1/app/staff?MaxResultCount=1", { branchId: BRANCH_ONE });
+  expect(staff.status, staff.text).toBe(200);
+  const staffId = staff.body.items![0].id;
+
+  const digits = `${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(-8);
+  const patient = await call<{ id: string }>(page, "/api/v1/app/patients", {
+    method: "POST",
+    branchId: BRANCH_ONE,
+    json: { firstName: `Phiếu ${tag}`, lastName: "E2E", dateOfBirth: null, gender: "male", phoneNumber: `07${digits}` },
+  });
+  expect(patient.status, patient.text).toBe(200);
+
+  const advise = await call<{ id: string }>(page, "/api/v1/app/patient-advises", {
+    method: "POST",
+    branchId: BRANCH_ONE,
+    json: {
+      patientId: patient.body.id,
+      clinicBranchId: BRANCH_ONE,
+      patientDiagnosisId: null,
+      diagnosisId: null,
+      serviceId,
+      staffId,
+      originalPrice: 100000,
+      price: 100000,
+      quantity: 1,
+      discountType: 0,
+      discountValue: 0,
+      teeth: [{ toothCode: 18, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
+    },
+  });
+  expect(advise.status, advise.text).toBe(200);
+  const accepted = await call(page, `/api/v1/app/patient-advises/${advise.body.id}/accept`, {
+    method: "POST",
+    branchId: BRANCH_ONE,
+  });
+  expect(accepted.status, accepted.text).toBe(200);
+
+  const slip = await call<{ id: string }>(page, PLANS, {
+    method: "POST",
+    branchId: BRANCH_ONE,
+    json: {
+      patientId: patient.body.id,
+      clinicBranchId: BRANCH_ONE,
+      dentistId: staffId,
+      discountType: 0,
+      discountValue: 0,
+      voucherIds: [],
+      adviseIds: [advise.body.id],
+    },
+  });
+  expect(slip.status, slip.text).toBe(200);
+  return slip.body.id!;
 }
 
 /** The Đặt hàng tab's fields, every required one filled. */
@@ -304,7 +448,9 @@ export interface LaboOrderBody {
   supplierId: string;
   materialId: string;
   teeth: number[];
+  /** Order-level Màu răng / Đường hoàn tất: given to every tooth when no toothSpecs is sent. */
   toothShade: string;
+  finishLineId: string;
   quantity: number;
   workDescription: string;
   notes: string;
@@ -313,6 +459,14 @@ export interface LaboOrderBody {
   treatmentServiceId?: string;
   treatmentStageId?: string;
   submit: boolean;
+}
+
+/** One row of Thông số từng răng (P3110). */
+export interface LaboToothSpec {
+  toothNumber: number;
+  shade?: string;
+  finishLineId?: string;
+  labNote?: string;
 }
 
 const DAY_MS = 24 * 60 * 60_000;
@@ -336,6 +490,7 @@ export function orderBody(
     materialId: catalog.materialId,
     teeth: [11, 21],
     toothShade: `A2-${id}`,
+    finishLineId: catalog.finishLineId,
     quantity: 2,
     workDescription: `Chỉ định e2e ${id}`,
     notes: `Ghi chú e2e ${id}`,
@@ -353,7 +508,7 @@ export async function createOrder(page: Page, body: LaboOrderBody, pictures = 0)
     : call<LaboOrderView>(page, LABO_ORDERS, { method: "POST", branchId: body.branchId, form: { ...body }, pictures });
 }
 
-/** A Đã gửi Labo order — submitted with one picture — answered 200. */
+/** A Đã gửi Labo order — submitted with one picture (optional since P3110) — answered 200. */
 export async function sentOrder(page: Page, body: LaboOrderBody): Promise<LaboOrderView> {
   const made = await createOrder(page, { ...body, submit: true }, 1);
   expect(made.status, made.text).toBe(200);
@@ -381,8 +536,17 @@ export interface CheckInput {
   redeliveryDueAt?: string;
 }
 
-/** Kiểm tra từng răng + Kết luận, posted as the dialog posts it: `teeth[i].*` form keys + Ảnh kiểm tra. */
-export async function check(page: Page, id: string, input: CheckInput, pictures = 0): Promise<ApiResult<LaboOrderView>> {
+/**
+ * Kiểm tra từng răng + Kết luận, posted as the dialog posts it: `teeth[i].*` form keys + Ảnh kiểm tra,
+ * `toothPictures` being the Hình ảnh lỗi of each Lỗi tooth (REQ-D6).
+ */
+export async function check(
+  page: Page,
+  id: string,
+  input: CheckInput,
+  pictures = 0,
+  toothPictures: readonly number[] = [],
+): Promise<ApiResult<LaboOrderView>> {
   const form: Record<string, FormValue> = {
     conclusion: input.conclusion,
     description: input.description,
@@ -394,7 +558,7 @@ export async function check(page: Page, id: string, input: CheckInput, pictures 
     form[`teeth[${i}].result`] = tooth.result;
     form[`teeth[${i}].note`] = tooth.note;
   });
-  return call<LaboOrderView>(page, `${LABO_ORDERS}/${id}/check`, { method: "POST", form, pictures });
+  return call<LaboOrderView>(page, `${LABO_ORDERS}/${id}/check`, { method: "POST", form, pictures, toothPictures });
 }
 
 /** Every due tooth Đạt + Xác nhận Labo đạt. */
@@ -418,6 +582,29 @@ export interface WarrantyCard {
 
 export async function activateWarranty(page: Page, id: string, cards: WarrantyCard[]): Promise<ApiResult<LaboOrderView>> {
   return call<LaboOrderView>(page, `${LABO_ORDERS}/${id}/warranty`, { method: "POST", json: { cards } });
+}
+
+/** WarrantyCardSide on the wire. */
+export const CardSide = { Front: 1, Back: 2 } as const;
+
+/** One face of a tooth's warranty card, posted as a 1×1 PNG. */
+export interface CardPhoto {
+  tooth: number;
+  side: number;
+}
+
+/** Kích hoạt bảo hành as the dialog posts it: multipart `cards[i].*` keys + the Ảnh thẻ bảo hành (REQ-E1). */
+export async function activateWarrantyWithPhotos(
+  page: Page,
+  id: string,
+  cards: WarrantyCard[],
+  cardPhotos: readonly CardPhoto[],
+): Promise<ApiResult<LaboOrderView>> {
+  const form: Record<string, FormValue> = {};
+  cards.forEach((card, i) => {
+    for (const [key, value] of Object.entries(card)) form[`cards[${i}].${key}`] = value;
+  });
+  return call<LaboOrderView>(page, `${LABO_ORDERS}/${id}/warranty`, { method: "POST", form, cardPhotos });
 }
 
 /** Today in the clinic (UTC+7) as yyyy-MM-dd. */

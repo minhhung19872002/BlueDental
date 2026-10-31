@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import type { PatientDto } from "@/features/patient-management/types/patient";
@@ -9,13 +10,15 @@ interface Props {
   patient: PatientDto;
   plan: TreatmentPlanSlipDto;
   branchId: string;
+  /** Right end of the strip — "Hôm nay: dd/mm/yyyy" on Bảo hành (m366). */
+  aside?: ReactNode;
 }
 
 /**
  * The round back arrow and the three-step breadcrumb the reference draws
  * above the slip: [code] - name › Kế hoạch điều trị › slip code.
  */
-export function PlanDetailHeader({ patient, plan, branchId }: Props) {
+export function PlanDetailHeader({ patient, plan, branchId, aside }: Props) {
   const navigate = useNavigate();
   const patientPath = withBranch(`/patient/${patient.id}?tab=profile`, branchId);
   const plansPath = withBranch(`/patient/${patient.id}?tab=treatment-plan`, branchId);
@@ -47,6 +50,7 @@ export function PlanDetailHeader({ patient, plan, branchId }: Props) {
           {plan.code}
         </span>
       </nav>
+      {aside && <div className="pdt-header-aside">{aside}</div>}
     </div>
   );
 }

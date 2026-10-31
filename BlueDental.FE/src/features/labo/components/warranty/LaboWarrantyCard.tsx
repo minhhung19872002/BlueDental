@@ -14,9 +14,6 @@ interface Props {
   tooth: LaboOrderToothDto;
   code: string;
   restoration: string;
-  /** The tooth the tabs below are about. */
-  focused: boolean;
-  onFocus: () => void;
   /** The clinic's logo, as the header shows it. */
   logoUrl: string;
 }
@@ -30,23 +27,16 @@ function durationText(months: number | null | undefined): string {
 
 /**
  * One tooth's warranty card: purple once activated, grey before, with its
- * code, validity and time left. Clicking it opens the tooth below.
+ * code, validity and time left.
  */
-export function LaboWarrantyCard({ tooth, code, restoration, focused, onFocus, logoUrl }: Props) {
+export function LaboWarrantyCard({ tooth, code, restoration, logoUrl }: Props) {
   const state = warrantyState(tooth);
   const pill = LABO_WARRANTY_STATE_PILL[state];
   const left = tooth.warrantyEndDate ? remainingLabel(tooth.warrantyEndDate) : null;
   const elapsed = { "--pd-warranty-elapsed": `${Math.round(elapsedShare(tooth) * 100)}%` } as CSSProperties;
 
   return (
-    <button
-      type="button"
-      className={["pd-labo-warranty-card", `pd-labo-warranty-card--${state}`, focused && "pd-labo-warranty-card--focused"]
-        .filter(Boolean)
-        .join(" ")}
-      aria-pressed={focused}
-      onClick={onFocus}
-    >
+    <article className={`pd-labo-warranty-card pd-labo-warranty-card--${state}`} aria-label={t("Labo:Warranty:CardCode", code)}>
       <span className="pd-labo-warranty-card-head">
         <img src={logoUrl} alt="" className="pd-labo-warranty-logo" />
         <strong>{t("Labo:Check:ToothLabel", tooth.toothNumber)}</strong>
@@ -69,6 +59,6 @@ export function LaboWarrantyCard({ tooth, code, restoration, focused, onFocus, l
         <span>{left ? t(left.key, ...left.args) : t(LABO_WARRANTY_STATE_PILL.inactive.label)}</span>
         <span>{t(state === "inactive" ? "Labo:Warranty:AwaitingActivation" : "Labo:Warranty:NoClaimsYet")}</span>
       </span>
-    </button>
+    </article>
   );
 }

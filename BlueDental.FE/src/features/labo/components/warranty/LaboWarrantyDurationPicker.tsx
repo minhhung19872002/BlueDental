@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { InputNumber } from "antd";
 import { t } from "@/lib/i18n";
-import { durationLabel, MAX_WARRANTY_MONTHS, WARRANTY_DURATIONS } from "./laboWarrantyRules";
+import { CATALOG_DURATION, durationLabel, MAX_WARRANTY_MONTHS, WARRANTY_DURATIONS } from "./laboWarrantyRules";
 
 interface Props {
   /** Months; set by the Form.Item around it. */
@@ -9,18 +9,34 @@ interface Props {
   onChange?: (months: number | undefined) => void;
   disabled?: boolean;
   id?: string;
+  /** Danh mục's days: shows "Theo danh mục · n ngày" first, held as {@link CATALOG_DURATION} (P3110 REQ-B5). */
+  catalogDays?: number;
 }
 
-const isPreset = (months: number | undefined) => WARRANTY_DURATIONS.some((preset) => preset === months);
+const isPreset = (months: number | undefined) =>
+  months === CATALOG_DURATION || WARRANTY_DURATIONS.some((preset) => preset === months);
 
 /**
  * Thời hạn bảo hành: 6 tháng … 10 năm as chips, or Khác (tháng) for any
  * whole number of months. Either way the form holds one number of months.
  */
-export function LaboWarrantyDurationPicker({ value, onChange, disabled, id }: Props) {
+export function LaboWarrantyDurationPicker({ value, onChange, disabled, id, catalogDays }: Props) {
   const customId = useId();
   return (
     <div className="pd-labo-warranty-durations" id={id}>
+      {catalogDays !== undefined && (
+        <button
+          type="button"
+          className={["pd-labo-warranty-duration", value === CATALOG_DURATION && "pd-labo-warranty-duration--on"]
+            .filter(Boolean)
+            .join(" ")}
+          aria-pressed={value === CATALOG_DURATION}
+          disabled={disabled}
+          onClick={() => onChange?.(CATALOG_DURATION)}
+        >
+          {t("Treatment:Warranty:ByCatalog", catalogDays)}
+        </button>
+      )}
       {WARRANTY_DURATIONS.map((months) => {
         const label = durationLabel(months);
         return (

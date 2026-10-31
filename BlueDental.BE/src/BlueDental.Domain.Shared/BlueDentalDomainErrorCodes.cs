@@ -352,6 +352,39 @@ public static class BlueDentalDomainErrorCodes
         /// tab already hides from them.
         /// </summary>
         public const string PlanOutsideTreatingScope = "BlueDental:Treatment:0052";
+
+        /// <summary>"Bảo hành dịch vụ" on a line that is not Hoàn thành (P3110 REQ-B5).</summary>
+        public const string WarrantyLineNotDone = "BlueDental:Treatment:0053";
+
+        /// <summary>
+        /// A dental warranty card for a tooth the line does not treat, a tooth asked
+        /// twice, or a tooth that already has its card (P3110 REQ-B5).
+        /// </summary>
+        public const string WarrantyToothInvalid = "BlueDental:Treatment:0054";
+
+        /// <summary>"Ngày bắt đầu bảo hành" before the day the line was finished (P3110 REQ-B5).</summary>
+        public const string WarrantyStartBeforeCompletion = "BlueDental:Treatment:0055";
+
+        /// <summary>"Thời hạn" outside 1..600 months (P3110 REQ-B5).</summary>
+        public const string WarrantyDurationInvalid = "BlueDental:Treatment:0056";
+
+        /// <summary>A warranty card photo for a tooth not being activated, or a side sent twice (P3110 REQ-B5).</summary>
+        public const string WarrantyCardPhotoInvalid = "BlueDental:Treatment:0057";
+
+        /// <summary>A warranty công đoạn that names no "Thẻ bảo hành áp dụng" (P3110 REQ-F7).</summary>
+        public const string WarrantyKindRequired = "BlueDental:Treatment:0058";
+
+        /// <summary>"Nha khoa" picked on a line with no dental warranty card still running (P3110 REQ-F7).</summary>
+        public const string WarrantyCardNotValid = "BlueDental:Treatment:0059";
+
+        /// <summary>
+        /// "Labo" picked without a Labo order of the line whose warranty is still
+        /// running, or a Labo order sent with "Nha khoa" (P3110 REQ-F7).
+        /// </summary>
+        public const string WarrantyLaboOrderInvalid = "BlueDental:Treatment:0060";
+
+        /// <summary>A warranty công đoạn on a tooth its card does not cover (P3110 REQ-F7).</summary>
+        public const string WarrantyToothNotCovered = "BlueDental:Treatment:0061";
     }
 
     public static class Billing
@@ -501,7 +534,7 @@ public static class BlueDentalDomainErrorCodes
         // P2910_03 workflow (F-85).
         /// <summary>Tạo phiếu Labo with a required order field still empty.</summary>
         public const string OrderIncomplete = "BlueDental:Labo:0015";
-        /// <summary>Hình ảnh gửi Labo: at least one picture, at most five.</summary>
+        /// <summary>Hình ảnh gửi Labo: at most five per set (the shared ones, or one tooth's).</summary>
         public const string ImageCountInvalid = "BlueDental:Labo:0016";
         /// <summary>Số lượng nhận outside 1 … Số lượng đặt.</summary>
         public const string ReceivedQuantityInvalid = "BlueDental:Labo:0017";
@@ -513,7 +546,7 @@ public static class BlueDentalDomainErrorCodes
         public const string ReturnNeedsDefect = "BlueDental:Labo:0021";
         /// <summary>Xác nhận Labo đạt while a tooth is marked Lỗi.</summary>
         public const string NotAllPassed = "BlueDental:Labo:0022";
-        /// <summary>Mô tả gửi Labo, Ngày trả hàng or Hẹn Labo giao lại missing.</summary>
+        /// <summary>Ngày trả hàng or Hẹn Labo giao lại missing.</summary>
         public const string ReturnDetailsRequired = "BlueDental:Labo:0023";
         public const string RedeliveryBeforeReturn = "BlueDental:Labo:0024";
         /// <summary>Ảnh kiểm tra is required once a tooth is marked Lỗi.</summary>
@@ -531,6 +564,12 @@ public static class BlueDentalDomainErrorCodes
         public const string TreatmentServiceMismatch = "BlueDental:Labo:0032";
         /// <summary>Hoàn thành of a service line while its labo order has not passed QC.</summary>
         public const string ServiceLockedByLabo = "BlueDental:Labo:0033";
+        /// <summary>Gửi Labo while a tooth lacks Màu răng or Đường hoàn tất; data "tooth" names it.</summary>
+        public const string ToothSpecIncomplete = "BlueDental:Labo:0034";
+        /// <summary>Trả hàng while a Lỗi tooth has no Mô tả gửi Labo (P3110 REQ-D6); data "tooth" names it.</summary>
+        public const string DefectDescriptionRequired = "BlueDental:Labo:0035";
+        /// <summary>Ảnh thẻ for a tooth not being activated, or two of one face (P3110 REQ-E1).</summary>
+        public const string WarrantyCardPhotoInvalid = "BlueDental:Labo:0036";
     }
 
     public static class Promotions

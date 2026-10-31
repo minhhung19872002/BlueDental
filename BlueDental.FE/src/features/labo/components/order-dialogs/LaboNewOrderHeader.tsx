@@ -28,8 +28,9 @@ interface Props {
 
 /**
  * The top grid of the Đặt hàng tab: Tên KH, Kế hoạch điều trị, Dịch vụ điều
- * trị, Bác sĩ chỉ định, then Số phiếu, the sent stamp, the supplier and the
- * due stamp. From a công đoạn the plan and line are known and locked; from
+ * trị, Bác sĩ chỉ định, then Số phiếu, Ngày gửi, the supplier and Ngày nhận
+ * dự kiến — two columns, as m142 lays them out. From a công đoạn the plan
+ * and line are known and locked; from
  * the tab they are picked here. Bác sĩ chỉ định stays open either way.
  */
 export function LaboNewOrderHeader({ patient, source, plans, dentists, code, form }: Props) {
@@ -54,10 +55,7 @@ export function LaboNewOrderHeader({ patient, source, plans, dentists, code, for
       </FloatingField>
 
       <LaboLockedField label={t("Patient:Labo:SlipNumber")} value={code} />
-      <LaboDeliveryFields
-        sentLabels={{ date: t("Patient:Labo:SentDate"), time: t("Patient:Labo:SentTime") }}
-        suppliers={form.options.suppliers}
-      />
+      <LaboDeliveryFields suppliers={form.options.suppliers} />
     </div>
   );
 }

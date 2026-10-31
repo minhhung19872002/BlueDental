@@ -194,7 +194,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         // Khớp cắn, Đường hoàn tất and Kiểu nhịp are taxonomy rows, and so is
         // the labo service a material belongs to ("BE:LaboField:CurrentService").
         var taxonomyIds = entities
-            .SelectMany(o => new[] { o.BiteId, o.FinishLineId, o.RhythmId })
+            .SelectMany(o => new[] { o.BiteId, o.FinishLineId, o.RhythmId }
+                .Concat(o.Teeth.SelectMany(t => new[] { t.BiteId, t.FinishLineId, t.RhythmId })))
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
             .Concat(materials.Values.Select(m => m.TaxonomyId))
@@ -256,6 +257,12 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             dto.BiteName = entity.BiteId.HasValue ? taxonomies.GetValueOrDefault(entity.BiteId.Value) : null;
             dto.FinishLineName = entity.FinishLineId.HasValue ? taxonomies.GetValueOrDefault(entity.FinishLineId.Value) : null;
             dto.RhythmName = entity.RhythmId.HasValue ? taxonomies.GetValueOrDefault(entity.RhythmId.Value) : null;
+            foreach (var tooth in dto.Teeth)
+            {
+                tooth.BiteName = tooth.BiteId.HasValue ? taxonomies.GetValueOrDefault(tooth.BiteId.Value) : null;
+                tooth.FinishLineName = tooth.FinishLineId.HasValue ? taxonomies.GetValueOrDefault(tooth.FinishLineId.Value) : null;
+                tooth.RhythmName = tooth.RhythmId.HasValue ? taxonomies.GetValueOrDefault(tooth.RhythmId.Value) : null;
+            }
 
             if (entity.TreatmentServiceId.HasValue &&
                 lines.TryGetValue(entity.TreatmentServiceId.Value, out var line))
@@ -312,6 +319,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         dto.Rounds = dto.Rounds.OrderBy(r => r.RoundNo).ToList();
         foreach (var tooth in dto.Teeth)
         {
+            tooth.ReturnCount = entity.ToothReturnCount(tooth.ToothNumber);
             tooth.IsWarrantyExpired = tooth.WarrantyActivatedAt.HasValue && tooth.WarrantyEndDate < today;
         }
     }
@@ -329,7 +337,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         var images = await AsyncExecuter.ToListAsync(
             query.Where(x => x.LaboOrderId.HasValue && orderIds.Contains(x.LaboOrderId.Value))
                 .OrderBy(x => x.CreationTime)
-                .Select(x => new { x.Id, x.FileName, OrderId = x.LaboOrderId!.Value, x.LaboRoundNo }));
+                .Select(x => new { x.Id, x.FileName, OrderId = x.LaboOrderId!.Value, x.LaboRoundNo, x.LaboToothNumber, x.WarrantyCardSide }));
         return images
             .GroupBy(x => x.OrderId)
             .ToDictionary(
@@ -340,6 +348,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     FileName = x.FileName,
                     Url = $"/api/v1/app/patient-images/{x.Id}/content",
                     RoundNo = x.LaboRoundNo,
+                    ToothNumber = x.LaboToothNumber,
+                    WarrantyCardSide = x.WarrantyCardSide,
                 }).ToList());
     }
 
@@ -526,8 +536,12 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         var code = await ResolveOrderCodeAsync(input.OrderCode);
         var order = new LaboOrder(
             GuidGenerator.Create(), code, input.PatientId, branchId, await ToDetailsAsync(input));
-        var pictures = input.Pictures ?? [];
-        SubmitOrKeep(order, input.Submit, pictures.Count);
+        var pictures = OrderPicturesOf(input, order);
+        EnsurePictureSets(pictures.Select(p => p.ToothNumber));
+        if (input.Submit)
+        {
+            order.Submit();
+        }
 
         await _repository.InsertAsync(order, autoSave: true);
         await AttachPicturesAsync(order, pictures, roundNo: null);
@@ -542,14 +556,22 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         order.UpdateDraft(await ToDetailsAsync(input));
 
         // Only the pictures sent to the lab are on the Đặt hàng tab; a
-        // round's Ảnh kiểm tra are never touched from here.
+        // round's Ảnh kiểm tra are never touched from here. A tooth taken off
+        // the order takes its row's pictures with it.
         var saved = await _imageRepository.GetListAsync(
             x => x.LaboOrderId == order.Id && x.LaboRoundNo == null);
-        var removed = input.KeepImageIds is null
-            ? []
-            : saved.Where(x => !input.KeepImageIds.Contains(x.Id)).ToList();
-        var pictures = input.Pictures ?? [];
-        SubmitOrKeep(order, input.Submit, saved.Count - removed.Count + pictures.Count);
+        var onOrder = order.Teeth.Select(t => t.ToothNumber).ToHashSet();
+        var removed = saved.Where(x =>
+                (input.KeepImageIds is not null && !input.KeepImageIds.Contains(x.Id))
+                || (x.LaboToothNumber is { } tooth && tooth != PatientImage.AllLaboTeeth && !onOrder.Contains(tooth)))
+            .ToList();
+        var pictures = OrderPicturesOf(input, order);
+        EnsurePictureSets(saved.Except(removed).Select(x => x.LaboToothNumber)
+            .Concat(pictures.Select(p => p.ToothNumber)));
+        if (input.Submit)
+        {
+            order.Submit();
+        }
 
         await _repository.UpdateAsync(order, autoSave: true);
         if (removed.Count > 0)
@@ -567,16 +589,38 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         return await ToDtoAsync(order);
     }
 
-    /// <summary>Tạo phiếu Labo sends the order; Lưu nháp only keeps it, with no more than five pictures.</summary>
-    private static void SubmitOrKeep(LaboOrder order, bool submit, int imageCount)
+    /// <summary>A picture headed for the patient's Hình ảnh, and the Labo tooth row it belongs to (null = shared).</summary>
+    private sealed record LaboPicture(IRemoteStreamContent File, int? ToothNumber, WarrantyCardSide? CardSide = null);
+
+    private static List<LaboPicture> CommonPictures(List<IRemoteStreamContent>? files) =>
+        (files ?? []).Select(f => new LaboPicture(f, null)).ToList();
+
+    /// <summary>
+    /// Ảnh đính kèm chung plus each tooth row's cột Ảnh. Every tooth picture
+    /// names a tooth on the order, or the "Dùng chung" row (0).
+    /// </summary>
+    private static List<LaboPicture> OrderPicturesOf(SaveLaboOrderDto input, LaboOrder order)
     {
-        if (submit)
+        var files = input.ToothPictures ?? [];
+        var teeth = input.ToothPictureTeeth ?? [];
+        var onOrder = order.Teeth.Select(t => t.ToothNumber).ToHashSet();
+        if (files.Count != teeth.Count
+            || teeth.Any(t => t != PatientImage.AllLaboTeeth && !onOrder.Contains(t)))
         {
-            order.Submit(imageCount);
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothNotOnOrder);
         }
-        else
+
+        return CommonPictures(input.Pictures)
+            .Concat(files.Select((file, i) => new LaboPicture(file, teeth[i])))
+            .ToList();
+    }
+
+    /// <summary>The shared pictures, and each tooth row's, are separate sets of at most five.</summary>
+    private static void EnsurePictureSets(IEnumerable<int?> toothOfEachPicture)
+    {
+        foreach (var set in toothOfEachPicture.GroupBy(t => t))
         {
-            LaboOrder.EnsureImageCount(imageCount, submitting: false);
+            LaboOrder.EnsureImageCount(set.Count());
         }
     }
 
@@ -600,6 +644,10 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             FinishLineId = input.FinishLineId,
             RhythmId = input.RhythmId,
             Teeth = input.Teeth,
+            ToothSpecs = input.ToothSpecs?
+                .Select(s => new LaboToothSpec(s.ToothNumber, s.Shade, s.FinishLineId, s.RhythmId, s.BiteId, s.LabNote))
+                .ToList(),
+            SharedSpec = input.SharedSpec,
             ToothShade = input.ToothShade,
             Quantity = input.Quantity,
             WorkDescription = input.WorkDescription,
@@ -618,7 +666,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     /// a round's Ảnh kiểm tra carry the round number too. The image service
     /// applies its own permission and branch checks.
     /// </summary>
-    private async Task AttachPicturesAsync(LaboOrder order, List<IRemoteStreamContent> pictures, int? roundNo)
+    private async Task AttachPicturesAsync(LaboOrder order, IReadOnlyList<LaboPicture> pictures, int? roundNo)
     {
         if (pictures.Count == 0)
         {
@@ -642,7 +690,9 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                 TreatmentStageId = order.TreatmentStageId,
                 LaboOrderId = order.Id,
                 LaboRoundNo = roundNo,
-                File = picture,
+                LaboToothNumber = picture.ToothNumber,
+                WarrantyCardSide = picture.CardSide,
+                File = picture.File,
             });
         }
     }
@@ -738,8 +788,9 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     }
 
     /// <summary>
-    /// Kiểm tra từng răng + Kết luận. The Ảnh kiểm tra are filed under the
-    /// round being checked, and only once the aggregate has accepted the check.
+    /// Kiểm tra từng răng + Kết luận. The Ảnh kiểm tra — each Lỗi tooth's
+    /// Hình ảnh lỗi (P3110) — are filed under the round being checked, and
+    /// only once the aggregate has accepted the check.
     /// </summary>
     [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task<LaboOrderDto> CheckAsync(Guid id, CheckLaboOrderDto input)
@@ -748,7 +799,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         var results = input.Teeth
             .Select(t => new LaboRoundToothResult(t.ToothNumber, t.Result, t.Note))
             .ToList();
-        var pictures = input.Pictures ?? [];
+        var pictures = CheckPicturesOf(input, results);
         var roundNo = order.LatestRound?.RoundNo;
         var now = DateTimeOffset.UtcNow;
 
@@ -774,6 +825,27 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         return await ToDtoAsync(order);
     }
 
+    /// <summary>
+    /// The check's loose Ảnh kiểm tra plus each Lỗi tooth's Hình ảnh lỗi: a
+    /// tooth picture names a tooth marked Lỗi in this check, five at most each.
+    /// </summary>
+    private static List<LaboPicture> CheckPicturesOf(CheckLaboOrderDto input, List<LaboRoundToothResult> results)
+    {
+        var files = input.ToothPictures ?? [];
+        var teeth = input.ToothPictureTeeth ?? [];
+        var failed = results.Where(r => r.Result == LaboToothCheckResult.Failed)
+            .Select(r => r.ToothNumber).ToHashSet();
+        if (files.Count != teeth.Count || teeth.Any(t => !failed.Contains(t)))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothNotOnOrder);
+        }
+
+        EnsurePictureSets(teeth.Select(t => (int?)t));
+        return CommonPictures(input.Pictures)
+            .Concat(files.Select((file, i) => new LaboPicture(file, teeth[i])))
+            .ToList();
+    }
+
     [Authorize(BlueDentalPermissions.LaboOrders.Workflow)]
     public async Task<LaboOrderDto> ActivateWarrantyAsync(Guid id, ActivateLaboWarrantyDto input)
     {
@@ -781,9 +853,34 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         var cards = input.Cards
             .Select(c => new LaboWarrantyActivation(c.ToothNumber, c.StartDate, c.Months, c.ManufacturerSerial, c.Conditions))
             .ToList();
+        var photos = CardPhotosOf(input);
         order.ActivateWarranty(cards, DateTimeOffset.UtcNow, CurrentUser.Id);
         await _repository.UpdateAsync(order, autoSave: true);
+        await AttachPicturesAsync(order, photos, roundNo: null);
         return await ToDtoAsync(order);
+    }
+
+    /// <summary>
+    /// Ảnh thẻ: each names a tooth whose card is being activated and a face
+    /// of it, one photo per face.
+    /// </summary>
+    private static List<LaboPicture> CardPhotosOf(ActivateLaboWarrantyDto input)
+    {
+        var files = input.CardPhotos ?? [];
+        var teeth = input.CardPhotoTeeth ?? [];
+        var sides = input.CardPhotoSides ?? [];
+        var activated = input.Cards.Select(c => c.ToothNumber).ToHashSet();
+        var faces = teeth.Zip(sides).ToList();
+        if (files.Count != teeth.Count
+            || files.Count != sides.Count
+            || teeth.Any(t => !activated.Contains(t))
+            || sides.Any(s => !Enum.IsDefined(s))
+            || faces.Distinct().Count() != faces.Count)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.WarrantyCardPhotoInvalid);
+        }
+
+        return files.Select((file, i) => new LaboPicture(file, teeth[i], sides[i])).ToList();
     }
 
     private async Task<LaboOrderDto> ToDtoAsync(LaboOrder order) => (await ToDtosAsync([order]))[0];

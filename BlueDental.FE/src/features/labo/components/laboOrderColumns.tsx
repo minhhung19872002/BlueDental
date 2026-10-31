@@ -4,7 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
-import type { LaboOrderDto } from "../api/laboApi";
+import { isWarrantyCardPhoto, type LaboOrderDto } from "../api/laboApi";
 import { laboStatusPill } from "../api/laboStatus";
 import { LaboSendDueCell } from "./order-dialogs/LaboSendDueCell";
 import {
@@ -117,7 +117,7 @@ export function buildLaboOrderColumns({ branchId, onDetail }: Options): ColumnsT
       width: 168,
       align: "center",
       render: (_, row) => (
-        <LaboImagesButton images={row.images} label={t("Labo:Orders:ViewClinicFile")} />
+        <LaboImagesButton images={row.images.filter((image) => !isWarrantyCardPhoto(image))} label={t("Labo:Orders:ViewClinicFile")} />
       ),
     },
     {

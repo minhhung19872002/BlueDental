@@ -194,7 +194,6 @@
   font-size: 12px;
   text-align: left;
   box-shadow: var(--bd-shadow-lift);
-  cursor: pointer;
 }
 
 .pd-labo-warranty-card--inactive {
@@ -211,11 +210,6 @@
   border-color: var(--bd-red);
   color: var(--bd-sub);
   background: var(--bd-red-pale);
-}
-
-.pd-labo-warranty-card--focused {
-  border-color: var(--bd-gold);
-  box-shadow: var(--bd-shadow-focus);
 }
 
 .pd-labo-warranty-card-head {
@@ -239,7 +233,7 @@
   background: color-mix(in srgb, currentColor 22%, transparent);
 }
 
-/* The clinic's logo, round, on the card and on its preview. */
+/* The clinic's logo, round, on the card. */
 .pd-labo-warranty-logo {
   flex-shrink: 0;
   width: 26px;
@@ -295,111 +289,8 @@
   white-space: nowrap;
 }
 
-.pd-labo-warranty-info {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
-  gap: 20px;
-  /* Room for the first row's floating labels under the tabs. */
-  padding-top: 6px;
-}
-
-/* 16px rows leave room for each floating label. */
-.pd-labo-warranty-info-fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 12px;
-}
-
-.pd-labo-warranty-info-wide,
-.pd-labo-warranty-info-fields .pd-labo-warranty-note {
-  grid-column: 1 / -1;
-}
-
-.pd-labo-warranty-preview {
-  display: flex;
-  flex-direction: column;
-  align-self: start;
-  gap: 6px;
-  padding: 18px 20px 20px;
-  border-radius: 16px;
-  font-size: 13px;
-  color: var(--bd-card);
-  background: linear-gradient(135deg, var(--bd-purple), #5b8def);
-  box-shadow: var(--bd-shadow-pop);
-}
-
-.pd-labo-warranty-preview-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 12px;
-}
-
-.pd-labo-warranty-preview-head > span {
-  flex-shrink: 0;
-  margin-left: auto;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  opacity: 0.85;
-}
-
-.pd-labo-warranty-preview-name {
-  font-size: 20px;
-  line-height: 1.3;
-}
-
-.pd-labo-warranty-history {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding: 0 0 0 4px;
-  list-style: none;
-}
-
-.pd-labo-warranty-history-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-left: 16px;
-  border-left: 2px solid var(--bd-border);
-  font-size: 12px;
-  color: var(--bd-muted);
-}
-
-.pd-labo-warranty-history-item strong {
-  position: relative;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--bd-ink);
-}
-
-.pd-labo-warranty-history-item strong::before {
-  content: "";
-  position: absolute;
-  top: 5px;
-  left: -22px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--bd-muted);
-}
-
-.pd-labo-warranty-history-item--active strong::before {
-  background: var(--bd-purple);
-}
-
-.pd-labo-warranty-history-item--passed strong::before {
-  background: var(--bd-green);
-}
-
 @media (max-width: 640px) {
-  .pd-labo-warranty-cards,
-  .pd-labo-warranty-info,
-  .pd-labo-warranty-info-fields {
+  .pd-labo-warranty-cards {
     grid-template-columns: 1fr;
   }
 
@@ -417,16 +308,5 @@
   .pd-labo-warranty-duration-row {
     grid-template-columns: 1fr;
     gap: 8px;
-  }
-}
-
-/* Tablet: the preview card drops under the fields rather than squeezing them. */
-@media (max-width: 1100px) {
-  .pd-labo-warranty-info {
-    grid-template-columns: 1fr;
-  }
-
-  .pd-labo-warranty-preview {
-    max-width: 440px;
   }
 }

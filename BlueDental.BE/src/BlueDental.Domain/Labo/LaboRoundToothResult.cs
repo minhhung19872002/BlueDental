@@ -4,8 +4,9 @@ using Volo.Abp.Domain.Values;
 namespace BlueDental.Labo;
 
 /// <summary>
-/// One tooth as the check found it: Đạt, or Lỗi with its Ghi chú lỗi. Both
-/// what the check form posts and what a round keeps (jsonb on the round row).
+/// One tooth as the check found it: Đạt, or Lỗi with its note — since P3110
+/// the tooth's "Mô tả gửi Labo" (REQ-D6). Both what the check form posts and
+/// what a round keeps (jsonb on the round row), so each return keeps its own.
 /// </summary>
 public class LaboRoundToothResult : ValueObject
 {

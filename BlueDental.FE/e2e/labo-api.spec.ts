@@ -2,7 +2,9 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 import { BRANCH2_USER, login, runId } from "./fixtures/auth";
 import {
   activateWarranty,
+  activateWarrantyWithPhotos,
   call,
+  CardSide,
   check,
   clinicToday,
   Conclusion,
@@ -44,7 +46,8 @@ interface StageRow {
   id: string;
   labo: { orderId: string; orderCode: string; status: number; isWarrantyExpired: boolean } | null;
   completeLockedByLabo: boolean;
-  laboWarrantyOrder: { orderId: string } | null;
+  completeLockedByLaboOrder: { orderId: string; qualityPassedOn: string | null } | null;
+  lineLaboOrderCount: number;
 }
 
 interface SlipRow {
@@ -67,7 +70,13 @@ async function listed(page: Page, branchId: string, query: string): Promise<stri
   return (res.body.items ?? []).map((one) => one.id);
 }
 
-async function addStage(page: Page, line: LaboLine, staffId: string, note: string): Promise<string> {
+async function addStage(
+  page: Page,
+  line: LaboLine,
+  staffId: string,
+  note: string,
+  treatmentDate = clinicToday(),
+): Promise<string> {
   const made = await call<{ id: string }>(page, STAGES, {
     method: "POST",
     branchId: line.branchId,
@@ -80,7 +89,7 @@ async function addStage(page: Page, line: LaboLine, staffId: string, note: strin
       name: line.serviceName,
       note,
       staffId,
-      treatmentDate: clinicToday(),
+      treatmentDate,
       teeth: [],
     },
   });
@@ -129,10 +138,21 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const orderId = draft.body.id!;
     const self = `${LABO_ORDERS}/${orderId}`;
 
-    // Tạo phiếu Labo needs a picture; refused, the order stays a Nháp.
-    const bare = await call<LaboOrderView>(page, self, { method: "PUT", json: { ...body, submit: true } });
-    expect(bare.status).toBe(403);
-    expect(bare.body.error?.code).toBe(code(16));
+    // Gửi Labo needs Màu răng and Đường hoàn tất on every tooth (P3110 REQ-C1):
+    // R21 without its finish line is refused, the order stays a Nháp.
+    const gap = await call<LaboOrderView>(page, self, {
+      method: "PUT",
+      json: {
+        ...body,
+        submit: true,
+        toothSpecs: [
+          { toothNumber: 11, shade: "A1", finishLineId: catalog.finishLineId },
+          { toothNumber: 21, shade: "A2" },
+        ],
+      },
+    });
+    expect(gap.status).toBe(403);
+    expect(gap.body.error?.code).toBe(code(34));
     expect((await read(page, orderId)).status).toBe(LaboStatus.Draft);
 
     const sent = await call<LaboOrderView>(page, self, { method: "PUT", form: { ...body, submit: true }, pictures: 1 });
@@ -290,7 +310,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
       {
         teeth: [
           { toothNumber: 11, result: ToothResult.Passed },
-          { toothNumber: 21, result: ToothResult.Failed },
+          { toothNumber: 21, result: ToothResult.Failed, note: `Sai khớp cắn ${id}` },
         ],
         conclusion: Conclusion.ReturnAll,
         description: `Làm lại cả hàm ${id}`,
@@ -308,7 +328,121 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect((await read(page, order.id)).status).toBe(LaboStatus.Completed);
   });
 
-  test("an unfinished order locks the công đoạn that raised it and the later ones until QC passes", async ({ page }) => {
+  test("each Lỗi tooth carries its own Mô tả gửi Labo, Hình ảnh lỗi and Đã trả count (P3110 REQ-D5/D6)", async ({ page }) => {
+    const id = runId();
+    const line = await laboLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const order = await sentOrder(page, orderBody(catalog, line, id, { treatmentServiceId: line.lineId }));
+    const dates = { returnedAt: new Date().toISOString(), redeliveryDueAt: daysFromNow(3) };
+    const failBoth = (note21: string) => [
+      { toothNumber: 11, result: ToothResult.Failed, note: `Lệch màu ${id}` },
+      { toothNumber: 21, result: ToothResult.Failed, note: note21 },
+    ];
+
+    expect((await receive(page, order.id, 2)).status).toBe(200);
+    // Mô tả gửi Labo · R21 * — a blank description names the tooth, the order-level Mô tả is gone.
+    const blank = await check(page, order.id, { teeth: failBoth(" "), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11]);
+    expect(blank.status).toBe(403);
+    expect(blank.body.error?.code).toBe(code(35));
+    expect(blank.body.error?.message).toContain("21");
+    // Hình ảnh lỗi belongs to a Lỗi tooth only.
+    const passedTeeth = [
+      { toothNumber: 11, result: ToothResult.Passed },
+      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}` },
+    ];
+    const wrongTooth = await check(page, order.id, { teeth: passedTeeth, conclusion: Conclusion.ReturnDefective, ...dates }, 0, [11]);
+    expect(wrongTooth.status).toBe(403);
+    expect(wrongTooth.body.error?.code).toBe(code(20));
+    // Ảnh kiểm tra may come from the Lỗi rows alone.
+    const first = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11, 21]);
+    expect(first.status, first.text).toBe(200);
+    expect(first.body.rounds?.[0].returnDescription).toBe(`R11: Lệch màu ${id}; R21: Hở bờ ${id}`);
+    expect(first.body.images?.filter((i) => i.roundNo === 1).map((i) => i.toothNumber).sort()).toEqual([11, 21]);
+
+    // Lần 2: R11 passes, R21 goes back again — only R21's count climbs.
+    expect((await receive(page, order.id, 2)).status).toBe(200);
+    const second = await check(page, order.id, { teeth: passedTeeth, conclusion: Conclusion.ReturnDefective, ...dates }, 0, [21]);
+    expect(second.status, second.text).toBe(200);
+
+    const reread = await read(page, order.id);
+    expect(reread.returnCount).toBe(2);
+    expect(reread.teeth.map((t) => [t.toothNumber, t.returnCount])).toEqual([
+      [11, 1],
+      [21, 2],
+    ]);
+    expect(reread.rounds[1].toothResults.map((t) => [t.toothNumber, t.result, t.note])).toEqual([
+      [11, ToothResult.Passed, null],
+      [21, ToothResult.Failed, `Hở bờ ${id}`],
+    ]);
+  });
+
+  test("Kích hoạt bảo hành carries each card's Mặt trước / Mặt sau photos (P3110 REQ-E1)", async ({ page }) => {
+    const id = runId();
+    const line = await laboLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const order = await sentOrder(page, orderBody(catalog, line, id, { treatmentServiceId: line.lineId }));
+    expect((await receive(page, order.id, 2)).status).toBe(200);
+    await passAll(page, order.id, [11, 21]);
+    const card11 = [{ toothNumber: 11, startDate: clinicToday(), months: 12 }];
+
+    // A face the card does not have never reaches the service: model binding refuses it.
+    const noSuchFace = await activateWarrantyWithPhotos(page, order.id, card11, [{ tooth: 11, side: 3 }]);
+    expect(noSuchFace.status, noSuchFace.text).toBe(400);
+    expect(noSuchFace.text).toContain("cardPhotoSides");
+    // A photo must name a tooth of this activation, and each face once.
+    const refused = [
+      [{ tooth: 21, side: CardSide.Front }],
+      [
+        { tooth: 11, side: CardSide.Front },
+        { tooth: 11, side: CardSide.Front },
+      ],
+    ];
+    for (const photos of refused) {
+      const wrong = await activateWarrantyWithPhotos(page, order.id, card11, photos);
+      expect(wrong.status, wrong.text).toBe(403);
+      expect(wrong.body.error?.code).toBe(code(36));
+    }
+    // A tooth and a face with no photo beside them.
+    const unpaired = await call(page, `${LABO_ORDERS}/${order.id}/warranty`, {
+      method: "POST",
+      form: {
+        "cards[0].toothNumber": 11,
+        "cards[0].startDate": clinicToday(),
+        "cards[0].months": 12,
+        cardPhotoTeeth: [11],
+        cardPhotoSides: [CardSide.Front],
+      },
+    });
+    expect(unpaired.status, unpaired.text).toBe(403);
+    expect(unpaired.body.error?.code).toBe(code(36));
+    // Nothing of a refused activation stays behind.
+    const untouched = await read(page, order.id);
+    expect(untouched.status).toBe(LaboStatus.Completed);
+    expect(untouched.images.filter((i) => i.warrantyCardSide != null)).toEqual([]);
+
+    // R11 with both faces; R21 later with none — the photos are optional.
+    const both = [
+      { tooth: 11, side: CardSide.Front },
+      { tooth: 11, side: CardSide.Back },
+    ];
+    const first = await activateWarrantyWithPhotos(page, order.id, card11, both);
+    expect(first.status, first.text).toBe(200);
+    expect(first.body.status).toBe(LaboStatus.Warranty);
+    const second = await activateWarranty(page, order.id, [{ toothNumber: 21, startDate: clinicToday(), months: 24 }]);
+    expect(second.status, second.text).toBe(200);
+
+    // Read back: the photos sit on R11 as card faces, apart from the order and check pictures.
+    const reread = await read(page, order.id);
+    const photos = reread.images.filter((i) => i.warrantyCardSide != null);
+    expect(photos.map((i) => [i.toothNumber, i.roundNo, i.warrantyCardSide]).sort()).toEqual([
+      [11, null, CardSide.Front],
+      [11, null, CardSide.Back],
+    ]);
+    for (const photo of photos) expect((await call(page, photo.url)).status).toBe(200);
+    expect(reread.teeth.every((t) => t.warrantyCardCode !== null)).toBe(true);
+  });
+
+  test("an unfinished order locks the công đoạn that raised it and the later ones until the day QC passes", async ({ page }) => {
     const id = runId();
     const line = await laboLine(page);
     const catalog = await laboCatalog(page, line.branchId, id);
@@ -324,6 +458,10 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(stages.get(stageA)?.completeLockedByLabo).toBe(true);
     expect(stages.get(stageB)?.labo).toBeNull();
     expect(stages.get(stageB)?.completeLockedByLabo).toBe(true);
+    // P3110 m38: the lock names its order; "BN có n phiếu" counts the line's orders.
+    expect(stages.get(stageA)?.completeLockedByLaboOrder).toMatchObject({ orderId: order.id, qualityPassedOn: null });
+    expect(stages.get(stageB)?.completeLockedByLaboOrder?.orderId).toBe(order.id);
+    expect(stages.get(stageB)?.lineLaboOrderCount).toBe(1);
 
     const complete = (stageId: string) =>
       call(page, `${STAGES}/${stageId}/complete`, { method: "POST", branchId: line.branchId });
@@ -339,22 +477,50 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(row?.isUnfinished).toBe(true);
     expect(new Date(row!.dueAt!).getTime()).toBe(new Date(order.dueAt!).getTime());
 
-    // QC passed: the lock lifts and the latest công đoạn offers Kích hoạt bảo hành.
+    // QC passed today: công đoạn worked today are released (P3110 REQ-A7);
+    // Kích hoạt bảo hành no longer rides on the row (REQ-A8).
     expect((await receive(page, order.id, 1)).status).toBe(200);
     await passAll(page, order.id, [11]);
     stages = await stagesOf(page, line);
     expect(stages.get(stageA)?.completeLockedByLabo).toBe(false);
     expect(stages.get(stageB)?.completeLockedByLabo).toBe(false);
+    expect(stages.get(stageB)?.completeLockedByLaboOrder).toBeNull();
     expect((await complete(stageA)).status).toBe(200);
-    expect(stages.get(stageB)?.laboWarrantyOrder?.orderId).toBe(order.id);
-    expect(stages.get(stageA)?.laboWarrantyOrder).toBeNull();
     expect((await slipLine(page, line))?.labOrders.find((one) => one.id === order.id)?.isUnfinished).toBe(false);
 
     expect((await activateWarranty(page, order.id, [{ toothNumber: 11, startDate: clinicToday(), months: 12 }])).status).toBe(200);
     stages = await stagesOf(page, line);
-    expect(stages.get(stageB)?.laboWarrantyOrder).toBeNull();
     expect(stages.get(stageA)?.labo?.status).toBe(LaboStatus.Warranty);
     expect((await complete(stageB)).status).toBe(200);
+  });
+
+  test("QC passed today still holds a công đoạn worked yesterday, and names the day (P3110 REQ-A7)", async ({ page }) => {
+    const id = runId();
+    const line = await laboLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const today = clinicToday();
+    const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+    const worked = await addStage(page, line, catalog.dentistId, `Labo hôm qua ${id}`, yesterday);
+    const order = await sentOrder(
+      page,
+      orderBody(catalog, line, id, { teeth: [11], quantity: 1, treatmentServiceId: line.lineId, treatmentStageId: worked }),
+    );
+    expect((await receive(page, order.id, 1)).status).toBe(200);
+    await passAll(page, order.id, [11]);
+    const next = await addStage(page, line, catalog.dentistId, `Labo hôm nay ${id}`);
+
+    const stages = await stagesOf(page, line);
+    // "ngày 10 pass 1 răng → ngày 10 vẫn khoá; ngày 11 pass hết → ngày 11 mới cho Hoàn thành".
+    expect(stages.get(worked)?.completeLockedByLabo).toBe(true);
+    expect(stages.get(worked)?.completeLockedByLaboOrder).toMatchObject({ orderId: order.id, qualityPassedOn: today });
+    expect(stages.get(next)?.completeLockedByLabo).toBe(false);
+    expect(stages.get(next)?.completeLockedByLaboOrder).toBeNull();
+
+    const held = await call(page, `${STAGES}/${worked}/complete`, { method: "POST", branchId: line.branchId });
+    expect(held.status).toBe(403);
+    expect(held.body.error?.code).toBe(code(31));
+    const freed = await call(page, `${STAGES}/${next}/complete`, { method: "POST", branchId: line.branchId });
+    expect(freed.status, freed.text).toBe(200);
   });
 
   test("a Nháp can be deleted, edited and checked against Ngày gửi; a cancelled order stays listed", async ({ page }) => {
@@ -367,7 +533,9 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(draft.status, draft.text).toBe(200);
     const self = `${LABO_ORDERS}/${draft.body.id}`;
 
-    // Ngày trả hàng dự kiến before Ngày gửi is refused; a later one keeps its hour.
+    // Ngày trả hàng dự kiến not after Ngày gửi is refused; a later one keeps
+    // only its day (P3110 REQ-C2): 09:30 is stored as that day's 00:00 in the
+    // clinic's UTC+7.
     const tooEarly = await call(page, self, {
       method: "PUT",
       json: { ...body, dueAt: new Date(new Date(body.sentAt).getTime() - 60 * 60_000).toISOString() },
@@ -379,7 +547,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const saved = await call(page, self, { method: "PUT", json: { ...body, dueAt: due.toISOString(), teeth: [21, 22] } });
     expect(saved.status, saved.text).toBe(200);
     const reread = await read(page, draft.body.id!);
-    expect(new Date(reread.dueAt!).getTime()).toBe(due.getTime());
+    expect(new Date(reread.dueAt!).getTime()).toBe(due.getTime() - (9 * 60 + 30) * 60_000);
     expect(reread.teeth.map((t) => t.toothNumber)).toEqual([21, 22]);
 
     const deleted = await call(page, self, { method: "DELETE" });
@@ -394,6 +562,63 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(cancelled.body.status).toBe(LaboStatus.Cancelled);
     expect((await read(page, other.body.id!)).status).toBe(LaboStatus.Cancelled);
     expect(await listed(page, target.branchId, `PatientId=${target.patientId}`)).toContain(other.body.id);
+  });
+
+  test("Gửi Labo takes no picture, keeps each tooth's spec and pictures (P3110 REQ-C1/C3)", async ({ page }) => {
+    const id = runId();
+    const line = await laboLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const body = orderBody(catalog, line, id, { treatmentServiceId: line.lineId });
+
+    // No picture at all: sent (REQ-C3); the order-level spec went to both teeth.
+    const bare = await createOrder(page, { ...body, submit: true });
+    expect(bare.status, bare.text).toBe(200);
+    expect(bare.body.status).toBe(LaboStatus.Sent);
+    expect(bare.body.images).toHaveLength(0);
+    expect((await read(page, bare.body.id!)).teeth.map((t) => [t.toothNumber, t.shade, t.finishLineId])).toEqual([
+      [11, body.toothShade, catalog.finishLineId],
+      [21, body.toothShade, catalog.finishLineId],
+    ]);
+
+    // Thông số từng răng as the dialog posts it: each tooth its own row.
+    const specs = {
+      "toothSpecs[0].toothNumber": 11,
+      "toothSpecs[0].shade": "A1",
+      "toothSpecs[0].finishLineId": catalog.finishLineId,
+      "toothSpecs[0].labNote": `Mài sát nướu ${id}`,
+      "toothSpecs[1].toothNumber": 21,
+      "toothSpecs[1].shade": "A3",
+      "toothSpecs[1].finishLineId": catalog.finishLineId,
+    };
+    // Six on one tooth are one too many: five per set.
+    const crowded = await call(page, LABO_ORDERS, {
+      method: "POST",
+      branchId: body.branchId,
+      form: { ...body, ...specs },
+      toothPictures: [11, 11, 11, 11, 11, 11],
+    });
+    expect(crowded.status).toBe(403);
+    expect(crowded.body.error?.code).toBe(code(16));
+
+    const made = await call<LaboOrderView>(page, LABO_ORDERS, {
+      method: "POST",
+      branchId: body.branchId,
+      form: { ...body, ...specs, submit: true },
+      pictures: 1,
+      toothPictures: [21, 21, 11],
+    });
+    expect(made.status, made.text).toBe(200);
+    expect(made.body.status).toBe(LaboStatus.Sent);
+
+    // Read back with a separate request.
+    const back = await read(page, made.body.id!);
+    expect(back.teeth.map((t) => [t.toothNumber, t.shade, t.finishLineId, t.labNote ?? null])).toEqual([
+      [11, "A1", catalog.finishLineId, `Mài sát nướu ${id}`],
+      [21, "A3", catalog.finishLineId, null],
+    ]);
+    const perSet = (tooth: number | null) => back.images.filter((i) => (i.toothNumber ?? null) === tooth).length;
+    expect([perSet(null), perSet(11), perSet(21)]).toEqual([1, 1, 2]);
+    for (const image of back.images) expect((await call(page, image.url)).status).toBe(200);
   });
 
   test("pictures dropped from a Nháp lose their row and their file", async ({ page }) => {

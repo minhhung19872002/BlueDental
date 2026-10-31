@@ -61,6 +61,24 @@ public class StageChainAndWarrantyTests
         return stage;
     }
 
+    /// <summary>A dental card valid on the given teeth, none = the whole line (REQ-F3).</summary>
+    private static WarrantyCover DentalCover(params int[] teeth)
+    {
+        var plan = TreatmentPlan.Open(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "DT01", "Kế hoạch");
+        var line = plan.AddService(
+            Guid.NewGuid(), Guid.NewGuid(), null, 1_000_000m, 1, DiscountType.None, 0m, Teeth(teeth));
+        line.SetInitialStatus(TreatmentServiceStatus.Done);
+        var today = ClinicCalendar.DateOf(Now);
+        int?[] cardTeeth = teeth.Length == 0 ? [null] : teeth.Select(t => (int?)t).ToArray();
+        var cards = ServiceWarrantyCard.ActivateAll(
+            Guid.NewGuid, line, new ServiceWarrantyTerms(365, null), [],
+            cardTeeth.Select(t => new ServiceWarrantyActivation(t, today, 12)).ToList(), Now, null);
+        return WarrantyCover.Resolve(WarrantyCardKind.Dental, null, line.Id, cards, [], today);
+    }
+
+    private static readonly WarrantyCover WholeLine = DentalCover();
+
     [Fact]
     public void Continuing_writes_the_next_visit_and_retires_the_old_one()
     {
@@ -232,11 +250,11 @@ public class StageChainAndWarrantyTests
         root.Complete();
         var line = Teeth(11, 21, 22, 32);
 
-        _policy.EnsureWarranty(root, root, line, [root], Teeth(11, 21), 30, Now);
+        _policy.EnsureWarranty(root, root, line, [root], Teeth(11, 21), WholeLine);
 
         // 32 is on the line, but the root never treated it.
         Should.Throw<BusinessException>(() =>
-                _policy.EnsureWarranty(root, root, line, [root], Teeth(11, 32), 30, Now))
+                _policy.EnsureWarranty(root, root, line, [root], Teeth(11, 32), WholeLine))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageToothOutsideService);
     }
 
@@ -251,7 +269,7 @@ public class StageChainAndWarrantyTests
         first.Complete();
 
         // The first warranty took 11·21·22; the next one may go back to 32.
-        _policy.EnsureWarranty(first, root, Teeth(11, 21, 22, 32), [root, first], Teeth(11, 32), 30, Now);
+        _policy.EnsureWarranty(first, root, Teeth(11, 21, 22, 32), [root, first], Teeth(11, 32), WholeLine);
     }
 
     [Fact]
@@ -262,43 +280,67 @@ public class StageChainAndWarrantyTests
         var open = Stage(Teeth(11), isGuarantee: true, warrantyRootStageId: root.Id);
 
         Should.Throw<BusinessException>(() =>
-                _policy.EnsureWarranty(root, root, Teeth(11, 21), [root, open], Teeth(11), 30, Now))
+                _policy.EnsureWarranty(root, root, Teeth(11, 21), [root, open], Teeth(11), WholeLine))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.OpenWarrantyMustComplete);
 
         // A superseded warranty is not open: its successor carries it.
         var superseded = Stage(Teeth(21), isGuarantee: true, warrantyRootStageId: root.Id);
         var successor = superseded.ContinueAs(Guid.NewGuid(), 2, _staffId, "tiếp", null, null, null);
         successor.Complete();
-        _policy.EnsureWarranty(root, root, Teeth(11, 21), [root, superseded, successor], Teeth(21), 30, Now);
+        _policy.EnsureWarranty(root, root, Teeth(11, 21), [root, superseded, successor], Teeth(21), WholeLine);
     }
 
     [Fact]
-    public void A_warranty_needs_a_finished_live_source_a_period_and_time_left()
+    public void A_warranty_source_must_be_finished_and_live()
     {
         var line = Teeth(11);
         var open = WorkedOn(Stage(Teeth(11)), Now);
         Should.Throw<BusinessException>(() =>
-                _policy.EnsureWarranty(open, open, line, [open], Teeth(11), 30, Now))
+                _policy.EnsureWarranty(open, open, line, [open], Teeth(11), WholeLine))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.WarrantySourceInvalid);
 
-        var done = WorkedOn(Stage(Teeth(11)), Now.AddDays(-10));
+        // An old Ngày điều trị no longer ends the warranty — the card does (G23).
+        var done = WorkedOn(Stage(Teeth(11)), Now.AddYears(-2));
         done.Complete();
-        Should.Throw<BusinessException>(() =>
-                _policy.EnsureWarranty(done, done, line, [done], Teeth(11), 0, Now))
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasNoWarranty);
-        Should.Throw<BusinessException>(() =>
-                _policy.EnsureWarranty(done, done, line, [done], Teeth(11), 10, Now))
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.WarrantyExpired);
+        _policy.EnsureWarranty(done, done, line, [done], Teeth(11), WholeLine);
     }
 
     [Fact]
-    public void Warranty_days_count_calendar_days_like_the_reference()
+    public void A_line_finished_by_hand_takes_a_warranty_without_a_source()
     {
-        // getWarrantyDaysRemaining: period − whole days between the two dates.
-        var today = ClinicCalendar.DateOf(Now);
-        StageTeethPolicy.WarrantyDaysLeft(30, today, Now).ShouldBe(30);
-        StageTeethPolicy.WarrantyDaysLeft(30, today.AddDays(-29), Now).ShouldBe(1);
-        StageTeethPolicy.WarrantyDaysLeft(30, today.AddDays(-30), Now).ShouldBe(0);
+        // REQ-B8: no công đoạn to continue — the line's teeth bound the pick.
+        _policy.EnsureWarranty(null, null, Teeth(11, 21), [], Teeth(21), WholeLine);
+        Should.Throw<BusinessException>(() =>
+                _policy.EnsureWarranty(null, null, Teeth(11, 21), [], Teeth(32), WholeLine))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StageToothOutsideService);
+    }
+
+    [Fact]
+    public void A_warranty_takes_only_teeth_the_card_covers()
+    {
+        var root = WorkedOn(Stage(Teeth(11, 21)), Now.AddDays(-1));
+        root.Complete();
+        var cover = DentalCover(11);
+
+        _policy.EnsureWarranty(root, root, Teeth(11, 21), [root], Teeth(11), cover);
+        Should.Throw<BusinessException>(() =>
+                _policy.EnsureWarranty(root, root, Teeth(11, 21), [root], Teeth(11, 21), cover))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.WarrantyToothNotCovered);
+    }
+
+    [Fact]
+    public void A_warranty_names_its_card_and_its_continue_keeps_it()
+    {
+        var warranty = Stage(Teeth(11), isGuarantee: true);
+        warranty.WorkUnder(DentalCover(11));
+        warranty.WarrantyKind.ShouldBe(WarrantyCardKind.Dental);
+        warranty.WarrantyLaboOrderId.ShouldBeNull();
+
+        var next = warranty.ContinueAs(Guid.NewGuid(), 2, _staffId, "lần 2", null, null, null);
+        next.WarrantyKind.ShouldBe(WarrantyCardKind.Dental);
+
+        Should.Throw<BusinessException>(() => Stage(Teeth(11)).WorkUnder(DentalCover(11)))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);
     }
 
     [Fact]

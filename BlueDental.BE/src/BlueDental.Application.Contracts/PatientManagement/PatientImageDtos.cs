@@ -42,6 +42,15 @@ public class UploadPatientImageDto
 
     /// <summary>The Labo check round this is an Ảnh kiểm tra of (P2910_03).</summary>
     public int? LaboRoundNo { get; set; }
+
+    /// <summary>The Labo tooth row (FDI, 0 = every tooth) the picture belongs to (P3110).</summary>
+    public int? LaboToothNumber { get; set; }
+
+    /// <summary>A photo of that tooth's warranty card, this face of it (P3110 REQ-E1).</summary>
+    public WarrantyCardSide? WarrantyCardSide { get; set; }
+
+    /// <summary>The dental warranty card the photo shows (P3110 REQ-B5); its face is <see cref="WarrantyCardSide"/>.</summary>
+    public Guid? ServiceWarrantyCardId { get; set; }
     public string? Note { get; set; }
 
     /// <summary>Giai đoạn điều trị; the tab sends whatever its filter is set to, "BE:Treatment:BeforeTreatment" otherwise.</summary>

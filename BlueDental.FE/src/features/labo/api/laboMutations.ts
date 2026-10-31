@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { WarrantyCardSide } from "@/components/WarrantyCardPhotos";
 import { api } from "@/lib/axios";
 import { LABO_ORDERS_URL, type LaboCheckConclusion, type LaboOrderDto, type LaboToothResult } from "./laboApi";
 
@@ -20,10 +21,31 @@ export interface LaboOrderFields {
   estimatedCost: number;
   treatmentServiceId?: string;
   treatmentStageId?: string;
-  /** Tạo phiếu Labo (true) or Lưu nháp (false). */
+  /** Thông số từng răng (P3110), one row per tooth. */
+  toothSpecs: LaboToothSpecInput[];
+  /** "Dùng chung 1 thông số cho tất cả răng". */
+  sharedSpec: boolean;
+  /** Gửi Labo (true) or Lưu nháp (false). */
   submit: boolean;
-  /** New Hình ảnh gửi Labo; at most five with the ones kept. */
+  /** New Ảnh đính kèm chung; at most five with the ones kept. */
   pictures: File[];
+  /** New pictures of the tooth rows: FDI, or 0 for the "Dùng chung" row. */
+  toothPictures: LaboToothPicture[];
+}
+
+/** One row of Thông số từng răng. Mirrors BlueDental.Labo.LaboToothSpecDto. */
+export interface LaboToothSpecInput {
+  toothNumber: number;
+  shade?: string;
+  finishLineId?: string;
+  rhythmId?: string;
+  biteId?: string;
+  labNote?: string;
+}
+
+export interface LaboToothPicture {
+  tooth: number;
+  file: File;
 }
 
 /** Lưu nháp / Tạo phiếu Labo on a new order, or on a Nháp already saved. */
@@ -44,16 +66,37 @@ function toForm(values: Record<string, FormValue>, pictures: File[] = []): FormD
   return form;
 }
 
+/** The order's own values with each spec row under indexed keys, as ABP binds a list of objects. */
+function orderValues({ toothSpecs, ...fields }: Omit<LaboOrderFields, "pictures" | "toothPictures">) {
+  const values: Record<string, FormValue> = { ...fields };
+  toothSpecs.forEach((spec, i) => {
+    for (const [key, value] of Object.entries(spec)) values[`toothSpecs[${i}].${key}`] = value;
+  });
+  return values;
+}
+
+/** The tooth rows' pictures, each beside the tooth it belongs to in the same order. */
+function appendToothPictures(form: FormData, pictures: LaboToothPicture[]): FormData {
+  for (const { tooth, file } of pictures) {
+    form.append("toothPictures", file);
+    form.append("toothPictureTeeth", String(tooth));
+  }
+  return form;
+}
+
 function saveRequest(input: SaveLaboOrderInput): Promise<LaboOrderDto> {
-  const { pictures, ...fields } = input.fields;
+  const { pictures, toothPictures, ...fields } = input.fields;
+  const values = orderValues(fields);
   if (input.id === undefined) {
     const { patientId, branchId, orderCode } = input;
-    const form = toForm({ ...fields, patientId, branchId, orderCode }, pictures);
-    return api.post<LaboOrderDto>(LABO_ORDERS_URL, form).then((r) => r.data);
+    const form = toForm({ ...values, patientId, branchId, orderCode }, pictures);
+    return api.post<LaboOrderDto>(LABO_ORDERS_URL, appendToothPictures(form, toothPictures)).then((r) => r.data);
   }
   // A multipart update without keepImageIds drops every picture, so the kept ones are always listed.
-  const form = toForm({ ...fields, keepImageIds: input.keepImageIds }, pictures);
-  return api.put<LaboOrderDto>(`${LABO_ORDERS_URL}/${input.id}`, form).then((r) => r.data);
+  const form = toForm({ ...values, keepImageIds: input.keepImageIds }, pictures);
+  return api
+    .put<LaboOrderDto>(`${LABO_ORDERS_URL}/${input.id}`, appendToothPictures(form, toothPictures))
+    .then((r) => r.data);
 }
 
 export function useSaveLaboOrder() {
@@ -103,22 +146,21 @@ export interface CheckLaboOrderInput {
   id: string;
   teeth: { toothNumber: number; result: LaboToothResult; note?: string }[];
   conclusion: LaboCheckConclusion;
-  description?: string;
   returnedAt?: string;
   redeliveryDueAt?: string;
-  /** Ảnh kiểm tra — required when a tooth is Lỗi. */
-  pictures: File[];
+  /** Hình ảnh lỗi of each Lỗi tooth (P3110 REQ-D6); a return needs at least one. */
+  toothPictures: LaboToothPicture[];
 }
 
 function checkForm(input: CheckLaboOrderInput): FormData {
-  const { teeth, pictures, conclusion, description, returnedAt, redeliveryDueAt } = input;
-  const values: Record<string, FormValue> = { conclusion, description, returnedAt, redeliveryDueAt };
+  const { teeth, toothPictures, conclusion, returnedAt, redeliveryDueAt } = input;
+  const values: Record<string, FormValue> = { conclusion, returnedAt, redeliveryDueAt };
   teeth.forEach((tooth, i) => {
     values[`teeth[${i}].toothNumber`] = tooth.toothNumber;
     values[`teeth[${i}].result`] = tooth.result;
     values[`teeth[${i}].note`] = tooth.note;
   });
-  return toForm(values, pictures);
+  return appendToothPictures(toForm(values, []), toothPictures);
 }
 
 export function useCheckLaboOrder() {
@@ -139,10 +181,38 @@ export interface LaboWarrantyCardInput {
   conditions?: string;
 }
 
+/** An Ảnh thẻ bảo hành (P3110 REQ-E1): one face of a tooth's card. */
+export interface LaboWarrantyCardPhoto {
+  tooth: number;
+  side: WarrantyCardSide;
+  file: File;
+}
+
+export interface ActivateLaboWarrantyInput {
+  id: string;
+  cards: LaboWarrantyCardInput[];
+  photos: LaboWarrantyCardPhoto[];
+}
+
+/** Multipart, so the card photos land with the cards: each beside its tooth and face, in the same order. */
+function warrantyForm({ cards, photos }: ActivateLaboWarrantyInput): FormData {
+  const values: Record<string, FormValue> = {};
+  cards.forEach((card, i) => {
+    for (const [key, value] of Object.entries(card)) values[`cards[${i}].${key}`] = value;
+  });
+  const form = toForm(values);
+  for (const { tooth, side, file } of photos) {
+    form.append("cardPhotos", file);
+    form.append("cardPhotoTeeth", String(tooth));
+    form.append("cardPhotoSides", String(side));
+  }
+  return form;
+}
+
 export function useActivateLaboWarranty() {
   return useMutation({
-    mutationFn: ({ id, cards }: { id: string; cards: LaboWarrantyCardInput[] }) =>
-      api.post<LaboOrderDto>(`${LABO_ORDERS_URL}/${id}/warranty`, { cards }).then((r) => r.data),
+    mutationFn: (input: ActivateLaboWarrantyInput) =>
+      api.post<LaboOrderDto>(`${LABO_ORDERS_URL}/${input.id}/warranty`, warrantyForm(input)).then((r) => r.data),
     meta: { invalidates: ["laboOrder"] },
   });
 }

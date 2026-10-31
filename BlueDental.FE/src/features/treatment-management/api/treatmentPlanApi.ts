@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { QueryEntity } from "@/lib/queryEntities";
 import type { PagedResult } from "@/types";
+import type { LaboStatus } from "@/features/labo/api/laboApi";
 import type { DiscountType, ToothSelectionDto } from "./consultingApi";
 
 import { t } from "@/lib/i18n";
@@ -208,12 +209,16 @@ export interface ServiceStepDto {
 export interface TreatmentServiceLaboOrderDto {
   id: string;
   orderCode: string;
-  status: number;
+  status: LaboStatus;
   kind: number;
   /** Still with the labo: the line cannot be cancelled or converted yet. */
   isUnfinished: boolean;
-  /** "Dự kiến giao" under the Phiếu Labo chip. */
+  /** "Dự kiến giao" under the Phiếu Labo chip until the order comes back. */
   dueAt: string | null;
+  /** "Đã nhận" once the latest delivery came back (P3110). */
+  receivedAt: string | null;
+  /** A Bảo hành order whose every card has run out reads "Hết hạn bảo hành". */
+  isWarrantyExpired: boolean;
 }
 
 export interface TreatmentServiceDto {

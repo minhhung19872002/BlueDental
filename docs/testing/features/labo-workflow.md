@@ -203,6 +203,28 @@ line's rows. The button is matched as `/Kích hoạt bảo hành$/` because the 
 adds "safety" to its accessible name. The positive step uses the same selector,
 so the negative step cannot pass vacuously. 3/3 green on :8170.
 
+## P3110 — Labo popup rework (F-86 phases C/D/E, R-1085..R-1087, 2026-10-31)
+
+BA `P3110.drawio`, owner answers D2/D3/D7. Full trace in
+`docs/wip/p3110-labo-warranty-plan.md` §2 C/D/E; the slip's Bảo hành tab and
+the warranty công đoạn are in `plan-warranty.md`.
+
+| Step | What changed |
+|---|---|
+| 1 · Đặt hàng | Header "Đặt hàng" + status chip; no Giờ gửi / Giờ nhận (days only, `CreationTime` keeps the time); Dịch vụ / Vật liệu show 2–3 entries, "Xem thêm" opens a one-pick modal with search + recent; teeth picked on the chart with a count; **Thông số từng răng** — Màu răng\* (several shades split by "/"), Đường hoàn tất\*, Kiểu nhịp, **Khớp cắn** (after Kiểu nhịp, D3), Ảnh per tooth (MinIO, D7), Ghi chú cho Labo; a row lacking a required cell reads faint pink with the cell red, and the footer names it; "Dùng chung 1 thông số" collapses to one row saved per tooth; Ảnh đính kèm chung not required (D2); footer Huỷ · Lưu nháp · Gửi Labo & in phiếu |
+| 2 · Nhận hàng & kiểm tra | Summary 3×3, "Răng" only (no SL · Màu); no Lưu nhận hàng; "▶ Kiểm tra Labo" → Chờ kiểm tra; per tooth Đạt / Lỗi, a Lỗi tooth gets its own description + pictures; "Đã trả: n lần" per tooth; a tooth passed earlier is locked; no Chi phí phát sinh; buttons count the teeth they return, Trả hàng bị lỗi is purple; history table per tooth |
+| 3 · Bảo hành | Ảnh thẻ Mặt trước / Mặt sau per tooth (optional, sent with Kích hoạt bảo hành, `Labo:0036`); Thông tin thẻ / Lịch sử panels removed — the history moved to the slip's Bảo hành tab |
+
+Data: tooth spec columns on `bd_labo_order_teeth` + `SharedSpec`; per-tooth
+defect description in the round's tooth results (jsonb); `PatientImage`
+`LaboToothNumber` / round / `WarrantyCardSide` (migrations
+`20261031102022_LaboToothSpecP3110`, `20261031135031_WarrantyCardPhotoP3110`).
+
+Tests: `labo-workflow.spec` (Đặt hàng per tooth, shared mode, pictures per
+tooth, sent without a picture; Ảnh thẻ through the UI; the Ảnh "+" lines up
+with Màu răng), `labo-api.spec` (REQ-E1 photo rules, per-tooth returns),
+`patient.spec` Labo, BE Domain Labo + PatientImage.
+
 ## Not built / open
 
 - Tiếp nhận bảo hành (Lần BH, phiếu BH1) — later round.

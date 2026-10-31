@@ -19,6 +19,15 @@ public record LaboOrderDetails
 
     /// <summary>Răng, in the order they were picked.</summary>
     public IReadOnlyList<int> Teeth { get; init; } = [];
+
+    /// <summary>
+    /// Thông số từng răng (P3110). Null from a caller that still speaks the
+    /// order-level fields, which then go to every tooth.
+    /// </summary>
+    public IReadOnlyList<LaboToothSpec>? ToothSpecs { get; init; }
+
+    /// <summary>"Dùng chung 1 thông số cho tất cả răng" — the rows are still stored per tooth.</summary>
+    public bool SharedSpec { get; init; }
     public string? ToothShade { get; init; }
     public int Quantity { get; init; } = 1;
     public string? WorkDescription { get; init; }
@@ -26,15 +35,27 @@ public record LaboOrderDetails
     /// <summary>Nội dung / chỉ định cho Labo.</summary>
     public string? Notes { get; init; }
 
-    /// <summary>Ngày gửi + Giờ gửi.</summary>
+    /// <summary>Ngày gửi — a day; kept as the clinic's midnight of it.</summary>
     public DateTimeOffset? SentAt { get; init; }
 
-    /// <summary>Ngày nhận dự kiến + Giờ nhận.</summary>
+    /// <summary>Ngày nhận dự kiến — a day, as <see cref="SentAt"/>.</summary>
     public DateTimeOffset? DueAt { get; init; }
     public decimal EstimatedCost { get; init; }
     public Guid? TreatmentServiceId { get; init; }
     public Guid? TreatmentStageId { get; init; }
 }
+
+/// <summary>
+/// One row of "Thông số từng răng": Màu răng and Đường hoàn tất are required
+/// to send the order, the rest is optional.
+/// </summary>
+public record LaboToothSpec(
+    int ToothNumber,
+    string? Shade,
+    Guid? FinishLineId,
+    Guid? RhythmId,
+    Guid? BiteId,
+    string? LabNote);
 
 /// <summary>Kết luận of a check that sends teeth back.</summary>
 public record LaboReturnRequest(

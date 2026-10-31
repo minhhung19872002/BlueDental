@@ -1,77 +1,89 @@
 import type { TableColumnsType } from "antd";
+import dayjs from "dayjs";
 import { DataTable } from "@/components/DataTable";
-import { StatusBadge } from "@/components/StatusBadge";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
-import { LABO_ROUND_OUTCOME, type LaboOrderRoundDto } from "@/features/labo/api/laboApi";
-import { LABO_ROUND_OUTCOME_PILL, roundDefects } from "./laboCheckRules";
+import { LABO_TOOTH_RESULT, type LaboOrderDto, type LaboToothResult } from "@/features/labo/api/laboApi";
+import { historyAside, toothHistoryRows, type LaboLiveCheck, type LaboToothHistoryRow } from "./laboCheckHistory";
+import type { LaboTone } from "./laboCheckRules";
 
-const dateOrDash = (value: string | null | undefined) => formatDateTime(value) || "—";
+const RESULT_PILL: Partial<Record<LaboToothResult, { label: string; tone: LaboTone }>> = {
+  [LABO_TOOTH_RESULT.Passed]: { label: "Labo:Check:Pass", tone: "pass" },
+  [LABO_TOOTH_RESULT.Failed]: { label: "Labo:Check:Fail", tone: "fail" },
+};
 
-const RETURNED = new Set<number>([LABO_ROUND_OUTCOME.ReturnedAll, LABO_ROUND_OUTCOME.ReturnedDefective]);
+const toned = (tone: LaboTone) => `pd-labo-tone pd-labo-tone--${tone}`;
 
-function buildColumns(): TableColumnsType<LaboOrderRoundDto> {
+function buildColumns(): TableColumnsType<LaboToothHistoryRow> {
   return [
-    { title: t("Labo:Check:History:Round"), dataIndex: "roundNo", width: 64, align: "center" },
     {
-      title: t("Labo:Check:History:ReceivedAt"),
-      dataIndex: "receivedAt",
-      width: 140,
-      render: (value: string, row) => (
+      title: t("Labo:Check:History:RoundDate"),
+      key: "round",
+      width: 150,
+      onCell: (row) => ({ rowSpan: row.span }),
+      render: (_, row) => (
         <>
-          {dateOrDash(value)}
-          <div className="pd-labo-history-sub">
-            {t("Labo:Check:History:Pieces", row.receivedQuantity)}
-            {row.receiverName ? ` · ${row.receiverName}` : ""}
-          </div>
+          <b>{t("Labo:Check:History:RoundOn", row.roundNo, dayjs(row.receivedAt).format("DD/MM"))}</b>
+          <div className={`pd-labo-history-sub ${toned(row.roundTally.tone)}`}>{row.roundTally.label}</div>
         </>
       ),
     },
     {
-      title: t("Labo:Check:History:Outcome"),
-      dataIndex: "outcome",
-      width: 130,
-      render: (value: LaboOrderRoundDto["outcome"]) => {
-        const pill = LABO_ROUND_OUTCOME_PILL[value];
-        return <StatusBadge label={t(pill.label)} bg={pill.bg} color={pill.color} />;
+      title: t("Labo:Check:History:Tooth"),
+      dataIndex: "tooth",
+      width: 72,
+      render: (tooth: number) => t("Labo:Check:History:ToothNo", tooth),
+    },
+    {
+      title: t("Labo:Check:History:Result"),
+      dataIndex: "result",
+      width: 96,
+      render: (result: LaboToothResult) => {
+        const pill = RESULT_PILL[result];
+        return pill ? <span className={`pd-labo-result-pill ${toned(pill.tone)}`}>{t(pill.label)}</span> : "—";
       },
     },
     {
       title: t("Labo:Check:History:Defects"),
-      key: "defects",
-      width: 220,
-      render: (_, row) => roundDefects(row) || "—",
+      dataIndex: "note",
+      render: (note: string | null | undefined) => note || "—",
     },
     {
-      title: t("Labo:Check:History:ReturnedAt"),
-      dataIndex: "returnedAt",
-      width: 140,
-      render: (value: string | null | undefined) => dateOrDash(value),
+      title: t("Labo:Check:History:Action"),
+      key: "action",
+      width: 110,
+      render: (_, row) => <span className={toned(row.action.tone)}>{row.action.label}</span>,
     },
     {
       title: t("Labo:Check:History:RedeliveryDueAt"),
       dataIndex: "redeliveryDueAt",
       width: 140,
-      render: (value: string | null | undefined) => dateOrDash(value),
+      render: (value: string | null | undefined) => formatDateTime(value) || "—",
     },
   ];
 }
 
-/** Lịch sử nhận hàng & trả hàng: one row per delivery, newest last as the rounds ran. */
-export function LaboRoundHistoryTable({ rounds }: { rounds: LaboOrderRoundDto[] }) {
-  const returns = rounds.filter((round) => RETURNED.has(round.outcome)).length;
+interface Props {
+  order: LaboOrderDto;
+  /** The check on screen, shown as the open round's "đang nhập" rows. */
+  live: LaboLiveCheck | null;
+}
+
+/** Lịch sử nhận hàng & trả hàng · theo răng (P3110 m189, m294): a row per tooth per delivery. */
+export function LaboRoundHistoryTable({ order, live }: Props) {
   return (
     <section className="pd-labo-check-section">
       <header className="pd-labo-check-head">
         <h3>{t("Labo:Check:History:Title")}</h3>
-        <span className="pd-labo-check-aside">{t("Labo:Check:History:Count", rounds.length, returns)}</span>
+        <span className="pd-labo-check-aside">{historyAside(order, live)}</span>
       </header>
-      <DataTable<LaboOrderRoundDto>
-        rowKey="roundNo"
+      <DataTable<LaboToothHistoryRow>
+        rowKey="key"
         size="small"
         columns={buildColumns()}
-        dataSource={rounds}
+        dataSource={toothHistoryRows(order, live)}
         pagination={false}
+        rowClassName={(row) => (row.live ? "pd-labo-history-live" : "")}
         locale={{ emptyText: t("Labo:Check:History:Empty") }}
       />
     </section>

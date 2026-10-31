@@ -4910,11 +4910,8 @@
   cursor: not-allowed;
 }
 
-/* ── "Tạo bảo hành" ────────────────────────────────────────────────────── */
+/* ── "Bảo hành dịch vụ" ───────────────────────────────────────────────── */
 
-.pd-warranty-dialog .pd-stage-form {
-  margin-top: 0;
-}
 :is(.pd-stage-dialog, .pd-stage-panel) .pd-stage-warranty.ant-btn {
   border-color: var(--bd-green);
   background: var(--bd-green);

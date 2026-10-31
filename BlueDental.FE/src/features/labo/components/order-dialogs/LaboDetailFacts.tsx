@@ -86,6 +86,7 @@ export function LaboDetailFacts({ facts, pill }: Props) {
           [t("Patient:Labo:ProsthesisType"), facts.laboService],
           [t("Patient:DentalChart:Tooth"), facts.teeth],
           [t("Patient:Viewer:DetailColor"), facts.shade],
+          [t("Labo:Spec:Note"), facts.labNote],
           [t("Patient:Payment:Quantity"), facts.quantity],
         ]}
       >

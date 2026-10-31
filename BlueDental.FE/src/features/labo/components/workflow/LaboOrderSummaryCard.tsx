@@ -8,6 +8,7 @@ import { LaboSupplierBadge } from "../order-dialogs/laboOrderCells";
 
 interface Props {
   order: LaboOrderDto;
+  patient: { code: string; name: string };
   /** "Xem chi tiết >": back to the Đặt hàng tab. */
   onShowOrder: () => void;
 }
@@ -21,20 +22,27 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-/** The order at a glance above tabs 2 and 3: what was made, by whom, and when it is due. */
-export function LaboOrderSummaryCard({ order, onShowOrder }: Props) {
-  const teeth = [order.toothNumbers || "—", order.quantity, order.toothShade || "—"].join(" · ");
+const dateOrDash = (value: string | null | undefined) => formatDateTime(value) || "—";
+
+/**
+ * The order at a glance above tabs 2 and 3, three by three as P3110 m175 /
+ * m281 draw it: the slip and patient, what was made, by whom, and when.
+ */
+export function LaboOrderSummaryCard({ order, patient, onShowOrder }: Props) {
   return (
     <section className="pd-labo-summary-card" aria-label={t("Labo:Summary:Title")}>
+      <Fact label={t("Labo:Summary:OrderCode")}>
+        <b>{order.orderCode}</b>
+      </Fact>
+      <Fact label={t("Patient:Form:CustomerName")}>{`${patient.code} – ${patient.name}`}</Fact>
       <Fact label={t("Labo:Summary:Service")}>{order.laboServiceName ?? order.materialName ?? "—"}</Fact>
-      <Fact label={t("Labo:Summary:Teeth")}>{teeth}</Fact>
+      <Fact label={t("Labo:Summary:Teeth")}>{order.toothNumbers || "—"}</Fact>
       <Fact label={t("Patient:Labo:Supplier")}>
         <LaboSupplierBadge name={order.labProviderName} color={order.supplierLabelColor} />
       </Fact>
       <Fact label={t("Patient:QuoteSheet:PrescribingDoctor")}>{order.dentistName ?? "—"}</Fact>
-      <Fact label={t("Labo:Summary:SentAt")}>{order.sentAt ? formatDateTime(order.sentAt) : "—"}</Fact>
-      <Fact label={t("Labo:Summary:DueAt")}>{order.dueAt ? formatDateTime(order.dueAt) : "—"}</Fact>
-      <Fact label={t("Labo:Summary:ReturnCount")}>{order.returnCount}</Fact>
+      <Fact label={t("Labo:Summary:SentAt")}>{dateOrDash(order.sentAt)}</Fact>
+      <Fact label={t("Labo:Summary:DueAt")}>{dateOrDash(order.dueAt)}</Fact>
       <Fact label={t("Labo:Summary:Order")}>
         <Button type="link" size="small" className="pd-labo-summary-link" onClick={onShowOrder}>
           {t("Labo:Summary:ShowOrder")} <RightOutlined />

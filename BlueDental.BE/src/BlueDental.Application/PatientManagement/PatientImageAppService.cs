@@ -110,7 +110,10 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             input.Type,
             ordering,
             input.LaboOrderId,
-            input.LaboRoundNo);
+            input.LaboRoundNo,
+            input.LaboToothNumber,
+            input.WarrantyCardSide,
+            input.ServiceWarrantyCardId);
 
         buffer.Position = 0;
         await _blobContainer.SaveAsync(blobName, buffer, overrideExisting: true);

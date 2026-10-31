@@ -6,12 +6,16 @@ import {
   type LaboOrderToothDto,
 } from "@/features/labo/api/laboApi";
 import { LABO_PILL_TONE, type LaboPill } from "@/features/labo/api/laboStatus";
+import type { WarrantyCardUrls } from "@/components/WarrantyCardPhotos";
 
 /** Thời hạn bảo hành chips, in months; "Khác" takes any whole number. */
 export const WARRANTY_DURATIONS = [6, 12, 24, 36, 60, 120] as const;
 
 /** The server's cap (LaboOrder.MaxWarrantyMonths). */
 export const MAX_WARRANTY_MONTHS = 600;
+
+/** "Theo danh mục": the card runs the catalog's days, not a number of months (P3110 REQ-B5). */
+export const CATALOG_DURATION = 0;
 
 export type LaboWarrantyState = "inactive" | "active" | "expired";
 
@@ -29,6 +33,15 @@ export function isWarrantyOpen(order: Pick<LaboOrderDto, "status">): boolean {
 /** The teeth tab 3 is about: every Đạt tooth, activated or not. */
 export function warrantyTeeth(order: LaboOrderDto): LaboOrderToothDto[] {
   return order.teeth.filter((tooth) => tooth.checkResult === LABO_TOOTH_RESULT.Passed);
+}
+
+/** The Ảnh thẻ bảo hành of one tooth, by face. */
+export function cardPhotoUrls(order: LaboOrderDto, toothNumber: number): WarrantyCardUrls {
+  return Object.fromEntries(
+    order.images
+      .filter((image) => image.toothNumber === toothNumber && image.warrantyCardSide != null)
+      .map((image) => [image.warrantyCardSide, image.url]),
+  );
 }
 
 export function isActivated(tooth: LaboOrderToothDto): boolean {

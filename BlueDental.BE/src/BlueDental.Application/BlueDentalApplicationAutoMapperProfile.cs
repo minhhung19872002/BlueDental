@@ -112,7 +112,11 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
             .ForMember(d => d.IsWarrantyExpired, opt => opt.Ignore())
             .ForMember(d => d.Images, opt => opt.Ignore());
         CreateMap<LaboOrderTooth, LaboOrderToothDto>()
-            .ForMember(d => d.IsWarrantyExpired, opt => opt.Ignore());
+            .ForMember(d => d.IsWarrantyExpired, opt => opt.Ignore())
+            .ForMember(d => d.ReturnCount, opt => opt.Ignore())
+            .ForMember(d => d.FinishLineName, opt => opt.Ignore())
+            .ForMember(d => d.RhythmName, opt => opt.Ignore())
+            .ForMember(d => d.BiteName, opt => opt.Ignore());
         CreateMap<LaboOrderRound, LaboOrderRoundDto>()
             .ForMember(d => d.ReceiverName, opt => opt.Ignore());
         CreateMap<LaboRoundToothResult, LaboRoundToothResultDto>();

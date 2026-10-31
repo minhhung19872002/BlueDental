@@ -846,6 +846,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_labo_order_teeth");
             entity.ConfigureByConvention();
             entity.Property(x => x.CheckResult).HasConversion<short>();
+            entity.Property(x => x.Shade).HasMaxLength(100);
+            entity.Property(x => x.LabNote).HasMaxLength(1000);
             entity.Property(x => x.DefectNote).HasMaxLength(1000);
             entity.Property(x => x.WarrantyCardCode).HasMaxLength(50);
             entity.Property(x => x.ManufacturerSerial).HasMaxLength(100);
@@ -1166,7 +1168,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PatientId, x.TakenAt });
             entity.HasIndex(x => new { x.PatientId, x.Ordering });
             entity.HasIndex(x => x.TreatmentStageId);
-            entity.HasIndex(x => new { x.LaboOrderId, x.LaboRoundNo });
+            entity.HasIndex(x => new { x.LaboOrderId, x.LaboRoundNo, x.LaboToothNumber });
+            entity.HasIndex(x => x.ServiceWarrantyCardId);
         });
 
         // Phieu benh an cua benh nhan
@@ -1253,6 +1256,22 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PatientId, x.Status });
         });
 
+        // The bao hanh nha khoa (P3110 REQ-B5): one per tooth of a finished line,
+        // one with no tooth for a toothless line — nulls compare equal.
+        builder.Entity<ServiceWarrantyCard>(entity =>
+        {
+            entity.ToTable("bd_service_warranty_cards");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Conditions).HasMaxLength(2000);
+            entity.HasIndex(x => new { x.TreatmentServiceId, x.ToothNumber })
+                .IsUnique()
+                .AreNullsDistinct(false)
+                .HasFilter("\"IsDeleted\" = false");
+            entity.HasIndex(x => x.TreatmentPlanId);
+            entity.HasIndex(x => x.Code);
+        });
+
         // Voucher da dung tren phieu dieu tri (appliedCoupons)
         builder.Entity<TreatmentPlanVoucher>(entity =>
         {
@@ -1337,6 +1356,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Note).HasMaxLength(2000);
             entity.Property(x => x.Remark).HasMaxLength(TreatmentStage.RemarkMaxLength);
             entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.WarrantyKind).HasConversion<short?>();
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.PrimitiveCollection(x => x.ImageUrls).UsePropertyAccessMode(PropertyAccessMode.Field);

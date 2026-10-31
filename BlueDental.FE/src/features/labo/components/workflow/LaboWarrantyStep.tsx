@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "antd";
 import { CheckCircleFilled, SafetyCertificateOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
@@ -7,8 +6,7 @@ import type { LaboOrderDto } from "@/features/labo/api/laboApi";
 import { LaboWarrantyActivationBox } from "../warranty/LaboWarrantyActivationBox";
 import { LaboWarrantyCard } from "../warranty/LaboWarrantyCard";
 import { LaboWarrantyTable } from "../warranty/LaboWarrantyTable";
-import { LaboWarrantyToothTabs } from "../warranty/LaboWarrantyToothTabs";
-import { restorationName, warrantyCardCode, warrantyTeeth } from "../warranty/laboWarrantyRules";
+import { cardPhotoUrls, restorationName, warrantyCardCode, warrantyTeeth } from "../warranty/laboWarrantyRules";
 import { useLaboWarrantyForm } from "../warranty/useLaboWarrantyForm";
 import type { LaboWorkflowPatient } from "./LaboWorkflowDialog";
 import { LaboOrderSummaryCard } from "./LaboOrderSummaryCard";
@@ -25,23 +23,24 @@ interface Props {
 /**
  * Tab 3 "Bảo hành" (P2910_03): a warranty card per Đạt tooth. Teeth still
  * without a card are picked and activated in the box on top — only once the
- * whole order passed; the cards, the table and the picked tooth's details
- * follow.
+ * whole order passed; the cards and the table follow. P3110 REQ-E2 dropped
+ * the tooth's Thông tin thẻ / Lịch sử panel under them.
  */
 export function LaboWarrantyStep({ patient, order, onShowOrder, onClose }: Props) {
   const warranty = useLaboWarrantyForm(order);
-  const clinicName = useAuthStore((s) => s.user?.clinicName) ?? "";
   // Same fallback as the header's logo.
   const logoUrl = useAuthStore((s) => s.user?.clinicLogoUrl) ?? "/logo.png";
   const restoration = restorationName(order);
-  const rows = warrantyTeeth(order).map((tooth) => ({ tooth, code: warrantyCardCode(order, tooth) }));
-  const [focusNo, setFocusNo] = useState(rows[0]?.tooth.toothNumber);
-  const focused = rows.find((row) => row.tooth.toothNumber === focusNo) ?? rows[0];
+  const rows = warrantyTeeth(order).map((tooth) => ({
+    tooth,
+    code: warrantyCardCode(order, tooth),
+    cardPhotos: cardPhotoUrls(order, tooth.toothNumber),
+  }));
   const canActivate = warranty.editable && warranty.open;
 
   return (
     <>
-      <LaboOrderSummaryCard order={order} onShowOrder={onShowOrder} />
+      <LaboOrderSummaryCard order={order} patient={patient} onShowOrder={onShowOrder} />
       <section className="pd-labo-check-section">
         <header className="pd-labo-check-head">
           <CheckCircleFilled className="pd-labo-warranty-done" />
@@ -60,25 +59,12 @@ export function LaboWarrantyStep({ patient, order, onShowOrder, onClose }: Props
               tooth={row.tooth}
               code={row.code}
               restoration={restoration}
-              focused={row === focused}
-              onFocus={() => setFocusNo(row.tooth.toothNumber)}
               logoUrl={logoUrl}
             />
           ))}
         </div>
         <LaboWarrantyTable rows={rows} />
       </section>
-      {focused && (
-        <LaboWarrantyToothTabs
-          key={focused.tooth.toothNumber}
-          tooth={focused.tooth}
-          code={focused.code}
-          restoration={restoration}
-          patientName={patient.name}
-          clinicName={clinicName}
-          logoUrl={logoUrl}
-        />
-      )}
       <div className="pd-labo-footer pd-labo-step-footer">
         <span className="pd-labo-footer-hint">
           {t(canActivate ? "Labo:Warranty:FooterActivate" : "Labo:Warranty:FooterTrack")}

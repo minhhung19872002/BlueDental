@@ -99,8 +99,19 @@ public sealed class LaboController(ILaboAppService service) : BlueDentalControll
         return service.CheckAsync(id, input);
     }
 
+    /// <summary>JSON Kích hoạt bảo hành, without Ảnh thẻ.</summary>
     [HttpPost("{id:guid}/warranty")]
+    [Consumes("application/json")]
     public Task<LaboOrderDto> ActivateWarrantyAsync(Guid id, [FromBody] ActivateLaboWarrantyDto input) =>
+        service.ActivateWarrantyAsync(id, input);
+
+    /// <summary>
+    /// Kích hoạt bảo hành with the Ảnh thẻ (P3110 REQ-E1) as <c>cardPhotos</c>,
+    /// each named by <c>cardPhotoTeeth</c> and <c>cardPhotoSides</c>.
+    /// </summary>
+    [HttpPost("{id:guid}/warranty")]
+    [Consumes("multipart/form-data")]
+    public Task<LaboOrderDto> ActivateWarrantyWithPhotosAsync(Guid id, [FromForm] ActivateLaboWarrantyDto input) =>
         service.ActivateWarrantyAsync(id, input);
 
     [HttpGet("excel")]

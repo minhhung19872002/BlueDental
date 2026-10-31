@@ -222,12 +222,14 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     expect(await body.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
     expect(await body.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
 
-    // Four pill tabs, "Chi tiết" selected, and the six money figures.
+    // Five pill tabs, "Chi tiết" selected, and the six money figures. Bảo hành
+    // (P3110) carries its count: nothing finished yet on a new slip → 0.
     await expect(tabrow.getByRole("tab")).toHaveText([
       "Chi tiết điều trị",
       "Thanh toán",
       "Hoàn tiền",
       "Dư nợ",
+      "Bảo hành0",
     ]);
     await expect(tab(page, "Chi tiết điều trị")).toHaveAttribute("aria-selected", "true");
     // The money figures belong to the money tabs only (owner 2026-10-15).
@@ -270,6 +272,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       "Trạng thái",
       // F-85 (P2910_03): the Labo order of each line, "Không áp dụng" when none.
       "Phiếu Labo",
+      // F-86 (P3110 REQ-A10): the line's warranty chips, "–" when none.
+      "Bảo hành",
       "Đơn giá",
       "Giảm giá",
       "Thành tiền",

@@ -1,13 +1,9 @@
-/* Labo workflow tab 2 "Nhận hàng & kiểm tra" and the summary card tabs 2–3 share (P2910_03). */
+/* Labo workflow tab 2 "Nhận hàng & kiểm tra" and the summary card tabs 2–3 share (P2910_03, P3110 REQ-D). */
 
-/* Phiếu dịch vụ Labo + Tên khách hàng, locked, above tab 2's summary. */
-.pd-labo-dialog .pd-labo-identity {
-  margin-bottom: 14px;
-}
-
+/* Three by three: slip · patient · service / teeth · supplier · doctor / sent · due · detail (m175, m281). */
 .pd-labo-summary-card {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px 16px;
   margin-bottom: 14px;
   padding: 12px 14px;
@@ -36,7 +32,12 @@
   text-overflow: ellipsis;
 }
 
+.pd-labo-summary-value b {
+  font-weight: 700;
+}
+
 .pd-labo-summary-card .pd-labo-summary-link {
+  justify-content: flex-start;
   height: auto;
   padding: 0;
   font-weight: 500;
@@ -49,6 +50,7 @@
 
 .pd-labo-check-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
@@ -61,10 +63,6 @@
   color: var(--bd-ink);
 }
 
-.pd-labo-check-head .ant-btn {
-  margin-left: auto;
-}
-
 .pd-labo-check-badge {
   display: inline-flex;
   align-items: center;
@@ -74,7 +72,7 @@
   border-radius: 50%;
   font-size: 12px;
   font-weight: 600;
-  color: #fff;
+  color: var(--bd-card);
   background: var(--bd-primary);
 }
 
@@ -82,14 +80,53 @@
   background: var(--bd-red);
 }
 
-.pd-labo-check-aside {
+.pd-labo-check-hint {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-check-aside,
+.pd-labo-check-tally {
   margin-left: auto;
   font-size: 12px;
   color: var(--bd-muted);
 }
 
-.pd-labo-check-aside--required {
+.pd-labo-check-tally {
+  font-weight: 600;
+}
+
+/* Colour of a tally, a Xử lý cell or a round sub-label. */
+.pd-labo-tone--pass {
+  color: var(--bd-green);
+}
+
+.pd-labo-tone--fail {
   color: var(--bd-red);
+}
+
+.pd-labo-tone--warn {
+  color: var(--bd-amber);
+}
+
+.pd-labo-tone--muted {
+  color: var(--bd-muted);
+}
+
+.pd-labo-tone--ink {
+  color: var(--bd-ink);
+}
+
+.pd-labo-check-tally--pass {
+  color: var(--bd-green);
+}
+
+.pd-labo-check-tally--fail {
+  color: var(--bd-red);
+}
+
+.pd-labo-check-tally--warn {
+  color: var(--bd-amber);
 }
 
 .pd-labo-check-grid {
@@ -100,12 +137,49 @@
   gap: 16px 12px;
 }
 
-.pd-labo-check-grid--three {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.pd-labo-check-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .pd-labo-check-control {
   width: 100%;
+}
+
+/* B. before «Kiểm tra Labo»: a locked card (m279). */
+.pd-labo-start-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 16px;
+  border: 1px dashed var(--bd-border);
+  border-radius: 10px;
+  text-align: center;
+  background: var(--bd-bg-soft);
+}
+
+.pd-labo-start-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 16px;
+  color: var(--bd-purple);
+  background: var(--bd-purple-pale);
+}
+
+.pd-labo-start-card strong {
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.pd-labo-start-card p {
+  max-width: 520px;
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--bd-muted);
 }
 
 .pd-labo-tooth-list {
@@ -118,17 +192,32 @@
 }
 
 .pd-labo-tooth-row {
-  display: grid;
-  grid-template-columns: 72px auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
   padding: 8px 12px;
   border: 1px solid var(--bd-border);
   border-radius: 8px;
+  background: var(--bd-card);
+}
+
+/* m278: a soft pink card, the red is kept for the text. */
+.pd-labo-tooth-row--fail {
+  border-color: color-mix(in srgb, var(--bd-red) 35%, transparent);
+  background: color-mix(in srgb, var(--bd-red) 3%, var(--bd-card));
 }
 
 .pd-labo-tooth-row--locked {
   background: var(--bd-bg-soft);
+}
+
+/* Răng N · shade · Đạt/Lỗi · Đã trả · BH Labo · Thu gọn (m342). */
+.pd-labo-tooth-line {
+  display: grid;
+  grid-template-columns: 64px 80px auto 120px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-labo-tooth-row--locked .pd-labo-tooth-line {
+  grid-template-columns: 64px 80px minmax(0, 1fr) 120px minmax(0, 1fr);
 }
 
 .pd-labo-tooth-no {
@@ -138,6 +227,26 @@
 
 .pd-labo-tooth-row .ant-form-item {
   margin-bottom: 0;
+}
+
+.pd-labo-tooth-shade {
+  display: inline-flex;
+  overflow: hidden;
+  white-space: nowrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--bd-sub);
+}
+
+/* A dentine swatch, the same for every shade: the mock draws one beige chip. */
+.pd-labo-tooth-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: 4px;
+  background: #ead9b9;
 }
 
 .pd-labo-tooth-toggle {
@@ -171,14 +280,153 @@
 }
 
 .pd-labo-tooth-choice--fail {
-  border-color: var(--bd-red);
+  border-color: color-mix(in srgb, var(--bd-red) 45%, transparent);
   color: var(--bd-red);
   background: var(--bd-red-pale);
 }
 
-span.pd-labo-tooth-choice {
+.pd-labo-tooth-returns {
+  display: inline-flex;
+  flex-direction: column;
   justify-self: start;
-  cursor: default;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--bd-sub);
+}
+
+.pd-labo-tooth-returns--alert {
+  color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+
+.pd-labo-tooth-row--fail .pd-labo-tooth-returns--alert {
+  background: transparent;
+}
+
+.pd-labo-tooth-returns small {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pd-labo-tooth-warranty {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--bd-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-labo-tooth-warranty b {
+  color: var(--bd-green);
+}
+
+.pd-labo-tooth-passed {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--bd-green);
+}
+
+.pd-labo-tooth-passed small {
+  font-size: 11px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-tooth-fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-primary);
+  background: none;
+  cursor: pointer;
+}
+
+/* A Lỗi tooth's Kết luận: pictures and Mô tả gửi Labo (m278, m342). */
+.pd-labo-defect {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed color-mix(in srgb, var(--bd-red) 35%, transparent);
+}
+
+.pd-labo-defect[hidden] {
+  display: none;
+}
+
+.pd-labo-defect-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pd-labo-defect-head strong {
+  font-size: 13px;
+  color: var(--bd-red);
+}
+
+.pd-labo-defect-head span {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-defect-label {
+  font-size: 12px;
+  color: var(--bd-sub);
+}
+
+/* The form zeroes item margins; the floating label needs room under the pictures. */
+.pd-labo-defect .pd-floating-field,
+.pd-labo-defect .ant-form-item {
+  margin-top: 8px;
+}
+
+.pd-labo-pictures.pd-labo-pictures--defect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.pd-labo-pictures--defect .pd-labo-gallery {
+  gap: 8px;
+  margin: 0;
+}
+
+.pd-labo-pictures--defect .pd-labo-gallery-tile {
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+}
+
+.pd-labo-defectwell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  height: 56px;
+  padding: 0 12px;
+  border: 1px dashed color-mix(in srgb, var(--bd-primary) 40%, transparent);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--bd-primary);
+  background: var(--bd-card);
+  cursor: pointer;
+}
+
+.pd-labo-defectwell:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .pd-labo-conclusion {
@@ -189,19 +437,9 @@ span.pd-labo-tooth-choice {
   background: var(--bd-red-pale);
 }
 
-/* The form zeroes item margins; the dates' floating labels need room below Mô tả. */
+/* The floating labels of the dates need room under the title. */
 .pd-labo-conclusion .pd-labo-check-grid {
   margin-top: 16px;
-}
-
-.pd-labo-conclusion-reason {
-  margin: 0 0 8px;
-  font-weight: 600;
-  color: var(--bd-ink);
-}
-
-.pd-labo-conclusion .pd-labo-required {
-  color: var(--bd-red);
 }
 
 .pd-labo-history-sub {
@@ -209,14 +447,58 @@ span.pd-labo-tooth-choice {
   color: var(--bd-muted);
 }
 
+.pd-labo-history-sub.pd-labo-tone--pass {
+  color: var(--bd-green);
+}
+
+/* The round being entered reads amber-tinted, as in m294. */
+.pd-labo-check-section .pd-labo-history-live > td {
+  background: color-mix(in srgb, var(--bd-amber-pale) 50%, var(--bd-card));
+}
+
+.pd-labo-history-sub.pd-labo-tone--fail {
+  color: var(--bd-red);
+}
+
+.pd-labo-history-sub.pd-labo-tone--warn {
+  color: var(--bd-amber);
+}
+
+.pd-labo-result-pill {
+  display: inline-flex;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pd-labo-result-pill.pd-labo-tone--pass {
+  background: var(--bd-green-pale);
+}
+
+.pd-labo-result-pill.pd-labo-tone--fail {
+  background: var(--bd-red-pale);
+}
+
+/* Xác nhận Labo đạt / Trả hàng bị lỗi: purple as the mock draws them. */
+.pd-labo-footer .ant-btn.pd-labo-btn-purple:not(:disabled) {
+  border-color: var(--bd-purple);
+  background: var(--bd-purple);
+}
+
+.pd-labo-footer .ant-btn.pd-labo-btn-purple:not(:disabled):hover {
+  border-color: var(--bd-violet);
+  background: var(--bd-violet);
+}
+
 @media (max-width: 640px) {
   .pd-labo-summary-card,
-  .pd-labo-check-grid,
-  .pd-labo-check-grid--three {
+  .pd-labo-check-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .pd-labo-tooth-row {
-    grid-template-columns: 1fr;
+  .pd-labo-tooth-line,
+  .pd-labo-tooth-row--locked .pd-labo-tooth-line {
+    grid-template-columns: 1fr 1fr;
   }
 }

@@ -136,15 +136,19 @@ async function openPatientWithTreatment(page: Page, owing: boolean | LineMode = 
         stageCount: number;
         teeth: { toothCode: number }[];
         stagedTeeth: number[];
+        labOrders: { isUnfinished: boolean }[];
       }[];
     }[];
     // Open, and with work left on it: a tooth no công đoạn holds yet, or no
     // teeth at all (a whole-mouth line). Since công đoạn hold their own teeth
     // (2026-09-24), a line whose every tooth went through a finished chain is
     // still "Đang thực hiện" but offers no card in any tab — and every run of
-    // these specs finishes some, so an open status alone runs dry.
+    // these specs finishes some, so an open status alone runs dry. A line an
+    // unfinished labo order holds is left too: its công đoạn cannot be ticked
+    // (P2910_03), and the Labo specs leave such lines behind.
     const workable = (service: (typeof items)[number]["services"][number]) =>
       (service.status === 1 || service.status === 2) &&
+      !service.labOrders.some((order) => order.isUnfinished) &&
       (service.teeth.length === 0 ||
         service.teeth.some((tooth) => !service.stagedTeeth.includes(tooth.toothCode)));
     for (const slip of items) {
@@ -2484,7 +2488,7 @@ test.describe("Bệnh nhân", () => {
     // button rather than typed (P2910_03).
     await expect(labo.locator(".floating-field", { hasText: "Số lượng" })).toHaveCount(0);
     await expect(labo.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
-    await expect(labo.getByRole("button", { name: "Tạo phiếu Labo" })).toBeVisible();
+    await expect(labo.getByRole("button", { name: "Gửi Labo & in phiếu" })).toBeVisible();
   });
 
   test("the treatment table is one row per công đoạn, grouped by day", async ({ page }) => {
@@ -2577,33 +2581,50 @@ test.describe("Bệnh nhân", () => {
     const labo = laboWorkflowDialog(page);
     await expect(labo.getByRole("heading", { level: 2 })).toHaveText("Đặt hàng");
 
-    // Eleven required fields, each carrying the reference's red asterisk inside
-    // its own floating label — the app's shared field wrapper, not markup
-    // invented here.
-    await expect(labo.locator(".floating-field-label .floating-field-required")).toHaveCount(11);
+    // Eight required floating fields, each carrying the reference's red
+    // asterisk inside its own floating label — the app's shared field wrapper,
+    // not markup invented here. Màu răng and Đường hoàn tất moved into Thông số
+    // từng răng (P3110 m139), where the column heads carry the asterisk.
+    await expect(labo.locator(".floating-field-label .floating-field-required")).toHaveCount(8);
+    // A công đoạn without teeth shows no spec table until one is picked.
+    const spec = labo.getByRole("region", { name: "Thông số từng răng" });
+    if ((await labo.locator(".pd-labo-teeth .pd-labo-toothchip").count()) === 0) {
+      await labo.locator(".pd-labo-teeth").getByRole("button", { name: "Chọn răng" }).click();
+      const chart = page.getByRole("dialog", { name: "Chọn răng" });
+      await chart.getByRole("button", { name: "Răng 11", exact: true }).click();
+      await chart.getByRole("button", { name: "Chọn răng" }).click();
+      await expect(chart).toBeHidden();
+    }
+    const specHeads = spec.locator("thead th");
+    await expect(specHeads.filter({ has: page.locator(".floating-field-required") })).toHaveText([
+      /Màu răng/,
+      /Đường hoàn tất/,
+    ]);
     await expect(labo.locator(".floating-field-required").first()).toHaveCSS(
       "color",
       "rgb(229, 72, 77)",
     );
 
     // The pickers are the app's SearchSelect, the same widget the reference
-    // uses: Bác sĩ chỉ định, Nhà cung cấp, Đường hoàn tất, Khớp cắn, Kiểu nhịp.
-    await expect(labo.locator(".ss-wrapper")).toHaveCount(5);
+    // uses: Bác sĩ chỉ định and Nhà cung cấp above, then Đường hoàn tất, Kiểu
+    // nhịp and Khớp cắn on each tooth's row.
+    const specRows = await spec.locator("tbody tr").count();
+    expect(specRows).toBeGreaterThan(0);
+    await expect(labo.locator(".ss-wrapper")).toHaveCount(2 + 3 * specRows);
 
-    // Two chip strips, each under its label and search box, then the teeth row.
-    await expect(labo.locator(".pd-labo-strip-head > p")).toHaveText([/Lựa chọn dịch vụ/, /Vật liệu/]);
-    // Nothing to pick on the teeth row (P2910_03): the order takes every tooth
-    // of its công đoạn, shown on a view-only chart with "Số lượng: N" beside it,
-    // or a plain note when the line names no tooth — the stageable pick may be
-    // either.
+    // Dịch vụ and Vật liệu as chip rows (P3110 m134), then the teeth row.
+    await expect(labo.locator(".pd-labo-choice-label")).toHaveText([/Dịch vụ/, /Vật liệu/]);
+    // Răng (P3110 REQ-C6): the purple button opens the chart to pick teeth;
+    // the công đoạn's teeth come picked, read-only chips with "Số lượng: N".
     const teethRow = labo.locator(".pd-labo-teeth");
     await expect(teethRow.locator(".ant-checkbox")).toHaveCount(0);
-    if ((await teethRow.getByRole("button", { name: "Xem sơ đồ răng" }).count()) > 0) {
-      await expect(teethRow).toContainText(/Số lượng: \d+/);
-    } else {
-      await expect(teethRow.getByRole("button")).toHaveCount(0);
-    }
-    await expect(labo.getByRole("button", { name: "Tải ảnh" })).toBeVisible();
+    await expect(teethRow.getByRole("button", { name: "Chọn răng" })).toBeVisible();
+    const picked = await teethRow.locator(".pd-labo-toothchip").count();
+    if (picked > 0) await expect(teethRow).toContainText(`Số lượng: ${picked}`);
+    const common = labo.locator(".pd-labo-row--common");
+    await expect(common).toContainText("Ảnh đính kèm chung");
+    await expect(common.locator(".floating-field-required")).toHaveCount(0);
+    await expect(common.getByRole("button", { name: "Tải ảnh" })).toBeVisible();
 
     // A floating label rests muted and only takes the accent while its field
     // has focus, the way the reference draws it — not accented the moment it
@@ -2625,7 +2646,7 @@ test.describe("Bệnh nhân", () => {
       "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAJUlEQVR42u3OMQEAAAgDoJnc6BpjDwmg2XCqAAAAAAAAAAAA4LcFvxYBAWfnQVUAAAAASUVORK5CYII=",
       "base64",
     );
-    await labo.locator("input[type=file]").setInputFiles([
+    await common.locator("input[type=file]").setInputFiles([
       { name: "labo-a.png", mimeType: "image/png", buffer: png },
       { name: "labo-b.png", mimeType: "image/png", buffer: png },
     ]);
@@ -3058,7 +3079,7 @@ test.describe("Bệnh nhân", () => {
     await expect(form.locator(".pd-stage-images")).toContainText("1 ảnh đã chọn");
   });
 
-  test("finishing a công đoạn swaps its action for Bảo hành, inside and out", async ({ page }) => {
+  test("finishing a công đoạn swaps its action for Bảo hành dịch vụ, inside and out", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "warrantable");
     const stageId = await addStage(page, line, `e2e bảo hành ${runId()}`);
@@ -3073,37 +3094,28 @@ test.describe("Bệnh nhân", () => {
 
     const live = await finishLiveStage(page, dialog, line.serviceId);
 
-    // After: Tạo Labo gives way to Bảo hành on that same row.
-    await expect(live.getByRole("button", { name: "Bảo hành" })).toBeVisible();
+    // After: Tạo Labo gives way to Bảo hành dịch vụ on that same row.
+    const serviceWarranty = live.getByRole("button", { name: "Bảo hành dịch vụ", exact: true });
+    await expect(serviceWarranty).toBeVisible();
     await expect(live.getByRole("button", { name: "Tạo Labo" })).toHaveCount(0);
 
-    // And it opens the reference's own form.
-    await live.getByRole("button", { name: "Bảo hành" }).click();
-    const warranty = page.getByRole("dialog", { name: "Tạo bảo hành" });
-    await expect(warranty).toBeVisible();
-    const footer = warranty.locator(".ant-modal-footer");
-    // "Đóng" / "Lưu" — re-measured on staging 2026-09-24.
-    await expect(footer.getByRole("button", { name: /^(save )?Lưu$/ })).toBeVisible();
-    await expect(footer.getByRole("button", { name: "Đóng", exact: true })).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(warranty).toBeHidden();
-    // By its ✕: focus comes back to Bảo hành, whose tooltip eats an Escape.
-    await dialog.locator(".ant-modal-close").first().click();
-    await expect(dialog).toBeHidden();
+    // P3110 D1: it leads to the slip's Bảo hành tab on this line, not a form.
+    await serviceWarranty.click();
+    await expect(page).toHaveURL(new RegExp(`/treatment-plan/[^?]+\\?planTab=warranty&line=${line.serviceId}`));
+    await page.goBack();
 
-    // Outside, the row's Công đoạn cell is the Bảo hành chip, and it opens the
-    // same form — the reference offers it from both places.
+    // Outside, the row's Công đoạn cell is the Bảo hành chip, and it leads to
+    // the same tab (P3110 REQ-A9 — the Tạo bảo hành form is gone).
     await page.reload();
     await page.locator(".pd-treatment-table .ant-table-content").evaluate((el) => {
       el.scrollLeft = el.scrollWidth;
     });
-    // The row of the công đoạn just finished — another line's warranty button
-    // may be shut by an open warranty of its own.
+    // The row of the công đoạn just finished.
     await widenTreatmentTable(page);
     const done = (await findStageRow(page, line.serviceId, stageId)).locator(".pd-tr-warranty");
     await expect(done).toBeVisible();
     await done.click();
-    await expect(page.getByRole("dialog", { name: "Tạo bảo hành" })).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/treatment-plan/[^?]+\\?planTab=warranty&line=${line.serviceId}`));
   });
 
   test("Hoàn thành un-ticks again, and the line follows it back", async ({ page }) => {
@@ -3388,27 +3400,6 @@ test.describe("Bệnh nhân", () => {
     await content.fill(`${note}\ntyped by hand`);
     await step.click();
     await expect(content).toHaveValue("- typed by hand");
-  });
-
-  test("Tạo bảo hành builds no checklist, so the heading stays (Trống)", async ({ page }) => {
-    await page.setViewportSize({ width: 1800, height: 950 });
-    const line = await openPatientWithTreatment(page, "warrantable");
-    await addStage(page, line, `e2e bảo hành ${runId()}`);
-    await page.reload();
-
-    const dialog = await openStageDialog(page, line.serviceId);
-    await finishLiveStage(page, dialog, line.serviceId);
-    await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
-    await page.reload();
-    await widenTreatmentTable(page);
-
-    await treatmentRow(page, line.serviceId).locator(".pd-tr-warranty").first().click();
-    const warranty = page.locator(".pd-warranty-dialog");
-    // The reference's warranty mapper sets `stageChecklist: []` outright — a
-    // bảo hành never inherits the công đoạn's content the way a tái khám does.
-    await expect(warranty.locator(".pd-stage-steplist .ant-checkbox-wrapper")).toHaveCount(0);
-    await expect(warranty.locator(".pd-stage-listempty")).toHaveText("(Trống)");
   });
 
   test("a tái khám picks its teeth, lists its images, and lands as its own row", async ({
@@ -3865,13 +3856,16 @@ test.describe("Bệnh nhân", () => {
           warrantyDays: number;
           teeth: { toothCode: number }[];
           stagedTeeth: number[];
+          labOrders: { isUnfinished: boolean }[];
         }[];
       }[];
       for (const slip of items) {
-        // With work left on it — see `workable` in the main fixture.
+        // With work left on it, and no labo order holding it — see `workable`
+        // in the main fixture.
         const found = slip.services.find(
           (service) =>
             service.warrantyDays === 0 &&
+            !service.labOrders.some((order) => order.isUnfinished) &&
             (service.status === 1 || service.status === 2) &&
             (service.teeth.length === 0 ||
               service.teeth.some((tooth) => !service.stagedTeeth.includes(tooth.toothCode))),
@@ -3896,7 +3890,7 @@ test.describe("Bệnh nhân", () => {
     const live = await finishLiveStage(page, dialog, line!.serviceId);
     // No warranty period: the finished row swaps Tạo Labo for the reference's
     // grey, disabled "Không bảo hành" (its HistorySection, read 2026-09-24).
-    await expect(live.getByRole("button", { name: "Bảo hành", exact: true })).toHaveCount(0);
+    await expect(live.getByRole("button", { name: "Bảo hành dịch vụ", exact: true })).toHaveCount(0);
     await expect(live.getByRole("button", { name: "Không bảo hành" })).toBeDisabled();
     await expect(live.getByRole("button", { name: "Tạo Labo" })).toHaveCount(0);
     await page.keyboard.press("Escape");

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Form, type FormInstance } from "antd";
 import type { Dayjs } from "dayjs";
 import { toast } from "sonner";
+import { useWarrantyCardDrafts, WARRANTY_CARD_SIDES, type WarrantyCardDrafts } from "@/components/WarrantyCardPhotos";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
 import type { LaboOrderDto, LaboOrderToothDto } from "@/features/labo/api/laboApi";
@@ -31,6 +32,8 @@ export interface LaboWarrantyForm {
   pending: LaboOrderToothDto[];
   selected: number[];
   toggle: (tooth: number) => void;
+  /** Ảnh thẻ bảo hành picked per tooth, sent with the activation (P3110 REQ-E1). */
+  photos: WarrantyCardDrafts;
   /** Picked teeth whose start and duration are both filled. */
   readyCount: number;
   activate: () => Promise<void>;
@@ -40,13 +43,14 @@ const isReady = (card: LaboWarrantyCardValues | undefined) => Boolean(card?.star
 
 /**
  * Kích hoạt bảo hành (n răng): pick the Đạt teeth still without a card, give
- * each a start day (not before it passed) and a duration, and activate them
- * together. A tooth can be left for later; the first card moves the order
- * to Bảo hành.
+ * each a start day (not before it passed), a duration and, if at hand, the
+ * photos of its card, and activate them together. A tooth can be left for
+ * later; the first card moves the order to Bảo hành.
  */
 export function useLaboWarrantyForm(order: LaboOrderDto): LaboWarrantyForm {
   const ability = useAbility("treatmentLabo");
   const activateWarranty = useActivateLaboWarranty();
+  const photos = useWarrantyCardDrafts();
   const [form] = Form.useForm<LaboWarrantyValues>();
   const cards = Form.useWatch("cards", form);
 
@@ -84,9 +88,17 @@ export function useLaboWarrantyForm(order: LaboOrderDto): LaboWarrantyForm {
             conditions: card.conditions,
           };
         }),
+        photos: selected.flatMap((tooth) => {
+          const files = photos.filesOf(tooth);
+          return WARRANTY_CARD_SIDES.flatMap((side) => {
+            const file = files[side];
+            return file ? [{ tooth, side, file }] : [];
+          });
+        }),
       });
       toast.success(t("Labo:Warranty:Activated", selected.length));
       form.resetFields(selected.map((tooth) => ["cards", toothKey(tooth)]));
+      photos.clear(selected);
     } catch {
       // The global MutationCache toasts the server's message; the tab stays for the fix.
     }
@@ -100,6 +112,7 @@ export function useLaboWarrantyForm(order: LaboOrderDto): LaboWarrantyForm {
     pending,
     selected,
     toggle,
+    photos,
     readyCount: selected.filter((tooth) => isReady(cards?.[toothKey(tooth)])).length,
     activate,
   };

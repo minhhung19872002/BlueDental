@@ -3,6 +3,7 @@ import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 import type { LaboStatus } from "@/features/labo/api/laboApi";
 import type { ToothSelectionDto } from "./consultingApi";
+import type { WarrantyCardKind } from "./planWarrantyApi";
 
 import { t } from "@/lib/i18n";
 /** Matches BlueDental.TreatmentManagement.TreatmentStageStatus. */
@@ -65,6 +66,10 @@ export interface TreatmentStageDto {
   continuedFromId: string | null;
   /** On a warranty: the ordinary công đoạn it descends from. */
   warrantyRootStageId: string | null;
+  /** On a warranty: the card it is worked under — Nha khoa or Labo (P3110 REQ-F3). */
+  warrantyKind: WarrantyCardKind | null;
+  /** With a Labo card: the order picked in "Dịch vụ bảo hành · Labo". */
+  warrantyLaboOrderId: string | null;
   startedAt: string | null;
   completedAt: string | null;
   teeth: ToothSelectionDto[];
@@ -87,10 +92,12 @@ export interface TreatmentStageDto {
   creationTime: string;
   /** "LABO-xxxx · trạng thái" on the công đoạn that raised a labo order (P2910_03). */
   labo: TreatmentStageLaboDto | null;
-  /** "Khoá: phiếu Labo chưa QC đạt" — the server refuses Hoàn thành while it holds. */
+  /** "🔒 Khoá: LABO-xxx chưa kiểm tra" — the server refuses Hoàn thành while it holds. */
   completeLockedByLabo: boolean;
-  /** The order "Kích hoạt bảo hành" opens; only on the line's latest công đoạn. */
-  laboWarrantyOrder: TreatmentStageLaboDto | null;
+  /** The order behind that lock — named by the note, opened by "Xem phiếu Labo ›". */
+  completeLockedByLaboOrder: TreatmentStageLaboDto | null;
+  /** "BN có n phiếu" beside Tạo Labo: the line's orders not cancelled (P3110 m7). */
+  lineLaboOrderCount: number;
 }
 
 /** A labo order as the history names it. */
@@ -99,6 +106,8 @@ export interface TreatmentStageLaboDto {
   orderCode: string;
   status: LaboStatus;
   isWarrantyExpired: boolean;
+  /** "YYYY-MM-DD" its last tooth passed QC; null until then. */
+  qualityPassedOn: string | null;
 }
 
 export interface TreatmentStageProgressDto {
@@ -136,8 +145,15 @@ export interface CreateTreatmentStageInput {
   teeth?: ToothSelectionDto[];
   /** Set by "Tạo bảo hành". */
   isGuarantee?: boolean;
-  /** With `isGuarantee`: the finished công đoạn the warranty is raised from. */
-  warrantySourceStageId?: string;
+  /**
+   * With `isGuarantee`: the finished công đoạn the warranty is raised from;
+   * null for a line finished by hand (REQ-B8).
+   */
+  warrantySourceStageId?: string | null;
+  /** With `isGuarantee`: "Thẻ bảo hành áp dụng" (REQ-F3). */
+  warrantyKind?: WarrantyCardKind;
+  /** With a Labo card: the line's order whose warranty is worked under (REQ-F4). */
+  warrantyLaboOrderId?: string | null;
   /** The steps ticked under "Danh sách công đoạn"; they are stored unticked. */
   serviceItemIds?: string[];
   /** Ngày điều trị, "YYYY-MM-DD"; the server takes today when omitted. */

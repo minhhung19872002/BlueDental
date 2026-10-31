@@ -1,6 +1,7 @@
 import type { TableColumnsType } from "antd";
 import { DataTable } from "@/components/DataTable";
 import { StatusBadge } from "@/components/StatusBadge";
+import { WarrantyCardPhotos, type WarrantyCardUrls } from "@/components/WarrantyCardPhotos";
 import { t } from "@/lib/i18n";
 import type { LaboOrderToothDto } from "@/features/labo/api/laboApi";
 import { formatCardDate, LABO_WARRANTY_STATE_PILL, remainingLabel, warrantyState } from "./laboWarrantyRules";
@@ -8,6 +9,8 @@ import { formatCardDate, LABO_WARRANTY_STATE_PILL, remainingLabel, warrantyState
 export interface LaboWarrantyRow {
   tooth: LaboOrderToothDto;
   code: string;
+  /** Ảnh thẻ bảo hành sent with the activation (P3110 REQ-E1). */
+  cardPhotos: WarrantyCardUrls;
 }
 
 function buildColumns(): TableColumnsType<LaboWarrantyRow> {
@@ -45,6 +48,13 @@ function buildColumns(): TableColumnsType<LaboWarrantyRow> {
     // Lần BH counts the Tiếp nhận bảo hành rounds, which come in a later phase.
     { title: t("Labo:Warranty:Table:Claims"), key: "claims", width: 70, align: "center", render: () => 0 },
     {
+      title: t("Labo:Warranty:Table:Photos"),
+      key: "photos",
+      width: 116,
+      render: (_, row) =>
+        Object.keys(row.cardPhotos).length > 0 ? <WarrantyCardPhotos urls={row.cardPhotos} compact /> : formatCardDate(null),
+    },
+    {
       title: t("Labo:Warranty:Table:State"),
       key: "state",
       width: 116,
@@ -56,7 +66,7 @@ function buildColumns(): TableColumnsType<LaboWarrantyRow> {
   ];
 }
 
-/** Răng · Mã thẻ · Bắt đầu · Hết hạn · Còn lại · Lần BH · Trạng thái, one row per Đạt tooth. */
+/** Răng · Mã thẻ · Bắt đầu · Hết hạn · Còn lại · Lần BH · Ảnh thẻ · Trạng thái, one row per Đạt tooth. */
 export function LaboWarrantyTable({ rows }: { rows: LaboWarrantyRow[] }) {
   return (
     <DataTable<LaboWarrantyRow>

@@ -1,26 +1,17 @@
-import { useEffect, useMemo } from "react";
-import { Button, Input } from "antd";
-import { PictureOutlined, SaveOutlined } from "@ant-design/icons";
+import { Input } from "antd";
 import { FloatingLabel } from "@/components/FloatingLabel";
-import { ServerSearchSelect } from "@/components/ServerSearchSelect";
-import {
-  useAssistantOptionsToday,
-  useDentistOptionsToday,
-} from "@/hooks/usePickerOptions";
 import { t } from "@/lib/i18n";
-import { rebasePick } from "./appointmentNote";
-import { StageAppointmentNote } from "./StageAppointmentNote";
-import { StageDateField } from "./StageDateField";
-import { StageNoteInput } from "./StageNoteInput";
-import { StageShots } from "./StageShots";
-import { StageStepList } from "./StageStepList";
+import { StageContentColumn } from "./StageContentColumn";
+import { StageImagesField } from "./StageImagesField";
+import { StageRemarkColumn, type StageFormActions } from "./StageRemarkColumn";
+import { StageStaffColumn } from "./StageStaffColumn";
 import { StageTeethPicker } from "./StageTeethPicker";
 import type { StageDraft } from "./stageDraft";
 import type { StageFieldErrors } from "./stageFieldErrors";
 import { keepOffered, toggleTooth, type StageItem } from "./stageModel";
 
-/** The reference caps Nội dung điều trị at 1000 characters. */
-export const NOTE_LIMIT = 1000;
+export { NOTE_LIMIT } from "./StageContentColumn";
+export type { StageFormActions } from "./StageRemarkColumn";
 
 /** How the form talks back to the dialog; one draft per form. */
 export interface StageFormHandlers {
@@ -28,17 +19,6 @@ export interface StageFormHandlers {
   /** Every step id ticked after a change — one box, or the "Chọn tất cả" box. */
   onPickSteps: (stepIds: string[]) => void;
   onPickImages: () => void;
-}
-
-/**
- * Hủy and the save button. The reference draws them under the **last** open
- * form only — one press saves every open form at once.
- */
-export interface StageFormActions {
-  primaryLabel: string;
-  saving: boolean;
-  onSave: () => void;
-  onCancel: () => void;
 }
 
 interface Props {
@@ -50,66 +30,15 @@ interface Props {
 }
 
 /**
- * Blob previews for the chosen files, revoked when the list changes or the form
- * goes — minting them in the render would hand out a fresh URL on every
- * keystroke and never release one.
- */
-function usePreviews(files: File[]): string[] {
-  const previews = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
-  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
-  return previews;
-}
-
-/**
- * One công đoạn form — "Ngày - Nhân sự" (Ngày điều trị, which the doctor
- * picks; the creation date is kept server-side for tracking only — BA,
- * 2026-10-09), "Dịch vụ đã chọn", "Nội dung điều trị" and our own "Ghi chú
- * lịch hẹn" (BA, 2026-10-27) side by side inside one blue-bordered card.
- * Several of them stack when several cards are picked.
+ * One công đoạn form — "Ngày - Nhân sự", "Dịch vụ đã chọn", "Nội dung điều
+ * trị" and our own "Ghi chú lịch hẹn" (BA, 2026-10-27) side by side inside one
+ * blue-bordered card. Several of them stack when several cards are picked.
+ * A new warranty uses {@link StageWarrantyForm} instead.
  */
 export function StageForm({ item, draft, errors, handlers, actions }: Props) {
-  const previews = usePreviews(draft.pending);
-
   return (
     <div className="pd-stage-form pd-stage-form--four" data-item-id={item.id}>
-      <div>
-        <StageDateField
-          value={draft.treatmentDate}
-          error={errors.treatmentDate}
-          onChange={(treatmentDate) =>
-            handlers.onChange({
-              treatmentDate,
-              remark: rebasePick(draft.remark, draft.treatmentDate, treatmentDate),
-            })
-          }
-        />
-        <FloatingLabel label={t("Patient:Staff:Doctor")} required floated={Boolean(draft.staffId)}>
-          <ServerSearchSelect
-            value={draft.staffId}
-            valueLabel={draft.labels.staff}
-            useOptions={useDentistOptionsToday}
-            allowClear={false}
-            onChange={(value) => handlers.onChange({ staffId: value ?? undefined })}
-          />
-        </FloatingLabel>
-        {errors.staff && <p className="pd-stage-error">{errors.staff}</p>}
-        <FloatingLabel label={t("Patient:Staff:Assistant")} floated={Boolean(draft.subStaffId)}>
-          <ServerSearchSelect
-            value={draft.subStaffId}
-            valueLabel={draft.labels.subStaff}
-            useOptions={useAssistantOptionsToday}
-            onChange={(value) => handlers.onChange({ subStaffId: value })}
-          />
-        </FloatingLabel>
-        <FloatingLabel label={t("Patient:Staff:AssistingDoctor")} floated={Boolean(draft.secondStaffId)}>
-          <ServerSearchSelect
-            value={draft.secondStaffId}
-            valueLabel={draft.labels.secondStaff}
-            useOptions={useDentistOptionsToday}
-            onChange={(value) => handlers.onChange({ secondStaffId: value })}
-          />
-        </FloatingLabel>
-      </div>
+      <StageStaffColumn draft={draft} errors={errors} onChange={handlers.onChange} />
 
       <div>
         <FloatingLabel label={t("Patient:Misc:ServiceLabel")} floated>
@@ -125,61 +54,18 @@ export function StageForm({ item, draft, errors, handlers, actions }: Props) {
           onChange={(teeth) => handlers.onChange({ teeth: keepOffered(item, teeth) })}
         />
         {errors.teeth && <p className="pd-stage-error">{errors.teeth}</p>}
-        <div className="pd-stage-images">
-          <p>{t("Patient:Tab:Images")}:</p>
-          <p>
-            {draft.pending.length === 0
-              ? t("Patient:QuoteSheet:Empty")
-              : t("Patient:Stage:PhotosSelected", draft.pending.length)}
-          </p>
-        </div>
-        <StageShots
-          files={draft.pending}
-          previews={previews}
-          onRemove={(at) =>
-            handlers.onChange({ pending: draft.pending.filter((_, index) => index !== at) })
-          }
-        />
-        <Button block icon={<PictureOutlined />} onClick={handlers.onPickImages}>
-          {t("Patient:Photo:UploadButton")}
-        </Button>
+        <StageImagesField draft={draft} onChange={handlers.onChange} onPickImages={handlers.onPickImages} />
       </div>
 
-      <div>
-        <FloatingLabel label={t("Patient:Stage:TreatmentContent")} required floated={draft.note.length > 0}>
-          <StageNoteInput
-            rows={5}
-            value={draft.note}
-            maxLength={NOTE_LIMIT}
-            onChange={(note) => handlers.onChange({ note })}
-            status={errors.note ? "error" : undefined}
-          />
-        </FloatingLabel>
-        {errors.note && <p className="pd-stage-error">{errors.note}</p>}
-        {/* Which of the service's steps this công đoạn will cover. They save
-            unticked — the history row is where they get ticked off. */}
-        <StageStepList
-          steps={item.line.serviceSteps ?? []}
-          checked={draft.steps}
-          onChange={handlers.onPickSteps}
-        />
-      </div>
+      <StageContentColumn
+        steps={item.line.serviceSteps ?? []}
+        draft={draft}
+        error={errors.note}
+        onChange={handlers.onChange}
+        onPickSteps={handlers.onPickSteps}
+      />
 
-      <div>
-        <StageAppointmentNote
-          value={draft.remark}
-          treatmentDate={draft.treatmentDate}
-          onChange={(remark) => handlers.onChange({ remark })}
-        />
-        {actions && (
-          <div className="pd-stage-formactions">
-            <Button onClick={actions.onCancel}>{t("Patient:Misc:Cancel")}</Button>
-            <Button type="primary" icon={<SaveOutlined />} loading={actions.saving} onClick={actions.onSave}>
-              {actions.primaryLabel}
-            </Button>
-          </div>
-        )}
-      </div>
+      <StageRemarkColumn draft={draft} onChange={handlers.onChange} actions={actions} />
     </div>
   );
 }

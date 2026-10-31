@@ -1,7 +1,8 @@
 import { Button } from "antd";
-import { LockOutlined, SafetyOutlined } from "@ant-design/icons";
+import { LockOutlined } from "@ant-design/icons";
 import { StatusBadge } from "@/components/StatusBadge";
 import { t } from "@/lib/i18n";
+import { formatDate } from "@/utils/format";
 import type { TreatmentStageLaboDto } from "@/features/treatment-management/api/stageApi";
 import { laboStatusPill } from "@/features/labo/api/laboStatus";
 import "./stage-labo.css";
@@ -25,21 +26,31 @@ export function StageLaboChip({ labo, onView }: { labo: TreatmentStageLaboDto; o
   );
 }
 
-/** Under a Hoàn thành tick held back until the line's labo order passes QC. */
-export function StageLaboLockNote() {
+/**
+ * Under a Hoàn thành tick held back by a labo order (P3110 m38): "🔒 Khoá:
+ * LABO-xxx chưa kiểm tra", or — once it passed, but after this công đoạn's
+ * day (note 27) — the day it passed; then "Xem phiếu Labo ›" on the check step.
+ */
+export function StageLaboLockNote({ order, onView }: { order: TreatmentStageLaboDto; onView?: () => void }) {
+  const reason = order.qualityPassedOn
+    ? t("Patient:Stage:Labo:LockedPassedOn", order.orderCode, formatDate(order.qualityPassedOn))
+    : t("Patient:Stage:Labo:LockedBy", order.orderCode);
   return (
-    <p className="pd-stage-labo-lock">
-      <LockOutlined aria-hidden="true" />
-      {t("Patient:Stage:Labo:Locked")}
-    </p>
+    <div className="pd-stage-labo-lock">
+      <p>
+        <LockOutlined aria-hidden="true" />
+        {reason}
+      </p>
+      {onView && (
+        <button type="button" className="pd-stage-labo-lock-view" onClick={onView}>
+          {t("Patient:Stage:Labo:ViewMore")}
+        </button>
+      )}
+    </div>
   );
 }
 
-/** "Kích hoạt bảo hành" on the line's latest công đoạn once its order is Hoàn thành; opens tab 3. */
-export function StageLaboWarrantyButton({ onClick }: { onClick: () => void }) {
-  return (
-    <Button block type="primary" className="pd-stage-warranty" icon={<SafetyOutlined />} onClick={onClick}>
-      {t("Labo:Workflow:WarrantyAction")}
-    </Button>
-  );
+/** "BN có n phiếu" beside Tạo Labo (P3110 m7): read only, the line's orders not cancelled. */
+export function StageLaboCount({ count }: { count: number }) {
+  return <span className="pd-stage-labo-count">{t("Patient:Stage:Labo:Count", count)}</span>;
 }

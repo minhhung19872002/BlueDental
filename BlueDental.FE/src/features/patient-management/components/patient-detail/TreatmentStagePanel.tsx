@@ -1,4 +1,5 @@
 import { useState, type Ref } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { DollarOutlined, PrinterOutlined } from "@ant-design/icons";
 import { useAbility } from "@/hooks/useAbility";
@@ -7,14 +8,15 @@ import { t } from "@/lib/i18n";
 import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
+import { planDetailPath } from "@/features/treatment-management/components/plan/planTypes";
+import { PLAN_TAB } from "@/features/treatment-management/components/plan-detail/planDetailTypes";
 import { sourceFromStage } from "@/features/labo/components/order-dialogs/laboOrderSource";
 import { LaboWorkflowDialog } from "@/features/labo/components/workflow/LaboWorkflowDialog";
 import type { LaboWorkflowTarget } from "@/features/labo/components/workflow/laboWorkflowSteps";
-import { StageForm } from "./stage/StageForm";
+import { StageItemForm } from "./stage/StageItemForm";
 import { StageHistory } from "./stage/StageHistory";
 import { StagePicks } from "./stage/StagePicks";
 import { TreatmentHistoryPrintDialog } from "./stage/TreatmentHistoryPrintDialog";
-import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
 import type { StageTab } from "./stage/stageModel";
 import type { StageComposer } from "./stage/useStageComposer";
 import "./patient-detail.css";
@@ -89,9 +91,17 @@ export function TreatmentStagePanel({
 
   const [printing, setPrinting] = useState(false);
   const [laboTarget, setLaboTarget] = useState<LaboWorkflowTarget | null>(null);
-  const [warrantyStage, setWarrantyStage] = useState<TreatmentStageDto | null>(null);
 
+  const navigate = useNavigate();
   const last = composer.chosen[composer.chosen.length - 1];
+
+  // "Bảo hành dịch vụ" leads to the slip's Bảo hành tab, on this line (P3110 D1).
+  const handleWarranty = (stage: TreatmentStageDto) => {
+    if (!stage.treatmentId) return;
+    navigate(
+      planDetailPath(patient.id, stage.treatmentId, branchId, PLAN_TAB.warranty, stage.treatmentServiceId),
+    );
+  };
 
   return (
     <div className="pd-stage-panel">
@@ -163,16 +173,10 @@ export function TreatmentStagePanel({
                 <p className="pd-stage-hint">{t("Patient:Stage:SelectHint")}</p>
               ) : (
                 composer.chosen.map((item) => (
-                  <StageForm
+                  <StageItemForm
                     key={item.id}
                     item={item}
-                    draft={composer.draftOf(item)}
-                    errors={composer.errorsOf(item)}
-                    handlers={{
-                      onChange: (patch) => composer.patchDraft(item, patch),
-                      onPickSteps: (stepIds) => composer.pickSteps(item, stepIds),
-                      onPickImages: () => composer.pickForForm(item),
-                    }}
+                    composer={composer}
                     actions={
                       item === last
                         ? {
@@ -207,7 +211,6 @@ export function TreatmentStagePanel({
           warranty: stageAbility.canCreate,
           labo: laboAbility.canCreate,
           laboRead: laboAbility.canRead,
-          laboUpdate: laboAbility.canUpdate,
         }}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
         onSaveRemark={composer.saveRemark}
@@ -215,7 +218,7 @@ export function TreatmentStagePanel({
         onUpload={composer.pickForStage}
         onCreateLabo={(stage) => setLaboTarget({ kind: "create", source: sourceFromStage(plan, stage) })}
         onOpenLabo={(orderId, step) => setLaboTarget({ kind: "open", orderId, step })}
-        onWarranty={setWarrantyStage}
+        onWarranty={handleWarranty}
         warrantyOf={composer.warrantyOf}
       />
 
@@ -226,20 +229,6 @@ export function TreatmentStagePanel({
         stages={composer.stages}
         statusOf={composer.statusOf}
         onClose={() => setPrinting(false)}
-      />
-
-      <StageFollowUpDialog
-        open={warrantyStage !== null}
-        patientId={patient.id}
-        branchId={branchId}
-        plan={plan}
-        stage={warrantyStage}
-        lineStages={composer.stages.filter(
-          (stage) => stage.treatmentServiceId === warrantyStage?.treatmentServiceId,
-        )}
-        kind="guarantee"
-        inheritSteps
-        onClose={() => setWarrantyStage(null)}
       />
 
       <LaboWorkflowDialog

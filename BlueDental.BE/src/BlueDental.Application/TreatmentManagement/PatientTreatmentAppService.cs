@@ -1063,8 +1063,12 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         var lineIds = lines.Select(l => l.Id).ToList();
         var laboOrders = lineIds.Count == 0
             ? []
+            // With teeth: Hết hạn bảo hành reads every activated card, and an
+            // order loaded bare would count as all-expired.
             : await _laboRepository.GetListAsync(o =>
-                o.TreatmentServiceId != null && lineIds.Contains(o.TreatmentServiceId.Value));
+                o.TreatmentServiceId != null && lineIds.Contains(o.TreatmentServiceId.Value),
+                includeDetails: true);
+        var laboToday = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
         var laboByService = laboOrders
             .Where(o => o.TreatmentServiceId.HasValue)
             .GroupBy(o => o.TreatmentServiceId!.Value)
@@ -1077,7 +1081,9 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     Status = o.Status,
                     Kind = o.Kind,
                     IsUnfinished = o.IsUnfinished,
-                    DueAt = o.DueAt
+                    DueAt = o.DueAt,
+                    ReceivedAt = o.ReceivedAt,
+                    IsWarrantyExpired = o.IsWarrantyExpiredOn(laboToday)
                 })
                 .ToList());
 
