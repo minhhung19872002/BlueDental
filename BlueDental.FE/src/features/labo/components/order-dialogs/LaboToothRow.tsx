@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Form, Tooltip } from "antd";
+import { jawLabel, wholeJawOfTeeth } from "@/components/ToothChart";
 import { t } from "@/lib/i18n";
 import { TeethChartButton } from "./LaboTeethChartButton";
 import { LaboTeethPickDialog } from "./LaboTeethPickDialog";
@@ -24,13 +25,15 @@ interface Props {
 
 /**
  * "Răng *" on the Đặt hàng tab (P3110 m134, REQ-C6): the purple tooth button
- * opens the chart to pick teeth; R11 / R12 / R13 after it are only read, then
+ * opens the chart to pick teeth; R11 / R12 / R13 after it are only read — a
+ * whole jaw as one chip, "Hàm trên" / "Hàm dưới" / "Hai hàm" (R-1098) — then
  * "Số lượng: n" and, for a bridge, "· cầu n đơn vị". A form control, so a
  * Form.Item asks for at least one tooth and paints the label red.
  */
 export function LaboToothRow({ id, value = [], bridge, code, empty, readOnly, onChange }: Props) {
   const { status } = Form.Item.useStatus();
   const [open, setOpen] = useState(false);
+  const jaw = wholeJawOfTeeth(value.map(Number));
   const className = ["pd-labo-teeth", status === "error" && "pd-labo-teeth--error"].filter(Boolean).join(" ");
 
   const handleConfirm = (teeth: number[]) => {
@@ -58,11 +61,15 @@ export function LaboToothRow({ id, value = [], bridge, code, empty, readOnly, on
           </button>
         </Tooltip>
       )}
-      {value.map((fdi) => (
-        <span key={fdi} className="pd-labo-toothchip">
-          {toothLabel(fdi)}
-        </span>
-      ))}
+      {jaw ? (
+        <span className="pd-labo-toothchip">{jawLabel(jaw)}</span>
+      ) : (
+        value.map((fdi) => (
+          <span key={fdi} className="pd-labo-toothchip">
+            {toothLabel(fdi)}
+          </span>
+        ))
+      )}
       {value.length > 0 && (
         <span className="pd-labo-teeth-count">
           {t("Patient:Payment:Quantity")}: <b>{value.length}</b>

@@ -106,6 +106,21 @@ export function wholeJawOf(selections: readonly ToothSelection[]): JawPreset | n
   return value.kind === "jaw" ? value.jaw : null;
 }
 
+/** `wholeJawOf` for bare tooth numbers, each taken whole. */
+export function wholeJawOfTeeth(teeth: readonly number[]): JawPreset | null {
+  return wholeJawOf(teeth.map((fdi) => toothPickToSelection({ fdi, surfaces: [] })));
+}
+
+/**
+ * Teeth as one line of text: the jaw's name when they are exactly a whole jaw
+ * ("Hàm trên", "Hàm dưới", "Hai hàm" — R-1098), else each tooth as `label`
+ * writes it, comma-separated.
+ */
+export function teethCaption(teeth: readonly number[], label: (tooth: number) => string): string {
+  const jaw = wholeJawOfTeeth(teeth);
+  return jaw ? jawLabel(jaw) : teeth.map(label).join(", ");
+}
+
 /**
  * The inverse of toothValueToSelections: rows the API handed back, folded
  * into the picker's value. A complete jaw of whole teeth collapses to that

@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { teethCaption } from "@/components/ToothChart";
 import {
   WARRANTY_CARD_KIND,
   WARRANTY_EVENT_KIND,
@@ -12,9 +13,9 @@ import {
   type WarrantyServiceRowDto,
 } from "../../api/planWarrantyApi";
 
-/** "R24" / "R11, R21" — the teeth as the mock writes them. */
+/** "R24" / "R11, R21" — the teeth as the mock writes them; a whole jaw by its name (R-1098). */
 export function teethText(teeth: readonly number[]): string {
-  return teeth.map((tooth) => `R${tooth}`).join(", ");
+  return teethCaption(teeth, (tooth) => `R${tooth}`);
 }
 
 /** "Bọc sứ Emax - R24": the line's name with its teeth, if it has any. */

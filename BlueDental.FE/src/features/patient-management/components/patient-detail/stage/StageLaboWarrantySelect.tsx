@@ -1,4 +1,5 @@
 import { Select } from "antd";
+import { teethCaption } from "@/components/ToothChart";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import type { LaboWarrantyOption } from "./stageWarranty";
@@ -11,8 +12,8 @@ interface Props {
   onChange: (orderId: string) => void;
 }
 
-/** `R11, R21`, as the mock prints a Labo order's teeth. */
-const teethText = (teeth: number[]) => teeth.map((tooth) => `R${tooth}`).join(", ");
+/** `R11, R21`, as the mock prints a Labo order's teeth; a whole jaw by its name (R-1098). */
+const teethText = (teeth: number[]) => teethCaption(teeth, (tooth) => `R${tooth}`);
 
 /** Line 1 the supplier, line 2 `{vật liệu} R11, R21 · Hạn dd/mm/yyyy` (G25; no "lượt", D5). */
 function OptionText({ option }: { option: LaboWarrantyOption }) {

@@ -25,6 +25,8 @@ export {
   toothSelectionToPick,
   toothSelectionsToValue,
   wholeJawOf,
+  wholeJawOfTeeth,
+  teethCaption,
   toothValueToSelections,
   type JawPreset,
   type ToothPickerTab,

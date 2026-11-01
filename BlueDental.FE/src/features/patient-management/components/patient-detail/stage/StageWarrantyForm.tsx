@@ -3,6 +3,7 @@ import {
   type WarrantyCardKind,
   type WarrantyServiceRowDto,
 } from "@/features/treatment-management/api/planWarrantyApi";
+import { teethCaption } from "@/components/ToothChart";
 import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
@@ -39,11 +40,11 @@ interface Props {
   actions?: StageFormActions;
 }
 
-/** `Răng sứ Zirconia · R11, R21` — the teeth this visit takes. */
+/** `Răng sứ Zirconia · R11, R21` — the teeth this visit takes; a whole jaw by its name (R-1098). */
 function serviceTitle(item: StageItem, teeth: number[]) {
   const name = item.line.serviceName ?? item.line.code;
   if (teeth.length === 0) return name;
-  return `${name} · ${[...teeth].sort((a, b) => a - b).map((tooth) => `R${tooth}`).join(", ")}`;
+  return `${name} · ${teethCaption([...teeth].sort((a, b) => a - b), (tooth) => `R${tooth}`)}`;
 }
 
 /** `Hoàn thành 06/11/2026 · BS. Nguyễn Lan Chi`, each half only when known. */

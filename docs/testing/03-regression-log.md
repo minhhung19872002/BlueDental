@@ -12894,3 +12894,22 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chạy lại cả `patient-medical-record`: 36 qua / 2 đỏ, cả 2 đỏ có sẵn (":204 the index lists…", ":2194 picking the day…"); ":298", ":380", ":599" lần này xanh.
   - `tsc -p tsconfig.app.json`, eslint các file đổi → sạch.
 - **Mức retest**: 2 (F-30; đổi `autoOf` chỉ đi nhánh mẫu 10).
+
+## R-1098 (2026-11-01, mức 3: ToothChart dùng chung + F-85 Labo + F-86 Bảo hành) Dòng đúng nguyên một hàm ghi tên hàm
+
+- **Yêu cầu** (chủ dự án, đồng bộ với R-1096 của anh Định): khi răng của một dòng đúng bằng cả một hàm thì ghi "Hàm trên" / "Hàm dưới" / "Hai hàm" thay cho dãy số răng.
+- **Phạm vi** (chỉ hiển thị, không đổi dữ liệu):
+  - Popup Labo bước Đặt hàng, hàng "Răng *": một chip tên hàm. "Số lượng: n" vẫn đếm từng răng; nút Chọn răng và sơ đồ không đổi.
+  - Tab Bảo hành trên phiếu điều trị, cột "Dịch vụ · răng" và nhãn dòng: `{dịch vụ} - Hàm dưới`.
+  - Tiêu đề form TIẾP TỤC BẢO HÀNH, chữ trong ô chọn "Dịch vụ bảo hành · Labo", dòng phụ của Lịch sử bảo hành.
+  - Dòng không đủ một hàm vẫn liệt kê răng như cũ (`R36, R37`).
+- **Sửa — FE**:
+  - `components/ToothChart/toothPicker.ts`: thêm `wholeJawOfTeeth` (cho mảng số răng) và `teethCaption(teeth, label)`.
+  - `LaboToothRow` dùng `wholeJawOfTeeth` + `jawLabel`.
+  - `planWarrantyView.teethText`, `StageWarrantyForm.serviceTitle`, `StageLaboWarrantySelect` dùng `teethCaption`.
+- **E2E** (bản build production `vite preview` cổng 8185 → host :5000 → PostgreSQL thật, không chặn API):
+  - Mới `tooth-jaw-caption` (2 ca): phiếu Labo 16 răng hàm trên → một chip "Hàm trên", "Số lượng: 16"; phiếu 2 răng → "R11", "R21". Tab Bảo hành: dòng hàm dưới → "Hàm dưới", dòng 32 răng → "Hai hàm", dòng R36 + R37 giữ số răng → **xanh**.
+  - Hồi quy: `labo-workflow` (4), `plan-warranty-tab` (3), `warranty-stage` (2), `plan-warranty-api` (7), `warranty-stage-api` (3) + spec mới → **21/21 xanh**. Lượt đầu `warranty-stage:147` đỏ một lần, chạy riêng và chạy lại cả bộ đều xanh, nên là do tải song song.
+  - `tsc -p tsconfig.app.json`, eslint các file đổi → sạch.
+- **Mức retest**: 3 (helper của ToothChart dùng chung; các màn khác dùng `wholeJawOf` không đổi).
+- Chỉ trên develop (Labo P2910_03 / Bảo hành P3110 chưa có trên main).
