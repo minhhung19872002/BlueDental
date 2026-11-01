@@ -54,6 +54,19 @@ export function isStepOpen(step: LaboStep, order: LaboOrderDto | undefined): boo
   return order.teeth.some((tooth) => tooth.checkResult === LABO_TOOTH_RESULT.Passed);
 }
 
+/**
+ * A step the order is past — the green tick on the stepper (Labo 1–3 mocks):
+ * Đặt hàng once it left Nháp, Nhận hàng & kiểm tra once every tooth passed,
+ * Bảo hành once every tooth carries an activated card. Display only.
+ */
+export function isStepDone(step: LaboStep, order: LaboOrderDto | undefined): boolean {
+  if (!order || order.status === LABO_STATUS.Draft) return false;
+  if (step === "order") return true;
+  if (order.teeth.length === 0) return false;
+  if (step === "check") return order.teeth.every((tooth) => tooth.checkResult === LABO_TOOTH_RESULT.Passed);
+  return order.teeth.every((tooth) => Boolean(tooth.warrantyActivatedAt));
+}
+
 /** The tab asked for when it is open, else the one the order's status points at. */
 export function resolveStep(requested: LaboStep | undefined, order: LaboOrderDto | undefined): LaboStep {
   if (requested && isStepOpen(requested, order)) return requested;

@@ -467,6 +467,8 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(dialog.locator(".pd-labo-warranty-card--active")).toContainText(`Thẻ bảo hành · ${code11}`);
       await expect(dialog.locator(".pd-labo-warranty-card--inactive")).toContainText("Răng 21");
       // REQ-E1/E2: the photo lands in Ảnh thẻ; the card no longer opens a Thông tin thẻ / Lịch sử panel.
+      // The table sits on its own view, as the Labo 3 mock lays it out.
+      await dialog.getByRole("tab", { name: /^Thẻ bảo hành theo từng răng/ }).click();
       const table = dialog.locator(".pd-labo-warranty-table");
       await expect(table.getByRole("columnheader", { name: "Ảnh thẻ" })).toBeVisible();
       const row11 = table.locator("tbody tr.ant-table-row").filter({ hasText: code11 });

@@ -1,6 +1,4 @@
-import type { TableColumnsType } from "antd";
 import dayjs from "dayjs";
-import { DataTable } from "@/components/DataTable";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { LABO_TOOTH_RESULT, type LaboOrderDto, type LaboToothResult } from "@/features/labo/api/laboApi";
@@ -14,53 +12,30 @@ const RESULT_PILL: Partial<Record<LaboToothResult, { label: string; tone: LaboTo
 
 const toned = (tone: LaboTone) => `pd-labo-tone pd-labo-tone--${tone}`;
 
-function buildColumns(): TableColumnsType<LaboToothHistoryRow> {
-  return [
-    {
-      title: t("Labo:Check:History:RoundDate"),
-      key: "round",
-      width: 150,
-      onCell: (row) => ({ rowSpan: row.span }),
-      render: (_, row) => (
-        <>
-          <b>{t("Labo:Check:History:RoundOn", row.roundNo, dayjs(row.receivedAt).format("DD/MM"))}</b>
-          <div className={`pd-labo-history-sub ${toned(row.roundTally.tone)}`}>{row.roundTally.label}</div>
-        </>
-      ),
-    },
-    {
-      title: t("Labo:Check:History:Tooth"),
-      dataIndex: "tooth",
-      width: 72,
-      render: (tooth: number) => t("Labo:Check:History:ToothNo", tooth),
-    },
-    {
-      title: t("Labo:Check:History:Result"),
-      dataIndex: "result",
-      width: 96,
-      render: (result: LaboToothResult) => {
-        const pill = RESULT_PILL[result];
-        return pill ? <span className={`pd-labo-result-pill ${toned(pill.tone)}`}>{t(pill.label)}</span> : "—";
-      },
-    },
-    {
-      title: t("Labo:Check:History:Defects"),
-      dataIndex: "note",
-      render: (note: string | null | undefined) => note || "—",
-    },
-    {
-      title: t("Labo:Check:History:Action"),
-      key: "action",
-      width: 110,
-      render: (_, row) => <span className={toned(row.action.tone)}>{row.action.label}</span>,
-    },
-    {
-      title: t("Labo:Check:History:RedeliveryDueAt"),
-      dataIndex: "redeliveryDueAt",
-      width: 140,
-      render: (value: string | null | undefined) => formatDate(value) || "—",
-    },
-  ];
+/** The rows of one delivery, newest delivery first, as the Labo 2 mock stacks them. */
+function byRound(rows: LaboToothHistoryRow[]): LaboToothHistoryRow[][] {
+  const rounds = new Map<number, LaboToothHistoryRow[]>();
+  for (const row of rows) rounds.set(row.roundNo, [...(rounds.get(row.roundNo) ?? []), row]);
+  return [...rounds.values()].reverse();
+}
+
+function ToothLine({ row }: { row: LaboToothHistoryRow }) {
+  const pill = RESULT_PILL[row.result];
+  const due = formatDate(row.redeliveryDueAt);
+  return (
+    <tr>
+      <td>
+        <div className="pd-labo-history-line">
+          <b>{t("Labo:Check:History:ToothNo", row.tooth)}</b>
+          {pill ? <span className={`pd-labo-result-pill ${toned(pill.tone)}`}>{t(pill.label)}</span> : "—"}
+          <span className={`pd-labo-history-action ${toned(row.action.tone)}`}>{row.action.label}</span>
+        </div>
+        {(row.note || due) && (
+          <div className="pd-labo-history-defect">{[row.note, due].filter(Boolean).join(" · ")}</div>
+        )}
+      </td>
+    </tr>
+  );
 }
 
 interface Props {
@@ -69,23 +44,42 @@ interface Props {
   live: LaboLiveCheck | null;
 }
 
-/** Lịch sử nhận hàng & trả hàng · theo răng (P3110 m189, m294): a row per tooth per delivery. */
+/**
+ * Lịch sử nhận hàng & trả hàng (P3110 m189, m294) in the left column of the
+ * Labo 2 mock: one card per delivery — Lần · ngày over its tally — and a line
+ * per tooth with its result, what was done and, for a Lỗi, the defect and
+ * Hẹn giao lại.
+ */
 export function LaboRoundHistoryTable({ order, live }: Props) {
+  const rounds = byRound(toothHistoryRows(order, live));
   return (
-    <section className="pd-labo-check-section">
+    <section className="pd-labo-check-section pd-labo-history">
       <header className="pd-labo-check-head">
         <h3>{t("Labo:Check:History:Title")}</h3>
         <span className="pd-labo-check-aside">{historyAside(order, live)}</span>
       </header>
-      <DataTable<LaboToothHistoryRow>
-        rowKey="key"
-        size="small"
-        columns={buildColumns()}
-        dataSource={toothHistoryRows(order, live)}
-        pagination={false}
-        rowClassName={(row) => (row.live ? "pd-labo-history-live" : "")}
-        locale={{ emptyText: t("Labo:Check:History:Empty") }}
-      />
+      {rounds.length === 0 && <p className="pd-labo-history-empty">{t("Labo:Check:History:Empty")}</p>}
+      {rounds.map((rows) => {
+        const head = rows[0];
+        return (
+          <article
+            key={head.roundNo}
+            className={["pd-labo-history-round", head.live && "pd-labo-history-live"].filter(Boolean).join(" ")}
+          >
+            <header className={`pd-labo-history-round-head pd-labo-history-round-head--${head.roundTally.tone}`}>
+              <b>{t("Labo:Check:History:RoundOn", head.roundNo, dayjs(head.receivedAt).format("DD/MM"))}</b>
+              <span className={`pd-labo-history-sub ${toned(head.roundTally.tone)}`}>{head.roundTally.label}</span>
+            </header>
+            <table>
+              <tbody>
+                {rows.map((row) => (
+                  <ToothLine key={row.key} row={row} />
+                ))}
+              </tbody>
+            </table>
+          </article>
+        );
+      })}
     </section>
   );
 }

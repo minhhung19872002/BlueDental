@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Form } from "antd";
 import { t } from "@/lib/i18n";
 import type { LaboOrderDto } from "@/features/labo/api/laboApi";
@@ -71,6 +72,16 @@ function CheckForm({ order, check }: { order: LaboOrderDto; check: LaboCheckForm
   );
 }
 
+/** Labo 2 mock: the delivery history down the left, the check on the right. */
+function CheckColumns({ history, children }: { history: ReactNode; children: ReactNode }) {
+  return (
+    <div className="pd-labo-flow-main">
+      <aside className="pd-labo-flow-pane pd-labo-flow-pane--side pd-labo-flow-pane--history">{history}</aside>
+      <section className="pd-labo-flow-pane pd-labo-flow-pane--main">{children}</section>
+    </div>
+  );
+}
+
 /**
  * Tab 2 "Nhận hàng & kiểm tra" (P2910_03, P3110 REQ-D): the order at a glance,
  * A. the delivery, B. a result per tooth with each Lỗi tooth's own
@@ -86,9 +97,10 @@ export function LaboCheckStep({ patient, order, onShowOrder, onClose }: Props) {
     return (
       <>
         {summary}
-        <LaboPassedTeethList order={order} />
-        <LaboRoundHistoryTable order={order} live={null} />
-        <SavedCheckPictureSets order={order} />
+        <CheckColumns history={<LaboRoundHistoryTable order={order} live={null} />}>
+          <LaboPassedTeethList order={order} />
+          <SavedCheckPictureSets order={order} />
+        </CheckColumns>
         <div className="pd-labo-footer pd-labo-step-footer">
           <div className="pd-labo-footer-actions">
             <Button onClick={onClose}>{t("Labo:Workflow:Dismiss")}</Button>
@@ -101,9 +113,10 @@ export function LaboCheckStep({ patient, order, onShowOrder, onClose }: Props) {
   return (
     <>
       {summary}
-      <CheckForm order={order} check={check} />
-      <LaboRoundHistoryTable order={order} live={check.live} />
-      <SavedCheckPictureSets order={order} />
+      <CheckColumns history={<LaboRoundHistoryTable order={order} live={check.live} />}>
+        <CheckForm order={order} check={check} />
+        <SavedCheckPictureSets order={order} />
+      </CheckColumns>
       <LaboCheckFooter order={order} check={check} onClose={onClose} />
     </>
   );

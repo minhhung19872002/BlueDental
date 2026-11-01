@@ -12,14 +12,12 @@ import { LaboToothSpecTable } from "./LaboToothSpecTable";
 import { useLaboValue, type LaboOrderForm } from "./useLaboOrderForm";
 import "./labo-order-rows.css";
 
-interface Props {
+interface TeethProps {
   form: LaboOrderForm;
   /** The order's Số phiếu, for the tooth chart's title. */
   code: string;
   /** What the tooth row shows in place of the chart button when there is no tooth. */
   emptyTeeth: ReactNode;
-  /** While Lưu nháp / Gửi Labo is uploading. */
-  busy: boolean;
   /** The teeth already on another order of the phiếu điều trị (R-1106). */
   priors: LaboPriorTeeth;
   /** «Xem phiếu ›» on that warning. */
@@ -27,13 +25,11 @@ interface Props {
 }
 
 /**
- * The lower half of the Đặt hàng tab, laid out as the BA's mock (P3110 m134 /
- * m139): Răng with the teeth picked and Số lượng — warned of a tooth already
- * sent on the slip (P0111_02, R-1106) — Thông số từng răng, the
- * common pictures — none required (REQ-C3) — and Nội dung the full width at
- * the bottom.
+ * Răng on the Đặt hàng tab (P3110 m134 / m139): the teeth picked and Số
+ * lượng, warned of a tooth already sent on the slip (P0111_02, R-1106). It
+ * closes the "Thông tin phiếu" column of the Labo 1 mock.
  */
-export function LaboOrderFields({ form, code, emptyTeeth, busy, priors, onViewPrior }: Props) {
+export function LaboTeethField({ form, code, emptyTeeth, priors, onViewPrior }: TeethProps) {
   const teeth = useLaboValue(form.form, "teeth") ?? [];
   const shared = useLaboValue(form.form, "sharedSpec") ?? false;
   const specs = useLaboValue(form.form, "specs");
@@ -58,24 +54,41 @@ export function LaboOrderFields({ form, code, emptyTeeth, busy, priors, onViewPr
         />
       </Form.Item>
       <LaboPriorOrderWarning groups={priorGroups(teeth, priors)} onView={onViewPrior} />
+    </>
+  );
+}
 
+interface SpecsProps {
+  form: LaboOrderForm;
+  /** While Lưu nháp / Gửi Labo is uploading. */
+  busy: boolean;
+}
+
+/**
+ * The right column of the Labo 1 mock: Thông số từng răng, then Nội dung
+ * beside the common pictures — none required (REQ-C3).
+ */
+export function LaboOrderSpecs({ form, busy }: SpecsProps) {
+  return (
+    <>
       <LaboToothSpecTable form={form} busy={busy} />
 
-      <div className="pd-labo-row pd-labo-row--common">
-        <p className="pd-labo-row-label">{t("Labo:Workflow:CommonImages")}</p>
-        <LaboPictureWell
-          tiles={form.tilesOf("common")}
-          busy={busy}
-          readOnly={form.readOnly}
-          onAdd={(files) => form.addPictures("common", files)}
-          onRemove={form.removeTile}
-        />
-      </div>
-
-      <div className="pd-labo-notes">
-        <FloatingField name="notes" label={t("Labo:Workflow:Instructions")}>
-          <Input.TextArea rows={2} maxLength={1000} />
-        </FloatingField>
+      <div className="pd-labo-extras">
+        <div className="pd-labo-notes">
+          <FloatingField name="notes" label={t("Labo:Workflow:Instructions")}>
+            <Input.TextArea rows={5} maxLength={1000} />
+          </FloatingField>
+        </div>
+        <div className="pd-labo-row pd-labo-row--common">
+          <p className="pd-labo-row-label">{t("Labo:Workflow:CommonImages")}</p>
+          <LaboPictureWell
+            tiles={form.tilesOf("common")}
+            busy={busy}
+            readOnly={form.readOnly}
+            onAdd={(files) => form.addPictures("common", files)}
+            onRemove={form.removeTile}
+          />
+        </div>
       </div>
     </>
   );

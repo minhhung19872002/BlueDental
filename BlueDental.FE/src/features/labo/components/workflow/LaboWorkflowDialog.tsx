@@ -16,6 +16,7 @@ import { LaboOrderStep } from "./LaboOrderStep";
 import { LaboStepTabs } from "./LaboStepTabs";
 import { LaboWarrantyStep } from "./LaboWarrantyStep";
 import {
+  isStepDone,
   isStepOpen,
   LABO_STEP_COPY,
   resolveStep,
@@ -23,6 +24,7 @@ import {
   type LaboWorkflowTarget,
 } from "./laboWorkflowSteps";
 import "../labo-order-dialog.css";
+import "./labo-workflow-theme.css";
 
 export interface LaboWorkflowPatient {
   id: string;
@@ -75,9 +77,10 @@ export function LaboWorkflowDialog({ target, branchId, patient, onClose, onStepC
   return (
     <Modal
       open={target !== null}
-      /* Widened past the reference's 772px at the owner's ask (2026-10-30);
-         shrinks with the viewport, 16px each side, like the payment dialog. */
-      width="min(1080px, calc(100vw - 32px))"
+      /* Widened past the reference's 772px at the owner's ask (2026-10-30), to
+         the 1320px of the Labo 1–3 mocks (P0111); shrinks with the viewport,
+         16px each side, like the payment dialog. */
+      width="min(1320px, calc(100vw - 32px))"
       className="pd-labo-dialog pd-labo-workflow"
       onCancel={onClose}
       footer={null}
@@ -124,12 +127,22 @@ function LaboWorkflowBody({ target, branchId, patient, onClose, onStepChange }: 
 
   return (
     <>
+      {/* Title, pill and hint on the left, the steps on the right (P0111 Labo 1–3 mocks). */}
       <header className="pd-labo-workflow-head">
-        <h2 className="bd-modal-title">{t(LABO_STEP_COPY[step].label)}</h2>
-        {pill && <StatusBadge label={t(pill.label)} bg={pill.bg} color={pill.color} />}
+        <div className="pd-labo-workflow-title">
+          <div className="pd-labo-workflow-titlerow">
+            <h2 className="bd-modal-title">{t(LABO_STEP_COPY[step].label)}</h2>
+            {pill && <StatusBadge label={t(pill.label)} bg={pill.bg} color={pill.color} />}
+          </div>
+          <p className="pd-labo-step-hint">{t(LABO_STEP_COPY[step].hint)}</p>
+        </div>
+        <LaboStepTabs
+          active={step}
+          isOpen={(candidate) => isStepOpen(candidate, order)}
+          isDone={(candidate) => isStepDone(candidate, order)}
+          onChange={pick}
+        />
       </header>
-      <LaboStepTabs active={step} isOpen={(candidate) => isStepOpen(candidate, order)} onChange={pick} />
-      <p className="pd-labo-step-hint">{t(LABO_STEP_COPY[step].hint)}</p>
       {STEP_BODY[step]({
         branchId,
         patient,

@@ -6,7 +6,7 @@ import type { PickerOption } from "@/hooks/useLaboPickers";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import type { LaboOrderDto } from "@/features/labo/api/laboApi";
 import { LaboNewOrderHeader } from "../order-dialogs/LaboNewOrderHeader";
-import { LaboOrderFields } from "../order-dialogs/LaboOrderFields";
+import { LaboOrderSpecs, LaboTeethField } from "../order-dialogs/LaboOrderFields";
 import { LaboPrintButton } from "../order-dialogs/LaboPrintButton";
 import type { LaboOrderSource } from "../order-dialogs/laboOrderSource";
 import { LaboServiceMaterialRows } from "../order-dialogs/LaboServiceMaterialRows";
@@ -59,38 +59,45 @@ export function LaboOrderStep({
 
   return (
     <>
+      {/* Labo 1 mock: "Thông tin phiếu" on the left, the per-tooth specs on the right. */}
       <Form
         form={form.form}
         layout="vertical"
-        className="pd-labo-form"
+        className="pd-labo-form pd-labo-flow-main"
         disabled={!editable}
         scrollToFirstError
       >
-        <LaboNewOrderHeader
-          patient={patient}
-          source={step.headerSource}
-          plans={step.picksSource ? plans : undefined}
-          dentists={dentists}
-          code={step.code}
-          form={form}
-        />
-        <LaboServiceMaterialRows form={form} />
-        <LaboOrderFields
-          form={form}
-          code={step.code}
-          busy={saving}
-          priors={step.priors}
-          onViewPrior={setViewing}
-          emptyTeeth={
-            step.picksSource ? (
-              <span className="pd-labo-emptypill">
-                {t("Patient:Stage:SelectTreatmentServiceFirst")}
-              </span>
-            ) : (
-              <span className="pd-labo-emptypill">{t("Patient:QuoteSheet:Empty")}</span>
-            )
-          }
-        />
+        <section className="pd-labo-flow-pane pd-labo-flow-pane--side pd-labo-flow-pane--order">
+          <h3 className="pd-labo-flow-pane-title">{t("Labo:Summary:Order")}</h3>
+          <LaboNewOrderHeader
+            patient={patient}
+            source={step.headerSource}
+            plans={step.picksSource ? plans : undefined}
+            dentists={dentists}
+            code={step.code}
+            form={form}
+          />
+          <hr className="pd-labo-flow-rule" />
+          <LaboServiceMaterialRows form={form} />
+          <LaboTeethField
+            form={form}
+            code={step.code}
+            priors={step.priors}
+            onViewPrior={setViewing}
+            emptyTeeth={
+              step.picksSource ? (
+                <span className="pd-labo-emptypill">
+                  {t("Patient:Stage:SelectTreatmentServiceFirst")}
+                </span>
+              ) : (
+                <span className="pd-labo-emptypill">{t("Patient:QuoteSheet:Empty")}</span>
+              )
+            }
+          />
+        </section>
+        <section className="pd-labo-flow-pane pd-labo-flow-pane--main">
+          <LaboOrderSpecs form={form} busy={saving} />
+        </section>
       </Form>
       {/* Outside the form: its `disabled` locks the fields of a sent order, not Huỷ or In. */}
       <div className="pd-labo-footer pd-labo-step-footer">
