@@ -21,14 +21,27 @@ export interface SlipOption {
 const owing = (line: TreatmentServiceDto) => line.outstandingAmount > 0;
 
 /**
- * "Giá gốc" of a line: the service's price in Danh mục times the quantity,
- * before the catalog's own discount or anything else is taken off (owner
- * 2026-10-27). A service no longer priced there falls back to the line's own
- * giá gốc, then to its price, as the server does.
+ * "Giá gốc" of a line: the giá gốc the slip holds for it times the quantity —
+ * the price the plan was made at, not Danh mục's price today, which may have
+ * moved since (owner 2026-11-01, R-1102, over R-1045's catalog price). A line
+ * with no giá gốc falls back to its price, as the server does.
  */
 export function listAmount(line: TreatmentServiceDto): number {
-  const unit = line.catalogPrice || line.originalPrice || line.price;
-  return unit * line.quantity;
+  return (line.originalPrice || line.price) * line.quantity;
+}
+
+/** "Voucher dịch vụ" and "Voucher KHDT": what the slip's vouchers took off the line. */
+export function slipVoucherOf(line: TreatmentServiceDto): number {
+  return line.serviceVoucherAmount + line.planVoucherShare;
+}
+
+/**
+ * "Giảm giá bác sĩ": what the doctor took off the line on the slip — a unit
+ * price below giá gốc, the line's own discount and its share of the slip's
+ * discount. The slip's vouchers are not the doctor's; they read as Voucher.
+ */
+export function doctorDiscountOf(line: TreatmentServiceDto): number {
+  return Math.max(0, listAmount(line) - line.chargedAmount - slipVoucherOf(line));
 }
 
 /**

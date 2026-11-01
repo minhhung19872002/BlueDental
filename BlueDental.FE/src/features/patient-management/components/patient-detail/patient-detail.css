@@ -3400,10 +3400,17 @@
   padding: 12px;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
+/* The whole head of the card ticks it (R-1102), the card's top padding included. */
 .pd-newpay-card-row {
   display: flex;
   align-items: flex-start;
   gap: 16px;
+  margin: -12px -12px 0;
+  padding: 12px 12px 0;
+  cursor: pointer;
+}
+.pd-newpay-lines > li.pd-newpay-card:not(.pd-newpay-card--on):has(> .pd-newpay-card-row:hover) {
+  border-color: color-mix(in srgb, var(--bd-primary) 45%, var(--bd-border));
 }
 .pd-newpay-lines > li.pd-newpay-card--on {
   border-color: var(--bd-primary);

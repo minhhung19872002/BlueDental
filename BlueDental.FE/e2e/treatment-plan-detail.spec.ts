@@ -1039,7 +1039,6 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
             chargedAmount: number;
             outstandingAmount: number;
             serviceId: string;
-            catalogPrice: number | null;
             originalPrice: number;
             price: number;
             quantity: number;
@@ -1122,11 +1121,11 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
         .toBe(charged);
       expect(money(await line.locator("b").innerText())).toBe(charged);
 
-      // Giá gốc over Giá sau giảm (owner 2026-10-27): the service's price in
-      // Danh mục, before anything is taken off, then what the line is charged.
-      const { serviceId, catalogPrice, originalPrice, price, quantity } = slip.services[index];
-      if (serviceId === figures.lineServiceId) expect(catalogPrice).toBe(figures.linePrice);
-      const listed = (catalogPrice || originalPrice || price) * quantity;
+      // Giá gốc over Giá sau giảm: the giá gốc the slip holds for the line
+      // (R-1102, over R-1045's Danh mục price), then what the line is charged.
+      const { serviceId, originalPrice, price, quantity } = slip.services[index];
+      if (serviceId === figures.lineServiceId) expect(originalPrice).toBe(figures.linePrice);
+      const listed = (originalPrice || price) * quantity;
       const prices = line.locator(".pd-newpay-price");
       await expect(prices.nth(0)).toContainText("Giá gốc:");
       expect(money(await prices.nth(0).innerText())).toBe(listed);

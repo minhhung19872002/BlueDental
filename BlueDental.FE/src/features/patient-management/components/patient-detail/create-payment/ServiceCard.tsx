@@ -1,10 +1,11 @@
+import type { MouseEvent } from "react";
 import { Checkbox } from "antd";
 import dayjs from "dayjs";
 import { EditOutlined } from "@ant-design/icons";
 import type { TreatmentServiceDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { t } from "@/lib/i18n";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
-import { listAmount } from "./paymentDialogModel";
+import { doctorDiscountOf, listAmount } from "./paymentDialogModel";
 import { PaymentLineTermsForm } from "./PaymentLineTermsForm";
 import { PaymentRoundHistory, type CurrentRound } from "./PaymentRoundHistory";
 import { receiptNameToSend } from "./paymentRounds";
@@ -42,16 +43,26 @@ export function ServiceCard({ payment, line }: Props) {
   const expanded = checked && terms.isExpanded(line.id);
   const round = rounds.roundOf(line.id);
   const history = rounds.historyOf(line.id);
-  const doctorDiscount = listAmount(line) - line.chargedAmount;
+  const doctorDiscount = doctorDiscountOf(line);
   const applied = payment.money.figures.find((item) => item.line.id === line.id)?.discount ?? 0;
   const vat =
     line.taxAmount > 0
       ? t("Patient:Payment:IncludesVat", line.taxPercent, formatMoneyUnit(line.taxAmount))
       : t("Patient:Payment:NoVat");
 
+  /**
+   * The whole head of the card ticks it, not just the box (owner 2026-11-01,
+   * R-1102). A click on the checkbox's own label is left to the checkbox, or
+   * the line would tick and untick at once.
+   */
+  const handleRowClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (event.target instanceof Element && event.target.closest(".ant-checkbox-wrapper")) return;
+    payment.toggle(line.id, !checked);
+  };
+
   return (
     <li className={checked ? "pd-newpay-card pd-newpay-card--on" : "pd-newpay-card"}>
-      <div className="pd-newpay-card-row">
+      <div className="pd-newpay-card-row" onClick={handleRowClick}>
         <Checkbox checked={checked} onChange={(event) => payment.toggle(line.id, event.target.checked)}>
           {round > 1 || doctorDiscount > 0 ? (
             <span className="pd-newpay-tags">

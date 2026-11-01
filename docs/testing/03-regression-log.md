@@ -12950,3 +12950,37 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Phần còn lại của `cskh-after-treatment` và `cskh` → **xanh**.
 - **Mức retest**: 2.
 - Chỉ trên develop.
+
+## R-1102 (2026-11-01, mức 2: F-83 Thanh toán nhiều đợt P2910) Tạo phiếu thanh toán — Giá gốc lấy từ phiếu điều trị, voucher của phiếu vào dòng Voucher, bấm cả đầu thẻ để tick
+
+- **Yêu cầu** (BA, ảnh chú thích 2026-11-01):
+  - Tổng tiền đang sai so với dịch vụ chọn thanh toán. Phải bằng giá đã nhập trên kế hoạch điều trị, không phải giá Danh mục.
+  - Giảm giá bác sĩ đang sai: BS không giảm mà vẫn hiện −500.000 đ. Phải bằng đúng số BS giảm khi tạo kế hoạch.
+  - Tổng tiền sau giảm = Tổng tiền − (Giảm giá BS + Giảm giá thu ngân + Voucher).
+  - Tối ưu vùng bấm của thẻ dịch vụ.
+- **Nguyên nhân**: R-1045 lấy Giá gốc = `catalogPrice` × số lượng. Khi giá trên phiếu khác giá Danh mục hiện tại, Tổng tiền lệch, và "BS giảm" = Tổng tiền − Phải thu nhận luôn phần chênh đó. Voucher gắn trên phiếu điều trị cũng bị tính vào "BS giảm".
+- **Quyết định chủ dự án** (2026-11-01, thay quyết định Giá gốc của R-1045):
+  - Giá gốc = `originalPrice` của dòng trên phiếu (rỗng thì `price`) × số lượng.
+  - Voucher đã gắn trên phiếu điều trị (`serviceVoucherAmount` + `planVoucherShare`) vào **dòng Voucher**, không vào Giảm giá BS.
+  - Giảm giá BS = max(0, Giá gốc − Phải thu − voucher của phiếu).
+  - Giữ nút Áp dụng cho Giảm giá thu ngân: tổng chỉ đổi sau khi bấm.
+  - Bấm bất kỳ đâu trên đầu thẻ (tên, giá, Còn nợ) để tick / bỏ tick. Bấm vào chính ô checkbox vẫn để checkbox tự xử lý.
+- **Sửa — FE** (không đổi BE):
+  - `paymentDialogModel.ts`: `listAmount` dùng `originalPrice || price`. Thêm `slipVoucherOf`, `doctorDiscountOf`.
+  - `paymentRoundMoney.ts`: Tổng tiền = Σ Giá gốc. BS = Σ `doctorDiscountOf`. Voucher = voucher của phiếu + voucher chọn ở đợt này. Tổng sau giảm giữ nguyên Σ(Phải thu − TN − phần voucher đợt), bằng đúng công thức BA.
+  - `ServiceCard.tsx`: thẻ BS giảm dùng `doctorDiscountOf`. `.pd-newpay-card-row` bắt click để tick / bỏ tick.
+  - `patient-detail.css`: đầu thẻ phủ cả padding trên của thẻ, con trỏ tay, viền đậm lên khi rê chuột vào thẻ chưa tick.
+  - `treatmentPlanApi.ts`: ghi chú `catalogPrice` không còn được Tạo phiếu thanh toán đọc.
+- **E2E** (bản build production `vite preview` cổng 8197 → host Development riêng :5197 → PostgreSQL thật, không chặn API):
+  - `payment-rounds` mới, ca "Giá gốc is the slip's, not Danh mục's; the slip voucher is Voucher, not BS giảm; the card head ticks it (R-1102)" → **xanh**. Dữ liệu và kiểm tra:
+    - Dòng 1: giá 1.000.000 đ trên phiếu, Danh mục 500.000 đ, BS không giảm. Dòng 2: 500.000 đ, BS giảm 50.000 đ. Voucher 100.000 đ trên phiếu.
+    - Thẻ ghi đúng Giá gốc của phiếu. Chỉ dòng 2 có "BS giảm 50.000 đ".
+    - Bấm vùng giá thì tick, bấm lần hai thì bỏ tick. Bấm tên thì tick. Bấm Còn nợ của thẻ 2 thì tick.
+    - Tổng tiền 1.500.000, BS 50.000, TN 0, Voucher 100.000, sau giảm 1.350.000, Còn nợ 1.350.000.
+  - Helper `provision` của `payment-rounds`: tạo voucher trước phiếu, thêm tuỳ chọn gắn voucher lên phiếu và `catalogPrice` khác giá phiếu.
+  - `payment-rounds` (3 ca) + `payment-amount-select` → **4/4 xanh**.
+  - `treatment-plan-detail` "a discounted slip is collected at its after-discount price, never the gross one": sửa phép kiểm tra Giá gốc sang `originalPrice` → **xanh**.
+  - `tsc` sạch. eslint thư mục create-payment sạch.
+  - Ghi chú môi trường: host :5000 dùng chung đang chạy không có `ASPNETCORE_ENVIRONMENT=Development`, nên thiếu `ReceiptVault:Key` (Billing:0107). Hai ca chốt / huỷ phiếu thu chỉ xanh trên host Development.
+- **Mức retest**: 2.
+- Chỉ trên develop.

@@ -46,17 +46,20 @@ interface ServiceSpec {
   taxRate: number;
   /** The advise's own Money discount — "BS giảm". */
   doctorDiscount: number;
+  /** Danh mục's price when it is not the line's — the slip keeps `price` as its giá gốc. */
+  catalogPrice?: number;
 }
 
 /**
  * A fresh patient whose slip holds one line per service in `specs`, each made
- * in Danh mục for this run, and a published fixed voucher for the whole slip.
+ * in Danh mục for this run, and a published fixed voucher for the whole slip —
+ * redeemed on the slip itself when `voucherOnSlip`, else left for a đợt to use.
  */
-async function provision(page: Page, id: string, specs: ServiceSpec[], voucherValue: number) {
+async function provision(page: Page, id: string, specs: ServiceSpec[], voucherValue: number, voucherOnSlip = false) {
   await page.goto("/patient");
   await assertRealApiTraffic(page, "/api/v1/app/patients");
   return page.evaluate(
-    async ({ branch, id, specs, voucherValue }) => {
+    async ({ branch, id, specs, voucherValue, voucherOnSlip }) => {
       const xsrf = document.cookie
         .split("; ")
         .find((c) => c.startsWith("XSRF-TOKEN="))
@@ -96,7 +99,7 @@ async function provision(page: Page, id: string, specs: ServiceSpec[], voucherVa
         const service = await post("/api/v1/app/catalog-entries", {
           taxonomyId,
           name: spec.name,
-          price: spec.price,
+          price: spec.catalogPrice ?? spec.price,
           sortOrder: 9999,
           serviceConfig: {
             taxRate: spec.taxRate,
@@ -131,17 +134,6 @@ async function provision(page: Page, id: string, specs: ServiceSpec[], voucherVa
         advises.push({ name: spec.name, adviseId: advise.id as string, serviceId: service.id as string });
       }
 
-      const slip = await post("/api/v1/app/patient-treatments", {
-        patientId: patient.id,
-        clinicBranchId: branch,
-        dentistId: staffId,
-        discountType: 0,
-        discountValue: 0,
-        voucherIds: [],
-        adviseIds: advises.map((advise) => advise.adviseId),
-      });
-      const lines = slip.services as { id: string; serviceId: string }[];
-
       const day = (offset: number) => {
         const d = new Date();
         d.setDate(d.getDate() + offset);
@@ -166,6 +158,17 @@ async function provision(page: Page, id: string, specs: ServiceSpec[], voucherVa
       });
       await post(`/api/v1/app/vouchers/${voucher.id}/publish`);
 
+      const slip = await post("/api/v1/app/patient-treatments", {
+        patientId: patient.id,
+        clinicBranchId: branch,
+        dentistId: staffId,
+        discountType: 0,
+        discountValue: 0,
+        voucherIds: voucherOnSlip ? [voucher.id] : [],
+        adviseIds: advises.map((advise) => advise.adviseId),
+      });
+      const lines = slip.services as { id: string; serviceId: string }[];
+
       return {
         patientId: patient.id as string,
         slipId: slip.id as string,
@@ -178,7 +181,7 @@ async function provision(page: Page, id: string, specs: ServiceSpec[], voucherVa
         voucher: { id: voucher.id as string, code: voucher.code as string },
       };
     },
-    { branch: BRANCH_ONE, id, specs, voucherValue },
+    { branch: BRANCH_ONE, id, specs, voucherValue, voucherOnSlip },
   );
 }
 
@@ -379,6 +382,63 @@ test.describe("Thanh toán nhiều đợt (P2910)", () => {
     }
     const relief = page.locator(".pd-plan-row--off").filter({ hasText: "Ưu đãi khi thanh toán" });
     await expect.poll(async () => money(await relief.locator("b").innerText())).toBe(1_625_000);
+  });
+
+  test("Giá gốc is the slip's, not Danh mục's; the slip voucher is Voucher, not BS giảm; the card head ticks it (R-1102)", async ({
+    page,
+  }) => {
+    const id = runId();
+    await login(page);
+    // The owner's case: a line made at 1.000.000 đ while Danh mục now says
+    // 500.000 đ, no doctor discount on it; a second line with BS giảm 50.000;
+    // a 100.000 đ voucher redeemed on the slip.
+    const made = await provision(
+      page,
+      id,
+      [
+        { name: `R1102 giá sửa ${id}`, price: 1_000_000, catalogPrice: 500_000, taxRate: NOT_TAXABLE, doctorDiscount: 0 },
+        { name: `R1102 BS giảm ${id}`, price: 500_000, taxRate: NOT_TAXABLE, doctorDiscount: 50_000 },
+      ],
+      100_000,
+      true,
+    );
+    const [s1, s2] = made.lines;
+
+    const dialog = await openCreateDialog(page, made);
+    const card1 = dialog.locator(".pd-newpay-lines > li").filter({ hasText: s1.name });
+    const card2 = dialog.locator(".pd-newpay-lines > li").filter({ hasText: s2.name });
+    await expect(card1.locator(".pd-newpay-price").first()).toHaveText("Giá gốc: 1.000.000 đ");
+    await expect(card1.locator(".pd-newpay-tag--doctor")).toHaveCount(0);
+    await expect(card2.locator(".pd-newpay-price").first()).toHaveText("Giá gốc: 500.000 đ");
+    await expect(card2.locator(".pd-newpay-tag--doctor")).toHaveText("BS giảm 50.000 đ");
+
+    // A click on the prices ticks the card and a second one unticks it; a
+    // click on the name (the checkbox's own label) ticks it once, not twice.
+    const box1 = card1.locator("input[type=checkbox]").first();
+    await card1.locator(".pd-newpay-card-money").click();
+    await expect(box1).toBeChecked();
+    await card1.locator(".pd-newpay-card-money").click();
+    await expect(box1).not.toBeChecked();
+    await card1.locator(".pd-newpay-name").click();
+    await expect(box1).toBeChecked();
+    await card2.locator(".pd-newpay-due").click();
+    await expect(card2.locator("input[type=checkbox]").first()).toBeChecked();
+
+    const totals = dialog.locator("section", { has: page.locator("h4", { hasText: "Tổng tiền dịch vụ đã chọn" }) });
+    await expect
+      .poll(() => factsOf(totals))
+      .toEqual({
+        "Tổng tiền": 1_500_000,
+        "Giảm giá bác sĩ": 50_000,
+        "Giảm giá thu ngân": 0,
+        Voucher: 100_000,
+        "Tổng tiền sau giảm": 1_350_000,
+        "Thuế VAT": 0,
+        "Tổng thanh toán (gồm VAT)": 1_350_000,
+        "Đã thanh toán": 0,
+        "Ưu đãi các đợt trước": 0,
+        "Còn nợ cần thanh toán": 1_350_000,
+      });
   });
 
   test("a 0 đ receipt cleared by TN giảm and a voucher holds the use until cancelled", async ({ page }) => {

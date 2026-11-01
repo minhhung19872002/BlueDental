@@ -230,8 +230,9 @@ export interface TreatmentServiceDto {
   /** "Giá gốc" — what Đơn giá prints, and the ceiling for `price` (Treatment:0040). */
   originalPrice: number;
   /**
-   * The service's price in Danh mục now, before the catalog's own discount —
-   * "Giá gốc" on Tạo phiếu thanh toán. Null when the catalog row is gone or unpriced.
+   * The service's price in Danh mục now, before the catalog's own discount.
+   * Null when the catalog row is gone or unpriced. Tạo phiếu thanh toán no
+   * longer reads it: its Giá gốc is `originalPrice` (R-1102).
    */
   catalogPrice: number | null;
   /**

@@ -1,5 +1,5 @@
 import { PAYMENT_METHOD, type TreatmentServiceDto } from "@/features/treatment-management/api/treatmentPlanApi";
-import { listAmount } from "./paymentDialogModel";
+import { doctorDiscountOf, listAmount, slipVoucherOf } from "./paymentDialogModel";
 import { lineFigures, roundTaxOf, spreadAuto, type LineFigures, type RoundVoucherPrice } from "./paymentRounds";
 import type { PaymentFormState } from "./usePaymentFields";
 
@@ -8,12 +8,13 @@ import type { PaymentFormState } from "./usePaymentFields";
  * toán is Tổng thanh toán less what earlier đợt collected and let off.
  */
 export interface RoundTotals {
-  /** Tổng tiền — Giá gốc. */
+  /** Tổng tiền — Giá gốc as the slip holds it. */
   gross: number;
-  /** Giảm giá bác sĩ — Giá gốc less what the slip charges. */
+  /** Giảm giá bác sĩ — what the doctor took off on the slip, vouchers aside. */
   doctorDiscount: number;
   /** Giảm giá thu ngân of this đợt. */
   cashierDiscount: number;
+  /** The slip's vouchers and this đợt's. */
   voucher: number;
   /** Tổng tiền sau giảm — what the slip charges less this đợt's relief. */
   afterDiscount: number;
@@ -77,13 +78,12 @@ export function roundMoney({ chosen, discounts, voucher, form, heldForPatient }:
   const cashierDiscount = sumOf(figures, (item) => item.discount);
   const afterDiscount = sumOf(figures, (item) => item.line.chargedAmount - item.discount - item.voucherShare);
   const tax = sumOf(figures, (item) => item.tax);
-  const gross = sumOf(chosen, listAmount);
 
   const totals: RoundTotals = {
-    gross,
-    doctorDiscount: gross - sumOf(chosen, (line) => line.chargedAmount),
+    gross: sumOf(chosen, listAmount),
+    doctorDiscount: sumOf(chosen, doctorDiscountOf),
     cashierDiscount,
-    voucher: voucher.total,
+    voucher: sumOf(chosen, slipVoucherOf) + voucher.total,
     afterDiscount,
     tax,
     payable: afterDiscount + tax,
