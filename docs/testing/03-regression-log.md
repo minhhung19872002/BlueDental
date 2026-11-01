@@ -13113,3 +13113,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa — FE (chỉ giao diện)**: `workflow/labo-workflow-theme.css` (mới, scope `.pd-labo-workflow`): dialog 1320×836, head/dải phiếu/foot cố định, các cột tự cuộn; label nằm trên ô 36px; màu indigo `#4F46E5`. Stepper lên cùng hàng tiêu đề, bước đã xong có tick xanh (`isStepDone`, chỉ hiển thị: Đặt hàng khi hết Nháp, Kiểm tra khi mọi răng Đạt, Bảo hành khi mọi răng có thẻ). Bước 1: cột trái "Thông tin phiếu" + Dịch vụ/Vật liệu/Răng, cột phải Thông số từng răng + Nội dung cạnh Ảnh đính kèm chung (`LaboOrderFields` tách `LaboTeethField` / `LaboOrderSpecs`). Bước 2: lịch sử nhận hàng thành thẻ theo lần giao ở cột trái (cùng dữ liệu `toothHistoryRows`, mỗi răng vẫn là `tbody tr`), A/B/C bên phải. Bước 3: tab "Kích hoạt bảo hành" (chọn răng · form thẻ · thẻ) và "Thẻ bảo hành theo từng răng (N)" (thẻ + bảng).
 - **E2E**: `labo-workflow` thêm bước bấm tab "Thẻ bảo hành theo từng răng" trước khi đọc bảng thẻ. Bản build production (`vite preview` :8080) → API :5000 (Docker, nhánh develop) → PostgreSQL thật, không chặn API: `labo-workflow`, `labo-detail`, `labo-tab-list`, `labo-material-search`, `tooth-jaw-caption` xanh; `labo-orders-actions` 2/3 — ca "a sent order's pictures…" đỏ do mask xem ảnh ở bảng Mẫu Labo chặn click, **cũng đỏ trên develop gốc** với cùng dữ liệu local (không do thay đổi này). `tsc`, eslint sạch.
 - **Mức retest**: 2.
+
+## R-1118 (2026-11-01, mức 1: F-85 Labo) Ô "Tải ảnh" cố định bên trái dãy ảnh
+
+- **Yêu cầu chủ dự án**: khi đã tải ảnh, ô tải ảnh phải nằm cố định bên trái (như mockup Labo 1), không bị đẩy ra sau các ảnh.
+- **Sửa — FE (chỉ CSS)**: bỏ `order: 1` trên `.pd-labo-row .pd-labo-well` (Ảnh đính kèm chung) và `.pd-labo-cellwell` (cột Ảnh của Thông số từng răng); trong DOM ô tải ảnh vốn đứng trước dãy ảnh.
+- **Kiểm chứng**: chọn 2 ảnh nháp trên phiếu Nháp, ô tải ảnh ở x nhỏ nhất, ảnh xếp sau. Bản build production :8080 → API :5000 → PostgreSQL thật: `labo-workflow` 5/5, `labo-detail` 1/1, `labo-orders-permissions` 1/1.
+- **Mức retest**: 1.

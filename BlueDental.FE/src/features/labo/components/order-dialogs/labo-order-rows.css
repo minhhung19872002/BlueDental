@@ -238,9 +238,9 @@
   border-radius: 0 0 0 4px;
   font-size: 8px;
 }
+/* First in its cell, the tooth's pictures after it — the strip grows rightwards. */
 .pd-labo-cellwell {
   display: inline-flex;
-  order: 1;
   width: 32px;
   height: 32px;
   align-items: center;
@@ -261,7 +261,7 @@
   opacity: 0.6;
 }
 
-/* ── Ảnh đính kèm chung: 88px tiles, then a "+ Tải ảnh" well ─────────────── */
+/* ── Ảnh đính kèm chung: the "+ Tải ảnh" well pinned left, 88px tiles after it ── */
 .pd-labo-row--common {
   margin-top: 20px;
   border-top: 1px solid var(--bd-line);
