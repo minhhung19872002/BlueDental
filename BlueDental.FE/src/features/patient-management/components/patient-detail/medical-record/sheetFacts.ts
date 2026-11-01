@@ -115,19 +115,15 @@ function numberValues(facts: SheetFactsDto, values: FieldValues) {
 }
 
 /**
- * Every service of every slip, one a line, slip by slip — each slip's services
- * under its name, a blank line between slips (owner, 2026-10-19).
+ * Every service of every slip, one a line, slip by slip and straight on — no
+ * slip name above them, no blank line between slips (owner, 2026-11-01, R-1094).
  */
 function planLines(facts: SheetFactsDto, teeth: TeethLabel): string[] {
-  const lines: string[] = [];
-  for (const plan of facts.plans) {
-    const services = facts.services.filter((service) => service.treatmentPlanId === plan.treatmentPlanId);
-    if (services.length === 0) continue;
-    if (lines.length > 0) lines.push("");
-    lines.push(`Phiếu điều trị ${plan.planCode}`);
-    lines.push(...services.map((service) => serviceLine(service, teeth)));
-  }
-  return lines;
+  return facts.plans.flatMap((plan) =>
+    facts.services
+      .filter((service) => service.treatmentPlanId === plan.treatmentPlanId)
+      .map((service) => serviceLine(service, teeth)),
+  );
 }
 
 /** Bệnh án chỉnh nha, IX; past the seven printed lines the sheet grows lines of its own. */

@@ -4267,9 +4267,9 @@ mục UNKNOWN_REFERENCE_BEHAVIOR.
 - Điền sẵn (sửa được trên phiếu), mỗi ô theo tiền lệ của một mẫu khác:
   - Bên B: Họ và tên (in hoa), Mã hồ sơ, Số điện thoại, Địa chỉ, Số CCCD — như các mẫu khác.
   - "1. Chẩn đoán": các chẩn đoán của bệnh nhân, như mẫu 3 (`DIAGNOSIS_FIELDS`).
-  - "- Kế hoạch điều trị": dịch vụ của từng phiếu điều trị trong bộ như mục IX mẫu 3 ("Phiếu điều
-    trị DTxx", rồi "Răng 16 - dịch vụ", một dòng trống giữa hai phiếu). Quá 5 dòng in sẵn thì tự
-    thêm dòng `custom.line.orthodontic-contract.text.15.n`.
+  - "- Kế hoạch điều trị": dịch vụ của từng phiếu điều trị trong bộ như mục IX mẫu 3, mỗi dòng
+    "Răng 16 - dịch vụ", nối liền qua các phiếu — không in tên phiếu, không dòng trống giữa phiếu
+    (R-1094, 2026-11-01). Quá 5 dòng in sẵn thì tự thêm dòng `custom.line.orthodontic-contract.text.15.n`.
   - II. Chi phí: cộng các phiếu điều trị trong bộ (cùng phạm vi bảng chi phí mẫu 5), theo đúng số
     của từng phiếu trên Kế hoạch điều trị: Chi phí ban đầu = `ServicesGrossTotal`, Giảm giá =
     `TotalDiscountAmount` (giảm dòng, voucher dịch vụ, giảm cấp phiếu, voucher KHĐT), Chi phí sau
