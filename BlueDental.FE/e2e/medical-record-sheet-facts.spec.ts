@@ -223,18 +223,15 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "outpatient-dental.text.2")).toHaveText(facts.storageCode!);
     await expect(blank(page, "custom.text.8b780086e4014a049f87decd95bffaf3")).toHaveText("16/BV-01");
 
-    // Bệnh án chỉnh nha: Mã ngoại trú; IX lists each slip's services under its
-    // name, a blank line between slips, and grows a line past the seven printed.
+    // Bệnh án chỉnh nha: Mã ngoại trú; IX lists every slip's services straight
+    // on — no slip name, no blank line between slips (R-1094).
     await openSheet(page, "Bệnh án chỉnh nha");
     await expect(blank(page, "orthodontic.text.1")).toHaveText(facts.outpatientNumber!);
-    await expect(blank(page, "orthodontic.text.105")).toHaveText(`Phiếu điều trị ${first.code}`);
-    await expect(blank(page, "orthodontic.text.106")).toContainText("Răng 12 - ");
-    await expect(blank(page, "orthodontic.text.107")).toHaveText("");
-    await expect(blank(page, "orthodontic.text.108")).toHaveText(`Phiếu điều trị ${second.code}`);
-    await expect(blank(page, "orthodontic.text.109")).toContainText("Răng 11 - ");
-    await expect(blank(page, "orthodontic.text.110")).toHaveText("");
-    await expect(blank(page, "orthodontic.text.111")).toHaveText(`Phiếu điều trị ${third.code}`);
-    await expect(blank(page, "custom.line.orthodontic.text.111.1")).toContainText("Răng 21 - ");
+    await expect(blank(page, "orthodontic.text.105")).toContainText("Răng 12 - ");
+    await expect(blank(page, "orthodontic.text.106")).toContainText("Răng 11 - ");
+    await expect(blank(page, "orthodontic.text.107")).toContainText("Răng 21 - ");
+    await expect(blank(page, "orthodontic.text.108")).toHaveText("");
+    await expect(sheet(page).locator("body")).not.toContainText("Phiếu điều trị");
 
     // Phiếu tư vấn tổng quát: the slip's doctor, and the day picked above the sheet.
     await openSheet(page, "Phiếu Tư Vấn Tổng Quát");
@@ -273,16 +270,14 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "consultation.text.47")).toContainText("đồng");
 
     // Hợp đồng thỏa thuận niềng răng (R-1079): "- Kế hoạch điều trị" as mẫu 3's
-    // IX lists it — past its five lines the sheet grows lines — and II. Chi phí
-    // as the slips' own totals, added up over the set.
+    // IX lists it, the first service in the blank after the label (R-1094) — and
+    // II. Chi phí as the slips' own totals, added up over the set.
     await openSheet(page, "Hợp đồng thỏa thuận niềng răng");
-    await expect(blank(page, "orthodontic-contract.text.11")).toHaveText(`Phiếu điều trị ${first.code}`);
-    await expect(blank(page, "orthodontic-contract.text.12")).toContainText("Răng 12 - ");
-    await expect(blank(page, "orthodontic-contract.text.13")).toHaveText("");
-    await expect(blank(page, "orthodontic-contract.text.14")).toHaveText(`Phiếu điều trị ${second.code}`);
-    await expect(blank(page, "orthodontic-contract.text.15")).toContainText("Răng 11 - ");
-    await expect(blank(page, "custom.line.orthodontic-contract.text.15.2")).toHaveText(`Phiếu điều trị ${third.code}`);
-    await expect(blank(page, "custom.line.orthodontic-contract.text.15.3")).toContainText("Răng 21 - ");
+    await expect(blank(page, "orthodontic-contract.text.11")).toContainText("Răng 12 - ");
+    await expect(blank(page, "orthodontic-contract.text.12")).toContainText("Răng 11 - ");
+    await expect(blank(page, "orthodontic-contract.text.13")).toContainText("Răng 21 - ");
+    await expect(blank(page, "orthodontic-contract.text.14")).toHaveText("");
+    await expect(sheet(page).locator("body")).not.toContainText("Phiếu điều trị");
     const money = (pick: (plan: Facts["plans"][number]) => number) =>
       `${facts.plans.reduce((sum, plan) => sum + pick(plan), 0).toLocaleString("vi-VN")}đ`;
     const gross = facts.plans.reduce((sum, plan) => sum + plan.grossAmount, 0);

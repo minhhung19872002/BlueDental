@@ -12362,3 +12362,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chi phí cộng **mọi** phiếu điều trị trong bộ (như bảng chi phí mẫu 5). Nếu bộ có cả phiếu không phải niềng răng thì số này lớn hơn giá trị hợp đồng.
   - File Word đánh số phần thỏa thuận "I." → "Sự đồng ý…" (không "II.") → "III." — giữ nguyên văn.
   - Server bỏ qua mục không biết mà vẫn trả 200; có thể đổi sang báo lỗi để lệch phiên bản FE/BE không còn "thành công giả".
+
+## R-1094 (2026-11-01, mức 2: F-30 Bệnh án → sheet facts) Bỏ dòng "Phiếu điều trị DTxx" ở Kế hoạch điều trị mẫu 3 và mẫu 10
+
+- **Yêu cầu** (anh Định, ảnh khoanh đỏ): ở mẫu 3 "Bệnh án chỉnh nha" mục IX và mẫu 10 "Hợp đồng thỏa thuận niềng răng" dòng "- Kế hoạch điều trị:", bỏ dòng "Phiếu điều trị DT01" in trên các dịch vụ.
+- **Chủ dự án chốt (phương án B)**: không còn tên phiếu, không còn dòng trống giữa các phiếu — dịch vụ mọi phiếu nối liền, theo thứ tự phiếu. Thay quy ước 2026-10-19 (tên phiếu + dòng trống giữa phiếu).
+- **Sửa — FE**: `sheetFacts.ts` `planLines` chỉ trả các dòng "{Răng} - {dịch vụ}". Mẫu 3 và mẫu 10 dùng chung hàm này nên đổi cùng lúc; dịch vụ đầu tiên nằm ngay ô sau nhãn ("orthodontic-contract.text.11", "orthodontic.text.105").
+- **Phiếu đã lưu**: không cần sửa dữ liệu. `MedicalRecordDocument.collect` chỉ lưu ô khác giá trị tự điền, nên dòng "Phiếu điều trị …" chưa bao giờ được lưu và tự biến mất. Ngoại lệ: ô đã có người gõ tay đè lên giữ nguyên chữ đã gõ.
+- **E2E** (bản build production ở cổng riêng 8197, host :5000, không chặn API):
+  - `medical-record-sheet-facts` ca "numbers, dates, doctors…" sửa theo bố cục mới (3 dịch vụ ở 3 dòng đầu, dòng thứ 4 trống, cả tờ không còn chữ "Phiếu điều trị") → **xanh**.
+  - Ca "the end date follows the slips held…" → **đỏ, không do R-1094**: API tạo công đoạn bảo hành trả 403 `BlueDental:Treatment:0058` "Pick the warranty card" — quy tắc thẻ bảo hành mới của P3110 (R-1084..R-1089), spec chưa gửi thẻ.
+  - DB local trước đó chỉ có 2 dịch vụ lẻ có bảo hành (đỏ có sẵn, `e2e-preexisting-reds`); đã thêm "Dịch vụ kiểm thử E2E C" (bảo hành 365 ngày) vào Danh mục chi nhánh 1 của DB local qua API.
+  - `tsc -p tsconfig.app.json`, eslint 2 file → sạch.
+- **Mức retest**: 2 (F-30 sheet facts). Ca kiểm "quá số dòng in thì thêm dòng" của mẫu 3 / mẫu 10 không còn được ca này chạm tới (3 dịch vụ vừa đủ dòng in); `putLines` vẫn được mẫu 5 Chẩn đoán dùng.
