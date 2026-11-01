@@ -35,7 +35,10 @@ through it.
 - Printing again keeps the first time and cashier and writes no second line.
 - An exported or paid receipt cannot go to paper (`Billing:0096`). Once a
   receipt is on paper it cannot be sent to the iPad (`Billing:0119`).
-- The FE prints the draft PDF straight after the call.
+- The FE opens no draft tab after the call (R-1101): the customer signs the
+  paper printed beside it, and the cashier checks that signature at "Kế toán
+  kiểm tra" before exporting. "In phiếu thu" elsewhere (no file yet, not
+  waiting on the customer) still opens the draft in a tab.
 - Steps 2–4 then read "Ký tay trên giấy · HH:mm:ss" and step 5 "Kế toán kiểm
   tra" is current. The panel heading reads "Khách đã ký" with a
   "Lúc HH:mm:ss" chip (the print time).
@@ -69,7 +72,10 @@ through it.
   Neither endpoint is audited, because the request body is the drawing.
 - An Electronic export with no saved signature is refused with `Billing:0117`.
 - On the exported sheet and PDF, the signature sits above "Người lập phiếu" and
-  the name stays. The receipt records `AccountantSignerId` and
+  the name stays. Only its strokes are used (R-1101): `PngInk` finds them on the
+  canvas PNG, the picture is cropped to them (`a:srcRect`), and it sits midway
+  between the label and the name, so it is centred over the name. The customer's
+  iPad signature is placed the same way. The receipt records `AccountantSignerId` and
   `AccountantSignatureSavedAt`.
 - A Ký tay trực tiếp export keeps no signer.
 - The exported panel lists:
@@ -216,6 +222,7 @@ A draft print is not stored and is not logged as a file.
    - does not see this user's signature.
 5. On screen:
    - the confirm popup comes first;
+   - Xác nhận in opens no tab and lands on step 5 Kế toán kiểm tra (R-1101);
    - the steps read "Ký tay trên giấy";
    - Ký điện tử signs and exports.
 

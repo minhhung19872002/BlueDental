@@ -8,9 +8,11 @@ import { usePrintReceiptForPaper } from "../api/receiptSigningApi";
 /**
  * "In phiếu thu" on a receipt not yet exported. While it waits on the
  * customer it asks first (P2910_02): printing means the customer signs the
- * printout by hand, the iPad session ends, and the accountant's step comes
- * next. The draft PDF opens in a tab opened on the click itself, so it is not
- * taken for a popup. Failures are toasted by the global MutationCache.
+ * printout by hand, the iPad session ends, and the page moves straight on to
+ * Kế toán kiểm tra — no draft tab there (R-1101), the cashier checks the
+ * signature first and prints the exported receipt. Elsewhere the draft PDF
+ * opens in a tab opened on the click itself, so it is not taken for a popup.
+ * Failures are toasted by the global MutationCache.
  */
 export function useReceiptPrint(paymentId: string) {
   const pdf = useReceiptPdf();
@@ -23,17 +25,13 @@ export function useReceiptPrint(paymentId: string) {
       onError: () => tab?.close(),
     });
 
-  const handlePrintForPaper = () => {
-    const tab = openReceiptTab();
+  const handlePrintForPaper = () =>
     forPaper.mutate(undefined, {
       onSuccess: () => {
         setAsking(false);
         toast.success(t("Receipt:Paper:Done"));
-        showDraft(tab);
       },
-      onError: () => tab?.close(),
     });
-  };
 
   return {
     printing: pdf.isPending,

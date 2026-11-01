@@ -22,6 +22,21 @@ namespace BlueDental.Printing;
 public static class DocxPicture
 {
     private const long EmuPerMillimetre = 36_000;
+    private const long EmuPerTwip = 635;
+
+    /// <summary>
+    /// How tall one blank 12 pt line of a template lays out, in twips (single
+    /// spacing: about 1.15 × the font size) — the room a signature is centred in.
+    /// </summary>
+    private const long BlankLineTwips = 276;
+
+    /// <summary>
+    /// How far below the middle of that room the picture goes, in twips: the
+    /// label's line keeps room under its letters and the name's line room over
+    /// its accents, so the middle of the lines is about 0.5 mm above the middle
+    /// of the ink. Measured on PHIẾU THU rendered by Gotenberg.
+    /// </summary>
+    private const long InkNudgeTwips = 28;
     private const string ShapeUri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape";
 
     /// <summary>Swaps the box for a square PNG, <paramref name="growMm"/> larger on every side around the box's centre.</summary>
@@ -49,6 +64,8 @@ public static class DocxPicture
     /// <paramref name="maxHeightMm"/>, in place of the blank lines right above
     /// the paragraph that reads <paramref name="text"/> — the room the template
     /// leaves for a hand signature — so the sheet keeps about its height.
+    /// Only the strokes are used: the empty canvas round them is cropped off and
+    /// they sit midway in that room, right above the name (R-1101).
     /// </summary>
     public static byte[] PlaceAbove(
         byte[] docx, string text, byte[] png, double maxWidthMm, double maxHeightMm, string name) =>
@@ -65,12 +82,19 @@ public static class DocxPicture
                 blanks.Add(previous);
             }
 
-            var (width, height) = Fit(PngSize(png), Emu(maxWidthMm), Emu(maxHeightMm));
+            var size = PngSize(png);
+            var ink = PngInk.Bounds(png) ?? new PngInk.Area(0, 0, (int)size.Width, (int)size.Height);
+            var (width, height) = Fit((ink.Width, ink.Height), Emu(maxWidthMm), Emu(maxHeightMm));
             var properties = blanks.LastOrDefault()?.ParagraphProperties?.CloneNode(true) as ParagraphProperties
                 ?? new ParagraphProperties(new Justification { Val = JustificationValues.Center });
+            var margin = Math.Max(0, (blanks.Count * BlankLineTwips - height / EmuPerTwip) / 2);
+            var nudge = Math.Min(margin, InkNudgeTwips);
+            properties.SpacingBetweenLines ??= new SpacingBetweenLines();
+            properties.SpacingBetweenLines.Before = (margin + nudge).ToString();
+            properties.SpacingBetweenLines.After = (margin - nudge).ToString();
             target.InsertBeforeSelf(new Paragraph(
                 properties,
-                new Run(Inline(AddImage(main, png), NextPictureId(main), name, width, height))));
+                new Run(Inline(AddImage(main, png), NextPictureId(main), name, width, height, Crop(ink, size)))));
             blanks.ForEach(p => p.Remove());
         });
 
@@ -87,6 +111,24 @@ public static class DocxPicture
 
         static long BigEndian(byte[] b, int at) => ((long)b[at] << 24) | ((long)b[at + 1] << 16) | ((long)b[at + 2] << 8) | b[at + 3];
         return (BigEndian(png, 16), BigEndian(png, 20));
+    }
+
+    /// <summary>What is cut off each side, in thousandths of a percent of the picture; null when nothing is.</summary>
+    private static A.SourceRectangle? Crop(PngInk.Area ink, (long Width, long Height) size)
+    {
+        if (ink.Width == size.Width && ink.Height == size.Height)
+        {
+            return null;
+        }
+
+        static int Share(long pixels, long of) => (int)(pixels * 100_000 / of);
+        return new A.SourceRectangle
+        {
+            Left = Share(ink.Left, size.Width),
+            Top = Share(ink.Top, size.Height),
+            Right = Share(size.Width - ink.Right, size.Width),
+            Bottom = Share(size.Height - ink.Bottom, size.Height)
+        };
     }
 
     private static (long Width, long Height) Fit((long Width, long Height) pixels, long maxWidth, long maxHeight)
@@ -188,13 +230,14 @@ public static class DocxPicture
             AllowOverlap = true
         });
 
-    private static Drawing Inline(string relationshipId, uint id, string name, long width, long height) =>
+    private static Drawing Inline(
+        string relationshipId, uint id, string name, long width, long height, A.SourceRectangle? crop) =>
         new(new DW.Inline(
             new DW.Extent { Cx = width, Cy = height },
             new DW.EffectExtent { LeftEdge = 0, TopEdge = 0, RightEdge = 0, BottomEdge = 0 },
             new DW.DocProperties { Id = id, Name = name },
             new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
-            Graphic(relationshipId, name, width, height))
+            Graphic(relationshipId, name, width, height, crop))
         {
             DistanceFromTop = 0,
             DistanceFromBottom = 0,
@@ -202,15 +245,20 @@ public static class DocxPicture
             DistanceFromRight = 0
         });
 
-    private static A.Graphic Graphic(string relationshipId, string name, long width, long height) =>
+    /// <summary><paramref name="crop"/> goes between the blip and the stretch, as the schema orders them.</summary>
+    private static A.Graphic Graphic(
+        string relationshipId, string name, long width, long height, A.SourceRectangle? crop = null) =>
         new(new A.GraphicData(
             new PIC.Picture(
                 new PIC.NonVisualPictureProperties(
                     new PIC.NonVisualDrawingProperties { Id = 0, Name = name + ".png" },
                     new PIC.NonVisualPictureDrawingProperties()),
-                new PIC.BlipFill(
-                    new A.Blip { Embed = relationshipId },
-                    new A.Stretch(new A.FillRectangle())),
+                new PIC.BlipFill(new OpenXmlElement?[]
+                    {
+                        new A.Blip { Embed = relationshipId },
+                        crop,
+                        new A.Stretch(new A.FillRectangle())
+                    }.OfType<OpenXmlElement>()),
                 new PIC.ShapeProperties(
                     new A.Transform2D(
                         new A.Offset { X = 0, Y = 0 },

@@ -12951,6 +12951,27 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Mức retest**: 2.
 - Chỉ trên develop.
 
+## R-1101 (2026-11-01, mức 2: F-84 In phiếu thu để ký tay P2910_02) Xác nhận in không mở tab phiếu nháp; chữ ký nằm giữa, ngay trên tên
+
+- **Yêu cầu** (chủ dự án, 2 ảnh 2026-11-01):
+  1. Bấm "In phiếu thu" rồi "Xác nhận in" thì không mở phiếu thu ở tab mới (chỉ bước này), chuyển thẳng tới "Kế toán kiểm tra". Thu ngân xuất phiếu ở đó giữ nguyên.
+  2. Trên PHIẾU THU (PDF), chữ ký nằm lệch so với tên bên dưới — "làm sao mà chữ ký nó nằm trên tên đó để cho cân đối".
+- **Nguyên nhân (2)**: đoạn chứa ảnh đã căn giữa, nhưng ảnh là **cả khung vẽ** (iPad 600×200, chữ ký kế toán cũng vậy) với nền trong/trắng. Nét ký nằm đâu trên khung thì lệch đó trên giấy.
+- **Sửa — FE**: `useReceiptPrint.ts` — `printForPaper` chỉ gọi `print-for-paper`, đóng popup, toast. Không còn mở tab phiếu nháp. `printDraft` (phiếu chưa có file, không chờ khách) vẫn mở tab như cũ.
+- **Sửa — BE**:
+  - `Printing/PngInk.cs` mới: đọc PNG 8-bit không interlace (xám / RGB / xám+alpha / RGBA, đủ 5 bộ lọc dòng). Trả khung bao nét ký (alpha ≥ 64 và kênh tối nhất ≤ 200) cộng lề 4 px. Không đọc được hoặc khung trống thì null → dùng cả ảnh như cũ.
+  - `DocxPicture.PlaceAbove`: cắt ảnh theo nét ký bằng `a:srcRect` (ảnh gốc lưu nguyên), co vào 50 × 18 mm theo kích thước đã cắt. Đặt `spacing before/after` để ảnh nằm giữa khoảng trống 4 dòng (4 × 276 twip), lệch xuống 28 twip (≈ 0,5 mm) cho cân với mực chữ: dòng nhãn chừa chỗ dưới chân chữ, dòng tên chừa chỗ cho dấu. Áp cho cả chữ ký khách (Người nộp tiền) và kế toán (Người lập phiếu). Phiếu đã xuất trước đây không đổi (PDF đã niêm phong).
+- **Đo trên Gotenberg** (bản dựng thật, ảnh 600×200 nét ký lệch góc):
+  - Tên không dịch: 113,07 mm, y hệt mẫu chưa ký.
+  - Ngang: tâm chữ ký 45,60 mm vs tên 45,86; kế toán 169,16 = 169,16.
+  - Dọc: khoảng trên/dưới 2,47 / 2,30 mm (khách) và 2,11 / 2,12 mm (kế toán). Trước nudge là 1,94 / 2,83.
+- **Test**:
+  - `Application.Tests` `PaymentReceiptTemplateTests`: mới "Only_The_Strokes_Go_On_The_Paper_Midway_Above_The_Name" (PNG RGBA thật, đủ 5 bộ lọc, CRC đúng: khung bao, srcRect, kích thước, spacing giữ chiều cao ô) và "A_Blank_Canvas_Or_A_Png_It_Cannot_Read_Is_Used_Whole". 14/14 xanh.
+  - E2E (bản build production `vite preview` cổng 8171 → host riêng :5141 → PostgreSQL thật, không chặn API): `receipt-paper-sign` 6/6 xanh. Ca "on screen" giờ đếm popup: Xác nhận in **không** mở tab, bước 5 là bước hiện tại. Ca xuất cuối vẫn mở tab PDF như cũ.
+  - Hồi quy: `receipt-ipad` 6/6 (chạy riêng; chạy chung có 1 ca đỏ do iPad bị phiên khác chiếm), `receipt-export`, `payment-receipt-pdf` xanh. `receipt-page` :84 đỏ có sẵn: iPad đã ghép trong DB tự gửi phiếu nên bước 2 đã xong (xem e2e-preexisting-reds).
+- **Mức retest**: 2.
+- Chỉ trên develop.
+
 ## R-1102 (2026-11-01, mức 2: F-83 Thanh toán nhiều đợt P2910) Tạo phiếu thanh toán — Giá gốc lấy từ phiếu điều trị, voucher của phiếu vào dòng Voucher, bấm cả đầu thẻ để tick
 
 - **Yêu cầu** (BA, ảnh chú thích 2026-11-01):

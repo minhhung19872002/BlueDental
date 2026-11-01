@@ -154,7 +154,49 @@ public class PaymentReceiptTemplateTests
         after.Above.Height.ShouldBe(50 * 36_000 / 3);
     }
 
-    private sealed record Signature(string Name, long Width, long Height);
+    /// <summary>
+    /// R-1101: a pad hands back its whole canvas with the name drawn off to one
+    /// side. Only the strokes go on the paper — cropped, scaled to fit — and they
+    /// sit midway between the label and the name, the cell keeping its height.
+    /// </summary>
+    [Fact]
+    public void Only_The_Strokes_Go_On_The_Paper_Midway_Above_The_Name()
+    {
+        // 600 × 200 canvas, strokes at x 40..199, y 120..179: 160 × 60 px, low and to the left.
+        var png = InkedPng(600, 200, left: 40, top: 120, right: 200, bottom: 180);
+
+        PngInk.Bounds(png).ShouldBe(new PngInk.Area(36, 116, 204, 184));
+
+        var signed = DocxPicture.PlaceAbove(
+            File.ReadAllBytes(TemplatePath()), "{{PayerName}}", png,
+            ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
+
+        var after = PayerCell(signed);
+        after.Above.ShouldNotBeNull();
+        // 168 × 68 px into 50 × 18 mm: the height binds.
+        after.Above.Height.ShouldBeInRange(18 * 36_000 - 1, 18 * 36_000);
+        after.Above.Width.ShouldBeInRange(18 * 36_000 * 168 / 68 - 1, 18 * 36_000 * 168 / 68 + 1);
+        after.Above.Crop.ShouldBe(new[] { 6_000, 58_000, 66_000, 8_000 });
+        // Four blank lines of room, the picture in the middle of the ink round it:
+        // 0.5 mm below the middle of the lines, the room itself unchanged.
+        (after.Above.SpaceBefore - after.Above.SpaceAfter).ShouldBe(2 * 28);
+        (after.Above.SpaceBefore + after.Above.SpaceAfter + 18 * 36_000 / 635).ShouldBeInRange(4 * 276 - 1, 4 * 276 + 1);
+    }
+
+    [Fact]
+    public void A_Blank_Canvas_Or_A_Png_It_Cannot_Read_Is_Used_Whole()
+    {
+        PngInk.Bounds(InkedPng(60, 20, 0, 0, 0, 0)).ShouldBeNull();
+        PngInk.Bounds(Png(600, 200)).ShouldBeNull();
+
+        var signed = DocxPicture.PlaceAbove(
+            File.ReadAllBytes(TemplatePath()), "{{PayerName}}", Png(600, 200),
+            ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
+
+        PayerCell(signed).Above!.Crop.ShouldBeNull();
+    }
+
+    private sealed record Signature(string Name, long Width, long Height, int[]? Crop, int SpaceBefore, int SpaceAfter);
 
     private sealed record PayerCellView(int Paragraphs, Signature? Above);
 
@@ -165,11 +207,123 @@ public class PaymentReceiptTemplateTests
         var payer = document.MainDocumentPart!.Document.Body!.Descendants<Paragraph>()
             .First(p => p.InnerText.Contains("PayerName"));
         var cell = payer.Ancestors<TableCell>().First();
-        var inline = payer.PreviousSibling<Paragraph>()?.Descendants<DW.Inline>().FirstOrDefault();
-        var signature = inline == null
-            ? null
-            : new Signature(inline.DocProperties!.Name!.Value!, inline.Extent!.Cx!.Value, inline.Extent.Cy!.Value);
+        var above = payer.PreviousSibling<Paragraph>();
+        var inline = above?.Descendants<DW.Inline>().FirstOrDefault();
+        if (inline == null)
+        {
+            return new PayerCellView(cell.Elements<Paragraph>().Count(), null);
+        }
+
+        var crop = inline.Descendants<DocumentFormat.OpenXml.Drawing.SourceRectangle>().FirstOrDefault();
+        var spacing = above!.ParagraphProperties?.SpacingBetweenLines;
+        var signature = new Signature(
+            inline.DocProperties!.Name!.Value!, inline.Extent!.Cx!.Value, inline.Extent.Cy!.Value,
+            crop == null ? null : new[] { crop.Left!.Value, crop.Top!.Value, crop.Right!.Value, crop.Bottom!.Value },
+            int.Parse(spacing?.Before?.Value ?? "0"), int.Parse(spacing?.After?.Value ?? "0"));
         return new PayerCellView(cell.Elements<Paragraph>().Count(), signature);
+    }
+
+    /// <summary>
+    /// A real RGBA PNG as a canvas writes it: transparent, with a dark block
+    /// where the strokes are. Each row uses the next of the five filters so the
+    /// reader has to undo all of them.
+    /// </summary>
+    private static byte[] InkedPng(int width, int height, int left, int top, int right, int bottom)
+    {
+        var stride = width * 4;
+        var pixels = new byte[height * stride];
+        for (var y = top; y < bottom; y++)
+        {
+            for (var x = left; x < right; x++)
+            {
+                pixels[y * stride + x * 4 + 3] = 255;
+            }
+        }
+
+        // Light noise in the background: transparent, so not ink, but it keeps the filters busy.
+        for (var i = 0; i < pixels.Length; i += 4)
+        {
+            if (pixels[i + 3] == 0)
+            {
+                pixels[i] = pixels[i + 1] = pixels[i + 2] = (byte)(i * 7 % 251);
+            }
+        }
+
+        var raw = new MemoryStream();
+        for (var y = 0; y < height; y++)
+        {
+            var filter = y % 5;
+            raw.WriteByte((byte)filter);
+            for (var x = 0; x < stride; x++)
+            {
+                int a = x >= 4 ? pixels[y * stride + x - 4] : 0;
+                int b = y > 0 ? pixels[(y - 1) * stride + x] : 0;
+                int c = x >= 4 && y > 0 ? pixels[(y - 1) * stride + x - 4] : 0;
+                var predicted = filter switch
+                {
+                    1 => a,
+                    2 => b,
+                    3 => (a + b) / 2,
+                    4 => Paeth(a, b, c),
+                    _ => 0
+                };
+                raw.WriteByte((byte)(pixels[y * stride + x] - predicted));
+            }
+        }
+
+        var deflated = new MemoryStream();
+        using (var zlib = new ZLibStream(deflated, CompressionLevel.Fastest, leaveOpen: true))
+        {
+            raw.Position = 0;
+            raw.CopyTo(zlib);
+        }
+
+        var header = new byte[13];
+        BinaryPrimitives.WriteInt32BigEndian(header, width);
+        BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4), height);
+        header[8] = 8;
+        header[9] = 6;
+
+        var png = new MemoryStream();
+        png.Write(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+        Chunk(png, "IHDR", header);
+        Chunk(png, "IDAT", deflated.ToArray());
+        Chunk(png, "IEND", []);
+        return png.ToArray();
+    }
+
+    /// <summary>Length, type, data and CRC — a valid PNG, so a render of the docx shows it.</summary>
+    private static void Chunk(Stream png, string type, byte[] data)
+    {
+        var field = new byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(field, data.Length);
+        png.Write(field);
+        byte[] typed = [.. System.Text.Encoding.ASCII.GetBytes(type), .. data];
+        png.Write(typed);
+        BinaryPrimitives.WriteUInt32BigEndian(field, Crc32(typed));
+        png.Write(field);
+    }
+
+    private static uint Crc32(byte[] bytes)
+    {
+        var crc = 0xFFFF_FFFFu;
+        foreach (var b in bytes)
+        {
+            crc ^= b;
+            for (var bit = 0; bit < 8; bit++)
+            {
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB8_8320u : crc >> 1;
+            }
+        }
+
+        return ~crc;
+    }
+
+    private static int Paeth(int a, int b, int c)
+    {
+        var p = a + b - c;
+        int pa = Math.Abs(p - a), pb = Math.Abs(p - b), pc = Math.Abs(p - c);
+        return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
     }
 
     /// <summary>The 8-byte PNG signature and an IHDR chunk: all PlaceAbove reads.</summary>

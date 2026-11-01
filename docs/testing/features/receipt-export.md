@@ -28,7 +28,8 @@ the reference app has nothing like it. Phase 4 (iPad signing) is in
   - `signMode: 2` (Ký số) → 403 `Billing:0113`;
   - not "Chưa thanh toán" → 403 `Billing:0096`;
   - otherwise: the F-56 PHIẾU THU `.docx` filled from the frozen content, the
-    signature inline above the payer name (≤ 50 × 18 mm), converted by
+    signature inline above the payer name (strokes only, ≤ 50 × 18 mm, midway
+    between label and name — R-1101), converted by
     Gotenberg to PDF/A-2b, SHA-256 taken, sealed (AES-256-GCM, `ReceiptVault:Key`,
     version byte 0x01) to MinIO `receipts/{branch}/{id}.pdf.enc`; the receipt
     becomes "Đã xuất phiếu thu" (`signMode`, `hasFile` on the receipt read) and

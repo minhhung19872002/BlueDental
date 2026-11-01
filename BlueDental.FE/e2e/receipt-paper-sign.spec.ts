@@ -318,16 +318,18 @@ test.describe.serial("In phiếu thu để ký tay & chữ ký kế toán", () =
     await expect(question).toBeHidden();
     expect((await receiptRead(page, receipt)).paperSignedAt).toBeNull();
 
-    // ── Xác nhận in: the draft opens in a tab, the receipt goes to paper ────
+    // ── Xác nhận in: the receipt goes to paper, no draft tab (R-1101) ──────
     await panel(page).getByRole("button", { name: "In phiếu thu" }).click();
     const printed = page.waitForResponse(
       (res) => res.url().endsWith(`${SIGNING_API}/${receipt.id}/print-for-paper`) && res.request().method() === "POST",
     );
-    const tab = page.waitForEvent("popup");
+    const tabs: Page[] = [];
+    const countTab = (tab: Page) => tabs.push(tab);
+    page.on("popup", countTab);
     await page.getByRole("dialog").getByRole("button", { name: "Xác nhận in" }).click();
     expect((await printed).ok()).toBe(true);
-    await (await tab).close();
     await expect(page.getByText("Đã chuyển sang ký tay trên phiếu in")).toBeVisible();
+    await expect(page.getByRole("dialog")).toBeHidden();
 
     await expect(panel(page).locator(".rcpt-panel-title")).toHaveText("Khách ký tay trên phiếu in");
     await expect(panel(page).locator(".rcpt-signed-chip")).toHaveText(/^Lúc \d{2}:\d{2}:\d{2}$/);
@@ -342,6 +344,8 @@ test.describe.serial("In phiếu thu để ký tay & chữ ký kế toán", () =
       await expect(steps.nth(index)).toHaveClass(/step-track-item--done/);
     }
     await expect(steps.nth(4)).toHaveClass(/step-track-item--current/);
+    page.off("popup", countTab);
+    expect(tabs).toHaveLength(0);
 
     // ── Ký điện tử by default, beside Token điện tử and Ký tay trực tiếp ────
     const modes = panel(page).getByRole("radiogroup");
