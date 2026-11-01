@@ -978,7 +978,7 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
     expect(Date.parse(patient.creationTime)).toBe(clinicTime("2022-05-10T09:00:00"));
   });
 
-  test("Răng takes Hàm trên / Hàm dưới / Nguyên hàm as the picker saves them: every permanent tooth of the jaw, whole", async ({ page }) => {
+  test("Răng takes Hàm trên / Hàm dưới / Hai hàm (and the old Nguyên hàm) as the picker saves them: every permanent tooth of the jaw, whole", async ({ page }) => {
     const id = runId();
     const code = `MIG${id}J`;
     const upper = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
@@ -1003,6 +1003,7 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
         visit("02/03/2023", "hàm   DƯỚI; 11"),
         visit("03/03/2023", "Nguyên hàm, 16"),
         visit("04/03/2023", "ham tren"),
+        visit("05/03/2023", "Hai hàm"),
       ]),
       clinicBranchId: BRANCH_ONE,
     });
@@ -1021,6 +1022,7 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
     expect(codes("02")).toEqual([...lower, 11]);
     expect(codes("03")).toEqual([...upper, ...lower]); // 16 given twice is kept once
     expect(codes("04")).toEqual(upper);
+    expect(codes("05")).toEqual([...upper, ...lower]);
     expect(stages.body.items.flatMap((s) => s.teeth).every((t) => t.selected)).toBe(true);
   });
 

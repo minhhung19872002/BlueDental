@@ -281,7 +281,7 @@ function formatTooth(tooth: ToothSelectionDto): string {
 }
 
 /**
- * "Hàm trên", "Hàm dưới" or "Nguyên hàm" when the teeth are exactly a whole
+ * "Hàm trên", "Hàm dưới" or "Hai hàm" when the teeth are exactly a whole
  * jaw, as they were picked — the clinic reads a jaw by its name, not as sixteen
  * or thirty-two numbers. Teeth picked one by one stay listed.
  */

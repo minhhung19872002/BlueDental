@@ -195,7 +195,8 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
  * 2026-10-14). So is "Giấy đồng ý thực hiện phẫu thuật/thủ thuật": a patient
  * may carry many diagnosis slips and the sheet cannot tell which one the
  * operation is for, so the doctor writes it (clinic, 2026-10-16). The contract
- * (mẫu 10) takes it as Bệnh án chỉnh nha does.
+ * (mẫu 10) takes it as Bệnh án chỉnh nha does — until the set has a mẫu 3,
+ * whose VIII it then copies (contractFromOrthodontic, R-1097).
  */
 const DIAGNOSIS_FIELDS = [
   "outpatient-dental.text.43",

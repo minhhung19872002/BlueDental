@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace BlueDental.TreatmentManagement.Values;
 
-/// <summary>A whole jaw, as the tooth picker offers it: "Hàm trên", "Hàm dưới", "Nguyên hàm".</summary>
+/// <summary>A whole jaw, as the tooth picker offers it: "Hàm trên", "Hàm dưới", "Hai hàm".</summary>
 public enum WholeJaw
 {
     Upper,

@@ -38,7 +38,8 @@ Quyết định chủ dự án:
 - Ngày: ô Date thật, số serial, hoặc chữ `dd/MM/yyyy`; sau hôm nay → lỗi; chỉ có năm → lỗi (R-838).
 - Sheet tìm theo tên, không có mới theo vị trí; file lỗi luôn [Khách hàng, Điều trị] + cột "Lỗi" (R-839).
 - Mã KH, mã phiếu không phân biệt hoa thường (R-840). Răng phải là số FDI thật (R-841),
-  hoặc "Hàm trên / Hàm dưới / Nguyên hàm" = đủ 16 / 16 / 32 răng vĩnh viễn (R-847).
+  hoặc "Hàm trên / Hàm dưới / Hai hàm" = đủ 16 / 16 / 32 răng vĩnh viễn (R-847). Từ R-1095
+  (2026-11-01) app gọi cả hàm là "Hai hàm"; file cũ ghi "Nguyên hàm" vẫn nhận.
 - Dropdown chỉ trên cột lựa chọn cố định: Giới tính, Quan hệ GH, Trạng thái (R-850).
   Cột danh mục / nhân sự không có dropdown — chủ dự án: file điền ở nơi khác với server
   nhập, list từ một DB sẽ chặn tên đúng ở DB kia; `dryRun` kiểm các tên đó.

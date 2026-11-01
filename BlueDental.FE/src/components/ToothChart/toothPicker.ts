@@ -38,7 +38,7 @@ const JAW_TEETH: Record<JawPreset, readonly number[]> = {
   full: [...UPPER_TEETH, ...LOWER_TEETH],
 };
 
-/** The chip caption for a jaw preset: "Hàm trên", "Hàm dưới", "Nguyên hàm". */
+/** The chip caption for a jaw preset: "Hàm trên", "Hàm dưới", "Hai hàm". */
 export function jawLabel(jaw: JawPreset): string {
   return JAW_LABELS[jaw]();
 }
@@ -109,7 +109,7 @@ export function wholeJawOf(selections: readonly ToothSelection[]): JawPreset | n
 /**
  * The inverse of toothValueToSelections: rows the API handed back, folded
  * into the picker's value. A complete jaw of whole teeth collapses to that
- * jaw's preset (both jaws to the full one), so a diagnosis saved as "Nguyên
+ * jaw's preset (both jaws to the full one), so a diagnosis saved as "Hai
  * hàm" reopens on that tab rather than as thirty-two chips.
  */
 export function toothSelectionsToValue(selections: readonly ToothSelection[]): ToothPickerValue {

@@ -4,7 +4,7 @@ import { call } from "./fixtures/timekeepingStaff";
 
 /**
  * Teeth picked as a whole jaw are shown by the jaw's name — "Hàm trên",
- * "Hàm dưới", "Nguyên hàm" — wherever the teeth of a diagnosis are listed;
+ * "Hàm dưới", "Hai hàm" — wherever the teeth of a diagnosis are listed;
  * teeth picked one by one keep being listed by number.
  *
  * Real stack: the patient and the diagnoses are made through the API and read
@@ -73,7 +73,7 @@ test("a whole jaw is shown by its name, single teeth by number", async ({ page }
   const teethCells = page.locator(".pd-cell-link");
   await expect(teethCells.filter({ hasText: /^Hàm trên$/ })).toHaveCount(1);
   await expect(teethCells.filter({ hasText: /^Hàm dưới$/ })).toHaveCount(1);
-  await expect(teethCells.filter({ hasText: /^Nguyên hàm$/ })).toHaveCount(1);
+  await expect(teethCells.filter({ hasText: /^Hai hàm$/ })).toHaveCount(1);
   await expect(teethCells.filter({ hasText: /^17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28$/ })).toHaveCount(1);
   await expect(teethCells.filter({ hasText: /^16, 26$/ })).toHaveCount(1);
   // None of the jaws is spelled out as its numbers any more.

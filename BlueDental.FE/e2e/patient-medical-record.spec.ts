@@ -265,8 +265,9 @@ test.describe("Bệnh án", () => {
       { form: "Phiếu theo dõi điều trị", blanks: 111, boxes: 2, pages: 1 },
       { form: "Phiếu chăm sóc", blanks: 118, boxes: 2, pages: 1 },
       // The clinic's .docx (2026-10-29): every dotted line a blank; the contract
-      // on two pages and the agreement attached to it on three.
-      { form: "Hợp đồng thỏa thuận niềng răng", blanks: 40, boxes: 0, pages: 5 },
+      // on two pages and the agreement attached to it on three; Loại mắc cài
+      // as on mẫu 3, four boxes and their prices (BA, 2026-11-01, R-1097).
+      { form: "Hợp đồng thỏa thuận niềng răng", blanks: 48, boxes: 4, pages: 5 },
     ];
 
     for (const item of expected) {
@@ -1923,6 +1924,7 @@ test.describe("Bệnh án", () => {
     const consent = "Giấy đồng ý thực hiện phẫu thuật/thủ thuật";
     const procedure = "Phiếu phẫu thuật/thủ thuật";
     const treatment = "Phiếu tư vấn và xác nhận đồng ý điều trị";
+    const contract = "Hợp đồng thỏa thuận niềng răng";
 
     const extension = () =>
       page.evaluate(() => {
@@ -1970,6 +1972,9 @@ test.describe("Bệnh án", () => {
     // Mẫu 7 on the same 15mm page since R-1073.
     await openFreshSheet(page, procedure);
     expect(await printedPages([], true), `${procedure} · printed pages`).toBe(1);
+    // Mẫu 10 on the 15mm page too, its five pages unchanged by Loại mắc cài (R-1097).
+    await openFreshSheet(page, contract);
+    expect(await printedPages([], true), `${contract} · printed pages`).toBe(5);
 
     // Mẫu 5 on the 5mm page, then mẫu 6 on the 15mm one: as many pages as the two print without the blocks.
     await openFreshSheet(page, treatment);

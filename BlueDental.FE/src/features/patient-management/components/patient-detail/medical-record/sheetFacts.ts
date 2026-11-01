@@ -135,6 +135,8 @@ function orthodonticValues(facts: SheetFactsDto, values: FieldValues, teeth: Tee
  * Hợp đồng thỏa thuận niềng răng (mẫu 10): "- Kế hoạch điều trị" as mẫu 3's IX
  * lists it, and II. Chi phí as the slips' own totals on Kế hoạch điều trị,
  * added up over the set — "45.000.000đ", as the contract writes its fees.
+ * Once the set has a mẫu 3, the plan lines are read off that sheet instead
+ * (contractFromOrthodontic, R-1097).
  */
 function orthodonticContractValues(facts: SheetFactsDto, values: FieldValues, formats: SheetFactFormats) {
   putLines(values, CONTRACT_PLAN_LINES, planLines(facts, formats.teeth));
