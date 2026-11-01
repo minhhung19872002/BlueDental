@@ -117,10 +117,21 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         }
     }
 
+    /// <summary>
+    /// One row with its names filled. "Lưu & tạo dịch vụ" opens Chọn dịch vụ from the
+    /// Create/Update response, so a bare MapToDto left its Chẩn đoán blank (R-1115).
+    /// </summary>
+    private async Task<PatientDiagnosisDto> ToNamedDtoAsync(PatientDiagnosis diagnosis)
+    {
+        var dto = MapToDto(diagnosis);
+        await FillNamesAsync(new[] { dto });
+        return dto;
+    }
+
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Read)]
     public async Task<PatientDiagnosisDto> GetAsync(Guid id)
     {
-        return MapToDto(await GetInBranchAsync(id));
+        return await ToNamedDtoAsync(await GetInBranchAsync(id));
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Create)]
@@ -141,7 +152,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
             input.SecondStaffId);
 
         await _repository.InsertAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis);
+        return await ToNamedDtoAsync(diagnosis);
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
@@ -159,7 +170,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         diagnosis.UpdateTeeth(ToToothSelections(input.Teeth));
 
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis);
+        return await ToNamedDtoAsync(diagnosis);
     }
 
     /// <summary>
@@ -174,10 +185,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         diagnosis.UpdatePrintContent(input.ContentDiagnosis, input.Note);
 
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-
-        var dto = MapToDto(diagnosis);
-        await FillNamesAsync(new[] { dto });
-        return dto;
+        return await ToNamedDtoAsync(diagnosis);
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
@@ -186,7 +194,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         var diagnosis = await GetInBranchAsync(id);
         diagnosis.MarkTreated();
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis);
+        return await ToNamedDtoAsync(diagnosis);
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Update)]
@@ -195,7 +203,7 @@ public class PatientDiagnosisAppService : ApplicationService, IPatientDiagnosisA
         var diagnosis = await GetInBranchAsync(id);
         diagnosis.Cancel();
         await _repository.UpdateAsync(diagnosis, autoSave: true);
-        return MapToDto(diagnosis);
+        return await ToNamedDtoAsync(diagnosis);
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentDiagnosis.Delete)]

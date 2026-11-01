@@ -13089,4 +13089,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Giới hạn có sẵn**: tab Combo dừng ở 100 combo (`COMBO_LIMIT`), không có tải thêm.
 - **Mức retest**: 2.
 
+## R-1115 (2026-11-01, mức 2: F-87 P0111_02) Chọn Dịch Vụ — Chẩn đoán trống, nút Hủy lệch style, badge tràn, responsive
+
+- **Lỗi**: ô Chẩn đoán của popup trống khi mở từ phiếu vừa tạo/sửa; nút Hủy là `<button>` tự chế; badge "-%" ở cột Tiết kiệm (tab Combo) tràn ra khỏi ô; popup vỡ ở màn hẹp.
+- **Nguyên nhân**: Create/Update/in/đánh dấu đã điều trị/huỷ của `PatientDiagnosisAppService` trả DTO chưa điền tên (`diagnosisName` null); chỉ GetList điền.
+- **Sửa — BE**: `PatientDiagnosisAppService.ToNamedDtoAsync` (MapToDto + FillNamesAsync) dùng cho Get/Create/Update/UpdatePrintContent/MarkTreated/Cancel.
+- **Sửa — FE**: `AdviseSelectedPanel` Hủy = AntD `Button` (`.ant-btn.am-cancel`); `advise-modal.css` badge `.am-save-pct` xuống dưới số tiền; media 1440 / 1280 / 1100 / 768 / 640 (nav thành hàng pill, panel phải xuống dưới bảng).
+- **Kiểm chứng**: ảnh chụp các mức rộng trên dev server :5173 → host :5000 Development → PostgreSQL; e2e ở R-1116. **Mức retest**: 2.
+
+## R-1116 (2026-11-01, mức 2: F-87 P0111_02) Chọn Dịch Vụ — tab Combo có danh sách nhóm riêng
+
+- **Yêu cầu chủ dự án**: combo thuộc nhóm dịch vụ nhưng tab Combo không có cột nhóm; mỗi tab đếm đúng loại của mình.
+- **Sửa — BE**: `TaxonomyDto.ComboCount` (số combo sống trong nhóm, `CountEntriesAsync` đếm cùng lúc `Total`/`Combo`); `GetTaxonomyListInput.HasCombo` = chỉ nhóm có ít nhất một combo sống.
+- **Sửa — FE**: `useAdviseGroups` (mới) — danh sách nhóm theo trang, mỗi tab giữ lựa chọn riêng; Dịch vụ lẻ đếm `itemCount - comboCount`, Combo đếm `comboCount` và chỉ liệt kê nhóm có combo (`useTaxonomyGroupPages(..., withCombos)`); `useCatalogComboOptions(search, enabled, taxonomyId)` lọc combo theo nhóm; `AdviseSideNav` hiện danh sách nhóm ở cả hai tab; "Thêm combo" mặc định nhóm đang chọn.
+- **E2E** `catalog-combo` test mới (API `hasCombo` + `comboCount`; Dịch vụ lẻ đếm 2; Combo chỉ có nhóm có combo, đếm 1, tải hết trang vẫn không có nhóm lẻ; chọn nhóm còn đúng combo đó; quay lại Dịch vụ lẻ vẫn "Tất cả"). Nhóm test tạo với `sortOrder: 100000` để `firstGroup()` của test khác không rơi vào. Dev server :5173 → host :5000 Development → PostgreSQL thật, không chặn API: `catalog-combo` 4/4, `consulting-delete-and-picker` + `service-quick-create` + `diagnosis-quick-create` + `consulting-review` 15/15. `tsc -b`, eslint sạch.
+- **Mức retest**: 2 (đụng `useCatalogOptions` dùng chung: các picker nhóm khác chỉ thêm trường `comboCount`).
+
 > Ghi chú môi trường (R-1104..R-1114): `dotnet run --environment Development` **không** đặt hosting environment (cờ đó của `dotnet run` là biến môi trường); host lên Production, thiếu `ReceiptVault:Key` → Billing:0107. Chạy host bằng `ASPNETCORE_ENVIRONMENT=Development`. Hai ca đỏ khi chạy 2 worker (`consulting-delete-and-picker` Xoá phiếu chẩn đoán, `treatment-plan-detail` finished công đoạn) là timeout 5 s do tải; chạy 1 worker đều xanh.

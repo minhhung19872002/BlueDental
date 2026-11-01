@@ -1,44 +1,27 @@
 import { Spin } from "antd";
-import type { TaxonomyGroupOption } from "@/hooks/useCatalogOptions";
 import { t } from "@/lib/i18n";
-import type { AdviseKind } from "./adviseTypes";
+import type { AdviseGroupNav, AdviseKind } from "./adviseTypes";
 
 interface Props {
   kind: AdviseKind;
   singleCount: number;
   comboCount: number;
-  groups: TaxonomyGroupOption[];
-  activeGroupId: string | null;
-  loading: boolean;
-  /** A later page of groups is on its way. */
-  hasMore: boolean;
+  /** The groups of the tab open, counted for its kind. */
+  nav: AdviseGroupNav;
   onKindChange: (kind: AdviseKind) => void;
-  onGroupChange: (groupId: string | null) => void;
-  onLoadMore: () => void;
 }
 
 /**
  * The left column of "Chọn dịch vụ" (P0111_02, R-1114): the "Dịch vụ lẻ |
- * Combo" switch, then — on Dịch vụ lẻ — the service groups as a list with
- * their counts, "Tất cả" first. It replaces the sideways chip strip.
+ * Combo" switch, then the service groups of the tab open as a list with
+ * their counts, "Tất cả" first. It replaces the sideways chip strip. Combo
+ * has its own list since R-1116 — the groups that hold a combo.
  */
-export function AdviseSideNav({
-  kind,
-  singleCount,
-  comboCount,
-  groups,
-  activeGroupId,
-  loading,
-  hasMore,
-  onKindChange,
-  onGroupChange,
-  onLoadMore,
-}: Props) {
+export function AdviseSideNav({ kind, singleCount, comboCount, nav, onKindChange }: Props) {
   const tabs: { kind: AdviseKind; label: string }[] = [
     { kind: "single", label: t("Treatment:Combo:TabSingle", singleCount) },
     { kind: "combo", label: t("Treatment:Combo:TabCombo", comboCount) },
   ];
-  const allCount = groups.reduce((sum, group) => sum + group.itemCount, 0);
 
   return (
     <nav className="am-nav" aria-label={t("Treatment:Advise:Groups")}>
@@ -57,35 +40,35 @@ export function AdviseSideNav({
         ))}
       </div>
 
-      {kind === "single" && (
-        <>
-          <p className="am-nav-title">{t("Treatment:Advise:Groups")}</p>
-          <div
-            className="am-nav-list"
-            onScroll={(event) => {
-              const box = event.currentTarget;
-              if (hasMore && box.scrollTop + box.clientHeight >= box.scrollHeight - 40) onLoadMore();
-            }}
-          >
-            {loading && <Spin size="small" className="am-nav-spin" />}
-            <NavItem label={t("Treatment:Advise:AllGroups")} count={allCount} active={activeGroupId === null} onClick={() => onGroupChange(null)} />
-            {groups.map((group) => (
-              <NavItem
-                key={group.id}
-                label={group.name}
-                count={group.itemCount}
-                active={activeGroupId === group.id}
-                onClick={() => onGroupChange(group.id)}
-              />
-            ))}
-            {hasMore && (
-              <button type="button" className="am-nav-more" onClick={onLoadMore}>
-                <Spin size="small" />
-              </button>
-            )}
-          </div>
-        </>
-      )}
+      <p className="am-nav-title">{t("Treatment:Advise:Groups")}</p>
+      <div
+        className="am-nav-list"
+        onScroll={(event) => {
+          // Down the column on wide screens, along one row of pills on narrow ones.
+          const box = event.currentTarget;
+          const atEnd =
+            box.scrollTop + box.clientHeight >= box.scrollHeight - 40 &&
+            box.scrollLeft + box.clientWidth >= box.scrollWidth - 40;
+          if (nav.hasMore && atEnd) nav.onLoadMore();
+        }}
+      >
+        {nav.loading && <Spin size="small" className="am-nav-spin" />}
+        <NavItem label={t("Treatment:Advise:AllGroups")} count={nav.allCount} active={nav.activeId === null} onClick={() => nav.onChange(null)} />
+        {nav.groups.map((group) => (
+          <NavItem
+            key={group.id}
+            label={group.name}
+            count={group.count}
+            active={nav.activeId === group.id}
+            onClick={() => nav.onChange(group.id)}
+          />
+        ))}
+        {nav.hasMore && (
+          <button type="button" className="am-nav-more" onClick={nav.onLoadMore}>
+            <Spin size="small" />
+          </button>
+        )}
+      </div>
     </nav>
   );
 }

@@ -21,6 +21,9 @@ public class TaxonomyDto : FullAuditedEntityDto<Guid>
 
     /// <summary>Reference field <c>itemCount</c> — populated when includeCount is set.</summary>
     public int ItemCount { get; set; }
+
+    /// <summary>How many of <see cref="ItemCount"/> are combos — "Chọn dịch vụ" counts each tab apart.</summary>
+    public int ComboCount { get; set; }
 }
 
 public class CreateTaxonomyDto
@@ -88,6 +91,9 @@ public class GetTaxonomyListInput : PagedAndSortedResultRequestDto
 
     /// <summary>Mirrors the reference <c>includeCount=true</c> query flag.</summary>
     public bool IncludeCount { get; set; }
+
+    /// <summary>True keeps only the groups holding at least one live combo.</summary>
+    public bool? HasCombo { get; set; }
 }
 
 /// <summary>

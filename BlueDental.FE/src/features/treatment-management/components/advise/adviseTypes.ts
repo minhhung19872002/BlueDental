@@ -5,6 +5,26 @@ import type { CatalogOption } from "@/hooks/useCatalogOptions";
 /** The tab open on the left of "Chọn dịch vụ": single services or combos. */
 export type AdviseKind = "single" | "combo";
 
+/** One group on the left of "Chọn dịch vụ", counted for the tab open. */
+export interface AdviseNavGroup {
+  id: string;
+  name: string;
+  count: number;
+}
+
+/** The group list of one tab — each tab keeps its own pick. */
+export interface AdviseGroupNav {
+  groups: AdviseNavGroup[];
+  /** "Tất cả". */
+  allCount: number;
+  activeId: string | null;
+  loading: boolean;
+  /** A later page of groups is on its way. */
+  hasMore: boolean;
+  onChange: (groupId: string | null) => void;
+  onLoadMore: () => void;
+}
+
 /** What the clinician has typed on one ticked row of "Chọn Dịch Vụ". */
 export interface AdviseRowDraft {
   /**

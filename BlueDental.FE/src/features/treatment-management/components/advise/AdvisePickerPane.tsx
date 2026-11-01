@@ -39,6 +39,7 @@ export function AdvisePickerPane({ catalog, combos, selection }: Props) {
     selection.toggle(service, true);
   };
   const handleComboCreated = (created: CatalogComboOption) => {
+    combos.setGroupId(null);
     combos.setSearch("");
     selection.toggleCombo(created, true);
   };
@@ -49,13 +50,8 @@ export function AdvisePickerPane({ catalog, combos, selection }: Props) {
         kind={combos.kind}
         singleCount={catalog.servicesTotal}
         comboCount={combos.total}
-        groups={catalog.groups}
-        activeGroupId={catalog.groupId}
-        loading={catalog.groupsLoading}
-        hasMore={catalog.hasMoreGroups}
+        nav={combo ? combos.nav : catalog.nav}
         onKindChange={combos.setKind}
-        onGroupChange={catalog.setGroupId}
-        onLoadMore={catalog.loadMoreGroups}
       />
       <section className="am-main">
         <AdviseToolbar
@@ -68,7 +64,7 @@ export function AdvisePickerPane({ catalog, combos, selection }: Props) {
           action={
             <AdviseQuickCreate
               kind={combos.kind}
-              groupId={catalog.groupId}
+              groupId={combo ? combos.nav.activeId : catalog.groupId}
               onServiceCreated={handleServiceCreated}
               onComboCreated={handleComboCreated}
             />

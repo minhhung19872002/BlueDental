@@ -1,3 +1,4 @@
+import { Button } from "antd";
 import { Loader2, Save } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { moneyText } from "../plan/planTypes";
@@ -82,9 +83,9 @@ export function AdviseSelectedPanel({ selection, saving, onCancel, onSave }: Pro
           <span className="am-summary-total">{moneyText(totals.effective)}</span>
         </div>
         <div className="am-summary-actions">
-          <button type="button" className="tp-btn am-cancel" onClick={onCancel}>
+          <Button className="am-cancel" onClick={onCancel}>
             {t("Common:Cancel")}
-          </button>
+          </Button>
           <button type="button" className="tp-btn tp-btn--primary am-save" disabled={count === 0 || saving} onClick={onSave}>
             {saving ? <Loader2 size={16} className="am-spin" /> : <Save size={16} />}
             {t("Treatment:Advise:SaveCount", count)}

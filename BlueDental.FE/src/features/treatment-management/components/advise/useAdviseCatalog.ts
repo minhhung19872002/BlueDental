@@ -1,10 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
-import {
-  CATALOG_GROUP,
-  useCatalogOptionSearch,
-  useTaxonomyGroupPages,
-} from "@/hooks/useCatalogOptions";
+import { CATALOG_GROUP, useCatalogOptionSearch } from "@/hooks/useCatalogOptions";
+import { useAdviseGroups } from "./useAdviseGroups";
 
 /** The reference waits this long after the last keystroke before it searches. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -18,11 +15,10 @@ const SEARCH_DEBOUNCE_MS = 300;
  * hợp" once the catalogue outgrew it.
  */
 export function useAdviseCatalog(enabled: boolean) {
-  const [groupId, setGroupId] = useState<string | null>(null);
+  const { groupId, setGroupId, nav } = useAdviseGroups("single", enabled);
   const [search, setSearch] = useState("");
   const term = useDebounce(search.trim(), SEARCH_DEBOUNCE_MS);
 
-  const groupPages = useTaxonomyGroupPages(CATALOG_GROUP.CareService, enabled);
   const servicePages = useCatalogOptionSearch(CATALOG_GROUP.CareService, {
     search: term,
     taxonomyId: groupId ?? undefined,
@@ -32,20 +28,10 @@ export function useAdviseCatalog(enabled: boolean) {
     enabled,
   });
 
-  const groups = useMemo(
-    () => groupPages.data?.pages.flatMap((page) => page.items) ?? [],
-    [groupPages.data],
-  );
   const services = useMemo(
     () => servicePages.data?.pages.flatMap((page) => page.items) ?? [],
     [servicePages.data],
   );
-
-  const { hasNextPage: moreGroups, isFetchingNextPage: fetchingGroups, fetchNextPage: nextGroups } =
-    groupPages;
-  const loadMoreGroups = useCallback(() => {
-    if (moreGroups && !fetchingGroups) void nextGroups();
-  }, [moreGroups, fetchingGroups, nextGroups]);
 
   const {
     hasNextPage: moreServices,
@@ -60,7 +46,7 @@ export function useAdviseCatalog(enabled: boolean) {
   const reset = useCallback(() => {
     setGroupId(null);
     setSearch("");
-  }, []);
+  }, [setGroupId]);
 
   return {
     groupId,
@@ -68,11 +54,7 @@ export function useAdviseCatalog(enabled: boolean) {
     search,
     setSearch,
     reset,
-    groups,
-    groupsLoading: groupPages.isLoading,
-    groupsLoadingMore: fetchingGroups,
-    hasMoreGroups: Boolean(moreGroups),
-    loadMoreGroups,
+    nav,
     services,
     /** "Dịch vụ lẻ (n)" — every single service the group and search match, not only the loaded page. */
     servicesTotal: servicePages.data?.pages[0]?.totalCount ?? 0,
