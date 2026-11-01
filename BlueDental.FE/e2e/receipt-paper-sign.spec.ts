@@ -384,4 +384,35 @@ test.describe.serial("In phiếu thu để ký tay & chữ ký kế toán", () =
     expect(exportLine?.accountantSignatureSavedAt).toBe(drawn.body.savedAt);
     expect(exportLine?.customerSignedOnPaper).toBe(true);
   });
+
+  test("Back from an export: the slip's Thanh toán tab reads Đã xuất phiếu thu and offers ✓ without F5", async ({ page }) => {
+    await login(page);
+    // The tab has listed the receipt as Chưa thanh toán, so that list is cached.
+    const receipt = await freshReceipt(page);
+    const row = page.getByRole("row").filter({ hasText: receipt.code });
+    await expect(row.getByText("Chưa thanh toán")).toBeVisible();
+
+    // In the same tab, no reload: open it, sign on paper, export Ký tay trực tiếp.
+    await row.getByRole("button", { name: receipt.code, exact: true }).click();
+    await expectReceiptPage(page, receipt);
+    await panel(page).getByRole("button", { name: "In phiếu thu" }).click();
+    const question = page.getByRole("dialog");
+    await expect(question.getByRole("heading", { name: "In phiếu thu để ký tay?" })).toBeVisible();
+    const printed = page.waitForResponse(
+      (res) => res.url().endsWith(`${SIGNING_API}/${receipt.id}/print-for-paper`) && res.request().method() === "POST",
+    );
+    await question.getByRole("button", { name: "Xác nhận in" }).click();
+    const printedRes = await printed;
+    expect(printedRes.ok(), await printedRes.text()).toBe(true);
+    await expect(question).toBeHidden();
+    await panel(page).getByRole("radiogroup").getByRole("radio", { name: "Ký tay trực tiếp" }).check();
+    const exportTab = page.waitForEvent("popup");
+    await panel(page).locator(".rcpt-panel-actions").getByRole("button", { name: "Xuất phiếu thu" }).click();
+    await (await exportTab).close();
+    await expect(page.locator(".rcpt-track-card .step-track-item--done")).toHaveCount(6);
+
+    await page.goBack();
+    await expect(row.getByText("Đã xuất phiếu thu")).toBeVisible();
+    await expect(row.getByRole("button", { name: `Xác nhận thanh toán phiếu ${receipt.code}` })).toBeVisible();
+  });
 });

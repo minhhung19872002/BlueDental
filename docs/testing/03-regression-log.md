@@ -12984,3 +12984,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Ghi chú môi trường: host :5000 dùng chung đang chạy không có `ASPNETCORE_ENVIRONMENT=Development`, nên thiếu `ReceiptVault:Key` (Billing:0107). Hai ca chốt / huỷ phiếu thu chỉ xanh trên host Development.
 - **Mức retest**: 2.
 - Chỉ trên develop.
+
+## R-1103 (2026-11-01, mức 2: F-84 Phiếu thu P2610 / P2910_02) Xuất phiếu thu xong quay lại tab Thanh toán vẫn "Chưa thanh toán" tới khi F5
+
+- **Báo lỗi** (chủ dự án, ảnh 2026-11-01): xuất phiếu thu xong bấm quay lại, dòng phiếu trên tab Thanh toán của phiếu điều trị vẫn "Chưa thanh toán", không có ✓. F5 mới thấy "Đã xuất phiếu thu".
+- **Nguyên nhân**: `useExportReceipt` chỉ làm mới `paymentReceiptKeys.detail(id)`. Danh sách phiếu thu của phiếu điều trị (`treatmentKeys.payments`) còn tươi theo `staleTime` 5 phút toàn cục, nên Back đọc lại bản cũ ở trạng thái Pending, và `actionsFor` không đưa ✓ cho Pending.
+- **Sửa — FE** (không đổi BE): `paymentReceiptApi.ts` `useExportReceipt` dùng `meta: { invalidates: ["payment"] }` như ✓ Xác nhận thanh toán. Cả entity "payment" (danh sách phiếu thu của phiếu, sổ thu, báo cáo, trang phiếu thu) đọc lại.
+- **E2E** (bản build production `vite preview` → host Development riêng :5160 → PostgreSQL thật, không chặn API):
+  - `receipt-paper-sign` ca mới "Back from an export: the slip's Thanh toán tab reads Đã xuất phiếu thu and offers ✓ without F5". Bản chưa sửa (8192) **đỏ** đúng ở bước sau `goBack`. Bản đã sửa (8191) **xanh**.
+  - Hồi quy `receipt-paper-sign`, `receipt-page`, `receipt-exported`, `receipt-cancel`, `receipt-export` (workers=1) → 11/12 xanh.
+  - Ca đỏ `receipt-page` "steps follow the status": bản chưa sửa cũng đỏ y hệt. Nguyên nhân là DB local còn iPad đã ghép chưa thu hồi ("4234", "Ipad 3", "4324", "iPad e2e 245685"), nên `SendIfFreeAsync` tự gửi phiếu mới sang iPad và thanh tiến trình có 2 bước xong thay vì 1. Lỗi do dữ liệu, không do bản sửa này.
+- **Mức retest**: 2.
+- Chỉ trên develop (main chưa có P2610).

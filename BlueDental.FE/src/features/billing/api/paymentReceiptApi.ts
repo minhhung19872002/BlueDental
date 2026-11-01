@@ -144,16 +144,17 @@ export function useReceiptPdf() {
  * "Xuất phiếu thu" (P2610 phase 5): the server writes the signed PHIẾU THU
  * to PDF/A once and keeps it sealed; the receipt becomes Đã xuất phiếu thu
  * and the iPad session closes. Refused until the customer has signed.
- * The iPad state is refreshed by useReceiptExport, which owns both.
+ * The status change reaches every receipt reader — the slip's Thanh toán tab
+ * waits on it for ✓ — so the whole "payment" entity re-reads, not only this
+ * page. The iPad state is refreshed by useReceiptExport, which owns both.
  */
 export function useExportReceipt(paymentId: string) {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (signMode: ReceiptSignMode) =>
       api
         .post<PaymentReceiptDto>(`/v1/app/patient-payments/${paymentId}/export`, { signMode })
         .then((response) => response.data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: paymentReceiptKeys.detail(paymentId) }),
+    meta: { invalidates: ["payment"] },
   });
 }
 
