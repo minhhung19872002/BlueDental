@@ -3818,6 +3818,7 @@
     "Patient:Debt:NoTransactions": "Chưa phát sinh",
     "Patient:Debt:Transaction": "giao dịch",
     "Patient:Appt:Create": "Tạo lịch hẹn mới",
+    "Patient:Appt:CreateShort": "Tạo lịch hẹn",
     "Patient:Appt:Nearest": "Lịch hẹn gần nhất",
     "Patient:Appt:NearestLabel": "LỊCH HẸN GẦN NHẤT",
     "Patient:Appt:NoUpcoming": "Chưa có lịch hẹn sắp tới",

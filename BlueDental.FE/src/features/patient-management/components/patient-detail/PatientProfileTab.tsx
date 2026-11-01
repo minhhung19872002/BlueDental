@@ -536,19 +536,16 @@ export function PatientProfileTab({ patient }: Props) {
               </button>
             ))}
           </div>
+          {/*
+           * One button: "Tạo lịch hẹn", the same booking dialog as "Lịch hẹn
+           * gần nhất" with the patient filled in (BA 2026-11-01, R-1099). It
+           * replaced "Tạo tái khám" and "Thanh toán", whose dialogs below are
+           * kept but no longer opened from here (owner: hide, do not delete).
+           */}
           <div>
-            {stageAbility.can("complete") && (
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setRecallOpen(true)}>
-                {t("Patient:Care:CreateRecall")}
-              </Button>
-            )}
-            {paymentAbility.canCreate && (
-              <Button
-                className="pd-btn-outline"
-                icon={<DollarOutlined />}
-                onClick={() => setPaymentOpen(true)}
-              >
-                {t("Patient:Misc:Payment")}
+            {appointmentAbility.canCreate && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreatingAppointment(true)}>
+                {t("Patient:Appt:CreateShort")}
               </Button>
             )}
           </div>

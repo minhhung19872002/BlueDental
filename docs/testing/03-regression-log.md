@@ -12913,3 +12913,40 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc -p tsconfig.app.json`, eslint các file đổi → sạch.
 - **Mức retest**: 3 (helper của ToothChart dùng chung; các màn khác dùng `wholeJawOf` không đổi).
 - Chỉ trên develop (Labo P2910_03 / Bảo hành P3110 chưa có trên main).
+
+## R-1099 (2026-11-01, mức 2: F-19 Hồ sơ bệnh nhân) Thanh công cụ bảng điều trị: "Tạo lịch hẹn" thay "Tạo Tái khám" + "Thanh toán"
+
+- **Yêu cầu** (BA, ảnh chú thích 2026-11-01): tab Hồ sơ, thanh công cụ trên bảng điều trị bỏ nút "Thanh toán", đổi "Tạo tái khám" thành "Tạo lịch hẹn". Nút mới mở popup tạo lịch hẹn, tự điền thông tin khách.
+- **Quyết định chủ dự án**: giữ code, chỉ ẩn nút. `RecallDialog`, `StageFollowUpDialog`, `ServiceDetailDialog`, `PatientPaymentDialog` vẫn nằm trong cây, chỉ không còn đường mở từ thanh công cụ. Luật server của tái khám không đổi.
+- **Sửa — FE**:
+  - `PatientProfileTab.tsx`: thanh công cụ chỉ còn một nút `Tạo lịch hẹn` (hiện khi `appointmentAbility.canCreate`). Nút mở `AppointmentEditorModal` giống "Lịch hẹn gần nhất", với `initialPatientId` + `lockPatient`.
+  - Key i18n mới `Patient:Appt:CreateShort` ("Tạo lịch hẹn" / "Create appointment").
+- **E2E** (bản build production `vite preview` cổng 8180 → host riêng :5150 → PostgreSQL thật, không chặn API):
+  - Mới `patient-appointment` "Tạo lịch hẹn on the Hồ sơ toolbar books this patient for real": không còn Tạo Tái khám / Thanh toán → popup khoá đúng khách → chọn giờ + bác sĩ + nội dung → POST mang đúng `patientId` → reload → tab Lịch hẹn có dòng đó → **xanh**.
+  - Sửa `patient.spec` bố cục bảng: kiểm tra thanh công cụ mới, bấm nút rồi đóng popup → **xanh**.
+  - Skip có lý do R-1099 (không còn lối vào): 4 ca Tạo Tái khám trong `patient.spec` và ca "the payment dialog keeps every column title on one line".
+  - `stage-treatment-date`: bỏ phần UI tái khám, giữ phần kiểm tra API (server từ chối ngày sau) → **xanh**.
+  - Hồi quy mức 2 (`patient`, `patient-appointment`, `stage-treatment-date`, `cskh`, `cskh-after-treatment`): ngoài các ca trên, còn 12 ca đỏ trong `patient.spec`, đối chiếu với bản build HEAD (cổng 8181, cùng host và DB):
+    - 7 ca đỏ y hệt trên HEAD, có sẵn hoặc do dữ liệu: `:667` mã khách rỗng; `:1840` tiêu đề Tạo phiếu thanh toán đã đổi sau P2910; `:1929`; `:2334`; `:2899`; `:3690` TEMP-BUG25-OFF; `:3948`.
+    - 4 ca timeout khi chạy cả bộ (`:2207`, `:2300`, `:2390`, `:2433`) xanh khi chạy riêng trên bản build mới.
+    - `:2454` Tạo Labo đỏ trên cả hai bản build sau khi công đoạn còn mở bị dùng hết, do dữ liệu.
+  - `tsc` sạch. eslint chỉ còn 2 lỗi có sẵn từ HEAD.
+- **Mức retest**: 2.
+- Chỉ trên develop.
+
+## R-1100 (2026-11-01, mức 2: F-CSKH Chăm sóc khách hàng) Sau điều trị — Ghi chú mặc định là ghi chú của bác sĩ
+
+- **Yêu cầu** (BA 2026-11-01): cột Ghi chú tab Sau điều trị lấy ghi chú của bác sĩ (cột Ghi chú bảng Hồ sơ, vd "Hẹn tái khám: 22/11/2026"). Hiện dạng text, sửa được, để CSKH nhắn tin / chăm sóc.
+- **Quyết định chủ dự án**: chưa có ghi chú CSKH thì hiện trực tiếp ghi chú BS của các công đoạn liên kết. CSKH sửa thì lưu vào `CareRecord.Description`. **Không** sửa `TreatmentStage.Remark`. Xoá trắng ghi chú CSKH thì ghi chú BS hiện lại.
+- **Sửa — BE**:
+  - `CareRecordDto.DoctorNote` mới. `CustomerCareAppService` gom `Remark` (đã trim, bỏ trống, bỏ trùng) của các `StageIds` của từng phiếu, nối bằng xuống dòng.
+  - Xuất Excel cột Ghi chú Sau điều trị: `Description`, rỗng thì `DoctorNote`.
+- **Sửa — FE**: `careApi.ts` thêm `doctorNote`. `careColumns.tsx`: `CareNoteCell` nhận `description || doctorNote`, lưu khi blur như cũ.
+- **E2E** (8180 → :5150 → DB thật): mới `cskh-after-treatment` "Ghi chú shows the doctor's note until the care staff writes theirs, and the công đoạn keeps it" → **xanh**. Các bước:
+  1. Ghi Remark cho công đoạn → Hoàn thành → task có `description` null, `doctorNote` = remark.
+  2. Màn /cskh-grouping hiện ghi chú BS.
+  3. CSKH gõ ghi chú → PUT 200 → reload còn nguyên. Công đoạn vẫn giữ Remark gốc.
+  4. Xoá trắng → ghi chú BS hiện lại.
+  - Phần còn lại của `cskh-after-treatment` và `cskh` → **xanh**.
+- **Mức retest**: 2.
+- Chỉ trên develop.

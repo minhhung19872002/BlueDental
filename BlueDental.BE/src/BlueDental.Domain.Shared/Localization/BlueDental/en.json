@@ -3563,6 +3563,7 @@
     "Patient:Debt:NoTransactions": "No transactions yet",
     "Patient:Debt:Transaction": "transaction",
     "Patient:Appt:Create": "Create new appointment",
+    "Patient:Appt:CreateShort": "Create appointment",
     "Patient:Appt:Nearest": "Nearest appointment",
     "Patient:Appt:NearestLabel": "NEAREST APPOINTMENT",
     "Patient:Appt:NoUpcoming": "No upcoming appointments",

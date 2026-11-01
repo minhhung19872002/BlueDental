@@ -418,7 +418,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     expect(kept.status, kept.text).toBe(200);
   });
 
-  test("TIẾP TỤC BẢO HÀNH and Tạo tái khám pick their Ngày điều trị too, and the server refuses a later one", async ({
+  test("TIẾP TỤC BẢO HÀNH picks its Ngày điều trị too, and the server refuses a later one for a tái khám", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
@@ -460,39 +460,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     });
     await expect(warrantyDayGroup.locator(".pd-stage-histdate b")).toHaveText(short(warrantyDay));
 
-    // Tạo tái khám, from the profile tab's "Tạo Tái khám" listing.
-    await page.goto(`/patient/${line.patientId}?branchId=${line.branchId}&tab=profile`);
-    await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: "Tạo Tái khám" }).click();
-    await page
-      .locator(`.pd-recall-dialog .pd-recall-row[data-stage-id="${sourceId}"]`)
-      .getByRole("button", { name: "Tái Khám" })
-      .click();
-
-    const recall = page.locator(".pd-recall-form-dialog");
-    await expect(recall).toBeVisible();
-    // A past day other than the warranty's, so the tái khám row is easy to tell apart.
-    const recallDay = isoDay(-(2 + (Date.now() % 20)));
-    await pickTreatmentDate(page, recall, recallDay);
-    await recall.locator(".pd-stage-teeth > div > button").first().click();
-    await recall.locator("textarea").fill(`e2e tái khám ngày điều trị ${runId()}`);
-    const recallPosted = page.waitForResponse(
-      (res) => res.request().method() === "POST" && res.url().endsWith("/api/v1/app/patient-re-examinations"),
-    );
-    await recall.locator(".ant-modal-footer button.ant-btn-primary").click();
-    const recallRes = await recallPosted;
-    expect(recallRes.status(), await recallRes.text()).toBe(200);
-    expect(recallRes.request().postDataJSON().treatmentDate).toBe(recallDay);
-    const visit = (await recallRes.json()) as { code: string; treatmentDate: string; creationTime: string };
-    expect(visit.treatmentDate).toBe(recallDay);
-    expect(visit.creationTime.slice(0, 4)).toBe(isoDay(0).slice(0, 4));
-
-    // The treatment table dates the tái khám row by it, after a reload.
-    await page.reload();
-    await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
-    const row = await findTreatmentRow(page, line.lineId, visit.code);
-    await expect(row.locator(".pd-tr-day")).toHaveText(typed(recallDay));
-
+    // The tái khám dialog went with "Tạo Tái khám" (R-1099); its server rule stays.
     // The server refuses a later day for a tái khám, and takes today when none is sent.
     const reExamBody = (treatmentDate?: string) => ({
       patientId: line.patientId,

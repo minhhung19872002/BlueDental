@@ -232,6 +232,50 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     await expect(row).toContainText(doctorName);
   });
 
+  // R-1099 (BA 2026-11-01): "Tạo lịch hẹn" took the place of Tạo Tái khám and
+  // Thanh toán over the Hồ sơ treatment table, on the same booking dialog.
+  test("Tạo lịch hẹn on the Hồ sơ toolbar books this patient for real", async ({ page }) => {
+    const id = runId();
+    const reason = `E2E hồ sơ ${id}`;
+
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+    await page.locator(".bd-patient-tablecard tbody tr.ant-table-row .bd-patient-name").first().click();
+    await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
+    const patientId = /\/patient\/([0-9a-f-]{36})/.exec(page.url())![1];
+    await page.getByRole("link", { name: "Hồ sơ", exact: true }).click();
+    await expect(page).toHaveURL(/tab=profile/);
+
+    const toolbar = page.locator(".pd-table-toolbar");
+    await expect(toolbar.getByRole("button", { name: "Tạo Tái khám" })).toHaveCount(0);
+    await expect(toolbar.getByRole("button", { name: "Thanh toán" })).toHaveCount(0);
+    await toolbar.getByRole("button", { name: /Tạo lịch hẹn$/ }).click();
+
+    // The patient comes filled in and fixed, as from the Lịch hẹn tab.
+    const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator(".ss-wrapper--disabled")).toHaveCount(1);
+
+    await chooseSlot(dialog, freeSlot(id, 6));
+    const doctorName = await pickFirstDoctor(page);
+    await dialog.getByPlaceholder("Nội dung đặt lịch").fill(reason);
+    const created = page.waitForResponse(
+      (res) => res.url().includes("/api/v1/app/appointments") && res.request().method() === "POST",
+    );
+    await dialog.getByRole("button", { name: "Lưu" }).click();
+    const response = await created;
+    expect(response.ok(), await response.text()).toBeTruthy();
+    expect(response.request().postDataJSON().patientId).toBe(patientId);
+    await expect(dialog).toBeHidden();
+
+    // Reload: the booking is on this patient's Lịch hẹn tab, from PostgreSQL.
+    await page.reload();
+    await page.getByRole("link", { name: "Lịch hẹn", exact: true }).click();
+    await expect(page).toHaveURL(/tab=appointment/);
+    const row = await findRow(page, reason);
+    await expect(row).toContainText(doctorName);
+  });
+
   test("editing an appointment updates it instead of booking a second one, and keeps an old Ghi chú", async ({ page }) => {
     const id = runId();
     const reason = `E2E sửa ${id}`;

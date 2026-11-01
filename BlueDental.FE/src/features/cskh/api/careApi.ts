@@ -128,6 +128,8 @@ export interface CareRecordDto {
   contactedAt: string | null;
   careServiceName: string | null;
   serviceNames: string[];
+  /** Ghi chú lịch hẹn of the linked công đoạn, one per line (R-1100). */
+  doctorNote: string | null;
   nextAppointmentAt: string | null;
   appointmentStatus: CareAppointmentStatus | null;
   appointmentContent: string | null;

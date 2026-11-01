@@ -889,15 +889,16 @@ test.describe("Bệnh nhân", () => {
     await expect(page.getByPlaceholder("Tìm tag")).toBeVisible();
     await page.getByRole("button", { name: "Nhãn bệnh nhân" }).click();
 
-    await page.getByRole("button", { name: "Tạo Tái khám" }).click();
-    const recallDialog = page.getByRole("dialog", { name: "Tạo tái khám" });
-    await expect(recallDialog.getByText("Chưa có dịch vụ hoàn tất")).toBeVisible();
-    await recallDialog.getByRole("button", { name: "Đóng" }).click();
-
-    await page.locator(".pd-table-toolbar").getByRole("button", { name: "Thanh toán" }).click();
-    const paymentDialog = page.getByRole("dialog", { name: "Thanh toán" });
-    await expect(paymentDialog.getByText("Tổng tiền:")).toBeVisible();
-    await paymentDialog.getByRole("button", { name: "Đóng", exact: true }).last().click();
+    // R-1099: the treatment table's toolbar is one "Tạo lịch hẹn" — no Tạo
+    // Tái khám, no Thanh toán — opening the booking dialog on this patient.
+    const toolbar = page.locator(".pd-table-toolbar");
+    await expect(toolbar.getByRole("button", { name: "Tạo Tái khám" })).toHaveCount(0);
+    await expect(toolbar.getByRole("button", { name: "Thanh toán" })).toHaveCount(0);
+    await toolbar.getByRole("button", { name: /Tạo lịch hẹn$/ }).click();
+    const toolbarDialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
+    await expect(toolbarDialog).toBeVisible();
+    await toolbarDialog.getByRole("button", { name: "Đóng" }).click();
+    await expect(toolbarDialog).toBeHidden();
 
     await page.getByRole("button", { name: "Tạo lịch hẹn mới" }).click();
     const appointmentDialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
@@ -1563,6 +1564,9 @@ test.describe("Bệnh nhân", () => {
   });
 
   test("the payment dialog keeps every column title on one line", async ({ page }) => {
+    // R-1099: the Hồ sơ "Thanh toán" button is hidden (owner: hide, keep the
+    // code) and it was this dialog's only way in.
+    test.skip(true, "R-1099: Thanh toán hidden");
     // Wide enough for the eight columns' 1260px. Narrower than that the table
     // scrolls and the pinned Thao tác column covers the last heading — which is
     // what the reference does too, so it is not what this test is about.
@@ -3319,6 +3323,8 @@ test.describe("Bệnh nhân", () => {
   test("Danh sách công đoạn carries the công đoạn's content on both tái khám screens", async ({
     page,
   }) => {
+    // R-1099: "Tạo Tái khám" is hidden (owner: hide, keep the code) — no way in.
+    test.skip(true, "R-1099: Tạo Tái khám hidden");
     await page.setViewportSize({ width: 1800, height: 950 });
     const line = await openPatientWithTreatment(page, "warrantable");
     const note = `e2e checklist ${runId()}`;
@@ -3405,6 +3411,8 @@ test.describe("Bệnh nhân", () => {
   test("a tái khám picks its teeth, lists its images, and lands as its own row", async ({
     page,
   }) => {
+    // R-1099: "Tạo Tái khám" is hidden (owner: hide, keep the code) — no way in.
+    test.skip(true, "R-1099: Tạo Tái khám hidden");
     // A long journey — a công đoạn written, finished, reloaded, then followed up.
     test.setTimeout(90_000);
     await page.setViewportSize({ width: 1800, height: 950 });
@@ -3594,6 +3602,8 @@ test.describe("Bệnh nhân", () => {
   });
 
   test("Tạo Tái khám lists the công đoạn that are finished", async ({ page }) => {
+    // R-1099: "Tạo Tái khám" is hidden (owner: hide, keep the code) — no way in.
+    test.skip(true, "R-1099: Tạo Tái khám hidden");
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "warrantable");
     await addStage(page, line, `e2e tái khám ${runId()}`);
@@ -3627,6 +3637,8 @@ test.describe("Bệnh nhân", () => {
   });
 
   test("Chi tiết dịch vụ prints the line's own Ghi chú, not its công đoạn's", async ({ page }) => {
+    // R-1099: "Tạo Tái khám" is hidden (owner: hide, keep the code) — no way in.
+    test.skip(true, "R-1099: Tạo Tái khám hidden");
     await page.setViewportSize({ width: 1600, height: 900 });
     const line = await openPatientWithTreatment(page, "warrantable");
     // A note that could not plausibly be the line's own, so seeing it in the
