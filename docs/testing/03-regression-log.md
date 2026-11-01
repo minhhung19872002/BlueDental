@@ -13017,3 +13017,76 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Ca đỏ `receipt-page` "steps follow the status": bản chưa sửa cũng đỏ y hệt. Nguyên nhân là DB local còn iPad đã ghép chưa thu hồi ("4234", "Ipad 3", "4324", "iPad e2e 245685"), nên `SendIfFreeAsync` tự gửi phiếu mới sang iPad và thanh tiến trình có 2 bước xong thay vì 1. Lỗi do dữ liệu, không do bản sửa này.
 - **Mức retest**: 2.
 - Chỉ trên develop (main chưa có P2610).
+
+## R-1104 (2026-11-01, mức 2: F-87 P0111_02) Tab Thanh toán của phiếu điều trị — bỏ Tạm ứng / Dư nợ, thêm Khuyến mãi
+
+- **Yêu cầu** (BA `P0111_02.drawio`): đầu tab Thanh toán bỏ Tạm ứng và Dư nợ, thêm **Khuyến mãi** (cam).
+- **Quyết định chủ dự án** (2026-11-01): Khuyến mãi = TN giảm + voucher của phiếu thu **đã xác nhận**, tính **trước VAT** (VAT nằm trong giá, ở lại Công nợ).
+- **Sửa — BE**: `PaymentSummary.Promotion` mới; `PatientMoneyCalculator` điền `promotion: plan.ReliefOn(settled)` cho phiếu, nhóm dòng và tổng bệnh nhân. DTO `PatientTreatmentDtos` có `promotion`.
+- **Sửa — FE**: `PlanDetailHead.tsx` 5 ô (bỏ Tạm ứng, Dư nợ; thêm Khuyến mãi màu cam), `plan-detail.css`.
+- **Test**: Domain `PaymentRoundTests` (Promotion). E2E `treatment-plan-detail` 13/13 (bản build production `vite preview` :8080 → host :5000 **Development** → PostgreSQL thật, không chặn API); ca "under 640px…" sửa `.pdt-stat` 6 → 5.
+- **Mức retest**: 2. Chỉ trên develop.
+
+## R-1105 (2026-11-01, mức 1: F-87 P0111_02) LỊCH SỬ ĐIỀU TRỊ — cột Hành động lệch dòng
+
+- **Nguyên nhân**: track `fr` trơn giãn theo nội dung rộng nhất; ô có Tạo Labo + "BN có n phiếu" đẩy dòng lệch tiêu đề.
+- **Sửa — FE**: `patient-detail.css` track `minmax(0, …)` dùng chung tiêu đề và dòng; `stage-labo.css` nút và số phiếu cùng một dòng, số phiếu xuống dòng khi ô hẹp.
+- **Mức retest**: 1.
+
+## R-1106 (2026-11-01, mức 2: F-87 P0111_02) Labo Đặt hàng — cảnh báo răng đã có phiếu Labo khác của phiếu điều trị
+
+- **Yêu cầu**: răng đã nằm trên phiếu Labo khác (chưa huỷ) của cùng phiếu điều trị → chip cam + khung "R11 đã có phiếu Labo trước đó", mã phiếu, «Xem phiếu ›». **Chỉ cảnh báo, không chặn.**
+- **Sửa — BE**: danh sách phiếu Labo nhận `TreatmentPlanId` (lọc qua dòng dịch vụ của phiếu điều trị, vì phiếu Labo chỉ gắn dòng).
+- **Sửa — FE**: `laboPriorTeeth.ts` (phiếu mới nhất trước), `LaboPriorOrderWarning.tsx`, `LaboToothRow` / `LaboOrderStep` / `useLaboOrderStep`, `labo-order-rows.css`. «Xem phiếu» mở dialog chi tiết của phiếu trước chồng lên, Esc đóng, popup đang làm vẫn giữ.
+- **E2E**: `labo-workflow` ca mới "a tooth already on another order of the slip is flagged, not blocked" → **xanh** (bản build production `vite preview` :8080 → host :5000 **Development** → PostgreSQL thật, không chặn API). Dialog chi tiết không in mã phiếu, nên ca này nhận phiếu trước qua "Răng 11, 21".
+- **Mức retest**: 2.
+
+## R-1107 (2026-11-01, mức 1: F-87 P0111_02) Sơ đồ răng Labo — nút Hủy / Chọn răng
+
+- `labo-teeth-chart.css`: hai nút nằm bên phải, có khoảng đệm quanh chữ. **Mức retest**: 1.
+
+## R-1108 (2026-11-01, mức 2: F-87 P0111_02) Labo — "Gửi Labo & in phiếu" → "Tạo phiếu Labo", không tự in
+
+- **Sửa — FE**: nhãn nút mới; xoá `LaboAutoPrint.tsx`, gửi xong không mở bản in. "In Phiếu Labo" vẫn ở dialog chi tiết.
+- **E2E**: `labo-workflow` bỏ helper đếm lệnh in, đổi tên nút; `patient.spec` "Tạo Labo opens Đặt hàng…" đổi tên nút → **xanh**.
+- **Mức retest**: 2.
+
+## R-1109 (2026-11-01, mức 1: F-87 P0111_02) Ô răng Labo — bỏ ô màu
+
+- `LaboToothCells.tsx`: màu răng chỉ còn chữ. **Mức retest**: 1.
+
+## R-1110 (2026-11-01, mức 2: F-87 P0111_02) Kiểm tra Labo — Tải ảnh trên răng Đạt
+
+- **Quyết định chủ dự án**: chỉ hiện trong popup Labo (bước 2).
+- **Sửa — FE**: `LaboToothPictureButton.tsx` "Tải ảnh (n/5)", tối đa 5 ảnh; `LaboPictureGallery.tsx`; `LaboToothCheckRow`, `useLaboCheckForm`, `laboCheckRules`. Ảnh lưu cùng ảnh của đợt, có `toothNumber`. **BE**: `LaboAppService` / `LaboOrderDto` nhận ảnh của răng Đạt.
+- **E2E**: `labo-workflow` bước mới: R11 Đạt tải 1 ảnh → "Tải ảnh (1/5)", 1 ảnh; sau trả hàng đợt 1 có ảnh của R11 và R21 → **xanh**.
+- **Mức retest**: 2.
+
+## R-1111 (2026-11-01, mức 2: F-87 P0111_02) Ảnh công đoạn — chỉ xoá được trong ngày tải lên
+
+- **Quyết định chủ dự án**: "khi ngày upload = ngày hiện tại; nếu qua ngày rồi thì không cho xoá nữa".
+- **Sửa — BE**: `PatientImage.IsDeletableOn(DateOnly)` (ảnh có `TreatmentStageId` chỉ xoá khi `UploadedOn` = hôm nay theo `ClinicCalendar`) và `EnsureDeletableOn` → lỗi mới `BlueDental:Patient:0036` (vi/en). `PatientImageDto.Deletable`. Ảnh không gắn công đoạn không đổi.
+- **Sửa — FE**: `StageHistoryShots.tsx` + `useStageImageDelete.ts`: nút × "Xóa ảnh" chỉ khi `deletable`, xác nhận "Xác nhận xoá ảnh", toast "Đã xoá ảnh".
+- **Test**: Domain `PatientImageTests` (đúng ngày / qua ngày / ảnh không gắn công đoạn). E2E `patient.spec` ca mới "a công đoạn picture carries its × on the day it was uploaded and is deleted by it" → **xanh**.
+- **Mức retest**: 2.
+
+## R-1112 (2026-11-01, mức 1: F-87 P0111_02) Kiểm tra Labo — bỏ "· bật sau khi lắp"
+
+- Dòng còn "BH Labo: chưa kích hoạt". E2E `labo-workflow` kiểm tra không còn chữ đó. **Mức retest**: 1.
+
+## R-1113 (2026-11-01, mức 1: F-87 P0111_02) Kiểm tra Labo — ô ảnh lỗi theo mockup
+
+- `LaboToothDefectGroup.tsx`, `LaboPictureWell.tsx`, `labo-check.css`: ô ảnh theo mockup, đếm "n/5". E2E `labo-workflow` kiểm tra "1/5". **Mức retest**: 1.
+
+## R-1114 (2026-11-01, mức 2: F-87 P0111_02) Popup Chọn dịch vụ dựng lại theo mockup
+
+- **Nguồn**: mockup "Chọn dịch vụ - popup-html". **Quyết định chủ dự án**: Đơn giá và Giảm giá vẫn sửa được; tab Combo đồng bộ cùng bố cục.
+- **Sửa — FE** (`treatment-management/components/advise/`):
+  - Mới: `AdviseSideNav` (nav "Nhóm dịch vụ", tab "Dịch vụ lẻ (n)" / "Combo (n)", "Tất cả" đầu), `AdviseToolbar` (tìm, "Chỉ xem đã chọn", đếm), `AdvisePickerPane`, `AdviseTableShell`, `AdviseComboTable`, `AdviseQtyStepper`, `AdviseSelectedPanel` + `AdviseSelectedCard` (cột phải "Dịch vụ đã chọn", Bỏ chọn tất cả, tổng, "Lưu n dịch vụ"), `useAdviseStaff`.
+  - Xoá: `AdviseGroupPicker`, `AdvisePickerHead`, `AdviseComboGrid`, `AdviseSummaryFooter`, `splitChipRows`, `hooks/useChipScroller` (dải chip nhóm và thẻ tổng dưới bảng không còn).
+  - `AdviseQuickCreate`: nút chữ "+ Thêm dịch vụ" / "+ Thêm combo" thay nút tròn có tooltip.
+- **E2E** cập nhật theo popup mới: `consulting-delete-and-picker` (nav thay dải chip, "Tất cả" thay bấm lại chip), `catalog-combo` (combo là dòng có checkbox), `service-quick-create` (tên nút mới, combo tick ở dòng), `consulting-review` không đổi. Tất cả **xanh** (bản build production `vite preview` :8080 → host :5000 **Development** → PostgreSQL thật, không chặn API).
+- **Giới hạn có sẵn**: tab Combo dừng ở 100 combo (`COMBO_LIMIT`), không có tải thêm.
+- **Mức retest**: 2.
+
+> Ghi chú môi trường (R-1104..R-1114): `dotnet run --environment Development` **không** đặt hosting environment (cờ đó của `dotnet run` là biến môi trường); host lên Production, thiếu `ReceiptVault:Key` → Billing:0107. Chạy host bằng `ASPNETCORE_ENVIRONMENT=Development`. Hai ca đỏ khi chạy 2 worker (`consulting-delete-and-picker` Xoá phiếu chẩn đoán, `treatment-plan-detail` finished công đoạn) là timeout 5 s do tải; chạy 1 worker đều xanh.

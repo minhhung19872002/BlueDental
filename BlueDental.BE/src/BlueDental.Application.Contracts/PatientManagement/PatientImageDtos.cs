@@ -29,6 +29,9 @@ public class PatientImageDto : FullAuditedEntityDto<Guid>
     public string Url { get; set; } = string.Empty;
 
     public string? StaffName { get; set; }
+
+    /// <summary>Xóa ảnh is offered: false on a công đoạn picture once its upload day is over (R-1111).</summary>
+    public bool Deletable { get; set; }
 }
 
 public class UploadPatientImageDto

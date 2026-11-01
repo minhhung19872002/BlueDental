@@ -2,7 +2,7 @@ import { Input } from "antd";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { LaboPictureWell } from "../order-dialogs/LaboPictureWell";
-import type { LaboPictureTiles } from "../order-dialogs/useLaboPictureTiles";
+import { LABO_MAX_PICTURES, type LaboPictureTiles } from "../order-dialogs/useLaboPictureTiles";
 import { toothKey } from "./laboCheckRules";
 
 interface Props {
@@ -36,7 +36,8 @@ export function LaboToothDefectGroup({ tooth, roundNo, returns, tiles, state }: 
       <span className="pd-labo-defect-label">{t("Labo:Check:DefectPictures")}</span>
       <LaboPictureWell
         variant="defect"
-        label={set.length > 0 ? t("Labo:Check:DefectPicturesCount", set.length, tooth) : t("Labo:Check:DefectPicturesAdd", tooth)}
+        label={t("Labo:Check:PictureCount", set.length, LABO_MAX_PICTURES)}
+        addLabel={t("Labo:Check:DefectPicturesAdd", tooth)}
         tiles={set}
         busy={busy}
         onAdd={(files) => tiles.addPictures(tooth, files)}

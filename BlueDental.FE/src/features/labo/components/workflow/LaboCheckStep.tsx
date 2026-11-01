@@ -6,6 +6,7 @@ import { LaboCheckStartCard } from "../check/LaboCheckStartCard";
 import { LaboConclusionBox } from "../check/LaboConclusionBox";
 import { LaboReceiveSection } from "../check/LaboReceiveSection";
 import { LaboRoundHistoryTable } from "../check/LaboRoundHistoryTable";
+import { isPassedToothPicture } from "../check/laboCheckRules";
 import { LaboPassedTeethList, LaboToothCheckList } from "../check/LaboToothCheckList";
 import { useLaboCheckForm, type LaboCheckForm } from "../check/useLaboCheckForm";
 import { LaboPictureWell } from "../order-dialogs/LaboPictureWell";
@@ -20,19 +21,28 @@ interface Props {
   onClose: () => void;
 }
 
-/** The Hình ảnh lỗi already saved with past returns, read-only. */
-function SavedCheckPictures({ order }: { order: LaboOrderDto }) {
+/** The Ảnh kiểm tra already saved, read-only: one strip for the Đạt teeth (R-1110), one for the Hình ảnh lỗi. */
+function SavedCheckPictures({ order, passed }: { order: LaboOrderDto; passed: boolean }) {
   const tiles = order.images
-    .filter((image) => image.roundNo != null)
+    .filter((image) => image.roundNo != null && isPassedToothPicture(order, image) === passed)
     .map((image) => ({ key: image.id, url: image.url, name: image.fileName }));
   if (tiles.length === 0) return null;
   return (
     <section className="pd-labo-check-section">
       <header className="pd-labo-check-head">
-        <h3>{t("Labo:Check:PicturesTitle")}</h3>
+        <h3>{t(passed ? "Labo:Check:PassedPicturesTitle" : "Labo:Check:PicturesTitle")}</h3>
       </header>
       <LaboPictureWell tiles={tiles} busy={false} readOnly />
     </section>
+  );
+}
+
+function SavedCheckPictureSets({ order }: { order: LaboOrderDto }) {
+  return (
+    <>
+      <SavedCheckPictures order={order} passed={false} />
+      <SavedCheckPictures order={order} passed />
+    </>
   );
 }
 
@@ -78,7 +88,7 @@ export function LaboCheckStep({ patient, order, onShowOrder, onClose }: Props) {
         {summary}
         <LaboPassedTeethList order={order} />
         <LaboRoundHistoryTable order={order} live={null} />
-        <SavedCheckPictures order={order} />
+        <SavedCheckPictureSets order={order} />
         <div className="pd-labo-footer pd-labo-step-footer">
           <div className="pd-labo-footer-actions">
             <Button onClick={onClose}>{t("Labo:Workflow:Dismiss")}</Button>
@@ -93,7 +103,7 @@ export function LaboCheckStep({ patient, order, onShowOrder, onClose }: Props) {
       {summary}
       <CheckForm order={order} check={check} />
       <LaboRoundHistoryTable order={order} live={check.live} />
-      <SavedCheckPictures order={order} />
+      <SavedCheckPictureSets order={order} />
       <LaboCheckFooter order={order} check={check} onClose={onClose} />
     </>
   );

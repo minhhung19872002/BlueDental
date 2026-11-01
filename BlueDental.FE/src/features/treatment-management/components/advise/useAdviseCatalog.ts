@@ -71,6 +71,7 @@ export function useAdviseCatalog(enabled: boolean) {
     groups,
     groupsLoading: groupPages.isLoading,
     groupsLoadingMore: fetchingGroups,
+    hasMoreGroups: Boolean(moreGroups),
     loadMoreGroups,
     services,
     /** "Dịch vụ lẻ (n)" — every single service the group and search match, not only the loaded page. */

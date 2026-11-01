@@ -1,10 +1,11 @@
 import { memo } from "react";
-import { Checkbox, Input, InputNumber } from "antd";
+import { Checkbox } from "antd";
 import { CurrencyInput } from "@/components/CurrencyInput";
 import { t } from "@/lib/i18n";
 import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { DISCOUNT_TYPE } from "../../api/consultingApi";
 import { moneyText } from "../plan/planTypes";
+import { AdviseQtyStepper } from "./AdviseQtyStepper";
 import { rowTotals, type AdviseRowDraft } from "./adviseTypes";
 
 const DISCOUNT_UNITS = [
@@ -21,16 +22,13 @@ interface Props {
 }
 
 /**
- * One service in "Chọn Dịch Vụ". Ticking it opens the row's editors — price,
- * quantity, discount with its %/VNĐ switch, note — and the amount column
- * follows what is typed, the same arithmetic the server will apply.
+ * One service in "Chọn dịch vụ". Ticking it opens the row's editors — price,
+ * the − n + stepper, discount with its %/VNĐ switch — and Thành tiền follows
+ * what is typed, the same arithmetic the server will apply. The BA kept price
+ * and discount editable (P0111_02, R-1114); the note moved to the card on the
+ * right.
  */
-export const AdviseServiceRow = memo(function AdviseServiceRow({
-  service,
-  draft,
-  onToggle,
-  onChange,
-}: Props) {
+export const AdviseServiceRow = memo(function AdviseServiceRow({ service, draft, onToggle, onChange }: Props) {
   const totals = draft ? rowTotals(draft) : null;
 
   return (
@@ -43,7 +41,8 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
         />
       </td>
       <td className="am-cell-name">{service.name}</td>
-      <td>
+      <td className="am-cell-group">{service.taxonomyName}</td>
+      <td className="am-cell-money">
         {draft ? (
           <CurrencyInput
             aria-label={t("Treatment:Pricing:UnitPrice")}
@@ -54,20 +53,15 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
           moneyText(service.salePrice)
         )}
       </td>
-      <td>
-        {draft && (
-          <InputNumber
-            aria-label={t("Treatment:Pricing:Quantity")}
-            min={1}
-            precision={0}
-            value={draft.quantity}
-            onChange={(value) => onChange(service.id, { quantity: value ?? 1 })}
-          />
+      <td className="am-cell-center">
+        {draft ? (
+          <AdviseQtyStepper value={draft.quantity} onChange={(quantity) => onChange(service.id, { quantity })} />
+        ) : (
+          <span className="am-muted">—</span>
         )}
       </td>
       <td>
-        {/* Unticked, the reference prints the discount the row would carry: 0 đ. */}
-        {!draft && <span className="am-muted">{moneyText(0)}</span>}
+        {!draft && <span className="am-muted">—</span>}
         {draft && (
           <div className="am-discount">
             <div className="tp-toggle" role="group" aria-label={t("Treatment:Pricing:DiscountUnit")}>
@@ -92,17 +86,6 @@ export const AdviseServiceRow = memo(function AdviseServiceRow({
         )}
       </td>
       <td className="am-cell-amount">{totals ? moneyText(totals.effective) : moneyText(service.salePrice)}</td>
-      <td>
-        {draft ? (
-          <Input
-            aria-label={t("Treatment:Common:Note")}
-            value={draft.note}
-            onChange={(event) => onChange(service.id, { note: event.target.value })}
-          />
-        ) : (
-          <span className="am-muted">—</span>
-        )}
-      </td>
     </tr>
   );
 });

@@ -239,19 +239,8 @@
   overflow: hidden;
   white-space: nowrap;
   align-items: center;
-  gap: 6px;
   font-size: 13px;
   color: var(--bd-sub);
-}
-
-/* A dentine swatch, the same for every shade: the mock draws one beige chip. */
-.pd-labo-tooth-swatch {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  border: 1px solid var(--bd-border);
-  border-radius: 4px;
-  background: #ead9b9;
 }
 
 .pd-labo-tooth-toggle {
@@ -389,10 +378,11 @@
   color: var(--bd-sub);
 }
 
-/* The form zeroes item margins; the floating label needs room under the pictures. */
-.pd-labo-defect .pd-floating-field,
-.pd-labo-defect .ant-form-item {
-  margin-top: 8px;
+/* Room for the floating label under the pictures. The margin goes on the
+   wrapper the label is placed against, not on the Form.Item inside it, or the
+   box slides down and leaves its label behind (P0111_02, R-1113). */
+.pd-labo-defect > .floating-field {
+  margin-top: 16px;
 }
 
 .pd-labo-pictures.pd-labo-pictures--defect {
@@ -404,23 +394,65 @@
 }
 
 .pd-labo-pictures--defect .pd-labo-gallery {
-  gap: 8px;
+  gap: 10px;
   margin: 0;
+  padding-top: 6px;
 }
 
-.pd-labo-pictures--defect .pd-labo-gallery-tile {
-  width: 56px;
-  height: 56px;
+/* Square tiles, the red "Xóa ảnh" in the top-right corner (R-1113), shared
+   with a Đạt tooth's own pictures (R-1110). */
+.pd-labo-pictures--defect .pd-labo-gallery-tile,
+.pd-labo-tooth-pictures .pd-labo-gallery-tile {
+  width: 72px;
+  height: 72px;
+  overflow: visible;
   border-radius: 6px;
+}
+
+.pd-labo-pictures--defect .pd-labo-gallery-view,
+.pd-labo-tooth-pictures .pd-labo-gallery-view {
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.pd-labo-pictures--defect .pd-labo-gallery-remove,
+.pd-labo-tooth-pictures .pd-labo-gallery-remove {
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  color: var(--bd-card);
+  background: var(--bd-red);
+  box-shadow: 0 1px 2px rgb(27 42 65 / 25%);
+}
+
+.pd-labo-tooth-pictures {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--bd-border);
+}
+
+.pd-labo-tooth-pictures .pd-labo-gallery {
+  gap: 10px;
+  margin: 0;
+  padding: 6px 6px 0 0;
+}
+
+.pd-labo-tooth-upload.ant-btn {
+  justify-self: end;
 }
 
 .pd-labo-defectwell {
   display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
   align-items: center;
   justify-content: center;
-  min-width: 140px;
-  height: 56px;
-  padding: 0 12px;
+  width: 72px;
+  height: 72px;
+  padding: 0;
   border: 1px dashed color-mix(in srgb, var(--bd-primary) 40%, transparent);
   border-radius: 6px;
   font-size: 12px;

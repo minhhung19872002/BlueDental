@@ -1,9 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useCatalogComboOptions } from "@/hooks/useCatalogCombos";
 import { useDebounce } from "@/hooks/useDebounce";
-import type { AdviseKind } from "./AdvisePickerHead";
-import { rowTotals } from "./adviseTypes";
-import type { AdviseSummaryItem } from "./AdviseSummaryFooter";
+import type { AdviseKind } from "./adviseTypes";
 import { suggestCombo } from "./comboSuggestion";
 import type { AdviseSelection } from "./useAdviseSelection";
 
@@ -48,19 +46,3 @@ export function useAdviseCombos(enabled: boolean, selection: AdviseSelection) {
   };
 }
 
-/** The summary card's lines: the ticked services first, then the picked combos. */
-export function summaryItemsOf(selection: AdviseSelection): AdviseSummaryItem[] {
-  const singles = [...selection.rows.values()].map((row) => ({
-    id: row.service.id,
-    kind: "single" as const,
-    name: row.service.name,
-    amount: rowTotals(row).effective,
-  }));
-  const combos = [...selection.combos.values()].map((combo) => ({
-    id: combo.id,
-    kind: "combo" as const,
-    name: combo.name,
-    amount: combo.salePrice,
-  }));
-  return [...singles, ...combos];
-}

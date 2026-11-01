@@ -73,3 +73,16 @@
 .pd-labo-chartlegend--outside {
   --chartlegend-swatch: var(--bd-line);
 }
+
+/* «Hủy» / «Chọn răng» sit on the right with room around their labels (R-1107). */
+.pd-labo-chartfoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pd-labo-chartfoot > .ant-btn {
+  min-width: 112px;
+  padding-inline: 24px;
+}

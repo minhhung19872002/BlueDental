@@ -15,7 +15,7 @@ import {
  *
  * The slip code in the plan tab opens the page. It carries the reference's
  * three-step breadcrumb, the four pill tabs (Chi tiết, Thanh toán, Hoàn tiền,
- * Dư nợ — kept in `?planTab=`), the six money figures (money tabs only), the 15-column service
+ * Dư nợ — kept in `?planTab=`), the five money figures (money tabs only), the 15-column service
  * table with its status menu and eye dialog, the receipts filed against the
  * slip with "Tạo Phiếu Thanh Toán" / "In hóa đơn tổng", the refunds with
  * "Hoàn Tiền", and the lines the held balance covered. Under 640px every table
@@ -222,7 +222,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     expect(await body.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
     expect(await body.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
 
-    // Five pill tabs, "Chi tiết" selected, and the six money figures. Bảo hành
+    // Five pill tabs, "Chi tiết" selected, and the five money figures. Bảo hành
     // (P3110) carries its count: nothing finished yet on a new slip → 0.
     await expect(tabrow.getByRole("tab")).toHaveText([
       "Chi tiết điều trị",
@@ -236,13 +236,13 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(page.locator(".pdt-stat")).toHaveCount(0);
     await tab(page, "Thanh toán").click();
     const labels = page.locator(".pdt-stat dt");
+    // P0111_02 (R-1104): Tạm ứng and Dư nợ left, Khuyến mãi came in.
     await expect(labels).toHaveText([
       "Doanh thu dự kiến",
       "Đã thanh toán",
+      "Khuyến mãi",
       "Công nợ",
       "Đã hoàn",
-      "Tạm ứng",
-      "Dư nợ",
     ]);
     for (const value of await page.locator(".pdt-stat dd").allInnerTexts())
       expect(value.trim()).toMatch(MONEY);
@@ -514,7 +514,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(page.locator(".pdt-stat")).toHaveCount(0);
 
     await tab(page, "Thanh toán").click();
-    await expect(page.locator(".pdt-stat")).toHaveCount(6);
+    await expect(page.locator(".pdt-stat")).toHaveCount(5);
     await expect(page.locator(".bd-rc-card", { hasText: paymentCode })).toBeVisible();
     await tab(page, "Hoàn tiền").click();
     await expect(page.locator(".bd-rc-card", { hasText: refundCode })).toBeVisible();

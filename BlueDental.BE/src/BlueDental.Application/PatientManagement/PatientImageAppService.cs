@@ -169,6 +169,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
     public async Task DeleteAsync(Guid id)
     {
         var image = await LoadAsync(id);
+        image.EnsureDeletableOn(ClinicCalendar.DateOf(DateTimeOffset.UtcNow));
 
         await _repository.DeleteAsync(id, autoSave: true);
         await _blobContainer.DeleteAsync(image.BlobName);
@@ -206,6 +207,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         var staffIds = items.Select(x => x.StaffId).Distinct().ToList();
         var users = await _userRepository.GetListByIdsAsync(staffIds);
         var staffNames = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
 
         return items.Select(x => new PatientImageDto
         {
@@ -224,6 +226,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             Ordering = x.Ordering,
             Url = $"/api/v1/app/patient-images/{x.Id}/content",
             StaffName = staffNames.TryGetValue(x.StaffId, out var staff) ? staff : null,
+            Deletable = x.IsDeletableOn(today),
             CreationTime = x.CreationTime,
             CreatorId = x.CreatorId,
             LastModificationTime = x.LastModificationTime,

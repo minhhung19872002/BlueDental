@@ -95,6 +95,28 @@ public class PaymentRoundTests
     }
 
     [Fact]
+    public void Khuyen_mai_on_the_slip_head_is_the_relief_of_paid_receipts_before_VAT()
+    {
+        // P0111_02 (R-1104): BA — VAT sits in the price and belongs to Công nợ.
+        var plan = Open();
+        var taxed = Line(plan, 10_000_000m, ServiceTaxRate.Ten);
+        var plain = Line(plan, 2_000_000m);
+        var money = new PatientMoneyCalculator();
+
+        money.ForPlan(plan, []).Promotion.ShouldBe(0m);
+
+        var drafts = Round(plan, Unpaid, [taxed, plain], (taxed, 1_000_000m), (plain, 200_000m))
+            .Drafts(Cash((taxed, 4_400_000m), (plain, 1_800_000m)));
+        var payments = new List<PatientPayment> { Paid(plan, drafts) };
+
+        var slip = money.ForPlan(plan, payments);
+        slip.Promotion.ShouldBe(1_200_000m);
+        slip.Relief.ShouldBe(1_300_000m);
+        money.ForLines(plan, new HashSet<Guid> { plain.Id }, payments).Promotion.ShouldBe(200_000m);
+        money.ForPatient([plan], payments).Promotion.ShouldBe(1_200_000m);
+    }
+
+    [Fact]
     public void The_rounding_left_over_lands_on_the_round_that_clears_the_line()
     {
         var plan = Open();

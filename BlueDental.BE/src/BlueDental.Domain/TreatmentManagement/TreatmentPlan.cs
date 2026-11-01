@@ -243,9 +243,15 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
             .Where(line => lineIds is null || lineIds.Contains(line.Id))
             .Sum(line => ReliefOffPayableOf(line, settled.GetValueOrDefault(line.Id, LineSettlement.None).Relief));
 
-    /// <summary>The counted lines' relief before VAT — what a report books as discount.</summary>
-    public decimal ReliefOn(IReadOnlyDictionary<Guid, LineSettlement> settled) =>
-        CountedServices.Sum(line => settled.GetValueOrDefault(line.Id, LineSettlement.None).Relief);
+    /// <summary>
+    /// The counted lines' relief before VAT, or <paramref name="lineIds"/>' of
+    /// them — what a report books as discount and the slip head reads as Khuyến mãi.
+    /// </summary>
+    public decimal ReliefOn(
+        IReadOnlyDictionary<Guid, LineSettlement> settled, IReadOnlySet<Guid>? lineIds = null) =>
+        CountedServices
+            .Where(line => lineIds is null || lineIds.Contains(line.Id))
+            .Sum(line => settled.GetValueOrDefault(line.Id, LineSettlement.None).Relief);
 
     /// <summary>The VAT inside <paramref name="amount"/> of the line's money, backed out at its rate.</summary>
     public static decimal TaxWithin(TreatmentService line, decimal amount) =>

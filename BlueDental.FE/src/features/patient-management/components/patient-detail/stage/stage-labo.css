@@ -62,11 +62,13 @@
   text-decoration: underline;
 }
 
-/* m7: Tạo Labo and the read-only count on one line. */
+/* m7: Tạo Labo and the read-only count on one line, the count dropping
+   under the button when the cell is too narrow for both (R-1105). */
 .pd-stage-labo-create {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 10px;
 }
 
 .pd-stage-labo-create > .ant-btn {

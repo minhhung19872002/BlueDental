@@ -19,6 +19,8 @@ export interface StageHistoryLeaves {
   labo: boolean;
   /** treatmentLabo.read — "Xem phiếu Labo" beside the order chip and under the lock. */
   laboRead: boolean;
+  /** treatmentImage.delete — the red × on a picture uploaded today (R-1111). */
+  imageDelete: boolean;
 }
 
 export interface StageRowHandlers {

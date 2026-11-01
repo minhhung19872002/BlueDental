@@ -365,6 +365,15 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             query = query.Where(o => o.PatientId == input.PatientId.Value);
         if (input.DentistId.HasValue)
             query = query.Where(o => o.DentistId == input.DentistId.Value);
+        if (input.TreatmentPlanId.HasValue)
+        {
+            // An order names its line, not its plan: the plan's lines are read first.
+            var planId = input.TreatmentPlanId.Value;
+            var lineIds = await AsyncExecuter.ToListAsync((await _planRepository.GetQueryableAsync())
+                .Where(p => p.Id == planId)
+                .SelectMany(p => p.Services.Select(s => s.Id)));
+            query = query.Where(o => o.TreatmentServiceId.HasValue && lineIds.Contains(o.TreatmentServiceId.Value));
+        }
         if (input.Kind.HasValue)
             query = query.Where(o => o.Kind == input.Kind.Value);
         if (input.Status.HasValue)
@@ -837,16 +846,18 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     }
 
     /// <summary>
-    /// The check's loose Ảnh kiểm tra plus each Lỗi tooth's Hình ảnh lỗi: a
-    /// tooth picture names a tooth marked Lỗi in this check, five at most each.
+    /// The check's loose Ảnh kiểm tra plus each checked tooth's pictures — a
+    /// Lỗi tooth's Hình ảnh lỗi, or what a Đạt tooth looked like on arrival
+    /// (P0111_02, R-1110): a tooth picture names a tooth marked Đạt or Lỗi in
+    /// this check, five at most each.
     /// </summary>
     private static List<LaboPicture> CheckPicturesOf(CheckLaboOrderDto input, List<LaboRoundToothResult> results)
     {
         var files = input.ToothPictures ?? [];
         var teeth = input.ToothPictureTeeth ?? [];
-        var failed = results.Where(r => r.Result == LaboToothCheckResult.Failed)
+        var checkedTeeth = results.Where(r => r.Result != LaboToothCheckResult.None)
             .Select(r => r.ToothNumber).ToHashSet();
-        if (files.Count != teeth.Count || teeth.Any(t => !failed.Contains(t)))
+        if (files.Count != teeth.Count || teeth.Any(t => !checkedTeeth.Contains(t)))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothNotOnOrder);
         }

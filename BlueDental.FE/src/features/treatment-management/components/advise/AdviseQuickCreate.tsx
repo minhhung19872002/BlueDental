@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Button, Tooltip } from "antd";
 import { Plus } from "lucide-react";
 import {
   TAXONOMY_GROUP,
@@ -13,7 +12,7 @@ import { toComboOption, type CatalogComboOption } from "@/hooks/useCatalogCombos
 import type { CatalogOption } from "@/hooks/useCatalogOptions";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import type { AdviseKind } from "./AdvisePickerHead";
+import type { AdviseKind } from "./adviseTypes";
 
 interface Props {
   /** The tab open: Dịch vụ lẻ adds a service, Combo adds a combo. */
@@ -42,7 +41,7 @@ function serviceOptionOf(entry: CatalogEntryDto): CatalogOption {
 }
 
 /**
- * The round + beside "Tìm dịch vụ" (BA #34): adds a missing service — or, on
+ * "+ Thêm dịch vụ" beside the search (BA #34; a text button since P0111_02, R-1114): adds a missing service — or, on
  * the Combo tab, a combo — on the spot instead of a trip to Danh mục. It opens
  * Danh mục's own dialog, the same form as there, and the saved entry comes
  * back ticked. Offered to whoever may add to the Dịch vụ catalog; the server
@@ -56,7 +55,7 @@ export function AdviseQuickCreate({ kind, groupId, onServiceCreated, onComboCrea
 
   if (!canCreate) return null;
 
-  const label = kind === "combo" ? t("Treatment:Advise:QuickCreateCombo") : t("Treatment:Advise:QuickCreateService");
+  const label = kind === "combo" ? t("Treatment:Advise:AddCombo") : t("Treatment:Advise:AddService");
   const shared = {
     entry: null,
     groups: groups ?? [],
@@ -66,17 +65,16 @@ export function AdviseQuickCreate({ kind, groupId, onServiceCreated, onComboCrea
 
   return (
     <>
-      <Tooltip title={label}>
-        <Button
-          shape="circle"
-          className="am-round"
-          aria-label={label}
-          icon={<Plus size={18} />}
-          // The dialog starts on a group, so it waits for the list.
-          disabled={!groups}
-          onClick={() => setOpenKind(kind)}
-        />
-      </Tooltip>
+      <button
+        type="button"
+        className="am-tool-btn"
+        // The dialog starts on a group, so it waits for the list.
+        disabled={!groups}
+        onClick={() => setOpenKind(kind)}
+      >
+        <Plus size={16} />
+        {label}
+      </button>
       <ServiceDialog
         open={openKind === "single"}
         onCreated={(entry) => onServiceCreated(serviceOptionOf(entry))}

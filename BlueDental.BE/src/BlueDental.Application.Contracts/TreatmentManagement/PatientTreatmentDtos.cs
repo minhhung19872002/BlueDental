@@ -31,6 +31,9 @@ public class PaymentSummaryDto
     /// paid receipts, with the VAT they took down — already off <see cref="Debt"/>.
     /// </summary>
     public decimal Relief { get; set; }
+
+    /// <summary>Khuyến mãi (P0111_02, R-1104): <see cref="Relief"/> before VAT.</summary>
+    public decimal Promotion { get; set; }
 }
 
 /// <summary>One step of a service — the reference's <c>service.stages[]</c> entry.</summary>

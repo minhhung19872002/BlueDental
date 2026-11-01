@@ -4614,7 +4614,7 @@
 }
 .pd-stage-histhead {
   display: grid;
-  grid-template-columns: 190px 1fr 1.15fr 0.85fr 0.7fr 0.7fr;
+  grid-template-columns: 190px minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.85fr) minmax(0, 0.7fr) minmax(0, 0.7fr);
   border-bottom: 1px solid var(--bd-border);
   background: var(--bd-bg-head);
   color: var(--bd-muted);
@@ -4652,9 +4652,12 @@
   color: var(--bd-muted);
   font-size: 14px;
 }
+/* minmax(0, …): a bare fr track grows to its widest content, so a cell
+   holding Tạo Labo + "BN có n phiếu" pushed its row out of line with the
+   header (P0111_02, R-1105). The header uses the same tracks. */
 .pd-stage-histrow {
   display: grid;
-  grid-template-columns: 1fr 1.15fr 0.85fr 0.7fr 0.7fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.85fr) minmax(0, 0.7fr) minmax(0, 0.7fr);
 }
 .pd-stage-histrow + .pd-stage-histrow {
   border-top: 1px solid var(--bd-border);
@@ -4699,6 +4702,23 @@
   width: 68px;
   height: 68px;
   object-fit: cover;
+}
+.pd-stage-histshots .pd-stage-histshot-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 1;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bd-red);
+  color: var(--bd-card);
+  cursor: pointer;
+  font-size: 10px;
 }
 .pd-stage-histshots em {
   position: absolute;

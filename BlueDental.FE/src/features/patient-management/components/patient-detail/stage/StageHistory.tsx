@@ -1,11 +1,12 @@
 import { useState, type Ref } from "react";
-import { Button, Image } from "antd";
+import { Button } from "antd";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageEditPencil } from "./StageEditPencil";
 import { NOTE_LIMIT } from "./StageForm";
+import { StageHistoryShots } from "./StageHistoryShots";
 import { StageHistoryTeeth } from "./StageHistoryTeeth";
 import { StageLaboChip } from "./StageLaboParts";
 import { StageNoteBullets } from "./StageNoteBullets";
@@ -36,6 +37,8 @@ interface Props extends StageRowHandlers {
   onSaveNote: (stage: TreatmentStageDto, note: string) => void;
   /** Ghi chú; resolves true once the server took it. */
   onSaveRemark: (stage: TreatmentStageDto, remark: string) => Promise<boolean>;
+  /** The red × on a công đoạn picture: asks before it goes. */
+  onDeleteImage: (image: PatientImageDto) => void;
   /** Which of the reference's warranty controls a finished row shows. */
   warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
   /** Every tooth of the row's service, each marked worked, done or neither. */
@@ -132,6 +135,7 @@ export function StageHistory({
   can,
   onSaveNote,
   onSaveRemark,
+  onDeleteImage,
   onComplete,
   onUpload,
   onCreateLabo,
@@ -170,7 +174,6 @@ export function StageHistory({
                 </div>
                 <div>
                   {day.stages.map((stage) => {
-                    const images = imagesOf(stage.id);
                     // A công đoạn continued by a later one is history: its
                     // controls lock one by one and Tạo Labo goes. The reference
                     // also fades the row; the owner dropped that (2026-10-29),
@@ -203,18 +206,11 @@ export function StageHistory({
                               onView={can.laboRead ? () => onOpenLabo(labo.orderId) : undefined}
                             />
                           )}
-                          {images.length > 0 && (
-                            <div className="pd-stage-histshots">
-                              <Image.PreviewGroup>
-                                {images.map((image) => (
-                                  <span key={image.id}>
-                                    <Image src={image.url} alt={t("Patient:Photo:Treatment")} />
-                                    <em>{t("Patient:Photo:Treatment")}</em>
-                                  </span>
-                                ))}
-                              </Image.PreviewGroup>
-                            </div>
-                          )}
+                          <StageHistoryShots
+                            images={imagesOf(stage.id)}
+                            canDelete={can.imageDelete}
+                            onDelete={onDeleteImage}
+                          />
                         </div>
 
                         <NoteCell

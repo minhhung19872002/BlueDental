@@ -6,26 +6,20 @@ import { PLAN_TAB, PLAN_TAB_LABELS, type PlanTabKey } from "./planDetailTypes";
 interface Stat {
   key: keyof PaymentSummaryDto;
   label: string;
-  tone: "ink" | "green" | "red" | "amber";
+  tone: "ink" | "green" | "red" | "orange";
 }
 
 /**
- * The six figures on the right of the tab strip, in the reference's order
- * (re-measured 2026-09-22 — "Tạm ứng" sits between "Đã hoàn" and "Dư nợ", and
- * was missing here).
- *
- * "Tạm ứng" reads `paidUncompleted`: money collected on the slip that the work
- * has not earned yet. The reference's payload carries the same figure in
- * `prepaid` on the one slip that could be observed, so which of the two it
- * prints is recorded as unknown — see docs/clone/unknowns.md.
+ * The five figures on the right of the tab strip (P0111_02, R-1104): Tạm ứng
+ * and Dư nợ are gone, and Khuyến mãi — the TN giảm and vouchers of confirmed
+ * receipts, before VAT — sits between Đã thanh toán and Công nợ.
  */
 const STATS: Stat[] = [
   { key: "totalPrice", label: "Treatment:PlanDetail:Stat:ExpectedRevenue", tone: "ink" },
   { key: "totalPaid", label: "Treatment:PlanDetail:Stat:Paid", tone: "ink" },
+  { key: "promotion", label: "Treatment:PlanDetail:Stat:Promotion", tone: "orange" },
   { key: "debt", label: "Treatment:PlanDetail:Stat:Debt", tone: "green" },
   { key: "totalRefund", label: "Treatment:PlanDetail:Stat:Refunded", tone: "red" },
-  { key: "paidUncompleted", label: "Treatment:PlanDetail:Stat:Prepaid", tone: "amber" },
-  { key: "outstandingDebt", label: "Treatment:PlanDetail:Stat:OutstandingDebt", tone: "amber" },
 ];
 
 /** Bảo hành's count and its orange "k chờ" (P3110 REQ-B1); absent until read. */

@@ -218,6 +218,8 @@ export interface LaboOrderDto {
 
 export interface LaboOrderListParams {
   patientId?: string;
+  /** The phiếu điều trị the orders were raised under (P0111_02, R-1106). */
+  treatmentPlanId?: string;
   dentistId?: string;
   status?: LaboStatus;
   /** The filter card pressed on the patient's Labo tab. */
@@ -282,6 +284,20 @@ export function usePatientLaboOrders(
     // Turning a page or pressing a card narrows the table in place rather
     // than blanking it.
     placeholderData: (previous) => previous,
+  });
+}
+
+/**
+ * Every order already raised under one phiếu điều trị, newest first: the
+ * Đặt hàng tab warns of a tooth sent on it before (P0111_02, R-1106). A slip
+ * carries a handful of orders, so one page holds them all.
+ */
+export function usePlanLaboOrders(patientId: string, treatmentPlanId: string | undefined, enabled: boolean) {
+  const params: LaboOrderListParams = { patientId, treatmentPlanId, maxResultCount: 1000 };
+  return useQuery({
+    queryKey: ["labo-orders", params],
+    queryFn: () => laboApi.list(params),
+    enabled: enabled && Boolean(patientId) && Boolean(treatmentPlanId),
   });
 }
 

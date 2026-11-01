@@ -2,6 +2,9 @@ import { DISCOUNT_TYPE, type DiscountType } from "../../api/consultingApi";
 import type { CatalogComboOption } from "@/hooks/useCatalogCombos";
 import type { CatalogOption } from "@/hooks/useCatalogOptions";
 
+/** The tab open on the left of "Chọn dịch vụ": single services or combos. */
+export type AdviseKind = "single" | "combo";
+
 /** What the clinician has typed on one ticked row of "Chọn Dịch Vụ". */
 export interface AdviseRowDraft {
   /**

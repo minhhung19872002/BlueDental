@@ -367,7 +367,7 @@ public class CheckLaboOrderDto
     /// <summary>Ảnh kiểm tra not tied to a tooth (pre-P3110 callers).</summary>
     public List<IRemoteStreamContent>? Pictures { get; set; }
 
-    /// <summary>Hình ảnh lỗi of the Lỗi teeth (P3110 REQ-D6); <see cref="ToothPictureTeeth"/> names each one's tooth.</summary>
+    /// <summary>Pictures of the checked teeth — Lỗi teeth's Hình ảnh lỗi (P3110 REQ-D6), Đạt teeth's own (R-1110); <see cref="ToothPictureTeeth"/> names each one's tooth.</summary>
     public List<IRemoteStreamContent>? ToothPictures { get; set; }
 
     /// <summary>The tooth of each <see cref="ToothPictures"/> entry, same order.</summary>
@@ -418,6 +418,13 @@ public class GetLaboOrderListInput : PagedAndSortedResultRequestDto
     public LaboOrderKind? Kind { get; set; }
     public Guid? BranchId { get; set; }
     public Guid? PatientId { get; set; }
+
+    /// <summary>
+    /// The phiếu điều trị the orders were raised under — read through their
+    /// service line. The Đặt hàng tab warns with it of a tooth already sent
+    /// on that slip (P0111_02, R-1106).
+    /// </summary>
+    public Guid? TreatmentPlanId { get; set; }
 
     /// <summary>"BE:Common:SelectDentist" — the dentist the sample was ordered by.</summary>
     public Guid? DentistId { get; set; }

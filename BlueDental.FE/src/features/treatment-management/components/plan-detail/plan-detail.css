@@ -174,8 +174,8 @@ a.pdt-crumb:hover {
 .pdt-stat--red dd {
   color: #e5484d;
 }
-.pdt-stat--amber dd {
-  color: #d97706;
+.pdt-stat--orange dd {
+  color: #ea580c;
 }
 
 /* ── One tab's content ── */

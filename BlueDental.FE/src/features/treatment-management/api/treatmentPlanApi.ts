@@ -191,6 +191,8 @@ export interface PaymentSummaryDto {
    * receipts, with the VAT they took down — already off `debt`.
    */
   relief: number;
+  /** Khuyến mãi (P0111_02, R-1104): `relief` before VAT — the VAT stays with Công nợ. */
+  promotion: number;
 }
 
 /** One step of a service — the reference's service.stages[] entry. */

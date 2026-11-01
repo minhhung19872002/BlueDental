@@ -61,6 +61,13 @@ public class PaymentSummary : ComparableValueObject
     /// </summary>
     public decimal Relief { get; private set; }
 
+    /// <summary>
+    /// Khuyến mãi on the slip's Thanh toán head (P0111_02, R-1104): the same TN
+    /// giảm and vouchers of paid receipts as <see cref="Relief"/>, before VAT —
+    /// the VAT sits in the price and stays with Công nợ (BA 2026-11-01).
+    /// </summary>
+    public decimal Promotion { get; private set; }
+
     /// <summary>Dư nợ tồn — carried-over debt balance.</summary>
     public decimal OutstandingDebt { get; private set; }
 
@@ -89,9 +96,11 @@ public class PaymentSummary : ComparableValueObject
         decimal outstandingDebtConsumed = 0m,
         decimal prepaid = 0m,
         decimal? carryOverAmount = null,
-        decimal relief = 0m)
+        decimal relief = 0m,
+        decimal promotion = 0m)
     {
-        if (totalPrice < 0m || totalPaid < 0m || totalRefund < 0m || discount < 0m || prepaid < 0m || relief < 0m)
+        if (totalPrice < 0m || totalPaid < 0m || totalRefund < 0m || discount < 0m || prepaid < 0m || relief < 0m
+            || promotion < 0m)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.NegativePaymentAmount,
@@ -112,6 +121,7 @@ public class PaymentSummary : ComparableValueObject
         Prepaid = prepaid;
         CarryOverAmount = carryOverAmount;
         Relief = relief;
+        Promotion = promotion;
     }
 
     public static PaymentSummary Zero() => new();
@@ -130,7 +140,8 @@ public class PaymentSummary : ComparableValueObject
         decimal outstandingDebtConsumed = 0m,
         decimal prepaid = 0m,
         decimal? carryOverAmount = null,
-        decimal relief = 0m)
+        decimal relief = 0m,
+        decimal promotion = 0m)
     {
         // Measured against the reference on 2026-09-21 (staging, three payloads:
         // two slips and the patient rollup). Its arithmetic is
@@ -161,7 +172,8 @@ public class PaymentSummary : ComparableValueObject
             outstandingDebtConsumed: outstandingDebtConsumed,
             prepaid: prepaid,
             carryOverAmount: carryOverAmount,
-            relief: relief);
+            relief: relief,
+            promotion: promotion);
     }
 
     protected override IEnumerable<object> GetAtomicValues()
@@ -180,5 +192,6 @@ public class PaymentSummary : ComparableValueObject
         yield return Prepaid;
         yield return (object?)CarryOverAmount ?? string.Empty;
         yield return Relief;
+        yield return Promotion;
     }
 }

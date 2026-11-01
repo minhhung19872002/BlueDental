@@ -164,6 +164,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>Another hồ sơ on the same phone already has this full name (P2710_02).</summary>
         public const string DuplicateNameOnPhone = "BlueDental:Patient:0035";
+
+        /// <summary>A công đoạn picture may only be deleted on the day it was uploaded (P0111_02).</summary>
+        public const string StageImageDeleteExpired = "BlueDental:Patient:0036";
     }
 
     public static class Appointments

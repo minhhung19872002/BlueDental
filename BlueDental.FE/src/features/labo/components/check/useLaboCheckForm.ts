@@ -50,7 +50,7 @@ export interface LaboCheckForm {
   verdict: LaboCheckVerdict;
   /** The Lỗi teeth now: what Trả hàng bị lỗi sends back. */
   failed: number[];
-  /** Hình ảnh lỗi, one set per tooth. */
+  /** One set per tooth: a Lỗi tooth's Hình ảnh lỗi, a Đạt tooth's own (R-1110). */
   tiles: LaboPictureTiles;
   /** A Lỗi tooth left without Hình ảnh lỗi after a refused Trả hàng bị lỗi (REQ-D6, R-1093). */
   picturesMissing: (tooth: number) => boolean;
@@ -141,7 +141,10 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
     const toothFields = numbers.map((tooth) => ["teeth", toothKey(tooth), "result"]);
     const noteFields = failed.map((tooth) => ["teeth", toothKey(tooth), "note"]);
     if (!(await validate([...RECEIVE_FIELDS, ...toothFields, ...(returning ? [...noteFields, ...RETURN_FIELDS] : [])]))) return;
-    const toothPictures = returning ? tiles.upload(failed).toothPictures : [];
+    const values: LaboCheckValues = form.getFieldsValue(true);
+    // Every checked tooth sends its pictures, Đạt ones too (P0111_02, R-1110).
+    const checked = numbers.filter((tooth) => values.teeth?.[toothKey(tooth)]?.result != null);
+    const toothPictures = tiles.upload(checked).toothPictures;
     // P3110 REQ-D6: every Lỗi tooth carries its own Hình ảnh lỗi.
     const unpictured = returning ? failed.find((tooth) => !toothPictures.some((picture) => picture.tooth === tooth)) : undefined;
     if (unpictured !== undefined) {
@@ -150,7 +153,6 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
       toast.error(t("Labo:Check:PicturesRequired", unpictured));
       return;
     }
-    const values: LaboCheckValues = form.getFieldsValue(true);
     try {
       await receive.mutateAsync(receiveBody(values));
       await check.mutateAsync({

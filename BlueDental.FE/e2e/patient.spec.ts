@@ -2453,22 +2453,19 @@ test.describe("Bệnh nhân", () => {
 
   test("Tạo Labo opens Đặt hàng filled from the công đoạn", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
-    const { serviceId } = await openPatientWithTreatment(page, "stageable");
+    const target = await openPatientWithTreatment(page, "stageable");
+    const { serviceId } = target;
+    // Only a live, unfinished công đoạn offers Tạo Labo. Earlier specs may
+    // have finished every one the line has, so a fresh one is always added —
+    // through the API, which names the dentist the inline form would ask for.
+    await addStage(page, target, `e2e Tạo Labo ${runId()}`);
+    await page.reload();
 
     const dialog = await openStageDialog(page, serviceId);
-    // Only a live, unfinished công đoạn offers Tạo Labo. Earlier specs may
-    // have finished every one the line has, so a fresh one is added then.
     const rows = dialog
       .locator(".pd-stage-histrow")
       .filter({ has: page.getByRole("button", { name: "Tạo Labo" }) });
-    if ((await rows.count()) === 0) {
-      await dialog.locator(".pd-stage-picks button").first().click();
-      await dialog.locator(".pd-stage-form textarea").first().fill(`e2e ${runId()}`);
-      await dialog
-        .getByRole("button", { name: /Lưu công đoạn|Tiếp tục công đoạn|Tiếp tục bảo hành/ })
-        .click();
-      await expect(rows).not.toHaveCount(0);
-    }
+    await expect(rows).not.toHaveCount(0);
 
     await rows.first().getByRole("button", { name: "Tạo Labo" }).click();
 
@@ -2492,7 +2489,7 @@ test.describe("Bệnh nhân", () => {
     // button rather than typed (P2910_03).
     await expect(labo.locator(".floating-field", { hasText: "Số lượng" })).toHaveCount(0);
     await expect(labo.getByRole("button", { name: "Lưu nháp" })).toBeVisible();
-    await expect(labo.getByRole("button", { name: "Gửi Labo & in phiếu" })).toBeVisible();
+    await expect(labo.getByRole("button", { name: "Tạo phiếu Labo" })).toBeVisible();
   });
 
   test("the treatment table is one row per công đoạn, grouped by day", async ({ page }) => {
@@ -3160,6 +3157,73 @@ test.describe("Bệnh nhân", () => {
       el.scrollLeft = el.scrollWidth;
     });
     await expect(treatmentRow(page, line.serviceId).locator(".pd-tr-addstage")).toBeVisible();
+  });
+
+  test("a công đoạn picture carries its × on the day it was uploaded and is deleted by it (P0111_02, R-1111)", async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    const line = await addLine(page, await openPatientWithTreatment(page, "stageable"));
+    const stageId = await addStage(page, line, `e2e xoá ảnh công đoạn ${runId()}`);
+
+    // Uploaded the way the công đoạn's own Tải ảnh does: tied to the plan and the stage.
+    const uploaded = await page.evaluate(
+      async ({ target, stage, base64 }) => {
+        const branchId =
+          target.branchId ??
+          (JSON.parse(localStorage.getItem("bd-current-branch-id") ?? "{}").state?.currentBranchId ?? null);
+        const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+        const form = new FormData();
+        form.append("file", new File([bytes], "cong-doan.png", { type: "image/png" }));
+        form.append("patientId", target.patientId);
+        form.append("clinicBranchId", branchId);
+        form.append("treatmentPlanId", target.planId);
+        form.append("treatmentStageId", stage);
+        const res = await fetch("/api/v1/app/patient-images", {
+          method: "POST",
+          credentials: "include",
+          headers: branchId ? { "X-Clinic-Branch-Id": branchId } : {},
+          body: form,
+        });
+        return { status: res.status, body: (await res.json()) as { id: string; deletable: boolean } };
+      },
+      {
+        target: line,
+        stage: stageId,
+        base64:
+          "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAJUlEQVR42u3OMQEAAAgDoJnc6BpjDwmg2XCqAAAAAAAAAAAA4LcFvxYBAWfnQVUAAAAASUVORK5CYII=",
+      },
+    );
+    expect(uploaded.status).toBe(200);
+    // The server says it may go today; a later day it refuses (Domain.Tests PatientImageTests).
+    expect(uploaded.body.deletable).toBe(true);
+
+    await page.reload();
+    const dialog = await openStageDialog(page, line.serviceId);
+    const live = liveHistRows(dialog, line.serviceId).first();
+    const shot = live.locator(".pd-stage-histshots img");
+    await expect(shot).toHaveCount(1);
+    const remove = live.getByRole("button", { name: "Xóa ảnh" });
+    await expect(remove).toHaveCount(1);
+
+    // Huỷ keeps it; Xoá takes it off the row and off the server.
+    await remove.click();
+    const confirm = page.getByRole("dialog", { name: "Xác nhận xoá ảnh" });
+    await expect(confirm).toContainText("Bạn có chắc muốn xoá ảnh này không?");
+    await confirm.getByRole("button", { name: "Huỷ" }).click();
+    await expect(confirm).toBeHidden();
+    await expect(shot).toHaveCount(1);
+
+    await remove.click();
+    const deleted = page.waitForResponse(
+      (res) => res.request().method() === "DELETE" && res.url().includes(`/api/v1/app/patient-images/${uploaded.body.id}`),
+    );
+    await confirm.getByRole("button", { name: "Xoá" }).click();
+    expect((await deleted).ok()).toBeTruthy();
+    await expect(page.getByText("Đã xoá ảnh")).toBeVisible();
+    await expect(shot).toHaveCount(0);
+
+    await page.reload();
+    const again = await openStageDialog(page, line.serviceId);
+    await expect(liveHistRows(again, line.serviceId).first().locator(".pd-stage-histshots img")).toHaveCount(0);
   });
 
   test("Hoàn thành ticks with no image, even on a service that asks for one", async ({ page }) => {

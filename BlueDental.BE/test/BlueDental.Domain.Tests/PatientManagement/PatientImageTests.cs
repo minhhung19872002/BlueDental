@@ -14,6 +14,49 @@ public class PatientImageTests
             Guid.NewGuid(), DateTimeOffset.UtcNow,
             type: type, ordering: ordering);
 
+    private static PatientImage Uploaded(DateTime utc, Guid? stageId)
+    {
+        var image = PatientImage.Attach(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            "patients/x/1.png", "1.png", "image/png", 1024,
+            Guid.NewGuid(), DateTimeOffset.UtcNow, treatmentStageId: stageId);
+        // Auditing fills CreationTime on save, and its setter is protected.
+        ObjectHelper.TrySetProperty(image, x => x.CreationTime, () => utc);
+        return image;
+    }
+
+    [Theory]
+    // 2026-10-31 18:00 UTC is already 01:00 on 1 Nov at the clinic.
+    [InlineData("2026-10-31T18:00:00", "2026-11-01", true)]
+    [InlineData("2026-11-01T16:59:00", "2026-11-01", true)]
+    [InlineData("2026-11-01T02:00:00", "2026-11-02", false)]
+    [InlineData("2026-10-31T16:00:00", "2026-11-01", false)]
+    public void A_Stage_Picture_Is_Deletable_Only_On_Its_Clinic_Upload_Day(string uploadedUtc, string today, bool deletable)
+    {
+        // P0111_02 (R-1111): "khi ngày upload = ngày hiện tại; qua ngày rồi thì không cho xóa nữa".
+        var image = Uploaded(DateTime.SpecifyKind(DateTime.Parse(uploadedUtc), DateTimeKind.Utc), Guid.NewGuid());
+
+        Assert.Equal(deletable, image.IsDeletableOn(DateOnly.Parse(today)));
+    }
+
+    [Fact]
+    public void A_Stage_Picture_Past_Its_Upload_Day_Refuses_Deletion()
+    {
+        var image = Uploaded(new DateTime(2026, 10, 30, 3, 0, 0, DateTimeKind.Utc), Guid.NewGuid());
+
+        var ex = Assert.Throws<BusinessException>(() => image.EnsureDeletableOn(new DateOnly(2026, 11, 1)));
+        Assert.Equal(BlueDentalDomainErrorCodes.PatientManagement.StageImageDeleteExpired, ex.Code);
+    }
+
+    [Fact]
+    public void A_Picture_Outside_A_Stage_Stays_Deletable_Any_Day()
+    {
+        var image = Uploaded(new DateTime(2026, 1, 2, 3, 0, 0, DateTimeKind.Utc), stageId: null);
+
+        image.EnsureDeletableOn(new DateOnly(2026, 11, 1));
+        Assert.True(image.IsDeletableOn(new DateOnly(2026, 11, 1)));
+    }
+
     [Fact]
     public void Attach_Defaults_To_Before_Treatment_At_Position_One()
     {

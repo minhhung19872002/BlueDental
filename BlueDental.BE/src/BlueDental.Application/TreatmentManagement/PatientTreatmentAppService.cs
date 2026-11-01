@@ -1338,6 +1338,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         OutstandingDebtConsumed = summary.OutstandingDebtConsumed,
         Prepaid = summary.Prepaid,
         CarryOverAmount = summary.CarryOverAmount,
-        Relief = summary.Relief
+        Relief = summary.Relief,
+        Promotion = summary.Promotion
     };
 }

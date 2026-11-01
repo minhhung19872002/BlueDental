@@ -2,6 +2,7 @@ import { useState, type Ref } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { DollarOutlined, PrinterOutlined } from "@ant-design/icons";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { t } from "@/lib/i18n";
@@ -19,6 +20,7 @@ import { StagePicks } from "./stage/StagePicks";
 import { TreatmentHistoryPrintDialog } from "./stage/TreatmentHistoryPrintDialog";
 import type { StageTab } from "./stage/stageModel";
 import type { StageComposer } from "./stage/useStageComposer";
+import { useStageImageDelete } from "./stage/useStageImageDelete";
 import "./patient-detail.css";
 
 /** i18n keys per tab: its caption, what an empty tab says, its save button. */
@@ -88,6 +90,8 @@ export function TreatmentStagePanel({
   const canPay = useAbility("payment").canCreate;
   const stageAbility = useAbility("treatmentStage");
   const laboAbility = useAbility("treatmentLabo");
+  const imageAbility = useAbility("treatmentImage");
+  const imageDelete = useStageImageDelete();
 
   const [printing, setPrinting] = useState(false);
   const [laboTarget, setLaboTarget] = useState<LaboWorkflowTarget | null>(null);
@@ -211,9 +215,11 @@ export function TreatmentStagePanel({
           warranty: stageAbility.canCreate,
           labo: laboAbility.canCreate,
           laboRead: laboAbility.canRead,
+          imageDelete: imageAbility.canDelete,
         }}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
         onSaveRemark={composer.saveRemark}
+        onDeleteImage={imageDelete.ask}
         onComplete={(stage) => void composer.finish(stage)}
         onUpload={composer.pickForStage}
         onCreateLabo={(stage) => setLaboTarget({ kind: "create", source: sourceFromStage(plan, stage) })}
@@ -229,6 +235,16 @@ export function TreatmentStagePanel({
         stages={composer.stages}
         statusOf={composer.statusOf}
         onClose={() => setPrinting(false)}
+      />
+
+      <ConfirmDeleteDialog
+        open={imageDelete.removing !== null}
+        noun={t("Patient:Image:Noun")}
+        title={t("Patient:Image:DeleteTitle")}
+        question={t("Patient:Image:DeleteQuestion")}
+        pending={imageDelete.pending}
+        onConfirm={() => void imageDelete.confirm()}
+        onClose={imageDelete.cancel}
       />
 
       <LaboWorkflowDialog

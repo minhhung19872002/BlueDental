@@ -305,19 +305,21 @@ test.describe("Combo dịch vụ — review P0510", () => {
     await notice.getByRole("button", { name: "Áp dụng Combo" }).click();
     await expect(dialog.getByRole("tab", { name: /Combo/ })).toHaveAttribute("aria-selected", "true");
     await dialog.getByPlaceholder("Tìm combo").fill(stamp);
-    const card = dialog.getByRole("article", { name: comboName });
+    // A row of the same table as Dịch vụ lẻ since P0111_02 (R-1114).
+    const card = dialog.locator(".am-table tbody tr", { hasText: comboName });
     await expect(card).toBeVisible({ timeout: 15_000 });
     await expect(card).toContainText(money(1_450_000));
     await expect(card).toContainText("-15%");
 
-    // Picking the combo clears the ticked service; the button turns into "Hủy dịch vụ".
-    await card.getByRole("button", { name: "Chọn combo" }).click();
-    await expect(card.getByRole("button", { name: "Hủy dịch vụ" })).toBeVisible();
+    // Ticking the combo clears the ticked service.
+    const comboCheck = card.getByRole("checkbox", { name: comboName });
+    await comboCheck.check();
+    await expect(comboCheck).toBeChecked();
     const summary = page.locator(".am-summary");
     await expect(summary.locator(".am-summary-items li")).toHaveCount(1);
     await expect(summary).toContainText(comboName);
     await expect(summary).not.toContainText(cleaning.name);
-    await expect(summary).toContainText(`Giảm giá combo:${money(250_000)}`);
+    await expect(summary.locator(".am-summary-combo-off")).toHaveText(money(250_000));
     await expect(summary.locator(".am-summary-total")).toHaveText(money(1_450_000));
     await expect(notice).toHaveCount(0);
 

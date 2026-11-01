@@ -69,22 +69,6 @@ async function read(page: Page, id: string): Promise<LaboOrderView> {
   return res.body as LaboOrderView;
 }
 
-/**
- * «Gửi Labo & in phiếu» prints by itself (P3110 REQ-C10): window.print only
- * counts its calls here, so no preview blocks the run.
- */
-async function countPrints(page: Page) {
-  await page.addInitScript(() => {
-    const counted = window as unknown as { __prints: number };
-    counted.__prints = 0;
-    window.print = () => {
-      counted.__prints += 1;
-    };
-  });
-}
-
-const printsOf = (page: Page) => page.evaluate(() => (window as unknown as { __prints: number }).__prints);
-
 /** Thông số từng răng and its row for one tooth (P3110 m139). */
 function specTable(dialog: Locator) {
   const table = dialog.getByRole("region", { name: "Thông số từng răng" });
@@ -180,7 +164,6 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
 
   test("a Nháp is sent, returned for one tooth, passed on round 2 and gets a warranty card per tooth", async ({ page }) => {
     test.setTimeout(240_000);
-    await countPrints(page);
     const id = runId();
     const line = await laboLine(page);
     const catalog = await laboCatalog(page, line.branchId, id);
@@ -196,7 +179,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     const orderCode = draft.body.orderCode!;
     const dialog = workflowDialog(page);
 
-    await test.step("Đặt hàng: Lưu nháp keeps a Nháp, Gửi Labo & in phiếu sends and prints it", async () => {
+    await test.step("Đặt hàng: Lưu nháp keeps a Nháp, Tạo phiếu Labo sends it", async () => {
       await openLaboTab(page, line);
       const row = laboRow(page, orderCode);
       await expect(row).toContainText("Nháp");
@@ -231,10 +214,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       expect((await read(page, orderId)).status).toBe(LaboStatus.Draft);
 
       await row.getByRole("button", { name: "Xem chi tiết" }).click();
-      await dialog.getByRole("button", { name: "Gửi Labo & in phiếu" }).click();
+      await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
       await expect(page.getByText("Đã tạo phiếu Labo")).toBeVisible();
       await expect(dialog).toBeHidden();
-      await expect.poll(() => printsOf(page)).toBe(1);
       await expect(row).toContainText("Đã gửi Labo");
       expect(await actionNames(row)).toEqual(["Xem chi tiết", "Kiểm tra Labo"]);
       expect((await read(page, orderId)).status).toBe(LaboStatus.Sent);
@@ -310,7 +292,14 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Đạt 1 · Lỗi 1");
       // P3110 m342: Đã trả counts this return already; BH Labo waits for the fitting.
       await expect(toothRow(11)).toContainText("Đã trả: 0 lần");
-      await expect(toothRow(11)).toContainText("BH Labo: chưa kích hoạt · bật sau khi lắp");
+      await expect(toothRow(11)).toContainText("BH Labo: chưa kích hoạt");
+      await expect(toothRow(11)).not.toContainText("bật sau khi lắp"); // R-1112
+      // P0111_02 (R-1110): a Đạt tooth takes its own pictures, five at most.
+      const upload11 = toothRow(11).getByRole("button", { name: "Tải ảnh R11" });
+      await expect(upload11).toHaveText("Tải ảnh");
+      await toothRow(11).locator("input[type=file]").setInputFiles({ name: "dat-r11.png", mimeType: "image/png", buffer: PNG });
+      await expect(upload11).toHaveText("Tải ảnh (1/5)");
+      await expect(toothRow(11).locator(".pd-labo-tooth-pictures img")).toHaveCount(1);
       const row21 = toothRow(21);
       await expect(row21).toHaveClass(/pd-labo-tooth-row--fail/);
       await expect(row21).toContainText("Đã trả: 1 lần");
@@ -337,7 +326,8 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
         mimeType: "image/png",
         buffer: PNG,
       });
-      await expect(row21).toContainText("1 ảnh R21 đã tải");
+      // P0111_02 (R-1113): the defect well counts against the cap of five.
+      await expect(row21.locator(".pd-labo-defect")).toContainText("1/5");
       await expect(missing).toHaveCount(0);
 
       // The history shows the round being entered, by tooth (m189).
@@ -360,6 +350,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       expect(returned.status).toBe(LaboStatus.Returned);
       expect(returned.rounds?.[0].toothResults.find((tooth) => tooth.toothNumber === 21)?.note).toBe(note);
       expect(returned.teeth?.find((tooth) => tooth.toothNumber === 11)?.passedAt).toBeTruthy();
+      // Both teeth's pictures of round 1 were saved: R11 Đạt (R-1110), R21 Lỗi.
+      const round1 = returned.images.filter((image) => image.roundNo === 1);
+      expect(round1.map((image) => image.toothNumber).sort()).toEqual([11, 21]);
     });
 
     await test.step("one tooth Đạt, another Lỗi: still locked and no Kích hoạt bảo hành (BA)", async () => {
@@ -492,7 +485,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(fitted).toContainText(`BH Labo: đã kích hoạt · ${code11}`);
       const waiting = passedRows.filter({ hasText: "Răng 21" });
       await expect(waiting).toContainText("Đạt lần 2 · chờ lắp");
-      await expect(waiting).toContainText("BH Labo: chưa kích hoạt · bật sau khi lắp");
+      await expect(waiting).toContainText("BH Labo: chưa kích hoạt");
       await expect(passedRows.filter({ hasText: "không có trong lần giao này" })).toHaveCount(0);
       await expect(dialog.getByRole("button", { name: "Đạt" })).toHaveCount(0);
     });
@@ -513,11 +506,48 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     });
   });
 
+  test("a tooth already on another order of the slip is flagged, not blocked (P0111_02, R-1106)", async ({ page }) => {
+    test.setTimeout(120_000);
+    const id = runId();
+    const line = await laboLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const earlier = await createOrder(page, orderBody(catalog, line, id, { treatmentServiceId: line.lineId }));
+    expect(earlier.status, earlier.text).toBe(200);
+    const later = await createOrder(page, orderBody(catalog, line, id, { treatmentServiceId: line.lineId, teeth: [11], quantity: 1 }));
+    expect(later.status, later.text).toBe(200);
+    const dialog = workflowDialog(page);
+
+    await openLaboTab(page, line);
+    await laboRow(page, later.body.orderCode!).getByRole("button", { name: "Xem chi tiết" }).click();
+    await expectStep(dialog, "Đặt hàng", "Nháp");
+    // R11 sits on the earlier order: an orange chip and the box naming it.
+    await expect(dialog.locator(".pd-labo-toothchip--prior")).toHaveText(["R11"]);
+    const warning = dialog.locator(".pd-labo-prior");
+    await expect(warning.locator(".pd-labo-prior-order")).toHaveCount(1);
+    await expect(warning).toContainText("R11 đã có phiếu Labo trước đó");
+    await expect(warning.locator(".pd-labo-prior-code")).toHaveText(earlier.body.orderCode!);
+    await expect(warning).not.toContainText("R21");
+
+    // «Xem phiếu» opens the earlier order on top; the one being made stays.
+    await warning.getByRole("button", { name: "Xem phiếu" }).click();
+    const detail = page.locator(".pd-labo-detail-dialog");
+    await expect(detail).toBeVisible();
+    // The earlier one: both its teeth, where the order being made has R11 only.
+    await expect(detail).toContainText("Răng11, 21");
+    await page.keyboard.press("Escape");
+    await expect(detail).toBeHidden();
+    await expect(dialog).toBeVisible();
+
+    // Only a warning: Tạo phiếu Labo still sends it.
+    await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
+    await expect(page.getByText("Đã tạo phiếu Labo")).toBeVisible();
+    expect((await read(page, later.body.id!)).status).toBe(LaboStatus.Sent);
+  });
+
   test("Đặt hàng per tooth: pick teeth, fill each row, pictures per tooth, shared mode, sent without a picture (P3110)", async ({
     page,
   }) => {
     test.setTimeout(180_000);
-    await countPrints(page);
     const id = runId();
     const line = await laboLine(page);
     const catalog = await laboCatalog(page, line.branchId, id);
@@ -529,7 +559,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     const spec = specTable(dialog);
     const teethRow = dialog.locator(".pd-labo-teeth");
     const status = dialog.locator(".pd-labo-footer-hint");
-    const send = dialog.getByRole("button", { name: "Gửi Labo & in phiếu" });
+    const send = dialog.getByRole("button", { name: "Tạo phiếu Labo" });
 
     await test.step("a tooth added on the chart gets an empty row, and Gửi Labo waits on it", async () => {
       await openLaboTab(page, line);
@@ -603,11 +633,10 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await note12.fill(`Mài sát ${id}`);
     });
 
-    await test.step("Gửi Labo & in phiếu: sent with no common picture, printed, each tooth's spec kept", async () => {
+    await test.step("Tạo phiếu Labo: sent with no common picture, each tooth's spec kept", async () => {
       await send.click();
       await expect(page.getByText("Đã tạo phiếu Labo")).toBeVisible();
       await expect(dialog).toBeHidden();
-      await expect.poll(() => printsOf(page)).toBe(1);
       const sent = await read(page, orderId);
       expect(sent.status).toBe(LaboStatus.Sent);
       expect(sent.teeth.map((tooth) => [tooth.toothNumber, tooth.shade])).toEqual([

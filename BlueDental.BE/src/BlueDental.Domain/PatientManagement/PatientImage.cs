@@ -159,6 +159,25 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
             _ => false
         };
 
+    /// <summary>The clinic day the picture was uploaded on.</summary>
+    public DateOnly UploadedOn => ClinicCalendar.DateOf(DateTime.SpecifyKind(CreationTime, DateTimeKind.Utc));
+
+    /// <summary>
+    /// A công đoạn picture can be deleted on the day it was uploaded and no
+    /// later (P0111_02, R-1111); every other picture stays deletable.
+    /// </summary>
+    public bool IsDeletableOn(DateOnly today) => TreatmentStageId is null || UploadedOn == today;
+
+    public void EnsureDeletableOn(DateOnly today)
+    {
+        if (!IsDeletableOn(today))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.PatientManagement.StageImageDeleteExpired,
+                "A treatment-stage picture can only be deleted on the day it was uploaded.");
+        }
+    }
+
     public PatientImage UpdateNote(string? note)
     {
         Note = note;

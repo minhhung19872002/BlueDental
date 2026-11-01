@@ -1,14 +1,14 @@
-import { useState } from "react";
 import { Form } from "antd";
 import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
 import { useNextLaboCode } from "@/hooks/useLaboPickers";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
-import { LABO_STATUS, type LaboOrderDto } from "@/features/labo/api/laboApi";
+import { LABO_STATUS, usePlanLaboOrders, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { useSaveLaboOrder } from "@/features/labo/api/laboMutations";
 import type { LaboHeaderSource } from "../order-dialogs/LaboNewOrderHeader";
 import { sourceFromPick, toothCodes, type LaboOrderSource } from "../order-dialogs/laboOrderSource";
+import { priorLaboTeeth, type LaboPriorTeeth } from "../order-dialogs/laboPriorTeeth";
 import {
   laboOrderBody,
   orderSeed,
@@ -38,9 +38,9 @@ export interface LaboOrderStep {
   /** A new order raised from the Labo tab picks its plan and line in the header. */
   picksSource: boolean;
   editable: boolean;
+  /** The teeth already on another order of the phiếu điều trị, while the order is editable (R-1106). */
+  priors: LaboPriorTeeth;
   saving: boolean;
-  /** The order «Gửi Labo & in phiếu» just sent, while its Phiếu Labo prints. */
-  printing: LaboOrderDto | null;
   saveDraft: () => Promise<void>;
   submit: () => Promise<void>;
 }
@@ -51,6 +51,8 @@ function orderHeader(order: LaboOrderDto): LaboHeaderSource {
   return { planLabel: plan, serviceName: order.treatmentServiceName ?? "" };
 }
 
+const NO_PRIORS: LaboPriorTeeth = new Map();
+
 function lineTeeth(plans: TreatmentPlanSlipDto[], lineId: string | undefined): string[] {
   const line = plans.flatMap((plan) => plan.services).find((row) => row.id === lineId);
   return line ? toothCodes(line.teeth) : [];
@@ -58,15 +60,14 @@ function lineTeeth(plans: TreatmentPlanSlipDto[], lineId: string | undefined): s
 
 /**
  * The Đặt hàng tab: Lưu nháp keeps a Nháp (only the plan, line and doctor are
- * needed), «Gửi Labo & in phiếu» checks every field — pictures are optional
- * (P3110 REQ-C3) — sends it and prints its Phiếu Labo: Đã gửi Labo, the tab
- * locked from then on.
+ * needed), «Tạo phiếu Labo» checks every field — pictures are optional
+ * (P3110 REQ-C3) — and sends it: Đã gửi Labo, the tab locked from then on.
+ * Nothing prints by itself any more (P0111_02, R-1108).
  */
 export function useLaboOrderStep({ branchId, patientId, order, source, plans, onDone }: LaboOrderStepSetup): LaboOrderStep {
   const ability = useAbility("treatmentLabo");
   const save = useSaveLaboOrder();
   const [antForm] = Form.useForm<LaboOrderValues>();
-  const [printing, setPrinting] = useState<LaboOrderDto | null>(null);
   const isNew = order === undefined;
   const picksSource = isNew && !source;
   const editable = ability.canCreate && (isNew || order.status === LABO_STATUS.Draft);
@@ -80,6 +81,12 @@ export function useLaboOrderStep({ branchId, patientId, order, source, plans, on
       ? { teeth: source.teeth, dentistId: source.dentistId }
       : { teeth: [], quantity: "0" };
   const seedKey = order ? `${order.id}:${order.status}:${plansReady}` : (source?.treatmentStageId ?? source?.treatmentServiceId ?? "tab");
+
+  // The slip is the order's, the công đoạn's, or the one picked in the header.
+  const pickedPlanId = Form.useWatch("planId", antForm);
+  const planId = order?.treatmentPlanId ?? source?.treatmentPlanId ?? pickedPlanId;
+  const planOrders = usePlanLaboOrders(patientId, planId, editable).data?.items;
+  const priors = editable ? priorLaboTeeth(planOrders ?? [], order?.id) : NO_PRIORS;
 
   const form = useLaboOrderForm(antForm, {
     branchId,
@@ -105,14 +112,13 @@ export function useLaboOrderStep({ branchId, patientId, order, source, plans, on
       toothPictures: pictures.toothPictures,
     };
     try {
-      const saved = await save.mutateAsync(
+      await save.mutateAsync(
         order
           ? { id: order.id, keepImageIds: pictures.keepImageIds, fields }
           : { patientId, branchId, orderCode: nextCode || undefined, fields },
       );
       toast.success(t(submit ? "Labo:Workflow:Submitted" : "Labo:Workflow:DraftSaved"));
-      if (submit) setPrinting(saved);
-      else onDone();
+      onDone();
     } catch {
       // The global MutationCache toasts the server's message; the dialog stays for the fix.
     }
@@ -144,8 +150,8 @@ export function useLaboOrderStep({ branchId, patientId, order, source, plans, on
     headerSource: order ? orderHeader(order) : (source ?? null),
     picksSource,
     editable,
+    priors,
     saving: save.isPending,
-    printing,
     saveDraft,
     submit,
   };

@@ -2,8 +2,11 @@ import type { ReactNode } from "react";
 import { Form, Input } from "antd";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import type { LaboOrderDto } from "@/features/labo/api/laboApi";
 import { isBridge } from "./laboToothSpecs";
 import { LaboPictureWell } from "./LaboPictureWell";
+import { LaboPriorOrderWarning } from "./LaboPriorOrderWarning";
+import { priorGroups, type LaboPriorTeeth } from "./laboPriorTeeth";
 import { LaboToothRow } from "./LaboToothRow";
 import { LaboToothSpecTable } from "./LaboToothSpecTable";
 import { useLaboValue, type LaboOrderForm } from "./useLaboOrderForm";
@@ -17,15 +20,20 @@ interface Props {
   emptyTeeth: ReactNode;
   /** While Lưu nháp / Gửi Labo is uploading. */
   busy: boolean;
+  /** The teeth already on another order of the phiếu điều trị (R-1106). */
+  priors: LaboPriorTeeth;
+  /** «Xem phiếu ›» on that warning. */
+  onViewPrior: (order: LaboOrderDto) => void;
 }
 
 /**
  * The lower half of the Đặt hàng tab, laid out as the BA's mock (P3110 m134 /
- * m139): Răng with the teeth picked and Số lượng, Thông số từng răng, the
+ * m139): Răng with the teeth picked and Số lượng — warned of a tooth already
+ * sent on the slip (P0111_02, R-1106) — Thông số từng răng, the
  * common pictures — none required (REQ-C3) — and Nội dung the full width at
  * the bottom.
  */
-export function LaboOrderFields({ form, code, emptyTeeth, busy }: Props) {
+export function LaboOrderFields({ form, code, emptyTeeth, busy, priors, onViewPrior }: Props) {
   const teeth = useLaboValue(form.form, "teeth") ?? [];
   const shared = useLaboValue(form.form, "sharedSpec") ?? false;
   const specs = useLaboValue(form.form, "specs");
@@ -45,9 +53,11 @@ export function LaboOrderFields({ form, code, emptyTeeth, busy }: Props) {
           code={code}
           empty={emptyTeeth}
           readOnly={form.readOnly}
+          priors={priors}
           onChange={handleTeethChange}
         />
       </Form.Item>
+      <LaboPriorOrderWarning groups={priorGroups(teeth, priors)} onView={onViewPrior} />
 
       <LaboToothSpecTable form={form} busy={busy} />
 

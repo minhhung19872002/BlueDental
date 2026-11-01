@@ -1,10 +1,10 @@
+import { useState } from "react";
 import { Button, Form } from "antd";
 import { SaveOutlined, SendOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import type { LaboOrderDto } from "@/features/labo/api/laboApi";
-import { LaboAutoPrint } from "../order-dialogs/LaboAutoPrint";
 import { LaboNewOrderHeader } from "../order-dialogs/LaboNewOrderHeader";
 import { LaboOrderFields } from "../order-dialogs/LaboOrderFields";
 import { LaboPrintButton } from "../order-dialogs/LaboPrintButton";
@@ -12,6 +12,7 @@ import type { LaboOrderSource } from "../order-dialogs/laboOrderSource";
 import { LaboServiceMaterialRows } from "../order-dialogs/LaboServiceMaterialRows";
 import { gapMessageKey } from "../order-dialogs/laboToothSpecs";
 import { useLaboSendGap, type LaboSendGap } from "../order-dialogs/useLaboSendGap";
+import { LaboDetailDialog } from "../order-dialogs/LaboDetailDialog";
 import { LaboCancelOrderButton } from "./LaboCancelOrderButton";
 import type { LaboWorkflowPatient } from "./LaboWorkflowDialog";
 import { useLaboOrderStep } from "./useLaboOrderStep";
@@ -23,15 +24,16 @@ interface Props {
   source: LaboOrderSource | null | undefined;
   plans: TreatmentPlanSlipDto[];
   dentists: PickerOption[];
-  /** Holds this tab on screen: sent, the order's status alone would move the dialog to tab 2. */
-  onShowOrder: () => void;
   onClose: () => void;
 }
 
 /**
  * Tab 1 "Đặt hàng" (P3110 m134/m139): the order as the Labo will read it. A
- * Nháp is edited here; once «Gửi Labo & in phiếu» sent it the tab is shown,
- * locked, for reference.
+ * Nháp is edited here; «Tạo phiếu Labo» sends it and lets the dialog go — no
+ * print, no new tab (P0111_02, R-1108). Sent, the tab is shown locked for
+ * reference; In Phiếu Labo still prints it on demand. «Xem phiếu ›» on the
+ * duplicate-tooth warning opens the earlier order over the draft, read-only
+ * (P0111_02, R-1106).
  */
 export function LaboOrderStep({
   branchId,
@@ -40,7 +42,6 @@ export function LaboOrderStep({
   source,
   plans,
   dentists,
-  onShowOrder,
   onClose,
 }: Props) {
   const step = useLaboOrderStep({
@@ -53,13 +54,8 @@ export function LaboOrderStep({
   });
   const { form, editable, saving } = step;
   const send = useLaboSendGap(form);
+  const [viewing, setViewing] = useState<LaboOrderDto | null>(null);
   const printPatient = { ...patient, dateOfBirth: order?.patientDateOfBirth ?? null };
-
-  // LaboAutoPrint lives in this tab: it must stay mounted until the sheet printed.
-  const handleSend = () => {
-    onShowOrder();
-    void step.submit();
-  };
 
   return (
     <>
@@ -83,6 +79,8 @@ export function LaboOrderStep({
           form={form}
           code={step.code}
           busy={saving}
+          priors={step.priors}
+          onViewPrior={setViewing}
           emptyTeeth={
             step.picksSource ? (
               <span className="pd-labo-emptypill">
@@ -124,22 +122,20 @@ export function LaboOrderStep({
                 icon={<SendOutlined />}
                 loading={saving}
                 disabled={saving || !send.canSend}
-                onClick={handleSend}
+                onClick={() => void step.submit()}
               >
-                {t("Labo:Workflow:SendAndPrint")}
+                {t("Labo:Workflow:CreateOrder")}
               </Button>
             </>
           )}
         </div>
       </div>
-      {step.printing && (
-        <LaboAutoPrint
-          order={step.printing}
-          branchId={branchId}
-          patient={{ ...patient, dateOfBirth: step.printing.patientDateOfBirth ?? null }}
-          onDone={onClose}
-        />
-      )}
+      <LaboDetailDialog
+        order={viewing}
+        branchId={branchId}
+        canCreateAppointment={false}
+        onClose={() => setViewing(null)}
+      />
     </>
   );
 }

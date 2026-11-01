@@ -4,6 +4,7 @@ import {
   LABO_STATUS,
   LABO_TOOTH_RESULT,
   type LaboOrderDto,
+  type LaboOrderImageDto,
   type LaboOrderRoundDto,
   type LaboOrderToothDto,
   type LaboRoundOutcome,
@@ -29,6 +30,14 @@ export function openRound(order: LaboOrderDto): LaboOrderRoundDto | undefined {
 /** "Nhận hàng · lần N": the open round, or the next one. */
 export function receiveRoundNo(order: LaboOrderDto): number {
   return openRound(order)?.roundNo ?? order.rounds.length + 1;
+}
+
+/** A saved Ảnh kiểm tra of a tooth found Đạt in its round (P0111_02, R-1110), not a Hình ảnh lỗi. */
+export function isPassedToothPicture(order: LaboOrderDto, image: LaboOrderImageDto): boolean {
+  const round = order.rounds.find((r) => r.roundNo === image.roundNo);
+  return (
+    round?.toothResults.some((r) => r.toothNumber === image.toothNumber && r.result === LABO_TOOTH_RESULT.Passed) ?? false
+  );
 }
 
 const RETURNED = new Set<number>([LABO_ROUND_OUTCOME.ReturnedAll, LABO_ROUND_OUTCOME.ReturnedDefective]);

@@ -488,3 +488,78 @@
     padding-inline: 8px;
   }
 }
+
+/* ── Răng đã có phiếu Labo trong cùng phiếu điều trị (P0111_02, R-1106) ── */
+.pd-labo-toothchip--prior {
+  gap: 6px;
+  border: 1px solid var(--bd-orange-line);
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.pd-labo-toothchip--prior::after {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bd-amber);
+  content: "";
+}
+.pd-labo-prior {
+  display: flex;
+  gap: 12px;
+  margin: -8px 0 16px;
+  border: 1px solid var(--bd-orange-line);
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: var(--bd-orange-pale);
+}
+.pd-labo-prior-icon {
+  margin-top: 2px;
+  color: var(--bd-amber);
+  font-size: 20px;
+}
+.pd-labo-prior-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+.pd-labo-prior-order {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pd-labo-prior-text {
+  min-width: 0;
+  flex: 1;
+}
+.pd-labo-prior-text p,
+.pd-labo-prior-hint {
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pd-labo-prior-title {
+  color: var(--bd-orange);
+  font-size: 14px;
+}
+.pd-labo-prior-code {
+  color: var(--bd-primary);
+  font-weight: 600;
+}
+.pd-labo-prior-view {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--bd-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-labo-prior-view .anticon {
+  font-size: 11px;
+}

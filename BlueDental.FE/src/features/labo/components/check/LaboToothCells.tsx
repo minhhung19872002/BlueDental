@@ -1,11 +1,10 @@
 import { t } from "@/lib/i18n";
 import type { LaboOrderToothDto } from "@/features/labo/api/laboApi";
 
-/** The shade the tooth was ordered in, behind a swatch (m342). */
+/** The shade the tooth was ordered in, as text — the swatch went (P0111_02, R-1109). */
 export function LaboToothShade({ shade }: { shade?: string | null }) {
   return (
     <span className="pd-labo-tooth-shade">
-      <span className="pd-labo-tooth-swatch" aria-hidden />
       {shade || "—"}
     </span>
   );
@@ -24,7 +23,7 @@ export function LaboReturnCount({ count }: { count: number }) {
   );
 }
 
-/** BH Labo: "— chưa đạt", "chưa kích hoạt · bật sau khi lắp" or "đã kích hoạt · BH-…" (P3110 REQ-D8, m342). */
+/** BH Labo: "— chưa đạt", "chưa kích hoạt" or "đã kích hoạt · BH-…" (P3110 REQ-D8, m342; P0111_02 R-1112 dropped "· bật sau khi lắp"). */
 export function LaboToothWarranty({ tooth, passed }: { tooth: LaboOrderToothDto; passed: boolean }) {
   if (tooth.warrantyActivatedAt) {
     return (
@@ -36,7 +35,7 @@ export function LaboToothWarranty({ tooth, passed }: { tooth: LaboOrderToothDto;
   }
   return (
     <span className="pd-labo-tooth-warranty">
-      {t("Labo:Check:Warranty")} {t(passed ? "Labo:Check:WarrantyAfterFit" : "Labo:Check:WarrantyNotPassed")}
+      {t("Labo:Check:Warranty")} {t(passed ? "Labo:Check:WarrantyInactive" : "Labo:Check:WarrantyNotPassed")}
     </span>
   );
 }
