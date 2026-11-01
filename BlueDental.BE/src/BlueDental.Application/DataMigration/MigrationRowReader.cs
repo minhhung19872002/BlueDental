@@ -220,12 +220,14 @@ internal sealed class MigrationRowReader
 
     /// <summary>
     /// The picker's jaw tabs, written out: the app saves "Hàm trên" as its 16
-    /// permanent teeth (32 for "Nguyên hàm") and folds them back on display.
+    /// permanent teeth (32 for "Hai hàm") and folds them back on display.
+    /// "Nguyên hàm", the tab's name until R-1095, is still read.
     /// </summary>
     private static readonly Dictionary<string, int[]> Jaws = new()
     {
         ["hàm trên"] = UpperJaw, ["ham tren"] = UpperJaw,
         ["hàm dưới"] = LowerJaw, ["ham duoi"] = LowerJaw,
+        ["hai hàm"] = [.. UpperJaw, .. LowerJaw], ["hai ham"] = [.. UpperJaw, .. LowerJaw],
         ["nguyên hàm"] = [.. UpperJaw, .. LowerJaw], ["nguyen ham"] = [.. UpperJaw, .. LowerJaw]
     };
 
@@ -851,7 +853,7 @@ internal sealed class MigrationRowReader
     }
 
     /// <summary>
-    /// FDI numbers and jaw phrases ("Hàm trên", "Hàm dưới", "Nguyên hàm")
+    /// FDI numbers and jaw phrases ("Hàm trên", "Hàm dưới", "Hai hàm")
     /// separated by commas, semicolons or spaces; each must be a real tooth or
     /// jaw, named when it is not. A tooth given twice is kept once.
     /// </summary>

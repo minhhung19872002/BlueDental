@@ -1,3 +1,4 @@
+import { jawLabel, wholeJawOf } from "@/components/ToothChart";
 import { t } from "@/lib/i18n";
 import type { StageItem } from "./stageModel";
 
@@ -9,10 +10,29 @@ interface Props {
 }
 
 /**
+ * The teeth on a card: a line picked as a whole jaw by the jaw's name, one
+ * chip — "Hàm trên", "Hàm dưới", "Hai hàm" (clinic, 2026-11-01, R-1096); the
+ * form beside it still lists the jaw tooth by tooth. Otherwise the numbers,
+ * those this card can take in blue, the rest — already taken by a công đoạn — faded.
+ */
+function PickTeeth({ item }: { item: StageItem }) {
+  const jaw = wholeJawOf(item.shownTeeth);
+  if (jaw) return <i>{jawLabel(jaw)}</i>;
+
+  return item.shownTeeth.map((tooth) => {
+    const free = item.teeth.some((each) => each.toothCode === tooth.toothCode);
+    return (
+      <i key={tooth.toothCode} className={free ? undefined : "pd-stage-tooth--done"}>
+        {tooth.toothCode}
+      </i>
+    );
+  });
+}
+
+/**
  * The Chi tiết column: one card per service line on every tab. A click opens
  * the card's form and a second click closes it; opening another closes the
- * first. The teeth are numbers only, all of the line's: those this card can
- * take in blue, the rest — already taken by a công đoạn — faded.
+ * first. The teeth are all of the line's (see `PickTeeth`).
  */
 export function StagePicks({ items, selectedIds, emptyText, onToggle }: Props) {
   if (items.length === 0) return <p className="pd-stage-empty">{emptyText}</p>;
@@ -36,14 +56,7 @@ export function StagePicks({ items, selectedIds, emptyText, onToggle }: Props) {
             <strong>{item.line.serviceName ?? item.line.code}</strong>
             <span>
               {t("Patient:DentalChart:Tooth")}:
-              {item.shownTeeth.map((tooth) => {
-                const free = item.teeth.some((each) => each.toothCode === tooth.toothCode);
-                return (
-                  <i key={tooth.toothCode} className={free ? undefined : "pd-stage-tooth--done"}>
-                    {tooth.toothCode}
-                  </i>
-                );
-              })}
+              <PickTeeth item={item} />
             </span>
           </button>
         );

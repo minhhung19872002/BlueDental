@@ -3141,14 +3141,14 @@ Bấm "+" trên đầu thẻ chẩn đoán mở form **ngay trong thẻ** (như 
 |---|---|---|
 | Nút đóng | vòng tròn đỏ, X trắng, góc trên phải | `Button shape=circle danger`, `.pd-diagnosis-close` |
 | Hàng bác sĩ | "Bác sĩ chẩn đoán 1" + nút tròn **36px** "+" bật thêm "Bác sĩ chẩn đoán 2" | `DiagnosisDoctorFields` — `FloatingField` + `.pd-diagnosis-round`; tắt lại thì xoá giá trị bác sĩ 2 |
-| Dải tab | Chọn Răng / Hàm Trên / Hàm Dưới / Nguyên Hàm, viên xanh trượt | `ToothPickerTabs` dùng chung (`src/components/ToothChart`) |
+| Dải tab | Chọn Răng / Hàm Trên / Hàm Dưới / Nguyên Hàm, viên xanh trượt | `ToothPickerTabs` dùng chung (`src/components/ToothChart`). **Lệch có chủ đích**: tab thứ tư đọc "Hai Hàm" (BA, 2026-11-01, R-1095) |
 | Loại răng | radio vòng 16px "Răng vĩnh viễn / Răng sữa", chỉ hiện ở tab Chọn Răng | `DentitionRadio` dùng chung |
 | Sơ đồ răng | chỉ hiện ở tab Chọn Răng; chọn hàm thì gập | `ToothChart`, `draft.picking` |
 | Cột phải **260px** | Chẩn đoán (select có kính lúp) → Ghi chú → hộp xám "Răng đã chọn" → "Thêm chẩn đoán" → "Tạo dịch vụ" + "Lưu Chẩn Đoán" | `.pd-diagnosis-side`; `Lưu Chẩn Đoán` là nút xanh đặc |
 
 - "Răng đã chọn": mỗi răng một chip **cao 28px**, chữ không xuống dòng, X đỏ
   ở góc trên phải (`.pd-tooth-chip`, padding `6px 16px 6px 12px`). Chọn cả
-  hàm thì chỉ **một** chip "Hàm trên / Hàm dưới / Nguyên hàm". Chưa chọn gì
+  hàm thì chỉ **một** chip "Hàm trên / Hàm dưới / Hai hàm" (bản gốc: "Nguyên hàm"; R-1095). Chưa chọn gì
   hiện "Chưa chọn răng".
 - Chữ trên chip và trong bảng chẩn đoán đúng dạng bản gốc:
   `18, 16 - Mặt ngoài, Mặt nhai`. Tên mặt phụ thuộc góc phần tư
@@ -4266,6 +4266,18 @@ mục UNKNOWN_REFERENCE_BEHAVIOR.
   chừa 2px).
 - Điền sẵn (sửa được trên phiếu), mỗi ô theo tiền lệ của một mẫu khác:
   - Bên B: Họ và tên (in hoa), Mã hồ sơ, Số điện thoại, Địa chỉ, Số CCCD — như các mẫu khác.
+  - **Bộ có mẫu 3 (BA, 2026-11-01, R-1097)**: mẫu 10 tự điền theo tờ mẫu 3 mới nhất chưa hủy của
+    bộ (`contractFromOrthodontic.ts`), một chiều — chữ gõ trên mẫu 10 thắng, không ghi ngược về mẫu 3:
+    - "1. Chẩn đoán" ← VIII Chẩn đoán (ô 86..94 + dòng thêm), quá 3 dòng in thì thêm
+      `custom.line.orthodontic-contract.text.9.n`.
+    - Nhổ răng ← ô 95. "- Kế hoạch điều trị" ← các dòng của IX (ô 104..111 + dòng thêm).
+    - "Thời gian điều trị dự kiến" ← ô 99, in "24 tháng" (mẫu 3 in chữ "tháng" sau ô).
+    - Dòng mới "- Loại mắc cài" ngay sau Thời gian điều trị dự kiến, trình bày như mẫu 3 (hai
+      dòng: Kim loại, Kim loại tự động / KLTĐ Cánh cam, Invisalign, mỗi loại một ô giá "… triệu"),
+      id `orthodontic-contract.checkbox.1..4` + `text.34..37` ← mẫu 3 checkbox 61..64 + ô 100..103.
+    - Không lấy: Cắm minivis, Vị trí mắc cài răng cửa HT, Khâu răng, Bác sĩ. Khí cụ và II. Chi phí
+      giữ như cũ.
+  - Bộ chưa có mẫu 3 thì như trước:
   - "1. Chẩn đoán": các chẩn đoán của bệnh nhân, như mẫu 3 (`DIAGNOSIS_FIELDS`).
   - "- Kế hoạch điều trị": dịch vụ của từng phiếu điều trị trong bộ như mục IX mẫu 3, mỗi dòng
     "Răng 16 - dịch vụ", nối liền qua các phiếu — không in tên phiếu, không dòng trống giữa phiếu
@@ -4280,7 +4292,7 @@ mục UNKNOWN_REFERENCE_BEHAVIOR.
     nhãn). Người lớn hoặc không rõ ngày sinh thì để trống.
 - Để trống cho viết tay: ngày ký, Cấp ngày / Nơi cấp CCCD (hồ sơ bệnh nhân không lưu hai trường
   này — chỉ người giám hộ có), Nhổ răng, Phục hồi – Phục hình, Khí cụ, thời gian điều trị / duy
-  trì, Cam kết, chữ ký, Địa chỉ / Số điện thoại cuối trang (file Word không nói là của khách hàng
+  trì (Nhổ răng, thời gian điều trị và Loại mắc cài lấy từ mẫu 3 khi bộ có mẫu 3, R-1097), Cam kết, chữ ký, Địa chỉ / Số điện thoại cuối trang (file Word không nói là của khách hàng
   hay người giám hộ).
 - Bên A (Công ty, địa chỉ, MST, đại diện Bác sĩ Bùi Văn Tới) và bảng phí là chữ in của file Word,
   không phải ô nhập.

@@ -340,6 +340,37 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(doubled.text).toContain("BlueDental:Treatment:0031");
   });
 
+  test("a line picked as a whole jaw reads by the jaw's name on its card, the form still lists each tooth (R-1096)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1700, height: 950 });
+    const upper = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+    const lower = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+    const [jaw, both, some] = await freshLines(page, [
+      { teeth: upper.map((code) => ({ code })) },
+      { teeth: [...upper, ...lower].map((code) => ({ code })) },
+      { teeth: [{ code: 11 }, { code: 12 }] },
+    ]);
+    // Part of the upper jaw already staged: the card still names the jaw.
+    await stageOn(page, jaw, [11], false);
+
+    const dialog = await openStageDialog(page, jaw);
+    const card = (line: Line) => dialog.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`);
+    await expect(card(jaw).locator("i")).toHaveText(["Hàm trên"]);
+    await expect(card(both).locator("i")).toHaveText(["Hai hàm"]);
+    await expect(card(some).locator("i")).toHaveText(["11", "12"]);
+
+    // The form beside the card still offers the jaw tooth by tooth, 11 taken.
+    await card(jaw).click();
+    const form = dialog.locator(`.pd-stage-form[data-item-id="${jaw.lineId}"]`);
+    await expect(chips(form)).toHaveCount(16);
+    expect((await chipStates(form)).filter((state) => state.endsWith("!"))).toEqual(["11!"]);
+
+    // Under TIẾP TỤC CÔNG ĐOẠN the same line's card names the jaw too.
+    await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();
+    await expect(card(jaw).locator("i")).toHaveText(["Hàm trên"]);
+  });
+
   test("continuing takes the teeth picked, leaves the rest open, and greys the visit once none is left", async ({ page }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
     const [line] = await freshLines(page, [{ teeth: [{ code: 31 }, { code: 32 }] }]);

@@ -13,6 +13,7 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
 import { copiedPicturesReady, copySheetsForPrint, framesForSheets } from "./medical-record/printing";
 import {
+  MEDICAL_RECORD_FORM,
   useAddMedicalRecord,
   useCancelMedicalRecord,
   usePatientMedicalRecords,
@@ -41,6 +42,7 @@ import { useSheetFullscreen } from "./medical-record/useSheetFullscreen";
 import { useUnsavedSheets } from "./medical-record/useUnsavedSheets";
 import { UnsavedSheetDialog } from "./medical-record/UnsavedSheetDialog";
 import { diagnosisFieldValues, type FieldValues } from "./medical-record/fieldValues";
+import { contractAutoFrom } from "./medical-record/contractFromOrthodontic";
 import { MEDICAL_RECORD_FORMS, formSpecOf, type MedicalRecordFormSpec } from "./medicalRecordForms";
 import { parseFieldValues, serialiseFieldValues } from "./medicalRecordDraft";
 import "./medical-record/medical-record.css";
@@ -209,7 +211,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
    * what the set's slips answer, and the day picked above the sheet in the
    * blanks that print it (Ngày thực hiện, P1810).
    */
-  const autoOf = (sheet: PatientMedicalRecordDto): FieldValues => {
+  const ownAutoOf = (sheet: PatientMedicalRecordDto): FieldValues => {
     const spec = formSpecOf(sheet.form);
     const day = spec.dateLabel ? dateOf(sheet) : undefined;
     const printedDay = day?.format("DD/MM/YYYY");
@@ -217,6 +219,18 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
       ? Object.fromEntries((spec.dateFieldKeys ?? []).map((key) => [key, printedDay]))
       : {};
     return { ...auto, ...diagnosisFieldValues(diagnosesFrom(day)), ...factValues, ...dated };
+  };
+
+  /** The set's newest mẫu 3 not cancelled — what mẫu 10 is filled from (R-1097). */
+  const orthodonticSheet = sheets
+    .filter((sheet) => sheet.form === MEDICAL_RECORD_FORM.Orthodontic && !sheet.cancelledAt)
+    .at(-1);
+
+  /** The same, and on mẫu 10 what mẫu 3 reads, as it is being written. */
+  const autoOf = (sheet: PatientMedicalRecordDto): FieldValues => {
+    const own = ownAutoOf(sheet);
+    if (sheet.form !== MEDICAL_RECORD_FORM.OrthodonticContract || !orthodonticSheet) return own;
+    return contractAutoFrom(own, { ...ownAutoOf(orthodonticSheet), ...valuesOf(orthodonticSheet) });
   };
 
   /** Writes a value picked outside the sheet into the blanks that print it. */

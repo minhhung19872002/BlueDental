@@ -12857,3 +12857,40 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - DB local trước đó chỉ có 2 dịch vụ lẻ có bảo hành (đỏ có sẵn, `e2e-preexisting-reds`); đã thêm "Dịch vụ kiểm thử E2E C" (bảo hành 365 ngày) vào Danh mục chi nhánh 1 của DB local qua API.
   - `tsc -p tsconfig.app.json`, eslint 2 file → sạch.
 - **Mức retest**: 2 (F-30 sheet facts). Ca kiểm "quá số dòng in thì thêm dòng" của mẫu 3 / mẫu 10 không còn được ca này chạm tới (3 dịch vụ vừa đủ dòng in); `putLines` vẫn được mẫu 5 Chẩn đoán dùng.
+
+## R-1095 (2026-11-01, mức 3: ToothChart dùng chung + F-61 Nhập dữ liệu cũ) "Nguyên Hàm" → "Hai Hàm"
+
+- **Yêu cầu** (anh Định): tab chọn răng "Nguyên Hàm" đổi thành "Hai Hàm", nhãn tóm tắt "Nguyên hàm" thành "Hai hàm" ở mọi nơi. Khác bản gốc có chủ đích (bản gốc vẫn "Nguyên Hàm").
+- **Sửa — BE**: localization vi/en `FullArch`, `FullArchSummary` ("Both Arches" / "Both arches"), câu lỗi + gợi ý cột răng của Nhập dữ liệu cũ. `MigrationRowReader` nhận cả "Hai hàm" lẫn "Nguyên hàm" (file Excel cũ vẫn nhập được).
+- **Sửa — FE**: `locales/vi.json` `fullJaw`; các file còn lại chỉ đổi comment.
+- **E2E** (bản build production cổng 8185, host :5000, không chặn API):
+  - `diagnosis-jaw-label` (chờ `/^Hai hàm$/`) → **xanh**.
+  - `data-migration-api` thêm dòng "Hai hàm" → **xanh** (chạy workers=1, các ca serial phụ thuộc nhau). Ca ~dòng 1102 **đỏ có sẵn, không do R-1095**: spec còn chờ câu lỗi số điện thoại cũ, câu này đổi ở commit F-72 478d1a8c; các ca serial sau nó bị bỏ qua.
+- **Mức retest**: 3 (nhãn của ToothChart dùng chung — mọi màn có bộ chọn răng chỉ đổi chữ).
+
+## R-1096 (2026-11-01, mức 2: F-19 Công đoạn) Thẻ dịch vụ ghi tên hàm khi dòng là nguyên một hàm
+
+- **Yêu cầu** (anh Định): ở form công đoạn, thẻ dịch vụ bên trái ghi "Răng: Hàm trên / Hàm dưới / Hai hàm" thay cho dãy số răng khi dịch vụ chọn cả hàm.
+- **Sửa — FE**: `StagePicks` `PickTeeth` — `wholeJawOf(item.shownTeeth)` khớp thì in `jawLabel(jaw)`, kể cả khi một phần hàm đã làm công đoạn. Lưới răng ở giữa vẫn liệt kê từng răng (không đổi).
+- **E2E**: `treatment-stage-chain` thêm ca R-1096 → **9/9 xanh**.
+- **Mức retest**: 2.
+
+## R-1097 (2026-11-01, mức 2: F-30 Bệnh án) Mẫu 10 tự điền từ mẫu 3 cùng bộ + dòng Loại mắc cài
+
+- **Yêu cầu** (anh Định): mẫu 10 "Hợp đồng thỏa thuận niềng răng" lấy dữ liệu từ mẫu 3 "Bệnh án chỉnh nha" cùng bộ hồ sơ; thêm dòng "Loại mắc cài" như mẫu 3.
+- **Chủ dự án chốt**: một chiều (mẫu 3 → mẫu 10), chữ gõ tay trên mẫu 10 thắng; nguồn là mẫu 3 **mới nhất chưa huỷ** trong bộ; dòng Loại mắc cài đặt ngay sau "Thời gian điều trị dự kiến"; Khí cụ để trống; II. Chi phí vẫn theo phiếu điều trị.
+- **Ánh xạ** (`contractFromOrthodontic.ts` `contractAutoFrom`):
+  - Chẩn đoán 86..94 (+ dòng thêm) → text 7..9, dư thì thành dòng thêm dưới text 9.
+  - Nhổ răng 95 → text 10. Kế hoạch IX 104..111 (+ dòng thêm) → text 11..15 (+ dòng thêm).
+  - Thời gian 99 → text 19, viết "N tháng". Checkbox 61..64 → checkbox 1..4; giá 100..103 → text 34..37.
+  - Không lấy: minivis 96, 97, 98 và Bác sĩ 112.
+- **Không có mẫu 3 trong bộ**: mẫu 10 tự điền như cũ (từ hồ sơ + phiếu). Huỷ mẫu 3 mới nhất → quay về mẫu 3 cũ hơn; huỷ hết → về cách cũ.
+- **Phiếu đã lưu**: không sửa dữ liệu — `collect` chỉ lưu ô khác giá trị tự điền, ô đã gõ tay giữ nguyên.
+- **Sửa — FE**: `PatientMedicalRecordTab` `autoOf` gọi `contractAutoFrom` cho mẫu 10; `templates/orthodonticContract.ts` thêm dòng Loại mắc cài (2 dòng, 4 ô `orthodontic-contract.checkbox.1-4`, 4 ô giá `text.34-37` + "triệu").
+- **E2E**:
+  - Mới `medical-record-contract-from-orthodontic` (mẫu 3 → mẫu 10, gõ tay đè giữ qua reload, mẫu 3 mới hơn được dùng, huỷ thì quay về mẫu cũ, mẫu 3 không bị ghi ngược) → **xanh**.
+  - `patient-medical-record`: số ô mẫu 10 thành 48 ô / 4 checkbox / 5 trang; thêm kiểm in mẫu 10 vẫn 5 trang, không trang trắng → **xanh**.
+  - Lượt chạy chung (patient-medical-record, medical-record-sheet-facts, medical-record-set, spec mới): 39 qua / 5 đỏ. 3 đỏ có sẵn (`e2e-preexisting-reds`: ":204 the index lists…", ":599 card wears its own form's colour", ":2194 picking the day…"). 2 đỏ còn lại (":298 MS", ":380 blank not frozen") chạy riêng **xanh trên cả bản HEAD (cổng 8186) lẫn bản này** — đỏ do tải song song, không do R-1097; chúng không chạm mẫu 10.
+  - Chạy lại cả `patient-medical-record`: 36 qua / 2 đỏ, cả 2 đỏ có sẵn (":204 the index lists…", ":2194 picking the day…"); ":298", ":380", ":599" lần này xanh.
+  - `tsc -p tsconfig.app.json`, eslint các file đổi → sạch.
+- **Mức retest**: 2 (F-30; đổi `autoOf` chỉ đi nhánh mẫu 10).

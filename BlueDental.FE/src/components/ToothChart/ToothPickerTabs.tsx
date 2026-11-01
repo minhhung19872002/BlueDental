@@ -12,7 +12,7 @@ interface Indicator {
 }
 
 /**
- * The bordered "Chọn Răng / Hàm Trên / Hàm Dưới / Nguyên Hàm" strip. The blue
+ * The bordered "Chọn Răng / Hàm Trên / Hàm Dưới / Hai Hàm" strip. The blue
  * pill is one element that slides under the active tab, the way the reference
  * animates it, so its position is measured from the active button.
  */
