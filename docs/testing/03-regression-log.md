@@ -12536,3 +12536,63 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `patient-medical-record` "every form draws the whole of its printed original" đổi số ô phiếu 6 từ 49 lên 50, chạy **xanh**.
   - 5 ca khác đụng mẫu 6 cũng **xanh**: mẫu 6 margins, mẫu 5 rules, mẫu 10 in như mẫu 6, ngày thực hiện, địa chỉ/chẩn đoán. Chạy trên bản build production.
 - **Mức retest**: 2.
+
+## R-1133 (2026-11-02, mức 2: F-11 Tiếp nhận) Nút "Khách đã đến" ở mọi trang, có tên bác sĩ, nền nổi
+
+- **Yêu cầu** (BA, ảnh chụp trên duchanhpremium.vn): "cho nó ở mọi tab luôn"; "thêm bsi, đổi background màu khác cho nổi lên luôn nha".
+- **Sửa**:
+  - `ArrivalCallDock` chuyển từ `ReceptionPage` lên `app/AppLayout.tsx`, nên nổi trên mọi màn hình sau khi đăng nhập. Nó chờ chi nhánh xác định xong mới hiện, giống phần nội dung trang.
+  - CSS `.arrival-*` tách từ `reception.css` sang `components/arrival-call.css`, do chính dock import. Trang nào cũng có style, không phụ thuộc trang Tiếp nhận đã tải.
+  - Nút dùng nền gradient CTA (`--bd-cta`), icon trắng, bóng `--bd-shadow-glow`, có viền focus khi dùng bàn phím.
+  - Khung danh sách cũng nổi lên (BA, ảnh chụp): nền `--bd-blue-pale`, viền `--bd-primary`, bóng glow; tiêu đề từng danh sách trên dải `--bd-cta` chữ trắng; mỗi khách là một thẻ trắng có viền.
+  - `ArrivalCallRow`: giờ hẹn và bác sĩ nằm chung một dòng, áp dụng cho cả hai danh sách. Trước đây chỉ danh sách "Bác sĩ mời lên" hiện bác sĩ.
+  - Quyền và API không đổi.
+- **Kiểm**:
+  - `reception-arrival-call`: phía tiếp nhận giờ mở từ Lịch hẹn › Danh sách, không phải Tiếp nhận. Test kiểm tên bác sĩ trên dòng của cả hai bên.
+  - `reception-arrival-call` + `reception-board-order` 3/3 xanh trên bản build production.
+  - Ảnh chụp local với tài khoản bác sĩ thử trên một trang khác Tiếp nhận: nút gradient, badge 1, dòng "20:07 · BS. Kiểm Thử".
+  - `lint:ts` và eslint các file đổi sạch.
+- **Mức retest**: 2, đụng app shell nhưng chỉ thêm một widget tự đứng.
+
+## R-1134 (2026-11-02, mức 2: F-11 Tiếp nhận) Lịch tạm phải tạo hồ sơ trước khi "Tiếp nhận" ở panel Khách đã đến
+
+- **Yêu cầu** (BA): "thêm case lịch tạm thì yêu cầu lễ tân tạo hs trc khi tiếp nhận nữa nha".
+- **Sửa**:
+  - Domain: `Appointment.Admit()` từ chối lịch tạm với mã lỗi mới `BlueDental:Appointment:0018` (vi/en: "Đây là lịch tạm. Hãy tạo hồ sơ bệnh nhân trước khi tiếp nhận."). Trạng thái không đổi.
+  - `ArrivalCallDto` có thêm `PatientPhone`. Trường này chỉ có giá trị với lịch tạm và gắn `[PatientPhone]`, nên tài khoản có "Ẩn số điện thoại" vẫn bị che.
+  - `AttachPatientAsync` gửi `ArrivalsChanged`, để panel đang mở ở máy khác cũng đổi nút.
+  - FE: dòng lịch tạm trong "Bác sĩ mời lên" có tag "Lịch tạm", dòng nhắc, và nút **Tạo hồ sơ**. Nút mở `TemporaryPatientDialog`, cùng form với thẻ trên bảng, điền sẵn tên và SĐT. Lưu xong thì dòng đổi sang **Tiếp nhận**.
+  - Khi dialog đang mở, click trong dialog không đóng panel.
+  - Type `TemporaryPatientTarget` chuyển sang `types/temporaryPatient.ts`, vì hook không được import từ `components/`.
+  - **Lỗi phát sinh, đã sửa** (BA báo: form "Tạo hồ sơ" mất khoảng cách giữa các ô):
+    - Nguyên nhân: dock nằm trong app shell và import tĩnh `TemporaryPatientDialog`, kéo `patient.css` vào bundle chính, đứng trước `index.css`.
+    - Quy tắc `.ant-modal .ant-form-item { margin-bottom: 0 }` của `index.css` cùng độ ưu tiên với `.bd-patient-dialog .ant-form-item { margin-bottom: 16px }`. Vì nạp sau nên nó thắng, và form mất khoảng cách ở **mọi nơi**, kể cả trang Bệnh nhân.
+    - Sửa: dock nạp dialog bằng `React.lazy`. `patient.css` không còn trong `index-*.css` (đếm `bd-patient-dialog` = 0).
+    - Đo lại: `margin-bottom` 16px ở trang Bệnh nhân và khi mở từ dock.
+- **Kiểm**:
+  - Domain `AppointmentTests` 72/72 (ca mới `Admit_Should_Wait_For_The_Record_Of_A_Temporary_Booking`), chạy trong container SDK.
+  - E2E mới "a called-up Lịch tạm gets its record before Tiếp nhận": API admit trả `0018`, Tạo hồ sơ thì attach 200, Tiếp nhận thì DB status 4 và `isTemporary=false`.
+  - `reception-arrival-call` + `reception-temporary` 5/5 trên bản build production, BE chạy docker đã rebuild.
+  - Ảnh panel: dòng lịch tạm cạnh dòng thường.
+- **Mức retest**: 2.
+
+## R-1135 (2026-11-02, mức 2: F-11 Tiếp nhận) Admin thấy cả hai danh sách của panel Khách đã đến
+
+- **Yêu cầu** (owner): "riêng admin thì khung view đó sẽ hiển thị tất cả kể cả mời lên và tiếp nhận".
+- **Trước**:
+  - Admin không tick Bác sĩ chỉ thấy "Bác sĩ mời lên".
+  - Admin có tick Bác sĩ chỉ thấy "Khách đã đến".
+- **Sửa**:
+  - `ArrivalCallAppService`, với role `admin`, bất kể tick:
+    - `GetWaitingAsync` trả về khách của mọi bác sĩ.
+    - `InviteAsync` mời được khách của bất kỳ bác sĩ nào.
+    - `GetInvitedAsync` và `AdmitAsync` không còn chặn vì tick Bác sĩ.
+  - Người không phải admin vẫn theo luật cũ.
+  - FE `useArrivalCalls`: `canCall = (isDentist || isAdmin) && Xem`; `canAdmit = (!isDentist || isAdmin) && Xem + Sửa`.
+  - Với admin, một khách đã mời nằm ở cả hai danh sách: "Đã mời" bên trái, "Tiếp nhận" bên phải. Badge chỉ đếm khách đó một lần.
+- **Kiểm**:
+  - E2E mới "an admin sees both lists, for every doctor, and does both steps": reload vẫn có cả hai mục, Mời lên rồi Tiếp nhận, DB status 4.
+  - Ca lịch tạm giờ tìm dòng trong mục "Bác sĩ mời lên".
+  - `reception-arrival-call` + `reception-temporary` 6/6 trên bản build production, BE docker đã rebuild.
+  - `lint:ts` sạch.
+- **Mức retest**: 2.

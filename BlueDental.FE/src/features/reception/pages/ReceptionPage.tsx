@@ -12,8 +12,7 @@ import { ReceptionCard } from "../components/ReceptionCard";
 import { ReceptionEmptyState } from "../components/ReceptionEmptyState";
 import { ReceptionNewDrawer } from "../components/ReceptionNewDrawer";
 import { FollowUpScheduler } from "../components/FollowUpScheduler";
-import { ArrivalCallDock } from "../components/ArrivalCallDock";
-import { TemporaryPatientDialog, type TemporaryPatientTarget } from "../components/TemporaryPatientDialog";
+import { TemporaryPatientDialog } from "../components/TemporaryPatientDialog";
 import { useOwnDoctorDefault } from "../hooks/useOwnDoctorDefault";
 import { rankDoctorIds, useDoctorFilter } from "../hooks/useDoctorFilter";
 import { useRefetchWhenDue } from "../hooks/useRefetchWhenDue";
@@ -50,6 +49,7 @@ import type {
   BookedOutcome,
   ReceptionItem,
 } from "../types/reception";
+import type { TemporaryPatientTarget } from "../types/temporaryPatient";
 import "../components/reception.css";
 
 type ViewMode = "day" | "week" | "month";
@@ -360,8 +360,6 @@ export const ReceptionPage: React.FC = () => {
         onConfirm={handleCancelConfirm}
         onClose={() => setCancelTarget(null)}
       />
-
-      <ArrivalCallDock />
     </div>
   );
 };

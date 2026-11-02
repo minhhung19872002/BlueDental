@@ -1,11 +1,7 @@
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
-import type { PatientDto, PatientPrefill } from "@/features/patient-management/types/patient";
+import type { PatientDto } from "@/features/patient-management/types/patient";
 import { useAttachReceptionPatient } from "../api/receptionMutations";
-
-export interface TemporaryPatientTarget {
-  appointmentId: string;
-  prefill: PatientPrefill;
-}
+import type { TemporaryPatientTarget } from "../types/temporaryPatient";
 
 interface Props {
   target: TemporaryPatientTarget;

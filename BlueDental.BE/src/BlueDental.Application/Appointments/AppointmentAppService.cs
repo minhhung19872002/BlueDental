@@ -746,6 +746,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var before = await SnapshotAsync(appointment);
         appointment.AttachPatient(input.PatientId);
         await _repository.UpdateAsync(appointment, autoSave: true);
+        // A called-up "Lịch tạm" turns "Tạo hồ sơ" into "Tiếp nhận" on every open panel.
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);

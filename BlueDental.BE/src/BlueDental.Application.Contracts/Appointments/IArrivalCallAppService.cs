@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using BlueDental.PatientManagement;
 using Volo.Abp.Application.Services;
 
 namespace BlueDental.Appointments;
@@ -34,6 +35,11 @@ public class ArrivalCallDto
     public string PatientName { get; set; } = default!;
     public int? PatientYearOfBirth { get; set; }
     public bool IsTemporary { get; set; }
+
+    /// <summary>A "Lịch tạm"'s own phone, prefilled into "Tạo hồ sơ"; masked like every patient phone.</summary>
+    [PatientPhone]
+    public string? PatientPhone { get; set; }
+
     public Guid DentistId { get; set; }
     public string? DentistName { get; set; }
     public DateTimeOffset SlotStart { get; set; }

@@ -257,7 +257,10 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    /// <summary>"Tiếp nhận": reception seats a patient the doctor called up — step 2, Đang khám.</summary>
+    /// <summary>
+    /// "Tiếp nhận": reception seats a patient the doctor called up — step 2,
+    /// Đang khám. A "Lịch tạm" gets its patient record first (BA 2026-11-02).
+    /// </summary>
     public Appointment Admit()
     {
         if (Status != AppointmentStatus.CheckedIn || InvitedAt is null)
@@ -265,6 +268,13 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
                 $"Cannot admit an appointment in status '{Status}' that the doctor has not called up.");
+        }
+
+        if (IsTemporary)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.TemporaryNeedsRecord,
+                $"Appointment {Id} is temporary: create the patient record before admitting.");
         }
 
         return Start();

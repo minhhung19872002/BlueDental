@@ -27,6 +27,7 @@ export interface Appointment {
   startedAt: string | null;
   completedAt: string | null;
   cancelledAt: string | null;
+  isTemporary: boolean;
 }
 
 export interface ApiResult<T> {

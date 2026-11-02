@@ -4,7 +4,10 @@ export interface ArrivalCall {
   patientId: string;
   patientName: string;
   patientYearOfBirth?: number;
+  /** A "Lịch tạm": reception makes its record before "Tiếp nhận". */
   isTemporary: boolean;
+  /** The "Lịch tạm"'s own phone, prefilled into "Tạo hồ sơ". */
+  patientPhone?: string;
   doctorName: string;
   /** The booked time, HH:mm. */
   time: string;

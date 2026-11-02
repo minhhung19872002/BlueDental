@@ -124,18 +124,21 @@ async function tearDown(page: Page, branchId: string, fixture: Fixture) {
   }
 }
 
-/** A separate browser signed in as `userName` on the login screen, on Tiếp nhận. */
-async function openAs(browser: Browser, userName: string) {
+/** A separate browser signed in as `userName` on the login screen, on `path`. */
+async function openAs(browser: Browser, userName: string, path: string) {
   const context = await browser.newContext();
   const page = await context.newPage();
   await login(page, { userName, password: RUN_STAFF_PASSWORD });
-  await page.goto("/reception");
+  await page.goto(path);
   return { context, page };
 }
 
 const dockButton = (page: Page) => page.getByRole("button", { name: "Khách đã đến" });
 const panel = (page: Page) => page.getByRole("dialog", { name: "Khách đã đến" });
 const rowOf = (page: Page, visit: Visit) => panel(page).locator(".arrival-row").filter({ hasText: visit.patientName });
+/** One list of the panel, by its title: an admin has both, so a patient can be in each. */
+const section = (page: Page, title: string) =>
+  panel(page).locator("section").filter({ has: page.getByRole("heading", { name: title }) });
 
 test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
   test("the doctor calls their own patient up and a role with Tiếp nhận Sửa seats them, live", async ({ page, browser }) => {
@@ -146,8 +149,9 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
     const sessions: Awaited<ReturnType<typeof openAs>>[] = [];
 
     try {
-      const doctor = await openAs(browser, fixture.doctor.userName);
-      const receptionist = await openAs(browser, fixture.receptionist.userName);
+      const doctor = await openAs(browser, fixture.doctor.userName, "/reception");
+      // The app shell carries the button, so it floats over every screen, not only Tiếp nhận.
+      const receptionist = await openAs(browser, fixture.receptionist.userName, "/calendar/list");
       sessions.push(doctor, receptionist);
 
       // The doctor's panel lists their own arrived patient only.
@@ -156,6 +160,7 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(panel(doctor.page)).toContainText("Khách đã đến");
       await expect(panel(doctor.page)).not.toContainText("Bác sĩ mời lên");
       await expect(rowOf(doctor.page, fixture.ownVisit)).toBeVisible();
+      await expect(rowOf(doctor.page, fixture.ownVisit).locator(".arrival-row-doctor")).toContainText(fixture.doctor.userName);
       await expect(rowOf(doctor.page, fixture.otherVisit)).toHaveCount(0);
 
       // The receptionist has nothing to seat yet, and no "Mời lên" list.
@@ -184,6 +189,7 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       const seatRow = rowOf(receptionist.page, fixture.ownVisit);
       await expect(seatRow).toBeVisible({ timeout: 15_000 });
       await expect(seatRow).toContainText(fixture.ownVisit.searchKey);
+      await expect(seatRow.locator(".arrival-row-doctor")).toContainText(fixture.doctor.userName);
       // The branch is shared: other visits called up today count too.
       const seatRows = panel(receptionist.page).locator(".arrival-row");
       await expect(dockButton(receptionist.page).locator(".arrival-dock-badge")).toHaveText(String(await seatRows.count()));
@@ -205,11 +211,118 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(rowOf(receptionist.page, fixture.ownVisit)).toHaveCount(0);
 
       // A click outside folds the panel away.
-      await receptionist.page.locator(".reception-card--toolbar").click({ position: { x: 5, y: 5 } });
+      await receptionist.page.locator("main.app-content").click({ position: { x: 5, y: 5 } });
       await expect(panel(receptionist.page)).toHaveCount(0);
     } finally {
       for (const session of sessions) await session.context.close();
       await tearDown(page, branchId, fixture);
+    }
+  });
+
+  test("a called-up Lịch tạm gets its record before Tiếp nhận", async ({ page, browser }) => {
+    test.setTimeout(240_000);
+    await login(page);
+    const branchId = await openBoard(page);
+    const id = `${runId()}${test.info().workerIndex}`;
+    const doctorRole = `Bác sĩ lịch tạm ${id}`;
+    const roleId = await createRole(page, doctorRole, [...BOARD_GRANTS, EDIT_GRANT]);
+    const doctor = await createUser(page, branchId, `mltam${id}`, doctorRole, true);
+
+    const name = `E2E TAM MOI ${id}`;
+    const start = new Date(Date.now() + 40 * 60_000);
+    start.setSeconds(0, 0);
+    test.skip(start.getDate() !== new Date().getDate(), "too close to midnight to book for today");
+    const booked = await call<Appointment>(page, branchId, `${APPOINTMENTS}/temp`, {
+      method: "POST",
+      json: { patientName: name, patientPhone: `09${id.slice(-8).padStart(8, "0")}`, branchId, slotStart: start, slotEnd: new Date(start.getTime() + 15 * 60_000) },
+    });
+    expect(booked.status, JSON.stringify(booked.body)).toBe(200);
+    const visitId = booked.body.id;
+    let doctorSession: Awaited<ReturnType<typeof openAs>> | undefined;
+
+    try {
+      const assigned = await call(page, branchId, `${APPOINTMENTS}/${visitId}/assign-dentist`, { method: "POST", json: { dentistId: doctor.id } });
+      expect(assigned.status, "hand the walk-in to the run doctor").toBe(200);
+      expect((await call(page, branchId, `${APPOINTMENTS}/${visitId}/check-in`, { method: "POST" })).status).toBe(200);
+      doctorSession = await openAs(browser, doctor.userName, "/reception");
+      const invited = await call(doctorSession.page, branchId, `${ARRIVAL_CALLS}/${visitId}/invite`, { method: "POST" });
+      expect(invited.status, "the doctor calls the walk-in up").toBe(200);
+
+      // The admin (not ticked Bác sĩ) gets "Tạo hồ sơ", not "Tiếp nhận".
+      await page.goto("/calendar/list");
+      await dockButton(page).click();
+      const row = section(page, "Bác sĩ mời lên").locator(".arrival-row").filter({ hasText: name });
+      await expect(row.locator(".arrival-row-temp")).toHaveText("Lịch tạm");
+      await expect(row).toContainText("Lịch tạm: tạo hồ sơ trước khi tiếp nhận");
+      await expect(row.getByRole("button", { name: "Tiếp nhận" })).toHaveCount(0);
+
+      // The server refuses to seat it before the record exists.
+      const early = await call<{ error?: { code?: string } }>(page, branchId, `${ARRIVAL_CALLS}/${visitId}/admit`, { method: "POST" });
+      expect(early.status, "no Tiếp nhận for a Lịch tạm").not.toBe(200);
+      expect(early.body.error?.code).toBe("BlueDental:Appointment:0018");
+
+      // "Tạo hồ sơ" opens the record form filled in; saving it attaches the record.
+      await row.getByRole("button", { name: "Tạo hồ sơ" }).click();
+      const dialog = page.getByRole("dialog", { name: "Tạo hồ sơ" });
+      await expect(dialog.getByRole("textbox", { name: /Họ và tên/ })).toHaveValue(name);
+      const attached = page.waitForResponse(
+        (r) => r.url().endsWith(`${APPOINTMENTS}/${visitId}/attach-patient`) && r.request().method() === "POST",
+      );
+      await dialog.getByRole("button", { name: "Lưu" }).click();
+      expect((await attached).status()).toBe(200);
+      await expect(dialog).toBeHidden();
+
+      // The same row now seats the patient.
+      await expect(row.locator(".arrival-row-temp")).toHaveCount(0);
+      await row.getByRole("button", { name: "Tiếp nhận" }).click();
+      await expect(page.getByText("Đã tiếp nhận bệnh nhân")).toBeVisible();
+      await expect(row).toHaveCount(0);
+
+      const stored = await getAppointment(page, branchId, visitId);
+      expect(stored.status, "Đang khám").toBe(4);
+      expect(stored.isTemporary).toBe(false);
+    } finally {
+      await doctorSession?.context.close();
+      await plainCall(page, `${APPOINTMENTS}/${visitId}`, { method: "DELETE", branchId });
+      await plainCall(page, `${STAFF}/${doctor.id}`, { method: "DELETE" });
+      await plainCall(page, `${ROLES}/${roleId}`, { method: "DELETE" });
+    }
+  });
+
+  test("an admin sees both lists, for every doctor, and does both steps", async ({ page }) => {
+    test.setTimeout(180_000);
+    await login(page);
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 160, "e2e-admin-moilen");
+
+    try {
+      expect((await call(page, branchId, `${APPOINTMENTS}/${visit.id}/check-in`, { method: "POST" })).status).toBe(200);
+
+      // The seeded admin is not ticked "Bác sĩ", yet gets both lists, after a reload too.
+      await page.goto("/calendar/list");
+      await page.reload();
+      await dockButton(page).click();
+      const waiting = section(page, "Khách đã đến");
+      const invited = section(page, "Bác sĩ mời lên");
+      await expect(waiting).toBeVisible();
+      await expect(invited).toBeVisible();
+
+      // "Mời lên" for another doctor's patient, then "Tiếp nhận" from the other list.
+      const waitingRow = waiting.locator(".arrival-row").filter({ hasText: visit.searchKey });
+      await waitingRow.getByRole("button", { name: "Mời lên" }).click();
+      await expect(page.getByText("Đã mời bệnh nhân lên")).toBeVisible();
+      await expect(waitingRow).toContainText("Đã mời");
+
+      const seatRow = invited.locator(".arrival-row").filter({ hasText: visit.searchKey });
+      await seatRow.getByRole("button", { name: "Tiếp nhận" }).click();
+      await expect(page.getByText("Đã tiếp nhận bệnh nhân")).toBeVisible();
+      await expect(seatRow).toHaveCount(0);
+      await expect(waitingRow).toHaveCount(0);
+
+      const stored = await getAppointment(page, branchId, visit.id);
+      expect(stored.status, "Đang khám").toBe(4);
+    } finally {
+      await plainCall(page, `${APPOINTMENTS}/${visit.id}`, { method: "DELETE", branchId });
     }
   });
 });

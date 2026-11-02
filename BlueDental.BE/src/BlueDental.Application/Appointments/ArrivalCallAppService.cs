@@ -25,14 +25,15 @@ public class ArrivalCallAppService(
     ArrivalBroadcast broadcast) : BlueDentalAppService, IArrivalCallAppService
 {
     /// <summary>
-    /// Only an account ticked "Bác sĩ" on the staff form has this list: its
-    /// own patients, every doctor's for an admin. Anyone else gets none.
+    /// An account ticked "Bác sĩ" on the staff form gets its own patients; an
+    /// admin gets every doctor's, ticked or not (owner 2026-11-02). Anyone
+    /// else gets none.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
     public async Task<List<ArrivalCallDto>> GetWaitingAsync()
     {
         var userId = CurrentUser.GetId();
-        if (!await IsDentistAsync(userId)) return [];
+        if (!IsAdmin() && !await IsDentistAsync(userId)) return [];
 
         var query = await TodaysArrivalsAsync();
         if (!IsAdmin()) query = query.Where(a => a.DentistId == userId);
@@ -48,13 +49,13 @@ public class ArrivalCallAppService(
         return await ToDtosAsync(query.Where(a => a.InvitedAt != null));
     }
 
-    /// <summary>Only the visit's own doctor — or an admin ticked "Bác sĩ" — calls the patient up.</summary>
+    /// <summary>Only the visit's own doctor — or an admin — calls the patient up.</summary>
     [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
     public async Task<ArrivalCallDto> InviteAsync(Guid id)
     {
         var appointment = await GetInBranchAsync(id);
         var userId = CurrentUser.GetId();
-        if (!await IsDentistAsync(userId) || (!IsAdmin() && appointment.DentistId != userId))
+        if (!IsAdmin() && (!await IsDentistAsync(userId) || appointment.DentistId != userId))
         {
             throw new AbpAuthorizationException("Only the visit's doctor can call the patient up.");
         }
@@ -68,7 +69,8 @@ public class ArrivalCallAppService(
     /// <summary>
     /// Seating is reception's step: a doctor (the "Bác sĩ" tick) only calls
     /// patients up, whatever Tiếp nhận permissions their role carries — two
-    /// doctors must not see, nor seat, each other's called-up patients.
+    /// doctors must not see, nor seat, each other's called-up patients. An
+    /// admin does both steps.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
     [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
@@ -98,9 +100,10 @@ public class ArrivalCallAppService(
         return user?.ExtraProperties.GetOrDefault("IsDentist") is true;
     }
 
+    /// <summary>The called-up list and "Tiếp nhận" are reception's: not a doctor's, unless an admin.</summary>
     private async Task EnsureNotDentistAsync()
     {
-        if (await IsDentistAsync(CurrentUser.GetId()))
+        if (!IsAdmin() && await IsDentistAsync(CurrentUser.GetId()))
         {
             throw new AbpAuthorizationException("A doctor calls patients up; reception seats them.");
         }
@@ -161,6 +164,7 @@ public class ArrivalCallAppService(
                     : patient is null ? "" : (patient.LastName + " " + patient.FirstName).Trim(),
                 PatientYearOfBirth = patient?.DateOfBirth?.Year,
                 IsTemporary = a.IsTemporary,
+                PatientPhone = a.IsTemporary ? a.PatientPhone : null,
                 DentistId = a.DentistId,
                 DentistName = dentists.GetValueOrDefault(a.DentistId),
                 SlotStart = a.Slot.Start,

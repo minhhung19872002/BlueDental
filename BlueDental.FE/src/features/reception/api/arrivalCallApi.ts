@@ -10,6 +10,7 @@ interface ServerArrivalCallDto {
   patientName: string;
   patientYearOfBirth: number | null;
   isTemporary: boolean;
+  patientPhone: string | null;
   dentistName: string | null;
   slotStart: string;
   content: string | null;
@@ -23,6 +24,7 @@ function adaptArrivalCall(dto: ServerArrivalCallDto): ArrivalCall {
     patientName: dto.patientName,
     patientYearOfBirth: dto.patientYearOfBirth ?? undefined,
     isTemporary: dto.isTemporary,
+    patientPhone: dto.patientPhone ?? undefined,
     doctorName: dto.dentistName ?? "",
     time: dayjs(dto.slotStart).format("HH:mm"),
     content: dto.content ?? "",

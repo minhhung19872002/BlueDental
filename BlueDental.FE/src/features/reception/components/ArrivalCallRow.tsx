@@ -19,6 +19,9 @@ const ACTION_LABEL_KEY: Record<ArrivalCallAction, string> = {
 
 export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, canAct, pending, onAction }) => {
   const calledUp = action === "invite" && item.invited;
+  // A "Lịch tạm" is seated against a real record, so reception makes it first.
+  const needsRecord = action === "admit" && item.isTemporary;
+  const actionLabelKey = needsRecord ? "Reception:ArrivalCallCreateRecord" : ACTION_LABEL_KEY[action];
 
   return (
     <li className="arrival-row">
@@ -29,17 +32,21 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
             {item.patientName}
             {item.patientYearOfBirth ? ` (${item.patientYearOfBirth})` : ""}
           </span>
+          {item.isTemporary && <span className="arrival-row-temp">{t("Reception:StatusTemporary")}</span>}
         </div>
-        {/* Reception seats patients for every doctor, so it is told whose they are. */}
-        {action === "admit" && item.doctorName && (
-          <div className="arrival-row-line">
-            <Stethoscope size={16} aria-hidden />
-            <span>{item.doctorName}</span>
-          </div>
-        )}
-        <div className="arrival-row-line">
-          <Clock3 size={16} aria-hidden />
-          <span>{item.time}</span>
+        {needsRecord && <div className="arrival-row-hint">{t("Reception:ArrivalCallNeedsRecord")}</div>}
+        {/* Whose patient it is: reception seats for every doctor, an admin calls up for every doctor. */}
+        <div className="arrival-row-line arrival-row-meta">
+          <span>
+            <Clock3 size={16} aria-hidden />
+            {item.time}
+          </span>
+          {item.doctorName && (
+            <span className="arrival-row-doctor">
+              <Stethoscope size={16} aria-hidden />
+              {item.doctorName}
+            </span>
+          )}
         </div>
         {item.content && (
           <div className="arrival-row-line">
@@ -58,7 +65,7 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
           disabled={pending}
           onClick={() => onAction(item.id, action)}
         >
-          {t(ACTION_LABEL_KEY[action])}
+          {t(actionLabelKey)}
         </Button>
       )}
     </li>

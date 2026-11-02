@@ -918,6 +918,25 @@ public class AppointmentTests
         Assert.NotNull(waiting.StartedAt);
     }
 
+    /// <summary>R-1134: a called-up "Lịch tạm" is seated only once reception has made its record.</summary>
+    [Fact]
+    public void Admit_Should_Wait_For_The_Record_Of_A_Temporary_Booking()
+    {
+        var walkIn = Appointment.CreateTemporary(
+            Guid.NewGuid(), "Khach tam", "0900000000", _branchId, _slot, _dentistId);
+        walkIn.CheckIn();
+        walkIn.Invite(_dentistId);
+
+        var error = Assert.Throws<BusinessException>(() => walkIn.Admit());
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.TemporaryNeedsRecord, error.Code);
+        Assert.Equal(AppointmentStatus.CheckedIn, walkIn.Status);
+
+        walkIn.AttachPatient(_patientId);
+        walkIn.Admit();
+
+        Assert.Equal(AppointmentStatus.InProgress, walkIn.Status);
+    }
+
     [Fact]
     public void Undoing_The_Arrival_Or_Handing_To_Another_Doctor_Should_Drop_The_Call()
     {
