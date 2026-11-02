@@ -12444,3 +12444,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Kết quả: `patient-code-check`, `patient-roster-api`, `patient-national-id*`, `patient-scan-id*`, `patient-shared-phone-ui` → **30/30 xanh**.
   - `tsc -p tsconfig.app.json` → sạch. eslint các file đổi → sạch (eslint cả thư mục báo 1 lỗi có sẵn ở `PatientProfileTab.tsx`: thiếu rule `react-hooks/exhaustive-deps`, không do R-1119).
 - **Mức retest**: 2 (F-02 dialog hồ sơ + F-69 cấp mã khi nhập).
+
+## R-1125 (2026-11-02, mức 2: F-45 Tiếp nhận — Hẹn lại tái khám) Thêm chip 15 phút
+
+- **Yêu cầu** (chủ dự án, ảnh chụp `duchanhpremium.vn/reception`): dãy chip thời lượng dưới thanh thời gian ở bước 3 "Chọn khung giờ" — 30 / 45 / 60 / 90 phút — thêm 15 phút. Làm trên main.
+- **Sửa — FE**: `DURATIONS` trong `features/reception/utils/followUpSlots.ts` thành `[15, 30, 45, 60, 90]`. Chip 15 phút đi chung đường với các chip khác: giữ giờ bắt đầu, kéo giờ kết thúc, tắt khi không vừa ca/đụng lịch đã có. Bấm không kéo và chọn nhanh vẫn lấy 30' (`DEFAULT_MINUTES` không đổi).
+- **E2E**: `reception-follow-up` — ca kéo-giãn-đặt lịch bấm thêm "15 phút" (khớp chính xác tên, vì nút "Tăng/Lùi giờ … 15 phút" cũng chứa chuỗi đó) và kiểm giờ kết thúc 14:15.
+- **Mức retest**: 2 (F-45 hộp Hẹn lại).

@@ -770,6 +770,10 @@ async function dragStretchAndBook(page: Page, dentist: RunDentist) {
   await expect(panel.locator(".fu-time--end")).toHaveText("15:00");
   await expect(panel.getByRole("button", { name: "60 phút" })).toHaveAttribute("aria-pressed", "true");
 
+  // 15 phút, the shortest chip, keeps the start too (R-1125).
+  await panel.getByRole("button", { name: "15 phút", exact: true }).click();
+  await expect(panel.locator(".fu-time--end")).toHaveText("14:15");
+
   // 45 phút keeps the start; Từ + moves it a quarter hour on.
   await panel.getByRole("button", { name: "45 phút" }).click();
   await panel.getByRole("button", { name: "Tăng giờ bắt đầu 15 phút" }).click();

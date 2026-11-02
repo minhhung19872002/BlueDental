@@ -9,7 +9,7 @@ export const STEP_MINUTES = 15;
 export const DEFAULT_MINUTES = 30;
 
 /** The length chips under the timeline. */
-export const DURATIONS = [30, 45, 60, 90] as const;
+export const DURATIONS = [15, 30, 45, 60, 90] as const;
 
 const DAY_MINUTES = 24 * 60;
 const MINUTE_MS = 60_000;
