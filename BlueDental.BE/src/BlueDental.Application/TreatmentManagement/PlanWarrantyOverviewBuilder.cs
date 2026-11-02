@@ -102,6 +102,8 @@ internal sealed class PlanWarrantyOverviewBuilder(PlanWarrantySnapshot snapshot)
         var pending = (teeth.Count == 0 ? [null] : teeth.Select(t => (int?)t))
             .Where(t => !carded.Contains(t))
             .ToList();
+        // No clinic warranty while the lab still owes its work (BA 2026-11-02).
+        var dentalReady = line.IsCompleted && !orders.Any(o => o.IsUnfinished);
         var awaiting = orders.FirstOrDefault(o => o.HasTeethAwaitingWarranty);
         var laboCards = orders.Sum(o => o.Teeth.Count(t => t.IsWarrantyActivated));
         var current = line.IsCompleted
@@ -124,9 +126,9 @@ internal sealed class PlanWarrantyOverviewBuilder(PlanWarrantySnapshot snapshot)
             CurrentStageName = current?.Name,
             LaboFitted = orders.Any(o => o.IsQualityPassed),
             WarrantyDays = days,
-            Dental = DentalCell(line, days, pending.Count, cards.Count),
+            Dental = DentalCell(dentalReady, days, pending.Count, cards.Count),
             DentalCardCount = cards.Count,
-            DentalPendingTeeth = line.IsCompleted ? pending : [],
+            DentalPendingTeeth = dentalReady ? pending : [],
             Labo = LaboCell(orders.Count, awaiting, laboCards),
             LaboCardCount = laboCards,
             PendingLaboOrderId = awaiting?.Id,
@@ -135,9 +137,9 @@ internal sealed class PlanWarrantyOverviewBuilder(PlanWarrantySnapshot snapshot)
         return row;
     }
 
-    private static WarrantyCellState DentalCell(TreatmentService line, int days, int pending, int cards)
+    private static WarrantyCellState DentalCell(bool ready, int days, int pending, int cards)
     {
-        if (line.IsCompleted && days > 0 && pending > 0) return WarrantyCellState.Pending;
+        if (ready && days > 0 && pending > 0) return WarrantyCellState.Pending;
         if (cards > 0) return WarrantyCellState.Activated;
         return days > 0 ? WarrantyCellState.NotEligible : WarrantyCellState.None;
     }

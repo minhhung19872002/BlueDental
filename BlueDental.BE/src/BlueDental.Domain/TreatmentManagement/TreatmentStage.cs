@@ -138,6 +138,15 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     public bool IsSuperseded { get; private set; }
 
     /// <summary>
+    /// A "Tiếp tục công đoạn" dated before the row it continues (BA 2026-11-02):
+    /// written into the history all the same, but it takes no teeth — the row it
+    /// came from, on the newer day, stays the one being worked. Born superseded,
+    /// so it never counts towards the line's progress; its pictures, content and
+    /// note stay open like any other row's.
+    /// </summary>
+    public bool IsBackfill { get; private set; }
+
+    /// <summary>
     /// Teeth already handed on to a later công đoạn. A continue may take only
     /// some of the teeth (the project owner's rule, 2026-10-03: a tooth stays
     /// continuable until its công đoạn is finished); the rest stay here, still
@@ -169,6 +178,13 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
 
     /// <summary>Labo warranty: the order picked in "Chọn phiếu Labo" (REQ-F4).</summary>
     public Guid? WarrantyLaboOrderId { get; private set; }
+
+    /// <summary>
+    /// A warranty worked under a Labo card. The lab's warranty is the third
+    /// party's, counted apart from the clinic's service: it never moves the
+    /// service line (BA 2026-11-02, a deliberate divergence from the reference).
+    /// </summary>
+    public bool IsLaboWarranty => IsGuarantee && WarrantyKind == WarrantyCardKind.Labo;
 
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
@@ -273,11 +289,11 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
         IEnumerable<(TreatmentStage Stage, IEnumerable<int>? ToothCodes)>? alsoFrom = null,
         DateOnly? treatmentDate = null)
     {
-        var carried = HandOnTeeth(toothCodes);
+        var others = (alsoFrom ?? []).ToList();
 
         // One visit may carry on teeth of several open chains of the same line
         // (owner, 2026-10-03): they land on one công đoạn, not one per chain.
-        foreach (var (other, codes) in alsoFrom ?? [])
+        foreach (var (other, _) in others)
         {
             if (other.Id == Id ||
                 other.TreatmentServiceId != TreatmentServiceId ||
@@ -287,8 +303,15 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
                     BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition,
                     "Only open công đoạn of the same service line and kind can be continued together.");
             }
+        }
 
-            carried.AddRange(other.HandOnTeeth(codes)
+        var newestSource = others.Select(x => x.Stage.TreatmentDate).Append(TreatmentDate).Max();
+        var backfill = treatmentDate is { } day && day < newestSource;
+
+        var carried = HandOnTeeth(toothCodes, keep: backfill);
+        foreach (var (other, codes) in others)
+        {
+            carried.AddRange(other.HandOnTeeth(codes, keep: backfill)
                 .Where(tooth => carried.TrueForAll(each => each.ToothCode != tooth.ToothCode)));
         }
 
@@ -315,6 +338,8 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
             treatmentDate: treatmentDate);
         next.WarrantyKind = WarrantyKind;
         next.WarrantyLaboOrderId = WarrantyLaboOrderId;
+        next.IsBackfill = backfill;
+        next.IsSuperseded = backfill;
         return next;
     }
 
@@ -338,9 +363,11 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     /// by one công đoạn, and EF refuses to hand an owned row to a second owner.
     /// Empty <paramref name="toothCodes"/>, or a công đoạn with no teeth of its
     /// own (it stood for the whole line), hands on everything still open. The
-    /// công đoạn is superseded once nothing is left open.
+    /// công đoạn is superseded once nothing is left open. With
+    /// <paramref name="keep"/> — a back-dated continue — the teeth are only
+    /// copied, and stay open here.
     /// </summary>
-    private List<ToothSelection> HandOnTeeth(IEnumerable<int>? toothCodes)
+    private List<ToothSelection> HandOnTeeth(IEnumerable<int>? toothCodes, bool keep = false)
     {
         GuardLive();
 
@@ -364,12 +391,27 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
                 "Only teeth this công đoạn still holds open can be continued.");
         }
 
-        _continuedToothCodes.AddRange(handed.Select(t => t.ToothCode));
-        IsSuperseded = OpenTeeth.Count == 0;
+        if (!keep)
+        {
+            _continuedToothCodes.AddRange(handed.Select(t => t.ToothCode));
+            IsSuperseded = OpenTeeth.Count == 0;
+        }
 
         return handed
             .Select(t => new ToothSelection(t.ToothCode, t.Selected, t.Top, t.Right, t.Bottom, t.Left, t.Center))
             .ToList();
+    }
+
+    /// <summary>
+    /// Undoes <see cref="HandOnTeeth"/> when the công đoạn the teeth went to is
+    /// deleted (admin "Xóa", BA 2026-11-02): they are open here again, and so is
+    /// this công đoạn. One with no teeth of its own takes the whole line back.
+    /// </summary>
+    public void TakeBackTeeth(IEnumerable<int> toothCodes)
+    {
+        var codes = toothCodes.ToHashSet();
+        _continuedToothCodes.RemoveAll(codes.Contains);
+        IsSuperseded = _teeth.Count > 0 && OpenTeeth.Count == 0;
     }
 
     /// <summary>
@@ -448,15 +490,23 @@ public class TreatmentStage : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// Ghi chú. Unlike the treatment content it stays open once the công đoạn is
-    /// finished, since a remark is often added after the visit (owner,
-    /// 2026-10-19); only a continued công đoạn, which is history, refuses it.
-    /// Blank clears it.
+    /// Nội dung điều trị, edited in its cell on the history row. Open on every
+    /// row — finished, continued or back-dated alike (BA 2026-11-02: "Cho phép
+    /// chỉnh sửa hết"); every change is logged by the caller instead.
+    /// </summary>
+    public TreatmentStage SetNote(string? note)
+    {
+        Note = string.IsNullOrWhiteSpace(note) ? null : note;
+        return this;
+    }
+
+    /// <summary>
+    /// Ghi chú. Stays open on every row, finished or continued (owner
+    /// 2026-10-19, BA 2026-11-02 "Cho phép chỉnh sửa hết"); every change is
+    /// logged by the caller. Blank clears it.
     /// </summary>
     public TreatmentStage SetRemark(string? remark)
     {
-        GuardLive();
-
         var text = remark?.Trim();
         if (!string.IsNullOrEmpty(text))
         {

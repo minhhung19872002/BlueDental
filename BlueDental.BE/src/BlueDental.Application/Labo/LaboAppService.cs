@@ -41,6 +41,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     private readonly IRepository<PatientImage, Guid> _imageRepository;
     private readonly IBlobContainer _blobContainer;
     private readonly BranchAccessChecker _branchAccess;
+    private readonly IRepository<TreatmentStage, Guid> _stageRepository;
 
     public LaboAppService(
         IRepository<LaboOrder, Guid> repository,
@@ -55,7 +56,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         IPatientImageAppService imageService,
         IRepository<PatientImage, Guid> imageRepository,
         IBlobContainer blobContainer,
-        BranchAccessChecker branchAccess)
+        BranchAccessChecker branchAccess,
+        IRepository<TreatmentStage, Guid> stageRepository)
     {
         _repository = repository;
         _patientRepository = patientRepository;
@@ -70,6 +72,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         _imageRepository = imageRepository;
         _blobContainer = blobContainer;
         _branchAccess = branchAccess;
+        _stageRepository = stageRepository;
     }
 
     /// <summary>One service line of a plan, as the order form names it.</summary>
@@ -127,6 +130,30 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         if (line.Status == TreatmentServiceStatus.Done)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.TreatmentServiceCompleted);
+        }
+    }
+
+    /// <summary>
+    /// "Tạo Labo" is frozen on a công đoạn older than its line's newest
+    /// "Ngày điều trị" (BA 2026-11-02) — see <see cref="StageDateLock"/>.
+    /// </summary>
+    private async Task EnsureStageNotDateLockedAsync(Guid? stageId)
+    {
+        if (!stageId.HasValue)
+        {
+            return;
+        }
+
+        var stage = await _stageRepository.FindAsync(stageId.Value);
+        if (stage is null)
+        {
+            return;
+        }
+
+        var lineStages = await _stageRepository.GetListAsync(x => x.TreatmentServiceId == stage.TreatmentServiceId);
+        if (StageDateLock.IsLocked(stage, lineStages))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.StageDateLocked);
         }
     }
 
@@ -542,6 +569,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     {
         var branchId = _branchResolver.GetRequiredClinicBranchId();
         await EnsureServiceLineOpenAsync(input.PatientId, input.TreatmentServiceId);
+        await EnsureStageNotDateLockedAsync(input.TreatmentStageId);
 
         var code = await ResolveOrderCodeAsync(input.OrderCode);
         var order = new LaboOrder(

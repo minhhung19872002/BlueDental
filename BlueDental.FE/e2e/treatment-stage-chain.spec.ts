@@ -433,14 +433,15 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // Nothing left open on the first visit: now it is history — locked, but no
     // longer faded (owner, 2026-10-29), and its teeth still open for a look.
+    // Tải ảnh and Nội dung điều trị stay open on it (BA 2026-11-02, F-88).
     const oldRow = again.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`);
     await expect(oldRow).toHaveAttribute("data-superseded", "true");
     await expect(again.locator(`.pd-stage-histrow[data-stage-id="${next.id}"]`)).toHaveAttribute("data-superseded", "false");
     await expect(oldRow).toHaveCSS("opacity", "1");
     await expect(oldRow.locator(".pd-stage-rowactions").getByRole("checkbox")).toBeDisabled();
-    await expect(oldRow.getByRole("button", { name: "Tải ảnh" })).toBeDisabled();
+    await expect(oldRow.getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
     await expect(oldRow.getByRole("button", { name: "Tạo Labo" })).toHaveCount(0);
-    await expect(oldRow.getByRole("button", { name: "Sửa ghi chú" })).toHaveCount(0);
+    await expect(oldRow.getByRole("button", { name: "Sửa ghi chú" })).toHaveCount(1);
     const oldChart = await openRowChart(page, oldRow);
     await expect(oldChart.line).toHaveText(["31", "32"]);
     await expect(oldChart.worked).toHaveText(["31", "32"]);

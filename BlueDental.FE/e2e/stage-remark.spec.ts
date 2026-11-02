@@ -14,9 +14,9 @@ import { openStageDialog, stagePanel } from "./fixtures/stageDialog";
  * Feature: "Ghi chú" on Lịch sử điều trị (owner, 2026-10-19, R-984). A column
  * of its own between Nội dung điều trị and Công đoạn, edited in place through
  * its own pencil and its own endpoint, plain text with its line breaks. Unlike
- * the content it stays open once the công đoạn is finished; a continued one is
- * shut. The patient's treatment table reads it, between Nội dung điều trị and
- * Răng.
+ * the content it stays open once the công đoạn is finished, and since F-88
+ * (BA 2026-11-02) on a continued one too. The patient's treatment table reads
+ * it, between Nội dung điều trị and Răng.
  *
  * Real stack throughout: the fixtures go through the real API on the session
  * the real login screen gave, the restricted dentist is made through Nhân sự
@@ -159,7 +159,7 @@ async function writeRemark(page: Page, row: Locator, text: string): Promise<void
 }
 
 test.describe("Lịch sử điều trị — Ghi chú", () => {
-  test("is edited in place, keeps its line breaks, reads in the treatment table, stays open once finished and shuts on a continued công đoạn", async ({
+  test("is edited in place, keeps its line breaks, reads in the treatment table, stays open once finished and on a continued công đoạn", async ({
     page,
   }) => {
     test.setTimeout(180_000);
@@ -207,7 +207,8 @@ test.describe("Lịch sử điều trị — Ghi chú", () => {
     expect(heads[at + 1]).toBe("Răng");
     expect(await row.locator(".pd-tr-remark").innerText()).toBe(remark);
 
-    // ── Continued: the old row is shut, on screen and on the server ───────
+    // ── Continued: Ghi chú stays open on the old row too (BA 2026-11-02,
+    //    F-88: "cho phép chỉnh sửa hết", every edit logged) ───────────────
     const continued = await api(page, "POST", `${STAGES}/${fixture.stageId}/continue`, {
       staffId: await staffId(page),
       note: `e2e lần 2 ${runId()}`,
@@ -220,11 +221,11 @@ test.describe("Lịch sử điều trị — Ghi chú", () => {
     panel = await openStageDialog(page, fixture);
     const old = historyRow(panel, fixture.stageId);
     await expect(old).toHaveAttribute("data-superseded", "true");
-    await expect(old.getByRole("button", { name: PENCIL })).toHaveCount(0);
-    const late = await api(page, "PUT", `${STAGES}/${fixture.stageId}/remark`, { remark: "muộn" });
-    expect(late.status, late.text).toBeGreaterThanOrEqual(400);
+    const late = "muộn";
+    await writeRemark(page, old, late);
+    await expect(old.locator(".pd-stage-remarktext")).toHaveText(late);
     stored = await readStage(page, fixture.stageId);
-    expect(stored.remark).toBe(remark);
+    expect(stored.remark).toBe(late);
 
     // ── Finished: Ghi chú is still open on it, and clears back to nothing ─
     const completed = await api(page, "POST", `${STAGES}/${nextId}/complete`);

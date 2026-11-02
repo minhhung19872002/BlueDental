@@ -244,9 +244,12 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       const later = stageRow(page, stageB);
       await expect(later.locator(".pd-stage-labo-lock > p")).toHaveText(`Khoá: ${orderCode} chưa kiểm tra`);
       await expect(later.getByRole("checkbox", { name: "Hoàn thành" })).toBeDisabled();
-      // Note 16: Tải ảnh stays usable on a locked row; m7: "BN có 1 phiếu" beside Tạo Labo.
+      // Note 16: Tải ảnh stays usable on a locked row; m7 (BA 2026-11-02):
+      // "+1 phiếu trước · Xem tất cả ›" under Tạo Labo opens the patient's Labo tab.
       await expect(later.getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
-      await expect(later.locator(".pd-stage-labo-count")).toHaveText("BN có 1 phiếu");
+      const count = later.locator(".pd-stage-labo-count");
+      await expect(count).toHaveText("+1 phiếu trước · Xem tất cả ›");
+      await expect(count).toHaveAttribute("href", /\/patient\/[^?]+\?tab=labo/);
       const locked = await call(page, `${STAGES}/${stageB}/complete`, { method: "POST", branchId: line.branchId });
       expect(locked.status).toBe(403);
       expect((locked.body as { error?: { code?: string } }).error?.code).toBe(LOCKED_BY_LABO);

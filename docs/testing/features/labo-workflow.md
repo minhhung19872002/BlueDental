@@ -225,6 +225,94 @@ tooth, sent without a picture; Ảnh thẻ through the UI; the Ảnh "+" lines u
 with Màu răng), `labo-api.spec` (REQ-E1 photo rules, per-tooth returns),
 `patient.spec` Labo, BE Domain Labo + PatientImage.
 
+## F-88 — Labo warranty apart from the line, date lock, admin delete (BA 2026-11-02, R-1122..R-1124)
+
+Origin: on staging, slip line DT01-02 stayed "Đang điều trị" with no "Bảo hành
+dịch vụ" button because an open Labo-warranty công đoạn counted in the line.
+
+**Part A — the Labo warranty is the lab's, not the clinic's (R-1122)**
+
+| Rule | Where |
+|---|---|
+| A công đoạn with `IsGuarantee` + `WarrantyKind = Labo` (`TreatmentStage.IsLaboWarranty`) never moves the service line, open or closed | `ServiceLineProgress.Move` (domain; returns false when only Labo warranties remain) |
+| "Bảo hành dịch vụ" is refused while a non-cancelled Labo order of the line has not passed QC | `Treatment:0062`; tab Bảo hành Dịch vụ cell = Chưa đủ điều kiện (`ServiceWarrantyCard.LaboUnfinished`) |
+| Lines already pulled back are recomputed once | `BlueDentalLaboWarrantyLineSeeder` (DbMigrator, idempotent) |
+
+**Divergence from the reference (deliberate, BA):** the reference folds the
+Labo warranty into the service's own status. BlueDental keeps it apart — the
+service warranty is the line's final lock.
+
+**Part B — only the newest Ngày điều trị of a line moves it (R-1123)**
+
+- Within **one service line** (not per tooth), only the rows with the line's
+  newest Ngày điều trị are actionable (`StageDateLock`, DTO `isDateLocked`).
+- On an older row: Hoàn thành and its revert are refused (`Treatment:0063`,
+  checkbox disabled, note "Khoá: dịch vụ đã có công đoạn ngày mới hơn"),
+  Tạo Labo is hidden and refused on the server (`0063`). Tải ảnh, Nội dung and
+  Ghi chú stay editable.
+- A past date is still accepted on Thêm / Tiếp tục công đoạn; the row is just
+  locked when the line already has a newer one. A sole back-dated row, and
+  every row sharing the newest day, stays open.
+- Superseded rows count toward the newest day; Labo-warranty rows neither lock
+  nor are locked.
+- The way out of a locked, unfinished row: Tiếp tục công đoạn to the newest day.
+- Under Tạo Labo: "+n phiếu trước · Xem tất cả ›" links to the patient's
+  `?tab=labo`.
+- Order of guards on Hoàn thành: the date lock (`0063`) answers before the
+  Labo lock (`Labo:0031`) — `labo-api` REQ-A7 asserts the Labo lock first,
+  before a newer row exists.
+
+**Admin "Xóa công đoạn" (R-1124)** — permission `treatmentStage.delete`
+("Công đoạn › Xóa"), granted to admin only.
+
+- The deleted row's teeth go back to the row it continued from
+  (`TreatmentStage.TakeBackTeeth`), and the line is recomputed.
+- Refused with `0064` while a non-cancelled Labo order hangs on the row, and
+  with `0065` when another row was built on it (continued or warrantied).
+- Pictures stay in the patient's Hình ảnh.
+
+Assumptions taken without the BA (owner may overturn): Tạo Labo hidden on a
+locked row; same-day rows all open; superseded rows count; Labo warranties
+excluded; delete admin-only; pictures kept.
+
+Tests:
+- `e2e/stage-date-lock-api.spec.ts` (7, real HTTP): Labo warranty keeps the
+  line Done; a hand-finished line with only a Labo warranty stays Done; `0062`
+  then 200 after cancelling the order; `0063` on complete / Labo create /
+  revert, carried row unlocks; sole and same-day rows open; delete `0065` →
+  `0064` → 200 with teeth back and line reopened; dentist without the
+  permission → 403.
+- `e2e/stage-date-lock.spec.ts` (1, browser): locked row disabled + note + no
+  Tạo Labo + Tải ảnh enabled; Xóa công đoạn + red confirm; after reload the
+  older row is open and the deleted one is 404.
+- `labo-workflow` (count link), `labo-api` REQ-A7 (restructured),
+  `stage-treatment-date` (R-951 case continues onto the newer day).
+- Domain `BlueDentalAbilitiesTests` (`treatmentStage.delete`).
+
+**Round 2 — edit everything, log everything (BA 2026-11-02, R-1126/R-1127)**
+
+- A Tiếp tục dated before its source row is frozen history (`IsBackfill`):
+  it takes no teeth, the source keeps them and stays the working row; an admin
+  may delete it. Same day or later hands the teeth on as before.
+- Nội dung điều trị and Ghi chú save on every row (finished, continued,
+  date-locked); Tải ảnh stays on a continued row too.
+- Every change is written to `TreatmentStageChangeLog` (outlives the row):
+  1 Nội dung, 2 Ghi chú, 3 Sửa công đoạn, 4 Hoàn thành, 5 Bỏ hoàn thành,
+  6 Tải ảnh, 7 Xóa ảnh, 8 Xóa công đoạn, 9 Sửa bước — each with its fields
+  before / after.
+- Admin viewer: one "Lịch sử chỉnh sửa" button on the LỊCH SỬ ĐIỀU TRỊ header
+  (owner: no per-row button). Dialog filters by công đoạn and action, expands
+  each entry into field Trước → Sau, names a deleted row "(Đã xóa)". Reads
+  `GET /treatment-stages/change-logs?treatmentId=` (newest first); permission
+  `treatmentStage.delete`.
+- Open: back-dated continuations made before F-88 still carry teeth — no
+  seeder yet; owner to decide (admin delete meanwhile).
+
+Tests (round 2): `e2e/stage-backfill-log-api.spec.ts` (6, real HTTP),
+`e2e/stage-change-log.spec.ts` (1, browser); `stage-remark` and
+`treatment-stage-chain` updated to the new rule; related run 26/26; Domain
+`TreatmentStageBackfillTests`.
+
 ## Not built / open
 
 - Tiếp nhận bảo hành (Lần BH, phiếu BH1) — later round.

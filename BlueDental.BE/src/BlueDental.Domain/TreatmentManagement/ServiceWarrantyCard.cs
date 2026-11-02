@@ -64,6 +64,8 @@ public class ServiceWarrantyCard : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.WarrantyLineNotDone);
         if (terms.WarrantyDays <= 0)
             throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasNoWarranty);
+        if (terms.LaboUnfinished)
+            throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.WarrantyLaboUnfinished);
 
         var lineTeeth = line.Teeth.Select(t => (int?)t.ToothCode).ToHashSet();
         if (lineTeeth.Count == 0) lineTeeth.Add(null);
@@ -121,4 +123,5 @@ public record ServiceWarrantyActivation(
 /// <summary>What the line's catalog and its công đoạn say about any card on it.</summary>
 /// <param name="WarrantyDays">Danh mục's "Thời gian bảo hành (ngày)".</param>
 /// <param name="CompletedOn">The clinic day the line was finished, when known.</param>
-public record ServiceWarrantyTerms(int WarrantyDays, DateOnly? CompletedOn);
+/// <param name="LaboUnfinished">A Labo order of the line, not cancelled, has not passed QC.</param>
+public record ServiceWarrantyTerms(int WarrantyDays, DateOnly? CompletedOn, bool LaboUnfinished = false);

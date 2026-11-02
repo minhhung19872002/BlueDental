@@ -47,6 +47,12 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
     /// </summary>
     public bool IsSuperseded { get; set; }
 
+    /// <summary>
+    /// A "Tiếp tục" dated before the row it continued (BA 2026-11-02): kept in
+    /// the history, frozen like <see cref="IsSuperseded"/>, and took no teeth.
+    /// </summary>
+    public bool IsBackfill { get; set; }
+
     /// <summary>Teeth already handed on to a later công đoạn; the rest are still open.</summary>
     public List<int> ContinuedToothCodes { get; set; } = new();
 
@@ -96,6 +102,12 @@ public class TreatmentStageDto : FullAuditedEntityDto<Guid>
 
     /// <summary>"BN có n phiếu" beside Tạo Labo (P3110 m7): the line's orders, cancelled ones left out.</summary>
     public int LineLaboOrderCount { get; set; }
+
+    /// <summary>
+    /// Its line has a công đoạn of a newer "Ngày điều trị" (BA 2026-11-02): Hoàn
+    /// thành and Tạo Labo are frozen, Tải ảnh / Nội dung / Ghi chú stay open.
+    /// </summary>
+    public bool IsDateLocked { get; set; }
 }
 
 public class TreatmentStageLaboDto
@@ -236,6 +248,51 @@ public class UpdateTreatmentStageRemarkDto
     public string? Remark { get; set; }
 }
 
+/// <summary>Nội dung điều trị, edited in place on Lịch sử điều trị; blank clears it.</summary>
+public class UpdateTreatmentStageNoteDto
+{
+    [StringLength(2000)]
+    public string? Note { get; set; }
+}
+
+/// <summary>
+/// One logged change to a công đoạn (BA 2026-11-02: every edit is logged so an
+/// admin can look back), read on "Lịch sử chỉnh sửa".
+/// </summary>
+public class TreatmentStageChangeLogDto : EntityDto<Guid>
+{
+    public Guid TreatmentStageId { get; set; }
+    public TreatmentStageChangeAction Action { get; set; }
+
+    /// <summary>The text as stored: a note, a picture, or the row as JSON.</summary>
+    public string? Before { get; set; }
+    public string? After { get; set; }
+
+    public Guid? ActorUserId { get; set; }
+    public string? ActorName { get; set; }
+    public DateTime OccurredAt { get; set; }
+
+    /// <summary>The công đoạn the change was made on, even once it is deleted.</summary>
+    public string StageName { get; set; } = string.Empty;
+    public DateOnly? StageTreatmentDate { get; set; }
+    public bool StageDeleted { get; set; }
+
+    /// <summary>What changed, field by field, with staff and steps by name.</summary>
+    public List<TreatmentStageChangeFieldDto> Changes { get; set; } = [];
+}
+
+/// <summary>
+/// One field of a logged change. <see cref="Field"/> is one of Name, Note,
+/// Remark, Staff, SecondStaff, SubStaff, ScheduledDate, TreatmentDate, Teeth,
+/// Steps, Image; dates read dd/MM/yyyy.
+/// </summary>
+public class TreatmentStageChangeFieldDto
+{
+    public string Field { get; set; } = string.Empty;
+    public string? Before { get; set; }
+    public string? After { get; set; }
+}
+
 public class AttachStageImageDto
 {
     public string ImageUrl { get; set; } = string.Empty;
@@ -345,5 +402,20 @@ public interface ITreatmentStageAppService : IApplicationService
     /// still allowed once the công đoạn is finished.
     /// </summary>
     Task<TreatmentStageDto> UpdateRemarkAsync(Guid id, UpdateTreatmentStageRemarkDto input);
+
+    /// <summary>
+    /// Nội dung điều trị on its own, open on every row — finished, continued or
+    /// back-dated (BA 2026-11-02); the change is logged.
+    /// </summary>
+    Task<TreatmentStageDto> UpdateNoteAsync(Guid id, UpdateTreatmentStageNoteDto input);
+
+    /// <summary>The công đoạn's change log, oldest first. Admin only, like Xóa.</summary>
+    Task<List<TreatmentStageChangeLogDto>> GetChangeLogsAsync(Guid id);
+
+    /// <summary>
+    /// "Lịch sử chỉnh sửa" of a slip: every công đoạn on it, deleted ones too,
+    /// newest change first. Admin only, like Xóa.
+    /// </summary>
+    Task<List<TreatmentStageChangeLogDto>> GetTreatmentChangeLogsAsync(Guid treatmentId);
     Task DeleteAsync(Guid id);
 }

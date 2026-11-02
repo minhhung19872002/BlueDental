@@ -1,4 +1,4 @@
-/* LỊCH SỬ ĐIỀU TRỊ's Labo parts (P2910_03, P3110): the order chip, the Hoàn thành lock, "BN có n phiếu". */
+/* LỊCH SỬ ĐIỀU TRỊ's Labo parts (P2910_03, P3110): the order chip, the Hoàn thành lock, "+n phiếu trước". */
 
 .pd-stage-labo {
   display: flex;
@@ -62,26 +62,36 @@
   text-decoration: underline;
 }
 
-/* m7: Tạo Labo and the read-only count on one line, the count dropping
-   under the button when the cell is too narrow for both (R-1105). */
+/* m7: Tạo Labo with "+n phiếu trước · Xem tất cả ›" under it (BA 2026-11-02). */
 .pd-stage-labo-create {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-}
-
-.pd-stage-labo-create > .ant-btn {
-  flex: 1 1 auto;
+  display: grid;
+  gap: 6px;
 }
 
 .pd-stage-labo-count {
-  flex: none;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--bd-line);
+  justify-self: start;
   font-size: 12px;
   font-weight: 600;
+  color: var(--bd-primary-strong);
+}
+
+.pd-stage-labo-count:hover,
+.pd-stage-labo-count:focus-visible {
+  color: var(--bd-primary-strong);
+  text-decoration: underline;
+}
+
+/* A row older than its line's newest Ngày điều trị: why Hoàn thành is frozen. */
+.pd-stage-date-lock {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: -6px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
   color: var(--bd-muted);
-  white-space: nowrap;
+}
+
+.pd-stage-date-lock > .anticon {
+  margin-top: 3px;
 }

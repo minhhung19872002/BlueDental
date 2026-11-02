@@ -1,5 +1,6 @@
 import { useState, type Ref } from "react";
 import { Button } from "antd";
+import { HistoryOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
@@ -43,6 +44,10 @@ interface Props extends StageRowHandlers {
   warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
   /** Every tooth of the row's service, each marked worked, done or neither. */
   historyTeethOf: (stage: TreatmentStageDto) => HistoryTooth[];
+  /** The patient's Labo tab, behind "+n phiếu trước · Xem tất cả ›". */
+  laboListHref: string;
+  /** "Lịch sử chỉnh sửa" of the whole slip; shown with can.delete. */
+  onOpenChangeLog: () => void;
   /** The slip page watches the block to show its "back to top" button. */
   ref?: Ref<HTMLDivElement>;
 }
@@ -66,8 +71,9 @@ function NoteCell({
     <div>
       <div className="pd-stage-noteblock">
         <div className="pd-stage-notebar">
-          {/* The reference drops the pencil on a continued công đoạn. */}
-          {editable && !editing && !stage.isSuperseded && (
+          {/* Open on every row, finished or continued, every edit logged (BA
+              2026-11-02); the reference drops the pencil on a continued one. */}
+          {editable && !editing && (
             <StageEditPencil
               label={t("Patient:Misc:EditNote")}
               onClick={() => setDraft(stage.note ?? "")}
@@ -141,15 +147,30 @@ export function StageHistory({
   onCreateLabo,
   onOpenLabo,
   onWarranty,
+  onDelete,
+  onOpenChangeLog,
   warrantyOf,
   historyTeethOf,
+  laboListHref,
   ref,
 }: Props) {
-  const handlers: StageRowHandlers = { onComplete, onUpload, onCreateLabo, onOpenLabo, onWarranty };
+  const handlers: StageRowHandlers = {
+    onComplete,
+    onUpload,
+    onCreateLabo,
+    onOpenLabo,
+    onWarranty,
+    onDelete,
+  };
   return (
     <div className="pd-stage-history" ref={ref}>
       <header>
         <h4>{t("Patient:Tab:TreatmentHistory")}</h4>
+        {can.delete && (
+          <Button className="stage-log-open" icon={<HistoryOutlined />} onClick={onOpenChangeLog}>
+            {t("Patient:StageLog:Title")}
+          </Button>
+        )}
         <span>{t("Patient:Stage:StageCount", total)}</span>
       </header>
       {days.length === 0 ? (
@@ -245,6 +266,7 @@ export function StageHistory({
                           uploading={uploadingFor === stage.id}
                           warranty={warrantyOf(stage)}
                           handlers={handlers}
+                          laboListHref={laboListHref}
                         />
                       </div>
                     );

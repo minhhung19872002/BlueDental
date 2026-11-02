@@ -3325,3 +3325,15 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
 3. (G7) Nút "Trả hàng bị lỗi" màu tím theo note BA, dù m306/m307 vẽ đỏ.
 4. (G9–G13) Thu gọn nhóm Lỗi chỉ ẩn phần nhập; "Không đạt n/n → trả toàn bộ" chỉ khi mọi răng của phiếu Lỗi; răng Đạt lần trước khoá `Đạt lần k · chờ lắp / đã lắp dd/mm`; Trả toàn bộ mở lại mọi răng; "Đã trả: n lần" tính luôn lần sắp bấm.
 5. (G14/G15) Ô màu cạnh "Răng N" là chip ngà cố định; lần kiểm tra sau điền sẵn mô tả lần trả gần nhất, không điền sẵn ảnh.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: phiếu điều trị — Chi tiết phiếu / LỊCH SỬ ĐIỀU TRỊ; tab Bảo hành (F-88, BA 2026-11-02)
+Control: Hoàn thành / Tạo Labo trên công đoạn có Ngày điều trị cũ hơn; "Xóa công đoạn"; "Bảo hành dịch vụ" khi Labo chưa xong
+Reason: quy tắc riêng của BlueDental theo BA (chat 2026-11-02). Bản gốc gộp bảo hành Labo vào trạng thái dịch vụ — BlueDental cố ý tách (xem `pages/labo.md` §Deliberate divergences). Tài liệu: `docs/testing/features/labo-workflow.md` §F-88.
+Action taken: NONE trên production. BA đã chốt: khoá theo ngày điều trị mới nhất **trong một dòng dịch vụ** (không theo răng); dòng cũ vẫn Tải ảnh / sửa Nội dung / Ghi chú; ngày quá khứ vẫn nhập được; admin được xoá dòng tạo nhầm. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. Dòng bị khoá ẩn "Tạo Labo" (server cũng chặn `Treatment:0063`).
+2. Nhiều dòng cùng ngày mới nhất: đều mở.
+3. Dòng đã được "Tiếp tục" (superseded) vẫn tính vào ngày mới nhất.
+4. Công đoạn bảo hành Labo không khoá và không bị khoá.
+5. "Xóa công đoạn" = quyền mới "Công đoạn › Xóa", chỉ admin; răng trả về công đoạn trước, dòng dịch vụ tính lại; chặn khi còn phiếu Labo chưa huỷ (`0064`) hoặc khi đã có công đoạn tiếp nối / bảo hành dựa trên nó (`0065`); ảnh giữ lại trong Hình ảnh của bệnh nhân.

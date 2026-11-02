@@ -50,7 +50,15 @@ export function StageLaboLockNote({ order, onView }: { order: TreatmentStageLabo
   );
 }
 
-/** "BN có n phiếu" beside Tạo Labo (P3110 m7): read only, the line's orders not cancelled. */
-export function StageLaboCount({ count }: { count: number }) {
-  return <span className="pd-stage-labo-count">{t("Patient:Stage:Labo:Count", count)}</span>;
+/**
+ * "+n phiếu trước · Xem tất cả ›" under Tạo Labo (P3110 m7, BA 2026-11-02): the
+ * line's orders not cancelled, opening the patient's Labo tab in a new browser
+ * tab the way the slip's Phiếu Labo cell does (R-1121).
+ */
+export function StageLaboCount({ count, href }: { count: number; href: string }) {
+  return (
+    <a className="pd-stage-labo-count" href={href} target="_blank" rel="noopener noreferrer">
+      {t("Patient:Stage:Labo:Count", count)}
+    </a>
+  );
 }

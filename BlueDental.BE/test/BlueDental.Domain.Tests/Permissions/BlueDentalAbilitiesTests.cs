@@ -78,6 +78,8 @@ public class BlueDentalAbilitiesTests
     [InlineData("chatbot", "manage")]
     [InlineData("treatmentStage", "continue")]
     [InlineData("treatmentStage", "complete")]
+    // BlueDental's own: an admin removes a wrong history row (BA 2026-11-02).
+    [InlineData("treatmentStage", "delete")]
     [InlineData("reportTransfer", "deposit")]
     [InlineData("reportTransfer", "withdraw")]
     [InlineData("reportTransfer", "transfer")]

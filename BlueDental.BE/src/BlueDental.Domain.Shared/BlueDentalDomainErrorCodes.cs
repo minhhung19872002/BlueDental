@@ -388,6 +388,27 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A warranty công đoạn on a tooth its card does not cover (P3110 REQ-F7).</summary>
         public const string WarrantyToothNotCovered = "BlueDental:Treatment:0061";
+
+        /// <summary>
+        /// "Bảo hành dịch vụ" while a Labo order of the line has not passed QC:
+        /// the clinic's warranty is the line's final lock (BA 2026-11-02).
+        /// </summary>
+        public const string WarrantyLaboUnfinished = "BlueDental:Treatment:0062";
+
+        /// <summary>
+        /// Hoàn thành / Tạo Labo on a công đoạn older than its line's newest
+        /// "Ngày điều trị": continue it to the newest day instead (BA 2026-11-02).
+        /// </summary>
+        public const string StageDateLocked = "BlueDental:Treatment:0063";
+
+        /// <summary>Deleting a công đoạn a Labo order still hangs on: cancel the order first.</summary>
+        public const string StageDeleteHasLabo = "BlueDental:Treatment:0064";
+
+        /// <summary>
+        /// Deleting a công đoạn something was built on top of — continued
+        /// further, or warrantied: delete the newer row first.
+        /// </summary>
+        public const string StageDeleteHasSuccessor = "BlueDental:Treatment:0065";
     }
 
     public static class Billing

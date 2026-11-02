@@ -48,6 +48,7 @@ interface StageRow {
   completeLockedByLabo: boolean;
   completeLockedByLaboOrder: { orderId: string; qualityPassedOn: string | null } | null;
   lineLaboOrderCount: number;
+  isDateLocked: boolean;
 }
 
 interface SlipRow {
@@ -521,18 +522,22 @@ test.describe("Labo workflow API (P2910_03)", () => {
     );
     expect((await receive(page, order.id, 1)).status).toBe(200);
     await passAll(page, order.id, [11]);
-    const next = await addStage(page, line, catalog.dentistId, `Labo hôm nay ${id}`);
 
-    const stages = await stagesOf(page, line);
     // "ngày 10 pass 1 răng → ngày 10 vẫn khoá; ngày 11 pass hết → ngày 11 mới cho Hoàn thành".
-    expect(stages.get(worked)?.completeLockedByLabo).toBe(true);
-    expect(stages.get(worked)?.completeLockedByLaboOrder).toMatchObject({ orderId: order.id, qualityPassedOn: today });
-    expect(stages.get(next)?.completeLockedByLabo).toBe(false);
-    expect(stages.get(next)?.completeLockedByLaboOrder).toBeNull();
-
+    // Asked while yesterday is still the line's newest day, so only the Labo lock speaks.
+    const before = await stagesOf(page, line);
+    expect(before.get(worked)?.completeLockedByLabo).toBe(true);
+    expect(before.get(worked)?.completeLockedByLaboOrder).toMatchObject({ orderId: order.id, qualityPassedOn: today });
     const held = await call(page, `${STAGES}/${worked}/complete`, { method: "POST", branchId: line.branchId });
     expect(held.status).toBe(403);
     expect(held.body.error?.code).toBe(code(31));
+
+    const next = await addStage(page, line, catalog.dentistId, `Labo hôm nay ${id}`);
+    const stages = await stagesOf(page, line);
+    expect(stages.get(next)?.completeLockedByLabo).toBe(false);
+    expect(stages.get(next)?.completeLockedByLaboOrder).toBeNull();
+    // From today on, yesterday's row is also older than the line's newest day (F-88).
+    expect(stages.get(worked)?.isDateLocked).toBe(true);
     const freed = await call(page, `${STAGES}/${next}/complete`, { method: "POST", branchId: line.branchId });
     expect(freed.status, freed.text).toBe(200);
   });

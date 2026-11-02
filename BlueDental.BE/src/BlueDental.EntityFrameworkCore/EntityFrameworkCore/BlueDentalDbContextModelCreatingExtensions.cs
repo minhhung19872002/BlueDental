@@ -1372,6 +1372,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.PrimitiveCollection(x => x.ImageUrls).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.PrimitiveCollection(x => x.ContinuedToothCodes).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.Ignore(x => x.OpenTeeth);
+            entity.Ignore(x => x.IsLaboWarranty);
             // "BE:Treatment:StageList" — a short, always-read-with-the-stage list,
             // so it rides in JSON like Teeth rather than earning a table.
             entity.OwnsMany(x => x.ServiceItems, t => t.ToJson());
@@ -1379,6 +1380,19 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.TreatmentServiceId, x.SequenceNumber });
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+        });
+
+        // Log of every edit to a công đoạn (BA 2026-11-02) — stored only, no screen yet
+        builder.Entity<TreatmentStageChangeLog>(entity =>
+        {
+            entity.ToTable("bd_treatment_stage_change_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.Property(x => x.ActorName).HasMaxLength(200);
+            entity.Property(x => x.ActorUserName).HasMaxLength(256);
+            entity.Property(x => x.IpAddress).HasMaxLength(64);
+            entity.HasIndex(x => new { x.TreatmentStageId, x.OccurredAt });
+            entity.HasIndex(x => new { x.PatientId, x.OccurredAt });
         });
 
         // Tai kham — a follow-up raised from a finished cong doan

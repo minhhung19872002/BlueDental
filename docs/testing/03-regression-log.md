@@ -13195,3 +13195,105 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hai ca cũ đổi kỳ vọng: phiếu Đã gửi và phiếu Bảo hành → ô trống.
   - Kết quả: `labo-workflow` **6/6 xanh**. `tsc -p tsconfig.app.json` sạch, eslint các file đổi sạch.
 - **Mức retest**: 2.
+
+## R-1122 (2026-11-02, mức 3: F-88 — F-38 công đoạn, F-85 Labo, F-86 tab Bảo hành) Bảo hành Labo không kéo trạng thái dòng dịch vụ; chặn Bảo hành dịch vụ khi Labo chưa xong
+
+- **Hiện tượng (staging)**: hồ sơ DH2601112026, phiếu DT01-02 "Trám răng thẩm mỹ – Hàm trên" đứng mãi ở "Đang điều trị", không có nút "Bảo hành dịch vụ". Nguyên nhân: công đoạn bảo hành Labo "Bảo hành 1" đang mở được tính vào trạng thái dòng.
+- **BA chốt (chat 2026-11-02)**: bảo hành Labo là của bên thứ ba, chỉ là trạng thái phụ của dịch vụ. Bảo hành dịch vụ là chốt cuối của dòng.
+- **Sửa — BE**:
+  - `TreatmentStage.IsLaboWarranty`.
+  - `ServiceLineProgress.Move` (domain) bỏ qua công đoạn bảo hành Labo, dù mở hay đã xong. Dòng chỉ còn bảo hành Labo (ví dụ dòng hoàn thành tay) → không đổi trạng thái.
+  - Kích hoạt Bảo hành dịch vụ khi dòng còn phiếu Labo chưa huỷ, chưa đạt QC → `BlueDental:Treatment:0062`. Ô Dịch vụ ở tab Bảo hành = Chưa đủ điều kiện (`ServiceWarrantyCard.LaboUnfinished`).
+  - `BlueDentalLaboWarrantyLineSeeder` (chạy trong DbMigrator, idempotent) tính lại các dòng đã bị kéo về.
+- **Lệch bản gốc có chủ ý**: bản gốc gộp bảo hành Labo vào trạng thái dịch vụ. Đã ghi ở `docs/clone/pages/labo.md` §Deliberate divergences.
+
+## R-1123 (2026-11-02, mức 3: F-88) Trong một dòng dịch vụ chỉ công đoạn có Ngày điều trị mới nhất được Hoàn thành / Tạo Labo
+
+- **BA chốt**:
+  - Khoá theo ngày trong **một dòng dịch vụ**, không theo răng.
+  - Dòng cũ hơn: Hoàn thành / bỏ Hoàn thành bị khoá; Tải ảnh, Nội dung, Ghi chú vẫn sửa được.
+  - Nhập ngày quá khứ vẫn được: dòng chỉ bị khoá nếu đã có dòng mới hơn.
+  - Lối ra: Tiếp tục công đoạn sang ngày mới nhất.
+  - "+n phiếu trước · Xem tất cả ›" mở tab Labo của bệnh nhân.
+- **Sửa — BE**:
+  - `StageDateLock` (domain), DTO `isDateLocked`.
+  - `complete` / `revert-status` trên dòng bị khoá → `Treatment:0063`.
+  - `LaboAppService` tạo phiếu từ dòng bị khoá → `0063`.
+  - Khoá theo ngày trả lời trước khoá Labo (`Labo:0031`).
+- **Sửa — FE**: `StageRowActions` làm mờ ô Hoàn thành, hiện ghi chú "Khoá: dịch vụ đã có công đoạn ngày mới hơn" (`.pd-stage-date-lock`), ẩn Tạo Labo trên dòng bị khoá. `StageLaboCount` thành link `?tab=labo`.
+- **Giả định (chưa hỏi BA)**: ẩn Tạo Labo trên dòng khoá; các dòng cùng ngày mới nhất đều mở; dòng đã "Tiếp tục" vẫn tính ngày; bảo hành Labo không khoá và không bị khoá. Ghi ở `docs/clone/unknowns.md`.
+- **Sửa spec cũ (không đổi ý nghĩa)**:
+  - `labo-api` REQ-A7: kiểm khoá Labo (`Labo:0031`) trước khi thêm dòng mới hơn, sau đó mới kiểm `isDateLocked`.
+  - `stage-treatment-date` R-951: tiếp tục công đoạn sang ngày mới hơn rồi mới Hoàn thành.
+  - `labo-workflow`: kiểm link "Xem tất cả ›".
+
+## R-1124 (2026-11-02, mức 3: F-88) Admin "Xóa công đoạn"
+
+- **BA chốt**: admin được xoá dòng lịch sử tạo nhầm (ví dụ tạo ngày 27 thay vì 28).
+- **Sửa — BE**:
+  - Quyền mới `treatmentStage.delete` ("Công đoạn › Xóa"), seed chỉ cho admin, có trong cây phân quyền.
+  - `DELETE /treatment-stages/{id}`: răng trả về công đoạn trước (`TreatmentStage.TakeBackTeeth`), dòng dịch vụ tính lại.
+  - Còn phiếu Labo chưa huỷ trên dòng → `0064`. Đã có công đoạn tiếp nối / bảo hành dựa trên nó → `0065`.
+  - Ảnh giữ lại.
+- **Sửa — FE**: nút đỏ "Xóa công đoạn" trên dòng còn sống, hỏi lại bằng `ConfirmDeleteDialog` (`useStageDelete`).
+- **Test (chung R-1122..R-1124)**: bản build production `vite preview` :8081 (bản build riêng ở scratchpad vì `dist/` đang bị preview :8080 của phiên khác giữ) → host :5000 Development → PostgreSQL thật, không chặn API.
+  - **Spec mới**:
+    - `e2e/stage-date-lock-api.spec.ts`: **7/7**.
+    - `e2e/stage-date-lock.spec.ts` (giao diện: dòng khoá + ghi chú + không Tạo Labo + Tải ảnh còn bật; Xóa công đoạn + xác nhận; reload → dòng cũ mở lại, dòng xoá 404): **1/1**.
+    - Helper chung `e2e/fixtures/stageDateLock.ts`.
+  - **Spec liên quan**:
+
+    | Spec | Kết quả |
+    |---|---|
+    | `warranty-stage-api` | 3/3 |
+    | `plan-warranty-api` | 7/7 |
+    | `stage-treatment-date` | 4/4 |
+    | `labo-workflow` | 6/6 |
+    | `treatment-stage-chain` | 9/9 |
+    | `labo-api` | 12/13 |
+
+    Ca đỏ `labo-api:340` (0025 vs 0020) là đỏ có sẵn, xem R-1120.
+  - **Hồi quy mức 3**: 21 spec `labo*` / `plan-*` / `stage-*` / `treatment-*` / `warranty-stage` / `medical-record-sheet-facts` → **83 xanh / 4 đỏ / 6 không chạy** (khối serial sau ca đỏ). Cả 4 ca đỏ không do F-88:
+    - `labo-material-search:204` (6 vật liệu thay vì 4, DB dùng chung) và `stage-staff-pickers:163` (nút Thanh toán đã bỏ từ R-956): đã ghi đỏ có sẵn ở R-1120 / R-1083.
+    - `plan-treating-scope:498` (thêm tab "Bảo hành" từ P3110) và `medical-record-sheet-facts:169` (Giảm giá = 0): chạy lại trên bản build HEAD 07161f05 (:8082, cùng host) → **đỏ y hệt**.
+  - **Backend**:
+    - Domain **1288/1288** (thêm `treatmentStage.delete` vào `BlueDentalAbilitiesTests`).
+    - Application lọc Labo/Treatment **199/199**.
+  - **Typecheck**: e2e sạch (trừ lỗi @types/node có sẵn).
+- **Mức retest**: 3. Develop, chưa commit.
+
+## R-1126 (2026-11-02, mức 3: F-88 vòng 2 — F-38 công đoạn, F-85 Labo) "Tiếp tục" lùi ngày thành lịch sử; Nội dung / Ghi chú sửa được trên mọi dòng; mọi chỉnh sửa có log
+
+- **BA chốt (vòng 2)**: "Cho phép chỉnh sửa hết — nhưng mọi chỉnh sửa có ghi log". Dòng ngày cũ vẫn khoá Hoàn thành / Tạo Labo nhưng Tải ảnh còn dùng được; logic tính theo từng dịch vụ; admin xoá được dòng nhầm.
+- **Sửa — BE**:
+  - "Tiếp tục công đoạn" có Ngày điều trị **cũ hơn** dòng gốc không bị từ chối: ghi thành lịch sử đóng băng (`TreatmentStage.IsBackfill`), không nhận răng; dòng gốc giữ răng và vẫn là dòng đang làm. Cùng ngày hoặc mới hơn → răng chuyển như cũ.
+  - `PUT /treatment-stages/{id}/note` và `/remark` nhận trên mọi dòng (đã Hoàn thành, đã Tiếp tục, bị khoá ngày).
+  - Bảng mới `TreatmentStageChangeLog` (sống lâu hơn công đoạn, không xoá mềm theo nó): thao tác 1..9 (sửa nội dung, ghi chú, công đoạn, Hoàn thành, bỏ Hoàn thành, tải ảnh, xoá ảnh, xoá công đoạn, sửa bước) + từng trường trước / sau. Ghi qua `TreatmentStageChangeRecorder`.
+  - Migration `20261102084709_StageBackfillAndChangeLogR1125` (cột `IsBackfill` + bảng log). Chạy DbMigrator trước host. (Tên migration mang số R1125 viết trước khi thấy R-1125 đã bị phiên khác dùng trên main — giữ nguyên vì đã áp vào DB local.)
+- **Sửa — FE**: bút chì Nội dung điều trị và Ghi chú hiện trên mọi dòng; Tải ảnh bật trên dòng đã Tiếp tục; dòng backfill admin vẫn xoá được.
+- **Sửa spec cũ (đổi theo yêu cầu BA mới)**:
+  - `treatment-stage-chain`: dòng đã Tiếp tục giờ có Tải ảnh bật và có bút chì "Sửa ghi chú".
+  - `stage-remark`: dòng đã Tiếp tục sửa Ghi chú qua bút chì và server lưu (trước đây bị từ chối). Ca dentist không quyền (không bút chì, 403) giữ nguyên.
+- **Test**: xem R-1127.
+
+## R-1127 (2026-11-02, mức 2: F-88) "Lịch sử chỉnh sửa" cho admin
+
+- **BA**: "hiển thị lịch sử chỉnh sửa để admin có thể coi".
+- **Chủ dự án**: chỉ một nút chung trên header LỊCH SỬ ĐIỀU TRỊ, không có nút ở từng công đoạn.
+- **Sửa — BE**:
+  - `GET /treatment-stages/change-logs?treatmentId=` — log cả phiếu, mới nhất trước, kể cả công đoạn đã xoá (tên dịch vụ, Ngày điều trị, cờ `stageDeleted`); tên bác sĩ / bước / người sửa đã dịch từ id (`TreatmentStageChangeDescriber`).
+  - `GET /treatment-stages/{id}/change-logs` — một dòng, cũ nhất trước.
+  - Cả hai cần quyền `treatmentStage.delete` (admin), kiểm chi nhánh.
+- **Sửa — FE**:
+  - Nút "Lịch sử chỉnh sửa" bên phải header LỊCH SỬ ĐIỀU TRỊ, cạnh "n công đoạn" — chỉ hiện khi có quyền Xóa công đoạn.
+  - Hộp thoại `StageChangeLogDialog` (khung giống "Lịch sử thay đổi" của Sơ đồ tổ chức): lọc Công đoạn (dòng đã xoá ghi "(Đã xóa)") và Thao tác; bảng Thời gian / Công đoạn / Thao tác / Trường thay đổi / Người sửa; mở rộng dòng → từng trường Trước → Sau. Phân trang chung `useTablePagination`.
+  - i18n `Patient:StageLog:*` ở BE vi/en.
+- **Test**: bản build production `vite preview` :8081 → host riêng :5005 Development (không đụng host :5000 của phiên khác) → PostgreSQL thật, không chặn API.
+  - **Spec mới**:
+    - `e2e/stage-backfill-log-api.spec.ts` (HTTP thật): **6/6** — Tiếp tục lùi ngày đóng băng, cùng ngày chuyển răng, sửa Nội dung / Ghi chú có log, ảnh + xoá công đoạn có log và log còn sau khi xoá, log cả phiếu đặt tên dòng + trường (dòng đã xoá cũng có), dentist không quyền → 403 cả hai endpoint.
+    - `e2e/stage-change-log.spec.ts` (trình duyệt): **1/1** — sửa Nội dung qua bút chì trên dòng khoá ngày, xoá dòng mới qua xác nhận, reload, mở nút header: 2 dòng mới nhất trước, "Đã xóa", mở rộng thấy Trước / Sau, lọc Thao tác, lọc Công đoạn, không có nút ở từng dòng, API trả cùng thứ tự.
+  - **Spec liên quan**: `stage-remark`, `treatment-stage-chain`, `stage-date-lock-api`, `stage-date-lock`, `stage-backfill-log-api`, `stage-change-log` → **26/26**.
+  - **Backend**: Domain lọc TreatmentManagement/Labo **380/380**, Application **195/195**.
+  - **Typecheck / lint**: `tsc -p tsconfig.app.json` sạch, ESLint các file đổi sạch.
+- **Còn mở**: các "Tiếp tục" lùi ngày tạo **trước** F-88 vẫn mang răng như cũ — chưa có seeder chuyển chúng thành backfill; hiện admin xử lý bằng Xóa công đoạn. Chờ chủ dự án quyết.
+- **Mức retest**: 3 (chung với R-1126). Develop, chưa commit.

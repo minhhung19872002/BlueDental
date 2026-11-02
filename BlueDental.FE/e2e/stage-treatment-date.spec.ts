@@ -490,23 +490,24 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     const staff = await staffId(page);
 
     // The server takes a day before the slip for a new công đoạn, a continue
-    // and a tái khám (QA #32's lower bound is gone).
+    // and a tái khám (QA #32's lower bound is gone). The continue moves on to a
+    // later day: only the line's newest day may be ticked (BA 2026-11-02).
     const beforeSlip = isoDay(-(daysAgo(line.openedOn) + 1));
-    const early = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, beforeSlip));
+    const early = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, "2000-01-01"));
     expect(early.status, early.text).toBe(200);
     const first = early.json as { id: string; treatmentDate: string };
-    expect(first.treatmentDate).toBe(beforeSlip);
+    expect(first.treatmentDate).toBe("2000-01-01");
 
     const continued = await call(page, "POST", `/api/v1/app/treatment-stages/${first.id}/continue`, {
       staffId: staff,
       note: "e2e",
-      treatmentDate: "2000-01-01",
+      treatmentDate: beforeSlip,
       toothCodes: [],
       alsoFrom: [],
     });
     expect(continued.status, continued.text).toBe(200);
     const next = continued.json as { id: string; treatmentDate: string };
-    expect(next.treatmentDate).toBe("2000-01-01");
+    expect(next.treatmentDate).toBe(beforeSlip);
 
     expect((await call(page, "POST", `/api/v1/app/treatment-stages/${next.id}/complete`)).status).toBe(200);
     const recall = await call(page, "POST", "/api/v1/app/patient-re-examinations", {

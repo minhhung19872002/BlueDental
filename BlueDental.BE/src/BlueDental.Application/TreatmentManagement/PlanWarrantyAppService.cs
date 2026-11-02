@@ -89,6 +89,8 @@ public class PlanWarrantyAppService : BlueDentalAppService, IPlanWarrantyAppServ
         var activated = (await _cardRepository.GetListAsync(c => c.TreatmentServiceId == line.Id))
             .Select(c => c.ToothNumber)
             .ToList();
+        var laboUnfinished = (await _laboRepository.GetListAsync(o => o.TreatmentServiceId == line.Id))
+            .Any(o => o.IsUnfinished);
 
         var requested = input.Cards
             .Select(c => new ServiceWarrantyActivation(c.ToothNumber, c.StartDate, c.Months, c.Conditions))
@@ -99,7 +101,7 @@ public class PlanWarrantyAppService : BlueDentalAppService, IPlanWarrantyAppServ
         var cards = ServiceWarrantyCard.ActivateAll(
             GuidGenerator.Create,
             line,
-            new ServiceWarrantyTerms(warrantyDays, PlanWarrantyOverviewBuilder.CompletedOn(line, stages)),
+            new ServiceWarrantyTerms(warrantyDays, PlanWarrantyOverviewBuilder.CompletedOn(line, stages), laboUnfinished),
             activated,
             requested,
             codes,
