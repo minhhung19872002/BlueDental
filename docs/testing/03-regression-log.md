@@ -12459,3 +12459,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa — i18n**: `Patient:Stage:PlusMonths` = "+{0} tháng" / "+{0}mo".
 - **E2E** (bản build production :8196, host riêng build từ main :5196, DB thật, không chặn API): `stage-appointment-note` — nhãn 9 chip đúng ngày đích; bấm "+2 tháng" ghi đúng dòng, bấm lại thì bỏ. **2/2 xanh**.
 - **Mức retest**: 2 (F-19 form công đoạn).
+
+## R-1129 (2026-11-02, mức 1: F-19 Công đoạn — LỊCH SỬ ĐIỀU TRỊ) Header bảng lịch sử điều trị cùng màu chàm với các bảng khác
+
+- **Yêu cầu** (chủ dự án, ảnh chụp bảng LỊCH SỬ ĐIỀU TRỊ): header (Ngày / Dịch vụ & răng / Nội dung điều trị / Ghi chú / Công đoạn / Hành động) đổi màu giống các table khác. Làm trên main.
+- **Sửa — CSS**: `.pd-stage-histhead` trong `patient-detail.css` dùng token header bảng của R-1075: nền `--bd-table-head`, chữ `--bd-table-head-ink`, đường kẻ `--bd-table-head-line` (trước đó là `--bd-bg-head` / `--bd-muted` / `--bd-border`). Chỉ đổi màu, kích thước giữ nguyên. Các chỗ khác trong file còn dùng `--bd-bg-head` là chip/nút, không phải header bảng, nên không đụng.
+- **Kiểm tra** (bản build production :8197 từ main, host riêng :5196, DB thật): màu tính được của header lịch sử = header bảng antd trên cùng trang, `rgb(224, 231, 255)` nền / `rgb(34, 40, 92)` chữ; ảnh chụp so sánh khớp.
+- **Mức retest**: 1 (chỉ màu).

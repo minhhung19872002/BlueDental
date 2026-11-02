@@ -4316,17 +4316,18 @@
 .pd-stage-histgrid {
   min-width: 1400px;
 }
+/* The indigo head strip every table wears (R-1075, here R-1129). */
 .pd-stage-histhead {
   display: grid;
   grid-template-columns: 190px 1fr 1.15fr 0.85fr 0.7fr 0.7fr;
-  border-bottom: 1px solid var(--bd-border);
-  background: var(--bd-bg-head);
-  color: var(--bd-muted);
+  border-bottom: 1px solid var(--bd-table-head-line);
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
   font-size: 14px;
   font-weight: 600;
 }
 .pd-stage-histhead > div {
-  border-right: 1px solid var(--bd-border);
+  border-right: 1px solid var(--bd-table-head-line);
   padding: 12px 16px;
 }
 .pd-stage-histhead > div:last-child {
