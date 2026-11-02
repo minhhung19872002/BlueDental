@@ -26,6 +26,13 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public CancellationReason? CancellationReason { get; private set; }
     public string? CancellationNote { get; private set; }
     public DateTimeOffset? CheckedInAt { get; private set; }
+
+    /// <summary>
+    /// When the doctor pressed "Mời lên" for the waiting patient: whoever holds
+    /// <c>reception.update</c> then sees them and seats them with "Tiếp nhận".
+    /// </summary>
+    public DateTimeOffset? InvitedAt { get; private set; }
+    public Guid? InvitedById { get; private set; }
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
     /// <summary>When it was cancelled — the last step of the reception progress bar.</summary>
@@ -231,7 +238,42 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         EnsureStatus(AppointmentStatus.CheckedIn, nameof(UndoCheckIn));
         Status = AppointmentStatus.Requested;
         CheckedInAt = null;
+        ClearInvitation();
         return this;
+    }
+
+    /// <summary>
+    /// "Mời lên": the doctor calls up a patient who has arrived and waits.
+    /// Pressing it again changes nothing — the first call is the one reception
+    /// answers.
+    /// </summary>
+    public Appointment Invite(Guid invitedById)
+    {
+        EnsureStatus(AppointmentStatus.CheckedIn, nameof(Invite));
+        if (InvitedAt is not null) return this;
+
+        InvitedAt = DateTimeOffset.UtcNow;
+        InvitedById = invitedById;
+        return this;
+    }
+
+    /// <summary>"Tiếp nhận": reception seats a patient the doctor called up — step 2, Đang khám.</summary>
+    public Appointment Admit()
+    {
+        if (Status != AppointmentStatus.CheckedIn || InvitedAt is null)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot admit an appointment in status '{Status}' that the doctor has not called up.");
+        }
+
+        return Start();
+    }
+
+    private void ClearInvitation()
+    {
+        InvitedAt = null;
+        InvitedById = null;
     }
 
     /// <summary>
@@ -340,6 +382,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         }
 
         Slot = newSlot;
+        if (newDentistId.HasValue && newDentistId.Value != DentistId && Status == AppointmentStatus.CheckedIn)
+            ClearInvitation();
         if (newDentistId.HasValue) DentistId = newDentistId.Value;
         return this;
     }
@@ -353,6 +397,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
                 $"Cannot reassign dentist on an appointment in status {Status}.");
         }
 
+        // A waiting patient handed to another doctor waits for that doctor's call.
+        if (dentistId != DentistId && Status == AppointmentStatus.CheckedIn) ClearInvitation();
         DentistId = dentistId;
         return this;
     }

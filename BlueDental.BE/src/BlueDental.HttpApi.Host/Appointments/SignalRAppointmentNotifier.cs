@@ -22,4 +22,7 @@ public class SignalRAppointmentNotifier(IHubContext<NotificationHub> hubContext)
             await hubContext.Clients.All.SendAsync("AppointmentsMarkedLate", batch.BranchId, batch.AppointmentIds);
         }
     }
+
+    public Task NotifyArrivalsChangedAsync(Guid branchId) =>
+        hubContext.Clients.All.SendAsync("ArrivalsChanged", branchId);
 }

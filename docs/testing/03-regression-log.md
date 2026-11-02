@@ -12466,3 +12466,62 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa — CSS**: `.pd-stage-histhead` trong `patient-detail.css` dùng token header bảng của R-1075: nền `--bd-table-head`, chữ `--bd-table-head-ink`, đường kẻ `--bd-table-head-line` (trước đó là `--bd-bg-head` / `--bd-muted` / `--bd-border`). Chỉ đổi màu, kích thước giữ nguyên. Các chỗ khác trong file còn dùng `--bd-bg-head` là chip/nút, không phải header bảng, nên không đụng.
 - **Kiểm tra** (bản build production :8197 từ main, host riêng :5196, DB thật): màu tính được của header lịch sử = header bảng antd trên cùng trang, `rgb(224, 231, 255)` nền / `rgb(34, 40, 92)` chữ; ảnh chụp so sánh khớp.
 - **Mức retest**: 1 (chỉ màu).
+
+## R-1130 (2026-11-02, mức 3: F-11 Tiếp nhận + quyền + live updates dùng chung) Nút nổi "Đã đến": bác sĩ Mời lên, người có quyền Tiếp nhận (Sửa)
+
+- **Yêu cầu** (BA, ảnh chụp trên duchanhpremium.vn):
+  - Nút tròn góc phải dưới. Khi có khách thì hiện badge số. Bấm thì mở khung danh sách khách "Đã đến", bấm ra ngoài thì thu gọn. Dữ liệu cập nhật realtime.
+  - Mỗi dòng có tên, giờ, nội dung và nút "Mời lên".
+  - Bác sĩ thấy khách của mình, admin thấy tất cả.
+  - Khi bác sĩ bấm "Mời lên", bên lễ tân hiện khách đó với nút "Tiếp nhận".
+- **Chủ dự án chốt**:
+  1. "Mời lên" chỉ ghi nhận cuộc gọi. "Tiếp nhận" mới chuyển lượt khám sang Đang khám, và khách rời cả hai danh sách.
+  2. Nút "Tiếp nhận" đi theo **quyền** được tick cho role, không gắn với role tên Lễ tân. Quyền đó là Tiếp nhận → Sửa, không thêm quyền mới.
+  3. Danh sách "Đã đến" của bác sĩ là bệnh nhân được gán cho chính bác sĩ đó.
+  4. Làm trên main.
+- **Sửa — BE**:
+  - `Appointment` thêm `InvitedAt` / `InvitedById` (migration `AddAppointmentInvitation`), cùng `Invite()` và `Admit()`. `Invite` chỉ nhận lượt đang chờ (CheckedIn), bấm lại không đổi gì. `Admit` đòi đã được mời, rồi gọi `Start()`.
+  - `UndoCheckIn` và đổi sang bác sĩ khác (`AssignDentist`, `Reschedule`) khi khách đang chờ thì xoá lượt mời.
+  - Ai thấy danh sách nào là theo **ô tick "Bác sĩ"** trên hồ sơ nhân viên (`IsDentist`), không theo tên role. Quyền Tiếp nhận của role vẫn áp lên trên. Chủ dự án chốt qua 3 bước trong ngày 2026-11-02:
+    1. Bản đầu có quyền riêng `reception.admitInvited`. Chủ dự án bỏ: "chỉ cần quyền sửa".
+    2. Chỉ dùng quyền Sửa thì 2 bác sĩ cùng có Sửa sẽ thấy khách đã mời của nhau. Chủ dự án chốt: có tick Bác sĩ thì chỉ thấy danh sách Mời lên. Không tick mà có Xem + Sửa thì thấy danh sách Tiếp nhận.
+    3. "Bác sĩ" là ô tick trên form nhân viên, không phải role.
+  - Server kiểm cùng luật:
+    - `waiting`: cần Xem. Trả `[]` nếu không tick Bác sĩ.
+    - `invite`: cần Sửa, có tick Bác sĩ, và là bác sĩ của lượt (hoặc admin).
+    - `invited` / `admit`: cần Xem + Sửa, và không tick Bác sĩ. Ngược lại trả 403.
+    - Admin không tick Bác sĩ giờ chỉ thấy danh sách Tiếp nhận.
+  - `ArrivalCallAppService` (`/api/v1/app/arrival-calls`):
+    - `waiting`: lượt CheckedIn hôm nay ở chi nhánh hiện tại. Admin thấy tất cả, tài khoản tick Bác sĩ thấy của mình, người khác nhận rỗng.
+    - `invited` (cần Tiếp nhận Sửa).
+    - `invite`: chỉ bác sĩ của lượt hoặc admin, người khác nhận 403.
+    - `admit` (cần Tiếp nhận Sửa): ghi lịch sử StatusChanged.
+  - `IAppointmentNotifier.NotifyArrivalsChangedAsync` → SignalR `ArrivalsChanged(branchId)`, gửi sau khi commit (`ArrivalBroadcast`). Các endpoint đổi trạng thái trên bảng cũng gửi: check-in, undo, start, complete, cancel, assign-dentist, update, set-outcome.
+- **Sửa — FE**:
+  - `ArrivalCallDock` / `ArrivalCallPanel` / `ArrivalCallRow` chỉ gắn trên trang Tiếp nhận. Logic nằm trong `useArrivalCalls`, gọi API qua `api/arrivalCall*.ts`.
+  - Hook chung `useAppointmentLiveUpdates` nghe thêm `ArrivalsChanged`, dùng chính kết nối có sẵn (không mở kết nối mới) và invalidate entity `appointment`.
+  - Key `arrival-calls` được đăng ký vào entity `appointment` trong `queryEntities`.
+- **Test**:
+  - E2E `reception-arrival-call` (bản build production :8080, API docker :5000, DB thật, không chặn API). Admin tạo 2 role chạy thử và 2 tài khoản (một bác sĩ, một role thường được tick quyền), rồi mỗi người đăng nhập qua màn đăng nhập. Cả hai role đều có Tiếp nhận Xem + Sửa, tức là tình huống xung đột 2 bác sĩ cùng có Sửa. Chỉ ô tick Bác sĩ phân biệt hai người. Kiểm:
+    - Bác sĩ chỉ thấy khách của mình (badge 1), không thấy khách của bác sĩ khác.
+    - Gọi sai quyền đều nhận 403: bác sĩ (có Sửa) gọi admit hoặc lấy danh sách invited, người tiếp nhận gọi invite, bác sĩ mời khách của người khác.
+    - Mời lên → dòng hiện "Đã mời", badge mất. Khung đang mở của người tiếp nhận tự hiện khách, **không reload**.
+    - Tiếp nhận → khách rời cả hai khung, DB ở trạng thái Đang khám (status 4, có `startedAt`). Reload vẫn không còn khách. Bấm ra ngoài thì khung đóng.
+    - Kết quả **1/1 xanh**.
+  - Domain: 4 ca mới trong `AppointmentTests` (Invite một lần, Invite từ chối khi chưa đến/đã vào ghế, Admit đòi đã mời, mất lượt mời khi undo/đổi bác sĩ). `BlueDental.Domain.Tests` **1159/1159**, chạy trong container `dotnet/sdk:9.0` vì Smart App Control chặn DLL build lại. Application.Tests (PermissionBridge + Appointment) **42/42**.
+  - Hồi quy `e2e/reception*` + `cross-screen-freshness`: **67 xanh / 3 đỏ / 3 skip**. Cả 3 đỏ không do thay đổi này:
+    - `reception-doctor-priority` "TEMP-PRIORITY-OFF … by start time" đỏ cả trên main sạch: PUT staff trả 403 `UserAlreadyInRole dentist`.
+    - `reception-restore-arrived` "never came" đỏ cả trên main sạch: danh sách trạng thái đọc ra rỗng.
+    - `reception-restore-arrived` "arrived, cancelled by mistake" chập chờn: lần lặp lại 1 xanh, 1 đỏ. Ảnh lúc đỏ cho thấy test bấm ô Trạng thái khi dialog còn đang animation mở, cùng hàm `statusOptions` với ca trên.
+  - `tsc -p tsconfig.app.json` sạch; eslint các file đổi sạch.
+- **Mức retest**: 3, vì đụng hook live-update dùng chung, `queryEntities` và các endpoint đổi trạng thái lịch hẹn.
+
+## R-1131 (2026-11-02, mức 1: F-11 Tiếp nhận) Dòng nội dung trên thẻ tiếp nhận được tô nền
+
+- **Yêu cầu** (BA): dòng 📄 trên thẻ ("Chỉnh nha") dùng `font-weight: 600; padding: 3px; background-color: beige`.
+- **Sửa**:
+  - `ReceptionCard` thêm modifier `rc-detail-notes--filled` khi có nội dung. Dấu "-" của thẻ không có nội dung giữ nguyên.
+  - Token mới `--bd-note-highlight: beige`.
+- **Kiểm**: ảnh chụp trang Tiếp nhận local (thẻ "Tư vấn niềng răng", "Khám định kỳ 6 tháng" có nền beige, chữ đậm). `reception-notes` 2/2 xanh trong lượt hồi quy R-1130.
+- **Mức retest**: 1.
+

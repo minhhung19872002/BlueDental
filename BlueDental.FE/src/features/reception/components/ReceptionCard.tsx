@@ -186,6 +186,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
     return {};
   };
 
+  const noteText = item.services[0] || item.notes;
   const showCancel = !isCancelled && item.status !== "Completed" && !step3Done;
   const hasRecord = !item.isTemporary && !!item.patientId;
   const showTagRow = hasRecord && (canEditTags || item.patientTagIds.length > 0);
@@ -284,7 +285,9 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
                 <div className="rc-detail-row">
                   <FileText size={18} className="rc-icon-top" aria-hidden />
                   {/* Nội dung đặt lịch; an older visit with none shows its Ghi chú (R-1055). */}
-                  <span className="rc-detail-text rc-detail-notes">{item.services[0] || item.notes || "-"}</span>
+                  <span className={["rc-detail-text", "rc-detail-notes", noteText && "rc-detail-notes--filled"].filter(Boolean).join(" ")}>
+                    {noteText || "-"}
+                  </span>
                 </div>
               </div>
             </div>

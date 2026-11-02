@@ -296,6 +296,22 @@ When clicking on a reception record (appears as a card overlay or expanded row):
 - A visually hidden `<h1 class="bd-sr-only">Tiếp nhận</h1>` keeps the page name for screen readers.
 - The key `Reception:PageSubtitle` was removed, since nothing else used it.
 
+**Floating "Đã đến" panel — Mời lên / Tiếp nhận (BlueDental BA requirement 2026-11-02, R-1130). Not observed on the reference:**
+
+- A round button sits in the bottom-right corner of Tiếp nhận. Its red badge counts the patients waiting for the viewer's click. A click opens the panel; a click anywhere else folds it away.
+- **Who sees which list is the "Bác sĩ" tick on the staff form, not a role's name** (owner 2026-11-02). The role's Tiếp nhận permissions still apply on top. The two lists never meet, so two doctors cannot see each other's called-up patients:
+  - Ticked "Bác sĩ": only **Khách đã đến**, with "Mời lên". Needs Tiếp nhận Xem to see it and Sửa to press "Mời lên".
+  - Not ticked: only **Bác sĩ mời lên**, with "Tiếp nhận". Needs Tiếp nhận Xem + Sửa. Phụ tá, Y sĩ or no tick at all are treated the same.
+- **Khách đã đến** (the "Mời lên" list): today's arrived patients still waiting (status Đã đến, not yet in the chair) at the current branch. A doctor sees only the visits assigned to them. A doctor who is also in role `admin` sees every doctor's.
+- **Mời lên**: the doctor calls the patient up. The visit records `InvitedAt` / `InvitedById`. The step bar does not move, and the row then shows "Đã mời".
+- **Bác sĩ mời lên** (the "Tiếp nhận" list): patients a doctor called up who are not yet seated. It is shown to an account not ticked "Bác sĩ" that holds Tiếp nhận Xem + Sửa, through whatever role. It is not tied to a role named Lễ tân, and there is no separate permission for it.
+- **Tiếp nhận**: seats the patient, which is step 2 Đang khám (same as `start`), and the visit leaves both lists.
+- **Live updates**: every move on the board (arrive, undo, start, complete, cancel, change doctor, edit, outcome) and both buttons send `ArrivalsChanged(branchId)` on `/signalr/notifications` after the commit. Open screens of that branch refetch their appointment queries. No patient data is sent over the socket.
+- A call is dropped when the arrival is undone or the waiting patient is handed to another doctor.
+- Code: BE `Appointment.Invite/Admit`, `ArrivalCallAppService`, `ArrivalBroadcast`; FE `components/ArrivalCallDock.tsx` (+ `ArrivalCallPanel`, `ArrivalCallRow`), `hooks/useArrivalCalls.ts`, `api/arrivalCall*.ts`. Spec: `e2e/reception-arrival-call.spec.ts`.
+
+**Nội dung line highlighted (BlueDental BA requirement 2026-11-02, R-1131):** the card's 📄 line (Nội dung đặt lịch, or the Ghi chú) is shown with `font-weight: 600; padding: 3px; background-color: beige` (token `--bd-note-highlight`) when it has text. The "-" placeholder of an empty one stays plain.
+
 ## API Observations
 
 Reference uses Next.js RSC — no traditional REST endpoints observed.
@@ -307,6 +323,10 @@ Local BlueDental BE endpoints designed (not reverse-engineered from reference):
 - `POST /v1/app/appointments/{id}/check-in` — check-in (step 1)
 - `POST /v1/app/appointments/{id}/start` — start exam (step 2)
 - `POST /v1/app/appointments/{id}/complete` — complete (step 3)
+- `GET /v1/app/arrival-calls/waiting` — the "Mời lên" list (ticked Bác sĩ + `reception.read`; own visits, admin all; others get `[]`)
+- `GET /v1/app/arrival-calls/invited` — the "Tiếp nhận" list (not ticked Bác sĩ + `reception.read` + `reception.update`, else 403)
+- `POST /v1/app/arrival-calls/{id}/invite` — Mời lên (ticked Bác sĩ + `reception.update`; the visit's own doctor, or an admin)
+- `POST /v1/app/arrival-calls/{id}/admit` — Tiếp nhận → Đang khám (not ticked Bác sĩ + `reception.read` + `reception.update`)
 
 ## Status Flow
 

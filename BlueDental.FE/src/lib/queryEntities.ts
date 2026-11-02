@@ -19,6 +19,7 @@ import type { invoiceRequestKeys } from "@/features/patient-management/api/invoi
 import type { patientImageKeys } from "@/features/patient-management/api/patientImageApi";
 import type { recordSetKeys } from "@/features/patient-management/api/medicalRecordSetApi";
 import type { patientKeys } from "@/features/patient-management/api/patientQueries";
+import type { arrivalCallKeys } from "@/features/reception/api/arrivalCallQueries";
 import type { clinicReportKeys } from "@/features/report/api/clinicReportApi";
 import type { financeKeys } from "@/features/report/api/financeApi";
 import type { staffKeys } from "@/features/staff/api/staffQueries";
@@ -89,6 +90,8 @@ export const ENTITY_QUERY_ROOTS = {
     // Tiếp nhận reads the same appointments under keys of its own.
     ["receptions"],
     ["receptionMetrics"],
+    // The floating "Đã đến" panel lists the arrived visits.
+    ["arrival-calls"] satisfies RootOf<typeof arrivalCallKeys>,
     // Next appointment and last visit.
     PATIENT_LISTS,
     // Every status change is logged.

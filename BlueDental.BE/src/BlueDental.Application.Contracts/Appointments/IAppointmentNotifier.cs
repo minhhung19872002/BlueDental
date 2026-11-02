@@ -13,6 +13,12 @@ namespace BlueDental.Appointments;
 public interface IAppointmentNotifier
 {
     Task NotifyMarkedLateAsync(IReadOnlyCollection<LateAppointmentBatch> batches);
+
+    /// <summary>
+    /// Someone moved a visit along at reception — arrived, called up, seated,
+    /// handed to another doctor — so the "Đã đến" panels of the branch refetch.
+    /// </summary>
+    Task NotifyArrivalsChangedAsync(Guid branchId);
 }
 
 /// <summary>The bookings of one branch that one pass moved to Trễ hẹn.</summary>

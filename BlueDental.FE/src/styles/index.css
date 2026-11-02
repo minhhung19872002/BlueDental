@@ -108,6 +108,8 @@
   /* Status tints — the fill behind a status accent. */
   --bd-green-pale: #e3f6ef;
   --bd-amber-pale: #fbf1de;
+  /* The highlight behind a reception card's Nội dung line. */
+  --bd-note-highlight: beige;
   --bd-red-pale: #fdeced;
   --bd-purple-pale: #f0ebfc;
   --bd-info-pale: #e2f2fb;
