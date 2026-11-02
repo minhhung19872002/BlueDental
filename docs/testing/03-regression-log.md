@@ -12451,3 +12451,11 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa — FE**: `DURATIONS` trong `features/reception/utils/followUpSlots.ts` thành `[15, 30, 45, 60, 90]`. Chip 15 phút đi chung đường với các chip khác: giữ giờ bắt đầu, kéo giờ kết thúc, tắt khi không vừa ca/đụng lịch đã có. Bấm không kéo và chọn nhanh vẫn lấy 30' (`DEFAULT_MINUTES` không đổi).
 - **E2E**: `reception-follow-up` — ca kéo-giãn-đặt lịch bấm thêm "15 phút" (khớp chính xác tên, vì nút "Tăng/Lùi giờ … 15 phút" cũng chứa chuỗi đó) và kiểm giờ kết thúc 14:15.
 - **Mức retest**: 2 (F-45 hộp Hẹn lại).
+
+## R-1128 (2026-11-02, mức 2: F-19 Công đoạn) Chọn nhanh của Ghi chú lịch hẹn thêm +1 / +2 / +3 tháng
+
+- **Yêu cầu** (chủ dự án, ảnh chụp tab TIẾP TỤC CÔNG ĐOẠN): dưới ô "Ghi chú lịch hẹn" (R-1056), sau +1/+2/+3 ngày và +1/+2/+3 tuần, thêm +1 tháng, +2 tháng, +3 tháng. Làm trên main.
+- **Sửa — FE**: `QUICK_PICKS` trong `stage/appointmentNote.ts` thêm 3 chip `unit: "month"`; nhãn lấy theo bảng `STEP_KEYS` thay cho phép so sánh day/week. Tháng cộng theo dayjs (31/01 + 1 tháng = 28/02). Chip tháng chạy y như các chip cũ: một chip một lúc, ghi dòng "Hẹn tái khám: dd/mm/yyyy", đổi Ngày điều trị thì dòng đi theo. Có trên cả 3 tab Thêm công đoạn / Tiếp tục công đoạn / Tiếp tục bảo hành (cùng `StageForm`).
+- **Sửa — i18n**: `Patient:Stage:PlusMonths` = "+{0} tháng" / "+{0}mo".
+- **E2E** (bản build production :8196, host riêng build từ main :5196, DB thật, không chặn API): `stage-appointment-note` — nhãn 9 chip đúng ngày đích; bấm "+2 tháng" ghi đúng dòng, bấm lại thì bỏ. **2/2 xanh**.
+- **Mức retest**: 2 (F-19 form công đoạn).

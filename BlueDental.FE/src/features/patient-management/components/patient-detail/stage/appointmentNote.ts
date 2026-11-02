@@ -1,13 +1,13 @@
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 
-/** One "Chọn nhanh" chip under Ghi chú lịch hẹn — so many days or weeks on. */
+/** One "Chọn nhanh" chip under Ghi chú lịch hẹn — so many days, weeks or months on. */
 export interface QuickPick {
   count: number;
-  unit: "day" | "week";
+  unit: "day" | "week" | "month";
 }
 
-/** The BA's six, in the order they asked for (2026-10-27). */
+/** The BA's six, in the order they asked for (2026-10-27), then the owner's months (2026-11-02, R-1128). */
 export const QUICK_PICKS: readonly QuickPick[] = [
   { count: 1, unit: "day" },
   { count: 2, unit: "day" },
@@ -15,7 +15,16 @@ export const QUICK_PICKS: readonly QuickPick[] = [
   { count: 1, unit: "week" },
   { count: 2, unit: "week" },
   { count: 3, unit: "week" },
+  { count: 1, unit: "month" },
+  { count: 2, unit: "month" },
+  { count: 3, unit: "month" },
 ];
+
+const STEP_KEYS: Record<QuickPick["unit"], string> = {
+  day: "Patient:Stage:PlusDays",
+  week: "Patient:Stage:PlusWeeks",
+  month: "Patient:Stage:PlusMonths",
+};
 
 const dayOf = (treatmentDate: string, pick: QuickPick) => dayjs(treatmentDate).add(pick.count, pick.unit);
 
@@ -24,7 +33,7 @@ const dayOf = (treatmentDate: string, pick: QuickPick) => dayjs(treatmentDate).a
  * picker cleared there is no day to show, only the step.
  */
 export function quickPickLabel(treatmentDate: string, pick: QuickPick): string {
-  const step = t(pick.unit === "day" ? "Patient:Stage:PlusDays" : "Patient:Stage:PlusWeeks", pick.count);
+  const step = t(STEP_KEYS[pick.unit], pick.count);
   return treatmentDate ? `${step} · ${dayOf(treatmentDate, pick).format("DD/MM")}` : step;
 }
 

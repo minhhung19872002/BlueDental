@@ -6,7 +6,7 @@ import { openStageDialog } from "./fixtures/stageDialog";
 /**
  * Feature: "Ghi chú lịch hẹn" — the fourth column of the công đoạn form (BA,
  * 2026-10-27, R-1056). A free-text box with "Chọn nhanh" chips under it
- * (+1/+2/+3 ngày, +1/+2/+3 tuần), each showing the day it lands on counted from
+ * (+1/+2/+3 ngày, +1/+2/+3 tuần, +1/+2/+3 tháng — R-1128), each showing the day it lands on counted from
  * Ngày điều trị. One chip at a time fills "Hẹn tái khám: dd/mm/yyyy" into the
  * box; it saves as the new công đoạn's Ghi chú (R-986), the column of Lịch sử
  * điều trị. Note text only — no appointment is booked.
@@ -17,8 +17,9 @@ import { openStageDialog } from "./fixtures/stageDialog";
 
 const BRANCH = "11111111-1111-1111-1111-111111111111";
 const STAGES = "/api/v1/app/treatment-stages";
-const STEPS = ["+1 ngày", "+2 ngày", "+3 ngày", "+1 tuần", "+2 tuần", "+3 tuần"];
-const OFFSETS = [1, 2, 3, 7, 14, 21];
+const STEPS = ["+1 ngày", "+2 ngày", "+3 ngày", "+1 tuần", "+2 tuần", "+3 tuần", "+1 tháng", "+2 tháng", "+3 tháng"];
+/** [days, months] each chip adds. */
+const OFFSETS: [number, number][] = [[1, 0], [2, 0], [3, 0], [7, 0], [14, 0], [21, 0], [0, 1], [0, 2], [0, 3]];
 
 interface Fixture {
   patientId: string;
@@ -67,17 +68,25 @@ async function api(
 }
 
 /** The browser's today shifted by `days`, as "DD/MM/YYYY". */
-function day(days: number): string {
+/** Months as dayjs adds them: 31/01 + 1 tháng = 28/02, not 03/03. */
+function day(days: number, months = 0): string {
   const at = new Date();
   at.setDate(at.getDate() + days);
+  if (months) {
+    const date = at.getDate();
+    at.setDate(1);
+    at.setMonth(at.getMonth() + months);
+    at.setDate(Math.min(date, new Date(at.getFullYear(), at.getMonth() + 1, 0).getDate()));
+  }
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${pad(at.getDate())}/${pad(at.getMonth() + 1)}/${at.getFullYear()}`;
 }
 
-/** The six chip captions for a Ngày điều trị `from` days off today. */
-const captions = (from: number) => STEPS.map((step, at) => `${step} · ${day(from + OFFSETS[at]).slice(0, 5)}`);
+/** The chip captions for a Ngày điều trị `from` days off today. */
+const captions = (from: number) =>
+  STEPS.map((step, at) => `${step} · ${day(from + OFFSETS[at][0], OFFSETS[at][1]).slice(0, 5)}`);
 
-const visitLine = (days: number) => `Hẹn tái khám: ${day(days)}`;
+const visitLine = (days: number, months = 0) => `Hẹn tái khám: ${day(days, months)}`;
 
 /** A patient of its own with one slip and nothing done on it yet. */
 async function seed(page: Page): Promise<Fixture> {
@@ -188,6 +197,13 @@ test.describe("Thêm công đoạn — Ghi chú lịch hẹn", () => {
     await chips.nth(4).click();
     await expect(box).toHaveValue(typed);
     expect(await pressed(chips)).toEqual(STEPS.map(() => false));
+
+    // ── A month chip counts calendar months (R-1128) ───────────────────────
+    await chips.nth(7).click();
+    await expect(box).toHaveValue(`${typed}\n${visitLine(0, 2)}`);
+    expect(await pressed(chips)).toEqual(only(7));
+    await chips.nth(7).click();
+    await expect(box).toHaveValue(typed);
 
     // ── The days count from Ngày điều trị, and the picked line moves with it
     await chips.nth(0).click();

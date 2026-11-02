@@ -3059,6 +3059,7 @@
     "Patient:Stage:QuickPick": "Quick pick",
     "Patient:Stage:PlusDays": "+{0}d",
     "Patient:Stage:PlusWeeks": "+{0}w",
+    "Patient:Stage:PlusMonths": "+{0}mo",
     "Patient:Stage:AppointmentNoteLine": "Next visit: {0}",
     "Patient:Stage:RequiredContent": "Please enter treatment content",
     "Patient:Stage:TreatmentDate": "Treatment date",

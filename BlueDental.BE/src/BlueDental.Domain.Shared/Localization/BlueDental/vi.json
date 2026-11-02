@@ -3314,6 +3314,7 @@
     "Patient:Stage:QuickPick": "Chọn nhanh",
     "Patient:Stage:PlusDays": "+{0} ngày",
     "Patient:Stage:PlusWeeks": "+{0} tuần",
+    "Patient:Stage:PlusMonths": "+{0} tháng",
     "Patient:Stage:AppointmentNoteLine": "Hẹn tái khám: {0}",
     "Patient:Stage:RequiredContent": "Vui lòng nhập nội dung điều trị",
     "Patient:Stage:TreatmentDate": "Ngày điều trị",
