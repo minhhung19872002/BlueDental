@@ -3166,6 +3166,7 @@
     "Patient:Form:InvalidPhone": "Invalid phone number",
     "Patient:Form:CodeDigitsOnly": "Patient code must contain only digits",
     "Patient:Form:CodeTaken": "This patient code is already in use",
+    "Patient:Form:CodeAdvanced": "Code {0} was just taken by another record, so the next free code {1} has been filled in. Press Save to create the record.",
     "Patient:Form:CodeNumberPart": "Numeric part of patient code",
     "Patient:Form:RequiredFullName": "Please enter full name",
     "Patient:Form:InvalidFullName": "A name may only contain letters, digits, spaces and - . '",

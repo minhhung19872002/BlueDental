@@ -33,6 +33,7 @@ import {
 import { PatientAddressColumn } from "./PatientAddressColumn";
 import { useGuardianSubject } from "../hooks/useGuardianSubject";
 import { usePatientCodeRule } from "../hooks/usePatientCodeRule";
+import { usePatientCodeSuggestion } from "../hooks/usePatientCodeSuggestion";
 import { useHolderNavigation } from "../hooks/useHolderNavigation";
 import { usePatientGuardians } from "../hooks/usePatientGuardians";
 import { usePatientNameCasing } from "../hooks/usePatientNameCasing";
@@ -80,7 +81,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
   const sourceTaxonomyId = Form.useWatch("sourceTaxonomyId", form);
   const provinceCode = Form.useWatch("provinceCode", form);
 
-  // Still asked for the prefix ("DH26"); its sequence is no longer filled in.
+  // The prefix ("DH26") and the number a new hồ sơ is offered.
   const estimate = usePatientCodeEstimate(open && !patient);
   const { holders, masked } = usePhoneHolders(phone, patient);
   const link = useSharedPhoneLink(holders.owners, prefill?.sharedPhoneAnchorId);
@@ -96,10 +97,6 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
   const { prefix: codePrefix, sequence: storedSequence } = patient
     ? splitPatientCode(patient.patientCode)
     : { prefix: estimate.data?.prefix ?? "", sequence: estimate.data?.sequence ?? "" };
-
-  const codeRule = usePatientCodeRule(codePrefix, patient?.id);
-  const subject = useGuardianSubject(form, codePrefix);
-  const guardianMissing = subject.summary.required && guardians.group.guardians.length === 0;
 
   useEffect(() => {
     if (!open) return;
@@ -124,15 +121,11 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     // `guardians.reset` and `link.reset` are stable callbacks; they are left out of the list on purpose.
   }, [open, patient, prefill, form]);
 
-  // Auto-increment is off (BA 2026-10-29): "Mã khách hàng" opens empty and the
-  // desk types it; usePatientCodeRule checks it on blur. Kept for when the
-  // suggestion comes back — the suggestion only arrives once the dialog is
-  // open, so it was filled in when it landed rather than in the reset above.
-  // useEffect(() => {
-  //   if (open && !patient && estimate.data) {
-  //     form.setFieldValue("codeSequence", estimate.data.sequence);
-  //   }
-  // }, [open, patient, estimate.data, form]);
+  // After the reset above: it empties the box, the suggestion then lands in it.
+  const suggestion = usePatientCodeSuggestion(form, open && !patient, estimate);
+  const codeRule = usePatientCodeRule(codePrefix, patient?.id, suggestion.isOffered);
+  const subject = useGuardianSubject(form, codePrefix);
+  const guardianMissing = subject.summary.required && guardians.group.guardians.length === 0;
 
   usePatientNameCasing(form, uppercase, fullName);
 
@@ -156,6 +149,20 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
     form.setFieldsValue(valuesFromGuardian(guardian));
     setSourceGuardianId(guardian.guardianId);
     link.suggestFromGuardian(guardian);
+  };
+
+  /**
+   * The save was refused on "Mã khách hàng". A number the desk typed is theirs
+   * to change; the number this dialog offered was taken by another desk in the
+   * meantime, so the next free one goes in and the desk is told (BA 2026-11-02).
+   */
+  const handleCodeTaken = async (sequence: string) => {
+    const nextCode = suggestion.isOffered(sequence) ? await suggestion.advance() : null;
+    if (!nextCode) {
+      form.setFields([{ name: "codeSequence", errors: [t("Patient:Form:CodeTaken")] }]);
+      return;
+    }
+    toast.warning(t("Patient:Form:CodeAdvanced", `${codePrefix}${sequence}`, nextCode), { duration: 8000 });
   };
 
   const submit = async (values: PatientFormValues) => {
@@ -186,7 +193,7 @@ export function PatientEditorDialog({ open, patient, onClose, onCreated, prefill
       // A refused field is a field error, not a toast: it goes under the box
       // it was typed in, on the pane that box sits on.
       if (failure.code === DUPLICATE_PATIENT_CODE) {
-        form.setFields([{ name: "codeSequence", errors: [t("Patient:Form:CodeTaken")] }]);
+        await handleCodeTaken(values.codeSequence.trim());
         return;
       }
       if (failure.code === DUPLICATE_NATIONAL_ID) {

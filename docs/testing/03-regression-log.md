@@ -13120,3 +13120,35 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa — FE (chỉ CSS)**: bỏ `order: 1` trên `.pd-labo-row .pd-labo-well` (Ảnh đính kèm chung) và `.pd-labo-cellwell` (cột Ảnh của Thông số từng răng); trong DOM ô tải ảnh vốn đứng trước dãy ảnh.
 - **Kiểm chứng**: chọn 2 ảnh nháp trên phiếu Nháp, ô tải ảnh ở x nhỏ nhất, ảnh xếp sau. Bản build production :8080 → API :5000 → PostgreSQL thật: `labo-workflow` 5/5, `labo-detail` 1/1, `labo-orders-permissions` 1/1.
 - **Mức retest**: 1.
+
+## R-1119 (2026-11-02, mức 2: F-02 Bệnh nhân + F-69 Xuất/nhập danh sách) Mã khách hàng tự tăng lại, số gõ tay không làm lệch dãy
+
+- **Yêu cầu** (BA, qua chủ dự án): ô "Mã khách hàng" tự tăng lại (51 → 52). Người dùng vẫn được gõ số khác, ví dụ 200, và hệ thống check trùng. Dãy tự động vẫn chạy tiếp 53; khi chạy tới 200 thì bỏ qua, sang 201. Đảo lại phần "không tự tăng" của R-1078.
+- **Chủ dự án chốt**:
+  1. Gõ 200 thay cho 52 thì lần sau vẫn gợi ý 52 (số nhỏ nhất còn trống).
+  2. Mã của hồ sơ đã xoá cứng được dùng lại.
+  3. Hai bàn cùng nhận một số gợi ý thì bàn lưu sau tự điền số kế tiếp **và có thông báo**.
+  4. Commit lên main.
+- **Nguyên nhân dãy lệch**:
+  - Số kế tiếp cũ = đếm số mã, nên mỗi mã gõ tay đẩy dãy lên một.
+  - Mã gõ không đủ 0 (`DH26200`) không bao giờ đụng mã tự sinh (`DH260200`).
+- **Sửa — BE**:
+  - Mới `PatientCodeNumbering`. Số kế tiếp = số nhỏ nhất ≥ 1 mà chưa mã nào cùng tiền tố `DHyy` giữ. Tính trên mọi chi nhánh, kể cả hồ sơ xoá mềm (unique index toàn hệ thống), và đọc theo số, nên `DH26200` = `DH260200` = 200.
+  - Mã gõ dạng `DH` + 2 số năm + số được lưu đủ 4 chữ số.
+  - Check trùng (`check-code`, lưu mới, sửa) so cả cách viết cũ chưa đủ 0 mà R-1078 có thể đã lưu.
+  - `code-estimate` không còn phụ thuộc chi nhánh.
+  - Nhập Excel (F-69) cấp mã trống cùng một quy tắc: điền chỗ trống, bỏ qua số đã có trong file lẫn DB.
+- **Sửa — FE**:
+  - Mới `usePatientCodeSuggestion`: hồ sơ mới mở ra đã có số gợi ý. Gợi ý đến muộn chỉ ghi vào ô khi ô trống hoặc còn giữ gợi ý cũ, nên không đè số người dùng đã gõ.
+  - `usePatientCodeRule` không check số gợi ý; số gõ tay vẫn check khi rời ô.
+  - Rời ô với số 1–3 chữ số thì tự đệm đủ 4 chữ số ("7" → "0007").
+  - Lưu bị từ chối `Patient:0002` khi ô còn giữ số gợi ý: hỏi lại gợi ý, điền số kế tiếp, toast cảnh báo `Patient:Form:CodeAdvanced` ("Mã … vừa được hồ sơ khác sử dụng, đã tự chuyển sang mã …. Bấm Lưu để tạo hồ sơ."). Không tự lưu.
+  - Số gõ tay bị trùng thì vẫn báo lỗi dưới ô.
+  - Chủ dự án thấy 2 toast cùng lúc (cảnh báo + "Mã bệnh nhân đã tồn tại." của bộ báo lỗi chung). Đã sửa: `useRegisterPatient` / `useUpdatePatient` khai `quietErrorCodes: [Patient:0002]`.
+- **E2E** (bản build production cổng 8190, host riêng :5190, DB thật, không chặn API) — `patient-code-check` 4 ca:
+  - Ô mở ra đúng số gợi ý; "7" đệm thành "0007"; số trùng báo lỗi khi blur; lưu + reload.
+  - Gõ số trống kế trên → gợi ý giữ nguyên; mã trống nhận gợi ý; dãy bỏ qua số đã gõ; số gõ không đủ 0 lưu thành mã đủ 0 và cả hai cách viết đều bị coi là trùng.
+  - Bàn khác lấy số gợi ý trước → ô tự sang số kế, 1 toast duy nhất, bấm Lưu lần hai thì lưu được, reload thấy mã mới.
+  - Kết quả: `patient-code-check`, `patient-roster-api`, `patient-national-id*`, `patient-scan-id*`, `patient-shared-phone-ui` → **30/30 xanh**.
+  - `tsc -p tsconfig.app.json` → sạch. eslint các file đổi → sạch (eslint cả thư mục báo 1 lỗi có sẵn ở `PatientProfileTab.tsx`: thiếu rule `react-hooks/exhaustive-deps`, không do R-1119).
+- **Mức retest**: 2 (F-02 dialog hồ sơ + F-69 cấp mã khi nhập).

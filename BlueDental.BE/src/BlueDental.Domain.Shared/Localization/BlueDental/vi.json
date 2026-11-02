@@ -3421,6 +3421,7 @@
     "Patient:Form:InvalidPhone": "Số điện thoại không hợp lệ",
     "Patient:Form:CodeDigitsOnly": "Mã khách hàng chỉ gồm chữ số",
     "Patient:Form:CodeTaken": "Mã khách hàng đã tồn tại",
+    "Patient:Form:CodeAdvanced": "Mã {0} vừa được hồ sơ khác sử dụng, đã tự chuyển sang mã {1}. Bấm Lưu để tạo hồ sơ.",
     "Patient:Form:CodeNumberPart": "Phần số mã khách hàng",
     "Patient:Form:RequiredFullName": "Vui lòng nhập họ và tên",
     "Patient:Form:InvalidFullName": "Họ tên chỉ được chứa chữ, số, khoảng trắng và các ký tự - . '",
