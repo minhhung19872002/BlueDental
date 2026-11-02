@@ -12525,3 +12525,14 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm**: ảnh chụp trang Tiếp nhận local (thẻ "Tư vấn niềng răng", "Khám định kỳ 6 tháng" có nền beige, chữ đậm). `reception-notes` 2/2 xanh trong lượt hồi quy R-1130.
 - **Mức retest**: 1.
 
+## R-1132 (2026-11-02, mức 2: F-30 Bệnh án — mẫu 6) Ô nhập sau "Tê môi, tê lưỡi" trên Giấy đồng ý thực hiện phẫu thuật/thủ thuật
+
+- **Yêu cầu** (BA, ảnh chụp trên duchanhpremium.vn): ở bệnh án 6, mục "Nguy cơ, tai biến…", thêm một ô textbox ngay sau ô tick "Tê môi, tê lưỡi".
+- **Sửa**: `templates/surgeryConsent.ts` thêm ô `surgery-consent.text.21`, rộng 90px, nằm cùng dòng với chữ.
+  - Đây là id mới, nên không đè giá trị đã lưu của ô nào.
+  - Phiếu chỉ lưu `fieldValues`, còn khuôn dựng từ code. Vì vậy mọi bản đã tạo cũng có ô mới.
+- **Kiểm**:
+  - Chạy thật trên trang bệnh án local: ô hiện đúng chỗ, hàng không xuống dòng. Gõ, Lưu, thấy DB có `surgery-consent.text.21`. Reload vẫn còn giá trị. Sau đó đã xoá giá trị thử.
+  - `patient-medical-record` "every form draws the whole of its printed original" đổi số ô phiếu 6 từ 49 lên 50, chạy **xanh**.
+  - 5 ca khác đụng mẫu 6 cũng **xanh**: mẫu 6 margins, mẫu 5 rules, mẫu 10 in như mẫu 6, ngày thực hiện, địa chỉ/chẩn đoán. Chạy trên bản build production.
+- **Mức retest**: 2.
