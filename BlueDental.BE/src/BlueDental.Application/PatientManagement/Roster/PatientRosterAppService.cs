@@ -617,9 +617,10 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
     }
 
     /// <summary>
-    /// A blank Mã khách hàng gets the hồ sơ dialog's next number — DH + year +
-    /// the branch's count this year, walking past every code already used
-    /// anywhere, deleted records and this file included.
+    /// A blank Mã khách hàng gets the hồ sơ dialog's next number
+    /// (<see cref="PatientCodeNumbering"/>): the smallest of the year no code
+    /// holds — any branch, deleted records and this file included — then the
+    /// next free one for each row after.
     /// </summary>
     private async Task AssignCodesAsync(RosterPlan plan)
     {
@@ -630,36 +631,25 @@ public class PatientRosterAppService : BlueDentalAppService, IPatientRosterAppSe
         }
 
         var year = Clock.Now.Year;
-        var prefix = $"DH{year % 100:D2}";
-        var taken = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var prefix = PatientCodeNumbering.Prefix(year);
+        var codes = plan.Rows.Where(r => r.Code != null).Select(r => r.Code!).ToList();
         using (_dataFilter.Disable<ISoftDelete>())
         {
             var all = await _patientRepository.GetQueryableAsync();
-            taken.UnionWith(await AsyncExecuter.ToListAsync(all
+            codes.AddRange(await AsyncExecuter.ToListAsync(all
                 .Where(p => p.PatientCode.StartsWith(prefix))
                 .Select(p => p.PatientCode)));
         }
 
-        taken.UnionWith(plan.Rows.Where(r => r.Code != null).Select(r => r.Code!));
-
-        var query = await _patientRepository.GetQueryableAsync();
-        foreach (var branch in pending.GroupBy(r => r.Branch!.Id))
+        var taken = PatientCodeNumbering.TakenSequences(prefix, codes);
+        var sequence = 0;
+        foreach (var row in pending)
         {
-            var branchId = branch.Key;
-            var sequence = await AsyncExecuter.CountAsync(query
-                .Where(p => p.BranchId == branchId && p.CreationTime.Year == year)) + 1;
-            foreach (var row in branch)
-            {
-                string code;
-                while (!taken.Add(code = $"{prefix}{sequence:D4}"))
-                {
-                    sequence++;
-                }
+            sequence = PatientCodeNumbering.NextFree(taken, sequence + 1);
+            taken.Add(sequence);
 
-                row.Code = code;
-                row.Status.PatientCode = code;
-                sequence++;
-            }
+            row.Code = PatientCodeNumbering.Format(year, sequence);
+            row.Status.PatientCode = row.Code;
         }
     }
 

@@ -87,15 +87,14 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
     public async Task<PatientCodeEstimateDto> GetCodeEstimateAsync()
     {
-        var branchId = _branchResolver.GetRequiredClinicBranchId();
         var year = Clock.Now.Year;
-        var sequence = await NextFreeSequenceAsync(branchId, year);
+        var sequence = await NextFreeSequenceAsync(year);
 
         return new PatientCodeEstimateDto
         {
-            Prefix = CodePrefix(year),
-            Sequence = FormatSequence(sequence),
-            Code = FormatPatientCode(year, sequence)
+            Prefix = PatientCodeNumbering.Prefix(year),
+            Sequence = PatientCodeNumbering.FormatSequence(sequence),
+            Code = PatientCodeNumbering.Format(year, sequence)
         };
     }
 
@@ -112,7 +111,10 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
             return new PatientCodeAvailabilityDto { Exists = false };
         }
 
-        return new PatientCodeAvailabilityDto { Exists = await IsCodeTakenAsync(code.Trim(), excludeId) };
+        return new PatientCodeAvailabilityDto
+        {
+            Exists = await IsCodeTakenAsync(PatientCodeNumbering.Normalize(code), excludeId)
+        };
     }
 
     [Authorize(BlueDentalAbilityPermissions.Patient.Read)]
@@ -262,7 +264,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
 
         var patient = Patient.Register(
             GuidGenerator.Create(),
-            await ResolveCodeAsync(branchId, input.PatientCode),
+            await ResolveCodeAsync(input.PatientCode),
             input.FirstName,
             input.LastName,
             input.DateOfBirth,
@@ -340,9 +342,11 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
 
         patient.SetOldAddress(input.OldAddress);
 
-        if (!string.IsNullOrWhiteSpace(input.PatientCode) && input.PatientCode.Trim() != patient.PatientCode)
+        // Compared as stored, so an old "DH26200" sent back untouched is not a new code.
+        var code = string.IsNullOrWhiteSpace(input.PatientCode) ? null : PatientCodeNumbering.Normalize(input.PatientCode);
+        if (code != null && code != PatientCodeNumbering.Normalize(patient.PatientCode))
         {
-            patient.SetPatientCode(await EnsureCodeIsFreeAsync(input.PatientCode.Trim(), patient.Id));
+            patient.SetPatientCode(await EnsureCodeIsFreeAsync(code, patient.Id));
         }
 
         await ApplyProfileAsync(
@@ -926,19 +930,19 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     }
 
     /// <summary>
-    /// Human-readable patient code, per branch and year — the reference uses the
-    /// same shape (e.g. <c>DH260010</c>) and lets the front desk overwrite the
-    /// numeric half, so a supplied code wins as long as it is free.
+    /// Human-readable patient code — the reference uses the same shape (e.g.
+    /// <c>DH260010</c>) and lets the front desk overwrite the numeric half, so a
+    /// supplied code wins as long as it is free; a blank one gets the next number.
     /// </summary>
-    private async Task<string> ResolveCodeAsync(Guid branchId, string? supplied)
+    private async Task<string> ResolveCodeAsync(string? supplied)
     {
         if (!string.IsNullOrWhiteSpace(supplied))
         {
-            return await EnsureCodeIsFreeAsync(supplied.Trim(), excludeId: null);
+            return await EnsureCodeIsFreeAsync(PatientCodeNumbering.Normalize(supplied), excludeId: null);
         }
 
         var year = Clock.Now.Year;
-        return FormatPatientCode(year, await NextFreeSequenceAsync(branchId, year));
+        return PatientCodeNumbering.Format(year, await NextFreeSequenceAsync(year));
     }
 
     private async Task<string> EnsureCodeIsFreeAsync(string code, Guid? excludeId)
@@ -953,14 +957,17 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
         return code;
     }
 
+    /// <param name="code">Already normalised; its bare-number spelling is checked too.</param>
     private async Task<bool> IsCodeTakenAsync(string code, Guid? excludeId)
     {
+        var spellings = PatientCodeNumbering.StoredSpellings(code);
+
         // A deleted record keeps its code — the unique index still counts it.
         using (DataFilter.Disable<ISoftDelete>())
         {
             var query = await _repository.GetQueryableAsync();
             return await AsyncExecuter.AnyAsync(
-                query.Where(p => p.PatientCode == code && (!excludeId.HasValue || p.Id != excludeId.Value)));
+                query.Where(p => spellings.Contains(p.PatientCode) && (!excludeId.HasValue || p.Id != excludeId.Value)));
         }
     }
 
@@ -990,35 +997,22 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
     }
 
     /// <summary>
-    /// The next sequence free in this branch and year.
-    ///
-    /// A counting scheme alone is not enough — deleted or imported records leave
-    /// gaps and duplicates — so it walks forward until the code is genuinely free.
+    /// The next number of the year (<see cref="PatientCodeNumbering"/>): the
+    /// smallest one no record holds — every branch, since a code is unique
+    /// system-wide, and deleted records too, since their codes hold the index.
     /// </summary>
-    private async Task<int> NextFreeSequenceAsync(Guid branchId, int year)
+    private async Task<int> NextFreeSequenceAsync(int year)
     {
-        var query = await _repository.GetQueryableAsync();
-        var sequence = query.Count(p => p.BranchId == branchId && p.CreationTime.Year == year) + 1;
-
-        // Walk past deleted records too: their codes still hold the unique index.
+        var prefix = PatientCodeNumbering.Prefix(year);
         using (DataFilter.Disable<ISoftDelete>())
         {
-            var all = await _repository.GetQueryableAsync();
-            while (all.Any(p => p.PatientCode == FormatPatientCode(year, sequence)))
-            {
-                sequence++;
-            }
+            var query = await _repository.GetQueryableAsync();
+            var codes = await AsyncExecuter.ToListAsync(query
+                .Where(p => p.PatientCode.StartsWith(prefix))
+                .Select(p => p.PatientCode));
+            return PatientCodeNumbering.FirstFreeSequence(prefix, codes);
         }
-
-        return sequence;
     }
-
-    private static string CodePrefix(int year) => $"DH{year % 100:D2}";
-
-    private static string FormatSequence(int sequence) => $"{sequence:D4}";
-
-    private static string FormatPatientCode(int year, int sequence) =>
-        CodePrefix(year) + FormatSequence(sequence);
 
     private static PatientDto MapToDto(Patient patient) => new()
     {

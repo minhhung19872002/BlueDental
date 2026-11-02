@@ -7,6 +7,7 @@ import type {
   UpdatePatientGuardiansRequest,
   UpdatePatientRequest,
 } from "../types/patient";
+import { DUPLICATE_PATIENT_CODE } from "../utils/patientEditorForm";
 
 /**
  * The whole patient namespace plus the shared pickers. On a register that
@@ -15,11 +16,18 @@ import type {
  */
 const INVALIDATES_PATIENTS = { invalidates: ["patient"] } as const;
 
+/**
+ * The hồ sơ dialog answers a taken "Mã khách hàng" itself — under the box, or
+ * by filling in the next free number with its own notice (R-1119) — so the
+ * global toast must not say it a second time.
+ */
+const SAVE_PATIENT_META = { ...INVALIDATES_PATIENTS, quietErrorCodes: [DUPLICATE_PATIENT_CODE] };
+
 export function useRegisterPatient() {
   return useMutation({
     mutationKey: ["patients", "create"],
     mutationFn: (data: RegisterPatientRequest) => patientApi.create(data),
-    meta: INVALIDATES_PATIENTS,
+    meta: SAVE_PATIENT_META,
   });
 }
 
@@ -27,7 +35,7 @@ export function useUpdatePatient(id: string) {
   return useMutation({
     mutationKey: ["patients", "update", id],
     mutationFn: (data: UpdatePatientRequest) => patientApi.update(id, data),
-    meta: INVALIDATES_PATIENTS,
+    meta: SAVE_PATIENT_META,
   });
 }
 

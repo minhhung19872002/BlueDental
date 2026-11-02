@@ -9,6 +9,11 @@ import { CATALOG_GROUP, useCatalogOptions, useTaxonomyGroupOptions } from "@/hoo
 import { t } from "@/lib/i18n";
 import { PERSON_NAME_PATTERN } from "@/utils/vietnameseName";
 
+/** "DH26" — the clinic's own series; the server keeps its numbers four digits wide. */
+const SERIES_PREFIX = /^DH\d{2}$/i;
+const SHORT_NUMBER = /^\d{1,3}$/;
+const SEQUENCE_DIGITS = 4;
+
 interface Props {
   /** The fixed half of the code, greyed inside the field. */
   codePrefix: string;
@@ -37,6 +42,7 @@ export function PatientSourceColumn({
   onSourceGroupChange,
   phoneField,
 }: Props) {
+  const form = Form.useFormInstance();
   const sourceGroups = useTaxonomyGroupOptions(CATALOG_GROUP.Source);
   const sourceEntries = useCatalogOptions(CATALOG_GROUP.Source);
 
@@ -48,10 +54,20 @@ export function PatientSourceColumn({
     [sourceEntries.data, sourceTaxonomyId],
   );
 
+  // "200" reads back as "0200", the way it is stored and the series counts it.
+  // Runs before the blur check, so the check sees the padded number.
+  const handleCodeBlur = () => {
+    const typed = String(form.getFieldValue("codeSequence") ?? "").trim();
+    if (SERIES_PREFIX.test(codePrefix) && SHORT_NUMBER.test(typed)) {
+      form.setFieldValue("codeSequence", typed.padStart(SEQUENCE_DIGITS, "0"));
+    }
+  };
+
   return (
     <>
-      {/* Opens empty for the desk to type; the label stays on the border so it
-          never sits over the greyed prefix. */}
+      {/* A new hồ sơ opens on the next free number, which the desk may
+          overwrite; the label stays on the border so it never sits over the
+          greyed prefix. */}
       <FloatingField
         label={t("Patient:Col:PatientCodeLong")}
         name="codeSequence"
@@ -63,6 +79,7 @@ export function PatientSourceColumn({
           prefix={<span className="bd-patient-codeprefix">{codePrefix}</span>}
           inputMode="numeric"
           aria-label={t("Patient:Form:CodeNumberPart")}
+          onBlur={handleCodeBlur}
         />
       </FloatingField>
 
