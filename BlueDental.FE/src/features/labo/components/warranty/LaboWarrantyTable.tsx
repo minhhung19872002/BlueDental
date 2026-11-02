@@ -66,13 +66,17 @@ function buildColumns(): TableColumnsType<LaboWarrantyRow> {
   ];
 }
 
-/** Răng · Mã thẻ · Bắt đầu · Hết hạn · Còn lại · Lần BH · Ảnh thẻ · Trạng thái, one row per Đạt tooth. */
-export function LaboWarrantyTable({ rows }: { rows: LaboWarrantyRow[] }) {
+/**
+ * Răng · Mã thẻ · Bắt đầu · Hết hạn · Còn lại · Lần BH · Ảnh thẻ · Trạng thái,
+ * one row per Đạt tooth; `focusTooth`'s row marked (R-1120).
+ */
+export function LaboWarrantyTable({ rows, focusTooth }: { rows: LaboWarrantyRow[]; focusTooth?: number | null }) {
   return (
     <DataTable<LaboWarrantyRow>
       rowKey={(row) => row.tooth.toothNumber}
       size="small"
       className="pd-labo-warranty-table"
+      rowClassName={(row) => (row.tooth.toothNumber === focusTooth ? "pd-labo-warranty-row--focus" : "")}
       columns={buildColumns()}
       dataSource={rows}
       pagination={false}

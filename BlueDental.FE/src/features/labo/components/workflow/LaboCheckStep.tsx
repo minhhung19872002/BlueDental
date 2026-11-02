@@ -18,6 +18,7 @@ import "../check/labo-check.css";
 interface Props {
   patient: LaboWorkflowPatient;
   order: LaboOrderDto;
+  readOnly: boolean;
   onShowOrder: () => void;
   onClose: () => void;
 }
@@ -89,8 +90,8 @@ function CheckColumns({ history, children }: { history: ReactNode; children: Rea
  * right, or once the order has left the check, only the summary and the
  * history remain — with B. read-only once every tooth has passed.
  */
-export function LaboCheckStep({ patient, order, onShowOrder, onClose }: Props) {
-  const check = useLaboCheckForm(order, onClose);
+export function LaboCheckStep({ patient, order, readOnly, onShowOrder, onClose }: Props) {
+  const check = useLaboCheckForm(order, onClose, readOnly);
   const summary = <LaboOrderSummaryCard order={order} patient={patient} onShowOrder={onShowOrder} />;
 
   if (!check.editable) {

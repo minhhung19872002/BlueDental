@@ -71,8 +71,9 @@ const RETURN_FIELDS = ["returnedAt", "redeliveryDueAt"];
  * saves it and opens B., where each tooth is Đạt or Lỗi with its own Mô tả
  * gửi Labo and Hình ảnh lỗi (P3110 REQ-D4–D6). A conclusion first saves the
  * delivery again — the server amends an open round, so that is harmless.
+ * `readOnly` (R-1120) shows the check as it stands, whatever the right.
  */
-export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboCheckForm {
+export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void, readOnly = false): LaboCheckForm {
   const ability = useAbility("treatmentLabo");
   const userName = useAuthStore((s) => s.user?.name) ?? "";
   const receive = useReceiveLaboOrder();
@@ -186,7 +187,7 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void): LaboC
 
   return {
     form,
-    editable: ability.canUpdate && isCheckOpen(order),
+    editable: !readOnly && ability.canUpdate && isCheckOpen(order),
     started: round !== undefined,
     busy: receive.isPending || check.isPending,
     roundNo: receiveRoundNo(order),

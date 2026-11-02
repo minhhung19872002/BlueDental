@@ -7190,6 +7190,7 @@
     "Treatment:Warranty:Expired": "Expired",
     "Treatment:Warranty:Valid": "Valid",
     "Treatment:Warranty:History": "History ↓",
+    "Treatment:Warranty:ViewDetail": "View details",
     "Treatment:Warranty:HistoryTitle": "Warranty history",
     "Treatment:Warranty:History:Empty": "No warranty events yet",
     "Treatment:Warranty:History:Filter:Activation": "Activation / cards sent",

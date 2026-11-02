@@ -1,5 +1,7 @@
 import dayjs from "dayjs";
 import { teethCaption } from "@/components/ToothChart";
+import { formatCardDate } from "@/features/labo/components/warranty/laboWarrantyRules";
+import { t } from "@/lib/i18n";
 import {
   WARRANTY_CARD_KIND,
   WARRANTY_EVENT_KIND,
@@ -21,6 +23,17 @@ export function teethText(teeth: readonly number[]): string {
 /** "Bọc sứ Emax - R24": the line's name with its teeth, if it has any. */
 export function serviceTitle(row: Pick<WarrantyServiceRowDto, "serviceName" | "teeth">): string {
   return row.teeth.length > 0 ? `${row.serviceName} - ${teethText(row.teeth)}` : row.serviceName;
+}
+
+/** "Bọc sứ Emax · BS. Nguyễn Lan Chi · Hoàn thành 05/11/2026" — the line under a warranty dialog's title. */
+export function lineHeadline(row: Pick<WarrantyServiceRowDto, "serviceName" | "dentistName" | "completedOn">): string {
+  return [
+    row.serviceName,
+    row.dentistName && t("Treatment:Warranty:Dentist", row.dentistName),
+    row.completedOn && t("Treatment:Warranty:CompletedOn", formatCardDate(row.completedOn)),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /* ── Tình trạng bảo hành theo dịch vụ: the four chips ── */

@@ -282,6 +282,12 @@
   cursor: pointer;
 }
 
+/* Thao tác of an activated card: Xem chi tiết over Lịch sử ↓, at the right (R-1120). */
+.pwt-actions--end {
+  align-items: flex-end;
+  gap: 4px;
+}
+
 .pwt-link:hover {
   text-decoration: underline;
 }

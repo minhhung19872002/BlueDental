@@ -13153,6 +13153,32 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc -p tsconfig.app.json` → sạch. eslint các file đổi → sạch (eslint cả thư mục báo 1 lỗi có sẵn ở `PatientProfileTab.tsx`: thiếu rule `react-hooks/exhaustive-deps`, không do R-1119).
 - **Mức retest**: 2 (F-02 dialog hồ sơ + F-69 cấp mã khi nhập).
 
+## R-1120 (2026-11-02, mức 2: F-86 tab Bảo hành + F-85 popup Labo) Nút "Xem chi tiết" trên PHIẾU BẢO HÀNH ĐÃ KÍCH HOẠT, popup Bảo hành chỉ xem
+
+- **Yêu cầu chủ dự án**: cột thao tác của bảng PHIẾU BẢO HÀNH ĐÃ KÍCH HOẠT (tab Bảo hành của phiếu điều trị) thêm nút **Xem chi tiết**. Bấm vào mở popup Bảo hành để xem lại thông tin bảo hành. Popup **chỉ xem**, không sửa được gì.
+- **Chủ dự án chốt (1.A, 2.A, 3. theo đề xuất)**:
+  - Thẻ **Labo** → popup Labo 3 bước, mở ở bước Bảo hành, chế độ chỉ xem. Vẫn xem được cả 3 tab, nhưng khoá hết: không Hủy phiếu, Lưu nháp / Tạo phiếu, nút kiểm tra, tab Kích hoạt, nút Kích hoạt. "In Phiếu Labo" vẫn dùng được. Răng của thẻ vừa bấm được tô nổi.
+  - Thẻ **Nha khoa** → popup mới, cùng khung bước 3 Labo: các thẻ nha khoa của dòng + bảng, thẻ vừa bấm tô nổi, chỉ nút Đóng. Không đổi BE.
+  - Cột đổi tên **Thao tác**, Xem chi tiết nằm trên Lịch sử ↓. Popup mở bằng state cục bộ, không qua URL: F5 không mở lại.
+- **Sửa — FE**:
+  - `LaboWorkflowTarget` thêm `readOnly` + `focusTooth`. Mỗi bước gate cờ "được sửa" bằng `!readOnly` (`useLaboOrderStep`, `useLaboCheckForm`/`LaboCheckStep`, `useLaboWarrantyForm`). `LaboOrderStep` ẩn Hủy phiếu khi chỉ xem.
+  - Mặt thẻ tách thành component chung `labo/components/warranty/WarrantyCardFace.tsx` (aria-label "Thẻ bảo hành · {mã}", `aria-current` khi được tô). `LaboWarrantyCard` và popup nha khoa đều dùng nó.
+  - `plan-warranty/WarrantyCardViewer.tsx` chọn popup theo loại thẻ. Mới: `DentalCardsViewDialog.tsx` + `dentalCardView.tsx`. `planWarrantyView.lineHeadline` dùng chung với `ServiceWarrantyDialog`.
+  - Key mới `Treatment:Warranty:ViewDetail` (vi "Xem chi tiết", en "View details"); tiêu đề cột dùng `Common:Actions`.
+  - CSS: `.pwt-actions--end` (căn phải, cách 4px) chỉ cho bảng thẻ. Bảng TÌNH TRẠNG dùng `.pwt-actions` vẫn giữ nguyên.
+- **E2E** (bản build production `vite preview` :8190 → host :5000 → PostgreSQL thật, không chặn API):
+  - `plan-warranty-tab` thêm ca "Xem chi tiết opens each card's warranty dialog, view only, on the card pressed (R-1120)". Phiếu có 1 dòng dịch vụ có thẻ nha khoa R46, và 1 dòng Labo R11 + R21, chỉ kích hoạt R11.
+  - Thẻ Labo: popup mở bước Bảo hành, thẻ R11 `aria-current`, R21 chưa kích hoạt. Không có tab / nút Kích hoạt, không có ô chọn file. Tab kiểm tra không có Đạt. Tab Đặt hàng còn "In Phiếu Labo", không có Hủy phiếu / Lưu nháp / Tạo phiếu. URL không đổi.
+  - Thẻ nha khoa: tiêu đề "Bảo hành dịch vụ", thẻ "Răng 46" `aria-current`, dòng tô có mã + "Còn hiệu lực". Không có ô nhập, không có nút Kích hoạt / Lưu. Đóng thì đóng popup. F5 → không có popup nào mở.
+- **Kết quả**:
+  - `plan-warranty-tab` **4/4 xanh**. `tsc -p tsconfig.app.json` sạch, eslint các thư mục labo + plan-warranty sạch.
+  - Mức 2 (13 spec Labo + bảo hành, 60 test): 57/60 xanh. 3 đỏ không do R-1120, đã chạy lại trên bản build HEAD (:8191) cùng host:
+    - `labo-api:340`: BE trả `Labo:0025` thay vì `0020`. Test API, đỏ y hệt trên HEAD.
+    - `labo-material-search:204`: "6 vật liệu" thay vì 4, do DB dùng chung đã có thêm vật liệu. Đỏ y hệt trên HEAD.
+    - `labo-orders-actions:141`: lớp phủ xem ảnh chặn click. Chập chờn 1/2 trên cả hai bản build.
+  - Lượt đầu có thêm 3 đỏ do host :5000 khởi động trước khi có key `Treatment:PlanDetail:Labo:Others` của R-1121 (409/500 chạy song song). Restart host thì xanh.
+- **Mức retest**: 2 (F-86 tab Bảo hành + F-85 popup Labo, vì đổi chung các bước của popup).
+
 ## R-1121 (2026-11-02, mức 2: F-85/F-86 Labo trên phiếu điều trị) Cột "Phiếu Labo" chỉ hiện phiếu Chờ kiểm tra cũ nhất
 
 - **Yêu cầu chủ dự án**: cột "Phiếu Labo" ở tab Chi tiết điều trị của phiếu (DTxx) hiện phiếu Labo đang **Chờ kiểm tra**. Có nhiều phiếu thì hiện phiếu có **ngày tạo phiếu** cũ nhất. Kiểm tra xong phiếu đó thì hiện phiếu chờ kiểm tra cũ kế tiếp (A ngày 1, B ngày 3, C ngày 2 → A; A xong → C).

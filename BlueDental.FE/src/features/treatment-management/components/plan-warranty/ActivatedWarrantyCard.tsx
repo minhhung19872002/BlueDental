@@ -24,14 +24,15 @@ interface Props {
   lineLabel: string | null;
   onViewChange: (view: CardView) => void;
   onHistory: (code: string) => void;
+  onView: (card: WarrantyCardRowDto) => void;
 }
 
 /**
  * PHIẾU BẢO HÀNH ĐÃ KÍCH HOẠT (m360, REQ-B6): the slip's dental and Labo
  * cards, soonest to run out first. No Lượt column (D5).
  */
-export function ActivatedWarrantyCard({ ref, cards, today, view, lineLabel, onViewChange, onHistory }: Props) {
-  const columns = useMemo(() => activatedCardColumns(today, onHistory), [today, onHistory]);
+export function ActivatedWarrantyCard({ ref, cards, today, view, lineLabel, onViewChange, onHistory, onView }: Props) {
+  const columns = useMemo(() => activatedCardColumns(today, { onView, onHistory }), [today, onView, onHistory]);
   const chips = CARD_FILTERS.map((chip) => ({ ...chip, count: countCards(cards, chip.key) }));
   const sortOptions = CARD_SORTS.map((option) => ({ value: option.key, label: t(option.label) }));
 

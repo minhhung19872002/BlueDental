@@ -17,6 +17,9 @@ import "../warranty/labo-warranty.css";
 interface Props {
   patient: LaboWorkflowPatient;
   order: LaboOrderDto;
+  /** "Xem chi tiết" of an activated card (R-1120): only the cards, nothing to activate. */
+  readOnly: boolean;
+  focusTooth: number | null;
   onShowOrder: () => void;
   onClose: () => void;
 }
@@ -30,8 +33,8 @@ type WarrantyView = "activate" | "cards";
  * opens only once the whole order passed. P3110 REQ-E2 dropped the tooth's
  * Thông tin thẻ / Lịch sử panel.
  */
-export function LaboWarrantyStep({ patient, order, onShowOrder, onClose }: Props) {
-  const warranty = useLaboWarrantyForm(order);
+export function LaboWarrantyStep({ patient, order, readOnly, focusTooth, onShowOrder, onClose }: Props) {
+  const warranty = useLaboWarrantyForm(order, readOnly);
   const [view, setView] = useState<WarrantyView>(warranty.editable ? "activate" : "cards");
   // Same fallback as the header's logo.
   const logoUrl = useAuthStore((s) => s.user?.clinicLogoUrl) ?? "/logo.png";
@@ -50,6 +53,7 @@ export function LaboWarrantyStep({ patient, order, onShowOrder, onClose }: Props
       code={row.code}
       restoration={restoration}
       logoUrl={logoUrl}
+      focused={row.tooth.toothNumber === focusTooth}
     />
   ));
 
@@ -92,7 +96,7 @@ export function LaboWarrantyStep({ patient, order, onShowOrder, onClose }: Props
         <div className="pd-labo-flow-main">
           <section className="pd-labo-flow-pane pd-labo-flow-pane--main">
             <div className="pd-labo-warranty-cards">{cards}</div>
-            <LaboWarrantyTable rows={rows} />
+            <LaboWarrantyTable rows={rows} focusTooth={focusTooth} />
           </section>
         </div>
       )}

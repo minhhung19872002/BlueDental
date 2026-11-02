@@ -45,9 +45,10 @@ const isReady = (card: LaboWarrantyCardValues | undefined) => Boolean(card?.star
  * Kích hoạt bảo hành (n răng): pick the Đạt teeth still without a card, give
  * each a start day (not before it passed), a duration and, if at hand, the
  * photos of its card, and activate them together. A tooth can be left for
- * later; the first card moves the order to Bảo hành.
+ * later; the first card moves the order to Bảo hành. `readOnly` (R-1120)
+ * offers nothing to activate, whatever the right.
  */
-export function useLaboWarrantyForm(order: LaboOrderDto): LaboWarrantyForm {
+export function useLaboWarrantyForm(order: LaboOrderDto, readOnly = false): LaboWarrantyForm {
   const ability = useAbility("treatmentLabo");
   const activateWarranty = useActivateLaboWarranty();
   const photos = useWarrantyCardDrafts();
@@ -106,7 +107,7 @@ export function useLaboWarrantyForm(order: LaboOrderDto): LaboWarrantyForm {
 
   return {
     form,
-    editable: ability.canUpdate && pending.length > 0,
+    editable: !readOnly && ability.canUpdate && pending.length > 0,
     open,
     busy: activateWarranty.isPending,
     pending,

@@ -212,6 +212,20 @@
   background: var(--bd-red-pale);
 }
 
+/* The card "Xem chi tiết" opened on (R-1120): ringed outside its own border. */
+.pd-labo-warranty-card--focus {
+  outline: 3px solid var(--bd-primary);
+  outline-offset: 2px;
+}
+
+.pd-labo-warranty-table .pd-labo-warranty-row--focus > td {
+  background: var(--bd-hover-tint);
+}
+
+.pd-labo-warranty-table .pd-labo-warranty-row--focus > td:first-child {
+  box-shadow: inset 3px 0 0 var(--bd-primary);
+}
+
 .pd-labo-warranty-card-head {
   display: flex;
   align-items: center;

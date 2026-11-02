@@ -2,9 +2,9 @@ import { CheckOutlined } from "@ant-design/icons";
 import { Form } from "antd";
 import { Shield } from "lucide-react";
 import { AppDialog } from "@/components/AppDialog";
-import { formatCardDate } from "@/features/labo/components/warranty/laboWarrantyRules";
 import { t } from "@/lib/i18n";
 import type { WarrantyServiceRowDto } from "../../api/planWarrantyApi";
+import { lineHeadline } from "./planWarrantyView";
 import { ServiceWarrantyToothForm } from "./ServiceWarrantyToothForm";
 import { useServiceWarrantyForm, type ServiceWarrantyForm } from "./useServiceWarrantyForm";
 import "@/features/labo/components/check/labo-check.css";
@@ -14,17 +14,6 @@ interface Props {
   row: WarrantyServiceRowDto | null;
   planId: string;
   onClose: () => void;
-}
-
-/** "Bọc sứ Emax · BS. Nguyễn Lan Chi · Hoàn thành 05/11/2026". */
-function headline(row: WarrantyServiceRowDto): string {
-  return [
-    row.serviceName,
-    row.dentistName && t("Treatment:Warranty:Dentist", row.dentistName),
-    row.completedOn && t("Treatment:Warranty:CompletedOn", formatCardDate(row.completedOn)),
-  ]
-    .filter(Boolean)
-    .join(" · ");
 }
 
 function ToothPicker({ warranty }: { warranty: ServiceWarrantyForm }) {
@@ -68,7 +57,7 @@ function ServiceWarrantyBody({ row, planId, onClose }: Props & { row: WarrantySe
       width="min(1080px, calc(100vw - 32px))"
       className="pwt-dialog"
       title={t("Patient:Stage:ServiceWarranty")}
-      subtitle={headline(row)}
+      subtitle={lineHeadline(row)}
       canSave={count > 0}
       saving={warranty.busy}
       saveIcon={<Shield size={16} aria-hidden="true" />}

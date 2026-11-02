@@ -49,6 +49,10 @@ interface StepProps {
   source: LaboOrderSource | null | undefined;
   plans: TreatmentPlanSlipDto[];
   dentists: PickerOption[];
+  /** Nothing on any tab can be changed (R-1120). */
+  readOnly: boolean;
+  /** The tooth whose card was asked for, outlined on tab 3. */
+  focusTooth: number | null;
   /** "Xem chi tiết >" on the summary card of tabs 2 and 3. */
   onShowOrder: () => void;
   onClose: () => void;
@@ -150,6 +154,8 @@ function LaboWorkflowBody({ target, branchId, patient, onClose, onStepChange }: 
         source: target.kind === "create" ? target.source : undefined,
         plans,
         dentists,
+        readOnly: target.kind === "open" && Boolean(target.readOnly),
+        focusTooth: target.kind === "open" ? (target.focusTooth ?? null) : null,
         onShowOrder: () => pick("order"),
         onClose,
       })}

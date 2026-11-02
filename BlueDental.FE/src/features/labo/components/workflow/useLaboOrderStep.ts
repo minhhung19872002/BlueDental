@@ -27,6 +27,8 @@ export interface LaboOrderStepSetup {
   source: LaboOrderSource | null | undefined;
   /** The patient's plans: the tab's pickers, and the teeth a reopened Nháp's line still offers. */
   plans: TreatmentPlanSlipDto[];
+  /** Opened to look only (R-1120): even a Nháp stays locked. */
+  readOnly?: boolean;
   onDone: () => void;
 }
 
@@ -64,13 +66,13 @@ function lineTeeth(plans: TreatmentPlanSlipDto[], lineId: string | undefined): s
  * (P3110 REQ-C3) — and sends it: Đã gửi Labo, the tab locked from then on.
  * Nothing prints by itself any more (P0111_02, R-1108).
  */
-export function useLaboOrderStep({ branchId, patientId, order, source, plans, onDone }: LaboOrderStepSetup): LaboOrderStep {
+export function useLaboOrderStep({ branchId, patientId, order, source, plans, readOnly, onDone }: LaboOrderStepSetup): LaboOrderStep {
   const ability = useAbility("treatmentLabo");
   const save = useSaveLaboOrder();
   const [antForm] = Form.useForm<LaboOrderValues>();
   const isNew = order === undefined;
   const picksSource = isNew && !source;
-  const editable = ability.canCreate && (isNew || order.status === LABO_STATUS.Draft);
+  const editable = !readOnly && ability.canCreate && (isNew || order.status === LABO_STATUS.Draft);
   const nextCode = useNextLaboCode(isNew && ability.canCreate).data ?? "";
 
   // A reopened Nháp saved without teeth waits for the plans to take its line's.

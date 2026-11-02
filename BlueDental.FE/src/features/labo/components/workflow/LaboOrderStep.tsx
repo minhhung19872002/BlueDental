@@ -24,6 +24,7 @@ interface Props {
   source: LaboOrderSource | null | undefined;
   plans: TreatmentPlanSlipDto[];
   dentists: PickerOption[];
+  readOnly: boolean;
   onClose: () => void;
 }
 
@@ -42,6 +43,7 @@ export function LaboOrderStep({
   source,
   plans,
   dentists,
+  readOnly,
   onClose,
 }: Props) {
   const step = useLaboOrderStep({
@@ -50,6 +52,7 @@ export function LaboOrderStep({
     order,
     source,
     plans,
+    readOnly,
     onDone: onClose,
   });
   const { form, editable, saving } = step;
@@ -104,7 +107,7 @@ export function LaboOrderStep({
         {editable && <LaboSendStatus send={send} />}
         <div className="pd-labo-footer-actions">
           <Button onClick={onClose}>{t("Labo:Workflow:Dismiss")}</Button>
-          <LaboCancelOrderButton order={order} disabled={saving} onDone={onClose} />
+          {!readOnly && <LaboCancelOrderButton order={order} disabled={saving} onDone={onClose} />}
           {order && !editable && (
             <LaboPrintButton
               order={order}

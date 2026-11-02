@@ -8,10 +8,11 @@ import { useLaboWorkflowUrl } from "@/features/labo/components/workflow/useLaboW
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
 import { describeApiError } from "@/lib/apiError";
-import type { PlanWarrantyOverviewDto, WarrantyServiceRowDto } from "../../api/planWarrantyApi";
+import type { PlanWarrantyOverviewDto, WarrantyCardRowDto, WarrantyServiceRowDto } from "../../api/planWarrantyApi";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { ActivatedWarrantyCard } from "./ActivatedWarrantyCard";
 import { ServiceWarrantyDialog } from "./ServiceWarrantyDialog";
+import { WarrantyCardViewer } from "./WarrantyCardViewer";
 import { WarrantyHistoryCard, type HistoryView } from "./WarrantyHistoryCard";
 import { WarrantyStatusCard } from "./WarrantyStatusCard";
 import { serviceTitle, type CardView, type RowFilter } from "./planWarrantyView";
@@ -56,6 +57,7 @@ function PlanWarrantyBody({ patient, plan, branchId, overview }: BodyProps) {
   const [cardView, setCardView] = useState<CardView>({ kind: "all", lineId: null, sort: "expiry" });
   const [historyView, setHistoryView] = useState<HistoryView>({ filter: "all", cardCode: null });
   const [activating, setActivating] = useState<WarrantyServiceRowDto | null>(null);
+  const [viewing, setViewing] = useState<WarrantyCardRowDto | null>(null);
   const statusRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLElement>(null);
   const historyRef = useRef<HTMLElement>(null);
@@ -85,6 +87,7 @@ function PlanWarrantyBody({ patient, plan, branchId, overview }: BodyProps) {
   };
 
   const filteredLine = overview.rows.find((row) => row.lineId === cardView.lineId);
+  const laboPatient = { id: patient.id, code: patient.patientCode, name: patient.fullName };
 
   return (
     <div className="pwt-tab">
@@ -105,15 +108,23 @@ function PlanWarrantyBody({ patient, plan, branchId, overview }: BodyProps) {
         lineLabel={filteredLine ? serviceTitle(filteredLine) : null}
         onViewChange={setCardView}
         onHistory={handleHistory}
+        onView={setViewing}
       />
       <WarrantyHistoryCard ref={historyRef} overview={overview} view={historyView} onViewChange={setHistoryView} />
       <ServiceWarrantyDialog row={activating} planId={plan.id} onClose={() => setActivating(null)} />
       <LaboWorkflowDialog
         target={labo.target}
         branchId={branchId}
-        patient={{ id: patient.id, code: patient.patientCode, name: patient.fullName }}
+        patient={laboPatient}
         onClose={labo.close}
         onStepChange={labo.setStep}
+      />
+      <WarrantyCardViewer
+        card={viewing}
+        overview={overview}
+        branchId={branchId}
+        patient={laboPatient}
+        onClose={() => setViewing(null)}
       />
     </div>
   );

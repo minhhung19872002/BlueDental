@@ -30,7 +30,13 @@ the service-table parts (phase A) in the regression log R-1084.
   Điều kiện, Ảnh thẻ Mặt trước / Mặt sau. **Bảo hành Labo** opens the Labo popup
   on step 3.
 - **PHIẾU BẢO HÀNH ĐÃ KÍCH HOẠT**: dental cards + activated Labo teeth, no Lượt
-  column; "Xem thẻ ›" filters the history to that card.
+  column; "Xem thẻ ›" filters the history to that card. Column **Thao tác**:
+  **Xem chi tiết** over Lịch sử ↓ (R-1120). It opens the card view-only, from
+  local state (a reload never reopens it): a Labo card → the Labo popup on step
+  Bảo hành with `readOnly` (all three tabs browsable, no Hủy phiếu / Lưu nháp /
+  Tạo phiếu / Đạt / Kích hoạt, In Phiếu Labo kept), its tooth highlighted; a
+  dental card → `DentalCardsViewDialog` on the same frame, the line's dental
+  cards + table, the card highlighted, only Đóng.
 - **LỊCH SỬ BẢO HÀNH**: Labo QC pass / return / activation, dental activation,
   warranty công đoạn opened / done — newest first; "Lịch sử ↓" scrolls and
   filters, a tag clears it. Not paginated (G18).

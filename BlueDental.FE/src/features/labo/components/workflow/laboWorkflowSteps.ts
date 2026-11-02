@@ -24,11 +24,12 @@ export const LABO_STEP_COPY: Record<LaboStep, { label: string; hint: string }> =
 /**
  * What the dialog is opened on: a new order — raised from a công đoạn (the
  * line known) or from the Labo tab (picked in the header) — or a saved one,
- * on the tab a button asked for.
+ * on the tab a button asked for. `readOnly` is "Xem chi tiết" of an activated
+ * card (R-1120): every tab shown locked, `focusTooth` the card's tooth.
  */
 export type LaboWorkflowTarget =
   | { kind: "create"; source?: LaboOrderSource | null }
-  | { kind: "open"; orderId: string; step?: LaboStep };
+  | { kind: "open"; orderId: string; step?: LaboStep; readOnly?: boolean; focusTooth?: number | null };
 
 /** The tab an order opens on when nothing asks for one: where its work is. */
 const STATUS_STEP: Record<LaboStatus, LaboStep> = {

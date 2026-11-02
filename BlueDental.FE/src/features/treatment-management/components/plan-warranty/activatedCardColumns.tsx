@@ -28,7 +28,15 @@ function LifeCell({ card, today }: { card: WarrantyCardRowDto; today: string }) 
   );
 }
 
-export function activatedCardColumns(today: string, onHistory: (code: string) => void): TableColumnsType<WarrantyCardRowDto> {
+/** What the Thao tác column offers on each card. */
+export interface CardActions {
+  /** Xem chi tiết (R-1120): the card's warranty dialog, view only. */
+  onView: (card: WarrantyCardRowDto) => void;
+  /** Lịch sử ↓: the history narrowed to this card. */
+  onHistory: (code: string) => void;
+}
+
+export function activatedCardColumns(today: string, { onView, onHistory }: CardActions): TableColumnsType<WarrantyCardRowDto> {
   return [
     {
       key: "code",
@@ -88,13 +96,19 @@ export function activatedCardColumns(today: string, onHistory: (code: string) =>
         ),
     },
     {
-      key: "history",
-      width: 110,
+      key: "actions",
+      title: t("Common:Actions"),
+      width: 120,
       align: "right",
       render: (_, card) => (
-        <button type="button" className="pwt-link" onClick={() => onHistory(card.code)}>
-          {t("Treatment:Warranty:History")}
-        </button>
+        <div className="pwt-actions pwt-actions--end">
+          <button type="button" className="pwt-link" onClick={() => onView(card)}>
+            {t("Treatment:Warranty:ViewDetail")}
+          </button>
+          <button type="button" className="pwt-link" onClick={() => onHistory(card.code)}>
+            {t("Treatment:Warranty:History")}
+          </button>
+        </div>
       ),
     },
   ];

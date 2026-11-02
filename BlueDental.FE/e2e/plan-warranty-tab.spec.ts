@@ -1,6 +1,20 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
-import { call, clinicToday, freshSlip, PLANS, serviceLine, type LaboLine, type SpecService } from "./fixtures/laboApi";
+import {
+  activateWarranty,
+  call,
+  clinicToday,
+  freshSlip,
+  laboCatalog,
+  orderBody,
+  passAll,
+  PLANS,
+  receive,
+  sentOrder,
+  serviceLine,
+  type LaboLine,
+  type SpecService,
+} from "./fixtures/laboApi";
 
 /**
  * Feature F-86, phase B in the browser: the slip's Bảo hành tab (P3110
@@ -174,5 +188,76 @@ test.describe("Plan warranty tab (F-86 phase B, UI)", () => {
     await expect(history.locator(".pwt-event")).toHaveCount(1);
     await expect(history.locator(".pwt-event").first()).toContainText(slip.cardCode);
     await expect(history.locator(".pwt-event").first()).toContainText("1 năm");
+  });
+
+  test("Xem chi tiết opens each card's warranty dialog, view only, on the card pressed (R-1120)", async ({ page }) => {
+    const slip = await seedSlip(page);
+    const id = runId();
+    // A Labo line on the same slip: R11 + R21 passed, only R11 carded — R21 would still offer Kích hoạt.
+    const laboLine = await serviceLine(page, { planId: slip.ready.planId, service: WARRANTY_SERVICE, teeth: [11, 21] });
+    const catalog = await laboCatalog(page, laboLine.branchId, id);
+    const order = await sentOrder(page, orderBody(catalog, laboLine, id, { treatmentServiceId: laboLine.lineId }));
+    expect((await receive(page, order.id, 2)).status).toBe(200);
+    await passAll(page, order.id, [11, 21]);
+    expect((await complete(page, laboLine)).status).toBe(200);
+    const carded = await activateWarranty(page, order.id, [{ toothNumber: 11, startDate: clinicToday(), months: 12 }]);
+    expect(carded.status, carded.text).toBe(200);
+    const laboCode = carded.body.teeth?.find((tooth) => tooth.toothNumber === 11)?.warrantyCardCode ?? "";
+    expect(laboCode).not.toBe("");
+
+    await openTab(page, slip.ready);
+    const cards = card(page, "pwt-cards-title");
+    await expect(rows(cards)).toHaveCount(2);
+    await expect(cards.getByRole("columnheader", { name: "Thao tác" })).toBeVisible();
+    const url = page.url();
+
+    await test.step("a Labo card reopens its order on Bảo hành, nothing to press but In Phiếu Labo", async () => {
+      const row = rows(cards).filter({ hasText: laboCode });
+      await expect(row.getByRole("button", { name: "Lịch sử ↓" })).toBeVisible();
+      await row.getByRole("button", { name: "Xem chi tiết" }).click();
+      const dialog = page.getByRole("dialog").filter({ has: page.locator(".pd-labo-steps") });
+      await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Bảo hành");
+      await expect(dialog.getByRole("article", { name: `Thẻ bảo hành · ${laboCode}` })).toHaveAttribute("aria-current", "true");
+      await expect(dialog.locator(".pd-labo-warranty-card--inactive")).toContainText("Răng 21");
+      await expect(dialog.locator(".pd-labo-warranty-row--focus")).toContainText(laboCode);
+      // R21 waits for its card, yet neither the Kích hoạt view nor its button is offered.
+      await expect(dialog.getByRole("tab", { name: "Kích hoạt bảo hành" })).toHaveCount(0);
+      await expect(dialog.getByRole("button", { name: /Kích hoạt/ })).toHaveCount(0);
+      await expect(dialog.locator(".bd-warranty-photos input[type=file]")).toHaveCount(0);
+
+      await dialog.getByRole("tab", { name: /Nhận hàng & kiểm tra/ }).click();
+      await expect(dialog.getByRole("button", { name: "Đạt" })).toHaveCount(0);
+      await expect(dialog.locator(".pd-labo-step-footer button")).toHaveCount(1);
+
+      await dialog.getByRole("tab", { name: /Đặt hàng/ }).click();
+      await expect(dialog.getByRole("button", { name: "In Phiếu Labo" })).toBeVisible();
+      await expect(dialog.getByRole("button", { name: /Hủy phiếu|Lưu nháp|Tạo phiếu/ })).toHaveCount(0);
+      // The viewer stays off the URL: a reload never lands back on it.
+      expect(page.url()).toBe(url);
+      await dialog.getByRole("button", { name: "Huỷ" }).click();
+      await expect(dialog).toBeHidden();
+    });
+
+    await test.step("a dental card shows its line's cards on the same frame, nothing to change", async () => {
+      await rows(cards).filter({ hasText: slip.cardCode }).getByRole("button", { name: "Xem chi tiết" }).click();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Bảo hành dịch vụ");
+      await expect(dialog.locator(".pd-labo-step-hint")).toContainText(WARRANTY_SERVICE.name);
+      const face = dialog.getByRole("article", { name: `Thẻ bảo hành · ${slip.cardCode}` });
+      await expect(face).toHaveAttribute("aria-current", "true");
+      await expect(face).toContainText("Răng 46");
+      await expect(face).toContainText("1 năm");
+      await expect(dialog.getByRole("article")).toHaveCount(1);
+      await expect(dialog.locator(".pd-labo-warranty-row--focus")).toContainText(slip.cardCode);
+      await expect(dialog.locator(".pd-labo-warranty-row--focus")).toContainText("Còn hiệu lực");
+      await expect(dialog.locator("input, textarea")).toHaveCount(0);
+      await expect(dialog.getByRole("button", { name: /Kích hoạt|Lưu/ })).toHaveCount(0);
+      await dialog.locator(".pd-labo-footer").getByRole("button", { name: "Đóng" }).click();
+      await expect(dialog).toBeHidden();
+    });
+
+    await page.reload();
+    await expect(rows(card(page, "pwt-cards-title"))).toHaveCount(2);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
   });
 });
