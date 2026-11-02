@@ -13152,3 +13152,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Kết quả: `patient-code-check`, `patient-roster-api`, `patient-national-id*`, `patient-scan-id*`, `patient-shared-phone-ui` → **30/30 xanh**.
   - `tsc -p tsconfig.app.json` → sạch. eslint các file đổi → sạch (eslint cả thư mục báo 1 lỗi có sẵn ở `PatientProfileTab.tsx`: thiếu rule `react-hooks/exhaustive-deps`, không do R-1119).
 - **Mức retest**: 2 (F-02 dialog hồ sơ + F-69 cấp mã khi nhập).
+
+## R-1121 (2026-11-02, mức 2: F-85/F-86 Labo trên phiếu điều trị) Cột "Phiếu Labo" chỉ hiện phiếu Chờ kiểm tra cũ nhất
+
+- **Yêu cầu chủ dự án**: cột "Phiếu Labo" ở tab Chi tiết điều trị của phiếu (DTxx) hiện phiếu Labo đang **Chờ kiểm tra**. Có nhiều phiếu thì hiện phiếu có **ngày tạo phiếu** cũ nhất. Kiểm tra xong phiếu đó thì hiện phiếu chờ kiểm tra cũ kế tiếp (A ngày 1, B ngày 3, C ngày 2 → A; A xong → C).
+- **BA chốt**: không có phiếu nào chờ kiểm tra thì ẩn hẳn, để trống ô (không hiện mã, không hiện "–").
+- **Giả định (cần chủ dự án xác nhận)**: dòng chưa có phiếu Labo nào, hoặc chỉ có phiếu đã huỷ, vẫn hiện "Không áp dụng" như cũ.
+- **Sửa — FE**:
+  - `PlanLaboCell` lấy phiếu Chờ kiểm tra đầu tiên trong `labOrders`. BE đã trả các phiếu theo `CreationTime` tăng dần, nên không đổi BE/DTO.
+  - Không còn phiếu chờ kiểm tra thì trả về rỗng.
+  - Nhãn "+N phiếu trước · Xem tất cả ›" đổi thành "+N phiếu khác · Xem tất cả ›" (key `Treatment:PlanDetail:Labo:Others`, thay `…:Older`), vì phiếu hiện ra không còn là phiếu mới nhất.
+  - Kiểm tra xong trong dialog thì ô tự đổi sang phiếu kế, không cần F5 (meta `invalidates: ["laboOrder"]` sẵn có).
+- **Hệ quả**: phiếu Đã gửi / Hoàn thành / Bảo hành không mở được từ ô này nữa; mở qua tab Labo của bệnh nhân ("Xem tất cả ›").
+- **E2E** (bản build production cổng 8121, host riêng :5121, DB thật, không chặn API):
+  - `labo-workflow` thêm ca mới: 4 phiếu A, B, C, D tạo lần lượt; nhận B, C, A (A sau cùng); D để ở Labo. Ô hiện A + "+3 phiếu khác". Xác nhận đạt A ngay từ ô → hiện B không cần reload, và sau reload vẫn là B. Đạt B → C. Đạt C → ô trống, D vẫn Đã gửi.
+  - Hai ca cũ đổi kỳ vọng: phiếu Đã gửi và phiếu Bảo hành → ô trống.
+  - Kết quả: `labo-workflow` **6/6 xanh**. `tsc -p tsconfig.app.json` sạch, eslint các file đổi sạch.
+- **Mức retest**: 2.

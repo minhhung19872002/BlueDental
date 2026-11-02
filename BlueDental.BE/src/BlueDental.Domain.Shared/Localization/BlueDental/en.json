@@ -1610,7 +1610,7 @@
     "Treatment:PlanDetail:Labo:None": "Not applicable",
     "Treatment:PlanDetail:Labo:DueAt": "Expected delivery: {0}",
     "Treatment:PlanDetail:Labo:ReceivedAt": "Received: {0}",
-    "Treatment:PlanDetail:Labo:Older": "+{0} earlier · See all ›",
+    "Treatment:PlanDetail:Labo:Others": "+{0} more · See all ›",
     "Patient:Stage:Labo:View": "View labo order",
     "Patient:Stage:Labo:Locked": "Locked: labo order not QC-passed",
     "Patient:Stage:Labo:LockedBy": "Locked: {0} not checked yet",

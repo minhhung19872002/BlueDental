@@ -1509,7 +1509,7 @@
     "Treatment:PlanDetail:Labo:None": "Không áp dụng",
     "Treatment:PlanDetail:Labo:DueAt": "Dự kiến giao: {0}",
     "Treatment:PlanDetail:Labo:ReceivedAt": "Đã nhận: {0}",
-    "Treatment:PlanDetail:Labo:Older": "+{0} phiếu trước · Xem tất cả ›",
+    "Treatment:PlanDetail:Labo:Others": "+{0} phiếu khác · Xem tất cả ›",
     "Patient:Stage:Labo:View": "Xem phiếu Labo",
     "Patient:Stage:Labo:Locked": "Khoá: phiếu Labo chưa QC đạt",
     "Patient:Stage:Labo:LockedBy": "Khoá: {0} chưa kiểm tra",

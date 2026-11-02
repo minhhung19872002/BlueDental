@@ -10,6 +10,8 @@ import {
   laboLine,
   LaboStatus,
   orderBody,
+  passAll,
+  receive,
   sentOrder,
   STAGES,
   type LaboLine,
@@ -148,6 +150,12 @@ async function planLaboCell(page: Page, line: LaboLine) {
   return row;
 }
 
+/** R-1121 (BA): no order Chờ kiểm tra on the line — no code, no "Không áp dụng". */
+async function expectLaboCellEmpty(planRow: Locator) {
+  await expect(planRow.locator(".pdt-labo")).toHaveCount(0);
+  await expect(planRow.locator(".pdt-labo-none")).toHaveCount(0);
+}
+
 /** Opens the plan row's Đổi trạng thái menu and returns its Hoàn thành entry. */
 async function statusMenuDone(page: Page, planRow: Locator) {
   await planRow.locator(".pdt-status-trigger").click();
@@ -243,12 +251,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       expect(locked.status).toBe(403);
       expect((locked.body as { error?: { code?: string } }).error?.code).toBe(LOCKED_BY_LABO);
 
+      // R-1121 (BA): only an order Chờ kiểm tra shows; one still at the Labo leaves the cell empty.
       const planRow = await planLaboCell(page, line);
-      const cell = planRow.locator(".pdt-labo");
-      // P3110 REQ-A4: the order's own status, not a blanket "Chờ Labo", and the due day without an hour.
-      await expect(cell.locator(".ant-tag")).toHaveText("Đã gửi Labo");
-      await expect(cell.locator(".pdt-labo-code")).toHaveText(orderCode);
-      await expect(cell.locator(".pdt-labo-due")).toHaveText(/^Dự kiến giao: \d{2}\/\d{2}\/\d{4}$/);
+      await expectLaboCellEmpty(planRow);
 
       // Đổi trạng thái: Hoàn thành waits on QC too (BA: "không cho hoàn thành").
       const done = await statusMenuDone(page, planRow);
@@ -492,19 +497,77 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(dialog.getByRole("button", { name: "Đạt" })).toHaveCount(0);
     });
 
-    await test.step("the slip's Phiếu Labo column turns Bảo hành and Hoàn thành is offered", async () => {
+    await test.step("the slip's Phiếu Labo column empties once checked and Hoàn thành is offered", async () => {
       const planRow = await planLaboCell(page, line);
-      const cell = planRow.locator(".pdt-labo");
-      await expect(cell.locator(".ant-tag")).toHaveText("Bảo hành");
-      await expect(cell.locator(".pdt-labo-due")).toContainText("Đã nhận: ");
-      // REQ-C2 (R-1092): a day, no hour.
-      await expect(cell.locator(".pdt-labo-due")).not.toContainText(/\d{2}:\d{2}/);
-      await expect(cell.locator(".pdt-labo-code")).toHaveText(orderCode);
+      // R-1121: Bảo hành waits on no check, so the cell stays empty.
+      await expectLaboCellEmpty(planRow);
 
       const done = await statusMenuDone(page, planRow);
       await expect(done).not.toHaveAttribute("aria-disabled", "true");
       await expect(done).toHaveText("Hoàn thành");
       await page.keyboard.press("Escape");
+    });
+  });
+
+  test("the slip's Phiếu Labo shows the earliest-created order Chờ kiểm tra, then the next once it is checked (R-1121)", async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+    const id = runId();
+    const line = await laboLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const sendOne = (tag: string) => sentOrder(page, orderBody(catalog, line, `${id}${tag}`, { treatmentServiceId: line.lineId }));
+    // Made in this order; D stays at the Labo.
+    const a = await sendOne("a");
+    const b = await sendOne("b");
+    const c = await sendOne("c");
+    const d = await sendOne("d");
+    // Received out of creation order — A last — so only the creation order can put A first.
+    for (const order of [b, c, a]) {
+      const received = await receive(page, order.id, 2);
+      expect(received.status, received.text).toBe(200);
+      expect(received.body.status).toBe(LaboStatus.AwaitingCheck);
+    }
+    const dialog = workflowDialog(page);
+
+    await test.step("three Chờ kiểm tra: A, the first made, shows with the other three counted", async () => {
+      const planRow = await planLaboCell(page, line);
+      const cell = planRow.locator(".pdt-labo");
+      await expect(cell.locator(".ant-tag")).toHaveText("Chờ kiểm tra");
+      await expect(cell.locator(".pdt-labo-code")).toHaveText(a.orderCode);
+      await expect(cell.locator(".pdt-labo-due")).toContainText("Đã nhận: ");
+      await expect(cell.locator(".pdt-labo-more")).toHaveText("+3 phiếu khác · Xem tất cả ›");
+    });
+
+    await test.step("A passed from the cell's own dialog: B takes its place without a reload, and after one", async () => {
+      const planRow = page.locator(`tr[data-row-key="${line.lineId}"]`);
+      await planRow.locator(".pdt-labo-code").click();
+      await expectStep(dialog, "Nhận hàng & kiểm tra", "Chờ kiểm tra");
+      for (const tooth of [11, 21]) {
+        await dialog.getByRole("group", { name: `Răng ${tooth}` }).getByRole("button", { name: "Đạt" }).click();
+      }
+      await dialog.getByRole("button", { name: "Xác nhận Labo đạt (2 răng)" }).click();
+      await expect(page.getByText("Đã xác nhận Labo đạt")).toBeVisible();
+      await expect(dialog).toBeHidden();
+      expect((await read(page, a.id)).status).toBe(LaboStatus.Completed);
+
+      await expect(planRow.locator(".pdt-labo-code")).toHaveText(b.orderCode);
+      await page.reload();
+      await expect(planRow.locator(".pdt-labo-code")).toHaveText(b.orderCode);
+      await expect(planRow.locator(".pdt-labo .ant-tag")).toHaveText("Chờ kiểm tra");
+      await expect(planRow.locator(".pdt-labo-more")).toHaveText("+3 phiếu khác · Xem tất cả ›");
+    });
+
+    await test.step("B and C passed: only D, still at the Labo, is left — the cell empties", async () => {
+      await passAll(page, b.id, [11, 21]);
+      await page.reload();
+      const planRow = page.locator(`tr[data-row-key="${line.lineId}"]`);
+      await expect(planRow.locator(".pdt-labo-code")).toHaveText(c.orderCode);
+      await passAll(page, c.id, [11, 21]);
+      await page.reload();
+      await expect(planRow).toBeVisible();
+      await expectLaboCellEmpty(planRow);
+      expect((await read(page, d.id)).status).toBe(LaboStatus.Sent);
     });
   });
 
