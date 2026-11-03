@@ -12,17 +12,16 @@ interface Props {
 }
 
 /**
- * One day on the timeline: the date pill and dot on the left, the count under
- * them, and the horizontal row of cards.
+ * One day in a stage column: the date and its count on a header that sticks
+ * while the column scrolls, then the day's tiles.
  */
 export function PatientImageDayRow({ day, canSort, canDelete, onView, onDelete, onReorder }: Props) {
   return (
     <section className="pi-day" data-testid="patient-image-day" data-day={day.key}>
-      <div className="pi-day-side">
-        <span className="pi-day-pill">{day.label}</span>
-        <span className="pi-day-dot" aria-hidden="true" />
-        <p className="pi-day-count">{t("Patient:Image:DayCount", day.images.length)}</p>
-      </div>
+      <header className="pi-day-head">
+        <span className="pi-day-date">{day.label}</span>
+        <span className="pi-day-count">{t("Patient:Image:DayCount", day.images.length)}</span>
+      </header>
 
       <PatientImageSortableRow
         day={day}

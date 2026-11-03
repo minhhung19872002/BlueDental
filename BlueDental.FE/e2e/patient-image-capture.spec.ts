@@ -17,7 +17,14 @@ import { call } from "./fixtures/timekeepingStaff";
 const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
 const IMAGES_API = "/api/v1/app/patient-images";
 const PASSWORD = "ChupAnh@123456";
-const TYPE = { before: 1, after: 2 } as const;
+const TYPE = { before: 1, after: 2, during: 3 } as const;
+
+type Stage = "Trước điều trị" | "Trong điều trị" | "Sau điều trị";
+const STAGE_KEY: Record<Stage, string> = {
+  "Trước điều trị": "before",
+  "Trong điều trị": "during",
+  "Sau điều trị": "after",
+};
 
 interface UploadedImage {
   id: string;
@@ -46,20 +53,26 @@ async function openImageTab(page: Page): Promise<void> {
   await page.locator("tr.ant-table-row .bd-patient-name").first().click();
   await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
 
+  // Armed before the click: the columns' list requests can beat a wait set up after it.
+  const listed = assertRealApiTraffic(page, IMAGES_API);
   await page.getByRole("link", { name: "Hình ảnh" }).click();
   await expect(page).toHaveURL(/tab=image/);
-  await assertRealApiTraffic(page, IMAGES_API);
+  await listed;
 }
 
-async function chooseStage(page: Page, stage: "Trước điều trị" | "Sau điều trị"): Promise<void> {
+async function chooseStage(page: Page, stage: Stage): Promise<void> {
   await page.getByRole("combobox", { name: "Giai đoạn điều trị" }).click();
   await page.locator(".ant-select-dropdown .ant-select-item-option", { hasText: stage }).click();
-  await assertRealApiTraffic(page, "type=");
 }
 
-/** Opens "Chụp ảnh" and waits until the camera's picture is on screen. */
-async function openCamera(page: Page): Promise<Locator> {
-  await page.getByRole("button", { name: "Chụp ảnh" }).click();
+/** One "Giai đoạn điều trị" column of the tab, each with its own camera. */
+function column(page: Page, stage: Stage): Locator {
+  return page.locator(`[data-testid="patient-image-stage"][data-stage="${STAGE_KEY[stage]}"]`);
+}
+
+/** Opens a column's "Chụp ảnh" and waits until the camera's picture is on screen. */
+async function openCamera(page: Page, stage: Stage = "Trước điều trị"): Promise<Locator> {
+  await column(page, stage).getByRole("button", { name: "Chụp ảnh" }).click();
   const dialog = page.getByRole("dialog", { name: "Chụp ảnh" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Chụp", exact: true })).toBeEnabled({ timeout: 20_000 });
@@ -91,8 +104,8 @@ async function uploadShots(page: Page, dialog: Locator, count: number): Promise<
   return stored;
 }
 
-function card(page: Page, fileName: string): Locator {
-  return page.getByTestId("patient-image-card").filter({ hasText: fileName });
+function card(scope: Page | Locator, fileName: string): Locator {
+  return scope.locator(`[data-testid="patient-image-card"]:has(button[aria-label="Xem ảnh ${fileName}"])`);
 }
 
 async function removeImages(page: Page, images: UploadedImage[]): Promise<void> {
@@ -206,9 +219,9 @@ test.describe("Chụp ảnh bệnh nhân", () => {
       const img = card(page, image.fileName).locator("img");
       await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
 
-      // It is the database talking: reload, and the filters agree on its stage.
+      // It is the database talking: reload, and the column and filters agree on its stage.
       await page.reload();
-      await expect(card(page, image.fileName)).toBeVisible({ timeout: 15_000 });
+      await expect(card(column(page, "Trước điều trị"), image.fileName)).toBeVisible({ timeout: 15_000 });
       await chooseStage(page, "Sau điều trị");
       await expect(card(page, image.fileName)).toBeHidden();
       await chooseStage(page, "Trước điều trị");
@@ -218,25 +231,26 @@ test.describe("Chụp ảnh bệnh nhân", () => {
     }
   });
 
-  test("with the filter on Sau điều trị, the shots are filed under it", async ({ page }) => {
+  test("the Trong điều trị column's camera files the shots under it", async ({ page }) => {
     await login(page);
     await openImageTab(page);
-    await chooseStage(page, "Sau điều trị");
 
-    const dialog = await openCamera(page);
-    await expect(dialog).toContainText("Ảnh được lưu vào giai đoạn: Sau điều trị");
+    const dialog = await openCamera(page, "Trong điều trị");
+    await expect(dialog).toContainText("Ảnh được lưu vào giai đoạn: Trong điều trị");
     await snap(dialog, 2);
 
     const images = await uploadShots(page, dialog, 2);
     try {
-      expect(images.map((image) => image.type)).toEqual([TYPE.after, TYPE.after]);
+      expect(images.map((image) => image.type)).toEqual([TYPE.during, TYPE.during]);
       await expect(page.getByText("Đã tải lên 2 ảnh")).toBeVisible();
-      for (const image of images) await expect(card(page, image.fileName)).toBeVisible({ timeout: 15_000 });
+      const during = column(page, "Trong điều trị");
+      for (const image of images) await expect(card(during, image.fileName)).toBeVisible({ timeout: 15_000 });
 
       await page.reload();
+      for (const image of images) await expect(card(during, image.fileName)).toBeVisible({ timeout: 15_000 });
       await chooseStage(page, "Trước điều trị");
       for (const image of images) await expect(card(page, image.fileName)).toBeHidden();
-      await chooseStage(page, "Sau điều trị");
+      await chooseStage(page, "Trong điều trị");
       for (const image of images) await expect(card(page, image.fileName)).toBeVisible();
     } finally {
       await removeImages(page, images);
@@ -297,12 +311,13 @@ test.describe("Chụp ảnh bệnh nhân", () => {
     await login(page);
     await openImageTab(page);
 
-    const button = page.getByRole("button", { name: "Chụp ảnh" });
+    const before = column(page, "Trước điều trị");
+    const button = before.getByRole("button", { name: "Chụp ảnh" });
     await expect(button).toBeVisible();
     await expect(button).toBeDisabled();
-    await expect(page.getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
+    await expect(before.getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
 
-    await page.locator(".pi-capture-slot").hover();
+    await before.locator(".pi-capture-slot").hover();
     await expect(page.getByRole("tooltip")).toHaveText("Không tìm thấy camera trên thiết bị này");
     await expect(page.getByRole("dialog", { name: "Chụp ảnh" })).toHaveCount(0);
   });

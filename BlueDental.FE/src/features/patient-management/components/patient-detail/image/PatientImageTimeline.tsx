@@ -6,7 +6,8 @@ import { PatientImageDayRow } from "./PatientImageDayRow";
 
 interface Props {
   days: PatientImageDay[];
-  isLoading: boolean;
+  /** Shown in place of the days while there are none: loading, none yet, or none match. */
+  emptyText: string;
   isLoadingMore: boolean;
   /** Something is being fetched, uploaded, moved or deleted: dim the timeline. */
   busy: boolean;
@@ -18,36 +19,26 @@ interface Props {
   onReorder: (day: PatientImageDay, from: number, to: number) => void;
 }
 
-function EmptyBox({ loading }: { loading: boolean }) {
-  if (loading) {
-    return (
-      <div className="pi-empty" role="status">
-        <p className="pi-empty-title">{t("Patient:Image:LoadingText")}</p>
-      </div>
-    );
-  }
-  return (
-    <div className="pi-empty" data-testid="patient-image-empty">
-      <p className="pi-empty-title">{t("Patient:Image:EmptyTitle")}</p>
-      <p className="pi-empty-hint">{t("Patient:Image:EmptyHint")}</p>
-    </div>
-  );
-}
-
 /**
- * The day-by-day list under the toolbar, with the vertical line the pills sit
- * on. Grows as it is scrolled; the sentinel at the foot asks for the next
- * page. Content-height, never stretched to fill the tab.
+ * A stage column's days, newest first. Grows as the column is scrolled; the
+ * sentinel at the foot asks for the next page. The running number on the
+ * tiles counts down the whole column, across its days.
  */
 export function PatientImageTimeline({
   days,
-  isLoading,
+  emptyText,
   isLoadingMore,
   busy,
   sentinelRef,
   ...rowProps
 }: Props) {
-  if (days.length === 0) return <EmptyBox loading={isLoading} />;
+  if (days.length === 0) {
+    return (
+      <p className="pi-empty" role="status" data-testid="patient-image-empty">
+        {emptyText}
+      </p>
+    );
+  }
 
   return (
     <div className={["pi-timeline", busy && "pi-timeline--busy"].filter(Boolean).join(" ")}>

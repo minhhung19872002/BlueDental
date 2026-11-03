@@ -341,6 +341,14 @@ PUT  /api/v1/patient-images/reorder     (json)
 DELETE /api/v1/patient-images/{id}
 ```
 
+BlueDental mở rộng thêm, bản gốc không có (BA 2026-11-03):
+
+- `type` có thêm giá trị `3` = Trong điều trị (local `GET /api/v1/app/patient-images?type=1|2|3`).
+- `filter=<text>` lọc theo `note`, không phân biệt hoa thường, có dấu hay không dấu đều được.
+- Hộp "Tải ảnh lên" gửi cùng một `note` cho mọi ảnh trong lô.
+
+Chi tiết: `docs/clone/pages/patient-detail.md`, Tab 5.
+
 Quyền (ability subject `treatmentImage`): `read` xem, `create` tải,
 `update` kéo sắp xếp, `delete` xoá.
 

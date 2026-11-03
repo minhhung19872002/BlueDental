@@ -17,6 +17,9 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
     /// <summary>Bytes larger than this are refused before they reach storage.</summary>
     public const long MaxSizeBytes = 20 * 1024 * 1024;
 
+    /// <summary>The longest "Ghi chú" a picture keeps; the column is this wide.</summary>
+    public const int MaxNoteLength = 1000;
+
     public Guid PatientId { get; private set; }
     public Guid ClinicBranchId { get; private set; }
 
@@ -109,6 +112,7 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
         Check.NotNullOrWhiteSpace(blobName, nameof(blobName));
         Check.NotNullOrWhiteSpace(fileName, nameof(fileName));
         CheckOrdering(ordering);
+        note = NormalizeNote(note);
 
         if (sizeBytes <= 0 || sizeBytes > MaxSizeBytes)
         {
@@ -180,8 +184,15 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
 
     public PatientImage UpdateNote(string? note)
     {
-        Note = note;
+        Note = NormalizeNote(note);
         return this;
+    }
+
+    /// <summary>Trimmed, blank kept as no note at all, and no longer than the column.</summary>
+    private static string? NormalizeNote(string? note)
+    {
+        var trimmed = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        return Check.Length(trimmed, nameof(note), MaxNoteLength);
     }
 
     /// <summary>Puts the image at a new position in its patient's sequence.</summary>

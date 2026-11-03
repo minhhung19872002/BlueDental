@@ -135,6 +135,7 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
       <p className="pi-viewer-caption" role="status" aria-live="polite">
         {image.fileName}
       </p>
+      {image.note && <p className="pi-viewer-note">{image.note}</p>}
       <ViewerThumbStrip images={images} index={viewer.index} onSelect={viewer.goTo} />
     </div>,
     document.body,

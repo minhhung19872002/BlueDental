@@ -1,53 +1,40 @@
-import { useCallback, useMemo, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { useDebounce } from "@/hooks/useDebounce";
 import { t } from "@/lib/i18n";
-import { PATIENT_IMAGE_TYPE, useDeletePatientImage } from "../../../api/patientImageApi";
+import { useDeletePatientImage, type PatientImageType } from "../../../api/patientImageApi";
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
 import { useCameraAvailability } from "../../../hooks/useCameraAvailability";
-import { usePatientImageGallery } from "../../../hooks/usePatientImageGallery";
 import { usePatientImagePermissions } from "../../../hooks/usePatientImagePermissions";
-import { usePatientImageReorder } from "../../../hooks/usePatientImageReorder";
-import { usePatientImageUpload } from "../../../hooks/usePatientImageUpload";
-import { CameraCaptureDialog } from "./CameraCaptureDialog";
-import { PatientImageCaptureButton } from "./PatientImageCaptureButton";
-import { PatientImageTimeline } from "./PatientImageTimeline";
+import { PatientImageStageColumn } from "./PatientImageStageColumn";
 import { PatientImageToolbar } from "./PatientImageToolbar";
-import { PatientImageViewer } from "./PatientImageViewer";
+import { PATIENT_IMAGE_STAGES } from "./patientImageStages";
 
 interface Props {
   patientId: string;
 }
 
 /**
- * Tab "Hình ảnh" of the patient record: the filter bar, the day-by-day
- * timeline of photographs, and the viewer / delete confirmation they open.
+ * Tab "Hình ảnh" of the patient record: the note search and stage filter,
+ * then one column per "Giai đoạn điều trị" — Trước, Trong, Sau — each with its
+ * own day-by-day tiles, upload and viewer. Picking a stage leaves only its
+ * column, full width; a search narrows every column to the matching notes.
  * See docs/clone/pages/patient-detail.md, Tab 5.
  */
 export function PatientImageTab({ patientId }: Props) {
-  const gallery = usePatientImageGallery(patientId);
   const permissions = usePatientImagePermissions();
-  const upload = usePatientImageUpload(patientId, gallery.branchId, gallery.filter);
-  const uploading = upload.progress !== null;
-  const { reordering, reorder } = usePatientImageReorder(patientId, gallery.filter);
   const deleteImage = useDeletePatientImage();
   const cameraAvailability = useCameraAvailability();
 
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  // In state, not the URL, as the reference keeps it; the tab opens on all.
+  const [filter, setFilter] = useState<PatientImageType | null>(null);
+  const [search, setSearch] = useState("");
+  // Asked of the server once typing pauses, not on every key.
+  const settledSearch = useDebounce(search.trim(), 300);
   const [removing, setRemoving] = useState<PatientImageViewModel | null>(null);
-  const [capturing, setCapturing] = useState(false);
 
-  // Shots go where uploads go: the filtered stage, else "Trước điều trị".
-  const captureStage = t(
-    gallery.filter === PATIENT_IMAGE_TYPE.after ? "Patient:Image:After" : "Patient:Image:Before",
-  );
-
-  /** The viewer pages through every image on screen, in the order it is drawn. */
-  const shown = useMemo(() => gallery.days.flatMap((day) => day.images), [gallery.days]);
-  const viewingIndex = viewingId ? shown.findIndex((image) => image.id === viewingId) : -1;
-
-  const handleView = useCallback((image: PatientImageViewModel) => setViewingId(image.id), []);
-  const closeViewer = useCallback(() => setViewingId(null), []);
+  const stages = filter === null ? PATIENT_IMAGE_STAGES : PATIENT_IMAGE_STAGES.filter((s) => s.type === filter);
 
   const handleDelete = async () => {
     if (!removing) return;
@@ -60,54 +47,30 @@ export function PatientImageTab({ patientId }: Props) {
     }
   };
 
-  const busy =
-    (gallery.isFetching && !gallery.isLoading && !gallery.isLoadingMore) ||
-    uploading ||
-    reordering ||
-    deleteImage.isPending;
-
   return (
     <div className="pi-tab" data-testid="patient-image-tab">
       <PatientImageToolbar
-        filter={gallery.filter}
-        progress={upload.progress}
-        canUpload={permissions.canUpload}
-        onFilterChange={gallery.setFilter}
-        onClearFilter={gallery.clearFilter}
-        onUpload={upload.upload}
-      >
-        <PatientImageCaptureButton
-          availability={cameraAvailability}
-          busy={uploading}
-          onClick={() => setCapturing(true)}
-        />
-      </PatientImageToolbar>
-
-      <PatientImageTimeline
-        days={gallery.days}
-        isLoading={gallery.isLoading}
-        isLoadingMore={gallery.isLoadingMore}
-        busy={busy}
-        sentinelRef={gallery.sentinelRef}
-        canSort={permissions.canSort}
-        canDelete={permissions.canDelete}
-        onView={handleView}
-        onDelete={setRemoving}
-        onReorder={reorder}
+        search={search}
+        onSearchChange={setSearch}
+        filter={filter}
+        onFilterChange={setFilter}
+        onClearFilter={() => setFilter(null)}
       />
 
-      {viewingIndex >= 0 && (
-        <PatientImageViewer key={viewingId} images={shown} initialIndex={viewingIndex} onClose={closeViewer} />
-      )}
-
-      {capturing && (
-        <CameraCaptureDialog
-          stageLabel={captureStage}
-          progress={upload.progress}
-          onUpload={upload.upload}
-          onClose={() => setCapturing(false)}
-        />
-      )}
+      <div className={["pi-stages", filter !== null && "pi-stages--single"].filter(Boolean).join(" ")}>
+        {stages.map((stage) => (
+          <PatientImageStageColumn
+            key={stage.type}
+            patientId={patientId}
+            stage={stage}
+            search={settledSearch}
+            permissions={permissions}
+            cameraAvailability={cameraAvailability}
+            deleting={deleteImage.isPending}
+            onDelete={setRemoving}
+          />
+        ))}
+      </div>
 
       <ConfirmDeleteDialog
         open={removing !== null}

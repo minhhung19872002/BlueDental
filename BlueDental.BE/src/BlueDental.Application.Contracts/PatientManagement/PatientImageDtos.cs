@@ -56,7 +56,7 @@ public class UploadPatientImageDto
     public Guid? ServiceWarrantyCardId { get; set; }
     public string? Note { get; set; }
 
-    /// <summary>Giai đoạn điều trị; the tab sends whatever its filter is set to, "BE:Treatment:BeforeTreatment" otherwise.</summary>
+    /// <summary>Giai đoạn điều trị; the tab sends the stage of the column the upload came from.</summary>
     public PatientImageType Type { get; set; } = PatientImageType.Before;
 
     /// <summary>The uploaded file itself.</summary>
@@ -78,6 +78,12 @@ public class GetPatientImageListInput : PagedAndSortedResultRequestDto
     public Guid? ClinicBranchId { get; set; }
     public Guid? TreatmentStageId { get; set; }
     public PatientImageType? Type { get; set; }
+
+    /// <summary>
+    /// The Hình ảnh tab's search box: pictures whose "Ghi chú" contains it, in
+    /// any case and with or without Vietnamese marks.
+    /// </summary>
+    public string? Filter { get; set; }
 }
 
 /// <summary>

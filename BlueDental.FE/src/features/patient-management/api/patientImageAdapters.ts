@@ -6,6 +6,8 @@ export interface PatientImageViewModel {
   id: string;
   fileName: string;
   url: string;
+  /** "Ghi chú" given at upload; the search matches it. */
+  note: string | null;
   type: PatientImageType;
   ordering: number;
   takenAt: string;
@@ -31,6 +33,7 @@ export function adaptPatientImage(dto: PatientImageDto): PatientImageViewModel {
     id: dto.id,
     fileName: dto.fileName,
     url: dto.url,
+    note: dto.note,
     type: dto.type,
     ordering: dto.ordering,
     takenAt: dto.takenAt,

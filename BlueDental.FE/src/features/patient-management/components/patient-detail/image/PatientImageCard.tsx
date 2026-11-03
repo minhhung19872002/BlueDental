@@ -1,8 +1,8 @@
 import { memo, type CSSProperties } from "react";
-import { Checkbox, Tooltip } from "antd";
+import { Tooltip } from "antd";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Eye, GripVertical, Trash2 } from "lucide-react";
+import { GripVertical, Trash2 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
 
@@ -12,20 +12,13 @@ interface Props {
   canDelete: boolean;
   onView: (image: PatientImageViewModel) => void;
   onDelete: (image: PatientImageViewModel) => void;
-  /**
-   * "Chọn ảnh hiển thị" puts a tick box over the picture and drops the eye —
-   * the reference draws the same card either way, only the two flags differ.
-   * Left out, the card is the timeline's.
-   */
-  checked?: boolean;
-  onCheckedChange?: (image: PatientImageViewModel, checked: boolean) => void;
-  showView?: boolean;
 }
 
 /**
- * One photograph on the timeline: the picture (a button that opens the
- * viewer), its file name and time, and the grip / eye / trash row. The grip is
- * the only drag handle, so clicking the picture never starts a drag.
+ * One photograph in a stage column: a square tile that opens the viewer, its
+ * running number in the corner, and the grip / trash laid over it (on hover,
+ * or always on a touch screen). The grip is the only drag handle, so tapping
+ * the picture never starts a drag.
  */
 export const PatientImageCard = memo(function PatientImageCard({
   image,
@@ -33,51 +26,31 @@ export const PatientImageCard = memo(function PatientImageCard({
   canDelete,
   onView,
   onDelete,
-  checked,
-  onCheckedChange,
-  showView = true,
 }: Props) {
   const sortable = useSortable({ id: image.id, disabled: !canSort });
   const style = {
     "--pi-drag-transform": CSS.Translate.toString(sortable.transform) ?? "none",
     "--pi-drag-transition": sortable.transition ?? "none",
   } as CSSProperties;
-  const selectable = Boolean(onCheckedChange);
 
   return (
     <article
       ref={sortable.setNodeRef}
-      className={[
-        "pi-card",
-        sortable.isDragging && "pi-card--dragging",
-        selectable && checked && "pi-card--checked",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      className={["pi-card", sortable.isDragging && "pi-card--dragging"].filter(Boolean).join(" ")}
       style={style}
       data-testid="patient-image-card"
       data-image-id={image.id}
     >
-      <div className="pi-card-frame">
-        {selectable && (
-          <Checkbox
-            className="pi-card-tick"
-            checked={checked}
-            aria-label={t("Patient:Image:ShowFileLabel", image.fileName)}
-            onChange={(event) => onCheckedChange?.(image, event.target.checked)}
-          />
-        )}
-        <button
-          type="button"
-          className="pi-card-picture"
-          aria-label={t("Patient:Image:ViewFileLabel", image.fileName)}
-          onClick={() => onView(image)}
-        >
-          <img src={image.url} alt={image.fileName} loading="lazy" draggable={false} />
-        </button>
-      </div>
-      <p className="pi-card-name">{image.fileName}</p>
-      <p className="pi-card-time">{image.takenLabel}</p>
+      <button
+        type="button"
+        className="pi-card-picture"
+        aria-label={t("Patient:Image:ViewFileLabel", image.fileName)}
+        title={[image.takenLabel, image.note].filter(Boolean).join(" · ")}
+        onClick={() => onView(image)}
+      >
+        <img src={image.url} alt={image.fileName} loading="lazy" draggable={false} />
+      </button>
+      <span className="pi-card-no" aria-hidden="true" />
 
       <div className="pi-card-actions">
         {canSort && (
@@ -85,24 +58,12 @@ export const PatientImageCard = memo(function PatientImageCard({
             <button
               type="button"
               ref={sortable.setActivatorNodeRef}
-              className="pi-round pi-round--grip"
+              className="pi-tile-btn pi-tile-btn--grip"
               aria-label={t("Patient:Photo:Sort")}
               {...sortable.attributes}
               {...sortable.listeners}
             >
-              <GripVertical size={16} />
-            </button>
-          </Tooltip>
-        )}
-        {showView && (
-          <Tooltip title={t("Patient:Image:ViewLabel")}>
-            <button
-              type="button"
-              className="pi-round pi-round--view"
-              aria-label={t("Patient:Image:ViewLabel")}
-              onClick={() => onView(image)}
-            >
-              <Eye size={16} />
+              <GripVertical size={13} />
             </button>
           </Tooltip>
         )}
@@ -110,11 +71,11 @@ export const PatientImageCard = memo(function PatientImageCard({
           <Tooltip title={t("Patient:Image:DeleteLabel")}>
             <button
               type="button"
-              className="pi-round pi-round--delete"
+              className="pi-tile-btn pi-tile-btn--delete"
               aria-label={t("Patient:Image:DeleteLabel")}
               onClick={() => onDelete(image)}
             >
-              <Trash2 size={16} />
+              <Trash2 size={12} />
             </button>
           </Tooltip>
         )}

@@ -69,13 +69,38 @@ public class PatientImageTests
         Assert.Equal(1, image.Ordering);
     }
 
-    [Fact]
-    public void Attach_Keeps_The_Given_Type_And_Position()
+    [Theory]
+    [InlineData(PatientImageType.During)]
+    [InlineData(PatientImageType.After)]
+    public void Attach_Keeps_The_Given_Type_And_Position(PatientImageType type)
     {
-        var image = Attach(ordering: 7, type: PatientImageType.After);
+        var image = Attach(ordering: 7, type: type);
 
-        Assert.Equal(PatientImageType.After, image.Type);
+        Assert.Equal(type, image.Type);
         Assert.Equal(7, image.Ordering);
+    }
+
+    [Theory]
+    [InlineData("  Răng 16 sâu mặt nhai  ", "Răng 16 sâu mặt nhai")]
+    [InlineData("   ", null)]
+    [InlineData(null, null)]
+    public void The_Note_Is_Trimmed_And_A_Blank_One_Is_None(string? note, string? expected)
+    {
+        var image = PatientImage.Attach(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            "patients/x/1.png", "1.png", "image/png", 1024,
+            Guid.NewGuid(), DateTimeOffset.UtcNow, note: note);
+
+        Assert.Equal(expected, image.Note);
+    }
+
+    [Fact]
+    public void A_Note_Longer_Than_The_Column_Is_Refused()
+    {
+        Assert.Throws<ArgumentException>(() => PatientImage.Attach(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            "patients/x/1.png", "1.png", "image/png", 1024,
+            Guid.NewGuid(), DateTimeOffset.UtcNow, note: new string('x', PatientImage.MaxNoteLength + 1)));
     }
 
     [Theory]

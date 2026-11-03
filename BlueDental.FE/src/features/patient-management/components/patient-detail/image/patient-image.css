@@ -4,17 +4,10 @@
 .pi-tab {
   /* Reference colours that no --bd-* token stands for. */
   --pi-line: #dce3ee;
-  --pi-line-soft: #d6e6f7;
   --pi-ink: #1b2a41;
   --pi-muted: #5a6b82;
-  --pi-panel: #f8fbff;
-  --pi-pill: #bfc3cb;
-  --pi-dot: #3e8ad8;
+  --pi-tile-line: #e5e7eb;
   --pi-hover: #f6f8fb;
-  --pi-upload-hover: #e7f0fb;
-  --pi-delete-bg: #fff1f1;
-  --pi-delete-bg-hover: #ffe2e2;
-  --pi-shadow-card: 0 10px 24px rgba(15, 23, 42, 0.05);
   --pi-shadow-drag: 0 18px 36px color-mix(in srgb, var(--bd-primary) 16%, transparent);
 
   display: flex;
@@ -34,6 +27,17 @@
   border: 1px solid var(--pi-line);
   border-radius: 16px;
   background: var(--bd-card);
+}
+.pi-search.ant-input-affix-wrapper {
+  width: 300px;
+  height: 40px;
+  border-color: var(--pi-line);
+  border-radius: 8px;
+  font-size: 14px;
+}
+.pi-search .ant-input-prefix {
+  margin-inline-end: 8px;
+  color: var(--pi-muted);
 }
 .pi-filter {
   width: 230px;
@@ -66,36 +70,140 @@
 .pi-clear:hover {
   background: var(--pi-hover);
 }
-.pi-upload {
-  display: inline-flex;
+/* ---- Stage columns: Trước / Trong / Sau điều trị ---- */
+.pi-stages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.pi-stages--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* Each stage's own colour: the badge and "Tải ảnh", the header tint, the count pill. */
+.pi-stage--before {
+  --pi-stage-color: #2563eb;
+  --pi-stage-tint: #eff6ff;
+  --pi-stage-ink: #1d4ed8;
+}
+.pi-stage--during {
+  --pi-stage-color: #d97706;
+  --pi-stage-tint: #fffbeb;
+  --pi-stage-ink: #92400e;
+}
+.pi-stage--after {
+  --pi-stage-color: #16a34a;
+  --pi-stage-tint: #f0fdf4;
+  --pi-stage-ink: #166534;
+}
+/* As tall as the screen allows; the column scrolls inside itself. */
+.pi-stage {
+  display: flex;
+  flex-direction: column;
+  height: max(420px, calc(100vh - 350px));
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--pi-tile-line);
+  border-radius: 14px;
+  background: var(--bd-card);
+}
+.pi-stage-head {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  height: 44px;
-  padding: 0 16px;
-  border: 1px dashed #b9c4d4;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--bd-link);
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--pi-tile-line);
+  background: var(--pi-stage-tint);
+}
+.pi-stage-step {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--pi-stage-color);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pi-stage-heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.pi-stage-title {
+  margin: 0;
+  color: var(--pi-ink);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 20px;
+}
+.pi-stage-summary {
+  color: var(--pi-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+.pi-stage-upload {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--pi-stage-color);
+  color: #fff;
   font: inherit;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   /* "Đang tải 3/40" keeps its width as the count moves. */
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   cursor: pointer;
 }
-.pi-upload:hover:not(:disabled) {
-  background: var(--pi-upload-hover);
+.pi-stage-upload:hover:not(:disabled) {
+  filter: brightness(0.92);
 }
-.pi-upload:disabled {
+.pi-stage-upload:disabled {
   opacity: 0.6;
   cursor: default;
 }
 /* "Chụp ảnh" — the span carries the tooltip, a disabled button gets no hover. */
 .pi-capture-slot {
   display: inline-flex;
+  flex: none;
 }
-.pi-capture-slot .pi-upload:disabled {
+.pi-stage-capture {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: var(--bd-card);
+  color: #374151;
+  cursor: pointer;
+}
+.pi-stage-capture:hover:not(:disabled) {
+  background: var(--pi-hover);
+}
+.pi-stage-capture:disabled {
+  opacity: 0.5;
+  cursor: default;
   pointer-events: none;
+}
+.pi-stage-body {
+  flex: 1;
+  min-height: 0;
+  padding: 4px 12px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  /* The tiles' running number counts down the whole column. */
+  counter-reset: pi-tile;
 }
 
 /* ---- "Chụp ảnh" dialog (portalled outside .pi-tab: --bd-* tokens only) ---- */
@@ -240,22 +348,96 @@
   cursor: default;
 }
 
-/* ---- Timeline ---- */
-.pi-timeline {
-  position: relative;
+/* ---- "Tải ảnh lên" preview (portalled outside .pi-tab: --bd-* tokens only) ---- */
+.pi-up-body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 14px;
 }
-/* The vertical line the day pills sit on: the dot's centre is 133px in. */
-.pi-timeline::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 133px;
-  width: 1px;
-  background: var(--pi-line-soft);
+.pi-up-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pi-up-count {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pi-up-more {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--bd-primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pi-up-more:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pi-up-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  color: var(--bd-muted);
+  font-size: 13px;
+  text-align: center;
+}
+/* Eight a row at full width; past about three rows the grid scrolls. */
+.pi-up-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px;
+  max-height: 220px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+.pi-up-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--bd-bg-soft);
+}
+.pi-up-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pi-up-item .pi-shot-remove {
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+}
+.pi-up-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--bd-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pi-up-note textarea {
+  font-weight: 400;
+}
+.pi-up-hint {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+/* ---- Days ---- */
+.pi-timeline {
+  position: relative;
 }
 .pi-timeline--busy > .pi-day {
   opacity: 0.6;
@@ -263,197 +445,149 @@
 .pi-busy {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 3;
   display: grid;
   place-items: center;
 }
 .pi-day {
-  display: grid;
-  grid-template-columns: 190px 1fr;
-  gap: 24px;
+  display: flex;
+  flex-direction: column;
 }
-.pi-day-side {
-  position: relative;
-  width: 134px;
-  min-height: 48px;
+.pi-day-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 6px;
+  border-bottom: 1px solid #f0f1f4;
+  background: var(--bd-card);
 }
-.pi-day-pill {
-  position: absolute;
-  left: 28px;
-  top: 24px;
-  z-index: 0;
-  transform: translateY(-50%);
-  padding: 2px 4px;
-  background: var(--pi-pill);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  white-space: nowrap;
-}
-.pi-day-pill::after {
-  content: "";
-  position: absolute;
-  right: -8px;
-  top: 50%;
-  z-index: -1;
-  width: 18px;
-  height: 18px;
-  transform: translateY(-50%) rotate(45deg);
-  background: var(--pi-pill);
-}
-.pi-day-dot {
-  position: absolute;
-  right: -9px;
-  top: 14px;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: var(--pi-line-soft);
-  box-shadow: var(--bd-shadow-card);
-}
-.pi-day-dot::after {
-  content: "";
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--pi-dot);
+.pi-day-date {
+  color: var(--pi-ink);
+  font-size: 13px;
+  font-weight: 700;
 }
 .pi-day-count {
-  position: absolute;
-  top: 48px;
-  left: 0;
-  max-width: 120px;
-  margin: 0;
-  padding: 0 0 8px 24px;
-  color: var(--pi-muted);
-  font-size: 14px;
+  padding: 1px 8px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--pi-stage-tint);
+  color: var(--pi-stage-ink);
+  font-size: 11px;
+  font-weight: 700;
 }
 .pi-day-cards {
-  display: flex;
-  gap: 16px;
-  overflow-x: auto;
-  padding: 16px 16px 20px;
-  border: 1px solid var(--pi-line);
-  border-radius: 24px;
-  background: var(--pi-panel);
-  scrollbar-width: thin;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px;
+  padding: 8px 0 4px;
+}
+/* One stage, full width: larger tiles rather than a long thin row of them. */
+.pi-stages--single .pi-day-cards {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
 }
 
-/* ---- Card ---- */
+/* ---- Tile ---- */
 .pi-card {
-  display: flex;
-  flex: 0 0 280px;
-  flex-direction: column;
-  gap: 12px;
-  width: 280px;
-  padding: 12px;
-  border: 1px solid var(--pi-line);
-  border-radius: 22px;
-  background: var(--bd-card);
-  box-shadow: var(--pi-shadow-card);
+  position: relative;
+  aspect-ratio: 1 / 1;
+  counter-increment: pi-tile;
   transform: var(--pi-drag-transform, none);
   transition: var(--pi-drag-transition, none);
 }
 .pi-card--dragging {
-  z-index: 3;
-  border-color: var(--bd-primary);
-  box-shadow: var(--pi-shadow-drag);
-}
-/* The picture and, in "Chọn ảnh hiển thị", the tick box laid over its corner. */
-.pi-card-frame {
-  position: relative;
-}
-.pi-card-tick {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 1;
-}
-.pi-card--checked {
-  border-color: var(--bd-primary);
+  z-index: 4;
 }
 .pi-card-picture {
   display: block;
   width: 100%;
+  height: 100%;
   padding: 0;
-  border: 0;
-  border-radius: 18px;
-  background: var(--pi-hover);
   overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: #e5e7eb;
   cursor: pointer;
 }
 .pi-card-picture img {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  height: 100%;
   object-fit: cover;
-  transition: transform 0.2s ease;
 }
-.pi-card-picture:hover img {
-  transform: scale(1.01);
+.pi-card:hover .pi-card-picture,
+.pi-card-picture:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 1px;
 }
-.pi-card-name {
-  margin: 0;
-  color: var(--pi-ink);
-  font-size: 14px;
+.pi-card--dragging .pi-card-picture {
+  border-color: var(--bd-primary);
+  box-shadow: var(--pi-shadow-drag);
+}
+.pi-card-no {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgb(17 24 39 / 65%);
+  color: #fff;
+  font-size: 10px;
   font-weight: 600;
-  line-height: 20px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pi-card-time {
-  margin: -8px 0 0;
-  color: var(--pi-muted);
-  font-size: 12px;
   line-height: 16px;
+  pointer-events: none;
 }
+.pi-card-no::before {
+  content: counter(pi-tile);
+}
+/* Grip at the left, trash at the right; shown on hover, always without one. */
 .pi-card-actions {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  right: 3px;
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: auto;
+  justify-content: space-between;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
 }
-.pi-round {
+.pi-card:hover .pi-card-actions,
+.pi-card:focus-within .pi-card-actions,
+.pi-card--dragging .pi-card-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .pi-card-actions {
+    opacity: 1;
+  }
+}
+.pi-tile-btn {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--pi-line);
-  border-radius: 50%;
-  background: var(--bd-card);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  color: #fff;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
+  pointer-events: auto;
 }
-.pi-round--grip {
-  color: var(--pi-muted);
+.pi-tile-btn--grip {
+  background: rgb(17 24 39 / 65%);
   cursor: grab;
   touch-action: none;
 }
-.pi-round--grip:hover {
-  background: var(--pi-hover);
-  color: var(--pi-ink);
+.pi-tile-btn--delete {
+  margin-left: auto;
+  background: rgb(185 28 28 / 90%);
 }
-.pi-round--view {
-  color: var(--bd-link);
-}
-.pi-round--view:hover {
-  color: #1e5bb0;
-}
-.pi-round--delete {
-  border: 0;
-  background: var(--pi-delete-bg);
-  color: var(--bd-red);
-}
-.pi-round--delete:hover {
-  background: var(--pi-delete-bg-hover);
+.pi-tile-btn--delete:hover {
+  background: var(--bd-red-dark);
 }
 
 .pi-sentinel {
@@ -461,34 +595,17 @@
 }
 .pi-loading-more {
   margin: 0;
-  padding-left: 214px;
   color: var(--pi-muted);
   font-size: 13px;
-}
-
-/* ---- Empty ---- */
-.pi-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 64px 24px;
-  border: 1px dashed var(--pi-line-soft);
-  border-radius: 28px;
-  background: var(--pi-panel);
   text-align: center;
 }
-.pi-empty p {
-  margin: 0;
-}
-.pi-empty-title {
-  color: var(--pi-ink);
-  font-size: 15px;
-  font-weight: 600;
-}
-.pi-empty-hint {
+
+/* ---- Empty column ---- */
+.pi-empty {
+  margin: 24px 0;
   color: var(--pi-muted);
   font-size: 13px;
+  text-align: center;
 }
 
 /* ---- Viewer ---- */
@@ -601,6 +718,14 @@
   color: #eee;
   font-size: 15px;
   text-align: center;
+}
+.pi-viewer-note {
+  max-width: min(720px, calc(100vw - 32px));
+  margin: -4px auto 8px;
+  color: #bdbdbd;
+  font-size: 13px;
+  text-align: center;
+  white-space: pre-line;
 }
 .pi-viewer-thumbs {
   display: flex;
@@ -779,43 +904,22 @@
 }
 
 @media (max-width: 1100px) {
-  .pi-timeline::before {
-    left: 19px;
+  /* Stacked, each column a shorter box of its own so the next stage is in reach. */
+  .pi-stages {
+    grid-template-columns: minmax(0, 1fr);
   }
-  .pi-day {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .pi-day-side {
-    width: auto;
-    min-height: 0;
-    padding-left: 36px;
-  }
-  .pi-day-pill {
-    position: static;
-    display: inline-block;
-    transform: none;
-  }
-  .pi-day-pill::after {
-    display: none;
-  }
-  .pi-day-dot {
-    right: auto;
-    left: 9px;
-    top: 2px;
-  }
-  .pi-day-count {
-    position: static;
-    padding: 4px 0 0;
-  }
-  .pi-loading-more {
-    padding-left: 0;
+  .pi-stage {
+    height: auto;
+    max-height: min(75vh, 640px);
   }
 }
 
 @media (max-width: 640px) {
   .pi-toolbar {
     flex-wrap: wrap;
+  }
+  .pi-search.ant-input-affix-wrapper {
+    width: 100%;
   }
   .pi-cam-view {
     height: clamp(220px, 55vh, 420px);

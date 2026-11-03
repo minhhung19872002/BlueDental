@@ -3,11 +3,7 @@ import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { shrinkImageFile } from "@/utils/shrinkImageFile";
 import { validateImageFile } from "@/utils/validateImageFile";
-import {
-  PATIENT_IMAGE_TYPE,
-  usePatientImageBatchUpload,
-  type PatientImageType,
-} from "../api/patientImageApi";
+import { usePatientImageBatchUpload, type PatientImageType } from "../api/patientImageApi";
 
 /**
  * The heaviest picture "Tải ảnh" / "Chụp ảnh" accept — the server's own
@@ -28,8 +24,11 @@ export interface UploadProgress {
 export interface PatientImageUpload {
   /** How far the batch has got; `null` while nothing is being sent. */
   progress: UploadProgress | null;
-  /** Resolves to the files that reached the server — none of the refused or unsent ones. */
-  upload: (files: File[]) => Promise<File[]>;
+  /**
+   * Resolves to the files that reached the server — none of the refused or
+   * unsent ones. `note` is the "Ghi chú" every one of them is stored with.
+   */
+  upload: (files: File[], note?: string) => Promise<File[]>;
 }
 
 interface Refusal {
@@ -53,38 +52,48 @@ function reportRefusals(refusals: Refusal[]): void {
 }
 
 /**
+ * The files "Tải ảnh" will take — the right type and under the ceiling — with
+ * one toast per reason the others were turned away. Run when files are picked,
+ * so a refused one never reaches the upload preview.
+ */
+export function acceptImageFiles(files: File[]): File[] {
+  const refusals: Refusal[] = [];
+  const valid = files.filter((file) => {
+    const error = validateImageFile(file, PATIENT_IMAGE_MAX_BYTES);
+    if (error) refusals.push({ file, error });
+    return !error;
+  });
+  reportRefusals(refusals);
+  return valid;
+}
+
+/**
  * "Tải ảnh" and "Chụp ảnh": any number of files, each scaled down on the
- * client, then sent one at a time, tagged with whichever "Giai đoạn điều trị"
- * the tab is filtered to (or "Trước điều trị" when it is not). One failure
- * stops the batch and says how far it got; the files already sent stay sent.
- * The feed is refreshed once, when the batch is over.
+ * client, then sent one at a time, tagged with the "Giai đoạn điều trị" of
+ * the column they were sent from and the one note given for the batch. One
+ * failure stops the batch and says how far it got; the files already sent stay
+ * sent. The feed is refreshed once, when the batch is over.
  */
 export function usePatientImageUpload(
   patientId: string,
   clinicBranchId: string,
-  filter: PatientImageType | null,
+  type: PatientImageType,
 ): PatientImageUpload {
   const { send, refresh } = usePatientImageBatchUpload();
   const [progress, setProgress] = useState<UploadProgress | null>(null);
 
   const upload = useCallback(
-    async (files: File[]) => {
-      const type = filter ?? PATIENT_IMAGE_TYPE.before;
-      const refusals: Refusal[] = [];
-      const valid = files.filter((file) => {
-        const error = validateImageFile(file, PATIENT_IMAGE_MAX_BYTES);
-        if (error) refusals.push({ file, error });
-        return !error;
-      });
-      reportRefusals(refusals);
+    async (files: File[], note?: string) => {
+      const valid = acceptImageFiles(files);
       if (valid.length === 0) return [];
+      const trimmedNote = note?.trim() || undefined;
 
       const sent: File[] = [];
       try {
         for (const file of valid) {
           setProgress({ sending: sent.length + 1, total: valid.length });
           const prepared = await shrinkImageFile(file);
-          await send({ patientId, clinicBranchId, type, file: prepared });
+          await send({ patientId, clinicBranchId, type, note: trimmedNote, file: prepared });
           sent.push(file);
         }
       } catch {
@@ -100,7 +109,7 @@ export function usePatientImageUpload(
       }
       return sent;
     },
-    [patientId, clinicBranchId, filter, send, refresh],
+    [patientId, clinicBranchId, type, send, refresh],
   );
 
   return { progress, upload };

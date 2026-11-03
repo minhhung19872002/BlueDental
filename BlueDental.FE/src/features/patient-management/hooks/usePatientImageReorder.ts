@@ -82,12 +82,13 @@ function useReorderWithCache<TData>(key: QueryKey, patch: Patch<TData>): Patient
   return { reordering: mutation.isPending, reorder };
 }
 
-/** The Hình ảnh timeline: its cache is the paged feed for one type filter. */
+/** One Hình ảnh stage column: its cache is the paged feed for that stage and search. */
 export function usePatientImageReorder(
   patientId: string,
-  filter: PatientImageType | null,
+  type: PatientImageType,
+  search: string,
 ): PatientImageReorder {
-  const key = useMemo(() => patientImageKeys.pages(patientId, filter), [patientId, filter]);
+  const key = useMemo(() => patientImageKeys.pages(patientId, type, search), [patientId, type, search]);
   return useReorderWithCache(key, patchPages);
 }
 

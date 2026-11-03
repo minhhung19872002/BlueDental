@@ -42,13 +42,31 @@ async function openImageTab(page: Page): Promise<void> {
   await page.locator("tr.ant-table-row .bd-patient-name").first().click();
   await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
 
+  // Armed before the click: the columns' list requests can beat a wait set up after it.
+  const listed = assertRealApiTraffic(page, IMAGES_API);
   await page.getByRole("link", { name: "Hình ảnh" }).click();
   await expect(page).toHaveURL(/tab=image/);
-  await assertRealApiTraffic(page, IMAGES_API);
+  await listed;
 }
 
 function card(page: Page, fileName: string): Locator {
-  return page.getByTestId("patient-image-card").filter({ hasText: fileName });
+  return page.getByTestId("patient-image-card").filter({ has: page.getByRole("button", { name: `Xem ảnh ${fileName}` }) });
+}
+
+/** The "Trước điều trị" column, where these uploads are sent from. */
+function beforeColumn(page: Page): Locator {
+  return page.locator('[data-testid="patient-image-stage"][data-stage="before"]');
+}
+
+/** The preview a pick opens: "Tải lên n ảnh" sends what it shows. */
+function uploadDialog(page: Page): Locator {
+  return page.getByRole("dialog", { name: "Tải ảnh lên · Trước điều trị" });
+}
+
+async function confirmUpload(page: Page, count: number): Promise<void> {
+  const dialog = uploadDialog(page);
+  await expect(dialog.getByTestId("picked-image")).toHaveCount(count);
+  await dialog.getByRole("button", { name: `Tải lên ${count} ảnh` }).click();
 }
 
 function toast(page: Page, title: string): Locator {
@@ -75,7 +93,7 @@ function collectStored(page: Page): UploadedImage[] {
 
 /** Writes down every label "Tải ảnh" wears while it works. */
 async function recordUploadLabels(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Tải ảnh" }).evaluate((button) => {
+  await beforeColumn(page).getByRole("button", { name: "Tải ảnh" }).evaluate((button) => {
     window.uploadLabels = [];
     new MutationObserver(() => window.uploadLabels?.push(button.textContent ?? "")).observe(button, {
       subtree: true,
@@ -138,12 +156,15 @@ test.describe("Tải ảnh — không giới hạn số ảnh", () => {
     await recordUploadLabels(page);
 
     try {
-      await page
+      await beforeColumn(page)
         .getByTestId("patient-image-input")
         .setInputFiles(names.map((name) => ({ name, mimeType: "image/png", buffer: PNG })));
+      expect(traffic.filter(isUpload)).toHaveLength(0);
+      await confirmUpload(page, 12);
 
       await expect.poll(() => stored.length, { timeout: 60_000 }).toBe(12);
-      await expect(page.getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
+      await expect(uploadDialog(page)).toBeHidden();
+      await expect(beforeColumn(page).getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
       for (const name of names) await expect(card(page, name)).toBeVisible({ timeout: 15_000 });
 
       // The button counted its way through the pick, then went back to "Tải ảnh".
@@ -164,8 +185,11 @@ test.describe("Tải ảnh — không giới hạn số ảnh", () => {
       // It is the database talking: a day shows its cards by upload order, so the pick comes back as picked.
       await page.reload();
       for (const name of names) await expect(card(page, name)).toBeVisible({ timeout: 15_000 });
-      const shown = await page.getByTestId("patient-image-card").allInnerTexts();
-      const shownNames = shown.flatMap((text) => names.filter((name) => text.includes(name)));
+      const shown = await beforeColumn(page)
+        .getByTestId("patient-image-card")
+        .locator("img")
+        .evaluateAll((imgs) => imgs.map((img) => (img as HTMLImageElement).alt));
+      const shownNames = shown.filter((name) => names.includes(name));
       expect(shownNames).toEqual(names);
     } finally {
       await removeImages(page, stored);
@@ -184,17 +208,19 @@ test.describe("Tải ảnh — không giới hạn số ảnh", () => {
     expect(heavyFile.length).toBeLessThan(20 * MEGABYTE);
 
     try {
-      await page.getByTestId("patient-image-input").setInputFiles([
+      await beforeColumn(page).getByTestId("patient-image-input").setInputFiles([
         { name: heavy, mimeType: "image/png", buffer: heavyFile },
         { name: tooBig, mimeType: "image/png", buffer: Buffer.alloc(21 * MEGABYTE) },
         ...notImages.map((name) => ({ name, mimeType: "text/plain", buffer: Buffer.from("x") })),
       ]);
 
-      // One toast per reason, naming the first three files and counting the rest.
+      // Turned away as they are picked — one toast per reason, naming the first
+      // three files and counting the rest — so only the heavy one is previewed.
       await expect(toast(page, "Ảnh phải nhỏ hơn 20 MB")).toContainText(tooBig);
       await expect(toast(page, "Chỉ chấp nhận ảnh PNG, JPG hoặc WEBP")).toContainText(
         `${notImages.slice(0, 3).join(", ")} và 1 tệp khác`,
       );
+      await confirmUpload(page, 1);
 
       await expect.poll(() => stored.length, { timeout: 30_000 }).toBe(1);
       expect(stored[0].fileName).toBe(heavy);
@@ -217,14 +243,19 @@ test.describe("Tải ảnh — không giới hạn số ảnh", () => {
     });
 
     try {
-      await page.getByTestId("patient-image-input").setInputFiles([
+      await beforeColumn(page).getByTestId("patient-image-input").setInputFiles([
         { name: sent, mimeType: "image/png", buffer: PNG },
         { name: empty, mimeType: "image/png", buffer: Buffer.alloc(0) },
         { name: unsent, mimeType: "image/png", buffer: PNG },
       ]);
+      await confirmUpload(page, 3);
 
       await expect(toast(page, `Lỗi khi tải ${empty} — đã tải lên 1/3 ảnh`)).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
+      // The preview stays with the two that did not go up, ready to be sent again.
+      await expect(uploadDialog(page).getByTestId("picked-image")).toHaveCount(2);
+      await uploadDialog(page).getByRole("button", { name: "Hủy" }).click();
+      await expect(uploadDialog(page)).toBeHidden();
+      await expect(beforeColumn(page).getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
       expect(uploads).toHaveLength(2);
       expect(stored.map((image) => image.fileName)).toEqual([sent]);
 

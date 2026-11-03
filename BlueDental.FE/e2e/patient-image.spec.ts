@@ -23,8 +23,18 @@ const PNG = Buffer.from(
 );
 
 const id = runId();
-const FIRST = `truoc-a-${id}.png`;
-const SECOND = `truoc-b-${id}.png`;
+const FIRST = `trong-a-${id}.png`;
+const SECOND = `trong-b-${id}.png`;
+const DROPPED = `trong-bo-${id}.png`;
+/** One note for the whole batch; the run id keeps the search to this run's pictures. */
+const NOTE = `Răng 16 sâu mặt nhai ${id}`;
+
+type Stage = "Trước điều trị" | "Trong điều trị" | "Sau điều trị";
+const STAGE_KEY: Record<Stage, string> = {
+  "Trước điều trị": "before",
+  "Trong điều trị": "during",
+  "Sau điều trị": "after",
+};
 
 /**
  * A 1600×1200 PNG painted in the browser: big enough that any zoom spills
@@ -58,19 +68,30 @@ async function openImageTab(page: Page): Promise<void> {
   await page.locator("tr.ant-table-row .bd-patient-name").first().click();
   await expect(page).toHaveURL(/\/patient\/[0-9a-f-]{36}/);
 
+  // Armed before the click: the columns' list requests can beat a wait set up after it.
+  const listed = assertRealApiTraffic(page, IMAGES_API);
   await page.getByRole("link", { name: "Hình ảnh" }).click();
   await expect(page).toHaveURL(/tab=image/);
-  await assertRealApiTraffic(page, IMAGES_API);
+  await listed;
 }
 
-async function chooseStage(page: Page, stage: "Trước điều trị" | "Sau điều trị"): Promise<void> {
+async function chooseStage(page: Page, stage: Stage): Promise<void> {
   await page.getByRole("combobox", { name: "Giai đoạn điều trị" }).click();
   await page.locator(".ant-select-dropdown .ant-select-item-option", { hasText: stage }).click();
-  await assertRealApiTraffic(page, "type=");
 }
 
-function card(page: Page, fileName: string): Locator {
-  return page.getByTestId("patient-image-card").filter({ hasText: fileName });
+/** One "Giai đoạn điều trị" column of the tab. */
+function column(page: Page, stage: Stage): Locator {
+  return page.locator(`[data-testid="patient-image-stage"][data-stage="${STAGE_KEY[stage]}"]`);
+}
+
+function card(scope: Page | Locator, fileName: string): Locator {
+  return scope.locator(`[data-testid="patient-image-card"]:has(button[aria-label="Xem ảnh ${fileName}"])`);
+}
+
+/** The file names of a column's tiles, top to bottom. */
+function tileNames(scope: Locator): Promise<string[]> {
+  return scope.getByTestId("patient-image-card").locator("img").evaluateAll((imgs) => imgs.map((img) => (img as HTMLImageElement).alt));
 }
 
 test.describe("Hình ảnh bệnh nhân", () => {
@@ -78,53 +99,123 @@ test.describe("Hình ảnh bệnh nhân", () => {
     await login(page);
   });
 
-  test("uploads two pictures into today's group under the chosen stage", async ({ page }) => {
+  test("uploads two pictures into today's group of the Trong điều trị column", async ({ page }) => {
     await openImageTab(page);
-    await expect(page.getByRole("button", { name: "Tải ảnh" })).toBeVisible();
+    // Trước, Trong, Sau — one column each, each with its own "Tải ảnh".
+    await expect(page.getByTestId("patient-image-stage")).toHaveCount(3);
+    const stages = await page.getByTestId("patient-image-stage").evaluateAll((els) => els.map((el) => el.getAttribute("data-stage")));
+    expect(stages).toEqual(["before", "during", "after"]);
+    await expect(page.getByRole("button", { name: "Tải ảnh" })).toHaveCount(3);
     await expect(page.getByRole("button", { name: "Xóa lọc" })).toBeHidden();
 
-    await chooseStage(page, "Trước điều trị");
-    await expect(page.getByRole("button", { name: "Xóa lọc" })).toBeVisible();
+    const during = column(page, "Trong điều trị");
+    const stored: { fileName: string; type: number; note: string | null }[] = [];
+    page.on("response", async (res) => {
+      if (res.url().includes(IMAGES_API) && res.request().method() === "POST" && res.ok()) stored.push(await res.json());
+    });
 
-    const uploaded = page.waitForResponse(
-      (res) => res.url().includes(IMAGES_API) && res.request().method() === "POST" && res.ok(),
-    );
-    await page.getByTestId("patient-image-input").setInputFiles([
+    // Picking opens the preview first; nothing is sent yet.
+    await during.getByTestId("patient-image-input").setInputFiles([
       { name: FIRST, mimeType: "image/png", buffer: await bigPng(page) },
       { name: SECOND, mimeType: "image/png", buffer: PNG },
+      { name: DROPPED, mimeType: "image/png", buffer: PNG },
     ]);
-    await uploaded;
+    const dialog = page.getByRole("dialog", { name: "Tải ảnh lên · Trong điều trị" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByTestId("picked-image")).toHaveCount(3);
+    await expect(dialog).toContainText("3 ảnh đã chọn");
+    expect(stored).toHaveLength(0);
 
-    await expect(card(page, FIRST)).toBeVisible({ timeout: 15_000 });
-    await expect(card(page, SECOND)).toBeVisible();
+    // One taken back with its ×, one note for the rest.
+    await dialog.getByRole("button", { name: `Bỏ ảnh ${DROPPED}` }).click();
+    await expect(dialog.getByTestId("picked-image")).toHaveCount(2);
+    await expect(dialog).toContainText("Ghi chú được áp dụng cho cả 2 ảnh.");
+    await dialog.getByLabel("Ghi chú").fill(`  ${NOTE}  `);
+    await dialog.getByRole("button", { name: "Tải lên 2 ảnh" }).click();
+    await expect(dialog).toBeHidden({ timeout: 20_000 });
+    await expect(page.getByText("Đã tải 2 ảnh lên Trong điều trị")).toBeVisible();
+
+    // Filed under the new stage (type 3), every one with the same trimmed note.
+    await expect.poll(() => stored.length).toBe(2);
+    expect(stored.map((image) => image.fileName).sort()).toEqual([FIRST, SECOND].sort());
+    expect(stored.map((image) => image.type)).toEqual([3, 3]);
+    expect(stored.map((image) => image.note)).toEqual([NOTE, NOTE]);
+
+    await expect(card(during, FIRST)).toBeVisible({ timeout: 15_000 });
+    await expect(card(during, DROPPED)).toHaveCount(0);
+    await expect(card(during, SECOND)).toBeVisible();
+    await expect(card(column(page, "Trước điều trị"), FIRST)).toHaveCount(0);
+    await expect(card(column(page, "Sau điều trị"), FIRST)).toHaveCount(0);
 
     // Both land in today's group, and the day's count includes them.
-    const today = page.getByTestId("patient-image-day").filter({ has: card(page, FIRST) });
+    const today = during.getByTestId("patient-image-day").filter({ has: card(page, FIRST) });
     await expect(today).toHaveAttribute("data-day", todayKey());
     await expect(today.getByText(/^\d+ ảnh$/)).toBeVisible();
-    await expect(today).toContainText(SECOND);
+    await expect(card(today, SECOND)).toBeVisible();
 
-    // The picture the card shows is the blob the server stored.
+    // The picture the tile shows is the blob the server stored.
     const img = card(page, FIRST).locator("img");
     await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
 
-    // They were tagged "before", so the "after" filter hides them…
+    // The filter narrows the tab to one column: "after" has none of them…
     await chooseStage(page, "Sau điều trị");
+    await expect(page.getByRole("button", { name: "Xóa lọc" })).toBeVisible();
+    await expect(page.getByTestId("patient-image-stage")).toHaveCount(1);
     await expect(card(page, FIRST)).toBeHidden();
 
-    // …and clearing the filter brings everything back.
-    await page.getByRole("button", { name: "Xóa lọc" }).click();
-    await expect(page.getByRole("button", { name: "Xóa lọc" })).toBeHidden();
+    // …"during" has both…
+    await chooseStage(page, "Trong điều trị");
+    await expect(page.getByTestId("patient-image-stage")).toHaveCount(1);
     await expect(card(page, FIRST)).toBeVisible();
 
+    // …and clearing the filter brings every column back.
+    await page.getByRole("button", { name: "Xóa lọc" }).click();
+    await expect(page.getByRole("button", { name: "Xóa lọc" })).toBeHidden();
+    await expect(page.getByTestId("patient-image-stage")).toHaveCount(3);
+
     await page.reload();
-    await expect(card(page, FIRST)).toBeVisible({ timeout: 15_000 });
-    await expect(card(page, SECOND)).toBeVisible();
+    await expect(card(during, FIRST)).toBeVisible({ timeout: 15_000 });
+    await expect(card(during, SECOND)).toBeVisible();
   });
 
-  test("the eye opens the viewer on that picture, and the arrows walk the set", async ({ page }) => {
+  test("the search finds pictures by their note, marks or not, from the server", async ({ page }) => {
     await openImageTab(page);
-    await card(page, FIRST).getByRole("button", { name: "Xem ảnh", exact: true }).click();
+    const during = column(page, "Trong điều trị");
+    const search = page.getByRole("textbox", { name: "Tìm ảnh theo ghi chú" });
+
+    // Typed without Vietnamese marks and in other case: the server folds both sides.
+    const searched = page.waitForResponse(
+      (res) => res.url().includes(IMAGES_API) && res.url().includes(`filter=`) && res.request().method() === "GET",
+    );
+    await search.fill(`RANG 16 SAU MAT NHAI ${id}`);
+    expect((await searched).ok()).toBeTruthy();
+    await expect(card(during, FIRST)).toBeVisible({ timeout: 15_000 });
+    await expect(card(during, SECOND)).toBeVisible();
+    await expect(during.getByTestId("patient-image-card")).toHaveCount(2);
+    await expect(during).toContainText("2 ảnh khớp tìm kiếm");
+    await expect(column(page, "Trước điều trị").getByTestId("patient-image-empty")).toHaveText(
+      "Không có ảnh khớp với tìm kiếm.",
+    );
+
+    // The note is shown in the viewer too.
+    await card(page, FIRST).getByRole("button", { name: `Xem ảnh ${FIRST}` }).click();
+    const viewer = page.getByRole("dialog", { name: "Xem ảnh" });
+    await expect(viewer).toContainText(NOTE);
+    await page.keyboard.press("Escape");
+
+    await search.fill(`khong-co-ghi-chu-nay-${id}`);
+    await expect(during.getByTestId("patient-image-empty")).toHaveText("Không có ảnh khớp với tìm kiếm.", {
+      timeout: 15_000,
+    });
+
+    // Cleared, every picture is back.
+    await search.fill("");
+    await expect(card(during, FIRST)).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("a tile opens the viewer on that picture, and the arrows walk its column", async ({ page }) => {
+    await openImageTab(page);
+    await card(page, FIRST).getByRole("button", { name: `Xem ảnh ${FIRST}` }).click();
 
     const viewer = page.getByRole("dialog", { name: "Xem ảnh" });
     await expect(viewer).toBeVisible();
@@ -181,16 +272,17 @@ test.describe("Hình ảnh bệnh nhân", () => {
     await viewer.getByRole("button", { name: "Đổi màu hoặc độ dày nét vẽ" }).click();
     const palette = page.locator(".ant-popover:visible");
     await expect(palette).toBeVisible();
-    const swatches = palette.getByRole("button", { pressed: false });
-    await swatches.first().click();
-    await expect(palette.getByRole("button", { pressed: true })).toHaveCount(1);
+    // The colours only: the stroke sizes beside them keep a pressed one of their own.
+    const colors = palette.locator(".pi-pen-colors");
+    await colors.getByRole("button", { pressed: false }).first().click();
+    await expect(colors.getByRole("button", { pressed: true })).toHaveCount(1);
     const topmost = await palette.evaluate((el) => {
       const box = el.getBoundingClientRect();
       const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
       return hit !== null && el.contains(hit);
     });
     expect(topmost).toBe(true);
-    await expect(palette.getByLabel("Màu tùy chọn")).toBeAttached();
+    await expect(palette.getByLabel("Chọn màu tuỳ chỉnh")).toBeAttached();
 
     // A stroke can be undone, and putting the pen away wipes the drawing.
     const canvas = viewer.locator(".pi-annotation--active");
@@ -211,7 +303,7 @@ test.describe("Hình ảnh bệnh nhân", () => {
     await expect(viewer).toBeHidden();
 
     // A click on the black backdrop closes it too; one on the picture does not.
-    await card(page, FIRST).getByRole("button", { name: "Xem ảnh", exact: true }).click();
+    await card(page, FIRST).getByRole("button", { name: `Xem ảnh ${FIRST}` }).click();
     await expect(viewer).toBeVisible();
     await frame.locator("img").click();
     await expect(viewer).toBeVisible();
@@ -219,14 +311,15 @@ test.describe("Hình ảnh bệnh nhân", () => {
     await expect(viewer).toBeHidden();
   });
 
-  test("dragging a card by its grip reorders the day, and the order survives a reload", async ({ page }) => {
+  test("dragging a tile by its grip reorders the day, and the order survives a reload", async ({ page }) => {
     await openImageTab(page);
 
-    const first = card(page, FIRST);
-    const second = card(page, SECOND);
-    const grip = second.getByRole("button", { name: "Sắp xếp ảnh" });
-    const from = await grip.boundingBox();
-    const to = await first.getByRole("button", { name: "Sắp xếp ảnh" }).boundingBox();
+    const during = column(page, "Trong điều trị");
+    const first = card(during, FIRST);
+    const second = card(during, SECOND);
+    await second.hover();
+    const from = await second.getByRole("button", { name: "Sắp xếp ảnh" }).boundingBox();
+    const to = await first.boundingBox();
     expect(from).not.toBeNull();
     expect(to).not.toBeNull();
 
@@ -235,13 +328,13 @@ test.describe("Hình ảnh bệnh nhân", () => {
     );
     await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
     await page.mouse.down();
-    await page.mouse.move(from!.x - 20, from!.y + from!.height / 2, { steps: 4 });
-    await page.mouse.move(to!.x + to!.width / 2 - 40, to!.y + to!.height / 2, { steps: 12 });
+    await page.mouse.move(from!.x - 10, from!.y + from!.height / 2, { steps: 4 });
+    await page.mouse.move(to!.x + to!.width / 2, to!.y + to!.height / 2, { steps: 12 });
     await page.mouse.up();
     expect((await reordered).ok()).toBeTruthy();
 
     const orderOf = async () => {
-      const names = await page.getByTestId("patient-image-card").locator(".pi-card-name").allTextContents();
+      const names = await tileNames(during);
       return names.indexOf(SECOND) < names.indexOf(FIRST);
     };
     await expect.poll(orderOf).toBe(true);

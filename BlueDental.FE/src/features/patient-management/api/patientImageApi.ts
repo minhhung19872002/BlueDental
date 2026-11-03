@@ -10,13 +10,15 @@ import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
 /**
- * "Giai đoạn điều trị" — the reference keeps exactly two values, hard-coded in
- * its bundle rather than read from a catalogue. Serialised as a number, the
- * way the backend writes every enum.
+ * "Giai đoạn điều trị" — the reference keeps two values, hard-coded in its
+ * bundle rather than read from a catalogue; "Trong điều trị" is the clinic's
+ * own (2026-11-03), numbered after them so stored pictures keep their stage.
+ * Serialised as a number, the way the backend writes every enum.
  */
 export const PATIENT_IMAGE_TYPE = {
   before: 1,
   after: 2,
+  during: 3,
 } as const;
 
 export type PatientImageType = (typeof PATIENT_IMAGE_TYPE)[keyof typeof PATIENT_IMAGE_TYPE];
@@ -62,6 +64,9 @@ export interface ReorderPatientImageInput {
 
 export type PatientImagePages = InfiniteData<PagedResult<PatientImageDto>, number>;
 
+/** The longest "Ghi chú" a picture keeps (PatientImage.MaxNoteLength). */
+export const PATIENT_IMAGE_NOTE_MAX = 1000;
+
 /** The reference reads the tab 25 images at a time (`take=25`). */
 export const PATIENT_IMAGE_PAGE_SIZE = 25;
 
@@ -72,6 +77,8 @@ const patientImageApi = {
     patientId?: string;
     clinicBranchId?: string;
     type?: PatientImageType;
+    /** Matched against the "Ghi chú", any case, with or without marks. */
+    filter?: string;
     skipCount?: number;
     maxResultCount?: number;
   }): Promise<PagedResult<PatientImageDto>> =>
@@ -99,8 +106,8 @@ const patientImageApi = {
 export const patientImageKeys = {
   all: ["patient-images"] as const,
   list: (patientId: string) => [...patientImageKeys.all, "list", patientId] as const,
-  pages: (patientId: string, type: PatientImageType | null) =>
-    [...patientImageKeys.all, "pages", patientId, type ?? "all"] as const,
+  pages: (patientId: string, type: PatientImageType | null, filter = "") =>
+    [...patientImageKeys.all, "pages", patientId, type ?? "all", filter] as const,
 };
 
 /** Every image at once, for the consulting tab's "Chọn ảnh hiển thị" dialog. */
@@ -112,19 +119,24 @@ export function usePatientImages(patientId: string, clinicBranchId: string) {
   });
 }
 
-/** The Hình ảnh tab's feed: newest first, a page at a time as the timeline is scrolled. */
+/**
+ * A Hình ảnh column's feed: newest first, a page at a time as the column is
+ * scrolled, narrowed to the pictures whose note matches `filter` when one is typed.
+ */
 export function usePatientImagePages(
   patientId: string,
   clinicBranchId: string,
   type: PatientImageType | null,
+  filter = "",
 ) {
   return useInfiniteQuery({
-    queryKey: patientImageKeys.pages(patientId, type),
+    queryKey: patientImageKeys.pages(patientId, type, filter),
     queryFn: ({ pageParam }) =>
       patientImageApi.list({
         patientId,
         clinicBranchId,
         type: type ?? undefined,
+        filter: filter || undefined,
         skipCount: pageParam,
         maxResultCount: PATIENT_IMAGE_PAGE_SIZE,
       }),

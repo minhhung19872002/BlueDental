@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useLoadMoreSentinel } from "@/hooks/useLoadMoreSentinel";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { usePatientImagePages, type PatientImageType } from "../api/patientImageApi";
@@ -11,13 +11,11 @@ import {
 
 export interface PatientImageGallery {
   branchId: string;
-  /** The "Giai đoạn điều trị" filter; null is "tất cả", which is how the tab opens. */
-  filter: PatientImageType | null;
-  setFilter: (filter: PatientImageType | null) => void;
-  clearFilter: () => void;
   /** Every loaded image in feed order — what the viewer pages through. */
   images: PatientImageViewModel[];
   days: PatientImageDay[];
+  /** How many pictures the stage holds on the server (that match the search), loaded or not. */
+  total: number;
   /** First page still on its way. */
   isLoading: boolean;
   /** A later page is on its way. */
@@ -30,14 +28,17 @@ export interface PatientImageGallery {
 }
 
 /**
- * The Hình ảnh tab's reading side: filter, paged feed, and the day-by-day
- * grouping the timeline draws. The filter lives in state, not the URL, as the
- * reference keeps it.
+ * One "Giai đoạn điều trị" column of the Hình ảnh tab, reading side: its
+ * paged feed — only the pictures whose note matches `search`, when one is
+ * typed — and the day-by-day grouping the column draws.
  */
-export function usePatientImageGallery(patientId: string): PatientImageGallery {
+export function usePatientImageGallery(
+  patientId: string,
+  type: PatientImageType,
+  search: string,
+): PatientImageGallery {
   const branchId = useCurrentBranchId();
-  const [filter, setFilter] = useState<PatientImageType | null>(null);
-  const query = usePatientImagePages(patientId, branchId, filter);
+  const query = usePatientImagePages(patientId, branchId, type, search);
 
   const images = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items).map(adaptPatientImage),
@@ -51,15 +52,11 @@ export function usePatientImageGallery(patientId: string): PatientImageGallery {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
   const sentinelRef = useLoadMoreSentinel(Boolean(hasNextPage) && !isFetchingNextPage, loadMore);
 
-  const clearFilter = useCallback(() => setFilter(null), []);
-
   return {
     branchId,
-    filter,
-    setFilter,
-    clearFilter,
     images,
     days,
+    total: query.data?.pages[0]?.totalCount ?? 0,
     isLoading: query.isPending,
     isLoadingMore: isFetchingNextPage,
     isFetching: query.isFetching,

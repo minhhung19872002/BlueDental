@@ -19,25 +19,25 @@ const UNAVAILABLE_REASON: Record<CameraAvailability, string | null> = {
 };
 
 /**
- * "Chụp ảnh", beside "Tải ảnh" (BA request, not in the reference): opens the
- * camera on the page. With no camera on the machine it stays, greyed out, and
- * says why on hover — a disabled button swallows the mouse, so the tooltip
- * hangs on the slot around it.
+ * "Chụp ảnh", the camera beside a stage's "Tải ảnh" (BA request, not in the
+ * reference): opens the camera on the page. With no camera on the machine it
+ * stays, greyed out, and says why on hover — a disabled button swallows the
+ * mouse, so the tooltip hangs on the slot around it.
  */
 export function PatientImageCaptureButton({ availability, busy, onClick }: Props) {
   const reason = UNAVAILABLE_REASON[availability];
 
   return (
-    <Tooltip title={reason ? t(reason) : null} trigger={["hover", "focus"]}>
+    <Tooltip title={t(reason ?? "Patient:Image:Capture")} trigger={["hover", "focus"]}>
       <span className="pi-capture-slot" tabIndex={reason ? 0 : undefined}>
         <button
           type="button"
-          className="pi-upload"
+          className="pi-stage-capture"
+          aria-label={t("Patient:Image:Capture")}
           disabled={busy || availability !== "available"}
           onClick={onClick}
         >
-          <Camera size={28} strokeWidth={1.5} />
-          <span>{t("Patient:Image:Capture")}</span>
+          <Camera size={17} />
         </button>
       </span>
     </Tooltip>

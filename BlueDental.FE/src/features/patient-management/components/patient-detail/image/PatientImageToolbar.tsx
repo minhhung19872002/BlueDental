@@ -1,60 +1,48 @@
-import { useMemo, useRef, type ChangeEvent, type ReactNode } from "react";
-import { Select, Tooltip } from "antd";
-import { ImagePlus, X } from "lucide-react";
+import { useMemo } from "react";
+import { Input, Select, Tooltip } from "antd";
+import { Search, X } from "lucide-react";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
-import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
-import { PATIENT_IMAGE_TYPE, type PatientImageType } from "../../../api/patientImageApi";
-import type { UploadProgress } from "../../../hooks/usePatientImageUpload";
+import type { PatientImageType } from "../../../api/patientImageApi";
+import { PATIENT_IMAGE_STAGES } from "./patientImageStages";
 
 interface Props {
+  /** What is typed in the note search, as typed. */
+  search: string;
+  onSearchChange: (search: string) => void;
   filter: PatientImageType | null;
-  /** How far an upload has got; `null` while nothing is being sent. */
-  progress: UploadProgress | null;
-  canUpload: boolean;
   onFilterChange: (filter: PatientImageType) => void;
   onClearFilter: () => void;
-  onUpload: (files: File[]) => void;
-  /** Sits beside "Tải ảnh" and shows with it — "Chụp ảnh". */
-  children?: ReactNode;
 }
 
-/** The two "Giai đoạn điều trị" values, hard-coded in the reference as well. */
+/** Trước, Trong, Sau điều trị — the order the columns stand in. */
 function useTypeOptions() {
   return useMemo(
-    () => [
-      { value: PATIENT_IMAGE_TYPE.before, label: t("Patient:Image:Before") },
-      { value: PATIENT_IMAGE_TYPE.after, label: t("Patient:Image:After") },
-    ],
+    () => PATIENT_IMAGE_STAGES.map((stage) => ({ value: stage.type, label: t(stage.labelKey) })),
     [],
   );
 }
 
 /**
- * The white bar over the timeline: the stage filter, an "Xóa lọc" cross that
- * only appears once a stage is picked, "Tải ảnh", which goes straight to the
- * OS file chooser — no dialog in between — and whatever the tab puts beside it.
+ * The white bar over the stage columns: the search by "Ghi chú", which every
+ * column answers from the server; the stage filter, which narrows the tab to
+ * one column; and an "Xóa lọc" cross that only appears once a stage is picked.
+ * Uploading lives on each column's own header.
  */
-export function PatientImageToolbar({
-  filter,
-  progress,
-  canUpload,
-  onFilterChange,
-  onClearFilter,
-  onUpload,
-  children,
-}: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+export function PatientImageToolbar({ search, onSearchChange, filter, onFilterChange, onClearFilter }: Props) {
   const options = useTypeOptions();
-
-  const handleFiles = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    onUpload(files);
-  };
 
   return (
     <section className="pi-toolbar" aria-label={t("Patient:Image:FilterLabel")}>
+      <Input
+        className="pi-search"
+        value={search}
+        allowClear
+        prefix={<Search size={16} aria-hidden="true" />}
+        placeholder={t("Patient:Image:SearchPlaceholder")}
+        aria-label={t("Patient:Image:SearchLabel")}
+        onChange={(event) => onSearchChange(event.target.value)}
+      />
       <FloatingLabel label={t("Patient:Image:TreatmentPhase")} floated={filter !== null} className="pi-filter">
         <Select<PatientImageType>
           value={filter ?? undefined}
@@ -71,34 +59,6 @@ export function PatientImageToolbar({
             <X size={16} />
           </button>
         </Tooltip>
-      )}
-
-      {canUpload && (
-        <>
-          <button
-            type="button"
-            className="pi-upload"
-            disabled={progress !== null}
-            onClick={() => inputRef.current?.click()}
-          >
-            <ImagePlus size={28} strokeWidth={1.5} />
-            <span>
-              {progress
-                ? t("Patient:Photo:UploadProgress", progress.sending, progress.total)
-                : t("Patient:Photo:Upload")}
-            </span>
-          </button>
-          <input
-            ref={inputRef}
-            type="file"
-            accept={IMAGE_ACCEPT}
-            multiple
-            hidden
-            data-testid="patient-image-input"
-            onChange={handleFiles}
-          />
-          {children}
-        </>
       )}
     </section>
   );

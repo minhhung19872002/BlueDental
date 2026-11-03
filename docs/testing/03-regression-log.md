@@ -13570,3 +13570,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - E2E mới `appointment-filter-doctor-prefill.spec.ts`: không lọc → trống; lọc 2 bác sĩ → trống; còn 1 → Lịch tạm và Tạo lịch hẹn đều điền sẵn; Lưu, reload, API đọc lại lịch hẹn đúng bác sĩ + giờ.
   - Chạy lại `appointment.spec`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-mini-cal-date`: 11/11 xanh.
 - **Mức retest**: 2.
+
+## R-1142 (2026-11-03, mức 2: F-24 Hình ảnh bệnh nhân) Giai đoạn "Trong điều trị", ba cột giai đoạn, hộp xem trước khi tải với một ghi chú chung, tìm theo ghi chú
+
+- **Yêu cầu** (BA, kèm bản thiết kế "Hình ảnh – demo 50 ảnh mỗi giai đoạn"):
+  1. combobox Giai đoạn điều trị thêm "Trong điều trị", thứ tự Trước, Trong, Sau;
+  2. làm bố cục như bản thiết kế, giữ chức năng cũ;
+  3. bấm tải ảnh thì mở hộp xem trước có ghi chú, tải nhiều ảnh thì một ghi chú áp cho cả lô;
+  4. tìm ảnh theo ghi chú.
+- **Sửa BE**:
+  - `PatientImageType.During = 3`, đánh số sau 1/2 nên không cần migration.
+  - `GetPatientImageListInput.Filter`: lọc `Note` bằng `unaccent` + `lower` ở cả hai phía, sau bộ lọc chi nhánh.
+  - `PatientImage.NormalizeNote`: cắt khoảng trắng hai đầu, để trống thì là null, tối đa `MaxNoteLength` = 1000.
+- **Sửa FE**:
+  - `PatientImageStageColumn`: mỗi giai đoạn một cột, có feed, nút tải, camera và trình xem riêng.
+  - `PatientImageUploadDialog` + `useImageUploadPreview`: hộp xem trước. `useImagePreviews` dùng chung với `useCapturedShots`.
+  - Ô tìm trong `PatientImageToolbar`, chờ 300ms mới gửi.
+  - Ô ảnh vuông, tooltip ghi "giờ · ghi chú". Ghi chú hiện trong trình xem.
+  - Chi tiết: `docs/clone/pages/patient-detail.md`, Tab 5.
+- **Kiểm**:
+  - Domain: `PatientImageTests` 24/24 (thêm During, cắt khoảng trắng, quá 1000 ký tự). EF mapping 3/3.
+  - E2E trên bản build production, stack thật, không chặn API: `patient-image` + `-batch` + `-capture` 13/14 xanh. Mới thêm:
+    - xem trước 3 ảnh → bỏ 1 → ghi chú → 2 `POST` cùng `note`, `type` = 3;
+    - tìm "RANG 16 SAU MAT NHAI" ra đúng 2 ảnh, cột khác ghi "Không có ảnh khớp…", ghi chú hiện trong trình xem.
+  - Đỏ 1, không do thay đổi này: "a branch-scoped account cannot read another branch's pictures". Test đăng nhập admin trong `beforeEach` rồi `login()` lần hai, `/login` chuyển trang nên không thấy form; lỗi xảy ra trước khi chạm tab.
+  - Sửa 2 assertion cũ của test trình xem đã lệch với code: nút độ dày nét có `aria-pressed`, nhãn "Chọn màu tuỳ chỉnh". Trước đây chúng làm cả file đỏ dây chuyền vì `runId` đổi khi worker khởi động lại.
+  - FE: `lint`, `lint:ts`, `vitest`, `build` đều xanh.
+  - Ảnh 1440px và 390px đã so với bản thiết kế.
+- **Mức retest**: 2.

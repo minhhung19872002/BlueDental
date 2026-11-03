@@ -11,7 +11,7 @@ import {
 import {
   SortableContext,
   arrayMove,
-  horizontalListSortingStrategy,
+  rectSortingStrategy,
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import type { PatientImageDay, PatientImageViewModel } from "../../../api/patientImageAdapters";
@@ -25,12 +25,8 @@ interface Props {
   onDelete: (image: PatientImageViewModel) => void;
   /** Resolves once the new order is stored, so the drop can settle on it. */
   onReorder: (day: PatientImageDay, from: number, to: number) => void | Promise<void>;
-  /** The class the cards sit in — each caller draws its own strip. */
+  /** The class the cards sit in. */
   className: string;
-  /** Given, every card carries a tick box; see PatientImageCard. */
-  isChecked?: (image: PatientImageViewModel) => boolean;
-  onCheckedChange?: (image: PatientImageViewModel, checked: boolean) => void;
-  showView?: boolean;
 }
 
 /**
@@ -38,9 +34,8 @@ interface Props {
  *
  * Its own drag context per day, so a card can only ever be dropped among the
  * cards of its own day — the reference ignores drops onto another day, and this
- * cannot even offer one. Shared by the Hình ảnh timeline and the "Chọn ảnh
- * hiển thị" dialog of Chẩn đoán & Tư vấn, which the reference draws with the
- * same card.
+ * cannot even offer one. The cards wrap as a grid, so a drag moves through
+ * rows as well as along them.
  */
 export function PatientImageSortableRow({
   day,
@@ -50,9 +45,6 @@ export function PatientImageSortableRow({
   onDelete,
   onReorder,
   className,
-  isChecked,
-  onCheckedChange,
-  showView,
 }: Props) {
   /**
    * The order the drop just produced, held until the store agrees with it.
@@ -104,7 +96,7 @@ export function PatientImageSortableRow({
     >
       <SortableContext
         items={cards.map((image) => image.id)}
-        strategy={horizontalListSortingStrategy}
+        strategy={rectSortingStrategy}
       >
         <div className={className}>
           {cards.map((image) => (
@@ -115,9 +107,6 @@ export function PatientImageSortableRow({
               canDelete={canDelete}
               onView={onView}
               onDelete={onDelete}
-              checked={isChecked?.(image)}
-              onCheckedChange={onCheckedChange}
-              showView={showView}
             />
           ))}
         </div>

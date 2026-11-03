@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
@@ -62,6 +63,14 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             query = query.Where(x => x.TreatmentStageId == input.TreatmentStageId.Value);
         if (input.Type.HasValue)
             query = query.Where(x => x.Type == input.Type.Value);
+        if (!string.IsNullOrWhiteSpace(input.Filter))
+        {
+            // Inner runs of spaces folded to one, and unaccent() on both sides,
+            // so "rang 16" finds "Răng 16  sâu mặt nhai".
+            var filter = Regex.Replace(input.Filter.Trim(), @"\s+", " ").ToLowerInvariant();
+            query = query.Where(x =>
+                x.Note != null && DbText.Unaccent(x.Note.ToLower()).Contains(DbText.Unaccent(filter)));
+        }
 
         // Newest first, so a page at a time reads back through the days the way
         // the tab scrolls. Ordering follows upload time until a card is dragged,

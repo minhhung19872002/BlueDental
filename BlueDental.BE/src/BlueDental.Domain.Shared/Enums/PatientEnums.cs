@@ -119,9 +119,11 @@ public enum MedicalRecordForm
 }
 
 /// <summary>
-/// Giai đoạn điều trị of a patient image. The reference offers exactly these
-/// two values in its "BE:Treatment:Phase" filter (a bundle constant, not a
-/// catalog), and every upload is tagged with the one the filter is set to.
+/// Giai đoạn điều trị of a patient image. The reference offers only Before and
+/// After in its "BE:Treatment:Phase" filter (a bundle constant, not a
+/// catalog); During is the clinic's own addition (2026-11-03), numbered after
+/// them so stored values keep their meaning. The UI orders them before,
+/// during, after.
 /// </summary>
 public enum PatientImageType
 {
@@ -129,7 +131,10 @@ public enum PatientImageType
     Before = 1,
 
     /// <summary>Sau điều trị.</summary>
-    After = 2
+    After = 2,
+
+    /// <summary>Trong điều trị.</summary>
+    During = 3
 }
 
 /// <summary>

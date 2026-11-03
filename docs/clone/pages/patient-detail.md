@@ -1595,8 +1595,9 @@ bản gốc.
 - **Dialog "Chụp ảnh"**: một dialog dùng chung cho máy bàn, máy tính bảng và
   điện thoại (`getUserMedia`), rộng tối đa 960px. Không dùng `capture` của
   input file.
-  - Phụ đề "Ảnh được lưu vào giai đoạn: {giai đoạn}". Giai đoạn theo bộ lọc
-    đang chọn, chưa lọc thì là "Trước điều trị" (cùng quy tắc với "Tải ảnh").
+  - Phụ đề "Ảnh được lưu vào giai đoạn: {giai đoạn}". Từ 2026-11-03, giai
+    đoạn là cột chứa nút camera (xem "Ba cột giai đoạn" bên dưới). Trước đó
+    giai đoạn lấy theo bộ lọc đang chọn, chưa lọc thì là "Trước điều trị".
   - Camera bật khi dialog mở và tắt khi dialog đóng.
   - Có từ 2 camera trở lên thì hiện ô chọn camera; lựa chọn được nhớ trên máy
     (localStorage).
@@ -1618,6 +1619,92 @@ bản gốc.
   - Lỗi một phần → dialog ở lại với những ảnh chưa lên để thử lại.
   - Đang tải thì không đóng được dialog.
 - **"Hủy"**: bỏ hết ảnh chưa tải và tắt camera.
+
+### Ba cột giai đoạn (mở rộng BA, 2026-11-03)
+
+BA yêu cầu 2026-11-03, kèm bản thiết kế "Hình ảnh – demo 50 ảnh mỗi giai đoạn".
+Bản gốc **không** có bố cục này. Phần này thay cho "Timeline theo ngày" và
+"Thẻ ảnh" ở trên; các thao tác (xem, kéo sắp xếp, xoá, tải dần khi cuộn) giữ
+nguyên.
+
+Chỉ làm theo bố cục của bản thiết kế. Các chức năng mới trong bản đó **chưa
+làm**: tag (tìm theo tag, gắn tag), Thu gọn/Mở tất cả, cỡ ảnh Nhỏ/Lớn, Chọn
+nhiều/xoá hàng loạt, ô kéo thả, sửa ghi chú trong trình xem, và Hoàn tác sau
+khi xoá. Hộp xem trước khi tải ảnh và tìm theo ghi chú đã làm sau đó (xem hai
+mục ngay dưới).
+
+- **Giai đoạn thứ ba "Trong điều trị"**: enum `PatientImageType.During = 3`.
+  Số 3 đặt sau `Before = 1` và `After = 2` để ảnh đã lưu giữ đúng giai đoạn;
+  không cần migration vì cột `Type` là `smallint`. Combobox "Giai đoạn điều trị"
+  và các cột đều xếp theo thứ tự Trước, Trong, Sau.
+- **Bố cục**: ba cột bằng nhau, cách nhau 14px, bo góc 14px.
+  - Đầu mỗi cột tô màu riêng: Trước xanh dương `#2563eb`, Trong cam `#d97706`,
+    Sau xanh lá `#16a34a`. Trên đầu cột có ô số 1/2/3, tên giai đoạn và dòng
+    "n ảnh · d ngày chụp". Số ngày chỉ hiện khi đã tải hết các trang, nếu chưa
+    thì chỉ hiện "n ảnh".
+  - Bên phải đầu cột là "Tải ảnh" (nền màu của giai đoạn) và nút camera 34px.
+  - Mỗi cột tự cuộn bên trong và cao bằng phần còn lại của màn hình.
+  - Tiêu đề ngày (ngày + nhãn "n ảnh") dính ở đầu cột khi cuộn.
+  - Ảnh là ô vuông trong lưới `auto-fill minmax(72px, 1fr)`, khoảng 5 ảnh một
+    hàng. Góc dưới trái có số thứ tự, đếm liên tục qua mọi ngày của cột.
+  - Nút kéo (trái) và nút xoá (phải) hiện khi rê chuột; trên màn hình cảm ứng
+    thì luôn hiện. Bấm vào ảnh là mở trình xem. Nút con mắt và dòng tên
+    file/giờ đã bỏ; rê chuột lên ảnh hiện tooltip "giờ chụp · ghi chú" (không có tên file).
+- **"Tải ảnh" / "Chụp ảnh" theo cột**: ảnh được lưu vào giai đoạn của cột chứa
+  nút, không còn lấy theo bộ lọc. Thanh công cụ trên cùng chỉ còn combobox và
+  nút "Xóa lọc".
+- **Bộ lọc**: chọn một giai đoạn thì chỉ còn cột đó, rộng hết trang, ảnh to hơn
+  (`minmax(120px, 1fr)`). "Xóa lọc" trả lại cả ba cột.
+- **Dữ liệu**: mỗi cột có feed riêng `GET /patient-images?type={1|2|3}`, 25 ảnh
+  mỗi trang, tải dần khi cuộn trong cột.
+  - Kéo sắp xếp chỉ đổi chỗ trong cùng một ngày của cột, giống khi đang lọc một
+    giai đoạn trước đây.
+  - Trình xem chỉ lật qua lại các ảnh trong cột đó.
+- **≤1100px**: các cột xếp chồng lên nhau. Mỗi cột cao tối đa
+  `min(75vh, 640px)` và tự cuộn bên trong, để cột sau vẫn tới được mà không
+  phải cuộn hết cột trước.
+
+### Tải ảnh lên qua hộp xem trước (BA, 2026-11-03)
+
+Hộp này theo bản thiết kế "Tải ảnh lên · {giai đoạn}". Bản gốc không có, ở
+bản gốc chọn file xong là gửi luôn.
+
+- Chọn file ở "Tải ảnh" của một cột thì **chưa gửi gì**. Hộp xem trước mở ra,
+  rộng tối đa 640px, gồm:
+  - "{n} ảnh đã chọn" và "+ Chọn thêm ảnh".
+  - Lưới ảnh thu nhỏ 64px, mỗi ảnh có nút × để bỏ. Nhiều hơn khoảng 3 hàng thì
+    lưới tự cuộn.
+  - Ô "Ghi chú" tối đa 1000 ký tự.
+  - Chân hộp có "Hủy" và "Tải lên {n} ảnh".
+- File sai loại hoặc quá 20 MB bị loại **ngay lúc chọn**, có toast cho từng lý
+  do như trước, nên không bao giờ vào hộp.
+- **Một ghi chú cho cả lô**: khi chọn từ 2 ảnh, chân hộp ghi "Ghi chú được áp
+  dụng cho cả {n} ảnh."
+  - Mỗi ảnh vẫn là một `POST` riêng, và mỗi `POST` đều mang cùng `note`.
+  - Server cắt khoảng trắng hai đầu; ghi chú để trống thì lưu là không có ghi
+    chú (`PatientImage.NormalizeNote`).
+- Gửi xong:
+  - Ảnh nào lên được thì rời khỏi hộp, kèm toast "Đã tải {n} ảnh lên {giai đoạn}".
+  - Lên hết thì hộp đóng.
+  - Lỗi giữa chừng thì hộp ở lại với những ảnh chưa lên, ghi chú vẫn giữ, để
+    gửi lại.
+  - Đang gửi thì không sửa được và không đóng được.
+- "Chụp ảnh" vẫn đi đường cũ, không có ô ghi chú.
+- Ghi chú hiện dưới tên file trong trình xem, và trong tooltip của ô ảnh.
+
+### Tìm ảnh theo ghi chú (BA, 2026-11-03)
+
+- Ô "Tìm ảnh theo ghi chú…" rộng 300px, nằm bên trái combobox giai đoạn. Ở
+  ≤640px nó chiếm hết chiều ngang.
+- Chờ 300ms sau khi ngừng gõ mới gửi, rồi **mỗi cột hỏi server**
+  `GET /patient-images?type=…&filter=…`; không lọc trên giao diện.
+  - Server bỏ khoảng trắng hai đầu, gộp các khoảng trắng liền nhau, và không
+    phân biệt hoa thường.
+  - `unaccent()` áp lên cả hai phía, nên "rang 16 sau" tìm được "Răng 16 sâu".
+  - Ảnh không có ghi chú không bao giờ khớp.
+- Khi đang tìm, đầu cột ghi "{n} ảnh khớp tìm kiếm". Cột không có ảnh khớp thì
+  ghi "Không có ảnh khớp với tìm kiếm."
+- Tìm kiếm dùng chung được với bộ lọc giai đoạn.
 
 ---
 
