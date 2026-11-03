@@ -467,12 +467,12 @@
 .am-row--on:hover td {
   background: var(--bd-surface-2);
 }
-.am-cell-check {
-  text-align: center;
-}
+/* Centred here, not on `.am-cell-check` alone: `.am-table th` would outrank it
+   and leave the select-all tick off the row ticks' axis. */
 .am-table th.am-cell-check,
 .am-table td.am-cell-check {
   padding: 6px 0;
+  text-align: center;
 }
 .am-cell-name {
   overflow: hidden;

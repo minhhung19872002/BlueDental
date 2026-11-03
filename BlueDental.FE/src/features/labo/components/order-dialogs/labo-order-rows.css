@@ -503,10 +503,12 @@
   background: var(--bd-amber);
   content: "";
 }
+/* Below the Răng row, never into it: the form's items carry no bottom margin
+   (labo-order-dialog.css), so a negative top here would ride over the teeth. */
 .pd-labo-prior {
   display: flex;
   gap: 12px;
-  margin: -8px 0 16px;
+  margin: 12px 0 16px;
   border: 1px solid var(--bd-orange-line);
   border-radius: 10px;
   padding: 12px 16px;
