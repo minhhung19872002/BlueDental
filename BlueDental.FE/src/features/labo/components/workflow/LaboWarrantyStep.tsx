@@ -46,16 +46,19 @@ export function LaboWarrantyStep({ patient, order, readOnly, focusTooth, onShowO
   }));
   const canActivate = warranty.editable && warranty.open;
   const shown: WarrantyView = warranty.editable ? view : "cards";
-  const cards = rows.map((row) => (
-    <LaboWarrantyCard
-      key={row.tooth.toothNumber}
-      tooth={row.tooth}
-      code={row.code}
-      restoration={restoration}
-      logoUrl={logoUrl}
-      focused={row.tooth.toothNumber === focusTooth}
-    />
-  ));
+  const cardsOf = (leaveOut: number[]) =>
+    rows
+      .filter((row) => !leaveOut.includes(row.tooth.toothNumber))
+      .map((row) => (
+        <LaboWarrantyCard
+          key={row.tooth.toothNumber}
+          tooth={row.tooth}
+          code={row.code}
+          restoration={restoration}
+          logoUrl={logoUrl}
+          focused={row.tooth.toothNumber === focusTooth}
+        />
+      ));
 
   const tabs: { key: WarrantyView; label: string }[] = [
     ...(warranty.editable ? [{ key: "activate" as const, label: t("Labo:Warranty:ActivateTitle") }] : []),
@@ -90,12 +93,15 @@ export function LaboWarrantyStep({ patient, order, readOnly, focusTooth, onShowO
         <LaboWarrantyActivationBox
           order={order}
           warranty={warranty}
-          aside={<div className="pd-labo-warranty-cards pd-labo-warranty-cards--stack">{cards}</div>}
+          logoUrl={logoUrl}
+          aside={(leaveOut) => (
+            <div className="pd-labo-warranty-cards pd-labo-warranty-cards--stack">{cardsOf(leaveOut)}</div>
+          )}
         />
       ) : (
         <div className="pd-labo-flow-main">
           <section className="pd-labo-flow-pane pd-labo-flow-pane--main">
-            <div className="pd-labo-warranty-cards">{cards}</div>
+            <div className="pd-labo-warranty-cards">{cardsOf([])}</div>
             <LaboWarrantyTable rows={rows} focusTooth={focusTooth} />
           </section>
         </div>

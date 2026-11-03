@@ -53,7 +53,9 @@ export interface LaboToothView {
   /** Lần trả hàng that sent this tooth back as Lỗi (REQ-D5). */
   returnCount: number;
   warrantyCardCode: string | null;
+  manufacturerSerial?: string | null;
   warrantyStartDate: string | null;
+  warrantyConditions?: string | null;
   warrantyMonths: number | null;
   warrantyEndDate: string | null;
   isWarrantyExpired: boolean;

@@ -1,7 +1,6 @@
 import { Checkbox } from "antd";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
-import { toothKey } from "../check/laboCheckRules";
 import { LaboWarrantyPickRow } from "./LaboWarrantyPickRow";
 import type { LaboWarrantyForm } from "./useLaboWarrantyForm";
 import type { WarrantyToothJump } from "./useWarrantyToothJump";
@@ -56,7 +55,7 @@ export function LaboWarrantyToothPicker({ warranty, restoration, jump }: Props) 
             }}
             pick={{
               on: isPicked(tooth.toothNumber),
-              card: warranty.cards?.[toothKey(tooth.toothNumber)],
+              card: warranty.sharing.cardOf(tooth.toothNumber),
               focused: jump.focused === tooth.toothNumber && isPicked(tooth.toothNumber),
             }}
             disabled={disabled}

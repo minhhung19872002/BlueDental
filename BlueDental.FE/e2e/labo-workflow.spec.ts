@@ -578,6 +578,102 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     });
   });
 
+  test("Dùng chung 1 thông số: one start, duration, conditions and photo for every picked tooth, a serial each", async ({
+    page,
+  }) => {
+    test.setTimeout(150_000);
+    const id = runId();
+    const teeth = [11, 21, 22, 23];
+    const line = await laboLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const order = await sentOrder(page, orderBody(catalog, line, id, { teeth, quantity: teeth.length, treatmentServiceId: line.lineId }));
+    const received = await receive(page, order.id, teeth.length);
+    expect(received.status, received.text).toBe(200);
+    await passAll(page, order.id, teeth);
+    const dialog = workflowDialog(page);
+    const box = dialog.getByRole("region", { name: "Kích hoạt bảo hành" });
+    const share = box.getByRole("checkbox", { name: "Dùng chung 1 thông số cho tất cả răng" });
+
+    await page.goto(
+      `/patient/${line.patientId}?branchId=${line.branchId}&tab=labo&laboModal=order&laboRowId=${order.id}&laboStep=warranty`,
+    );
+    await assertRealApiTraffic(page, LABO_ORDERS);
+    await expectStep(dialog, "Bảo hành", "Hoàn thành");
+
+    await test.step("off by default: a full form per tooth and the hint to turn it on", async () => {
+      await expect(share).not.toBeChecked();
+      await expect(box.locator(".pd-labo-warranty-share")).toContainText("Bật để nhập 1 lần cho tất cả răng đã chọn");
+      await expect(box.getByRole("article", { name: "Răng 22" }).getByLabel("Ngày bắt đầu bảo hành")).toBeVisible();
+    });
+
+    await test.step("on: one form for all, a serial per tooth, the preview's head shows three chips", async () => {
+      await share.check();
+      await expect(box.getByRole("heading", { level: 4 }).filter({ hasText: "(dùng chung)" })).toContainText(
+        "Thẻ bảo hành · R11, R21, R22, R23 (dùng chung)",
+      );
+      await expect(box).toContainText("Ngày bắt đầu, thời hạn, điều kiện và ảnh thẻ áp dụng cho 4 răng đã chọn. Serial nhập riêng.");
+      const shared = box.getByRole("region", { name: "Dùng chung 1 thông số cho tất cả răng" });
+      await expect(shared.getByPlaceholder("Nhập riêng từng răng bên dưới")).toBeDisabled();
+      await expect(box.getByRole("article", { name: "Răng 22" }).getByLabel("Ngày bắt đầu bảo hành")).toHaveCount(0);
+      // BA: the card's head names its teeth only while three at most — four, and none, never a cut-off few.
+      const headChips = dialog.locator(".pd-labo-warranty-preview .pd-labo-warranty-card-tooth");
+      await expect(headChips).toHaveCount(0);
+      await expect(dialog.locator(".pd-labo-warranty-preview-teeth")).toContainText("Răng trong thẻ bảo hành (4)");
+      await expect(dialog.locator(".pd-labo-warranty-preview-teeth li")).toHaveText(["Răng 11", "Răng 21", "Răng 22", "Răng 23"]);
+      const tooth23 = box.getByRole("checkbox", { name: "Răng 23", exact: true });
+      await tooth23.uncheck();
+      await expect(headChips).toHaveText(["R11", "R21", "R22"]);
+      await expect(dialog.locator(".pd-labo-warranty-preview-teeth li")).toHaveText(["Răng 11", "Răng 21", "Răng 22"]);
+      await tooth23.check();
+      await expect(headChips).toHaveCount(0);
+
+      await typeDate(shared.getByLabel("Ngày bắt đầu bảo hành"), pickerStamp(0, 0).slice(0, 10));
+      await shared.locator(".pd-labo-warranty-duration").filter({ hasText: "1 năm" }).click();
+      await shared.getByLabel("Điều kiện bảo hành").fill(`Điều kiện chung ${id}`);
+      await shared
+        .locator(".bd-warranty-photos input[type=file]")
+        .first()
+        .setInputFiles({ name: "the-chung.png", mimeType: "image/png", buffer: PNG });
+      await expect(shared.getByRole("img", { name: "Mặt trước" })).toBeVisible();
+      for (const tooth of teeth) {
+        await box.getByRole("article", { name: `Răng ${tooth}` }).getByLabel("Số serial nhà sản xuất").fill(`SN-${id}-${tooth}`);
+      }
+      await expect(box.getByText("4/4 răng đã đủ thông tin").first()).toBeVisible();
+      await expect(dialog.locator(".pd-labo-warranty-preview .pd-labo-warranty-card")).toContainText("4 sẵn sàng");
+    });
+
+    await test.step("off again keeps what was typed, on each tooth's own form", async () => {
+      await share.uncheck();
+      const own = box.getByRole("article", { name: "Răng 23" });
+      await expect(own.getByLabel("Ngày bắt đầu bảo hành")).toHaveValue(pickerStamp(0, 0).slice(0, 10));
+      await expect(own.getByLabel("Điều kiện bảo hành")).toHaveValue(`Điều kiện chung ${id}`);
+      await expect(own.getByRole("img", { name: "Mặt trước" })).toBeVisible();
+      await share.check();
+    });
+
+    await test.step("Kích hoạt: a card per tooth with the shared validity and its own serial, kept after a reload", async () => {
+      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (4 răng)" }).click();
+      await expect(page.getByText("Đã kích hoạt bảo hành 4 răng")).toBeVisible({ timeout: 30_000 });
+      const warranted = await read(page, order.id);
+      expect(warranted.status).toBe(LaboStatus.Warranty);
+      const cards = teeth.map((tooth) => warranted.teeth.find((row) => row.toothNumber === tooth));
+      for (const [i, card] of cards.entries()) {
+        expect(card?.warrantyCardCode).toBeTruthy();
+        expect(card?.warrantyMonths).toBe(12);
+        expect(card?.warrantyStartDate).toBe(clinicToday());
+        expect(card?.warrantyConditions).toBe(`Điều kiện chung ${id}`);
+        expect(card?.manufacturerSerial).toBe(`SN-${id}-${teeth[i]}`);
+      }
+      expect(new Set(cards.map((card) => card?.warrantyCardCode)).size).toBe(teeth.length);
+      const fronts = warranted.images.filter((image) => image.warrantyCardSide === 1).map((image) => image.toothNumber);
+      expect(fronts.sort()).toEqual(teeth);
+
+      await page.reload();
+      await expectStep(dialog, "Bảo hành", "Bảo hành");
+      await expect(dialog.locator(".pd-labo-warranty-card--active")).toHaveCount(teeth.length);
+    });
+  });
+
   test("a tooth already on another order of the slip is flagged, not blocked (P0111_02, R-1106)", async ({ page }) => {
     test.setTimeout(120_000);
     const id = runId();

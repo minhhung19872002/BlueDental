@@ -1,11 +1,11 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { t } from "@/lib/i18n";
 import { formatCardDate, LABO_WARRANTY_STATE_PILL, type LaboWarrantyState } from "./laboWarrantyRules";
 
 /** What one warranty card prints, already worded — a Labo tooth's or a dental card's. */
 export interface WarrantyFace {
-  /** "Răng 24", or the service of a line without teeth. */
-  heading: string;
+  /** "Răng 24", the service of a line without teeth, or the shared card's tooth chips. */
+  heading: ReactNode;
   code: string;
   /** "Sứ Zirconia · 5 năm". */
   what: string;
@@ -18,6 +18,8 @@ export interface WarrantyFace {
   left: string;
   /** The foot's right: "Chưa bảo hành lần nào", the dentist, … */
   note: string;
+  /** The head's pill, when not the state's own — "3 sẵn sàng" on the shared preview. */
+  pill?: string;
 }
 
 interface Props {
@@ -49,7 +51,7 @@ export function WarrantyCardFace({ face, logoUrl, focused }: Props) {
         <img src={logoUrl} alt="" className="pd-labo-warranty-logo" />
         <strong>{face.heading}</strong>
         {/* Tinted from the card's own text colour, so it reads on slate, purple and red. */}
-        <span className="pd-labo-warranty-card-pill">{t(pill.label)}</span>
+        <span className="pd-labo-warranty-card-pill">{face.pill ?? t(pill.label)}</span>
       </span>
       <span className="pd-labo-warranty-card-code">{t("Labo:Warranty:CardCode", face.code)}</span>
       <span className="pd-labo-warranty-card-what">{face.what}</span>

@@ -53,7 +53,7 @@
   flex-wrap: nowrap;
   gap: 16px;
   border-bottom-color: var(--lw-line);
-  padding-top: 14px;
+  padding-top: 16px;
   padding-bottom: 14px;
 }
 .pd-labo-workflow-title {
@@ -175,7 +175,7 @@
 
 .pd-labo-workflow .pd-labo-footer {
   border-top-color: var(--lw-line);
-  padding-top: 14px;
+  padding-top: 16px;
   padding-bottom: 14px;
 }
 .pd-labo-workflow .pd-labo-footer .ant-btn {
@@ -927,6 +927,168 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-bottom: 16px;
+}
+
+/* Dùng chung 1 thông số (BA mock): the title wraps its "Sứ · LABO-… · 3 răng"
+   caption under the text, lined up past the badge. */
+.pd-labo-warranty-step-title:has(> .pd-labo-warranty-step-caption) {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.pd-labo-warranty-step-caption {
+  flex-basis: 100%;
+  padding-left: 30px;
+  color: var(--lw-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.pd-labo-warranty-step > .ant-tag {
+  margin: 0 0 10px 30px;
+}
+.pd-labo-warranty-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--lw-primary-soft);
+  border-radius: 10px;
+  background: var(--lw-primary-pale);
+}
+.pd-labo-warranty-share .ant-checkbox-wrapper {
+  color: var(--lw-primary);
+  font-weight: 600;
+}
+.pd-labo-warranty-share-hint {
+  color: var(--lw-muted);
+  font-size: 12px;
+}
+.pd-labo-warranty-share-note {
+  margin: -4px 0 12px;
+  color: var(--lw-primary);
+  font-size: 12px;
+}
+/* The one form for every picked tooth: spaced like a tooth's card. */
+.pd-labo-warranty-shared {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 14px 12px;
+  border: 1px solid var(--lw-primary-soft);
+  border-radius: 10px;
+  background: #fff;
+}
+.pd-labo-warranty-serial-title {
+  margin: 0 0 8px;
+  color: var(--lw-label);
+  font-size: 12px;
+  font-weight: 600;
+}
+/* Under Dùng chung a tooth keeps only its serial. */
+.pd-labo-workflow .pd-labo-warranty-tooth--serial {
+  gap: 12px;
+  padding: 8px 12px 10px;
+}
+/* The shared card's head: its teeth as small chips while three at most (BA). */
+.pd-labo-warranty-card-teeth {
+  display: inline-flex;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.pd-labo-warranty-card-tooth {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.pd-labo-warranty-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+/* The shared card as a deck: up to two sheets peek out above it, each a
+   little narrower and paler than the one in front. */
+.pd-labo-warranty-stack {
+  --lw-sheet: var(--lw-primary);
+  position: relative;
+  isolation: isolate;
+}
+/* The sheets take the front card's colour: grey until it is ready. */
+.pd-labo-warranty-stack:has(> .pd-labo-warranty-card--inactive) {
+  --lw-sheet: #64748b;
+}
+.pd-labo-warranty-stack--1 {
+  padding-top: 8px;
+}
+.pd-labo-warranty-stack--2 {
+  padding-top: 16px;
+}
+.pd-labo-warranty-stack > .pd-labo-warranty-card {
+  position: relative;
+  z-index: 2;
+}
+.pd-labo-warranty-stack--1::before,
+.pd-labo-warranty-stack--2::before,
+.pd-labo-warranty-stack--2::after {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  border-radius: 14px;
+}
+.pd-labo-warranty-stack--1::before,
+.pd-labo-warranty-stack--2::before {
+  z-index: 1;
+  top: 0;
+  left: 10px;
+  right: 10px;
+  background: color-mix(in srgb, var(--lw-sheet) 50%, #fff);
+}
+.pd-labo-warranty-stack--2::before {
+  top: 8px;
+}
+.pd-labo-warranty-stack--2::after {
+  z-index: 0;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  background: color-mix(in srgb, var(--lw-sheet) 22%, #fff);
+}
+.pd-labo-warranty-preview-title {
+  margin: 0;
+  color: var(--lw-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pd-labo-warranty-preview-teeth {
+  padding: 10px 12px;
+  border: 1px solid var(--lw-line);
+  border-radius: 10px;
+  background: var(--lw-panel);
+  color: var(--lw-label);
+  font-size: 12px;
+  font-weight: 500;
+}
+.pd-labo-warranty-preview-teeth > ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-labo-warranty-preview-teeth li {
+  padding: 2px 10px;
+  border: 1px solid var(--lw-primary-soft);
+  border-radius: var(--bd-radius-pill);
+  background: var(--lw-primary-pale);
+  color: var(--lw-primary);
+  font-weight: 600;
 }
 
 /* Below 1100px the columns stack and the area between head and foot scrolls. */

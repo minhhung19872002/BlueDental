@@ -7,6 +7,7 @@ import {
 } from "@/features/labo/api/laboApi";
 import { LABO_PILL_TONE, type LaboPill } from "@/features/labo/api/laboStatus";
 import type { WarrantyCardUrls } from "@/components/WarrantyCardPhotos";
+import type { LaboWarrantyCardValues } from "./useLaboWarrantyForm";
 
 /** Thời hạn bảo hành chips, in months; "Khác" takes any whole number. */
 export const WARRANTY_DURATIONS = [6, 12, 24, 36, 60, 120] as const;
@@ -109,4 +110,48 @@ export function elapsedShare(tooth: LaboOrderToothDto, today: Dayjs = dayjs()): 
   const total = dayjs(tooth.warrantyEndDate).diff(start, "day");
   if (total <= 0) return 1;
   return Math.min(1, Math.max(0, today.diff(start, "day") / total));
+}
+
+/**
+ * The photo drafts' key of the shared card (Dùng chung 1 thông số): no tooth
+ * is numbered 0, so it never meets a tooth's own drafts.
+ */
+export const SHARED_CARD = 0;
+
+/** What Dùng chung gives every picked tooth; the serial stays each tooth's own. */
+export interface WarrantySharedValues {
+  startDate?: Dayjs;
+  months?: number;
+  conditions?: string;
+}
+
+/** The shared fields of a tooth's card, e.g. to start the shared card from. */
+export function sharedPart(card: WarrantySharedValues | undefined): WarrantySharedValues {
+  return { startDate: card?.startDate, months: card?.months, conditions: card?.conditions };
+}
+
+/** A tooth's card while shared: its own serial, the shared rest as they stand. */
+export function withShared(
+  own: LaboWarrantyCardValues | undefined,
+  shared: WarrantySharedValues | undefined,
+): LaboWarrantyCardValues {
+  return { ...own, ...sharedPart(shared) };
+}
+
+/** The shared card's fields that are filled, laid over a tooth's own when sharing ends. */
+export function filledShared(shared: WarrantySharedValues | undefined): WarrantySharedValues {
+  return {
+    ...(shared?.startDate && { startDate: shared.startDate }),
+    ...(shared?.months != null && { months: shared.months }),
+    ...(shared?.conditions && { conditions: shared.conditions }),
+  };
+}
+
+/** The latest day a picked tooth passed: the shared card cannot start before it. */
+export function latestPassedDay(teeth: Pick<LaboOrderToothDto, "passedAt">[]): Dayjs | null {
+  return teeth.reduce<Dayjs | null>((latest, tooth) => {
+    if (!tooth.passedAt) return latest;
+    const day = dayjs(tooth.passedAt).startOf("day");
+    return latest && latest.isAfter(day) ? latest : day;
+  }, null);
 }
