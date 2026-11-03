@@ -13463,3 +13463,34 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `payment-rounds` 3/3 trên bản build production (preview riêng cổng 8093), BE + DB thật.
   - `tsc -b` + eslint sạch. Ảnh chụp thẻ khớp ảnh mẫu.
 - **Mức retest**: 2.
+## R-1136 (2026-11-03, mức 2: F-02 Danh mục — Dịch vụ / Combo, tab Bảo hành) Ô rich text "Nội dung bảo hành"
+
+- **Yêu cầu** (owner, có ảnh): master data dịch vụ, tab Bảo hành có thêm một rich text box "Nội dung bảo hành". Rich text nhưng ẩn các media.
+- **Sửa**:
+  - BE:
+    - `CatalogServiceConfig.WarrantyContent` + `SetWarrantyContent`, độ dài tối đa `CatalogServiceConfigConsts.MaxWarrantyContentLength` = 20000.
+    - DTO, `CatalogEntryParts.Apply`: null = giữ nguyên, nên nhập Excel không xoá nội dung.
+    - Mapping đọc, cấu hình EF, migration `ServiceWarrantyContentR1136` (chỉ thêm 1 cột).
+    - i18n `Taxonomy:Service:WarrantyContent(Placeholder)`.
+  - FE:
+    - `RichTextField` có prop `media` (mặc định true; các editor khác không đổi).
+    - `ServiceSettingsTabs` thêm `Form.Item warrantyContent`.
+    - `ServiceDialog` và `ComboDialog` nạp và gửi trường này qua `richTextForSave`.
+    - CSS trong `taxonomy.css`.
+- **Kiểm**:
+  - Domain tests 63/63, có test mới `Should_Keep_Warranty_Content_And_Clear_It_When_Blank`.
+  - E2E mới `taxonomy-warranty-content.spec.ts` 2/2, chạy trên bản build production (preview riêng 8090 → host 5100), DB thật:
+    - toolbar không có `.ql-image` / `.ql-video`;
+    - gõ chữ có in đậm, lưu, reload thì vẫn còn;
+    - xoá trắng thì DB lưu null;
+    - PUT không có trường thì nội dung cũ được giữ.
+  - Hồi quy §17: taxonomy*, payment-qr, branch-* được 89/95. 6 test đỏ:
+    - 5 test cũng đỏ trên bản build HEAD không có thay đổi này (preview 8091):
+      - `taxonomy-dialogs:104`: không thấy nhà cung cấp Labo trong dropdown.
+      - `taxonomy-dialogs:256`: chi nhánh không có nhóm dịch vụ.
+      - `taxonomy-dialogs:456`: `getByLabel('Khác')` đụng nút "Khách đã đến".
+      - `taxonomy-groups:169`.
+      - `taxonomy-import-api:708`.
+    - `taxonomy-dialogs:387` flaky, chạy lại thì xanh.
+  - `tsc` + eslint sạch.
+- **Mức retest**: 2.
