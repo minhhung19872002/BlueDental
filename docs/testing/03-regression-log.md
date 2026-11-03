@@ -13558,3 +13558,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - 3 test đỏ khi chạy cả file nhưng xanh khi chạy riêng: "survives a reload", "every form that prints them", "prints no blank page".
   - Ảnh: MST / Đại diện mỗi dòng một hàng, cùng kiểu ô với Bên B.
 - **Mức retest**: 2.
+
+## R-1141 (2026-11-03, mức 2: Lịch hẹn) Lọc đúng 1 bác sĩ thì Tạo lịch hẹn / Lịch tạm điền sẵn bác sĩ đó
+
+- **Yêu cầu** (BA, ảnh chụp): "Khi filter bác sĩ đang chọn duy nhất 1 bác sĩ → khi tạo lịch hẹn thì tự động điền tên bác sĩ đó vào chỗ Chọn bác sĩ"; chủ dự án bổ sung: Lịch tạm cũng điền.
+- **Sửa** (chỉ FE):
+  - `AppointmentCalendarPage.tsx`: `filterDoctorId` = id khi bộ lọc Bác sĩ có đúng 1 người. Bốn nút "Tạo lịch hẹn" (thanh công cụ, mobile, FAB toàn màn hình, panel điều khiển) gom về `handleCreateNew`, điền `filterDoctorId`. Bấm ô trống ở chế độ Tuần cũng điền. Bấm ô ở cột bác sĩ (Ngày) vẫn lấy bác sĩ của cột đó.
+  - `TempAppointmentEditorModal.tsx`: thêm prop `initialDoctorId`, chỉ dùng khi tạo mới.
+  - 0 hoặc ≥ 2 bác sĩ trong bộ lọc: Chọn bác sĩ để trống như cũ. Bác sĩ OFF ngày đó vẫn bị form bỏ ra (luật R-981 giữ nguyên).
+- **Kiểm** (bản build production, stack thật, không chặn API):
+  - E2E mới `appointment-filter-doctor-prefill.spec.ts`: không lọc → trống; lọc 2 bác sĩ → trống; còn 1 → Lịch tạm và Tạo lịch hẹn đều điền sẵn; Lưu, reload, API đọc lại lịch hẹn đúng bác sĩ + giờ.
+  - Chạy lại `appointment.spec`, `appointment-slot-pick`, `appointment-slot-pick-doctor`, `appointment-mini-cal-date`: 11/11 xanh.
+- **Mức retest**: 2.

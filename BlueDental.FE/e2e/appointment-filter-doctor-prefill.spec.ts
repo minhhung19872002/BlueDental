@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+﻿import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, freeSlot, login, runId } from "./fixtures/auth";
 import { call, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/timekeepingStaff";
 
@@ -27,7 +27,7 @@ async function filterDoctor(page: Page, name: string): Promise<void> {
 }
 
 async function openCreate(page: Page) {
-  await page.locator(".cal-toolbar-row2, .cal-page").getByRole("button", { name: /^Tạo lịch hẹn/ }).first().click();
+  await page.getByRole("button", { name: /Tạo lịch hẹn mới/ }).click();
   const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
   await expect(dialog).toBeVisible();
   return {
@@ -81,7 +81,7 @@ test.describe("Lịch hẹn — lọc đúng 1 bác sĩ thì Tạo lịch hẹn 
     // No doctor in the filter: Chọn bác sĩ starts empty.
     let opened = await openCreate(page);
     await expect(opened.doctorField).not.toContainText(firstName);
-    await opened.dialog.getByRole("button", { name: "Close" }).click();
+    await opened.dialog.getByRole("button", { name: "Đóng" }).click();
     await expect(opened.dialog).toBeHidden();
 
     // Two doctors: still empty — the calendar cannot tell which one is meant.
@@ -90,20 +90,19 @@ test.describe("Lịch hẹn — lọc đúng 1 bác sĩ thì Tạo lịch hẹn 
     opened = await openCreate(page);
     await expect(opened.doctorField).not.toContainText(firstName);
     await expect(opened.doctorField).not.toContainText(secondName);
-    await opened.dialog.getByRole("button", { name: "Close" }).click();
+    await opened.dialog.getByRole("button", { name: "Đóng" }).click();
     await expect(opened.dialog).toBeHidden();
 
     // Back to one doctor: Chọn bác sĩ comes filled with that doctor.
-    await page.locator(".cal-doctor-field .ant-select-selection-item").filter({ hasText: secondName })
-      .locator(".ant-select-selection-item-remove").click();
-    await page.keyboard.press("Escape");
+    // Picking a ticked option again unticks it (the tags fold into "+N").
+    await filterDoctor(page, secondName);
 
     // Lịch tạm takes the same doctor.
     await page.locator(".cal-btn-temp").click();
     const temp = page.getByRole("dialog", { name: "Tạo lịch tạm" });
     await expect(temp).toBeVisible();
     await expect(temp.locator(".appt-field").filter({ hasText: /Chọn bác sĩ/ }).first()).toContainText(firstName);
-    await temp.getByRole("button", { name: "Close" }).click();
+    await temp.getByRole("button", { name: "Đóng" }).click();
     await expect(temp).toBeHidden();
 
     opened = await openCreate(page);
