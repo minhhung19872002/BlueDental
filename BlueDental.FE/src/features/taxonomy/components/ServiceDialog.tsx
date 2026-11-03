@@ -20,6 +20,7 @@ import { useLaboSupplierOptions } from "@/hooks/useLaboPickers";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatVND } from "@/utils/format";
+import { richTextForSave } from "@/utils/sanitizeHtml";
 import { useServiceDialogSync } from "../hooks/useServiceDialogSync";
 import { useServicePricePreview } from "../hooks/useServicePricePreview";
 import { ComboHoldersNotice } from "./ComboHoldersNotice";
@@ -61,6 +62,7 @@ interface FormValues {
   revenueByStage: boolean;
   requireStageSequence: boolean;
   warrantyDays: number;
+  warrantyContent: string;
 
   /** Typed into the "Công đoạn" box; becomes a row on the button, never saved. */
   stageDraft: string;
@@ -87,6 +89,7 @@ const EMPTY: FormValues = {
   revenueByStage: false,
   requireStageSequence: false,
   warrantyDays: 0,
+  warrantyContent: "",
   stageDraft: "",
   laboSupplierIds: [],
 };
@@ -174,6 +177,7 @@ export function ServiceDialog({
       revenueByStage: config?.revenueByStage ?? false,
       requireStageSequence: config?.requireStageSequence ?? false,
       warrantyDays: config?.warrantyDays ?? 0,
+      warrantyContent: config?.warrantyContent ?? "",
       stageDraft: "",
       laboSupplierIds: config?.laboSupplierIds ?? [],
     });
@@ -198,6 +202,7 @@ export function ServiceDialog({
       revenueByStage: values.revenueByStage,
       requireStageSequence: values.requireStageSequence,
       warrantyDays: Number(values.warrantyDays ?? 0),
+      warrantyContent: richTextForSave(values.warrantyContent),
       laboSupplierIds: values.laboSupplierIds ?? [],
     };
     const shared = {

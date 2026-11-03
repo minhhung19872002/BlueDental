@@ -82,6 +82,11 @@ export interface ServiceConfigDto {
   revenueByStage: boolean;
   requireStageSequence: boolean;
   warrantyDays: number;
+  /**
+   * "Nội dung bảo hành" — HTML from the warranty tab's rich-text box. Left out
+   * (or null), the server keeps what it holds; "" clears it.
+   */
+  warrantyContent?: string | null;
   /** Labo tab — suppliers a labo slip for this service may go to; empty = all. */
   laboSupplierIds: string[];
   /** Computed by the server — "Giá sau giảm". */

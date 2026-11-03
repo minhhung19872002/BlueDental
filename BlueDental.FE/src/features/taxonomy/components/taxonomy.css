@@ -881,3 +881,12 @@
 .taxonomy-tabs .pill-tab {
   flex: 0 0 auto;
 }
+
+/* "Nội dung bảo hành" (R-1136): the rich-text terms under the warranty period,
+   spaced by the tab's own column gap rather than a Form.Item margin. */
+.bd-svc-warranty-content.ant-form-item {
+  margin-bottom: 0;
+}
+.bd-svc-warranty-content .ant-form-item-label {
+  padding-bottom: 4px;
+}

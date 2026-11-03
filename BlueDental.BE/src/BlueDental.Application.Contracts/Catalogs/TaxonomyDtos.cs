@@ -115,6 +115,14 @@ public class ServiceConfigDto
     public int WarrantyDays { get; set; }
 
     /// <summary>
+    /// "Nội dung bảo hành" — HTML from the warranty tab's rich-text box. Null
+    /// leaves the stored terms as they are (the Excel import never sends them);
+    /// an empty string clears them.
+    /// </summary>
+    [StringLength(CatalogServiceConfigConsts.MaxWarrantyContentLength)]
+    public string? WarrantyContent { get; set; }
+
+    /// <summary>
     /// Tab "Labo" — the suppliers a labo slip for this service may pick from;
     /// empty means all of them. Every id must be a supplier of the entry's branch.
     /// </summary>

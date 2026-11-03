@@ -6143,6 +6143,8 @@
     "Taxonomy:Service:Warranty": "Bảo hành",
     "Taxonomy:Service:Custom": "Tuỳ chỉnh",
     "Taxonomy:Service:UnitDays": "Đơn vị: Ngày",
+    "Taxonomy:Service:WarrantyContent": "Nội dung bảo hành",
+    "Taxonomy:Service:WarrantyContentPlaceholder": "Nhập nội dung bảo hành...",
     "Taxonomy:Page:GroupDeleted": "Đã xoá nhóm",
     "Taxonomy:Page:GroupTitle": "Nhóm {0}",
     "Taxonomy:Page:SelectGroupHint": "Chọn nhóm để xem {0} bên trong",

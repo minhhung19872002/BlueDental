@@ -42,6 +42,10 @@ internal static class CatalogEntryParts
                 serviceConfig.WarrantyDays);
             entry.ServiceConfig!.EnsureDiscountFits(entry.Price);
             entry.ServiceConfig.ReplaceLaboSuppliers(serviceConfig.LaboSupplierIds ?? []);
+            if (serviceConfig.WarrantyContent != null)
+            {
+                entry.ServiceConfig.SetWarrantyContent(serviceConfig.WarrantyContent);
+            }
         }
 
         if (medicine != null)

@@ -6244,6 +6244,8 @@
     "Taxonomy:Service:Warranty": "Warranty",
     "Taxonomy:Service:Custom": "Custom",
     "Taxonomy:Service:UnitDays": "Unit: Days",
+    "Taxonomy:Service:WarrantyContent": "Warranty terms",
+    "Taxonomy:Service:WarrantyContentPlaceholder": "Enter the warranty terms...",
     "Taxonomy:Page:GroupDeleted": "Group deleted",
     "Taxonomy:Page:GroupTitle": "Group {0}",
     "Taxonomy:Page:SelectGroupHint": "Select a group to view {0} inside",

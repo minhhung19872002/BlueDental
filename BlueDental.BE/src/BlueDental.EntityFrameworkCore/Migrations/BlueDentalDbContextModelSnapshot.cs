@@ -1198,6 +1198,10 @@ namespace BlueDental.Migrations
                     b.Property<short>("TaxRate")
                         .HasColumnType("smallint");
 
+                    b.Property<string>("WarrantyContent")
+                        .HasMaxLength(20000)
+                        .HasColumnType("character varying(20000)");
+
                     b.Property<int>("WarrantyDays")
                         .HasColumnType("integer");
 

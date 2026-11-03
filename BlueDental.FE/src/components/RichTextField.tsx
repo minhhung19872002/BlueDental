@@ -20,7 +20,33 @@ interface Props {
    * is going to be written to a row.
    */
   onUploadImage?: (file: File) => Promise<string>;
+  /**
+   * False drops the image and video buttons and refuses both formats, so a
+   * picture pasted in is stripped too — a text-only body (R-1136, Nội dung
+   * bảo hành). Defaults to true.
+   */
+  media?: boolean;
 }
+
+const TOOLBAR_HEAD = [
+  [{ font: [] }, { size: ["small", false, "large", "huge"] }],
+  [{ header: [1, 2, 3, false] }],
+  ["bold", "italic", "underline", "strike"],
+  [{ list: "ordered" }, { list: "bullet" }],
+  [{ indent: "-1" }, { indent: "+1" }],
+  [{ script: "super" }, { script: "sub" }],
+  ["blockquote", { direction: "rtl" }],
+  [{ align: [] }],
+  [{ color: [] }, { background: [] }],
+];
+const TOOLBAR_WITH_MEDIA = [...TOOLBAR_HEAD, ["link", "image", "video", "formula", "code-block"], ["clean"]];
+const TOOLBAR_TEXT_ONLY = [...TOOLBAR_HEAD, ["link", "formula", "code-block"], ["clean"]];
+
+/** Every format the text-only toolbar can produce — and so all Quill will keep. */
+const TEXT_ONLY_FORMATS = [
+  "font", "size", "header", "bold", "italic", "underline", "strike", "list", "indent",
+  "script", "blockquote", "direction", "align", "color", "background", "link", "formula", "code-block",
+];
 
 function readAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -65,6 +91,7 @@ export function RichTextField({
   placeholder,
   className,
   onUploadImage,
+  media = true,
 }: Props) {
   const quillRef = useRef<ReactQuill>(null);
 
@@ -138,27 +165,15 @@ export function RichTextField({
   const modules = useMemo(
     () => ({
       toolbar: {
-        container: [
-          [{ font: [] }, { size: ["small", false, "large", "huge"] }],
-          [{ header: [1, 2, 3, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ list: "ordered" }, { list: "bullet" }],
-          [{ indent: "-1" }, { indent: "+1" }],
-          [{ script: "super" }, { script: "sub" }],
-          ["blockquote", { direction: "rtl" }],
-          [{ align: [] }],
-          [{ color: [] }, { background: [] }],
-          ["link", "image", "video", "formula", "code-block"],
-          ["clean"],
-        ],
+        container: media ? TOOLBAR_WITH_MEDIA : TOOLBAR_TEXT_ONLY,
         // Only when the caller has somewhere to put the bytes; otherwise Quill's
         // own handler runs and embeds them.
-        ...(onUploadImage ? { handlers: { image: pickAndUpload } } : {}),
+        ...(media && onUploadImage ? { handlers: { image: pickAndUpload } } : {}),
       },
     }),
     // Whether an upload handler exists changes the toolbar; the handler itself
     // is read through a ref, so it does not.
-    [Boolean(onUploadImage), pickAndUpload],
+    [media, Boolean(onUploadImage), pickAndUpload],
   );
 
   return (
@@ -179,6 +194,8 @@ export function RichTextField({
         onChange={onChange}
         placeholder={placeholder}
         modules={modules}
+        // Undefined keeps Quill's full set; text-only refuses image and video.
+        formats={media ? undefined : TEXT_ONLY_FORMATS}
       />
     </div>
   );

@@ -1546,6 +1546,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.TaxRate).HasConversion<short>();
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.WarrantyContent).HasMaxLength(CatalogServiceConfigConsts.MaxWarrantyContentLength);
             entity.PrimitiveCollection(x => x.LaboSupplierIds).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => x.CatalogEntryId).IsUnique();
         });

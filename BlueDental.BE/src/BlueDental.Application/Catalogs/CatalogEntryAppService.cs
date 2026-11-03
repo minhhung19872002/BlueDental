@@ -701,6 +701,7 @@ public class CatalogEntryAppService : ApplicationService, ICatalogEntryAppServic
                 RevenueByStage = entity.ServiceConfig.RevenueByStage,
                 RequireStageSequence = entity.ServiceConfig.RequireStageSequence,
                 WarrantyDays = entity.ServiceConfig.WarrantyDays,
+                WarrantyContent = entity.ServiceConfig.WarrantyContent,
                 LaboSupplierIds = entity.ServiceConfig.LaboSupplierIds.ToList(),
                 // The two read-only boxes of the dialog, computed by the domain
                 // so the browser never has to agree with the server about the
