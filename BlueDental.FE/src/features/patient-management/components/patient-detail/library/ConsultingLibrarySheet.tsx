@@ -1,10 +1,11 @@
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import { Spin } from "antd";
 import { ChevronLeft, ChevronRight, FileX2 } from "lucide-react";
+import { usePinchZoom } from "@/hooks/usePinchZoom";
 import { t } from "@/lib/i18n";
 import type { ViewerAnnotation } from "../../../hooks/useViewerAnnotation";
 import { ViewerAnnotationCanvas } from "../image/ViewerAnnotationCanvas";
-import type { ConsultingLibrary } from "./useConsultingLibrary";
+import { ZOOM, type ConsultingLibrary } from "./useConsultingLibrary";
 
 interface Props {
   library: ConsultingLibrary;
@@ -29,9 +30,9 @@ function EmptySheet({ title, hint }: { title: string; hint: string }) {
 
 /**
  * The page of the library: the chosen content's write-up on a white sheet,
- * zoomed and optionally inverted like an X-ray film, with the drawing canvas
- * over it. Without a content it shows why, and the arrows the reference keeps
- * for the patient's photographs.
+ * zoomed (the toolbar, or two fingers) and optionally inverted like an X-ray
+ * film, with the drawing canvas over it. Without a content it shows why, and
+ * the arrows the reference keeps for the patient's photographs.
  */
 export function ConsultingLibrarySheet({
   library,
@@ -40,15 +41,26 @@ export function ConsultingLibrarySheet({
   imageCount,
   onStep,
 }: Props) {
-  const { content, contentsLoading, contentsError, retryContents, zoom, inverted } = library;
+  const { content, contentsLoading, contentsError, retryContents, zoom, setZoom, inverted } = library;
   const html = content?.content?.trim() ?? "";
+
+  // One finger still scrolls the sheet; the pen keeps its fingers to itself.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const pinchFrom = useRef(zoom);
+  usePinchZoom(bodyRef, !!html && !drawing, {
+    onPinchStart: () => {
+      pinchFrom.current = zoom;
+    },
+    onPinch: (scale) =>
+      setZoom(() => Math.min(ZOOM.max, Math.max(ZOOM.min, Math.round(pinchFrom.current * scale)))),
+  });
 
   if (html) {
     const sheetClass = ["pd-lib-sheet", inverted && "pd-lib-sheet--inverted"]
       .filter(Boolean)
       .join(" ");
     return (
-      <div className="pd-lib-body pd-lib-body--sheet">
+      <div ref={bodyRef} className="pd-lib-body pd-lib-body--sheet">
         <div className={sheetClass} style={{ "--pd-lib-zoom": zoom / 100 } as CSSProperties}>
           <article className="pd-lib-article" dangerouslySetInnerHTML={{ __html: html }} />
           <ViewerAnnotationCanvas active={drawing} annotation={annotation} />

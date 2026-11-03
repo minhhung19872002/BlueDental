@@ -1,8 +1,9 @@
-import { useEffect, useRef, type CSSProperties, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { usePinchZoom } from "@/hooks/usePinchZoom";
 import { t } from "@/lib/i18n";
-import { useImageViewer } from "../../../hooks/useImageViewer";
+import { useImageViewer, ZOOM_MAX, ZOOM_MIN } from "../../../hooks/useImageViewer";
 import { useViewerAnnotation } from "../../../hooks/useViewerAnnotation";
 import { useViewerPan } from "../../../hooks/useViewerPan";
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
@@ -22,8 +23,9 @@ interface Props {
  * The full-screen viewer behind the eye button: black backdrop, the picture
  * centred with zoom / rotate / flip applied, arrows either side, the file
  * name under it, a "1 / N" counter, and the thumbnail strip along the foot.
- * The wheel zooms, a zoomed picture drags, a double-click zooms in and back,
- * and the annotation canvas rides inside the frame so strokes follow it all.
+ * The wheel or two fingers zoom, a zoomed picture drags, a double-click zooms
+ * in and back, and the annotation canvas rides inside the frame so strokes
+ * follow it all.
  * A click on the black backdrop closes it, as lightGallery does on the
  * reference. Rendered into `body` so no panel's overflow can clip it.
  */
@@ -35,11 +37,29 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
   const viewer = useImageViewer(images.length, initialIndex, onClose);
   const annotation = useViewerAnnotation();
   const closeRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const image = images[viewer.index];
   const { zoom, rotate, flipX, flipY, pan } = viewer.transform;
   const pannable = zoom > 1 && !viewer.drawing;
   const drag = useViewerPan({ enabled: pannable, frameRef, pan, onPan: viewer.setPan, onWheel: viewer.zoomByWheel });
+
+  // Anywhere on the stage, not only on the picture; the pen keeps its fingers.
+  const pinchFrom = useRef({ zoom, pan });
+  const [pinching, setPinching] = useState(false);
+  usePinchZoom(stageRef, !viewer.drawing, {
+    onPinchStart: () => {
+      pinchFrom.current = { zoom, pan };
+      setPinching(true);
+    },
+    onPinch: (scale) => {
+      const from = pinchFrom.current;
+      const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, from.zoom * scale));
+      const grow = next / from.zoom;
+      viewer.pinchZoom(next, { x: from.pan.x * grow, y: from.pan.y * grow });
+    },
+    onPinchEnd: () => setPinching(false),
+  });
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -64,7 +84,9 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
     "--pi-pan-x": `${pan.x}px`,
     "--pi-pan-y": `${pan.y}px`,
   } as CSSProperties;
-  const frameClass = ["pi-viewer-frame", pannable && "pi-viewer-frame--pannable", drag.panning && "pi-viewer-frame--panning"]
+  // Following the fingers, not easing after them: the drag's no-transition class.
+  const following = drag.panning || pinching;
+  const frameClass = ["pi-viewer-frame", pannable && "pi-viewer-frame--pannable", following && "pi-viewer-frame--panning"]
     .filter(Boolean)
     .join(" ");
 
@@ -86,7 +108,7 @@ export function PatientImageViewer({ images, initialIndex, onClose }: Props) {
         <ViewerToolbar viewer={viewer} onClose={onClose} />
       </div>
 
-      <div className="pi-viewer-stage">
+      <div ref={stageRef} className="pi-viewer-stage">
         <button type="button" className="pi-viewer-nav pi-viewer-nav--prev" aria-label={t("Patient:Photo:Before")} onClick={viewer.prev}>
           <ArrowLeft size={24} />
         </button>

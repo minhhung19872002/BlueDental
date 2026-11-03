@@ -42,7 +42,7 @@ function clampToStage(frame: HTMLElement, pan: ViewerPan): ViewerPan {
  */
 export function useViewerPan({ enabled, frameRef, pan, onPan, onWheel }: Options): ViewerPanHandlers {
   const [panning, setPanning] = useState(false);
-  const grab = useRef<{ pointer: ViewerPan; pan: ViewerPan } | null>(null);
+  const grab = useRef<{ id: number; pointer: ViewerPan; pan: ViewerPan } | null>(null);
 
   useEffect(() => {
     const stage = frameRef.current?.parentElement;
@@ -56,16 +56,21 @@ export function useViewerPan({ enabled, frameRef, pan, onPan, onWheel }: Options
   }, [frameRef, onWheel]);
 
   const onPointerDown = (event: PointerEvent<HTMLElement>) => {
+    // A second finger is a pinch (usePinchZoom), not a drag: let go of the first.
+    if (grab.current) {
+      onPointerUp();
+      return;
+    }
     if (!enabled || event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    grab.current = { pointer: { x: event.clientX, y: event.clientY }, pan };
+    grab.current = { id: event.pointerId, pointer: { x: event.clientX, y: event.clientY }, pan };
     setPanning(true);
   };
   const onPointerMove = (event: PointerEvent<HTMLElement>) => {
     const start = grab.current;
     const frame = frameRef.current;
-    if (!start || !frame) return;
+    if (!start || !frame || event.pointerId !== start.id) return;
     onPan(
       clampToStage(frame, {
         x: start.pan.x + event.clientX - start.pointer.x,

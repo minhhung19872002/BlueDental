@@ -40,6 +40,8 @@ export interface ImageViewer {
   zoomByWheel: (deltaY: number) => void;
   /** Double-click: in to 2x from rest, back to rest from anywhere else. */
   toggleZoom: () => void;
+  /** Two fingers: any zoom in range, with the pan that keeps the same spot centred. */
+  pinchZoom: (zoom: number, pan: ViewerPan) => void;
   setPan: (pan: ViewerPan) => void;
   rotateLeft: () => void;
   rotateRight: () => void;
@@ -88,10 +90,10 @@ export function useImageViewer(count: number, initialIndex: number, onClose: () 
 
   const patch = (change: (current: ViewerTransform) => Partial<ViewerTransform>) =>
     setTransform((current) => ({ ...current, ...change(current) }));
-  const zoomTo = (target: (current: number) => number) =>
+  const zoomTo = (target: (current: number) => number, pan?: ViewerPan) =>
     patch((c) => {
       const zoom = clampZoom(target(c.zoom));
-      return { zoom, pan: zoom === ZOOM_MIN ? NO_PAN : c.pan };
+      return { zoom, pan: zoom === ZOOM_MIN ? NO_PAN : (pan ?? c.pan) };
     });
 
   return {
@@ -104,6 +106,7 @@ export function useImageViewer(count: number, initialIndex: number, onClose: () 
     zoomOut: () => zoomTo((zoom) => zoom - ZOOM_STEP),
     zoomByWheel: (deltaY) => zoomTo((zoom) => zoom + (deltaY < 0 ? WHEEL_STEP : -WHEEL_STEP)),
     toggleZoom: () => zoomTo((zoom) => (zoom === ZOOM_MIN ? DOUBLE_CLICK_ZOOM : ZOOM_MIN)),
+    pinchZoom: (zoom, pan) => zoomTo(() => zoom, pan),
     setPan: (pan) => patch(() => ({ pan })),
     rotateLeft: () => patch((c) => ({ rotate: c.rotate - 90 })),
     rotateRight: () => patch((c) => ({ rotate: c.rotate + 90 })),
