@@ -8,7 +8,12 @@ import { useLaboWorkflowUrl } from "@/features/labo/components/workflow/useLaboW
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
 import { describeApiError } from "@/lib/apiError";
-import type { PlanWarrantyOverviewDto, WarrantyCardRowDto, WarrantyServiceRowDto } from "../../api/planWarrantyApi";
+import {
+  WARRANTY_CARD_KIND,
+  type PlanWarrantyOverviewDto,
+  type WarrantyCardRowDto,
+  type WarrantyServiceRowDto,
+} from "../../api/planWarrantyApi";
 import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { ActivatedWarrantyCard } from "./ActivatedWarrantyCard";
 import { ServiceWarrantyDialog } from "./ServiceWarrantyDialog";
@@ -111,7 +116,13 @@ function PlanWarrantyBody({ patient, plan, branchId, overview }: BodyProps) {
         onView={setViewing}
       />
       <WarrantyHistoryCard ref={historyRef} overview={overview} view={historyView} onViewChange={setHistoryView} />
-      <ServiceWarrantyDialog row={activating} planId={plan.id} onClose={() => setActivating(null)} />
+      <ServiceWarrantyDialog
+        row={activating}
+        cards={overview.cards.filter((card) => card.lineId === activating?.lineId && card.kind === WARRANTY_CARD_KIND.Dental)}
+        today={overview.today}
+        planId={plan.id}
+        onClose={() => setActivating(null)}
+      />
       <LaboWorkflowDialog
         target={labo.target}
         branchId={branchId}

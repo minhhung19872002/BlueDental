@@ -1,5 +1,5 @@
 import { t } from "@/lib/i18n";
-import { durationLabel, warrantyEndDate } from "./laboWarrantyRules";
+import { cardEndDate, typedDurationText } from "./laboWarrantyRules";
 import { isWarrantyCardReady, type LaboWarrantyCardValues } from "./useLaboWarrantyForm";
 import { WarrantyCardFace, type WarrantyFace } from "./WarrantyCardFace";
 
@@ -16,6 +16,8 @@ interface Props {
   what: string;
   /** The clinic's logo, as the header shows it. */
   logoUrl: string;
+  /** A dental card's Danh mục days, for "Theo danh mục" (P3110 REQ-B5). */
+  catalogDays?: number;
 }
 
 /**
@@ -25,9 +27,8 @@ interface Props {
  * the list below names them all. Each tooth still gets its own code on
  * activation, so the card names none.
  */
-export function LaboWarrantySharedPreview({ teeth, card, what, logoUrl }: Props) {
+export function LaboWarrantySharedPreview({ teeth, card, what, logoUrl, catalogDays }: Props) {
   const ready = isWarrantyCardReady(card);
-  const duration = card?.months ? durationLabel(card.months) : null;
   const face: WarrantyFace = {
     heading:
       teeth.length <= HEAD_CHIPS ? (
@@ -42,10 +43,10 @@ export function LaboWarrantySharedPreview({ teeth, card, what, logoUrl }: Props)
     code: t("Labo:Warranty:SharedCode"),
     what,
     startDate: card?.startDate?.format("YYYY-MM-DD"),
-    endDate: warrantyEndDate(card?.startDate, card?.months)?.format("YYYY-MM-DD"),
+    endDate: cardEndDate(card, catalogDays)?.format("YYYY-MM-DD"),
     state: ready ? "active" : "inactive",
     elapsed: 0,
-    left: duration ? t(duration.key, duration.value) : t("Labo:Warranty:NotEntered"),
+    left: typedDurationText(card?.months, catalogDays),
     note: t("Labo:Warranty:NoClaimsYet"),
     pill: ready ? t("Labo:Warranty:ReadyTeeth", teeth.length) : undefined,
   };

@@ -7,6 +7,7 @@ import {
 } from "@/features/labo/api/laboApi";
 import { LABO_PILL_TONE, type LaboPill } from "@/features/labo/api/laboStatus";
 import type { WarrantyCardUrls } from "@/components/WarrantyCardPhotos";
+import { t } from "@/lib/i18n";
 import type { LaboWarrantyCardValues } from "./useLaboWarrantyForm";
 
 /** Thời hạn bảo hành chips, in months; "Khác" takes any whole number. */
@@ -76,6 +77,26 @@ export function formatCardDate(value: string | null | undefined): string {
 /** Ngày hết hạn: start + months, as the server stores it. */
 export function warrantyEndDate(start: Dayjs | null | undefined, months: number | null | undefined): Dayjs | null {
   return start && months && months > 0 ? start.add(months, "month") : null;
+}
+
+/**
+ * A typed card's Ngày hết hạn: start + months — or, on "Theo danh mục" of a
+ * dental card, start + the catalog's days.
+ */
+export function cardEndDate(
+  card: { startDate?: Dayjs; months?: number } | undefined,
+  catalogDays?: number,
+): Dayjs | null {
+  if (card?.months === CATALOG_DURATION && catalogDays) return card.startDate?.add(catalogDays, "day") ?? null;
+  return warrantyEndDate(card?.startDate, card?.months);
+}
+
+/** "5 năm", "Theo danh mục · 90 ngày", or Chưa nhập before a duration is picked. */
+export function typedDurationText(months: number | undefined, catalogDays?: number): string {
+  if (months === CATALOG_DURATION && catalogDays) return t("Treatment:Warranty:ByCatalog", catalogDays);
+  if (!months) return t("Labo:Warranty:NotEntered");
+  const label = durationLabel(months);
+  return t(label.key, label.value);
 }
 
 /** "Sứ Zirconia" — what the card says was made. */

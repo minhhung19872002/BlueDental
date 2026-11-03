@@ -61,7 +61,7 @@ export function LaboWarrantyCardsSection({ warranty, picked, caption, focused }:
             <LaboWarrantyCardFields
               path={["shared"]}
               minDay={latestPassedDay(picked)}
-              serialElsewhere
+              serial="elsewhere"
               photos={warranty.photos}
               photoKey={SHARED_CARD}
               busy={warranty.busy}

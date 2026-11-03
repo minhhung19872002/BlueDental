@@ -48,6 +48,24 @@ export function dentalCardFace(card: WarrantyCardRowDto, today: string): Warrant
   };
 }
 
+/**
+ * A tooth of the line still waiting for its dental card: the grey card of
+ * Labo's step 3, with no code until the server numbers it on activation.
+ */
+export function pendingDentalFace(serviceName: string, toothNumber: number | null): WarrantyFace {
+  return {
+    heading: toothNumber != null ? t("Labo:Check:ToothLabel", toothNumber) : serviceName,
+    code: formatCardDate(null),
+    what: serviceName,
+    startDate: null,
+    endDate: null,
+    state: "inactive",
+    elapsed: 0,
+    left: t(LABO_WARRANTY_STATE_PILL.inactive.label),
+    note: t("Labo:Warranty:AwaitingActivation"),
+  };
+}
+
 /** Răng · Mã thẻ · Bắt đầu · Hết hạn · Thời hạn · Còn lại · Điều kiện · Ảnh thẻ · Trạng thái. */
 export function dentalCardColumns(today: string): TableColumnsType<WarrantyCardRowDto> {
   return [

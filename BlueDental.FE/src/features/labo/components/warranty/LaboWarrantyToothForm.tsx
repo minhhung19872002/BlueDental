@@ -59,7 +59,7 @@ export function LaboWarrantyToothForm({ tooth, caption, photos, sharing, busy, f
         <LaboWarrantyCardFields
           path={["cards", key]}
           minDay={tooth.passedAt ? dayjs(tooth.passedAt).startOf("day") : null}
-          serialElsewhere={false}
+          serial="own"
           photos={photos}
           photoKey={tooth.toothNumber}
           busy={busy}

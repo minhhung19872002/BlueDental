@@ -10,7 +10,7 @@ import type { LaboWarrantyCardValues } from "./useLaboWarrantyForm";
 export function LaboWarrantyReadiness({ card }: { card: LaboWarrantyCardValues | undefined }) {
   const missing = [
     !card?.startDate && t("Labo:Warranty:StartDateShort"),
-    !card?.months && t("Labo:Warranty:DurationShort"),
+    card?.months == null && t("Labo:Warranty:DurationShort"),
   ].filter((part): part is string => Boolean(part));
   if (missing.length === 0) {
     return <StatusBadge label={t("Labo:Warranty:Ready")} {...LABO_PILL_TONE.success} />;

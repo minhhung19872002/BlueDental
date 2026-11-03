@@ -120,14 +120,14 @@ test.describe("Plan warranty tab (F-86 phase B, UI)", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText("Bảo hành dịch vụ");
     await expect(dialog).toContainText(WARRANTY_SERVICE.name);
-    await expect(dialog.getByRole("button", { name: "Răng 36" })).toHaveAttribute("aria-pressed", "true");
+    await expect(dialog.getByRole("checkbox", { name: "Răng 36" })).toBeChecked();
     // "Theo danh mục · 365 ngày" is the default period; today the default start.
     const tooth36 = dialog.getByRole("article", { name: "Răng 36" });
     await expect(tooth36.getByRole("button", { name: "Theo danh mục · 365 ngày" })).toBeVisible();
     await expect(tooth36).toContainText("Đủ thông tin");
 
     // Leave R37 for later: the button follows the count.
-    await dialog.getByRole("button", { name: "Răng 37" }).click();
+    await dialog.getByRole("checkbox", { name: "Răng 37" }).uncheck();
     await expect(dialog.getByRole("article", { name: "Răng 37" })).toHaveCount(0);
     const save = dialog.getByRole("button", { name: "Kích hoạt bảo hành (1 răng)" });
     await expect(save).toBeEnabled();
@@ -149,7 +149,11 @@ test.describe("Plan warranty tab (F-86 phase B, UI)", () => {
 
     // The second round takes R37 only — R36 is no longer offered.
     await statusRow(page, "R36, R37").getByRole("button", { name: "Bảo hành dịch vụ" }).click();
-    await expect(dialog.getByRole("button", { name: "Răng 36" })).toHaveCount(0);
+    await expect(dialog.getByRole("checkbox", { name: "Răng 36" })).toHaveCount(0);
+    // Beside the form: R36's activated card, R37 still grey.
+    const aside = dialog.locator(".pd-labo-flow-pane--aside");
+    await expect(aside.getByRole("article")).toHaveCount(2);
+    await expect(aside.locator(".pd-labo-warranty-card--inactive")).toHaveCount(1);
     await dialog.getByRole("button", { name: "1 năm" }).click();
     await dialog.getByRole("button", { name: "Kích hoạt bảo hành (1 răng)" }).click();
     await expect(dialog).toBeHidden();
@@ -162,6 +166,74 @@ test.describe("Plan warranty tab (F-86 phase B, UI)", () => {
     const history = card(page, "pwt-history-title");
     await expect(history.locator(".pwt-event").filter({ hasText: "Kích hoạt 1 thẻ" })).toHaveCount(3);
     await expect(history).toContainText("1 năm");
+  });
+
+  test("Tất cả, Dùng chung and the waiting cards follow Labo's Kích hoạt bảo hành (R-1138)", async ({ page }) => {
+    const slip = await seedSlip(page);
+    await openTab(page, slip.ready);
+    await statusRow(page, "R36, R37").getByRole("button", { name: "Bảo hành dịch vụ" }).click();
+    const dialog = page.getByRole("dialog");
+    const aside = dialog.locator(".pd-labo-flow-pane--aside");
+
+    // Right column: one grey "Chờ kích hoạt" card per tooth still waiting.
+    await expect(aside.locator(".pd-labo-warranty-card--inactive")).toHaveCount(2);
+    await expect(aside.locator(".pd-labo-warranty-card--inactive").first()).toContainText("Chờ kích hoạt");
+    await expect(dialog).toContainText("2/2 răng đã đủ thông tin");
+
+    // Tất cả clears and restores the picks; nothing picked, nothing to activate.
+    const all = dialog.getByRole("checkbox", { name: "Tất cả", exact: true });
+    await all.uncheck();
+    await expect(dialog.getByRole("checkbox", { name: "Răng 36" })).not.toBeChecked();
+    await expect(dialog.getByRole("button", { name: "Kích hoạt bảo hành (0 răng)" })).toBeDisabled();
+    await all.check();
+    await expect(dialog.getByRole("checkbox", { name: "Răng 37" })).toBeChecked();
+
+    // Dùng chung: one form, an "Áp dụng cho" list, no per-tooth forms, the stacked preview.
+    await dialog.getByRole("checkbox", { name: "Dùng chung 1 thông số cho tất cả răng" }).check();
+    const shared = dialog.getByRole("region", { name: "Dùng chung 1 thông số cho tất cả răng" });
+    await expect(shared).toBeVisible();
+    await expect(shared).toContainText("Áp dụng cho");
+    await expect(shared).toContainText("Răng 36");
+    await expect(shared).toContainText("Răng 37");
+    await expect(dialog.getByRole("article", { name: "Răng 36" })).toHaveCount(0);
+    await expect(aside.locator(".pd-labo-warranty-preview")).toContainText("Xem trước thẻ bảo hành");
+    await expect(aside.locator(".pd-labo-warranty-card--inactive")).toHaveCount(0);
+    await shared.getByRole("button", { name: "1 năm" }).click();
+
+    const answer = page.waitForResponse(
+      (res) => res.url().includes(`/services/${slip.ready.lineId}/warranty`) && res.request().method() === "POST",
+    );
+    await dialog.getByRole("button", { name: "Kích hoạt bảo hành (2 răng)" }).click();
+    expect((await answer).status()).toBe(200);
+    await expect(dialog).toBeHidden();
+
+    await page.reload();
+    await expect(rows(card(page, "pwt-cards-title"))).toHaveCount(3);
+    await expect(statusRow(page, "R36, R37")).toContainText("Đã kích hoạt · 2 thẻ");
+    const history = card(page, "pwt-history-title");
+    await expect(history.locator(".pwt-event").filter({ hasText: "1 năm" })).toHaveCount(3);
+
+  });
+
+  test("a line without teeth activates its one card, no tooth picker (R-1138)", async ({ page }) => {
+    const planId = await freshSlip(page, runId());
+    const line = await serviceLine(page, { planId, service: WARRANTY_SERVICE, teeth: [] });
+    expect((await complete(page, line)).status).toBe(200);
+    await openTab(page, line);
+    const status = card(page, "pwt-status-title");
+    await status.getByRole("button", { name: "Bảo hành dịch vụ" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("checkbox", { name: "Tất cả", exact: true })).toHaveCount(0);
+    await expect(dialog).toContainText("Nhập ngày bắt đầu và thời hạn rồi kích hoạt bảo hành");
+    await expect(dialog.getByRole("button", { name: "Theo danh mục · 365 ngày" })).toBeVisible();
+    await expect(dialog.locator(".pd-labo-warranty-card--inactive")).toHaveCount(1);
+    await dialog.getByRole("button", { name: "Kích hoạt bảo hành", exact: true }).click();
+    await expect(dialog).toBeHidden();
+
+    await page.reload();
+    await expect(rows(card(page, "pwt-cards-title"))).toHaveCount(1);
+    await expect(status.getByRole("button", { name: "Bảo hành dịch vụ" })).toHaveCount(0);
   });
 
   test("Xem thẻ narrows the cards to the line, Lịch sử ↓ the history to the card", async ({ page }) => {

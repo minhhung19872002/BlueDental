@@ -46,8 +46,9 @@ export interface LaboWarrantyForm {
   activate: () => Promise<void>;
 }
 
-/** Both Ngày bắt đầu and Thời hạn filled. */
-export const isWarrantyCardReady = (card: LaboWarrantyCardValues | undefined) => Boolean(card?.startDate && card.months);
+/** Both Ngày bắt đầu and Thời hạn filled — "Theo danh mục" (0) of a dental card counts. */
+export const isWarrantyCardReady = (card: LaboWarrantyCardValues | undefined) =>
+  Boolean(card?.startDate) && card?.months != null;
 
 /**
  * Kích hoạt bảo hành (n răng): pick the Đạt teeth still without a card, give

@@ -1,97 +1,53 @@
-import { DatePicker, Form, Input } from "antd";
-import dayjs from "dayjs";
-import { FloatingField } from "@/components/FloatingField";
-import { StatusBadge } from "@/components/StatusBadge";
-import { WarrantyCardPhotos, type WarrantyCardDrafts } from "@/components/WarrantyCardPhotos";
-import { LABO_PILL_TONE } from "@/features/labo/api/laboStatus";
-import { requiredRule } from "@/features/labo/components/order-dialogs/useLaboOrderForm";
-import { LaboWarrantyDurationPicker } from "@/features/labo/components/warranty/LaboWarrantyDurationPicker";
+import { Form } from "antd";
+import type { WarrantyCardDrafts } from "@/components/WarrantyCardPhotos";
+import { toothKey } from "@/features/labo/components/check/laboCheckRules";
+import { LaboWarrantyCardFields } from "@/features/labo/components/warranty/LaboWarrantyCardFields";
+import { LaboWarrantyReadiness } from "@/features/labo/components/warranty/LaboWarrantyReadiness";
+import { warrantyToothFormId } from "@/features/labo/components/warranty/laboWarrantyRules";
+import type { LaboWarrantyCardValues } from "@/features/labo/components/warranty/useLaboWarrantyForm";
 import { t } from "@/lib/i18n";
 import type { WarrantyServiceRowDto } from "../../api/planWarrantyApi";
-import { cardKey, serviceCardEnd, type ServiceWarrantyCardValues } from "./useServiceWarrantyForm";
+import { catalogDaysOf, completedDay, completedOnText } from "./serviceWarrantyRules";
+import { NO_TOOTH } from "./useServiceWarrantyForm";
 
 interface Props {
-  /** 0 on a line without teeth. */
+  /** NO_TOOTH on a line without teeth. */
   tooth: number;
   row: WarrantyServiceRowDto;
   photos: WarrantyCardDrafts;
   busy: boolean;
-}
-
-/** Thiếu ngày bắt đầu, thời hạn — or Đủ thông tin once both are in. */
-function Readiness({ card }: { card: ServiceWarrantyCardValues | undefined }) {
-  const missing = [
-    !card?.startDate && t("Labo:Warranty:StartDateShort"),
-    card?.months === undefined && t("Labo:Warranty:DurationShort"),
-  ].filter((part): part is string => Boolean(part));
-  if (missing.length === 0) {
-    return <StatusBadge label={t("Labo:Warranty:Ready")} {...LABO_PILL_TONE.success} />;
-  }
-  return <StatusBadge label={t("Labo:Warranty:Missing", missing.join(", "))} {...LABO_PILL_TONE.warning} />;
+  /** Jumped to from its row in 1. Chọn răng kích hoạt. */
+  focused: boolean;
 }
 
 /**
- * One dental card (REQ-B5), on the frame of the Labo card form: Ngày bắt đầu
- * (not before the line was finished), Thời hạn — "Theo danh mục" first —,
- * Ngày hết hạn worked out, Điều kiện and the optional photos. No serial.
+ * 2. One dental card (REQ-B5) on the frame of a Labo tooth's card: Ngày bắt
+ * đầu, Ngày hết hạn worked out, Thời hạn — "Theo danh mục" first —, Điều
+ * kiện and the optional photos. A dental card carries no serial.
  */
-export function ServiceWarrantyToothForm({ tooth, row, photos, busy }: Props) {
-  const key = cardKey(tooth);
-  const card: ServiceWarrantyCardValues | undefined = Form.useWatch(["cards", key]);
-  const end = serviceCardEnd(card, row.warrantyDays);
-  const doneDay = row.completedOn ? dayjs(row.completedOn) : null;
-  const title = tooth ? t("Labo:Check:ToothLabel", tooth) : row.serviceName;
+export function ServiceWarrantyToothForm({ tooth, row, photos, busy, focused }: Props) {
+  const card: LaboWarrantyCardValues | undefined = Form.useWatch(["cards", toothKey(tooth)]);
+  const title = tooth === NO_TOOTH ? row.serviceName : t("Labo:Check:ToothLabel", tooth);
+  const done = completedOnText(row);
+  const caption = [tooth === NO_TOOTH ? undefined : row.serviceName, done].filter(Boolean).join(" · ");
+  const className = ["pd-labo-warranty-tooth", focused && "pd-labo-warranty-tooth--focus"].filter(Boolean).join(" ");
 
   return (
-    <article className="pd-labo-warranty-tooth" aria-label={title}>
+    <article id={warrantyToothFormId(tooth)} className={className} aria-label={title}>
       <header className="pd-labo-warranty-tooth-head">
         <strong>{title}</strong>
-        <span className="pd-labo-warranty-tooth-caption">{tooth ? row.serviceName : ""}</span>
-        <Readiness card={card} />
+        <span className="pd-labo-warranty-tooth-caption">{caption}</span>
+        <LaboWarrantyReadiness card={card} />
       </header>
-      <div className="pd-labo-check-grid pd-labo-check-grid--two">
-        <FloatingField
-          name={["cards", key, "startDate"]}
-          label={t("Labo:Warranty:StartDate")}
-          required
-          alwaysFloat
-          rules={requiredRule(t("Labo:Warranty:StartDateRequired"))}
-        >
-          <DatePicker
-            format="DD/MM/YYYY"
-            placeholder="dd/mm/yyyy"
-            className="pd-labo-check-control"
-            disabledDate={(day) => Boolean(doneDay && day.isBefore(doneDay, "day"))}
-          />
-        </FloatingField>
-        <FloatingField label={t("Labo:Warranty:EndDate")} alwaysFloat>
-          <Input
-            value={end ? end.format("DD/MM/YYYY") : ""}
-            placeholder={t("Labo:Warranty:EndDatePlaceholder")}
-            disabled
-          />
-        </FloatingField>
-      </div>
-      <div className="pd-labo-warranty-duration-row">
-        <span className="pd-labo-warranty-duration-label">
-          {t("Labo:Warranty:Duration")} <span className="floating-field-required">*</span>
-        </span>
-        <Form.Item name={["cards", key, "months"]} rules={requiredRule(t("Labo:Warranty:DurationRequired"))}>
-          <LaboWarrantyDurationPicker catalogDays={row.warrantyDays > 0 ? row.warrantyDays : undefined} />
-        </Form.Item>
-      </div>
-      <FloatingField name={["cards", key, "conditions"]} label={t("Labo:Warranty:Conditions")}>
-        <Input maxLength={1000} />
-      </FloatingField>
-      <div className="pd-labo-warranty-duration-row">
-        <span className="pd-labo-warranty-duration-label">{t("Labo:Warranty:CardPhotos")}</span>
-        <WarrantyCardPhotos
-          urls={photos.urlsOf(tooth)}
-          disabled={busy}
-          onPick={(side, file) => photos.pick(tooth, side, file)}
-          onRemove={(side) => photos.remove(tooth, side)}
-        />
-      </div>
+      <LaboWarrantyCardFields
+        path={["cards", toothKey(tooth)]}
+        minDay={completedDay(row)}
+        serial="none"
+        photos={photos}
+        photoKey={tooth}
+        busy={busy}
+        catalogDays={catalogDaysOf(row)}
+      />
     </article>
   );
 }
