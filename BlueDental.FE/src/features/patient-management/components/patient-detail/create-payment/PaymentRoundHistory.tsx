@@ -16,6 +16,8 @@ export interface CurrentRound {
   /** dd/MM/yyyy of the receipt being written. */
   paidOn: string;
   amount: number;
+  /** What this đợt would collect without its TN giảm, VAT included. */
+  amountBeforeDiscount: number;
   discount: number;
   voucherShare: number;
   voucherCode: string | null;
@@ -61,6 +63,20 @@ function ReliefChips({ voucherCode, voucherShare, discount, reason }: {
       ) : null}
       {discount > 0 && reason ? <em>{t("Patient:Payment:ReasonValue", reason)}</em> : null}
     </span>
+  );
+}
+
+/**
+ * This đợt's money. With a TN giảm, what it would have collected is struck
+ * through above what it does collect (owner 2026-11-03).
+ */
+function CurrentMoney({ current }: { current: CurrentRound }) {
+  if (current.discount <= 0) return <b>{formatMoneyUnit(current.amount)}</b>;
+  return (
+    <>
+      <s className="pd-newpay-history-was">{formatMoneyUnit(current.amountBeforeDiscount)}</s>
+      <b className="pd-newpay-history-discounted">{formatMoneyUnit(current.amount)}</b>
+    </>
   );
 }
 
@@ -117,7 +133,7 @@ export function PaymentRoundHistory({ history, current, serviceName }: Props) {
                   />
                 </span>
                 <span className="pd-newpay-history-money">
-                  <b>{formatMoneyUnit(current.amount)}</b>
+                  <CurrentMoney current={current} />
                   <StatusPill status={PAYMENT_STATUS.Pending} />
                 </span>
               </li>

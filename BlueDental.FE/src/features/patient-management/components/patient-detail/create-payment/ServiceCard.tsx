@@ -8,7 +8,7 @@ import { formatDate, formatMoneyUnit } from "@/utils/format";
 import { doctorDiscountOf, listAmount } from "./paymentDialogModel";
 import { PaymentLineTermsForm } from "./PaymentLineTermsForm";
 import { PaymentRoundHistory, type CurrentRound } from "./PaymentRoundHistory";
-import { receiptNameToSend } from "./paymentRounds";
+import { lineFigures, receiptNameToSend } from "./paymentRounds";
 import type { PaymentForm } from "./usePaymentForm";
 
 interface Props {
@@ -21,11 +21,15 @@ function currentRound(payment: PaymentForm, line: TreatmentServiceDto, round: nu
   const figures = payment.money.figures.find((item) => item.line.id === line.id);
   if (!figures) return null;
   const plain = line.serviceName ?? line.code;
+  const amount = payment.money.amountOf(line.id);
+  // What TN giảm took off what this đợt collects, its VAT included.
+  const discountEffect = lineFigures(line, 0, figures.voucherShare).cap - figures.cap;
   return {
     round,
     name: receiptNameToSend(payment.terms.appliedOf(line.id), plain, round) ?? plain,
     paidOn: formatDate(dayjs(payment.form.paidOn).toDate()),
-    amount: payment.money.amountOf(line.id),
+    amount,
+    amountBeforeDiscount: amount + discountEffect,
     discount: figures.discount,
     voucherShare: figures.voucherShare,
     voucherCode: payment.voucher.applied?.code ?? null,

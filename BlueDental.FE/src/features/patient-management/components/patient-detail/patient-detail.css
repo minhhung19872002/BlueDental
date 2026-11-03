@@ -3587,6 +3587,16 @@
   gap: 4px;
   font-size: 13px;
 }
+/* This đợt with a TN giảm: what it would have collected, struck, over what it does. */
+.pd-newpay-history-was {
+  margin-bottom: -4px;
+  color: var(--bd-muted);
+  font-size: 12px;
+  line-height: 16px;
+}
+.pd-newpay-history-discounted {
+  color: var(--bd-orange);
+}
 .pd-newpay-history-foot {
   display: flex;
   flex-wrap: wrap;

@@ -13449,3 +13449,17 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `reception-arrival-call` + `reception-temporary` 6/6 trên bản build production, BE docker đã rebuild.
   - `lint:ts` sạch.
 - **Mức retest**: 2.
+
+## R-1137 (2026-11-03, mức 2: F-83 Thanh toán nhiều đợt — dialog Tạo phiếu thanh toán) Dòng "đợt này" gạch giá khi có TN giảm
+
+- **Yêu cầu** (owner, có ảnh mẫu): khi thu ngân nhập giảm giá, dòng Đợt N trong "Các đợt thanh toán" hiện giá cũ gạch ngang, giá mới màu cam, rồi nhãn "Chưa thanh toán".
+- **Trước**: dòng đợt này chỉ có số thu đợt này + nhãn; TN giảm chỉ thấy qua chip.
+- **Sửa** (chỉ FE):
+  - `PaymentRoundHistory` → `CurrentMoney`: khi `discount > 0` hiện `<s>` = số đợt này thu nếu không có TN giảm, dưới là số thu thật màu `--bd-orange`. Không có TN giảm thì như cũ.
+  - Số gạch ngang = số thu đợt này + phần TN giảm đã bớt **gồm VAT** (`lineFigures(line, 0, voucher).cap − cap`). Không tính voucher. Thu một phần thì gạch "phần thu + TN giảm" (owner duyệt theo đề xuất).
+  - Các đợt đã thu trước và badge "Còn nợ" đầu thẻ giữ nguyên (owner duyệt theo đề xuất).
+- **Kiểm**:
+  - `payment-rounds.spec.ts` thêm assert: TN giảm 1.000.000 trên dịch vụ VAT 10% → ~~5.500.000~~ 4.400.000; thêm voucher 250.000 → ~~5.225.000~~ 4.125.000.
+  - `payment-rounds` 3/3 trên bản build production (preview riêng cổng 8093), BE + DB thật.
+  - `tsc -b` + eslint sạch. Ảnh chụp thẻ khớp ảnh mẫu.
+- **Mức retest**: 2.

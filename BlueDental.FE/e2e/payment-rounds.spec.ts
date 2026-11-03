@@ -283,6 +283,11 @@ test.describe("Thanh toán nhiều đợt (P2910)", () => {
     await card1.getByRole("button", { name: "Áp dụng" }).click();
     await expect(card1.locator(".pd-newpay-editlink")).toHaveText(/Chỉnh phiếu đợt 2/);
     await expect(card1.locator(".pd-newpay-editrow .pd-newpay-chip")).toHaveText("TN giảm 1.000.000 đ");
+    // The đợt 2 row: what it would collect without TN giảm (VAT included) struck over what it does.
+    const nowRow = history.locator(".pd-newpay-history-now");
+    await expect(nowRow.locator(".pd-newpay-history-was")).toHaveText("5.500.000 đ");
+    await expect(nowRow.locator(".pd-newpay-history-discounted")).toHaveText("4.400.000 đ");
+    await expect(nowRow).toContainText("Chưa thanh toán");
 
     await card2.locator("input[type=checkbox]").first().check();
     await card2.getByRole("button", { name: "Áp dụng" }).click();
@@ -292,6 +297,9 @@ test.describe("Thanh toán nhiều đợt (P2910)", () => {
     await page.keyboard.type(made.voucher.code);
     await openDropdown(page).locator(".ant-select-item-option", { hasText: made.voucher.code }).click();
     await expect(dialog.locator(".pd-newpay-voucher-off")).toHaveText("−500.000 đ");
+    // Only TN giảm is struck: the voucher share stays off both figures.
+    await expect(nowRow.locator(".pd-newpay-history-was")).toHaveText("5.225.000 đ");
+    await expect(nowRow.locator(".pd-newpay-history-discounted")).toHaveText("4.125.000 đ");
 
     const totals = dialog.locator("section", { has: page.locator("h4", { hasText: "Tổng tiền dịch vụ đã chọn" }) });
     await expect
