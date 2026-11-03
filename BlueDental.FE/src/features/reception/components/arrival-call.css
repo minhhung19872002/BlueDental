@@ -7,6 +7,18 @@
   z-index: 900;
 }
 
+/* The dock owns the bottom-right corner; the 46px "back to top" FloatButton,
+   which AntD parks there too, stacks 16px above it on the same centre line. */
+body:has(.arrival-dock) .scroll-top-button {
+  inset-inline-end: 31px;
+  inset-block-end: 100px;
+}
+/* AntD floats it at z-index 1001, over the open panel's rows and their
+   "Mời lên" / "Tiếp nhận" buttons: it steps aside while the panel is up. */
+body:has(.arrival-panel) .scroll-top-button {
+  visibility: hidden;
+}
+
 .arrival-dock-button {
   position: relative;
   display: flex;
@@ -204,5 +216,9 @@
   .arrival-dock {
     right: 16px;
     bottom: 16px;
+  }
+  body:has(.arrival-dock) .scroll-top-button {
+    inset-inline-end: 23px;
+    inset-block-end: 92px;
   }
 }
