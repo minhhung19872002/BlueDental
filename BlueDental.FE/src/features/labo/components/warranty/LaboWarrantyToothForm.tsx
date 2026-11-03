@@ -1,16 +1,15 @@
 import { DatePicker, Form, Input } from "antd";
 import dayjs from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
-import { StatusBadge } from "@/components/StatusBadge";
 import { WarrantyCardPhotos, type WarrantyCardDrafts } from "@/components/WarrantyCardPhotos";
 import { t } from "@/lib/i18n";
 import { formatDateTime } from "@/utils/format";
 import type { LaboOrderToothDto } from "@/features/labo/api/laboApi";
-import { LABO_PILL_TONE } from "@/features/labo/api/laboStatus";
 import { toothKey } from "../check/laboCheckRules";
 import { requiredRule } from "../order-dialogs/useLaboOrderForm";
 import { LaboWarrantyDurationPicker } from "./LaboWarrantyDurationPicker";
-import { warrantyEndDate } from "./laboWarrantyRules";
+import { LaboWarrantyReadiness } from "./LaboWarrantyReadiness";
+import { warrantyEndDate, warrantyToothFormId } from "./laboWarrantyRules";
 import type { LaboWarrantyCardValues } from "./useLaboWarrantyForm";
 
 interface Props {
@@ -20,18 +19,8 @@ interface Props {
   /** The Ảnh thẻ bảo hành picked so far, keyed by tooth. */
   photos: WarrantyCardDrafts;
   busy: boolean;
-}
-
-/** Thiếu ngày bắt đầu, thời hạn — or Đủ thông tin once both are in. */
-function Readiness({ card }: { card: LaboWarrantyCardValues | undefined }) {
-  const missing = [
-    !card?.startDate && t("Labo:Warranty:StartDateShort"),
-    !card?.months && t("Labo:Warranty:DurationShort"),
-  ].filter((part): part is string => Boolean(part));
-  if (missing.length === 0) {
-    return <StatusBadge label={t("Labo:Warranty:Ready")} {...LABO_PILL_TONE.success} />;
-  }
-  return <StatusBadge label={t("Labo:Warranty:Missing", missing.join(", "))} {...LABO_PILL_TONE.warning} />;
+  /** Jumped to from its row in 1. Chọn răng kích hoạt. */
+  focused: boolean;
 }
 
 /**
@@ -39,14 +28,18 @@ function Readiness({ card }: { card: LaboWarrantyCardValues | undefined }) {
  * hãng, Thời hạn — Ngày hết hạn follows from the two — Điều kiện and the
  * optional Ảnh thẻ bảo hành, front and back (P3110 REQ-E1).
  */
-export function LaboWarrantyToothForm({ tooth, caption, photos, busy }: Props) {
+export function LaboWarrantyToothForm({ tooth, caption, photos, busy, focused }: Props) {
   const key = toothKey(tooth.toothNumber);
   const card: LaboWarrantyCardValues | undefined = Form.useWatch(["cards", key]);
   const end = warrantyEndDate(card?.startDate, card?.months);
   const passedDay = tooth.passedAt ? dayjs(tooth.passedAt).startOf("day") : null;
 
   return (
-    <article className="pd-labo-warranty-tooth" aria-label={t("Labo:Check:ToothLabel", tooth.toothNumber)}>
+    <article
+      id={warrantyToothFormId(tooth.toothNumber)}
+      className={["pd-labo-warranty-tooth", focused && "pd-labo-warranty-tooth--focus"].filter(Boolean).join(" ")}
+      aria-label={t("Labo:Check:ToothLabel", tooth.toothNumber)}
+    >
       <header className="pd-labo-warranty-tooth-head">
         <strong>{t("Labo:Check:ToothLabel", tooth.toothNumber)}</strong>
         <span className="pd-labo-warranty-tooth-caption">
@@ -54,7 +47,7 @@ export function LaboWarrantyToothForm({ tooth, caption, photos, busy }: Props) {
             .filter(Boolean)
             .join(" · ")}
         </span>
-        <Readiness card={card} />
+        <LaboWarrantyReadiness card={card} />
       </header>
       <div className="pd-labo-check-grid pd-labo-check-grid--three">
         <FloatingField

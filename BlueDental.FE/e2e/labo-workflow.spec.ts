@@ -434,11 +434,15 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
 
     await test.step("Bảo hành: one card for tooth 11, tooth 21 left for later", async () => {
       const box = dialog.getByRole("region", { name: "Kích hoạt bảo hành" });
-      const tooth21 = box.locator(".pd-labo-warranty-pick").filter({ hasText: "Răng 21" });
-      await expect(tooth21).toHaveAttribute("aria-pressed", "true");
-      await tooth21.click();
-      await expect(tooth21).toHaveAttribute("aria-pressed", "false");
+      // 1. Chọn răng kích hoạt: a card per tooth with its own tick, "Tất cả" on the title.
+      const pickAll = box.getByRole("checkbox", { name: "Tất cả", exact: true });
+      const tooth21 = box.getByRole("checkbox", { name: "Răng 21", exact: true });
+      await expect(pickAll).toBeChecked();
+      await expect(tooth21).toBeChecked();
+      await tooth21.uncheck();
+      await expect(tooth21).not.toBeChecked();
       await expect(box.getByRole("article", { name: "Răng 21" })).toHaveCount(0);
+      await expect(box.locator(".pd-labo-warranty-pick-all .ant-checkbox-indeterminate")).toHaveCount(1);
 
       const card = box.getByRole("article", { name: "Răng 11" });
       await typeDate(card.getByLabel("Ngày bắt đầu bảo hành"), pickerStamp(0, 0).slice(0, 10));

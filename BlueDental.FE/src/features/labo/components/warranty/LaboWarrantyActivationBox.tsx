@@ -6,6 +6,7 @@ import { LaboWarrantyToothForm } from "./LaboWarrantyToothForm";
 import { LaboWarrantyToothPicker } from "./LaboWarrantyToothPicker";
 import { restorationName } from "./laboWarrantyRules";
 import type { LaboWarrantyForm } from "./useLaboWarrantyForm";
+import { useWarrantyToothJump } from "./useWarrantyToothJump";
 
 interface Props {
   order: LaboOrderDto;
@@ -22,19 +23,13 @@ interface Props {
 export function LaboWarrantyActivationBox({ order, warranty, aside }: Props) {
   const restoration = restorationName(order);
   const caption = [restoration, order.orderCode].filter(Boolean).join(" · ");
+  const jump = useWarrantyToothJump();
   const picked = warranty.pending.filter((tooth) => warranty.open && warranty.selected.includes(tooth.toothNumber));
 
   return (
     <section className="pd-labo-flow-main pd-labo-warranty-box" aria-label={t("Labo:Warranty:ActivateTitle")}>
       <div className="pd-labo-flow-pane pd-labo-flow-pane--side pd-labo-flow-pane--teeth">
-        <LaboWarrantyToothPicker
-          teeth={warranty.pending}
-          restoration={restoration}
-          selected={warranty.selected}
-          open={warranty.open}
-          disabled={warranty.busy}
-          onToggle={warranty.toggle}
-        />
+        <LaboWarrantyToothPicker warranty={warranty} restoration={restoration} jump={jump} />
       </div>
       <div className="pd-labo-flow-pane pd-labo-flow-pane--main">
         {/* Mounted even with nothing picked, so the form instance stays connected. */}
@@ -52,6 +47,7 @@ export function LaboWarrantyActivationBox({ order, warranty, aside }: Props) {
                   caption={caption}
                   photos={warranty.photos}
                   busy={warranty.busy}
+                  focused={jump.focused === tooth.toothNumber}
                 />
               ))}
             </div>

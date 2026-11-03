@@ -32,6 +32,10 @@ export interface LaboWarrantyForm {
   pending: LaboOrderToothDto[];
   selected: number[];
   toggle: (tooth: number) => void;
+  /** "Tất cả": every pending tooth picked, or none. */
+  toggleAll: (on: boolean) => void;
+  /** The card forms as typed so far, keyed by toothKey. */
+  cards: LaboWarrantyValues["cards"];
   /** Ảnh thẻ bảo hành picked per tooth, sent with the activation (P3110 REQ-E1). */
   photos: WarrantyCardDrafts;
   /** Picked teeth whose start and duration are both filled. */
@@ -39,7 +43,8 @@ export interface LaboWarrantyForm {
   activate: () => Promise<void>;
 }
 
-const isReady = (card: LaboWarrantyCardValues | undefined) => Boolean(card?.startDate && card.months);
+/** Both Ngày bắt đầu and Thời hạn filled. */
+export const isWarrantyCardReady = (card: LaboWarrantyCardValues | undefined) => Boolean(card?.startDate && card.months);
 
 /**
  * Kích hoạt bảo hành (n răng): pick the Đạt teeth still without a card, give
@@ -63,6 +68,7 @@ export function useLaboWarrantyForm(order: LaboOrderDto, readOnly = false): Labo
 
   const toggle = (tooth: number) =>
     setPicked((current) => (current.includes(tooth) ? current.filter((n) => n !== tooth) : [...current, tooth]));
+  const toggleAll = (on: boolean) => setPicked(on ? pending.map((tooth) => tooth.toothNumber) : []);
 
   const activate = async () => {
     const fields = selected.flatMap((tooth) => [
@@ -113,8 +119,10 @@ export function useLaboWarrantyForm(order: LaboOrderDto, readOnly = false): Labo
     pending,
     selected,
     toggle,
+    toggleAll,
+    cards,
     photos,
-    readyCount: selected.filter((tooth) => isReady(cards?.[toothKey(tooth)])).length,
+    readyCount: selected.filter((tooth) => isWarrantyCardReady(cards?.[toothKey(tooth)])).length,
     activate,
   };
 }

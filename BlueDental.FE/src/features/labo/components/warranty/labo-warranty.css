@@ -41,6 +41,21 @@
   color: var(--bd-ink);
 }
 
+/* Badge and "Tất cả" keep their size; only the title text may wrap. */
+.pd-labo-warranty-step-title > .pd-labo-check-badge {
+  flex: none;
+}
+
+/* "Tất cả" pushed to the title's right end, at least 12px past the text. */
+.pd-labo-warranty-pick-all {
+  flex: none;
+  margin-left: auto;
+  padding-left: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .pd-labo-warranty-picks {
   display: flex;
   flex-wrap: wrap;

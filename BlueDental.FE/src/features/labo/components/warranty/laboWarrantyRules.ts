@@ -44,6 +44,11 @@ export function cardPhotoUrls(order: LaboOrderDto, toothNumber: number): Warrant
   );
 }
 
+/** The DOM id of a tooth's card form, for its row in 1. Chọn răng kích hoạt to jump to. */
+export function warrantyToothFormId(toothNumber: number): string {
+  return `labo-warranty-tooth-${toothNumber}`;
+}
+
 export function isActivated(tooth: LaboOrderToothDto): boolean {
   return Boolean(tooth.warrantyActivatedAt);
 }

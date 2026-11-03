@@ -629,8 +629,9 @@
   gap: 0;
   padding: 18px 20px;
 }
+/* 300px: room for "1 Chọn răng kích hoạt" and "Tất cả" apart on one line. */
 .pd-labo-flow-pane--teeth {
-  flex-basis: 280px;
+  flex-basis: 300px;
 }
 .pd-labo-flow-pane--aside {
   flex: 0 0 320px;
@@ -794,16 +795,130 @@
   align-self: center;
   margin-left: auto;
 }
-.pd-labo-flow-pane--teeth .pd-labo-warranty-picks {
+/* 1. Chọn răng kích hoạt (BA mock): a card per tooth — the tick centred on the
+   left; number tile beside Răng n over its caption, › on the right; the
+   readiness pill on its own line under the tile. Indigo tile once picked,
+   green once the card form is complete. */
+.pd-labo-wpick-list {
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-.pd-labo-workflow .pd-labo-flow-pane--teeth .pd-labo-warranty-pick {
-  justify-content: flex-start;
-  min-height: 52px;
-  padding: 10px 12px;
+.pd-labo-wpick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--lw-line);
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pd-labo-wpick--focus {
+  border-color: var(--lw-primary);
+  box-shadow: 0 0 0 3px var(--lw-primary-pale);
+}
+.pd-labo-wpick-check {
+  flex: none;
+}
+.pd-labo-wpick-body {
+  display: grid;
+  flex: 1;
+  grid-template-areas:
+    "no title chev"
+    "no caption chev"
+    "state state state";
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
   text-align: left;
-  white-space: normal;
+  cursor: pointer;
+}
+.pd-labo-wpick-body:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.pd-labo-wpick-body:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--lw-primary);
+  outline-offset: 4px;
+}
+.pd-labo-wpick-no {
+  display: inline-flex;
+  grid-area: no;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--lw-readonly);
+  color: var(--lw-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.pd-labo-wpick--on .pd-labo-wpick-no {
+  background: var(--lw-primary-pale);
+  color: var(--lw-primary);
+}
+.pd-labo-wpick--ready .pd-labo-wpick-no {
+  background: var(--lw-pass-pale);
+  color: var(--lw-pass-ink);
+}
+.pd-labo-wpick-title {
+  grid-area: title;
+  align-self: end;
+  color: var(--lw-ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+/* A long restoration name wraps rather than "Sứ ki…" (owner); "Đạt dd/mm/yyyy"
+   never splits, so it drops to the next line whole. */
+.pd-labo-wpick-caption {
+  grid-area: caption;
+  align-self: start;
+  min-width: 0;
+  color: var(--lw-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.pd-labo-wpick-passed {
+  white-space: nowrap;
+}
+.pd-labo-wpick-chevron {
+  grid-area: chev;
+  color: var(--lw-muted);
+  font-size: 11px;
+}
+.pd-labo-wpick-body:hover .pd-labo-wpick-chevron {
+  color: var(--lw-primary);
+}
+.pd-labo-wpick-state {
+  display: flex;
+  grid-area: state;
+  margin-top: 8px;
+}
+.pd-labo-wpick-state .ant-tag {
+  margin: 0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
+}
+/* The card form a row jumped to wears the same ring. */
+.pd-labo-workflow .pd-labo-warranty-tooth--focus {
+  border-color: var(--lw-primary);
+  box-shadow: 0 0 0 3px var(--lw-primary-pale);
 }
 .pd-labo-warranty-cards--stack {
   grid-template-columns: minmax(0, 1fr);
@@ -837,3 +952,4 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
