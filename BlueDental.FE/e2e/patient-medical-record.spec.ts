@@ -268,7 +268,7 @@ test.describe("Bệnh án", () => {
       // The clinic's .docx (2026-10-29): every dotted line a blank; the contract
       // on two pages and the agreement attached to it on three; Loại mắc cài
       // as on mẫu 3, four boxes and their prices (BA, 2026-11-01, R-1097).
-      { form: "Hợp đồng thỏa thuận niềng răng", blanks: 48, boxes: 4, pages: 5 },
+      { form: "Hợp đồng thỏa thuận niềng răng", blanks: 53, boxes: 4, pages: 5 },
     ];
 
     for (const item of expected) {

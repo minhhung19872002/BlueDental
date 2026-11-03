@@ -4294,7 +4294,17 @@ mục UNKNOWN_REFERENCE_BEHAVIOR.
   này — chỉ người giám hộ có), Nhổ răng, Phục hồi – Phục hình, Khí cụ, thời gian điều trị / duy
   trì (Nhổ răng, thời gian điều trị và Loại mắc cài lấy từ mẫu 3 khi bộ có mẫu 3, R-1097), Cam kết, chữ ký, Địa chỉ / Số điện thoại cuối trang (file Word không nói là của khách hàng
   hay người giám hộ).
-- Bên A (Công ty, địa chỉ, MST, đại diện Bác sĩ Bùi Văn Tới) và bảng phí là chữ in của file Word,
-  không phải ô nhập.
+- Bảng phí là chữ in của file Word, không phải ô nhập.
+- **Bên A (phòng khám, 2026-11-03, R-1139)**: năm dòng Bên A, Địa chỉ, Điện thoại, MST, Đại diện là
+  ô nhập (`orthodontic-contract.party-a.name/address/phone/tax-code/representative`, nguồn
+  `contract.partyA.*`), điền sẵn theo `CONTRACT_PARTY_A` + `contractPartyAValues` (`fieldValues.ts`):
+  - Bên A, MST, Đại diện: chữ cứng của phòng khám ("Công ty Cổ phần dịch vụ Nha Khoa Đức Hạnh",
+    "0318531468", "Bác sĩ Bùi Văn Tới – Bác sĩ phụ trách"). MST **không** lấy TaxCode của chi nhánh.
+  - Địa chỉ, Điện thoại: ô "Địa chỉ" và "Số điện thoại" trong cài đặt chi nhánh — chỉ ô Địa chỉ,
+    không ghép phường/tỉnh. Chi nhánh để trống thì dùng chữ cứng của file Word.
+  - Dòng không sửa thì không lưu (chỉ lưu giá trị khác bản tự điền) nên vẫn theo cài đặt chi nhánh;
+    dòng đã sửa giữ riêng cho tờ đó.
+  - Câu "…tại Công ty Cổ phần dịch vụ Nha Khoa Đức Hạnh, chúng tôi gồm" và tên ký "BÙI VĂN TỚI"
+    vẫn là chữ in. Mẫu 10 giờ có 53 ô (trước 48), vẫn 5 trang.
 - Giữ nguyên văn file Word: phần bản thỏa thuận đánh số "I." rồi "Sự đồng ý và thỏa thuận…" (không
   có "II.") rồi "III. Đồng ý điều trị".

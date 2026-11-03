@@ -246,6 +246,35 @@ export const FORM_CODE_VALUES: Readonly<FieldValues> = {
   "custom.text.8d7eb5b7fe9746b3909ce9c21ba46a31": "PT-11",
 };
 
+/**
+ * Bên A on the contract (mẫu 10) as the clinic's .docx prints it. The company,
+ * its tax code and its representative are this text (clinic, 2026-11-03,
+ * R-1139); Địa chỉ and Điện thoại are the branch settings' own fields, and this
+ * text only where the branch has none.
+ */
+export const CONTRACT_PARTY_A = {
+  name: "Công ty Cổ phần dịch vụ Nha Khoa Đức Hạnh",
+  address: "84 – 86 Phạm Ngọc Thạch, Phường Võ Thị Sáu, Quận 3, TP. Hồ Chí Minh",
+  phone: "0906.884.440",
+  taxCode: "0318531468",
+  representative: "Bác sĩ Bùi Văn Tới – Bác sĩ phụ trách",
+} as const;
+
+/**
+ * What Bên A's blanks start with. They are blanks, not print: a sheet may write
+ * over any of them and keeps what it wrote. A line left as it was is not saved
+ * (MedicalRecordDocument keeps only what differs), so it follows the settings.
+ */
+export function contractPartyAValues(branch: SheetBranch | undefined): FieldValues {
+  return {
+    "contract.partyA.name": CONTRACT_PARTY_A.name,
+    "contract.partyA.address": branch?.address?.trim() || CONTRACT_PARTY_A.address,
+    "contract.partyA.phone": branch?.phone?.trim() || CONTRACT_PARTY_A.phone,
+    "contract.partyA.taxCode": CONTRACT_PARTY_A.taxCode,
+    "contract.partyA.representative": CONTRACT_PARTY_A.representative,
+  };
+}
+
 /** The letterhead, reached from the templates as `{{branch.name}}` and friends. */
 export function branchFieldValues(branch: SheetBranch | undefined): FieldValues {
   const values: FieldValues = {};

@@ -8,7 +8,14 @@ import { useMedicalRecordPhones, type MedicalRecordPhonesDto } from "../../../ap
 import { useAddressParts } from "../../../hooks/useGuardianSubject";
 import { GENDER, GUARDIAN_RELATION, type PatientDto, type PatientGuardianDto } from "../../../types/patient";
 import { RELATION_LABEL } from "../../../utils/guardian";
-import { branchFieldValues, FORM_CODE_VALUES, patientFieldValues, sheetPhone, type FieldValues } from "./fieldValues";
+import {
+  branchFieldValues,
+  contractPartyAValues,
+  FORM_CODE_VALUES,
+  patientFieldValues,
+  sheetPhone,
+  type FieldValues,
+} from "./fieldValues";
 import { materialCatalogKey, type SheetMaterial } from "./materials/materialField";
 
 /** Below this age a patient signs mẫu 10 with a parent or guardian. */
@@ -103,7 +110,8 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
       catalogs[materialCatalogKey(kind)] = JSON.stringify(list);
     }
 
-    if (!patient) return { ...FORM_CODE_VALUES, ...branchFieldValues(branch), ...catalogs };
+    const clinic = { ...branchFieldValues(branch), ...contractPartyAValues(branch) };
+    if (!patient) return { ...FORM_CODE_VALUES, ...clinic, ...catalogs };
 
     const job =
       occupations?.find((item) => item.id === patient.occupationEntryId)?.name ??
@@ -148,7 +156,7 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
         minorGuardianName: minor ? primaryGuardian(patient.guardians)?.fullName : undefined,
         gender: GENDER_NAME[patient.gender],
       }),
-      ...branchFieldValues(branch),
+      ...clinic,
       ...catalogs,
     };
   }, [patient, phones, branch, occupations, diseases, address, materials]);

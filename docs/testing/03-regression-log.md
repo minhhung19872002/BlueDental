@@ -12596,3 +12596,30 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `reception-arrival-call` + `reception-temporary` 6/6 trên bản build production, BE docker đã rebuild.
   - `lint:ts` sạch.
 - **Mức retest**: 2.
+
+## R-1139 (2026-11-03, mức 2: Bệnh án mẫu 10) Bên A trên Hợp đồng thỏa thuận niềng răng sửa được, Địa chỉ / Điện thoại lấy từ cài đặt chi nhánh
+
+- **Yêu cầu** (phòng khám): "cho phép chỉnh sửa luôn nha, gắng dữ liệu cứng vào, trường địa chỉ và sđt thì lấy từ setting nha".
+- **Chủ dự án chốt**:
+  1. Địa chỉ chỉ lấy ô "Địa chỉ" của chi nhánh, không ghép phường/tỉnh.
+  2. MST là chữ cứng, không lấy TaxCode chi nhánh.
+  3. Câu "…tại Công ty Cổ phần dịch vụ Nha Khoa Đức Hạnh, chúng tôi gồm" và chữ ký "BÙI VĂN TỚI" giữ nguyên.
+- **Sửa** (chỉ FE):
+  - `orthodonticContract.ts`: năm dòng Bên A thành ô `orthodontic-contract.party-a.*` (nguồn `contract.partyA.*`), mỗi ô rộng tới lề phải.
+  - `fieldValues.ts`: `CONTRACT_PARTY_A` + `contractPartyAValues(branch)`. Địa chỉ / Điện thoại lấy từ `useBranchInfo`; chi nhánh để trống thì dùng chữ của file Word.
+  - `useSheetFieldValues.ts`: trộn vào giá trị tự điền, cả khi chưa có bệnh nhân.
+  - Dòng không sửa thì không lưu, nên vẫn theo cài đặt chi nhánh.
+- **Kiểm**:
+  - E2E mới `medical-record-contract-party-a.spec.ts`, chạy trên bản build production với stack thật:
+    - đủ 5 giá trị, cả 5 ô `contenteditable`, mỗi dòng một hàng;
+    - sửa MST + Đại diện, Lưu, reload vẫn giữ;
+    - Địa chỉ / Điện thoại vẫn bằng cài đặt chi nhánh;
+    - API chỉ lưu ô đã sửa.
+  - `patient-medical-record` cập nhật số ô mẫu 10: 48 → 53, vẫn 5 trang.
+  - Chạy lại `medical-record-contract-from-orthodontic` + `medical-record-sheet-facts` + `patient-medical-record`: còn 3 đỏ, không do thay đổi này:
+    - `patient-medical-record` "the index lists…": `.pd-profile-card`, đã ghi.
+    - `sheet-facts:340`: `Treatment:0058`, đã ghi.
+    - `sheet-facts:168`: "the slip discount is in Giảm giá", `discountAmount` = 0 ngay trong `/sheet-facts` sau POST giảm giá. Lỗi thuần API, xảy ra trước khi mở tờ nào, BE đang chạy :5000.
+  - 3 test đỏ khi chạy cả file nhưng xanh khi chạy riêng: "survives a reload", "every form that prints them", "prints no blank page".
+  - Ảnh: MST / Đại diện mỗi dòng một hàng, cùng kiểu ô với Bên B.
+- **Mức retest**: 2.
