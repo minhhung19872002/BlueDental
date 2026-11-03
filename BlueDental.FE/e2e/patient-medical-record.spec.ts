@@ -259,7 +259,8 @@ test.describe("Bệnh án", () => {
       // Since 2026-10-16: "Loại" comes from Danh mục (Zirconia…Khác and the implant's typed type
       // became one blank each) and "Niềng răng" joined Phương pháp điều trị.
       { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 75, boxes: 17, pages: 2 },
-      { form: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật", blanks: 49, boxes: 26, pages: 2 },
+      // The reference's 49, plus a blank after "Tê môi, tê lưỡi" (BA, 2026-11-02, R-1132).
+      { form: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật", blanks: 50, boxes: 26, pages: 2 },
       // 38 of the reference's, plus our drawing blank for "Lược đồ".
       { form: "Phiếu phẫu thuật/thủ thuật", blanks: 39, boxes: 2, pages: 1 },
       { form: "Phiếu theo dõi điều trị", blanks: 111, boxes: 2, pages: 1 },

@@ -872,6 +872,95 @@ public class AppointmentTests
         Assert.NotNull(seated.CheckedInAt);
     }
 
+    [Fact]
+    public void Invite_Should_Call_Up_A_Waiting_Patient_Once()
+    {
+        var appointment = NewAppointment();
+        appointment.CheckIn();
+
+        appointment.Invite(_dentistId);
+        var firstCall = appointment.InvitedAt;
+        appointment.Invite(Guid.NewGuid());
+
+        Assert.NotNull(firstCall);
+        Assert.Equal(firstCall, appointment.InvitedAt);
+        Assert.Equal(_dentistId, appointment.InvitedById);
+        Assert.Equal(AppointmentStatus.CheckedIn, appointment.Status);
+    }
+
+    [Fact]
+    public void Invite_Should_Refuse_A_Patient_Who_Is_Not_Waiting()
+    {
+        var notArrived = NewAppointment();
+        var seated = NewAppointment();
+        seated.CheckIn();
+        seated.Start();
+
+        foreach (var appointment in new[] { notArrived, seated })
+        {
+            var error = Assert.Throws<BusinessException>(() => appointment.Invite(_dentistId));
+            Assert.Equal(BlueDentalDomainErrorCodes.Appointments.InvalidTransition, error.Code);
+        }
+    }
+
+    [Fact]
+    public void Admit_Should_Seat_Only_A_Called_Up_Patient()
+    {
+        var waiting = NewAppointment();
+        waiting.CheckIn();
+        var error = Assert.Throws<BusinessException>(() => waiting.Admit());
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.InvalidTransition, error.Code);
+
+        waiting.Invite(_dentistId);
+        waiting.Admit();
+
+        Assert.Equal(AppointmentStatus.InProgress, waiting.Status);
+        Assert.NotNull(waiting.StartedAt);
+    }
+
+    /// <summary>R-1134: a called-up "Lịch tạm" is seated only once reception has made its record.</summary>
+    [Fact]
+    public void Admit_Should_Wait_For_The_Record_Of_A_Temporary_Booking()
+    {
+        var walkIn = Appointment.CreateTemporary(
+            Guid.NewGuid(), "Khach tam", "0900000000", _branchId, _slot, _dentistId);
+        walkIn.CheckIn();
+        walkIn.Invite(_dentistId);
+
+        var error = Assert.Throws<BusinessException>(() => walkIn.Admit());
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.TemporaryNeedsRecord, error.Code);
+        Assert.Equal(AppointmentStatus.CheckedIn, walkIn.Status);
+
+        walkIn.AttachPatient(_patientId);
+        walkIn.Admit();
+
+        Assert.Equal(AppointmentStatus.InProgress, walkIn.Status);
+    }
+
+    [Fact]
+    public void Undoing_The_Arrival_Or_Handing_To_Another_Doctor_Should_Drop_The_Call()
+    {
+        var undone = NewAppointment();
+        undone.CheckIn();
+        undone.Invite(_dentistId);
+        undone.UndoCheckIn();
+
+        var handedOver = NewAppointment();
+        handedOver.CheckIn();
+        handedOver.Invite(_dentistId);
+        handedOver.AssignDentist(Guid.NewGuid());
+
+        var sameDoctor = NewAppointment();
+        sameDoctor.CheckIn();
+        sameDoctor.Invite(_dentistId);
+        sameDoctor.AssignDentist(_dentistId);
+
+        Assert.Null(undone.InvitedAt);
+        Assert.Null(handedOver.InvitedAt);
+        Assert.Null(handedOver.InvitedById);
+        Assert.NotNull(sameDoctor.InvitedAt);
+    }
+
     private Appointment NewAppointment() =>
         new(Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot, AppointmentType.Consultation);
 }

@@ -418,6 +418,13 @@
   word-break: break-word;
 }
 
+/* A Nội dung line that says something stands out (BA 2026-11-02). */
+.rc-detail-notes--filled {
+  font-weight: 600;
+  padding: 3px;
+  background-color: var(--bd-note-highlight);
+}
+
 /* Col 2 */
 .rc-col-progress {
   display: flex;

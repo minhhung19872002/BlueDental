@@ -1,0 +1,208 @@
+/* ── Floating "Đã đến" panel: "Mời lên" / "Tiếp nhận" ───────────────
+   Mounted by the app shell, so it floats over every screen. */
+.arrival-dock {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 900;
+}
+
+.arrival-dock-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border: 0;
+  border-radius: 50%;
+  /* The CTA fill, so it stands out from the white cards it floats over. */
+  background: var(--bd-cta);
+  color: #fff;
+  box-shadow: var(--bd-shadow-glow);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.arrival-dock-button:hover,
+.arrival-dock-button--open {
+  transform: translateY(-1px);
+  box-shadow: var(--bd-shadow-glow), var(--bd-shadow-pop);
+}
+
+.arrival-dock-button:focus-visible {
+  outline: 3px solid var(--bd-accent);
+  outline-offset: 3px;
+}
+
+.arrival-dock-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border: 2px solid var(--bd-card);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.arrival-panel {
+  position: absolute;
+  right: 0;
+  bottom: 72px;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+  /* Tinted and ringed in the brand colour so it lifts off the white page. */
+  border: 1px solid var(--bd-primary);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-blue-pale);
+  box-shadow: var(--bd-shadow-glow), var(--bd-shadow-modal);
+  padding: 0 0 8px;
+}
+
+.arrival-panel-section + .arrival-panel-section {
+  margin-top: 8px;
+}
+
+.arrival-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 10px 16px;
+  background: var(--bd-cta);
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.arrival-panel-count {
+  min-width: 22px;
+  padding: 0 7px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-card);
+  color: var(--bd-primary);
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.arrival-panel-empty {
+  padding: 16px;
+  color: var(--bd-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.arrival-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0 8px;
+  list-style: none;
+}
+
+.arrival-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+}
+
+.arrival-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.arrival-row-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.arrival-row-line svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.arrival-row-name {
+  color: var(--bd-primary);
+  font-weight: 600;
+}
+
+.arrival-row-meta {
+  flex-wrap: wrap;
+  column-gap: 16px;
+}
+
+.arrival-row-meta > span {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.arrival-row-doctor {
+  color: var(--bd-primary);
+  font-weight: 600;
+}
+
+/* A "Lịch tạm" keeps its lilac tag here as on its board card. */
+.arrival-row-temp {
+  flex-shrink: 0;
+  padding: 0 8px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.arrival-row-hint {
+  padding-left: 24px;
+  color: var(--bd-orange);
+  font-size: 12px;
+}
+
+.arrival-row-content {
+  word-break: break-word;
+}
+
+.arrival-row-action {
+  flex-shrink: 0;
+}
+
+.arrival-row-tag {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border: 1px solid var(--bd-green);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+@media (max-width: 640px) {
+  .arrival-dock {
+    right: 16px;
+    bottom: 16px;
+  }
+}

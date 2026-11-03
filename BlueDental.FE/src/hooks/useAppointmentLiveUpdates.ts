@@ -11,8 +11,10 @@ import { createNotificationConnection } from "@/lib/signalr";
  * Keeps open screens current when the server changes appointments on its own —
  * a booking turning Trễ hẹn once its time passes — instead of waiting for a
  * reload: Lịch hẹn, Tiếp nhận, CSKH (Nhắc lịch hẹn → Đặt lịch không đến) and
- * the patient list all refetch, and a toast names the bookings. The hub only
- * names the branch and the bookings; everything is read back through the API.
+ * the patient list all refetch, and a toast names the bookings. A visit moved
+ * along at reception by someone else refetches the same screens, silently.
+ * The hub only names the branch and the bookings; everything is read back
+ * through the API.
  */
 export function useAppointmentLiveUpdates(enabled: boolean): void {
   const queryClient = useQueryClient();
@@ -31,7 +33,15 @@ export function useAppointmentLiveUpdates(enabled: boolean): void {
       void announceLateAppointments(appointmentIds);
     };
 
+    // Someone moved a visit along at reception — arrived, called up with
+    // "Mời lên", seated — so the board and the "Đã đến" panel follow.
+    const handleArrivalsChanged = (branchId: string) => {
+      if (branchRef.current && branchRef.current !== branchId) return;
+      invalidateEntities(queryClient, ["appointment"]);
+    };
+
     connection.on("AppointmentsMarkedLate", handleMarkedLate);
+    connection.on("ArrivalsChanged", handleArrivalsChanged);
     // Whatever changed while the socket was down is fetched once it is back.
     connection.onreconnected(() => {
       invalidateEntities(queryClient, ["appointment"]);

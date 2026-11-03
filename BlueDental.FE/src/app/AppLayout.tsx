@@ -16,6 +16,7 @@ import { GlobalSearch } from "@/components/GlobalSearch";
 import { authApi } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useClinicBranches } from "@/features/organizations/api";
+import { ArrivalCallDock } from "@/features/reception/components/ArrivalCallDock";
 import { StaffNotesLauncher } from "@/features/staff-notes/components/StaffNotesLauncher";
 import { useAppointmentLiveUpdates } from "@/hooks/useAppointmentLiveUpdates";
 import { useTrackPatientOrigin } from "@/hooks/usePatientOrigin";
@@ -465,6 +466,8 @@ export function AppLayout() {
           {branchPending ? <Spin className="app-content-pending" /> : <Outlet />}
         </main>
       </div>
+
+      {!branchPending && <ArrivalCallDock />}
 
       <MobileNavDrawer
         open={drawerOpen}

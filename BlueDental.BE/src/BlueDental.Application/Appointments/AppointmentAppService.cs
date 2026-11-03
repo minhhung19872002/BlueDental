@@ -586,6 +586,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             ActionFor(statusBefore, appointment.Status), appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }
 
@@ -625,6 +626,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Cancelled, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }
 
@@ -639,6 +641,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }
 
@@ -653,6 +656,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }
 
@@ -669,6 +673,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }
 
@@ -685,6 +690,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }
 
@@ -711,6 +717,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }
 
@@ -739,6 +746,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         var before = await SnapshotAsync(appointment);
         appointment.AttachPatient(input.PatientId);
         await _repository.UpdateAsync(appointment, autoSave: true);
+        // A called-up "Lịch tạm" turns "Tạo hồ sơ" into "Tiếp nhận" on every open panel.
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
         return await ToDtoAsync(appointment);
@@ -757,6 +766,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.Updated, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }
 
@@ -911,6 +921,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             await _changeRecorder.RecordAsync(AppointmentChangeAction.Deleted, appointment, before, null);
         }
     }
+
+    /// <summary>The floating "Đã đến" panels follow every move made on the board.</summary>
+    private ArrivalBroadcast ArrivalBroadcast => LazyServiceProvider.LazyGetRequiredService<ArrivalBroadcast>();
 
     private static DateOnly ClinicToday() => ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
 

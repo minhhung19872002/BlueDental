@@ -212,6 +212,12 @@ public static class BlueDentalDomainErrorCodes
         /// with "Hẹn tái khám" instead (owner 2026-10-27, docs/P2710.drawio).
         /// </summary>
         public const string RescheduleAfterStart = "BlueDental:Appointment:0017";
+
+        /// <summary>
+        /// "Tiếp nhận" on a "Lịch tạm": reception makes the patient record first,
+        /// so the visit is seated against a real patient (BA 2026-11-02).
+        /// </summary>
+        public const string TemporaryNeedsRecord = "BlueDental:Appointment:0018";
     }
 
     public static class TreatmentManagement

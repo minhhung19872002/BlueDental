@@ -91,6 +91,12 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("FollowUpAppointmentId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("InvitedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InvitedById")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
