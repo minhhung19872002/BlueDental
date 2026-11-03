@@ -47,6 +47,7 @@ export function ScrollTopButton({ anchor }: Props) {
 
   return (
     <FloatButton
+      className="scroll-top-button"
       type="primary"
       icon={<ArrowUpOutlined />}
       tooltip={t("Common:ScrollTop")}
