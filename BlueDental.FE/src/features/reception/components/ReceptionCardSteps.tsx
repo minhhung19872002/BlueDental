@@ -1,6 +1,5 @@
 import React from "react";
 import { Check, RotateCcw, X } from "lucide-react";
-import { t } from "@/lib/i18n";
 import type { ReceptionItem } from "../types/reception";
 import type { StepAction } from "../utils/receptionFlow";
 import { IDLE_COLOR, WAIT_COLORS, buildSteps, clickActionOf, type StepView } from "../utils/receptionSteps";
@@ -52,7 +51,7 @@ export function ReceptionCardSteps({ item, canAdvance, wait, onAdvance }: Recept
               type="button"
               disabled={!command}
               className={className}
-              title={undoing ? t("Reception:UndoArrivedHint") : undefined}
+              title={undoing ? step.undoHint : undefined}
               onClick={command ? () => onAdvance(command) : undefined}
             >
               <div className="rc-step-track">

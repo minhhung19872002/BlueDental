@@ -176,6 +176,8 @@ export const ReceptionPage: React.FC = () => {
       start: t("Reception:StepStart"),
       complete: t("Reception:StepComplete"),
       "undo-check-in": t("Reception:UndoArrivedSuccess"),
+      "undo-start": t("Reception:UndoStartSuccess"),
+      "undo-complete": t("Reception:UndoCompleteSuccess"),
     };
     runCommand(id, planStepClick(item, action), () => toast.success(labels[action]));
   };

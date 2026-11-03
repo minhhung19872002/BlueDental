@@ -65,6 +65,12 @@ public sealed class AppointmentController(IAppointmentAppService service) : Blue
     public Task<AppointmentDto> CompleteAsync(Guid id, [FromBody] CompleteAppointmentDto input) =>
         service.CompleteAsync(id, input);
 
+    [HttpPost("{id:guid}/undo-start")]
+    public Task<AppointmentDto> UndoStartAsync(Guid id) => service.UndoStartAsync(id);
+
+    [HttpPost("{id:guid}/undo-complete")]
+    public Task<AppointmentDto> UndoCompleteAsync(Guid id) => service.UndoCompleteAsync(id);
+
     [HttpPost("{id:guid}/no-show")]
     public Task<AppointmentDto> MarkNoShowAsync(Guid id) => service.MarkNoShowAsync(id);
 

@@ -872,6 +872,129 @@ public class AppointmentTests
         Assert.NotNull(seated.CheckedInAt);
     }
 
+    /// <summary>R-1143: "Hoàn tất" pressed again puts the patient back in the chair.</summary>
+    [Fact]
+    public void UndoComplete_Should_Put_The_Patient_Back_In_The_Chair()
+    {
+        var appointment = NewAppointment();
+        appointment.CheckIn();
+        appointment.Start();
+        var arrivedAt = appointment.CheckedInAt;
+        var startedAt = appointment.StartedAt;
+        appointment.Complete();
+        Assert.Equal(AppointmentOutcome.EndTreatment, appointment.Outcome);
+
+        appointment.UndoComplete();
+
+        Assert.Equal(AppointmentStatus.InProgress, appointment.Status);
+        Assert.Null(appointment.CompletedAt);
+        Assert.Equal(arrivedAt, appointment.CheckedInAt);
+        Assert.Equal(startedAt, appointment.StartedAt);
+        Assert.Equal(AppointmentOutcome.TransferDoctor, appointment.Outcome);
+
+        // Finishing again takes a new time.
+        appointment.Complete();
+        Assert.Equal(AppointmentStatus.Completed, appointment.Status);
+        Assert.NotNull(appointment.CompletedAt);
+    }
+
+    /// <summary>
+    /// R-1143: "Đang khám" pressed again sends the patient back to the wait —
+    /// Hoàn tất with it — keeping the arrival, so the wait timer runs on.
+    /// </summary>
+    [Fact]
+    public void UndoStart_Should_Send_The_Patient_Back_To_The_Wait_Keeping_The_Arrival()
+    {
+        var seated = NewAppointment();
+        seated.CheckIn();
+        seated.Invite(_dentistId);
+        seated.Admit();
+        var finished = NewAppointment();
+        finished.CheckIn();
+        finished.Start();
+        finished.Complete();
+
+        foreach (var appointment in new[] { seated, finished })
+        {
+            var arrivedAt = appointment.CheckedInAt;
+
+            appointment.UndoStart();
+
+            Assert.Equal(AppointmentStatus.CheckedIn, appointment.Status);
+            Assert.Equal(arrivedAt, appointment.CheckedInAt);
+            Assert.Null(appointment.StartedAt);
+            Assert.Null(appointment.CompletedAt);
+            Assert.Null(appointment.Outcome);
+        }
+
+        // The doctor's call stands: reception seats the patient again without a new one.
+        Assert.NotNull(seated.InvitedAt);
+        seated.Admit();
+        Assert.Equal(AppointmentStatus.InProgress, seated.Status);
+        Assert.Equal(AppointmentOutcome.TransferDoctor, seated.Outcome);
+        Assert.NotNull(seated.StartedAt);
+
+        // Once back to the wait, Đã đến can be taken back too.
+        finished.UndoCheckIn();
+        Assert.Equal(AppointmentStatus.Requested, finished.Status);
+    }
+
+    [Fact]
+    public void Undoing_The_Chair_Or_The_Finish_Should_Refuse_Where_Nothing_Is_There_To_Undo()
+    {
+        var waiting = NewAppointment();
+        waiting.CheckIn();
+        var seated = NewAppointment();
+        seated.CheckIn();
+        seated.Start();
+        var cancelled = NewAppointment();
+        cancelled.CheckIn();
+        cancelled.Start();
+        cancelled.Cancel(CancellationReason.PatientRequest, "sick");
+
+        foreach (var appointment in new[] { NewAppointment(), waiting, cancelled })
+        {
+            var error = Assert.Throws<BusinessException>(() => appointment.UndoStart());
+            Assert.Equal(BlueDentalDomainErrorCodes.Appointments.InvalidTransition, error.Code);
+        }
+
+        foreach (var appointment in new[] { NewAppointment(), waiting, seated, cancelled })
+        {
+            var error = Assert.Throws<BusinessException>(() => appointment.UndoComplete());
+            Assert.Equal(BlueDentalDomainErrorCodes.Appointments.InvalidTransition, error.Code);
+        }
+
+        Assert.Equal(AppointmentStatus.Cancelled, cancelled.Status);
+        Assert.NotNull(cancelled.StartedAt);
+    }
+
+    /// <summary>R-1143: a visit closed with "Hẹn tái khám" has its next visit booked on it; its bar stays.</summary>
+    [Fact]
+    public void Undoing_The_Chair_Or_The_Finish_Should_Refuse_A_Visit_Closed_With_A_Revisit()
+    {
+        var nextSlot = new AppointmentSlot(_slot.Start.AddDays(7), _slot.End.AddDays(7));
+        // Booked from the wait: the bar stops at step 2 ("Đã hẹn lại").
+        var fromWait = NewAppointment();
+        fromWait.CheckIn();
+        fromWait.BookFollowUp(Guid.NewGuid(), nextSlot, null, null, null, AppointmentOutcome.Revisit);
+        // Booked from the chair: the bar finishes at step 3.
+        var fromChair = NewAppointment();
+        fromChair.CheckIn();
+        fromChair.Start();
+        fromChair.MarkRebookUndated(AppointmentOutcome.Revisit, null);
+
+        Assert.Equal(AppointmentStatus.InProgress, fromWait.Status);
+        Assert.Equal(AppointmentStatus.Completed, fromChair.Status);
+        foreach (var appointment in new[] { fromWait, fromChair })
+        {
+            var start = Assert.Throws<BusinessException>(() => appointment.UndoStart());
+            Assert.Equal(BlueDentalDomainErrorCodes.Appointments.InvalidTransition, start.Code);
+            var finish = Assert.Throws<BusinessException>(() => appointment.UndoComplete());
+            Assert.Equal(BlueDentalDomainErrorCodes.Appointments.InvalidTransition, finish.Code);
+            Assert.Equal(AppointmentOutcome.Revisit, appointment.Outcome);
+        }
+    }
+
     [Fact]
     public void Invite_Should_Call_Up_A_Waiting_Patient_Once()
     {

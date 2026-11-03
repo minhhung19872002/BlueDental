@@ -13598,3 +13598,33 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - FE: `lint`, `lint:ts`, `vitest`, `build` đều xanh.
   - Ảnh 1440px và 390px đã so với bản thiết kế.
 - **Mức retest**: 2.
+
+## R-1143 (2026-11-03, mức 2: Tiếp nhận — thanh tiến trình) Bấm lại "Hoàn tất" / "Đang khám" để huỷ bước đó
+
+- **Yêu cầu (chủ dự án, kèm ảnh)**: "khi ấn lại thì sẽ hủy trạng thái hiện tại (giống cái check in đã đến)… đã ấn hoàn tất → ấn lại thì hủy hoàn tất; ấn lại Đang khám thì hủy luôn Hoàn tất và Đang khám". Đã chốt với chủ dự án:
+  - "Đã đến" vẫn khoá khi bệnh nhân đã vào ghế (luật R-1061 giữ nguyên).
+  - Lịch đã "Hẹn tái khám" thì khoá, không cho huỷ: lịch hẹn tiếp theo đã được đặt từ lịch này.
+  - Không hỏi xác nhận. Cách làm giống "Đã đến": tooltip "Bấm để huỷ …", rê chuột thì hiện ↺, xong hiện toast "Đã huỷ …".
+- **BE** (`Appointment.UndoComplete()` / `UndoStart()`, `POST …/appointments/{id}/undo-complete` và `…/undo-start`):
+  - Cả hai cần quyền `Appointment.Update`, qua `GuardBranchAccess`, và ghi lịch sử thay đổi trạng thái như R-1061.
+  - `undo-complete`: lịch phải ở `Completed`. Lịch về `InProgress`, `CompletedAt` = null, kết quả thành "Chuyển bác sĩ", tức trạng thái ngay sau khi vào ghế.
+  - `undo-start`: lịch phải ở `InProgress` hoặc `Completed`. Lịch về `CheckedIn`; `StartedAt` và `CompletedAt` = null, kết quả = null. `CheckedInAt` và lời mời lên giữ nguyên, nên đồng hồ chờ chạy tiếp từ giờ đến cũ.
+  - Lịch có kết quả `Revisit`, hoặc sai trạng thái, thì trả `Appointment:0003`.
+  - Vào ghế và Hoàn tất không phát domain event hay sinh bản ghi phụ, nên không còn gì khác cần hoàn tác. Worker CSKH chỉ đọc lịch Hoàn tất của hôm qua; báo cáo đọc trạng thái trực tiếp.
+- **FE**:
+  - `clickActionOf`: bước đã xong có `undo` thì bấm được, kể cả khi bước sau đã xong. Riêng "Đã đến" vẫn khoá khi bước sau đã xong.
+  - `buildSteps`: lịch Revisit không gắn `undo` cho bước 2 và 3.
+  - Tooltip theo từng bước (`undoHint`). Key mới vi/en: `Reception:UndoStartHint/Success`, `Reception:UndoCompleteHint/Success`.
+  - Kiểu `StatusAction` chuyển vào `types/reception.ts` để `api/` không phải import từ `utils/`.
+- **Kiểm thử**:
+  - `AppointmentTests` thêm 4 test: huỷ Hoàn tất; huỷ Đang khám từ cả InProgress lẫn Completed, giữ giờ đến và lời mời, vào ghế lại được, sau đó huỷ Đã đến được; từ chối khi không có gì để huỷ; từ chối lịch Revisit (đặt từ lúc chờ và từ ghế). Kết quả 76/76.
+  - `AppointmentAppServiceContractTests` thêm 1 theory: 3 hàm undo đều cần `Appointment.Update`. Kết quả 8/8.
+  - Bản build production, host riêng :5164, preview :8164, không chặn API:
+    - `reception-follow-up` thêm 2 test, chạy 17/17 xanh.
+      - Test 1: đi Đến → Ghế → Hoàn tất. Bấm Hoàn tất: về InProgress, "Chuyển bác sĩ" sáng. Hoàn tất lại rồi bấm Đang khám: về CheckedIn, `checkedInAt` không đổi, đồng hồ chờ hiện lại. Reload vẫn đúng, "Đã đến" huỷ được. Server trả 0003 khi không còn gì để huỷ; chi nhánh 2 bị 403/404.
+      - Test 2: lịch Hẹn tái khám thì cả 3 bước đều khoá và server trả 0003.
+    - Các spec `reception-*` còn lại cùng `qa-bugs-25-30`: 57 xanh, 3 bỏ qua (TEMP-PRIORITY-OFF), 3 đỏ, đều không phải do thay đổi này:
+      - `qa-bugs-25-30:103`: luật chỉ nhận check-in trong ngày đang tắt (TEMP-BUG25-OFF).
+      - `reception-live-late:157`: chạy riêng thì xanh (chập chờn).
+      - `reception-revisit-counter:153`: dòng 192 `.dtl-block` = 0, đỏ y hệt trên bản build HEAD 11089bf6.
+- **Mức retest**: 2.

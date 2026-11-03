@@ -324,6 +324,56 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>
+    /// "Đang khám" pressed again on the reception card (owner 2026-11-03,
+    /// R-1143): the patient goes back to waiting, and so does a visit already
+    /// finished — Hoàn tất goes with it. The arrival time stays, so the wait
+    /// timer runs on from it. The outcome the chair ticked is dropped. A visit
+    /// closed with "Hẹn tái khám" has its next visit booked on it and stays.
+    /// </summary>
+    public Appointment UndoStart()
+    {
+        EnsureNotRevisited(nameof(UndoStart));
+        if (Status is not (AppointmentStatus.InProgress or AppointmentStatus.Completed))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot perform 'UndoStart' on appointment with status '{Status}'. Expected 'InProgress' or 'Completed'.");
+        }
+
+        Status = AppointmentStatus.CheckedIn;
+        StartedAt = null;
+        CompletedAt = null;
+        Outcome = null;
+        return this;
+    }
+
+    /// <summary>
+    /// "Hoàn tất" pressed again on the reception card (owner 2026-11-03,
+    /// R-1143): the patient is back in the chair, and the outcome reads
+    /// "Chuyển bác sĩ" again as it did before Hoàn tất. A visit closed with
+    /// "Hẹn tái khám" has its next visit booked on it and stays.
+    /// </summary>
+    public Appointment UndoComplete()
+    {
+        EnsureNotRevisited(nameof(UndoComplete));
+        EnsureStatus(AppointmentStatus.Completed, nameof(UndoComplete));
+        Status = AppointmentStatus.InProgress;
+        CompletedAt = null;
+        Outcome = AppointmentOutcome.TransferDoctor;
+        return this;
+    }
+
+    private void EnsureNotRevisited(string action)
+    {
+        if (Outcome is AppointmentOutcome.Revisit)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Appointments.InvalidTransition,
+                $"Cannot perform '{action}' on appointment {Id}: it closed with a revisit booked.");
+        }
+    }
+
     public Appointment Complete(string? notes = null)
     {
         // Auto advance through earlier steps when an outcome shortcut fires.

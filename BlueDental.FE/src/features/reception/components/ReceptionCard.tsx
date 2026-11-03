@@ -22,6 +22,7 @@ import type {
   AppointmentOutcome,
   AppointmentCounterType,
   BookedOutcome,
+  StatusAction,
 } from "../types/reception";
 import { useWaitState } from "../hooks/useWaitState";
 import { isCancelledVisit } from "../utils/receptionFlow";
@@ -39,7 +40,7 @@ interface ReceptionCardProps {
   canEditTags?: boolean;
   onOutcomeChange?: (id: string, outcome: AppointmentOutcome) => void;
   onDoctorChange?: (id: string, doctorId: string) => void;
-  onStatusChange?: (id: string, action: "check-in" | "start" | "complete" | "undo-check-in") => void;
+  onStatusChange?: (id: string, action: StatusAction) => void;
   onCancel?: (id: string) => void;
   /** A "Lịch tạm" has no patient record yet: its name opens "Tạo hồ sơ" instead. */
   onTemporaryPatientClick?: (id: string) => void;

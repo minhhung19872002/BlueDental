@@ -6,6 +6,7 @@ import type {
   BookedOutcome,
   CreateReceptionInput,
   RebookUndatedInput,
+  StatusAction,
 } from "../types/reception";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { QUIET_DENTIST_OVERLAP } from "@/hooks/useDentistOverlapConfirm";
@@ -34,7 +35,7 @@ export function useUpdateReceptionStatus() {
   return useMutation({
     mutationFn: ({ id, action, outcome }: {
       id: string;
-      action: "check-in" | "start" | "complete" | "undo-check-in";
+      action: StatusAction;
       outcome?: NonNullable<AppointmentOutcome>;
     }) => receptionApi.updateStatus(id, action, outcome),
     meta: INVALIDATES_APPOINTMENTS,

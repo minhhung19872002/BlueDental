@@ -17,6 +17,7 @@ import type {
   ReceptionItem,
   ReceptionMetrics,
   ReceptionStatus,
+  StatusAction,
 } from "../types/reception";
 
 const APPT_BASE = "/v1/app/appointments";
@@ -299,7 +300,7 @@ export const receptionApi = {
 
   async updateStatus(
     id: string,
-    action: "check-in" | "start" | "complete" | "undo-check-in",
+    action: StatusAction,
     outcome?: NonNullable<AppointmentOutcome>,
   ): Promise<void> {
     // `complete` binds a required body; it carries no `notes`, so the server

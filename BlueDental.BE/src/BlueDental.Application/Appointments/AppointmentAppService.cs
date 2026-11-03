@@ -694,6 +694,27 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         return await ToDtoAsync(appointment);
     }
 
+    /// <summary>"Đang khám" pressed again on the reception card: back to waiting, Hoàn tất with it (R-1143).</summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public Task<AppointmentDto> UndoStartAsync(Guid id) => StepBackAsync(id, a => a.UndoStart());
+
+    /// <summary>"Hoàn tất" pressed again on the reception card: back in the chair (R-1143).</summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public Task<AppointmentDto> UndoCompleteAsync(Guid id) => StepBackAsync(id, a => a.UndoComplete());
+
+    private async Task<AppointmentDto> StepBackAsync(Guid id, Action<Appointment> stepBack)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        var before = await SnapshotAsync(appointment);
+        stepBack(appointment);
+        await _repository.UpdateAsync(appointment, autoSave: true);
+        await _changeRecorder.RecordAsync(
+            AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
+        return await ToDtoAsync(appointment);
+    }
+
     [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
     public async Task<AppointmentDto> MarkNoShowAsync(Guid id)
     {

@@ -24,6 +24,12 @@ export type AppointmentOutcome =
   | "Revisit"
   | null;
 
+/**
+ * A move of the reception card's progress bar, named as its endpoint. The
+ * undo moves take a step back (R-1061, R-1143).
+ */
+export type StatusAction = "check-in" | "start" | "complete" | "undo-check-in" | "undo-start" | "undo-complete";
+
 /** The outcomes saved only together with a booked next appointment. */
 export type BookedOutcome = Extract<AppointmentOutcome, "FollowUp" | "Revisit">;
 

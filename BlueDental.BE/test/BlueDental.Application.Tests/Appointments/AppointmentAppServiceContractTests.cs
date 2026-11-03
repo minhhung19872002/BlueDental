@@ -40,6 +40,18 @@ public class AppointmentAppServiceContractTests
         method.GetCustomAttribute<AuthorizeAttribute>().ShouldNotBeNull();
     }
 
+    [Theory]
+    [InlineData("UndoCheckInAsync")]
+    [InlineData("UndoStartAsync")]
+    [InlineData("UndoCompleteAsync")]
+    public void Undo_Steps_Should_Need_Appointment_Update(string name)
+    {
+        var method = _serviceType.GetMethod(name);
+        method.ShouldNotBeNull();
+        method.GetCustomAttribute<AuthorizeAttribute>()?.Policy
+            .ShouldBe(BlueDental.Permissions.BlueDentalAbilityPermissions.Appointment.Update);
+    }
+
     [Fact]
     public void CreateAppointmentDto_Should_Have_Required_Properties()
     {

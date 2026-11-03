@@ -20,8 +20,10 @@ export interface StepView {
   icon: "check" | "cross";
   /** The transition clicking the step makes, when it is the next one. */
   action?: StepAction;
-  /** The transition clicking it makes once done and last: "Đã đến" taken back. */
+  /** The transition clicking it makes once done: the step taken back. */
   undo?: StepAction;
+  /** Tooltip on a done step that a click takes back. */
+  undoHint?: string;
 }
 
 const STEP_COLORS = ["#6366f1", "#d98b0f", "#0e9f6e"] as const;
@@ -54,14 +56,18 @@ export function buildSteps(item: ReceptionItem, wait: WaitState): StepView[] {
   const step3Done = !!item.step3Time;
   const isRevisit = item.selectedOutcome === "Revisit";
   const revisitAtStep2 = isRevisit && step2Done && !step3Done;
+  // A visit closed with "Hẹn tái khám" has its next visit booked on it: its bar stays (R-1143).
+  const undoOf = (undo: StepAction, undoHint: string) => (isRevisit ? {} : { undo, undoHint });
 
   const arrived: StepView = {
     key: "arrived", number: 1, label: t("Reception:StatusArrived"), time: item.step1Time,
-    done: step1Done, color: STEP_COLORS[0], icon: "check", action: "check-in", undo: "undo-check-in",
+    done: step1Done, color: STEP_COLORS[0], icon: "check", action: "check-in",
+    undo: "undo-check-in", undoHint: t("Reception:UndoArrivedHint"),
   };
   const inChair: StepView = {
     key: "in-chair", number: 2, label: t("Reception:StepInProgress"), time: item.step2Time,
     done: step2Done, color: STEP_COLORS[1], icon: "check", action: "start",
+    ...undoOf("undo-start", t("Reception:UndoStartHint")),
     ...(wait.kind === "waiting" && { color: WAIT_COLORS[wait.level], pending: true }),
     ...(wait.kind === "waited" && { note: t("Reception:WaitedMinutes", wait.minutes) }),
   };
@@ -90,15 +96,20 @@ export function buildSteps(item: ReceptionItem, wait: WaitState): StepView[] {
       label: isRevisit ? t("Reception:StepRevisit") : t("Reception:StepComplete"),
       time: item.step3Time, done: step3Done, color: STEP_COLORS[2],
       labelColor: isRevisit ? CANCEL_COLOR : undefined, icon: "check", action: "complete",
+      ...undoOf("undo-complete", t("Reception:UndoCompleteHint")),
     },
   ];
 }
 
 /**
  * What a click on a step does, if anything. Only the first undone step moves
- * the bar, and only after the one before it. "Đã đến" pressed by mistake is
- * pressed again to take it back — only while nothing came after it, so not
- * once the patient is in the chair (owner 2026-10-28).
+ * the bar, and only after the one before it.
+ *
+ * A done step pressed again takes itself back with every step after it:
+ * "Hoàn tất" returns the patient to the chair, "Đang khám" to the wait, even
+ * from Hoàn tất (owner 2026-11-03, R-1143). "Đã đến" only goes while nothing
+ * came after it, so not once the patient is in the chair (owner 2026-10-28,
+ * kept on 2026-11-03).
  */
 export function clickActionOf(
   step: StepView,
@@ -108,5 +119,6 @@ export function clickActionOf(
 ): StepAction | undefined {
   if (!canAdvance) return undefined;
   if (!step.done) return !prev || prev.done ? step.action : undefined;
-  return next?.done ? undefined : step.undo;
+  if (step.undo === "undo-check-in" && next?.done) return undefined;
+  return step.undo;
 }

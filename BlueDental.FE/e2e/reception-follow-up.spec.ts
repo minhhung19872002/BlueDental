@@ -148,6 +148,122 @@ test.describe("Tiếp nhận — tiến trình và kết quả", () => {
     expect(stored.status).toBe(STATUS.InProgress);
     expect(stored.checkedInAt).toBeTruthy();
   });
+
+  // Owner 2026-11-03 (R-1143): a done step pressed again takes itself back with
+  // every step after it — "Hoàn tất" to the chair, "Đang khám" to the wait.
+  test("Hoàn tất and Đang khám pressed again take the visit back a step", async ({ page, browser }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 75);
+    const card = await cardOf(page, visit);
+    const arrived = card.getByRole("button", { name: /Đã đến/ });
+    const inChair = card.getByRole("button", { name: /Đang khám/ });
+    const done = card.getByRole("button", { name: /Hoàn tất/ });
+    const times = card.locator(".rc-step-time");
+
+    await arrived.click();
+    await inChair.click();
+    await done.click();
+    await expect(outcome(card, "Kết thúc điều trị")).toHaveAttribute("aria-pressed", "true");
+    const arrivedAt = (await getAppointment(page, branchId, visit.id)).checkedInAt;
+    expect(arrivedAt).toBeTruthy();
+
+    // Hoàn tất again: back in the chair, ticking "Chuyển bác sĩ".
+    await expect(done).toHaveAttribute("title", "Bấm để huỷ Hoàn tất");
+    await expect(inChair).toHaveAttribute("title", "Bấm để huỷ Đang khám");
+    await expect(arrived).toBeDisabled();
+    await done.click();
+    await expect(times.nth(2)).toHaveText("--:--");
+    await expect(outcome(card, "Chuyển bác sĩ")).toHaveAttribute("aria-pressed", "true");
+    let stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.status).toBe(STATUS.InProgress);
+    expect(stored.completedAt).toBeNull();
+    expect(stored.startedAt).toBeTruthy();
+    expect(stored.outcome).toBe(OUTCOME.TransferDoctor);
+
+    // Finished again, then Đang khám pressed: both steps go, the arrival stays.
+    await done.click();
+    await expect(outcome(card, "Kết thúc điều trị")).toHaveAttribute("aria-pressed", "true");
+    await inChair.click();
+    await expect(times.nth(1)).toHaveText("--:--");
+    await expect(times.nth(2)).toHaveText("--:--");
+    await expect(card.locator(".rc-wait-gap")).toHaveCount(1);
+    await expect(card.locator(".rc-outcome-btn[aria-pressed='true']")).toHaveCount(0);
+    stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.status).toBe(STATUS.CheckedIn);
+    expect(stored.startedAt).toBeNull();
+    expect(stored.completedAt).toBeNull();
+    expect(stored.outcome).toBeNull();
+    expect(stored.checkedInAt).toBe(arrivedAt);
+
+    // It holds after a reload, and the arrival can be taken back again now.
+    await page.reload();
+    const reloaded = await cardOf(page, visit);
+    await expect(reloaded.locator(".rc-step-time").nth(1)).toHaveText("--:--");
+    await expect(reloaded.getByRole("button", { name: /Đã đến/ })).toHaveAttribute("title", "Bấm để huỷ Đã đến");
+    await expect(reloaded.getByRole("button", { name: /Hoàn tất/ })).toBeDisabled();
+
+    // Nothing to take back on the wait: the server refuses.
+    for (const action of ["undo-start", "undo-complete"]) {
+      const refused = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/${action}`, { method: "POST" });
+      expect(refused.body.error?.code).toBe("BlueDental:Appointment:0003");
+    }
+
+    // Another branch cannot take a step back either.
+    await reloaded.getByRole("button", { name: /Đang khám/ }).click();
+    await reloaded.getByRole("button", { name: /Hoàn tất/ }).click();
+    await expect(outcome(reloaded, "Kết thúc điều trị")).toHaveAttribute("aria-pressed", "true");
+    const other = await browser.newPage();
+    await login(other, BRANCH2_USER);
+    const foreign = await other.evaluate(async (urls) => {
+      const xsrf = document.cookie.split("; ").find((c) => c.startsWith("XSRF-TOKEN="))?.substring(11);
+      const statuses: number[] = [];
+      for (const url of urls) {
+        const res = await fetch(url, {
+          method: "POST",
+          credentials: "include",
+          headers: xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {},
+        });
+        statuses.push(res.status);
+      }
+      return statuses;
+    }, [`${APPOINTMENTS}/${visit.id}/undo-complete`, `${APPOINTMENTS}/${visit.id}/undo-start`]);
+    await other.close();
+    for (const status of foreign) expect([403, 404]).toContain(status);
+    expect((await getAppointment(page, branchId, visit.id)).status).toBe(STATUS.Completed);
+  });
+
+  // Owner 2026-11-03: a visit closed with "Hẹn tái khám" has its next visit
+  // booked on it, so its bar no longer goes back.
+  test("a visit closed with Hẹn tái khám cannot be taken back", async ({ page }) => {
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 105);
+    const card = await cardOf(page, visit);
+    const panel = card.getByRole("region", { name: "Chọn lịch hẹn tiếp theo" });
+
+    await card.getByRole("button", { name: /Đã đến/ }).click();
+    await card.getByRole("button", { name: /Đang khám/ }).click();
+    await expect(outcome(card, "Chuyển bác sĩ")).toHaveAttribute("aria-pressed", "true");
+    await outcome(card, "Hẹn tái khám").click();
+    await panel.getByRole("button", { name: "Hẹn lại - Chưa chốt ngày" }).click();
+    await expect(panel).toBeHidden({ timeout: 10_000 });
+    expect((await getAppointment(page, branchId, visit.id)).status).toBe(STATUS.Completed);
+
+    await page.reload();
+    const reloaded = await cardOf(page, visit);
+    const steps = reloaded.locator(".rc-step");
+    await expect(steps).toHaveCount(3);
+    for (let i = 0; i < 3; i++) await expect(steps.nth(i)).toBeDisabled();
+    await expect(reloaded.locator(".rc-step--undo")).toHaveCount(0);
+
+    for (const action of ["undo-complete", "undo-start"]) {
+      const refused = await call<Appointment>(page, branchId, `${APPOINTMENTS}/${visit.id}/${action}`, { method: "POST" });
+      expect(refused.body.error?.code).toBe("BlueDental:Appointment:0003");
+    }
+    const stored = await getAppointment(page, branchId, visit.id);
+    expect(stored.status).toBe(STATUS.Completed);
+    expect(stored.outcome).toBe(OUTCOME.Revisit);
+    expect(stored.completedAt).toBeTruthy();
+  });
 });
 
 test.describe("Tiếp nhận — Đổi lịch hẹn", () => {
