@@ -165,6 +165,10 @@ export interface LineFigures {
 const taxOn = (line: TreatmentServiceDto, amount: number) =>
   line.taxPercent === 0 ? 0 : Math.round((amount * line.taxPercent) / 100);
 
+/** A before-VAT figure with VAT on top: what a TN giảm took off the money collected. */
+export const withTax = (taxPercent: number, amount: number) =>
+  taxPercent === 0 ? amount : amount + Math.round((amount * taxPercent) / 100);
+
 /**
  * The VAT the earlier đợt carried. The server sends Còn nợ chưa thuế as
  * charged − relief − (cash − tax), so the tax falls back out of it.

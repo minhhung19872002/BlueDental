@@ -13457,9 +13457,11 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa** (chỉ FE):
   - `PaymentRoundHistory` → `CurrentMoney`: khi `discount > 0` hiện `<s>` = số đợt này thu nếu không có TN giảm, dưới là số thu thật màu `--bd-orange`. Không có TN giảm thì như cũ.
   - Số gạch ngang = số thu đợt này + phần TN giảm đã bớt **gồm VAT** (`lineFigures(line, 0, voucher).cap − cap`). Không tính voucher. Thu một phần thì gạch "phần thu + TN giảm" (owner duyệt theo đề xuất).
-  - Các đợt đã thu trước và badge "Còn nợ" đầu thẻ giữ nguyên (owner duyệt theo đề xuất).
+  - Badge "Còn nợ" đầu thẻ giữ nguyên (owner duyệt theo đề xuất).
+  - **Bổ sung (owner, cùng ngày)**: "chỉ hiện lúc tạo, mở lại thì không hiện" → các đợt **đã tạo** có TN giảm cũng gạch giá. Số gạch = `line.amount` + `withTax(taxPercent, cashierDiscount)` (TN giảm lưu trước VAT trên dòng phiếu). Đợt không có TN giảm vẫn một số.
 - **Kiểm**:
   - `payment-rounds.spec.ts` thêm assert: TN giảm 1.000.000 trên dịch vụ VAT 10% → ~~5.500.000~~ 4.400.000; thêm voucher 250.000 → ~~5.225.000~~ 4.125.000.
+  - Mở lại dialog sau khi tạo đợt 2 (phiếu Chưa thanh toán): Đợt 2 ~~5.225.000~~ 4.125.000, Đợt 1 không gạch.
   - `payment-rounds` 3/3 trên bản build production (preview riêng cổng 8093), BE + DB thật.
   - `tsc -b` + eslint sạch. Ảnh chụp thẻ khớp ảnh mẫu.
 - **Mức retest**: 2.

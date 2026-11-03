@@ -7,7 +7,7 @@ import {
 } from "@/features/treatment-management/api/treatmentPlanApi";
 import { t } from "@/lib/i18n";
 import { formatDate, formatMoneyUnit } from "@/utils/format";
-import type { EarlierRound } from "./paymentRounds";
+import { withTax, type EarlierRound } from "./paymentRounds";
 
 /** This đợt's row, as the dialog has it so far. */
 export interface CurrentRound {
@@ -29,6 +29,8 @@ interface Props {
   /** Null while the line is not ticked for this đợt. */
   current: CurrentRound | null;
   serviceName: string;
+  /** The line's VAT rate: an earlier đợt's TN giảm is stored before VAT. */
+  taxPercent: number;
 }
 
 const STATUS_PILLS: Partial<Record<PatientPaymentStatus, { tone: string; label: string }>> = {
@@ -67,17 +69,24 @@ function ReliefChips({ voucherCode, voucherShare, discount, reason }: {
 }
 
 /**
- * This đợt's money. With a TN giảm, what it would have collected is struck
- * through above what it does collect (owner 2026-11-03).
+ * A đợt's money. With a TN giảm, what it would have collected is struck
+ * through above what it does collect — on every đợt, written or being
+ * written (owner 2026-11-03, R-1137).
  */
-function CurrentMoney({ current }: { current: CurrentRound }) {
-  if (current.discount <= 0) return <b>{formatMoneyUnit(current.amount)}</b>;
+function RoundAmount({ amount, beforeDiscount }: { amount: number; beforeDiscount: number | null }) {
+  if (beforeDiscount === null) return <b>{formatMoneyUnit(amount)}</b>;
   return (
     <>
-      <s className="pd-newpay-history-was">{formatMoneyUnit(current.amountBeforeDiscount)}</s>
-      <b className="pd-newpay-history-discounted">{formatMoneyUnit(current.amount)}</b>
+      <s className="pd-newpay-history-was">{formatMoneyUnit(beforeDiscount)}</s>
+      <b className="pd-newpay-history-discounted">{formatMoneyUnit(amount)}</b>
     </>
   );
+}
+
+/** What an earlier đợt would have collected without its TN giảm, stored before VAT; null without one. */
+function earlierBeforeDiscount(line: EarlierRound["line"], taxPercent: number): number | null {
+  const discount = line.cashierDiscount ?? 0;
+  return discount > 0 ? line.amount + withTax(taxPercent, discount) : null;
 }
 
 /**
@@ -85,7 +94,7 @@ function CurrentMoney({ current }: { current: CurrentRound }) {
  * already reached the line, with what it collected and its status, then this
  * đợt. Đã thu and Ưu đãi đã dùng count paid receipts only.
  */
-export function PaymentRoundHistory({ history, current, serviceName }: Props) {
+export function PaymentRoundHistory({ history, current, serviceName, taxPercent }: Props) {
   const [open, setOpen] = useState(true);
   const methodLabels = paymentMethodLabels();
   const settled = history.filter(({ receipt }) => receipt.status === PAYMENT_STATUS.Completed);
@@ -115,7 +124,7 @@ export function PaymentRoundHistory({ history, current, serviceName }: Props) {
                   />
                 </span>
                 <span className="pd-newpay-history-money">
-                  <b>{formatMoneyUnit(line.amount)}</b>
+                  <RoundAmount amount={line.amount} beforeDiscount={earlierBeforeDiscount(line, taxPercent)} />
                   <StatusPill status={receipt.status} />
                 </span>
               </li>
@@ -133,7 +142,10 @@ export function PaymentRoundHistory({ history, current, serviceName }: Props) {
                   />
                 </span>
                 <span className="pd-newpay-history-money">
-                  <CurrentMoney current={current} />
+                  <RoundAmount
+                    amount={current.amount}
+                    beforeDiscount={current.discount > 0 ? current.amountBeforeDiscount : null}
+                  />
                   <StatusPill status={PAYMENT_STATUS.Pending} />
                 </span>
               </li>

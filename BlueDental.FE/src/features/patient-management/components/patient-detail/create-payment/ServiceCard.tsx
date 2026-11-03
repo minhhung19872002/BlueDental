@@ -104,6 +104,7 @@ export function ServiceCard({ payment, line }: Props) {
           history={history}
           current={checked ? currentRound(payment, line, round) : null}
           serviceName={line.serviceName ?? line.code}
+          taxPercent={line.taxPercent}
         />
       ) : null}
 

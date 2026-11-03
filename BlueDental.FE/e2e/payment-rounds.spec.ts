@@ -359,6 +359,18 @@ test.describe("Thanh toán nhiều đợt (P2910)", () => {
     await expect(page.locator(".rcpt-lines")).toContainText("Voucher −250.000");
     // The use is held as soon as the receipt is written.
     expect(await usedCount(page, made.voucher.id)).toBe(1);
+
+    // Reopened, the written đợt 2 keeps its struck price — read from the stored
+    // receipt line (TN giảm before VAT), not from the dialog that wrote it.
+    dialog = await openCreateDialog(page, made);
+    card1 = dialog.locator(".pd-newpay-lines > li").filter({ hasText: s1.name });
+    const written = card1.locator(".pd-newpay-history li").filter({ hasText: "Đợt 2" });
+    await expect(written.locator(".pd-newpay-history-was")).toHaveText("5.225.000 đ");
+    await expect(written.locator(".pd-newpay-history-discounted")).toHaveText("4.125.000 đ");
+    await expect(written).toContainText("Chưa thanh toán");
+    // Đợt 1 had no TN giảm: one plain figure.
+    const plain = card1.locator(".pd-newpay-history li").filter({ hasText: "Đợt 1" });
+    await expect(plain.locator(".pd-newpay-history-was")).toHaveCount(0);
     await settleReceipt(page, second);
 
     // ── Read back with separate requests ────────────────────────────────
