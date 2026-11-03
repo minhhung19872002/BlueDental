@@ -192,9 +192,10 @@ test.describe("Plan warranty tab (F-86 phase B, UI)", () => {
     await dialog.getByRole("checkbox", { name: "Dùng chung 1 thông số cho tất cả răng" }).check();
     const shared = dialog.getByRole("region", { name: "Dùng chung 1 thông số cho tất cả răng" });
     await expect(shared).toBeVisible();
-    await expect(shared).toContainText("Áp dụng cho");
-    await expect(shared).toContainText("Răng 36");
-    await expect(shared).toContainText("Răng 37");
+    const appliesTo = dialog.locator(".pd-labo-flow-pane--main .pd-labo-warranty-preview-teeth");
+    await expect(appliesTo).toContainText("Áp dụng cho");
+    await expect(appliesTo).toContainText("Răng 36");
+    await expect(appliesTo).toContainText("Răng 37");
     await expect(dialog.getByRole("article", { name: "Răng 36" })).toHaveCount(0);
     await expect(aside.locator(".pd-labo-warranty-preview")).toContainText("Xem trước thẻ bảo hành");
     await expect(aside.locator(".pd-labo-warranty-card--inactive")).toHaveCount(0);
@@ -211,8 +212,8 @@ test.describe("Plan warranty tab (F-86 phase B, UI)", () => {
     await expect(rows(card(page, "pwt-cards-title"))).toHaveCount(3);
     await expect(statusRow(page, "R36, R37")).toContainText("Đã kích hoạt · 2 thẻ");
     const history = card(page, "pwt-history-title");
-    await expect(history.locator(".pwt-event").filter({ hasText: "1 năm" })).toHaveCount(3);
-
+    // One activation, one event for both teeth, on the shared period.
+    await expect(history.locator(".pwt-event").filter({ hasText: "Kích hoạt 2 thẻ" })).toContainText("1 năm");
   });
 
   test("a line without teeth activates its one card, no tooth picker (R-1138)", async ({ page }) => {
@@ -228,7 +229,7 @@ test.describe("Plan warranty tab (F-86 phase B, UI)", () => {
     await expect(dialog).toContainText("Nhập ngày bắt đầu và thời hạn rồi kích hoạt bảo hành");
     await expect(dialog.getByRole("button", { name: "Theo danh mục · 365 ngày" })).toBeVisible();
     await expect(dialog.locator(".pd-labo-warranty-card--inactive")).toHaveCount(1);
-    await dialog.getByRole("button", { name: "Kích hoạt bảo hành", exact: true }).click();
+    await dialog.locator(".pd-labo-footer").getByRole("button", { name: "Kích hoạt bảo hành" }).click();
     await expect(dialog).toBeHidden();
 
     await page.reload();

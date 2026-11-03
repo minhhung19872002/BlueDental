@@ -13494,3 +13494,38 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `taxonomy-dialogs:387` flaky, chạy lại thì xanh.
   - `tsc` + eslint sạch.
 - **Mức retest**: 2.
+
+## R-1138 (2026-11-03, mức 2: F-86 P3110 — tab Bảo hành của phiếu điều trị) Dialog "Bảo hành dịch vụ" theo khung Kích hoạt bảo hành của Labo
+
+- **Yêu cầu** (owner, có ảnh): làm dialog Bảo hành dịch vụ giống phần bảo hành Labo, kèm các cập nhật gần đây của Labo. Owner đã chốt plan:
+  1. Thẻ dịch vụ không có mã hãng, nên khi bật Dùng chung chỉ còn 1 form chung kèm danh sách "Áp dụng cho".
+  2. Lấy theo các cập nhật Labo: chọn răng có tick, trạng thái đủ thông tin, nút › để nhảy tới form, "Tất cả", "Dùng chung 1 thông số cho tất cả răng" và "Xem trước thẻ bảo hành".
+  3. Cột phải giống Labo: thẻ đã kích hoạt màu tím, răng chưa có thẻ hiện thẻ xám "Chờ kích hoạt".
+- **Sửa** (chỉ FE):
+  - Dialog `plan-warranty/ServiceWarrantyDialog` chuyển sang khung 3 cột `pd-labo-workflow`, gồm:
+    - `ServiceWarrantyToothPicker` (1. Chọn răng kích hoạt);
+    - `ServiceWarrantyCardsSection` (2. Thẻ bảo hành, có Dùng chung);
+    - `ServiceWarrantyCardsAside`.
+  - `useServiceWarrantyForm` dùng lại `useWarrantySharing` của Labo.
+  - `dentalCardView.pendingDentalFace` dựng thẻ xám cho răng chưa có thẻ.
+  - `PlanWarrantyTab` truyền vào dialog các thẻ nha khoa của dòng.
+  - Mở rộng phần dùng chung của Labo, hành vi Labo không đổi:
+    - `LaboWarrantyCardFields` có `serial: "own" | "elsewhere" | "none"` và `catalogDays`.
+    - `cardEndDate` và `typedDurationText` (Theo danh mục = start + số ngày danh mục).
+    - Readiness tính "Theo danh mục" (months 0) là đã có thời hạn.
+  - Dòng không có răng: không có cột chọn răng; footer ghi "Nhập ngày bắt đầu và thời hạn rồi kích hoạt bảo hành"; nút "Kích hoạt bảo hành".
+  - i18n mới: `Treatment:Warranty:ShareHintOn`, `AppliesTo`, `FooterActivateLine`.
+- **Kiểm**:
+  - Chạy trên bản build production riêng: preview 8092 → host riêng 5091 build từ working tree (host :5000 chưa có key i18n mới). DB thật, không chặn route.
+  - `plan-warranty-tab.spec.ts` 6/6, trong đó có 2 test mới:
+    - Test 1:
+      - cột phải có 2 thẻ xám "Chờ kích hoạt";
+      - bỏ chọn "Tất cả" thì nút bị khoá, chọn lại thì đủ răng;
+      - bật Dùng chung: 1 form, có danh sách "Áp dụng cho", không còn form từng răng, có "Xem trước thẻ bảo hành";
+      - chọn 1 năm rồi kích hoạt 2 răng;
+      - F5: 3 thẻ; lịch sử có "Kích hoạt 2 thẻ" và "1 năm".
+    - Test 2: dòng không răng kích hoạt 1 thẻ, F5 vẫn còn.
+  - Test cũ chuyển sang chọn răng bằng checkbox. Lượt 2 có thêm kiểm tra cột phải: 1 thẻ tím R36 + 1 thẻ xám R37.
+  - Hồi quy Labo: `labo-workflow.spec.ts` 7/7.
+  - `tsc` + eslint sạch.
+- **Mức retest**: 2, có thêm hồi quy Labo vì đã sửa component bảo hành dùng chung.
