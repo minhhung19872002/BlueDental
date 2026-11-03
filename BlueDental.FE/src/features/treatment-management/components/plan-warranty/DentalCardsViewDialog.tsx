@@ -7,6 +7,8 @@ import type { WarrantyCardRowDto, WarrantyServiceRowDto } from "../../api/planWa
 import { dentalCardColumns, dentalCardFace } from "./dentalCardView";
 import { lineHeadline } from "./planWarrantyView";
 import "@/features/labo/components/labo-order-dialog.css";
+import "@/features/labo/components/check/labo-check.css";
+import "@/features/labo/components/warranty/labo-warranty.css";
 import "@/features/labo/components/workflow/labo-workflow-theme.css";
 
 interface Props {
@@ -45,8 +47,8 @@ export function DentalCardsViewDialog({ card, cards, line, today, onClose }: Pro
           <p className="pd-labo-step-hint">{line ? lineHeadline(line) : card.serviceName}</p>
         </div>
       </header>
-      <div className="pd-labo-flow-tabs">
-        <span className="pd-labo-flow-tab pd-labo-flow-tab--on">{`${t("Labo:Warranty:Title")} (${cards.length})`}</span>
+      <div className="pd-labo-flow-tabs" role="tablist">
+        <span role="tab" aria-selected className="pd-labo-flow-tab pd-labo-flow-tab--on">{`${t("Labo:Warranty:Title")} (${cards.length})`}</span>
         <span className="pd-labo-check-aside">{t("Labo:Warranty:CardsHint", cards.length)}</span>
       </div>
       <div className="pd-labo-flow-main">

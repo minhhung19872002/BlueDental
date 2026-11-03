@@ -772,7 +772,10 @@
   border-bottom: 1px solid var(--lw-line);
   padding: 0 24px;
 }
+/* inline-flex: a lone <span> tab (R-1120 view) centres its label like a <button>. */
 .pd-labo-flow-tab {
+  display: inline-flex;
+  align-items: center;
   height: 44px;
   border: 0;
   border-bottom: 2px solid transparent;
