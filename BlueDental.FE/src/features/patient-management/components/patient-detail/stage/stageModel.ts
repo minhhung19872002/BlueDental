@@ -163,10 +163,15 @@ function stagesByLine(stages: TreatmentStageDto[]): Map<string, TreatmentStageDt
  * — once, however many chains are open: the reference lists each chain as its
  * own card, which read as the same service twice. So one line can sit in two
  * tabs at once: 22 still to start, 21·23 being continued.
+ *
+ * `warrantable` holds the lines with a valid warranty card and the teeth those
+ * cards cover (P3110 REQ-B8): such a line is offered under TIẾP TỤC BẢO HÀNH
+ * even before any warranty công đoạn is open, as a card with no chain.
  */
 export function buildStageItems(
   services: TreatmentServiceDto[],
   stages: TreatmentStageDto[],
+  warrantable: ReadonlyMap<string, number[]> = new Map(),
 ): Record<StageTab, StageItem[]> {
   const byLine = stagesByLine(stages);
   const lineById = new Map(services.map((line) => [line.id, line]));
@@ -195,6 +200,11 @@ export function buildStageItems(
     // Cards in the slip's line order, as on `add`.
     return services.flatMap((line): StageItem[] => {
       const chains = open.get(line.id);
+      const covered = warranty ? warrantable.get(line.id) : undefined;
+      if (!chains && covered) {
+        const teeth = line.teeth.filter((tooth) => covered.includes(tooth.toothCode));
+        return [{ id: `${tab}:${line.id}`, tab, line, stages: [], teeth, shownTeeth: shownOf(line, teeth) }];
+      }
       if (!chains) return [];
       const teeth = uniqueTeeth(chains.flatMap((stage) => openTeeth(stage, line)));
       return [{ id: `${tab}:${line.id}`, tab, line, stages: chains, teeth, shownTeeth: shownOf(line, teeth) }];
@@ -202,38 +212,6 @@ export function buildStageItems(
   };
 
   return { add, continue: continuing(false), continueWarranty: continuing(true) };
-}
-
-/**
- * The reference's `hasOpenWarrantyStageForService`: a warranty of the line
- * that is neither continued nor finished. While one stands, no Bảo hành on
- * that line can be pressed.
- */
-export function hasOpenWarranty(lineStages: TreatmentStageDto[]): boolean {
-  return lineStages.some((stage) => stage.isGuarantee && isStageOpen(stage));
-}
-
-/** Local calendar day, so a warranty counts the days the clinic counts. */
-function dayNumber(value: Date): number {
-  return Math.floor(
-    Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()) / 86_400_000,
-  );
-}
-
-/** A "YYYY-MM-DD" day, read as that calendar day whatever the browser's zone. */
-function isoDayNumber(isoDate: string): number {
-  const [year, month, day] = isoDate.slice(0, 10).split("-").map(Number);
-  return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000);
-}
-
-/**
- * The reference's `getWarrantyDaysRemaining`: the period less the whole days
- * since the công đoạn was worked — its Ngày điều trị, "YYYY-MM-DD" (BA,
- * 2026-10-09); null when the service carries no warranty.
- */
-export function warrantyDaysLeft(warrantyDays: number, workedOn: string, now: Date): number | null {
-  if (warrantyDays <= 0) return null;
-  return warrantyDays - (dayNumber(now) - isoDayNumber(workedOn));
 }
 
 /**
@@ -249,51 +227,34 @@ export function byWorkedOrder(a: TreatmentStageDto, b: TreatmentStageDto): numbe
 
 /**
  * What a history row (or a treatment-table row) offers once its công đoạn is
- * finished, as the reference draws it:
+ * finished:
  *
  * - `none` — not finished, or continued by a later one: no warranty control;
- * - `noWarranty` — the service carries no warranty: a grey "Không bảo hành";
- * - `available` — a live Bảo hành, titled "Còn n ngày bảo hành";
- * - `blocked` — Bảo hành shown but disabled: another warranty of the line is
- *   still open, or the period ran out.
+ * - `noWarranty` — the service carries no warranty and the line no Labo order:
+ *   a grey "Không bảo hành";
+ * - `available` — "Bảo hành dịch vụ", which opens the slip's Bảo hành tab
+ *   (P3110 REQ-A9). `until` is the latest end of the line's valid cards when
+ *   the caller has them, else null.
+ *
+ * It is never disabled: the tab is where the cards are activated and where a
+ * warranty công đoạn is worked under one (G23), so the catalog's day count no
+ * longer gates it.
  */
 export type WarrantyState =
   | { kind: "none" }
   | { kind: "noWarranty" }
-  | { kind: "available"; daysLeft: number }
-  | { kind: "blocked"; reason: "openWarranty" | "expired" };
+  | { kind: "available"; until: string | null };
 
 export function warrantyState(
   stage: TreatmentStageDto,
   line: TreatmentServiceDto,
-  lineStages: TreatmentStageDto[],
-  now: Date = new Date(),
+  until: string | null = null,
 ): WarrantyState {
   if (stage.isSuperseded || !isStageDone(stage)) return { kind: "none" };
-
-  const daysLeft = warrantyDaysLeft(line.warrantyDays, stage.treatmentDate, now);
-  if (daysLeft === null) return { kind: "noWarranty" };
-  if (hasOpenWarranty(lineStages)) return { kind: "blocked", reason: "openWarranty" };
-  if (daysLeft <= 0) return { kind: "blocked", reason: "expired" };
-  return { kind: "available", daysLeft };
-}
-
-/**
- * The teeth "Tạo bảo hành" offers off `source`: those of the ordinary công
- * đoạn its warranty chain descends from, not the narrower set a warranty may
- * have taken — the project owner's rule, which staging shows whenever that
- * root covers the whole line. With no root on record (an older warranty) the
- * line's teeth stand in, which is what the reference itself offers.
- */
-export function warrantyCandidates(
-  source: TreatmentStageDto,
-  line: TreatmentServiceDto,
-  lineStages: TreatmentStageDto[],
-): ToothSelectionDto[] {
-  const rootId = source.isGuarantee ? source.warrantyRootStageId : source.id;
-  const root = lineStages.find((stage) => stage.id === rootId);
-  if (root && root.teeth.length > 0) return root.teeth;
-  return line.teeth.length > 0 ? line.teeth : source.teeth;
+  if (line.warrantyDays <= 0 && stage.lineLaboOrderCount === 0 && until === null) {
+    return { kind: "noWarranty" };
+  }
+  return { kind: "available", until };
 }
 
 /**

@@ -21,7 +21,7 @@ public class PatientPaymentTests
 
     private static PatientPayment Record(
         decimal amount,
-        IEnumerable<(Guid, decimal)>? lines = null,
+        IEnumerable<PaymentLineDraft>? lines = null,
         PaymentMethodKind method = PaymentMethodKind.Cash,
         Guid? accountId = null,
         PaymentSplitMode split = PaymentSplitMode.Auto) =>
@@ -171,7 +171,7 @@ public class PatientPaymentTests
         refund.Lines.Single().Amount.ShouldBe(250_000m);
     }
 
-    private static PatientPayment Pending(decimal amount, IEnumerable<(Guid, decimal)> lines) =>
+    private static PatientPayment Pending(decimal amount, IEnumerable<PaymentLineDraft> lines) =>
         PatientPayment.Record(
             Guid.NewGuid(),
             patientId: Guid.NewGuid(),
@@ -255,48 +255,273 @@ public class PatientPaymentTests
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation);
     }
 
+    private static PatientPayment Issued(decimal amount, IEnumerable<PaymentLineDraft> lines) =>
+        Export(Pending(amount, lines), DateTimeOffset.UtcNow, Guid.NewGuid());
+
+    private const string FileName = "receipts/branch/payment.pdf.enc";
+    private static readonly string Sha256 = new('a', 64);
+
+    private static PatientPayment Export(PatientPayment payment, DateTimeOffset at, Guid? accountant) =>
+        payment.Issue(at, accountant, ReceiptSignMode.Unsigned, FileName, Sha256);
+
+    private static void Revise(PatientPayment payment) =>
+        payment.Revise(
+            PaymentSplitMode.Auto,
+            PaymentMethodKind.Cash,
+            1_000_000m,
+            null,
+            null,
+            [(ServiceA, 1_000_000m)],
+            Guid.NewGuid);
+
     [Fact]
-    public void Confirming_Dates_The_Receipt_To_The_Money_And_Credits_The_Cashier()
+    public void Exporting_Locks_The_Receipt_But_Moves_No_Money()
     {
         var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
-        var collectedAt = DateTimeOffset.UtcNow;
+        var issuedAt = DateTimeOffset.UtcNow;
+        var accountant = Guid.NewGuid();
+
+        Export(payment, issuedAt, accountant);
+
+        payment.Status.ShouldBe(PatientPaymentStatus.Issued);
+        payment.IsCompleted.ShouldBeFalse();
+        payment.IssuedAt.ShouldBe(issuedAt);
+        payment.IssuedById.ShouldBe(accountant);
+        payment.SignMode.ShouldBe(ReceiptSignMode.Unsigned);
+        payment.ReceiptFileName.ShouldBe(FileName);
+        payment.ReceiptFileSha256.ShouldBe(Sha256);
+        payment.HasReceiptFile.ShouldBeTrue();
+        Should.Throw<BusinessException>(() => Revise(payment))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
+        Should.Throw<BusinessException>(() => Export(payment, DateTimeOffset.UtcNow, accountant))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
+    }
+
+    [Fact]
+    public void Digital_Signing_Is_Refused_Until_Phase_7()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+
+        Should.Throw<BusinessException>(() =>
+                payment.Issue(DateTimeOffset.UtcNow, null, ReceiptSignMode.Digital, FileName, Sha256))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.ReceiptDigitalSignUnavailable);
+        payment.Status.ShouldBe(PatientPaymentStatus.Pending);
+        payment.HasReceiptFile.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_Export_Must_Name_Its_File_And_Hash()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+
+        Should.Throw<ArgumentException>(() =>
+            payment.Issue(DateTimeOffset.UtcNow, null, ReceiptSignMode.Unsigned, FileName, "abc"));
+        Should.Throw<ArgumentException>(() =>
+            payment.Issue(DateTimeOffset.UtcNow, null, ReceiptSignMode.Unsigned, " ", Sha256));
+        payment.Status.ShouldBe(PatientPaymentStatus.Pending);
+    }
+
+    [Fact]
+    public void An_Unexported_Receipt_Cannot_Be_Confirmed()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+
+        Should.Throw<BusinessException>(() => payment.Confirm(Guid.NewGuid()))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentNotIssued);
+        payment.IsPending.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Confirming_Keeps_The_Picked_Payment_Day_And_Credits_The_Cashier()
+    {
+        var payment = Issued(2_000_000m, [(ServiceA, 2_000_000m)]);
+        var pickedDay = payment.PaidAt;
         var cashier = Guid.NewGuid();
 
-        payment.Confirm(collectedAt, cashier);
+        payment.Confirm(cashier);
 
         payment.Status.ShouldBe(PatientPaymentStatus.Completed);
-        payment.PaidAt.ShouldBe(collectedAt);
+        payment.PaidAt.ShouldBe(pickedDay);
         payment.StaffId.ShouldBe(cashier);
     }
 
     [Fact]
-    public void A_Completed_Receipt_Is_Final()
+    public void A_Paid_Receipt_Is_Final_But_Can_Be_Cancelled()
     {
-        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
-        payment.Confirm(DateTimeOffset.UtcNow, Guid.NewGuid());
+        var payment = Issued(2_000_000m, [(ServiceA, 2_000_000m)]);
+        payment.Confirm(Guid.NewGuid());
 
-        Should.Throw<BusinessException>(() => payment.Confirm(DateTimeOffset.UtcNow, Guid.NewGuid()))
+        Should.Throw<BusinessException>(() => payment.Confirm(Guid.NewGuid()))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
-        Should.Throw<BusinessException>(() => payment.Cancel("nhầm"))
+        Should.Throw<BusinessException>(() => Revise(payment))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
-        Should.Throw<BusinessException>(() => payment.Revise(
-                PaymentSplitMode.Auto,
-                PaymentMethodKind.Cash,
-                1_000_000m,
-                null,
-                null,
-                [(ServiceA, 1_000_000m)],
-                Guid.NewGuid))
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
+
+        payment.Cancel(PaymentCancelReason.Duplicate, "lập trùng", DateTimeOffset.UtcNow, Guid.NewGuid());
+
+        payment.Status.ShouldBe(PatientPaymentStatus.Cancelled);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void An_Exported_Or_Paid_Receipt_Is_Cancelled_With_A_Fixed_Reason(bool paid)
+    {
+        var payment = Issued(2_000_000m, [(ServiceA, 2_000_000m)]);
+        if (paid) payment.Confirm(Guid.NewGuid());
+
+        Should.Throw<BusinessException>(() => payment.Cancel(null, "nhầm", DateTimeOffset.UtcNow, null))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentCancelReasonCodeRequired);
+        Should.Throw<BusinessException>(() => payment.Cancel((PaymentCancelReason)9, "nhầm", DateTimeOffset.UtcNow, null))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentCancelReasonCodeRequired);
+        Should.Throw<BusinessException>(() => payment.Cancel(PaymentCancelReason.Other, " ", DateTimeOffset.UtcNow, null))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentCancelReasonRequired);
     }
 
     [Fact]
-    public void A_Pending_Receipt_Can_Still_Be_Cancelled()
+    public void Cancelling_Keeps_Why_Who_And_When_Apart_From_The_Export()
+    {
+        var payment = Issued(2_000_000m, [(ServiceA, 2_000_000m)]);
+        var issuedAt = payment.IssuedAt;
+        var cancelledAt = DateTimeOffset.UtcNow.AddMinutes(5);
+        var canceller = Guid.NewGuid();
+
+        payment.Cancel(PaymentCancelReason.WrongPayer, "  sai tên người nộp  ", cancelledAt, canceller);
+
+        payment.Status.ShouldBe(PatientPaymentStatus.Cancelled);
+        payment.CancelReasonCode.ShouldBe(PaymentCancelReason.WrongPayer);
+        payment.CancelReason.ShouldBe("sai tên người nộp");
+        payment.CancelledAt.ShouldBe(cancelledAt);
+        payment.CancelledById.ShouldBe(canceller);
+        payment.IssuedAt.ShouldBe(issuedAt);
+    }
+
+    [Fact]
+    public void A_Cancelled_Receipt_Is_Final()
+    {
+        var payment = Issued(2_000_000m, [(ServiceA, 2_000_000m)]);
+        payment.Cancel(PaymentCancelReason.Other, "khác", DateTimeOffset.UtcNow, null);
+
+        Should.Throw<BusinessException>(() => payment.Cancel(PaymentCancelReason.Other, "lại", DateTimeOffset.UtcNow, null))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled);
+        Should.Throw<BusinessException>(() => payment.Confirm(Guid.NewGuid()))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled);
+        Should.Throw<BusinessException>(() => Export(payment, DateTimeOffset.UtcNow, null))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled);
+        Should.Throw<BusinessException>(() => Revise(payment))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled);
+    }
+
+    [Fact]
+    public void A_Pending_Receipt_Is_Cancelled_With_Its_Description_Alone()
     {
         var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
 
-        payment.Cancel("khách đổi ý");
+        payment.Cancel(null, "khách đổi ý", DateTimeOffset.UtcNow, null);
 
+        payment.Status.ShouldBe(PatientPaymentStatus.Cancelled);
         payment.CancelReason.ShouldBe("khách đổi ý");
+        payment.CancelReasonCode.ShouldBeNull();
+    }
+
+    [Fact]
+    public void A_Refund_Is_Final_Once_Written()
+    {
+        var refund = PatientPayment.Record(
+            Guid.NewGuid(),
+            patientId: Guid.NewGuid(),
+            clinicBranchId: Guid.NewGuid(),
+            kind: PatientPaymentKind.Refund,
+            method: PaymentMethodKind.Cash,
+            amount: 100_000m,
+            code: "HOANTIEN-01/2026",
+            staffId: Guid.NewGuid(),
+            paidAt: DateTimeOffset.UtcNow,
+            treatmentPlanId: Plan);
+
+        Should.Throw<BusinessException>(() => refund.Cancel(PaymentCancelReason.Other, "nhầm", DateTimeOffset.UtcNow, null))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
+    }
+
+    [Theory]
+    [InlineData(PatientPaymentStatus.Issued)]
+    [InlineData(PatientPaymentStatus.Cancelled)]
+    public void A_Receipt_Is_Never_Written_Exported_Or_Cancelled(PatientPaymentStatus status)
+    {
+        Should.Throw<BusinessException>(() => PatientPayment.Record(
+            Guid.NewGuid(),
+            patientId: Guid.NewGuid(),
+            clinicBranchId: Guid.NewGuid(),
+            kind: PatientPaymentKind.Payment,
+            method: PaymentMethodKind.Cash,
+            amount: 100_000m,
+            code: "THANHTOAN-01/DT01/2026",
+            staffId: Guid.NewGuid(),
+            paidAt: DateTimeOffset.UtcNow,
+            treatmentPlanId: Plan,
+            lines: [(ServiceA, 100_000m)],
+            status: status));
+    }
+
+    private static PaymentReceiptSnapshot Snapshot(decimal amount, decimal slipTotal = 5_000_000m, decimal paidBefore = 1_000_000m) =>
+        PaymentReceiptSnapshot.Take(
+            "BN0001",
+            "Khách Thử",
+            "DT03",
+            new DateOnly(2026, 10, 27),
+            PaymentMethodKind.Cash,
+            amount,
+            slipTotal,
+            paidBefore,
+            "Thu Ngân",
+            [new PaymentReceiptSnapshotLine("Khám & tư vấn", amount)]);
+
+    [Fact]
+    public void The_Receipt_Content_Spells_Its_Amount_And_What_The_Slip_Still_Owes()
+    {
+        var snapshot = Snapshot(2_300_000m);
+
+        snapshot.AmountInWords.ShouldBe("Hai triệu ba trăm nghìn đồng");
+        snapshot.Remaining.ShouldBe(1_700_000m);
+        snapshot.RemainingInWords.ShouldBe("Một triệu bảy trăm nghìn đồng");
+        snapshot.Lines.Single().Name.ShouldBe("Khám & tư vấn");
+    }
+
+    [Fact]
+    public void What_The_Slip_Still_Owes_Never_Goes_Below_Zero()
+    {
+        Snapshot(2_000_000m, slipTotal: 2_500_000m, paidBefore: 1_000_000m).Remaining.ShouldBe(0m);
+    }
+
+    [Fact]
+    public void An_Unpaid_Receipt_Freezes_Its_Content_And_Refreezes_It_On_A_Revise()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+        payment.FreezeReceipt(Snapshot(2_000_000m));
+
+        Revise(payment);
+        payment.FreezeReceipt(Snapshot(1_000_000m));
+
+        payment.ReceiptSnapshot!.Amount.ShouldBe(1_000_000m);
+    }
+
+    [Fact]
+    public void Content_Disagreeing_With_The_Receipt_Total_Is_Refused()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+
+        Should.Throw<BusinessException>(() => payment.FreezeReceipt(Snapshot(1_999_000m)))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation);
+    }
+
+    [Fact]
+    public void An_Exported_Receipt_Keeps_The_Content_The_Customer_Saw()
+    {
+        var payment = Pending(2_000_000m, [(ServiceA, 2_000_000m)]);
+        payment.FreezeReceipt(Snapshot(2_000_000m));
+        Export(payment, DateTimeOffset.UtcNow, Guid.NewGuid());
+
+        Should.Throw<BusinessException>(() => payment.FreezeReceipt(Snapshot(2_000_000m)))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted);
+        payment.ReceiptSnapshot!.CreatorName.ShouldBe("Thu Ngân");
     }
 }

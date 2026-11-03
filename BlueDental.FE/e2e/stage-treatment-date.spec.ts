@@ -232,6 +232,18 @@ function stageBody(line: Line, tooth: number, staff: string, treatmentDate?: str
 }
 
 /**
+ * Activates the line's dental card on `tooth` from `startDate` — the card a
+ * warranty công đoạn is worked under since P3110 (G23): the line's warranty runs
+ * from the card, for the service's days. The line's one công đoạn, finished,
+ * has already closed it.
+ */
+async function activateDentalCard(page: Page, line: Line, tooth: number, startDate: string): Promise<void> {
+  const url = `/api/v1/app/patient-treatments/${line.planId}/services/${line.lineId}/warranty`;
+  const card = await call(page, "POST", url, { cards: [{ toothNumber: tooth, startDate }] });
+  expect(card.status, card.text).toBe(200);
+}
+
+/**
  * Checks a "Ngày điều trị" picker opens on today with tomorrow shut, then types
  * `day` into it (mask mode: the bare digits from the day cell).
  */
@@ -247,7 +259,7 @@ async function pickTreatmentDate(page: Page, form: Locator, day: string): Promis
   await expect(panel.locator(`td[title="${isoDay(1)}"]`)).toHaveClass(/ant-picker-cell-disabled/);
 
   // Typed again when a late re-render of the dialog resets the box mid-typing
-  // (seen once on "Tạo bảo hành": 14/10/0020).
+  // (seen once on the old "Tạo bảo hành" dialog: 14/10/0020).
   await expect(async () => {
     await date.click({ position: { x: 6, y: 8 } });
     await date.pressSequentially(typed(day).replaceAll("/", ""));
@@ -334,7 +346,7 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     await expect(row.locator(".pd-tr-day")).toHaveText(typed(picked));
   });
 
-  test("the server refuses a later day, takes today when none is sent, and counts warranty from the picked day", async ({
+  test("the server refuses a later day, takes today when none is sent, and a warranty runs from its card", async ({
     page,
   }) => {
     const line = await freshLine(page, 38);
@@ -360,8 +372,8 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     expect(continuedLate.status).not.toBe(200);
     expect(continuedLate.text).toContain("BlueDental:Treatment:0046");
 
-    // Worked longer ago than the service's warranty: written today, yet its
-    // warranty has run out — the count starts from Ngày điều trị.
+    // Worked longer ago than the service's warranty: its card starts on the
+    // finishing day and has run out — refused though written today.
     const oldLine = await freshLine(page, 37, await warrantyService(page, 2));
     expect(oldLine.warrantyDays).toBe(2);
     const aged = await call(
@@ -374,14 +386,16 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     const agedId = (aged.json as { id: string }).id;
     const closed = await call(page, "POST", `/api/v1/app/treatment-stages/${agedId}/complete`);
     expect(closed.status, closed.text).toBe(200);
+    await activateDentalCard(page, oldLine, 37, isoDay(-(oldLine.warrantyDays + 1)));
 
     const warranty = await call(page, "POST", "/api/v1/app/treatment-stages", {
       ...stageBody(oldLine, 37, staff),
       isGuarantee: true,
       warrantySourceStageId: agedId,
+      warrantyKind: 1,
     });
     expect(warranty.status).not.toBe(200);
-    expect(warranty.text).toContain("BlueDental:Treatment:0035");
+    expect(warranty.text).toContain("BlueDental:Treatment:0059");
 
     // The same service worked a day inside its period still takes a warranty.
     const freshLineInPeriod = await freshLine(page, 36, oldLine.serviceId);
@@ -394,15 +408,17 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     expect(recent.status, recent.text).toBe(200);
     const recentId = (recent.json as { id: string }).id;
     expect((await call(page, "POST", `/api/v1/app/treatment-stages/${recentId}/complete`)).status).toBe(200);
+    await activateDentalCard(page, freshLineInPeriod, 36, isoDay(-(freshLineInPeriod.warrantyDays - 1)));
     const kept = await call(page, "POST", "/api/v1/app/treatment-stages", {
       ...stageBody(freshLineInPeriod, 36, staff),
       isGuarantee: true,
       warrantySourceStageId: recentId,
+      warrantyKind: 1,
     });
     expect(kept.status, kept.text).toBe(200);
   });
 
-  test("Tạo bảo hành and Tạo tái khám pick their Ngày điều trị too, and the server refuses a later one", async ({
+  test("TIẾP TỤC BẢO HÀNH picks its Ngày điều trị too, and the server refuses a later one for a tái khám", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
@@ -412,64 +428,39 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     expect(source.status, source.text).toBe(200);
     const sourceId = (source.json as { id: string }).id;
     expect((await call(page, "POST", `/api/v1/app/treatment-stages/${sourceId}/complete`)).status).toBe(200);
+    await activateDentalCard(page, line, 35, isoDay(-3));
 
-    // Tạo bảo hành, from the finished công đoạn in Lịch sử điều trị.
+    // The line's card under TIẾP TỤC BẢO HÀNH (P3110 REQ-F1), on its Nha khoa card.
     const slip = await openStageDialog(page, line);
-    await slip.locator(`.pd-stage-histrow[data-stage-id="${sourceId}"]`).getByRole("button", { name: "Bảo hành" }).click();
-
-    const warranty = page.getByRole("dialog", { name: "Tạo bảo hành" });
+    await slip.getByRole("tab", { name: /TIẾP TỤC BẢO HÀNH/ }).click();
+    await slip.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
+    const warranty = slip.locator(`.pd-stage-form[data-item-id="continueWarranty:${line.lineId}"]`);
     await expect(warranty).toBeVisible();
+    await warranty.locator(".pd-wcard--dental").click();
     const warrantyDay = isoDay(-1);
     await pickTreatmentDate(page, warranty, warrantyDay);
-    await warranty.locator("textarea").fill(`e2e bảo hành ngày điều trị ${runId()}`);
+    await warranty.locator("textarea").first().fill(`e2e bảo hành ngày điều trị ${runId()}`);
+    const doctor = warranty.locator(".ant-select").first();
+    if ((await doctor.locator(".ant-select-content-has-value").count()) === 0) {
+      await doctor.click();
+      await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
+    }
     const warrantyPosted = page.waitForResponse(
       (res) => res.request().method() === "POST" && res.url().endsWith("/api/v1/app/treatment-stages"),
     );
-    await warranty.locator(".ant-modal-footer").getByRole("button", { name: "Lưu" }).click();
+    await slip.getByRole("button", { name: "Tiếp tục bảo hành" }).click();
     const warrantyRes = await warrantyPosted;
+    expect(warrantyRes.status(), await warrantyRes.text()).toBe(200);
     expect(warrantyRes.request().postDataJSON().treatmentDate).toBe(warrantyDay);
     const warrantyStage = (await warrantyRes.json()) as { id: string; isGuarantee: boolean; treatmentDate: string };
     expect(warrantyStage.isGuarantee).toBe(true);
     expect(warrantyStage.treatmentDate).toBe(warrantyDay);
-    await expect(warranty).toBeHidden();
     const warrantyDayGroup = slip.locator(".pd-stage-histday", {
       has: page.locator(`.pd-stage-histrow[data-stage-id="${warrantyStage.id}"]`),
     });
     await expect(warrantyDayGroup.locator(".pd-stage-histdate b")).toHaveText(short(warrantyDay));
 
-    // Tạo tái khám, from the profile tab's "Tạo Tái khám" listing.
-    await page.goto(`/patient/${line.patientId}?branchId=${line.branchId}&tab=profile`);
-    await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
-    await page.getByRole("button", { name: "Tạo Tái khám" }).click();
-    await page
-      .locator(`.pd-recall-dialog .pd-recall-row[data-stage-id="${sourceId}"]`)
-      .getByRole("button", { name: "Tái Khám" })
-      .click();
-
-    const recall = page.locator(".pd-recall-form-dialog");
-    await expect(recall).toBeVisible();
-    // A past day other than the warranty's, so the tái khám row is easy to tell apart.
-    const recallDay = isoDay(-(2 + (Date.now() % 20)));
-    await pickTreatmentDate(page, recall, recallDay);
-    await recall.locator(".pd-stage-teeth > div > button").first().click();
-    await recall.locator("textarea").fill(`e2e tái khám ngày điều trị ${runId()}`);
-    const recallPosted = page.waitForResponse(
-      (res) => res.request().method() === "POST" && res.url().endsWith("/api/v1/app/patient-re-examinations"),
-    );
-    await recall.locator(".ant-modal-footer button.ant-btn-primary").click();
-    const recallRes = await recallPosted;
-    expect(recallRes.status(), await recallRes.text()).toBe(200);
-    expect(recallRes.request().postDataJSON().treatmentDate).toBe(recallDay);
-    const visit = (await recallRes.json()) as { code: string; treatmentDate: string; creationTime: string };
-    expect(visit.treatmentDate).toBe(recallDay);
-    expect(visit.creationTime.slice(0, 4)).toBe(isoDay(0).slice(0, 4));
-
-    // The treatment table dates the tái khám row by it, after a reload.
-    await page.reload();
-    await expect(page.locator(".pd-treatment-table tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
-    const row = await findTreatmentRow(page, line.lineId, visit.code);
-    await expect(row.locator(".pd-tr-day")).toHaveText(typed(recallDay));
-
+    // The tái khám dialog went with "Tạo Tái khám" (R-1099); its server rule stays.
     // The server refuses a later day for a tái khám, and takes today when none is sent.
     const reExamBody = (treatmentDate?: string) => ({
       patientId: line.patientId,
@@ -499,23 +490,24 @@ test.describe("Chi tiết phiếu — Ngày điều trị", () => {
     const staff = await staffId(page);
 
     // The server takes a day before the slip for a new công đoạn, a continue
-    // and a tái khám (QA #32's lower bound is gone).
+    // and a tái khám (QA #32's lower bound is gone). The continue moves on to a
+    // later day: only the line's newest day may be ticked (BA 2026-11-02).
     const beforeSlip = isoDay(-(daysAgo(line.openedOn) + 1));
-    const early = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, beforeSlip));
+    const early = await call(page, "POST", "/api/v1/app/treatment-stages", stageBody(line, 34, staff, "2000-01-01"));
     expect(early.status, early.text).toBe(200);
     const first = early.json as { id: string; treatmentDate: string };
-    expect(first.treatmentDate).toBe(beforeSlip);
+    expect(first.treatmentDate).toBe("2000-01-01");
 
     const continued = await call(page, "POST", `/api/v1/app/treatment-stages/${first.id}/continue`, {
       staffId: staff,
       note: "e2e",
-      treatmentDate: "2000-01-01",
+      treatmentDate: beforeSlip,
       toothCodes: [],
       alsoFrom: [],
     });
     expect(continued.status, continued.text).toBe(200);
     const next = continued.json as { id: string; treatmentDate: string };
-    expect(next.treatmentDate).toBe("2000-01-01");
+    expect(next.treatmentDate).toBe(beforeSlip);
 
     expect((await call(page, "POST", `/api/v1/app/treatment-stages/${next.id}/complete`)).status).toBe(200);
     const recall = await call(page, "POST", "/api/v1/app/patient-re-examinations", {

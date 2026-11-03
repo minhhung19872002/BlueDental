@@ -498,6 +498,13 @@
   background: var(--bd-red-pale);
   color: var(--bd-red);
 }
+/* "Xoá phiếu điều trị" on a slip that has taken money: the sum, in red, above the note. */
+.tp-delete-paid {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--bd-red);
+  font-weight: 600;
+}
 /* The same bin on the phone card, whose head is the primary blue. */
 .tp-card-delete {
   background: var(--bd-red);

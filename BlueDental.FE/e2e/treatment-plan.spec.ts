@@ -286,17 +286,16 @@ test.describe("Kế hoạch điều trị", () => {
     await print.locator(".pmr-foot").getByRole("button", { name: "Đóng" }).click();
     await expect(print).toBeHidden();
 
-    // The receipt action opens "Tạo phiếu thanh toán" on this slip (owner
-    // 2026-10-12, R-907): the slip is already chosen, so step ① is done.
+    // The receipt action opens this slip's Thanh toán tab (owner 2026-10-27, R-1042).
     await row.getByRole("button", { name: `Phiếu thu ${createdCode}` }).click();
-    const pay = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
-    await expect(pay).toBeVisible();
-    await expect(pay.locator(".pd-newpay-slipselect")).toContainText(createdCode);
-    await expect(pay.locator(".pd-newpay-step--done")).toContainText("Chọn số phiếu");
-    await expect(pay.locator(".pd-newpay-slipchip")).toHaveText(createdCode);
-    await expect(pay.locator(".pd-newpay-noslip")).toHaveCount(0);
-    await page.keyboard.press("Escape");
-    await expect(pay).toBeHidden();
+    await expect(page).toHaveURL(/\/treatment-plan\/[0-9a-f-]{36}\?planTab=payment-v2/);
+    await expect(page.getByRole("tab", { name: "Thanh toán", exact: true })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.locator(".pdt-crumbs .pdt-crumb").last()).toContainText(createdCode);
+    await page.goBack();
+    await expect(row).toBeVisible();
 
     // Xem tất cả dịch vụ: every line on every slip, paged like the slip table.
     await page.getByRole("button", { name: "Xem tất cả dịch vụ" }).click();

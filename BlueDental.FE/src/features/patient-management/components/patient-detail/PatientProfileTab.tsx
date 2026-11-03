@@ -165,7 +165,6 @@ export function PatientProfileTab({ patient }: Props) {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [payingRow, setPayingRow] = useState<TreatmentRow | null>(null);
   const [stageRow, setStageRow] = useState<TreatmentRow | null>(null);
-  const [warrantyRow, setWarrantyRow] = useState<TreatmentRow | null>(null);
   /** The finished công đoạn a "Tạo tái khám" row is acting on. */
   const [recallStageId, setRecallStageId] = useState<string | null>(null);
   const [detailStageId, setDetailStageId] = useState<string | null>(null);
@@ -318,7 +317,9 @@ export function PatientProfileTab({ patient }: Props) {
       treatmentColumns({
         onOpenPlan: openTreatmentPlan,
         onAddStage: stageAbility.canRead ? setStageRow : undefined,
-        onWarranty: setWarrantyRow,
+        // P3110 REQ-A9: warranty work starts on the slip's Bảo hành tab.
+        onWarranty: (row) =>
+          navigate(planDetailPath(patient.id, row.treatmentPlanId, branchId, PLAN_TAB.warranty, row.id)),
         onPay: paymentAbility.canCreate ? setPayingRow : undefined,
       }),
     // openTreatmentPlan closes over the patient, the branch and the router's
@@ -535,19 +536,16 @@ export function PatientProfileTab({ patient }: Props) {
               </button>
             ))}
           </div>
+          {/*
+           * One button: "Tạo lịch hẹn", the same booking dialog as "Lịch hẹn
+           * gần nhất" with the patient filled in (BA 2026-11-01, R-1099). It
+           * replaced "Tạo tái khám" and "Thanh toán", whose dialogs below are
+           * kept but no longer opened from here (owner: hide, do not delete).
+           */}
           <div>
-            {stageAbility.can("complete") && (
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setRecallOpen(true)}>
-                {t("Patient:Care:CreateRecall")}
-              </Button>
-            )}
-            {paymentAbility.canCreate && (
-              <Button
-                className="pd-btn-outline"
-                icon={<DollarOutlined />}
-                onClick={() => setPaymentOpen(true)}
-              >
-                {t("Patient:Misc:Payment")}
+            {appointmentAbility.canCreate && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreatingAppointment(true)}>
+                {t("Patient:Appt:CreateShort")}
               </Button>
             )}
           </div>
@@ -595,7 +593,6 @@ export function PatientProfileTab({ patient }: Props) {
         branchId={branchId}
         plan={planOf(rows.find((row) => row.stageId === recallStageId) ?? null)}
         stage={finishedStages.find((item) => item.id === recallStageId) ?? null}
-        kind="reExamination"
         onClose={() => {
           setRecallStageId(null);
           setRecallOpen(true);
@@ -627,20 +624,6 @@ export function PatientProfileTab({ patient }: Props) {
         heldForPatient={account?.heldForPatient ?? 0}
         onClose={() => setPayingRow(null)}
         onSaved={() => setPayingRow(null)}
-      />
-      <StageFollowUpDialog
-        open={warrantyRow !== null}
-        patientId={patient.id}
-        branchId={branchId}
-        plan={planOf(warrantyRow)}
-        stage={
-          (patientStages.data?.items ?? []).find((item) => item.id === warrantyRow?.stageId) ?? null
-        }
-        lineStages={(patientStages.data?.items ?? []).filter(
-          (item) => item.treatmentServiceId === warrantyRow?.id,
-        )}
-        kind="guarantee"
-        onClose={() => setWarrantyRow(null)}
       />
       <TreatmentStageDialog
         open={stageRow !== null}

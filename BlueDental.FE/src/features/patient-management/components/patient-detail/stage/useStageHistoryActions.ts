@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import {
   useCompleteStage,
   useRevertStage,
-  useUpdateStage,
+  useUpdateStageNote,
   useUpdateStageRemark,
   type TreatmentStageDto,
 } from "@/features/treatment-management/api/stageApi";
@@ -19,7 +19,7 @@ import {
 export function useStageHistoryActions() {
   const completeStage = useCompleteStage();
   const revertStage = useRevertStage();
-  const updateStage = useUpdateStage();
+  const updateNote = useUpdateStageNote();
   const updateRemark = useUpdateStageRemark();
   const [busyStage, setBusyStage] = useState<string | null>(null);
 
@@ -51,18 +51,13 @@ export function useStageHistoryActions() {
       }
     });
 
+  /**
+   * Nội dung điều trị, on its own endpoint: the full update refuses a finished
+   * or continued công đoạn, and the content stays open on both (BA 2026-11-02).
+   */
   const saveNote = (stage: TreatmentStageDto, next: string) =>
     run(stage.id, async () => {
-      await updateStage.mutateAsync({
-        id: stage.id,
-        name: stage.name,
-        note: next.trim() || undefined,
-        staffId: stage.staffId,
-        secondStaffId: stage.secondStaffId ?? undefined,
-        subStaffId: stage.subStaffId ?? undefined,
-        scheduledDate: stage.scheduledDate ?? undefined,
-        teeth: stage.teeth,
-      });
+      await updateNote.mutateAsync({ id: stage.id, note: next.trim() || null });
       toast.success(t("Patient:Misc:NoteSaved"));
     });
 
@@ -82,7 +77,7 @@ export function useStageHistoryActions() {
     saveNote,
     saveRemark,
     completingId: completeStage.isPending || revertStage.isPending ? busyStage : null,
-    savingNoteFor: updateStage.isPending ? busyStage : null,
+    savingNoteFor: updateNote.isPending ? busyStage : null,
     savingRemarkFor: updateRemark.isPending ? busyStage : null,
   };
 }

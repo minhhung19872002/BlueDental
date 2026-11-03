@@ -18,8 +18,8 @@ interface Props {
 
 /**
  * Ghi chú — a free remark beside Nội dung điều trị (owner, 2026-10-19). Plain
- * text with its line breaks kept, no dash bullets. Unlike the content it stays
- * open once the công đoạn is finished; only a continued one is shut.
+ * text with its line breaks kept, no dash bullets. Open on every row, finished
+ * or continued; every edit is logged for an admin (BA 2026-11-02).
  */
 export function StageRemarkCell({ stage, saving, editable, onSave }: Props) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export function StageRemarkCell({ stage, saving, editable, onSave }: Props) {
   return (
     <div className="pd-stage-remark">
       <div className="pd-stage-notebar">
-        {editable && !editing && !stage.isSuperseded && (
+        {editable && !editing && (
           <StageEditPencil
             label={t("Patient:Stage:EditRemark")}
             onClick={() => setDraft(stage.remark ?? "")}

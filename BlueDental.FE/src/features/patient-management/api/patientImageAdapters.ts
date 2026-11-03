@@ -15,6 +15,8 @@ export interface PatientImageViewModel {
   dayLabel: string;
   /** `dd/MM/yyyy HH:mm`, under the file name on the card. */
   takenLabel: string;
+  /** A công đoạn picture past its upload day keeps no Xóa ảnh (R-1111). */
+  deletable: boolean;
 }
 
 export interface PatientImageDay {
@@ -35,6 +37,7 @@ export function adaptPatientImage(dto: PatientImageDto): PatientImageViewModel {
     dayKey: takenAt.format("YYYY-MM-DD"),
     dayLabel: takenAt.format("DD/MM/YYYY"),
     takenLabel: formatDateTime(dto.takenAt),
+    deletable: dto.deletable,
   };
 }
 

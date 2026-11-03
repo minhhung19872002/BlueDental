@@ -201,6 +201,7 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
       <AdviseModal
         open={Boolean(adviseDiagnosis)}
         patientId={patientId}
+        patientName={patient.fullName}
         diagnosis={adviseDiagnosis}
         onClose={() => setAdviseDiagnosis(null)}
         onCreated={() => void data.advises.refetch()}

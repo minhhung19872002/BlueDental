@@ -15,78 +15,38 @@ import { StageDateField } from "./StageDateField";
 import { NOTE_LIMIT } from "./StageForm";
 import { StageNoteInput } from "./StageNoteInput";
 import { StageStepList } from "./StageStepList";
-import { StageTeethPicker } from "./StageTeethPicker";
 import { useFollowUpForm } from "./useFollowUpForm";
-
-/** What the finished công đoạn is being followed up with. */
-export type FollowUpKind = "guarantee" | "reExamination";
 
 interface Props {
   open: boolean;
   patientId: string;
   branchId: string;
   plan: TreatmentPlanSlipDto | null;
-  /** The finished công đoạn the follow-up is being raised against. */
+  /** The finished công đoạn the tái khám is being raised against. */
   stage: TreatmentStageDto | null;
-  /** Every công đoạn of the stage's line; a warranty reads its root there. */
-  lineStages?: TreatmentStageDto[];
-  /** A warranty raised from the history lists the source's steps; see useFollowUpForm. */
-  inheritSteps?: boolean;
-  kind: FollowUpKind;
   onClose: () => void;
 }
 
-const KIND = {
-  guarantee: {
-    title: "Patient:FollowUp:WarrantyTitle",
-    /** The reference's footer reads "Đóng" / "Lưu" (measured 2026-09-24). */
-    save: "Common:Save",
-    saved: "Patient:FollowUp:WarrantySaved",
-    className: "pd-warranty-dialog",
-  },
-  reExamination: {
-    title: "Patient:FollowUp:RecallTitle",
-    save: "Patient:FollowUp:RecallSave",
-    saved: "Patient:FollowUp:RecallSaved",
-    className: "pd-recall-form-dialog",
-  },
-} as const;
-
 /**
- * "Tạo bảo hành" and "Tạo tái khám" — the two follow-ups a **finished** công
- * đoạn offers. One component because the reference draws them identically: the
- * stage form's own layout, and a footer of Đóng plus a save.
+ * "Tạo tái khám" — the follow-up a **finished** công đoạn offers: the stage
+ * form's own layout, and a footer of Đóng plus a save.
  *
- * What they write differs, and that fork lives in {@link useFollowUpForm}: a
- * warranty visit is another công đoạn on the same line flagged `isGuarantee`,
- * while a tái khám is **not** a công đoạn at all — the reference's timeline
- * returns it as a row of its own, `type: "re_examination"` with code REX001 —
- * so it goes to its own resource and the source stage's `hasReExamination`
- * flips. Measured 2026-09-06 and 2026-09-07; see
- * docs/clone/pages/patient-detail.md.
+ * A tái khám is **not** a công đoạn — the reference's timeline returns it as a
+ * row of its own, `type: "re_examination"` with code REX001 — so it goes to its
+ * own resource and the source stage's `hasReExamination` flips. Measured
+ * 2026-09-06 and 2026-09-07; see docs/clone/pages/patient-detail.md.
+ *
+ * "Tạo bảo hành" shared this dialog until P3110 (REQ-A9, G24) moved warranty
+ * work to the slip's Bảo hành tab.
  */
-export function StageFollowUpDialog({
-  open,
-  patientId,
-  branchId,
-  plan,
-  stage,
-  lineStages = [],
-  inheritSteps = false,
-  kind,
-  onClose,
-}: Props) {
-  const copy = KIND[kind];
+export function StageFollowUpDialog({ open, patientId, branchId, plan, stage, onClose }: Props) {
   const form = useFollowUpForm({
     open,
     patientId,
     branchId,
     plan,
     stage,
-    lineStages,
-    kind,
-    inheritSteps,
-    saved: copy.saved,
+    saved: "Patient:FollowUp:RecallSaved",
     onClose,
   });
 
@@ -96,8 +56,8 @@ export function StageFollowUpDialog({
     <Modal
       open={open}
       width="calc(100vw - 32px)"
-      className={`pd-stage-dialog ${copy.className}`}
-      title={t(copy.title)}
+      className="pd-stage-dialog pd-recall-form-dialog"
+      title={t("Patient:FollowUp:RecallTitle")}
       onCancel={onClose}
       footer={
         <>
@@ -108,7 +68,7 @@ export function StageFollowUpDialog({
             loading={form.saving}
             onClick={() => void form.save()}
           >
-            {t(copy.save)}
+            {t("Patient:FollowUp:RecallSave")}
           </Button>
         </>
       }
@@ -156,25 +116,12 @@ export function StageFollowUpDialog({
               value={plan ? `${plan.code} - ${line?.serviceName ?? line?.code ?? ""}` : ""}
             />
           </FloatingLabel>
-          {/* A warranty picks which of its root's teeth it covers, chart and
-              all, like a new công đoạn; a tái khám only ticks among the
-              công đoạn's own. */}
-          {kind === "guarantee" ? (
-            <StageTeethPicker
-              candidates={form.candidates}
-              picked={form.picked}
-              locked={false}
-              error={form.errors.teeth}
-              onChange={form.changeTeeth}
-            />
-          ) : (
-            <FollowUpTeeth
-              candidates={form.candidates}
-              picked={form.picked}
-              onToggle={form.toggleTooth}
-              onChange={form.changeTeeth}
-            />
-          )}
+          <FollowUpTeeth
+            candidates={form.candidates}
+            picked={form.picked}
+            onToggle={form.toggleTooth}
+            onChange={form.changeTeeth}
+          />
           {form.errors.teeth && <p className="pd-stage-error">{form.errors.teeth}</p>}
           <FollowUpShots
             files={form.pending}
@@ -196,8 +143,7 @@ export function StageFollowUpDialog({
           </FloatingLabel>
           {form.errors.note && <p className="pd-stage-error">{form.errors.note}</p>}
           {/* A tái khám carries the source công đoạn's content as its one
-              tickable entry; a warranty from the history lists the source
-              công đoạn's steps, one from the table none ("(Trống)"). */}
+              tickable entry. */}
           <StageStepList
             steps={form.checklist}
             checked={form.pickedSteps}

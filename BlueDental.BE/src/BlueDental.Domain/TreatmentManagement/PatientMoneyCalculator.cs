@@ -21,6 +21,7 @@ public class PatientMoneyCalculator : IDomainService
     public PaymentSummary ForPlan(TreatmentPlan plan, IReadOnlyCollection<PatientPayment> payments)
     {
         var ofPlan = payments.Where(p => p.TreatmentPlanId == plan.Id).ToList();
+        var settled = LineSettlement.Of(plan, ofPlan);
 
         return PaymentSummary.From(
             // VAT included: what the patient is asked to pay, so Còn nợ counts it.
@@ -28,7 +29,9 @@ public class PatientMoneyCalculator : IDomainService
             totalPaid: ofPlan.Where(p => p.Kind == PatientPaymentKind.Payment).Sum(p => p.Amount),
             completedValue: plan.CompletedValue,
             totalRefund: ofPlan.Where(p => p.Kind == PatientPaymentKind.Refund).Sum(p => p.Amount),
-            discount: plan.PlanDiscountAmount + plan.ServiceVoucherTotal + plan.ServicesDiscountAmount);
+            discount: plan.PlanDiscountAmount + plan.ServiceVoucherTotal + plan.ServicesDiscountAmount,
+            relief: plan.ReliefOffPayable(settled),
+            promotion: plan.ReliefOn(settled));
     }
 
     /// <summary>
@@ -43,6 +46,7 @@ public class PatientMoneyCalculator : IDomainService
         IReadOnlyCollection<PatientPayment> payments)
     {
         var money = plan.MoneyOfLines(lineIds);
+        var settled = LineSettlement.Of(plan, payments);
         var shares = payments
             .Where(p => p.TreatmentPlanId == plan.Id)
             .SelectMany(p => p.Lines
@@ -55,7 +59,9 @@ public class PatientMoneyCalculator : IDomainService
             totalPaid: shares.Where(s => s.Kind == PatientPaymentKind.Payment).Sum(s => s.Amount),
             completedValue: money.Completed,
             totalRefund: shares.Where(s => s.Kind == PatientPaymentKind.Refund).Sum(s => s.Amount),
-            discount: money.TotalDiscount);
+            discount: money.TotalDiscount,
+            relief: plan.ReliefOffPayable(settled, lineIds),
+            promotion: plan.ReliefOn(settled, lineIds));
     }
 
     /// <summary>
@@ -99,7 +105,9 @@ public class PatientMoneyCalculator : IDomainService
             completedValue: parts.Sum(p => p.CompletedValue),
             totalRefund: parts.Sum(p => p.TotalRefund),
             discount: parts.Sum(p => p.Discount),
-            prepaid: parts.Sum(p => p.Prepaid));
+            prepaid: parts.Sum(p => p.Prepaid),
+            relief: parts.Sum(p => p.Relief),
+            promotion: parts.Sum(p => p.Promotion));
 
     /// <summary>
     /// "Công nợ tồn": finished work not yet paid for, slip by slip. Each slip's
@@ -133,7 +141,9 @@ public class PatientMoneyCalculator : IDomainService
             completedValue: plans.Sum(p => p.CompletedValue),
             totalRefund: againstSlips.Where(p => p.Kind == PatientPaymentKind.Refund).Sum(p => p.Amount),
             discount: plans.Sum(p => p.PlanDiscountAmount + p.ServiceVoucherTotal + p.ServicesDiscountAmount),
-            prepaid: HeldForPatient(payments));
+            prepaid: HeldForPatient(payments),
+            relief: plans.Sum(p => p.ReliefOffPayable(LineSettlement.Of(p, againstSlips))),
+            promotion: plans.Sum(p => p.ReliefOn(LineSettlement.Of(p, againstSlips))));
     }
 
     /// <summary>

@@ -1,0 +1,211 @@
+/* ── PHIẾU THU (P2610): a paper-white card read top to bottom — the clinic,
+   title and date with the number on the right, the rows, the lines, then the
+   two signature boxes pinned to the bottom. Shared by the accountant's Phiếu
+   thu page and the customer's iPad. ── */
+.rcpt-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 760px;
+  padding: 28px 32px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+
+/* Head: clinic over title over date | number. */
+.rcpt-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--bd-border);
+}
+.rcpt-sheet-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.rcpt-sheet-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rcpt-sheet-logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+.rcpt-sheet-clinic {
+  color: var(--bd-ink-4);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.rcpt-sheet-title {
+  margin: 6px 0 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.rcpt-sheet-date {
+  margin: 0;
+  color: var(--bd-ink-3);
+  font-size: 13px;
+}
+.rcpt-sheet-number {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+  color: var(--bd-ink-3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+
+/* Rows: label | value. */
+.rcpt-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rcpt-row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+}
+.rcpt-row-label {
+  color: var(--bd-ink-4);
+  font-size: 13px;
+}
+.rcpt-amount {
+  color: var(--bd-primary);
+  font-size: 18px;
+}
+.rcpt-words {
+  color: var(--bd-ink-3);
+}
+
+/* Lines: name | amount, dashed between. */
+.rcpt-lines {
+  width: 100%;
+  border-collapse: collapse;
+}
+.rcpt-lines th,
+.rcpt-lines td {
+  padding: 8px 0;
+  text-align: left;
+}
+.rcpt-lines th {
+  border-bottom: 1px solid var(--bd-border);
+  color: var(--bd-ink-4);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.rcpt-lines td {
+  border-bottom: 1px dashed var(--bd-border-2);
+}
+/* What this receipt lets off the line (P2910), under its name. */
+.rcpt-lines-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}
+.rcpt-lines .rcpt-lines-money {
+  width: 160px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Signature boxes: role, mark, name — at the foot of the sheet. */
+.rcpt-signs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.rcpt-sign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg-soft);
+  text-align: center;
+}
+.rcpt-sign-role {
+  color: var(--bd-ink-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+.rcpt-sign-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 72px;
+}
+.rcpt-sign-chip {
+  padding: 3px 10px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-border);
+  color: var(--bd-ink-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+.rcpt-sign-chip--waiting {
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.rcpt-sign-chip--paper {
+  background: var(--bd-purple-pale);
+  color: var(--bd-violet);
+}
+.rcpt-sign-chip--signed {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.rcpt-sign-image {
+  max-width: 100%;
+  max-height: 64px;
+  object-fit: contain;
+}
+.rcpt-sign-time {
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}
+.rcpt-sign-name {
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .rcpt-sheet {
+    padding: 20px 16px;
+  }
+  .rcpt-sheet-head {
+    flex-direction: column;
+  }
+  .rcpt-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .rcpt-signs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

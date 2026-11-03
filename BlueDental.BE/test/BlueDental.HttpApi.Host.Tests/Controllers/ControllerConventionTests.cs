@@ -74,6 +74,8 @@ public class ControllerConventionTests
     [
         // QR on a PHIẾU THU; the one-time token is the key (F-71).
         typeof(BlueDental.EInvoicing.PublicInvoiceRequestController),
+        // The branch's iPad (P2610); the paired device token is the key.
+        typeof(SigningStationController),
     ];
 
     /// <summary>

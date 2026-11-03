@@ -8,13 +8,11 @@ import { validateImageFile } from "@/utils/validateImageFile";
 import {
   useAttachReExaminationImage,
   useCreateReExamination,
-  useCreateStage,
   type TreatmentStageDto,
 } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { useUploadPatientImage } from "../../../api/patientImageApi";
 import { reExaminationChecklist } from "./reExaminationChecklist";
-import { namedSteps, pickTeeth, toothCodes, warrantyCandidates } from "./stageModel";
 import { syncStageContent } from "./syncStageContent";
 import {
   hasStageFieldError,
@@ -27,48 +25,21 @@ interface Options {
   patientId: string;
   branchId: string;
   plan: TreatmentPlanSlipDto | null;
-  /** The finished công đoạn the follow-up is raised against. */
+  /** The finished công đoạn the tái khám is raised against. */
   stage: TreatmentStageDto | null;
-  /**
-   * Every công đoạn of the stage's line — where a warranty finds the root whose
-   * teeth it may take. Only read for a warranty.
-   */
-  lineStages: TreatmentStageDto[];
-  kind: "guarantee" | "reExamination";
-  /**
-   * A warranty raised from LỊCH SỬ ĐIỀU TRỊ lists the source công đoạn's steps;
-   * one raised from the profile tab's table lists none — the reference's two
-   * warranty mappers differ exactly there (`stageChecklist: e.stageChecklist`
-   * vs `stageChecklist: []`, read 2026-09-24).
-   */
-  inheritSteps: boolean;
-  /** Toast shown once the follow-up is written. */
+  /** Toast shown once the tái khám is written. */
   saved: string;
   onClose: () => void;
 }
 
 /**
- * The state and the write behind "Tạo bảo hành" / "Tạo tái khám".
+ * The state and the write behind "Tạo tái khám": a row of its own with its own
+ * resource, taking only the teeth that were ticked.
  *
- * The two forms look identical but land in different places: a warranty visit
- * is another công đoạn on the same line flagged `isGuarantee`, while a tái khám
- * is a row of its own with its own resource. Keeping that fork here leaves the
- * dialog as layout.
+ * "Tạo bảo hành" used to share this form; P3110 (REQ-A9, G24) moved warranty
+ * work to the slip's Bảo hành tab, where it is picked under a card.
  */
-export function useFollowUpForm({
-  open,
-  patientId,
-  branchId,
-  plan,
-  stage,
-  lineStages,
-  kind,
-  inheritSteps,
-  saved,
-  onClose,
-}: Options) {
-  const warranty = kind === "guarantee";
-  const createStage = useCreateStage();
+export function useFollowUpForm({ open, patientId, branchId, plan, stage, saved, onClose }: Options) {
   const createReExam = useCreateReExamination();
   const attachReExamImage = useAttachReExaminationImage();
   const uploadImage = useUploadPatientImage();
@@ -83,9 +54,9 @@ export function useFollowUpForm({
   /** Tooth codes ticked in the form. */
   const [picked, setPicked] = useState<number[]>([]);
   /**
-   * "Danh sách công đoạn" ids ticked on the form. A warranty sends them as its
-   * steps; a tái khám lets them be toggled but sends nothing for them — see
-   * UNKNOWN_REFERENCE_BEHAVIOR in docs/clone/unknowns.md.
+   * "Danh sách công đoạn" ids ticked on the form. A tái khám lets them be
+   * toggled but sends nothing for them — see UNKNOWN_REFERENCE_BEHAVIOR in
+   * docs/clone/unknowns.md.
    */
   const [pickedSteps, setPickedSteps] = useState<string[]>([]);
   /** Which fields failed the last save attempt — see {@link StageFieldErrors}. */
@@ -93,17 +64,11 @@ export function useFollowUpForm({
 
   const line = plan?.services.find((item) => item.id === stage?.treatmentServiceId) ?? null;
 
-  /**
-   * The teeth on offer. A tái khám picks among the công đoạn's own. A warranty
-   * picks among its root's — measured on staging 2026-09-24: raised off a
-   * finished warranty of 11·21·22 whose root took 11·21·22·32, "Tạo bảo hành"
-   * offered all four with the three preselected.
-   */
+  /** The teeth on offer: the công đoạn's own, else the line's. */
   const candidates = useMemo(() => {
     if (!stage) return [];
-    if (warranty && line) return warrantyCandidates(stage, line, lineStages);
     return stage.teeth.length > 0 ? stage.teeth : (line?.teeth ?? []);
-  }, [stage, line, lineStages, warranty]);
+  }, [stage, line]);
 
   useEffect(() => {
     if (!open) return;
@@ -113,28 +78,17 @@ export function useFollowUpForm({
     setNote("");
     setTreatmentDate(todayIsoDate());
     setPending([]);
-    // A warranty starts with the source công đoạn's teeth picked; a tái khám
-    // starts with none.
-    setPicked(warranty && stage ? toothCodes(stage.teeth) : []);
+    setPicked([]);
     setPickedSteps([]);
     setErrors({});
-  }, [open, stage, warranty]);
+  }, [open, stage]);
 
   /**
-   * "Danh sách công đoạn". A warranty lists the source công đoạn's own steps,
-   * all unticked (the reference's `stageChecklist` of the history row). A tái
-   * khám carries the source's content as its one entry even though Nội dung
-   * điều trị starts blank, so this reads the stage rather than `note`.
+   * "Danh sách công đoạn". A tái khám carries the source's content as its one
+   * entry even though Nội dung điều trị starts blank, so this reads the stage
+   * rather than `note`.
    */
-  const checklist = useMemo(
-    () =>
-      warranty
-        ? inheritSteps
-          ? namedSteps(stage?.serviceItems ?? [])
-          : []
-        : reExaminationChecklist(stage),
-    [stage, warranty, inheritSteps],
-  );
+  const checklist = useMemo(() => reExaminationChecklist(stage), [stage]);
 
   /**
    * Blob previews for the chosen files, revoked when the list changes or the
@@ -206,52 +160,21 @@ export function useFollowUpForm({
     if (hasStageFieldError(found) || !staffId) return;
 
     try {
-      if (!warranty) {
-        // A tái khám is its own row, so it goes to its own resource and takes
-        // only the teeth that were ticked.
-        const created = await createReExam.mutateAsync({
-          patientId,
-          clinicBranchId: branchId,
-          patientStageId: stage.id,
-          staffId,
-          subStaffId,
-          secondStaffId,
-          note: note.trim(),
-          treatmentDate,
-          teeth: candidates.filter((tooth) => picked.includes(tooth.toothCode)),
-        });
+      const created = await createReExam.mutateAsync({
+        patientId,
+        clinicBranchId: branchId,
+        patientStageId: stage.id,
+        staffId,
+        subStaffId,
+        secondStaffId,
+        note: note.trim(),
+        treatmentDate,
+        teeth: candidates.filter((tooth) => picked.includes(tooth.toothCode)),
+      });
 
-        for (const file of pending) {
-          const image = await uploadImage.mutateAsync({ patientId, clinicBranchId: branchId, file });
-          await attachReExamImage.mutateAsync({ id: created.id, imageUrl: image.url });
-        }
-      } else {
-        const created = await createStage.mutateAsync({
-          patientId,
-          clinicBranchId: branchId,
-          treatmentId: plan.id,
-          treatmentServiceId: line.id,
-          serviceId: line.serviceId,
-          name: line.serviceName ?? line.code,
-          note: note.trim(),
-          staffId,
-          subStaffId,
-          secondStaffId,
-          teeth: pickTeeth(candidates, picked),
-          isGuarantee: true,
-          warrantySourceStageId: stage.id,
-          serviceItemIds: pickedSteps,
-          treatmentDate,
-        });
-
-        for (const file of pending) {
-          await uploadImage.mutateAsync({
-            patientId,
-            clinicBranchId: branchId,
-            treatmentStageId: created.id,
-            file,
-          });
-        }
+      for (const file of pending) {
+        const image = await uploadImage.mutateAsync({ patientId, clinicBranchId: branchId, file });
+        await attachReExamImage.mutateAsync({ id: created.id, imageUrl: image.url });
       }
 
       toast.success(t(saved));
@@ -286,10 +209,6 @@ export function useFollowUpForm({
     addFiles,
     removeFile,
     save,
-    saving:
-      createStage.isPending ||
-      createReExam.isPending ||
-      uploadImage.isPending ||
-      attachReExamImage.isPending,
+    saving: createReExam.isPending || uploadImage.isPending || attachReExamImage.isPending,
   };
 }

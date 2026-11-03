@@ -8,9 +8,9 @@ import { call, collectOnFirstLine, openNewSlip } from "./fixtures/ledgerReceipt"
  * THÔNG TIN XUẤT HÓA ĐƠN; staff see it on the patient's Hóa đơn tab, key one
  * in for another receipt, and work it to Đã xuất HĐ.
  *
- * Real stack only — no route interception. The receipts are written "Hoàn
- * tất" with "Xuất hóa đơn đỏ" ticked as they are made — a Hoàn tất receipt is
- * final (owner 2026-10-13, R-929) — and nothing here issues an e-invoice.
+ * Real stack only — no route interception. The receipts are written "Đã
+ * thanh toán" with "Xuất hóa đơn đỏ" ticked as they are made — a paid receipt
+ * cannot be edited (P2610) — and nothing here issues an e-invoice.
  */
 
 const REQUESTS = "/api/v1/app/invoice-requests";

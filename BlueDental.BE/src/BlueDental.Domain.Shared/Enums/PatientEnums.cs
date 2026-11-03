@@ -133,6 +133,19 @@ public enum PatientImageType
 }
 
 /// <summary>
+/// The face of a warranty card a photo shows (P3110 REQ-E1): the card is
+/// photographed like an ID card, front and back.
+/// </summary>
+public enum WarrantyCardSide
+{
+    /// <summary>Mặt trước.</summary>
+    Front = 1,
+
+    /// <summary>Mặt sau.</summary>
+    Back = 2
+}
+
+/// <summary>
 /// A bộ hồ sơ bệnh án. Cancelling is the only way one ends: the sheets it holds
 /// are part of the patient's record, so a set is never removed outright.
 /// </summary>

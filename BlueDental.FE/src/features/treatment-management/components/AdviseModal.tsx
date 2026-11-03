@@ -1,26 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Form, Modal } from "antd";
 import { X } from "lucide-react";
 import { EMPTY_TOOTH_VALUE, toothSelectionsToValue, type ToothPickerValue } from "@/components/ToothChart";
-import type { CatalogComboOption } from "@/hooks/useCatalogCombos";
-import type { CatalogOption } from "@/hooks/useCatalogOptions";
-import { useStaffOptions } from "@/hooks/useStaffOptions";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import type { PatientDiagnosisDto } from "../api/consultingApi";
 import { ToothPickerDialog } from "./plan/ToothPickerDialog";
-import { AdviseComboGrid } from "./advise/AdviseComboGrid";
-import { AdviseComboNotice } from "./advise/AdviseComboNotice";
-import { AdviseGroupPicker } from "./advise/AdviseGroupPicker";
 import { AdviseHeaderFields } from "./advise/AdviseHeaderFields";
-import { AdvisePickerHead } from "./advise/AdvisePickerHead";
-import { AdviseQuickCreate } from "./advise/AdviseQuickCreate";
-import { AdviseServiceTable } from "./advise/AdviseServiceTable";
-import { AdviseSummaryFooter, type AdviseSummaryItem } from "./advise/AdviseSummaryFooter";
+import { AdvisePickerPane } from "./advise/AdvisePickerPane";
+import { AdviseSelectedPanel } from "./advise/AdviseSelectedPanel";
 import type { AdviseHeaderValues } from "./advise/adviseTypes";
-import { summaryItemsOf, useAdviseCombos } from "./advise/useAdviseCombos";
+import { useAdviseCombos } from "./advise/useAdviseCombos";
 import { useAdviseCatalog } from "./advise/useAdviseCatalog";
 import { useAdviseSelection } from "./advise/useAdviseSelection";
+import { useAdviseStaff } from "./advise/useAdviseStaff";
 import { useCreateAdvises } from "./advise/useCreateAdvises";
 import "./plan/treatment-plan.css";
 import "./advise/advise-modal.css";
@@ -28,6 +21,8 @@ import "./advise/advise-modal.css";
 interface AdviseModalProps {
   open: boolean;
   patientId: string;
+  /** Printed on the right of the title. */
+  patientName: string;
   /** The diagnosis this advise answers — an advise always hangs off one. */
   diagnosis: PatientDiagnosisDto | null;
   onClose: () => void;
@@ -35,12 +30,13 @@ interface AdviseModalProps {
 }
 
 /**
- * "Chọn Dịch Vụ" — the dialog behind Tạo dịch vụ on a diagnosis slip. The
- * slip's teeth, doctors and diagnosis come in read-only; the clinician picks
- * who advises, ticks services from the catalogue, prices each, and saves one
- * advise per ticked row. See docs/clone/pages/patient-detail.md.
+ * "Chọn dịch vụ" — the dialog behind Tạo dịch vụ on a diagnosis slip, laid
+ * out as P0111_02's mockup (R-1114): the slip's teeth, diagnosis and
+ * consultants in a strip; the groups on the left, the list in the middle,
+ * what is ticked and its totals on the right. One advise is saved per ticked
+ * row. See docs/clone/pages/patient-detail.md.
  */
-export function AdviseModal({ open, patientId, diagnosis, onClose, onCreated }: AdviseModalProps) {
+export function AdviseModal({ diagnosis, ...rest }: AdviseModalProps) {
   // Held past the close so the dialog keeps its content while it fades out.
   const [shown, setShown] = useState(diagnosis);
   useEffect(() => {
@@ -48,30 +44,20 @@ export function AdviseModal({ open, patientId, diagnosis, onClose, onCreated }: 
   }, [diagnosis]);
 
   if (!shown) return null;
-  return (
-    <AdviseDialog
-      key={shown.id}
-      open={open && diagnosis !== null}
-      patientId={patientId}
-      diagnosis={shown}
-      onClose={onClose}
-      onCreated={onCreated}
-    />
-  );
+  return <AdviseDialog key={shown.id} {...rest} open={rest.open && diagnosis !== null} diagnosis={shown} />;
 }
 
 interface DialogProps extends Omit<AdviseModalProps, "diagnosis"> {
   diagnosis: PatientDiagnosisDto;
 }
 
-function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: DialogProps) {
+function AdviseDialog({ open, patientId, patientName, diagnosis, onClose, onCreated }: DialogProps) {
   const branchId = useCurrentBranchId();
   const [form] = Form.useForm<AdviseHeaderValues>();
   const [teeth, setTeeth] = useState<ToothPickerValue>(EMPTY_TOOTH_VALUE);
   const [toothOpen, setToothOpen] = useState(false);
-  const [secondOpen, setSecondOpen] = useState(false);
   const catalog = useAdviseCatalog(open);
-  const allStaff = useStaffOptions();
+  const staff = useAdviseStaff(diagnosis);
   const selection = useAdviseSelection();
   const combos = useAdviseCombos(open, selection);
   const { save, saving } = useCreateAdvises({ patientId, branchId, diagnosis, onCreated, onClose });
@@ -81,7 +67,6 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
   useEffect(() => {
     if (!open) return;
     setTeeth(toothSelectionsToValue(diagnosis.teeth));
-    setSecondOpen(Boolean(diagnosis.secondStaffId));
     catalog.reset();
     combos.reset();
     selection.clear();
@@ -90,23 +75,6 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
       secondStaffId: diagnosis.secondStaffId ?? undefined,
     });
   }, [open, diagnosis, form, selection.clear, catalog.reset, combos.reset]);
-
-  const staff = useMemo(() => {
-    const options = [...(allStaff.data ?? [])];
-    const known = new Set(options.map((option) => option.value));
-    if (diagnosis.staffId && !known.has(diagnosis.staffId)) {
-      options.push({ value: diagnosis.staffId, label: diagnosis.staffName ?? "" });
-    }
-    if (diagnosis.secondStaffId && !known.has(diagnosis.secondStaffId)) {
-      options.push({ value: diagnosis.secondStaffId, label: diagnosis.secondStaffName ?? "" });
-    }
-    return options;
-  }, [allStaff.data, diagnosis]);
-
-  const handleSecondOpenChange = (next: boolean) => {
-    setSecondOpen(next);
-    if (!next) form.setFieldValue("secondStaffId", undefined);
-  };
 
   const handleSave = async () => {
     let header: AdviseHeaderValues;
@@ -118,121 +86,30 @@ function AdviseDialog({ open, patientId, diagnosis, onClose, onCreated }: Dialog
     await save({ header, teeth, rows: selection.rows, combos: selection.combos });
   };
 
-  const items = summaryItemsOf(selection);
-  const handleRemove = (item: AdviseSummaryItem) => {
-    if (item.kind === "combo") {
-      const combo = selection.combos.get(item.id);
-      if (combo) selection.toggleCombo(combo, false);
-      return;
-    }
-    const row = selection.rows.get(item.id);
-    if (row) selection.toggle(row.service, false);
-  };
-
-  // A quick-added entry comes back ticked, with the list cleared to show it.
-  const handleServiceCreated = (service: CatalogOption) => {
-    catalog.setGroupId(service.taxonomyId);
-    catalog.setSearch("");
-    selection.toggle(service, true);
-  };
-  const handleComboCreated = (combo: CatalogComboOption) => {
-    combos.setSearch("");
-    selection.toggleCombo(combo, true);
-  };
-
-  const pickerHead = (
-    <AdvisePickerHead
-      kind={combos.kind}
-      singleCount={catalog.servicesTotal}
-      comboCount={combos.total}
-      search={combos.kind === "combo" ? combos.search : catalog.search}
-      onKindChange={combos.setKind}
-      onSearchChange={combos.kind === "combo" ? combos.setSearch : catalog.setSearch}
-      action={
-        <AdviseQuickCreate
-          kind={combos.kind}
-          groupId={catalog.groupId}
-          onServiceCreated={handleServiceCreated}
-          onComboCreated={handleComboCreated}
-        />
-      }
-    />
-  );
-  const notice = combos.suggestion ? (
-    <AdviseComboNotice suggestion={combos.suggestion} onApply={() => combos.setKind("combo")} />
-  ) : null;
-
   return (
     <Modal
       open={open}
       onCancel={onClose}
       className="tp-dialog am-dialog"
-      width="min(1760px, calc(100vw - 32px))"
+      width="min(1600px, calc(100vw - 32px))"
       centered
       closeIcon={<X size={20} />}
       destroyOnHidden
+      footer={null}
       title={
         <span className="am-title">
           {t("Treatment:Service:PickService")}
           <span className="am-chip">{t("Treatment:Slip:Code", diagnosis.code)}</span>
+          <span className="am-patient">{t("Treatment:Advise:PatientLabel", patientName)}</span>
         </span>
-      }
-      footer={
-        <AdviseSummaryFooter
-          slipCode={diagnosis.code}
-          items={items}
-          totals={selection.totals}
-          saving={saving}
-          canSave={items.length > 0}
-          onRemove={handleRemove}
-          onSave={() => void handleSave()}
-        />
       }
     >
       <Form form={form} layout="vertical" className="am-body">
-        <AdviseHeaderFields
-          diagnosis={diagnosis}
-          teeth={teeth}
-          staff={staff}
-          secondOpen={secondOpen}
-          onPickTeeth={() => setToothOpen(true)}
-          onSecondOpenChange={handleSecondOpenChange}
-        />
-        {combos.kind === "combo" ? (
-          <div className="am-services">
-            <div className="am-picker">
-              {pickerHead}
-              {notice}
-            </div>
-            <AdviseComboGrid
-              combos={combos.combos}
-              loading={combos.loading}
-              picked={selection.combos}
-              onToggle={selection.toggleCombo}
-            />
-          </div>
-        ) : (
-          <AdviseServiceTable
-            services={catalog.services}
-            loading={catalog.servicesLoading}
-            loadingMore={catalog.servicesLoadingMore}
-            hasMore={catalog.hasMoreServices}
-            selection={selection}
-            onLoadMore={catalog.loadMoreServices}
-            picker={
-              <AdviseGroupPicker
-                groups={catalog.groups}
-                activeGroupId={catalog.groupId}
-                head={pickerHead}
-                notice={notice}
-                loading={catalog.groupsLoading}
-                loadingMore={catalog.groupsLoadingMore}
-                onGroupChange={catalog.setGroupId}
-                onNearEnd={catalog.loadMoreGroups}
-              />
-            }
-          />
-        )}
+        <AdviseHeaderFields diagnosis={diagnosis} teeth={teeth} staff={staff} onPickTeeth={() => setToothOpen(true)} />
+        <div className="am-layout">
+          <AdvisePickerPane catalog={catalog} combos={combos} selection={selection} />
+          <AdviseSelectedPanel selection={selection} saving={saving} onCancel={onClose} onSave={() => void handleSave()} />
+        </div>
       </Form>
       <ToothPickerDialog
         open={toothOpen}

@@ -3,19 +3,13 @@ import { FloatingField } from "@/components/FloatingField";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import type { PickerOption } from "@/hooks/useLaboPickers";
-import { toothLabels } from "@/features/treatment-management/api/consultingApi";
 import {
   SERVICE_LINE_STATUS,
   type TreatmentPlanSlipDto,
   type TreatmentServiceDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
+import { toothCodes } from "./laboOrderSource";
 import { requiredRule, type LaboOrderValues } from "./useLaboOrderForm";
-
-/** Offered when the dialog opens from the Labo tab, with no công đoạn behind it. */
-export interface LaboSourceLists {
-  plans: TreatmentPlanSlipDto[];
-  dentists: PickerOption[];
-}
 
 /** Only lines still open take a labo order; the server refuses the rest anyway. */
 export function isOpenLine(line: TreatmentServiceDto): boolean {
@@ -36,12 +30,13 @@ function lineOptions(plans: TreatmentPlanSlipDto[], planId: string | undefined):
 }
 
 /**
- * Kế hoạch điều trị / Dịch vụ điều trị / Bác sĩ chỉ định the way the tab's
- * dialog offers them on the reference: the plan narrows the lines, but a line
- * may be picked first and names its plan; the doctor follows the line and
- * stays open to change. Each carries the reference's own required message.
+ * Kế hoạch điều trị / Dịch vụ điều trị the way the tab's dialog offers them
+ * on the reference: the plan ("Phiếu điều trị - Bác sĩ tiếp nhận") narrows the
+ * lines, but a line may be picked first and names its plan; Bác sĩ chỉ định
+ * follows the line and stays open to change. Each carries the reference's own
+ * required message.
  */
-export function LaboSourcePickers({ lists }: { lists: LaboSourceLists }) {
+export function LaboSourcePickers({ plans }: { plans: TreatmentPlanSlipDto[] }) {
   const form = Form.useFormInstance<LaboOrderValues>();
   const planId = Form.useWatch("planId", form);
 
@@ -50,22 +45,22 @@ export function LaboSourcePickers({ lists }: { lists: LaboSourceLists }) {
   // takes the line's teeth. Clearing the line empties the row again, and the
   // reference's "Chọn dịch vụ điều trị trước" comes back in its place.
   const pickLine = (lineId: string | undefined) => {
-    const owner = lists.plans.find((plan) => plan.services.some((line) => line.id === lineId));
+    const owner = plans.find((plan) => plan.services.some((line) => line.id === lineId));
     const line = owner?.services.find((item) => item.id === lineId);
     if (!owner || !line) {
-      form.setFieldsValue({ teeth: [], picked: [], quantity: "0" });
+      form.setFieldsValue({ teeth: [], quantity: "0" });
       return;
     }
-    const teeth = toothLabels(line.teeth);
+    const teeth = toothCodes(line.teeth);
     form.setFields([
       { name: "planId", value: owner.id, errors: [] },
       { name: "dentistId", value: line.dentistId ?? owner.dentistId, errors: [] },
     ]);
-    form.setFieldsValue({ teeth, picked: teeth, quantity: String(teeth.length) });
+    form.setFieldsValue({ teeth, quantity: String(teeth.length) });
   };
 
   const pickPlan = () =>
-    form.setFieldsValue({ lineId: undefined, teeth: [], picked: [], quantity: "0" });
+    form.setFieldsValue({ lineId: undefined, teeth: [], quantity: "0" });
 
   return (
     <>
@@ -77,7 +72,7 @@ export function LaboSourcePickers({ lists }: { lists: LaboSourceLists }) {
       >
         <SearchSelect
           allowClear
-          options={lists.plans.map((plan) => ({
+          options={plans.map((plan) => ({
             value: plan.id,
             label: `${plan.code} - ${plan.dentistName ?? ""}`.trim(),
           }))}
@@ -92,18 +87,10 @@ export function LaboSourcePickers({ lists }: { lists: LaboSourceLists }) {
       >
         <SearchSelect
           allowClear
-          options={lineOptions(lists.plans, planId)}
+          options={lineOptions(plans, planId)}
           emptyText={t("Patient:Plan:NoActiveService")}
           onChange={pickLine}
         />
-      </FloatingField>
-      <FloatingField
-        name="dentistId"
-        label={t("Patient:QuoteSheet:PrescribingDoctor")}
-        required
-        rules={requiredRule(t("Patient:QuoteSheet:RequiredPrescribingDoctor"))}
-      >
-        <SearchSelect options={lists.dentists} />
       </FloatingField>
     </>
   );

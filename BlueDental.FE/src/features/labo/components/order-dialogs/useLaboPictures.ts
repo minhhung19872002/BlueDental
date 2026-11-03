@@ -11,6 +11,15 @@ export interface LaboPictures {
   reset: () => void;
 }
 
+/** The files that pass the image rule; each one turned away is named in a toast. */
+export function validImages(files: File[]): File[] {
+  return files.filter((file) => {
+    const error = validateImageFile(file);
+    if (error) toast.error(`${file.name}: ${error}`);
+    return !error;
+  });
+}
+
 /**
  * The pictures a labo dialog holds as drafts until Lưu: the order forms and
  * the detail dialog share the same strip, the same file rule and the same
@@ -27,11 +36,7 @@ export function useLaboPictures(): LaboPictures {
   useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews]);
 
   const addPictures = useCallback((files: File[]) => {
-    const valid = files.filter((file) => {
-      const error = validateImageFile(file);
-      if (error) toast.error(`${file.name}: ${error}`);
-      return !error;
-    });
+    const valid = validImages(files);
     if (valid.length > 0) setPictures((current) => [...current, ...valid]);
   }, []);
 

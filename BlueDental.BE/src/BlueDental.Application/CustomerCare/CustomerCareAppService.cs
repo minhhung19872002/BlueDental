@@ -625,15 +625,20 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
         var stageIds = entities.SelectMany(r => r.StageIds).Distinct().ToList();
         var stageServices = new Dictionary<Guid, Guid>();
         var stageServiceNames = new Dictionary<Guid, string>();
+        var stageRemarks = new Dictionary<Guid, string>();
         if (stageIds.Count > 0)
         {
             var stageQuery = (await _stageRepository.GetQueryableAsync())
                 .Where(s => stageIds.Contains(s.Id));
             if (branchIds.Count > 0)
                 stageQuery = stageQuery.Where(s => branchIds.Contains(s.ClinicBranchId));
-            stageServices = stageQuery
-                .Select(s => new { s.Id, s.ServiceId })
-                .ToDictionary(s => s.Id, s => s.ServiceId);
+            var stages = stageQuery
+                .Select(s => new { s.Id, s.ServiceId, s.Remark })
+                .ToList();
+            stageServices = stages.ToDictionary(s => s.Id, s => s.ServiceId);
+            stageRemarks = stages
+                .Where(s => !string.IsNullOrWhiteSpace(s.Remark))
+                .ToDictionary(s => s.Id, s => s.Remark!.Trim());
 
             var serviceIds = stageServices.Values.Distinct().ToList();
             if (serviceIds.Count > 0)
@@ -685,6 +690,14 @@ public class CustomerCareAppService : ApplicationService, ICustomerCareAppServic
                 .Select(name => name!)
                 .Distinct()
                 .ToList();
+            // Ghi chú của bác sĩ — the linked công đoạn's "Ghi chú lịch hẹn"
+            // (R-1100); the board shows it until the care staff writes their own.
+            var remarks = record.StageIds
+                .Select(id => stageRemarks.GetValueOrDefault(id))
+                .Where(remark => remark != null)
+                .Distinct()
+                .ToList();
+            dto.DoctorNote = remarks.Count > 0 ? string.Join("\n", remarks) : null;
 
             if (record.AppointmentId.HasValue
                 && linkedAppointments.TryGetValue(record.AppointmentId.Value, out var appointment))

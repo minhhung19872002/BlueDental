@@ -8,7 +8,7 @@ import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { PlanCodeLink } from "./PlanCodeLink";
 import { planCardRows } from "./planCardRows";
 import type { PlanRowActions } from "./planColumns";
-import type { PlanColumnSetting } from "./planTypes";
+import { isPlanUntouched, type PlanColumnSetting } from "./planTypes";
 
 interface Props {
   plans: TreatmentPlanSlipDto[];
@@ -59,7 +59,7 @@ function PlanCardActions({ plan, actions }: ActionsProps) {
           </button>
         </ActionTooltip>
       )}
-      {actions.onDelete && !plan.seenThroughLines && (
+      {actions.onDelete && !plan.seenThroughLines && isPlanUntouched(plan) && (
         <ActionTooltip title={t("Treatment:Plan:Delete")}>
           <button
             type="button"

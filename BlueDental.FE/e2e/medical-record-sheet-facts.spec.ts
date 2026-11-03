@@ -42,7 +42,7 @@ interface Slip {
   dentistId: string;
   dentistName: string | null;
   dentistJobTitle: string | null;
-  services: { id: string; serviceId: string; teeth: unknown[] }[];
+  services: { id: string; serviceId: string; teeth: { toothCode: number }[] }[];
 }
 
 /** A day on the clinic's calendar — today, or `daysAgo` before it — as the sheets print it. */
@@ -97,7 +97,7 @@ async function factsOf(page: Page, setId: string): Promise<Facts> {
 interface StageOptions {
   /** Worked this many days ago. */
   daysAgo?: number;
-  /** A warranty công đoạn raised from this finished one. */
+  /** A warranty công đoạn raised from this finished one, under the line's Nha khoa card. */
   warrantyFrom?: string;
   /** Ticked Hoàn thành straight away (the default). */
   complete?: boolean;
@@ -128,6 +128,7 @@ async function treat(
       teeth: line.teeth,
       isGuarantee: Boolean(warrantyFrom),
       warrantySourceStageId: warrantyFrom ?? null,
+      warrantyKind: warrantyFrom ? 1 : null,
     },
     branchId: patient.branchId,
   });
@@ -401,6 +402,14 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await endsYesterday();
 
     // A warranty visit today — open, then finished — is not the end of treatment.
+    // It is worked under the line's dental card (P3110 G23), activated from the finishing day.
+    const line = worked.services[0];
+    const card = await call(page, `/api/v1/app/patient-treatments/${first.id}/services/${line.id}/warranty`, {
+      method: "POST",
+      json: { cards: line.teeth.map((tooth) => ({ toothNumber: tooth.toothCode, startDate: yesterday.iso })) },
+      branchId: warranted.branchId,
+    });
+    expect(card.status, JSON.stringify(card.body)).toBe(200);
     const warrantyVisit = await treat(page, warranted, first.id, "Bảo hành E2E", {
       warrantyFrom: worked.stageId,
       complete: false,

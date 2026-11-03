@@ -78,6 +78,20 @@ public class StageChainContractTests
     }
 
     [Fact]
+    public void A_warranty_should_name_the_card_it_is_worked_under()
+    {
+        // P3110 REQ-F3..F5: "Nha khoa" or "Labo" + the Labo order, kept on the công đoạn.
+        typeof(CreateTreatmentStageDto).GetProperty("WarrantyKind")!
+            .PropertyType.ShouldBe(typeof(WarrantyCardKind?));
+        typeof(CreateTreatmentStageDto).GetProperty("WarrantyLaboOrderId")!
+            .PropertyType.ShouldBe(typeof(Guid?));
+        typeof(TreatmentStageDto).GetProperty("WarrantyKind")!
+            .PropertyType.ShouldBe(typeof(WarrantyCardKind?));
+        typeof(TreatmentStageDto).GetProperty("WarrantyLaboOrderId")!
+            .PropertyType.ShouldBe(typeof(Guid?));
+    }
+
+    [Fact]
     public void A_saved_line_should_be_editable_behind_the_consultation_update_ability()
     {
         typeof(IPatientTreatmentAppService).GetMethod("UpdateServiceAsync").ShouldNotBeNull();

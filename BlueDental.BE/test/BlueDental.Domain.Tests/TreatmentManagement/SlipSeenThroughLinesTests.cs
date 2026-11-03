@@ -47,7 +47,7 @@ public class SlipSeenThroughLinesTests
         PatientPayment.Record(
             Guid.NewGuid(), plan.PatientId, plan.BranchId, kind, PaymentMethodKind.Cash,
             lines.Sum(l => l.Amount), "PT26-0001", Guid.NewGuid(), DateTimeOffset.UtcNow,
-            treatmentPlanId: plan.Id, lines: lines.Select(l => (l.LineId, l.Amount)));
+            treatmentPlanId: plan.Id, lines: lines.Select(l => new PaymentLineDraft(l.LineId, l.Amount)));
 
     [Fact]
     public void A_line_is_assigned_to_its_dentist_and_its_consultants_not_its_diagnosers()

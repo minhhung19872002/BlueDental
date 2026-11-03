@@ -45,6 +45,10 @@ function displayDate(d: Date): string {
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /** One API call from inside the page, with the session and the branch header. */
 async function call(
   page: Page,
@@ -285,6 +289,72 @@ test.describe("CSKH › Sau điều trị từ Tiếp tục công đoạn", () =
     expect(tasks[0].treatmentDate).toBe(localIsoDate(new Date()));
     expect(tasks[0].stageIds).toContain(stage);
     expect(tasks[0].dueAt).toBeNull();
+  });
+
+  // R-1100 (BA 2026-11-01): Ghi chú on Sau điều trị starts from the doctor's
+  // "Ghi chú lịch hẹn"; the care staff edits it, the công đoạn keeps its own.
+  test("Ghi chú shows the doctor's note until the care staff writes theirs, and the công đoạn keeps it", async ({
+    page,
+  }) => {
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/patients");
+
+    const line = await freshLine(page);
+    const stage = await openStage(page, line, 11);
+    const doctorNote = `Hẹn tái khám: e2e ${runId()}`;
+    const remarked = await call(page, "PUT", `/api/v1/app/treatment-stages/${stage}/remark`, { remark: doctorNote });
+    expect(remarked.status, remarked.text).toBe(200);
+    await clearToday(page, line.patientId);
+    const done = await call(page, "POST", `/api/v1/app/treatment-stages/${stage}/complete`);
+    expect(done.status, done.text).toBe(200);
+
+    // The API hands the doctor's note over beside an empty care note.
+    const [task] = (await todaysTasks(page, line.patientId)) as (CareRow & {
+      description: string | null;
+      doctorNote: string | null;
+    })[];
+    expect(task.stageIds).toContain(stage);
+    expect(task.description).toBeNull();
+    expect(task.doctorNote).toContain(doctorNote);
+
+    // The board shows it, as text the care staff can edit.
+    await page.goto("/cskh-grouping");
+    await assertRealApiTraffic(page, "/api/v1/app/care-records/stats");
+    await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(task.patientCode);
+    const row = page.locator(`.cskh-table tbody tr[data-row-key="${task.id}"]`);
+    const note = row.locator("textarea");
+    await expect(note).toHaveValue(new RegExp(escapeRegExp(doctorNote)), { timeout: 15_000 });
+
+    const careNote = `CSKH gọi nhắc ${runId()}`;
+    await note.fill(careNote);
+    const saved = page.waitForResponse(
+      (res) => res.url().endsWith(`/care-records/${task.id}`) && res.request().method() === "PUT",
+    );
+    await note.blur();
+    expect((await saved).status()).toBe(200);
+
+    await page.reload();
+    await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(task.patientCode);
+    await expect(note).toHaveValue(careNote, { timeout: 15_000 });
+
+    // Saved on the care task; the công đoạn's Ghi chú is untouched.
+    const care = await call(page, "GET", `/api/v1/app/care-records/${task.id}`);
+    expect(care.status, care.text).toBe(200);
+    expect(care.json).toMatchObject({ description: careNote });
+    const stageNow = await call(page, "GET", `/api/v1/app/treatment-stages/${stage}`);
+    expect(stageNow.status, stageNow.text).toBe(200);
+    expect((stageNow.json as { remark: string | null }).remark).toBe(doctorNote);
+
+    // Emptying the care note brings the doctor's back.
+    await note.fill("");
+    const cleared = page.waitForResponse(
+      (res) => res.url().endsWith(`/care-records/${task.id}`) && res.request().method() === "PUT",
+    );
+    await note.blur();
+    expect((await cleared).status()).toBe(200);
+    await page.reload();
+    await page.getByRole("textbox", { name: "Tìm kiếm" }).fill(task.patientCode);
+    await expect(note).toHaveValue(new RegExp(escapeRegExp(doctorNote)), { timeout: 15_000 });
   });
 
   test("Hoàn thành a service line from the plan opens the day's task and lists it on the board", async ({

@@ -386,6 +386,7 @@ public class BlueDentalHttpApiHostModule : AbpModule
             endpoints.MapHub<NotificationHub>("/signalr/notifications")
                 .RequireAuthorization();
             endpoints.MapHub<QueueHub>("/signalr/queue");
+            endpoints.MapHub<ReceiptSigningHub>("/signalr/receipt-signing");
             endpoints.MapHealthChecks("/health/live");
             endpoints.MapHealthChecks("/health/ready");
             endpoints.MapHealthChecks("/health");

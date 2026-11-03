@@ -155,6 +155,18 @@ const BillingPage = lazy(() =>
   })),
 );
 
+const ReceiptPage = lazy(() =>
+  import("./ReceiptRoute").then((m) => ({
+    default: m.ReceiptRoute,
+  })),
+);
+
+const ReceiptCancelPage = lazy(() =>
+  import("@/features/billing/pages/ReceiptCancelPage").then((m) => ({
+    default: m.ReceiptCancelPage,
+  })),
+);
+
 const MaterialsPage = lazy(() =>
   import("@/features/materials/pages/MaterialsPage").then((m) => ({
     default: m.MaterialsPage,
@@ -210,6 +222,19 @@ const QueueDisplayPage = lazy(() =>
 const PublicInvoiceRequestPage = lazy(() =>
   import("@/features/public-invoice-request/pages/PublicInvoiceRequestPage").then((m) => ({
     default: m.PublicInvoiceRequestPage,
+  })),
+);
+
+// The branch iPad that shows a PHIẾU THU for the customer to sign (P2610).
+const SigningStationPage = lazy(() =>
+  import("@/features/signing-station/pages/SigningStationPage").then((m) => ({
+    default: m.SigningStationPage,
+  })),
+);
+
+const SigningPairPage = lazy(() =>
+  import("@/features/signing-station/pages/SigningPairPage").then((m) => ({
+    default: m.SigningPairPage,
   })),
 );
 
@@ -298,6 +323,22 @@ const appRoutes: RouteObject[] = [
     element: (
       <S>
         <PublicInvoiceRequestPage />
+      </S>
+    ),
+  },
+  {
+    path: "/sign",
+    element: (
+      <S>
+        <SigningStationPage />
+      </S>
+    ),
+  },
+  {
+    path: "/sign/pair",
+    element: (
+      <S>
+        <SigningPairPage />
       </S>
     ),
   },
@@ -468,6 +509,24 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="billing">
             <BillingPage />
+          </G>
+        ),
+      },
+      {
+        // One receipt on its way to the customer's signature (P2610).
+        path: "billing/receipts/:id",
+        element: (
+          <G k="billing">
+            <ReceiptPage />
+          </G>
+        ),
+      },
+      {
+        // Hủy phiếu thu: why an exported receipt is cancelled (P2610 phase 6).
+        path: "billing/receipts/:id/cancel",
+        element: (
+          <G k="billing">
+            <ReceiptCancelPage />
           </G>
         ),
       },

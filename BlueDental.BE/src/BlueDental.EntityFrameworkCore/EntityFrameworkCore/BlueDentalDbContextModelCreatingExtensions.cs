@@ -824,7 +824,51 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.OrderCode).IsUnique().HasFilter("\"ParentOrderId\" IS NULL");
             entity.HasIndex(x => new { x.BranchId, x.Status });
             entity.HasIndex(x => x.TreatmentStageId);
+            entity.HasIndex(x => x.TreatmentServiceId);
             entity.HasIndex(x => x.ParentOrderId);
+
+            // P2910_03: each tooth carries its check result and warranty card,
+            // each Nhận hàng · lần N its own row.
+            entity.HasMany(x => x.Teeth)
+                .WithOne()
+                .HasForeignKey(x => x.LaboOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasMany(x => x.Rounds)
+                .WithOne()
+                .HasForeignKey(x => x.LaboOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Navigation(x => x.Rounds).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        builder.Entity<LaboOrderTooth>(entity =>
+        {
+            entity.ToTable("bd_labo_order_teeth");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.CheckResult).HasConversion<short>();
+            entity.Property(x => x.Shade).HasMaxLength(100);
+            entity.Property(x => x.LabNote).HasMaxLength(1000);
+            entity.Property(x => x.DefectNote).HasMaxLength(1000);
+            entity.Property(x => x.WarrantyCardCode).HasMaxLength(50);
+            entity.Property(x => x.ManufacturerSerial).HasMaxLength(100);
+            entity.Property(x => x.WarrantyConditions).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.LaboOrderId, x.ToothNumber }).IsUnique();
+        });
+
+        builder.Entity<LaboOrderRound>(entity =>
+        {
+            entity.ToTable("bd_labo_order_rounds");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Outcome).HasConversion<short>();
+            entity.Property(x => x.ReturnDescription).HasMaxLength(2000);
+            entity.OwnsMany(x => x.ToothResults, r =>
+            {
+                r.ToJson();
+                r.Property(x => x.Result).HasConversion<short>();
+                r.Property(x => x.Note).HasMaxLength(1000);
+            });
+            entity.Navigation(x => x.ToothResults).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => new { x.LaboOrderId, x.RoundNo }).IsUnique();
         });
 
         builder.Entity<LaboSupplier>(entity =>
@@ -1124,7 +1168,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PatientId, x.TakenAt });
             entity.HasIndex(x => new { x.PatientId, x.Ordering });
             entity.HasIndex(x => x.TreatmentStageId);
-            entity.HasIndex(x => x.LaboOrderId);
+            entity.HasIndex(x => new { x.LaboOrderId, x.LaboRoundNo, x.LaboToothNumber });
+            entity.HasIndex(x => x.ServiceWarrantyCardId);
         });
 
         // Phieu benh an cua benh nhan
@@ -1211,6 +1256,32 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.PatientId, x.Status });
         });
 
+        // The bao hanh nha khoa (P3110 REQ-B5): one per tooth of a finished line,
+        // one with no tooth for a toothless line — nulls compare equal.
+        builder.Entity<ServiceWarrantyCard>(entity =>
+        {
+            entity.ToTable("bd_service_warranty_cards");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Code).HasMaxLength(80).IsRequired();
+            entity.Property(x => x.Conditions).HasMaxLength(2000);
+            entity.HasIndex(x => new { x.TreatmentServiceId, x.ToothNumber })
+                .IsUnique()
+                .AreNullsDistinct(false)
+                .HasFilter("\"IsDeleted\" = false");
+            entity.HasIndex(x => x.TreatmentPlanId);
+            // R-1090: a number is issued once per line (the shared count in bd_warranty_card_sequences).
+            entity.HasIndex(x => new { x.TreatmentServiceId, x.Code })
+                .IsUnique()
+                .HasFilter("\"IsDeleted\" = false");
+        });
+
+        // The running xx of BH-{line}-{ddMMyyyy}-{xx}, shared by Dịch vụ and Labo cards (R-1090).
+        builder.Entity<WarrantyCardSequence>(entity =>
+        {
+            entity.ToTable("bd_warranty_card_sequences");
+            entity.HasKey(x => new { x.TreatmentServiceId, x.StartDate });
+        });
+
         // Voucher da dung tren phieu dieu tri (appliedCoupons)
         builder.Entity<TreatmentPlanVoucher>(entity =>
         {
@@ -1235,21 +1306,40 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Code).HasMaxLength(32).IsRequired();
             entity.Property(x => x.Note).HasMaxLength(1000);
             entity.Property(x => x.CancelReason).HasMaxLength(PatientPayment.MaxCancelReasonLength);
+            entity.Property(x => x.CancelReasonCode).HasConversion<short?>();
             entity.Property(x => x.Kind).HasConversion<short>();
             entity.Property(x => x.Method).HasConversion<short>();
             entity.Property(x => x.SplitMode).HasConversion<short>();
             entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.SignMode).HasConversion<short?>();
+            entity.Property(x => x.ReceiptFileName).HasMaxLength(PatientPayment.MaxReceiptFileNameLength);
+            entity.Property(x => x.ReceiptFileSha256).HasMaxLength(PatientPayment.ReceiptFileSha256Length);
+            entity.Ignore(x => x.HasReceiptFile);
+            entity.Ignore(x => x.IsSignedOnPaper);
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
             entity.Ignore(x => x.SignedAmount);
+            entity.Property(x => x.VoucherCode).HasMaxLength(PatientPayment.MaxVoucherCodeLength);
+            entity.Property(x => x.VoucherAmount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.CashierDiscountTotal).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.Relief);
             entity.HasMany(x => x.Lines)
                 .WithOne()
                 .HasForeignKey(x => x.PatientPaymentId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // Every rollup reads the lines (P2910: relief and VAT live there),
+            // so a receipt is never loaded without them.
+            entity.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
+            entity.OwnsOne(x => x.ReceiptSnapshot, snapshot =>
+            {
+                snapshot.ToJson();
+                snapshot.OwnsMany(x => x.Lines);
+                snapshot.Navigation(x => x.Lines).UsePropertyAccessMode(PropertyAccessMode.Field);
+            });
             entity.HasIndex(x => new { x.PatientId, x.PaidAt });
             entity.HasIndex(x => x.TreatmentPlanId);
             entity.HasIndex(x => new { x.ClinicBranchId, x.PaidAt });
             entity.HasIndex(x => x.PaymentAccountId);
+            entity.HasIndex(x => x.VoucherId);
         });
 
         builder.Entity<PatientPaymentLine>(entity =>
@@ -1257,6 +1347,13 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_patient_payment_lines");
             entity.ConfigureByConvention();
             entity.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.ReceiptName).HasMaxLength(PatientPaymentLine.MaxReceiptNameLength);
+            entity.Property(x => x.CashierDiscount).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.CashierDiscountReason).HasMaxLength(PatientPaymentLine.MaxCashierDiscountReasonLength);
+            entity.Property(x => x.VoucherShare).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.TaxAmount).HasColumnType("numeric(18,2)");
+            entity.Ignore(x => x.Relief);
+            entity.Ignore(x => x.Settled);
             entity.HasIndex(x => x.TreatmentServiceId);
         });
 
@@ -1269,11 +1366,13 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Note).HasMaxLength(2000);
             entity.Property(x => x.Remark).HasMaxLength(TreatmentStage.RemarkMaxLength);
             entity.Property(x => x.Status).HasConversion<short>();
+            entity.Property(x => x.WarrantyKind).HasConversion<short?>();
             entity.OwnsMany(x => x.Teeth, t => t.ToJson());
             entity.Navigation(x => x.Teeth).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.PrimitiveCollection(x => x.ImageUrls).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.PrimitiveCollection(x => x.ContinuedToothCodes).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.Ignore(x => x.OpenTeeth);
+            entity.Ignore(x => x.IsLaboWarranty);
             // "BE:Treatment:StageList" — a short, always-read-with-the-stage list,
             // so it rides in JSON like Teeth rather than earning a table.
             entity.OwnsMany(x => x.ServiceItems, t => t.ToJson());
@@ -1281,6 +1380,19 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.TreatmentServiceId, x.SequenceNumber });
             entity.HasIndex(x => new { x.PatientId, x.Status });
             entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
+        });
+
+        // Log of every edit to a công đoạn (BA 2026-11-02) — stored only, no screen yet
+        builder.Entity<TreatmentStageChangeLog>(entity =>
+        {
+            entity.ToTable("bd_treatment_stage_change_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.Property(x => x.ActorName).HasMaxLength(200);
+            entity.Property(x => x.ActorUserName).HasMaxLength(256);
+            entity.Property(x => x.IpAddress).HasMaxLength(64);
+            entity.HasIndex(x => new { x.TreatmentStageId, x.OccurredAt });
+            entity.HasIndex(x => new { x.PatientId, x.OccurredAt });
         });
 
         // Tai kham — a follow-up raised from a finished cong doan
@@ -1434,6 +1546,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ConfigureByConvention();
             entity.Property(x => x.TaxRate).HasConversion<short>();
             entity.Property(x => x.DiscountValue).HasColumnType("numeric(18,2)");
+            entity.Property(x => x.WarrantyContent).HasMaxLength(CatalogServiceConfigConsts.MaxWarrantyContentLength);
             entity.PrimitiveCollection(x => x.LaboSupplierIds).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => x.CatalogEntryId).IsUnique();
         });
@@ -2010,6 +2123,62 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Token).HasMaxLength(InvoiceRequestLink.TokenLength).IsRequired();
             entity.HasIndex(x => x.Token).IsUnique();
             entity.HasIndex(x => x.PatientPaymentId).IsUnique();
+        });
+
+        // iPad signing (P2610): one open session per branch, so every paired
+        // iPad of the branch shows the same receipt.
+        builder.Entity<ReceiptSigningSession>(entity =>
+        {
+            entity.ToTable("bd_receipt_signing_sessions");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.PaymentCode).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.CloseReason).HasConversion<short>();
+            entity.HasIndex(x => x.ClinicBranchId).IsUnique().HasFilter("\"ClosedAt\" IS NULL");
+            entity.HasIndex(x => new { x.PatientPaymentId, x.SentAt });
+        });
+
+        builder.Entity<SigningDevice>(entity =>
+        {
+            entity.ToTable("bd_signing_devices");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(SigningDevice.MaxNameLength).IsRequired();
+            entity.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        // Ký điện tử (P2910_02): one saved signature per accountant, sealed,
+        // plus the log of every time it was changed.
+        builder.Entity<AccountantSignature>(entity =>
+        {
+            entity.ToTable("bd_accountant_signatures");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.SignatureCipher).IsRequired();
+            entity.Property(x => x.Source).HasConversion<short>();
+            entity.Ignore(x => x.Signer);
+            entity.HasIndex(x => x.UserId).IsUnique();
+        });
+
+        builder.Entity<AccountantSignatureChange>(entity =>
+        {
+            entity.ToTable("bd_accountant_signature_changes");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Source).HasConversion<short>();
+            entity.HasIndex(x => new { x.UserId, x.ChangedAt });
+        });
+
+        // A receipt's log (P2910_02): ids and times only, each line sealed to
+        // the one before; a trigger refuses UPDATE / DELETE / TRUNCATE (R-1082).
+        builder.Entity<PaymentReceiptLog>(entity =>
+        {
+            entity.ToTable("bd_payment_receipt_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Action).HasConversion<short>();
+            entity.Property(x => x.SignMode).HasConversion<short>();
+            entity.Property(x => x.CancelReasonCode).HasConversion<short>();
+            entity.Property(x => x.FileSha256).HasMaxLength(64);
+            entity.Property(x => x.Seal).HasMaxLength(PaymentReceiptLog.MaxSealLength);
+            entity.HasIndex(x => new { x.PatientPaymentId, x.Sequence }).IsUnique();
         });
 
         builder.Entity<EInvoiceProviderConfig>(entity =>

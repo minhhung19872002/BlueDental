@@ -131,7 +131,7 @@ public class PatientListRollupTests
         PatientPayment.Record(
             Guid.NewGuid(), plan.PatientId, plan.BranchId, PatientPaymentKind.Payment, PaymentMethodKind.Cash,
             lines.Sum(l => l.Amount), "PT26-0001", Guid.NewGuid(), DateTimeOffset.UtcNow,
-            treatmentPlanId: plan.Id, lines: lines.Select(l => (l.LineId, l.Amount)));
+            treatmentPlanId: plan.Id, lines: lines.Select(l => new PaymentLineDraft(l.LineId, l.Amount)));
 
     /// <summary>
     /// One slip the viewer received (4 tr, 1 tr paid), one another team received

@@ -7,6 +7,7 @@ import type { TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
 import { PlanCodeLink } from "./PlanCodeLink";
 import { SlipMoney } from "./SlipMoney";
 import {
+  isPlanUntouched,
   planColumnLabels,
   planPill,
   type PlanColumnKey,
@@ -18,13 +19,16 @@ export interface PlanRowActions {
   onViewServices: (plan: TreatmentPlanSlipDto) => void;
   onPrintRecord: (plan: TreatmentPlanSlipDto) => void;
   /**
-   * The invoice icon; left out when the user may not issue one (payment.finalize),
-   * and on a slip seen only through the viewer's lines (BA bug 40).
+   * The receipt icon, which opens the slip's Thanh toán tab; left out without
+   * payment.create, and on a slip seen only through the viewer's lines (BA bug 40).
    */
   onReceipt?: (plan: TreatmentPlanSlipDto) => void;
   /** "Số phiếu điều trị" — the slip's own screen. */
   onOpenPlan: (plan: TreatmentPlanSlipDto) => void;
-  /** The red bin; left out without treatmentConsultation.deletePlan, and on a slip seen through lines. */
+  /**
+   * The red bin; left out without treatmentConsultation.deletePlan, on a slip
+   * seen through lines, and on a slip past "Đã tạo".
+   */
   onDelete?: (plan: TreatmentPlanSlipDto) => void;
 }
 
@@ -149,7 +153,7 @@ export function buildPlanColumns(
               </button>
             </ActionTooltip>
           )}
-          {actions.onDelete && !plan.seenThroughLines && (
+          {actions.onDelete && !plan.seenThroughLines && isPlanUntouched(plan) && (
             <ActionTooltip title={t("Treatment:Plan:Delete")}>
               <button
                 type="button"

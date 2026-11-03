@@ -1,4 +1,4 @@
-import { toothLabels } from "@/features/treatment-management/api/consultingApi";
+import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type {
   TreatmentPlanSlipDto,
@@ -15,11 +15,20 @@ export interface LaboOrderSource {
   serviceName: string;
   dentistId: string | undefined;
   dentistName: string;
-  /** Tooth labels the source names, all picked to begin with. */
+  /** The FDI numbers the source names; the order takes every one of them (P2910_03). */
   teeth: string[];
   treatmentPlanId: string | undefined;
   treatmentServiceId: string;
   treatmentStageId: string | undefined;
+}
+
+/**
+ * The source's teeth as FDI numbers, once each. A tooth's surfaces and a whole
+ * jaw's name are how the line reads, not what the Labo order stores: it keeps
+ * one card per tooth for the check and the warranty.
+ */
+export function toothCodes(teeth: ToothSelectionDto[]): string[] {
+  return [...new Set(teeth.map((tooth) => String(tooth.toothCode)))];
 }
 
 function planLabel(plan: TreatmentPlanSlipDto | null): string {
@@ -35,7 +44,7 @@ export function sourceFromStage(
     serviceName: stage.serviceName ?? stage.name,
     dentistId: stage.staffId,
     dentistName: stage.staffName ?? "",
-    teeth: toothLabels(stage.teeth),
+    teeth: toothCodes(stage.teeth),
     treatmentPlanId: plan?.id,
     treatmentServiceId: stage.treatmentServiceId,
     treatmentStageId: stage.id,
@@ -52,7 +61,7 @@ export function sourceFromLine(
     serviceName: line.serviceName ?? line.code,
     dentistId: line.dentistId ?? plan.dentistId,
     dentistName: line.dentistName ?? plan.dentistName ?? "",
-    teeth: toothLabels(line.teeth),
+    teeth: toothCodes(line.teeth),
     treatmentPlanId: plan.id,
     treatmentServiceId: line.id,
     treatmentStageId: undefined,

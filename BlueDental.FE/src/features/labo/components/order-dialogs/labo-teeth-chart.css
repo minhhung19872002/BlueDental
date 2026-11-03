@@ -1,0 +1,88 @@
+/* Số răng on the patient's Labo table: the jaw button and its view-only chart (P2910_03). */
+
+.pd-labo-chartbtn {
+  display: inline-flex;
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--bd-radius);
+  padding: 0;
+  background: var(--bd-primary);
+  cursor: pointer;
+}
+
+.pd-labo-chartbtn:hover {
+  background: var(--bd-primary-strong);
+}
+
+.pd-labo-chartbtn > img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+}
+
+.pd-labo-charthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pd-labo-chart {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.pd-labo-chartlegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--bd-sub);
+}
+
+.pd-labo-chartlegend > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-labo-chartlegend > li::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--chartlegend-swatch);
+}
+
+.pd-labo-chartlegend--worked {
+  --chartlegend-swatch: var(--bd-primary);
+}
+
+.pd-labo-chartlegend--done {
+  --chartlegend-swatch: var(--bd-success);
+}
+
+.pd-labo-chartlegend--outside {
+  --chartlegend-swatch: var(--bd-line);
+}
+
+/* «Hủy» / «Chọn răng» sit on the right with room around their labels (R-1107). */
+.pd-labo-chartfoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pd-labo-chartfoot > .ant-btn {
+  min-width: 112px;
+  padding-inline: 24px;
+}

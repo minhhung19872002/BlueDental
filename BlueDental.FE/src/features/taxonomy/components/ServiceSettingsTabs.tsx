@@ -6,6 +6,7 @@ import {
   type ServiceStageDto,
 } from "../api/taxonomyApi";
 import { FloatingField } from "@/components/FloatingField";
+import { RichTextField } from "@/components/RichTextField";
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import { t } from "@/lib/i18n";
 import { ServiceLaboTab } from "./ServiceLaboTab";
@@ -164,6 +165,16 @@ export function ServiceSettingsTabs({ stages, onStagesChange, suppliers, supplie
                 </Col>
               </Row>
               <p className="bd-cat-hint">{t("Taxonomy:Service:UnitDays")}</p>
+
+              {/* The warranty's terms, in the same editor as Dữ liệu tư vấn
+                  but text only: the owner asked for no pictures or video. */}
+              <Form.Item
+                name="warrantyContent"
+                label={t("Taxonomy:Service:WarrantyContent")}
+                className="bd-svc-warranty-content"
+              >
+                <RichTextField placeholder={t("Taxonomy:Service:WarrantyContentPlaceholder")} media={false} />
+              </Form.Item>
             </div>
           ),
         },

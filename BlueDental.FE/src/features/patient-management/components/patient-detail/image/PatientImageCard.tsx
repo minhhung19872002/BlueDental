@@ -106,7 +106,7 @@ export const PatientImageCard = memo(function PatientImageCard({
             </button>
           </Tooltip>
         )}
-        {canDelete && (
+        {canDelete && image.deletable && (
           <Tooltip title={t("Patient:Image:DeleteLabel")}>
             <button
               type="button"

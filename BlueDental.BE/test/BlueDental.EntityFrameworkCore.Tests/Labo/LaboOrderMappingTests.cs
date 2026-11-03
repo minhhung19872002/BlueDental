@@ -51,8 +51,8 @@ public class LaboOrderMappingTests
     }
 
     /// <summary>
-    /// A "Làm tiếp công đoạn" / "Bảo hành" order keeps its parent's code, so
-    /// the code is unique only among the orders without a parent.
+    /// A pre-P2910_03 "Làm tiếp công đoạn" / "Bảo hành" order kept its parent's
+    /// code, so the code is unique only among the orders without a parent.
     /// </summary>
     [Fact]
     public void OrderCode_Index_Should_Cover_Only_Root_Orders()
@@ -72,5 +72,25 @@ public class LaboOrderMappingTests
         entity.FindProperty(nameof(LaboOrder.ParentOrderId)).ShouldNotBeNull();
         entity.GetIndexes().ShouldContain(ix =>
             ix.Properties.Count == 1 && ix.Properties[0].Name == nameof(LaboOrder.ParentOrderId));
+    }
+
+    [Fact]
+    public void Tooth_Rows_Should_Be_One_Per_Tooth_Of_An_Order()
+    {
+        using var ctx = CreateContext();
+        var entity = ctx.Model.FindEntityType(typeof(LaboOrderTooth))!;
+        entity.GetTableName().ShouldBe("bd_labo_order_teeth");
+        entity.GetIndexes().ShouldContain(ix => ix.IsUnique
+            && ix.Properties.Select(p => p.Name).SequenceEqual(new[] { nameof(LaboOrderTooth.LaboOrderId), nameof(LaboOrderTooth.ToothNumber) }));
+    }
+
+    [Fact]
+    public void Rounds_Should_Be_Numbered_Once_Per_Order()
+    {
+        using var ctx = CreateContext();
+        var entity = ctx.Model.FindEntityType(typeof(LaboOrderRound))!;
+        entity.GetTableName().ShouldBe("bd_labo_order_rounds");
+        entity.GetIndexes().ShouldContain(ix => ix.IsUnique
+            && ix.Properties.Select(p => p.Name).SequenceEqual(new[] { nameof(LaboOrderRound.LaboOrderId), nameof(LaboOrderRound.RoundNo) }));
     }
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { readableBlobError } from "@/lib/apiError";
 import { api } from "@/lib/axios";
 import { downloadFile } from "@/lib/download";
 import type { QueryEntity } from "@/lib/queryEntities";
@@ -226,21 +226,6 @@ export function useIssueEInvoice() {
 }
 
 /**
- * A blob request gets its ABP error back as a Blob too; parse it so the global
- * error toast can read the server's message instead of a bare status.
- */
-async function withReadableError(error: unknown): Promise<unknown> {
-  if (!axios.isAxiosError(error) || !(error.response?.data instanceof Blob)) return error;
-  try {
-    error.response.data = JSON.parse(await error.response.data.text());
-  } catch {
-    // Not JSON (a proxy page, say): the status alone picks the message.
-    error.response.data = undefined;
-  }
-  return error;
-}
-
-/**
  * Phát Hành: the PHIẾU THU as a PDF, filled on the server from the docx
  * template. Nothing is stored, so nothing is invalidated.
  */
@@ -251,7 +236,7 @@ export function useRenderPaymentReceipt() {
         const res = await api.post<Blob>("/v1/app/e-invoices/receipt-pdf", input, { responseType: "blob" });
         return res.data;
       } catch (error) {
-        throw await withReadableError(error);
+        throw await readableBlobError(error);
       }
     },
   });

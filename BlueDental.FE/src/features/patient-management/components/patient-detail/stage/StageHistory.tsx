@@ -1,17 +1,19 @@
 import { useState, type Ref } from "react";
-import { Button, Checkbox, Image } from "antd";
-import { PictureOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+import { HistoryOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageEditPencil } from "./StageEditPencil";
 import { NOTE_LIMIT } from "./StageForm";
+import { StageHistoryShots } from "./StageHistoryShots";
 import { StageHistoryTeeth } from "./StageHistoryTeeth";
+import { StageLaboChip } from "./StageLaboParts";
 import { StageNoteBullets } from "./StageNoteBullets";
 import { StageNoteInput } from "./StageNoteInput";
 import { StageRemarkCell } from "./StageRemarkCell";
-import { StageWarrantyButton } from "./StageWarrantyButton";
+import { StageRowActions, type StageHistoryLeaves, type StageRowHandlers } from "./StageRowActions";
 import { namedSteps, type HistoryTooth, type WarrantyState } from "./stageModel";
 
 /** One calendar day's stages, the way the reference groups its rows. */
@@ -21,7 +23,9 @@ export interface StageDay {
   stages: TreatmentStageDto[];
 }
 
-interface Props {
+export type { StageHistoryLeaves } from "./StageRowActions";
+
+interface Props extends StageRowHandlers {
   days: StageDay[];
   total: number;
   imagesOf: (stageId: string) => PatientImageDto[];
@@ -34,28 +38,18 @@ interface Props {
   onSaveNote: (stage: TreatmentStageDto, note: string) => void;
   /** Ghi chú; resolves true once the server took it. */
   onSaveRemark: (stage: TreatmentStageDto, remark: string) => Promise<boolean>;
-  onComplete: (stage: TreatmentStageDto) => void;
-  onUpload: (stage: TreatmentStageDto) => void;
-  onCreateLabo: (stage: TreatmentStageDto) => void;
-  /** Bảo hành, offered in place of Tạo Labo once a công đoạn is finished. */
-  onWarranty: (stage: TreatmentStageDto) => void;
+  /** The red × on a công đoạn picture: asks before it goes. */
+  onDeleteImage: (image: PatientImageDto) => void;
   /** Which of the reference's warranty controls a finished row shows. */
   warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
   /** Every tooth of the row's service, each marked worked, done or neither. */
   historyTeethOf: (stage: TreatmentStageDto) => HistoryTooth[];
+  /** The patient's Labo tab, behind "+n phiếu trước · Xem tất cả ›". */
+  laboListHref: string;
+  /** "Lịch sử chỉnh sửa" of the whole slip; shown with can.delete. */
+  onOpenChangeLog: () => void;
   /** The slip page watches the block to show its "back to top" button. */
   ref?: Ref<HTMLDivElement>;
-}
-
-export interface StageHistoryLeaves {
-  /** treatmentStage.update — the note pencil and "Tải ảnh". */
-  update: boolean;
-  /** treatmentStage.complete — the "Hoàn thành" tick. */
-  complete: boolean;
-  /** treatmentStage.create — "Bảo hành" writes a new công đoạn. */
-  warranty: boolean;
-  /** treatmentLabo.create — "Tạo Labo". */
-  labo: boolean;
 }
 
 /** The pencil that swaps a stage's note for an editor, in place. */
@@ -77,8 +71,9 @@ function NoteCell({
     <div>
       <div className="pd-stage-noteblock">
         <div className="pd-stage-notebar">
-          {/* The reference drops the pencil on a continued công đoạn. */}
-          {editable && !editing && !stage.isSuperseded && (
+          {/* Open on every row, finished or continued, every edit logged (BA
+              2026-11-02); the reference drops the pencil on a continued one. */}
+          {editable && !editing && (
             <StageEditPencil
               label={t("Patient:Misc:EditNote")}
               onClick={() => setDraft(stage.note ?? "")}
@@ -146,18 +141,36 @@ export function StageHistory({
   can,
   onSaveNote,
   onSaveRemark,
+  onDeleteImage,
   onComplete,
   onUpload,
   onCreateLabo,
+  onOpenLabo,
   onWarranty,
+  onDelete,
+  onOpenChangeLog,
   warrantyOf,
   historyTeethOf,
+  laboListHref,
   ref,
 }: Props) {
+  const handlers: StageRowHandlers = {
+    onComplete,
+    onUpload,
+    onCreateLabo,
+    onOpenLabo,
+    onWarranty,
+    onDelete,
+  };
   return (
     <div className="pd-stage-history" ref={ref}>
       <header>
         <h4>{t("Patient:Tab:TreatmentHistory")}</h4>
+        {can.delete && (
+          <Button className="stage-log-open" icon={<HistoryOutlined />} onClick={onOpenChangeLog}>
+            {t("Patient:StageLog:Title")}
+          </Button>
+        )}
         <span>{t("Patient:Stage:StageCount", total)}</span>
       </header>
       {days.length === 0 ? (
@@ -182,7 +195,6 @@ export function StageHistory({
                 </div>
                 <div>
                   {day.stages.map((stage) => {
-                    const images = imagesOf(stage.id);
                     // A công đoạn continued by a later one is history: its
                     // controls lock one by one and Tạo Labo goes. The reference
                     // also fades the row; the owner dropped that (2026-10-29),
@@ -190,8 +202,8 @@ export function StageHistory({
                     // announce its jaw button and pictures as disabled too.
                     // Several chains can run on one line, each with a live row.
                     const live = !stage.isSuperseded;
-                    const done = stage.completedAt !== null;
                     const serviceName = stage.serviceName ?? stage.name;
+                    const { labo } = stage;
                     return (
                       <div
                         className="pd-stage-histrow"
@@ -209,18 +221,17 @@ export function StageHistory({
                         <div>
                           <p className="pd-stage-histservice">{serviceName}</p>
                           <StageHistoryTeeth teeth={historyTeethOf(stage)} serviceName={serviceName} />
-                          {images.length > 0 && (
-                            <div className="pd-stage-histshots">
-                              <Image.PreviewGroup>
-                                {images.map((image) => (
-                                  <span key={image.id}>
-                                    <Image src={image.url} alt={t("Patient:Photo:Treatment")} />
-                                    <em>{t("Patient:Photo:Treatment")}</em>
-                                  </span>
-                                ))}
-                              </Image.PreviewGroup>
-                            </div>
+                          {labo && (
+                            <StageLaboChip
+                              labo={labo}
+                              onView={can.laboRead ? () => onOpenLabo(labo.orderId) : undefined}
+                            />
                           )}
+                          <StageHistoryShots
+                            images={imagesOf(stage.id)}
+                            canDelete={can.imageDelete}
+                            onDelete={onDeleteImage}
+                          />
                         </div>
 
                         <NoteCell
@@ -248,45 +259,15 @@ export function StageHistory({
                           </ul>
                         </div>
 
-                        <div className="pd-stage-rowactions">
-                          {/* Turns both ways: the reference keeps a
-                              `revert-status` beside its `status`, so un-ticking
-                              re-opens the công đoạn. Only an earlier công đoạn
-                              of the line, or one mid-request, is locked. */}
-                          <Checkbox
-                            checked={done}
-                            disabled={!can.complete || !live || completingId === stage.id}
-                            onChange={() => onComplete(stage)}
-                          >
-                            {t("Patient:Misc:Done")}
-                          </Checkbox>
-                          {can.update && (
-                            <Button
-                              block
-                              icon={<PictureOutlined />}
-                              disabled={!live}
-                              loading={uploadingFor === stage.id}
-                              onClick={() => onUpload(stage)}
-                            >
-                              {t("Patient:Photo:Upload")}
-                            </Button>
-                          )}
-                          {/* A finished công đoạn swaps Tạo Labo for Bảo hành;
-                              a continued one offers neither. */}
-                          {done
-                            ? can.warranty && (
-                                <StageWarrantyButton
-                                  state={warrantyOf(stage)}
-                                  onClick={() => onWarranty(stage)}
-                                />
-                              )
-                            : live &&
-                              can.labo && (
-                                <Button block type="primary" onClick={() => onCreateLabo(stage)}>
-                                  {t("Patient:Labo:Create")}
-                                </Button>
-                              )}
-                        </div>
+                        <StageRowActions
+                          stage={stage}
+                          can={can}
+                          completing={completingId === stage.id}
+                          uploading={uploadingFor === stage.id}
+                          warranty={warrantyOf(stage)}
+                          handlers={handlers}
+                          laboListHref={laboListHref}
+                        />
                       </div>
                     );
                   })}

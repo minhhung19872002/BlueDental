@@ -193,6 +193,21 @@ public class CatalogEntryTests
     }
 
     [Fact]
+    public void Should_Keep_Warranty_Content_And_Clear_It_When_Blank()
+    {
+        var config = Create(price: 1_000m).EnsureServiceConfig(Guid.NewGuid());
+
+        config.SetWarrantyContent("  <p>Bảo hành 12 tháng</p> ");
+        Assert.Equal("<p>Bảo hành 12 tháng</p>", config.WarrantyContent);
+
+        config.SetWarrantyContent("   ");
+        Assert.Null(config.WarrantyContent);
+
+        Assert.Throws<ArgumentException>(() => config.SetWarrantyContent(
+            new string('x', CatalogServiceConfigConsts.MaxWarrantyContentLength + 1)));
+    }
+
+    [Fact]
     public void Should_Refuse_A_Percentage_Discount_Over_One_Hundred()
     {
         var config = Create(price: 1_000m).EnsureServiceConfig(Guid.NewGuid());

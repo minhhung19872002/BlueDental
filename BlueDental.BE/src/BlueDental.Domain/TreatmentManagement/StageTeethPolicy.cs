@@ -76,41 +76,30 @@ public class StageTeethPolicy : IDomainService
     }
 
     /// <summary>
-    /// "Tạo bảo hành" off <paramref name="source"/>: a finished, live công đoạn of
-    /// the same line, inside the service's warranty period, with no other
-    /// warranty of the line still open, and teeth taken among the root's.
+    /// A warranty công đoạn of a line: worked under a valid card
+    /// (<paramref name="cover"/>, P3110 REQ-F3..F5) with no other warranty of the
+    /// line still open, its teeth taken among the root's and covered by the card.
+    /// The card's validity replaces the catalog's days counted from Ngày điều trị
+    /// (G23).
     /// </summary>
+    /// <param name="source">The công đoạn it continues from — finished and live;
+    /// null on a line finished by hand without one (REQ-B8).</param>
     /// <param name="root">The ordinary công đoạn the warranty descends from; null
-    /// when it is not known (a warranty written before roots were recorded), in
-    /// which case the line's own teeth bound the pick, as the reference does.</param>
+    /// when it is not known, in which case the line's own teeth bound the pick.</param>
     public void EnsureWarranty(
-        TreatmentStage source,
+        TreatmentStage? source,
         TreatmentStage? root,
         IReadOnlyCollection<ToothSelection> lineTeeth,
         IReadOnlyCollection<TreatmentStage> lineStages,
         IReadOnlyCollection<ToothSelection> requested,
-        int warrantyDays,
-        DateTimeOffset now)
+        WarrantyCover cover)
     {
-        if (source.IsSuperseded || source.Status != TreatmentStageStatus.Completed)
+        if (source is not null
+            && (source.IsSuperseded || source.Status != TreatmentStageStatus.Completed))
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.WarrantySourceInvalid,
                 "A warranty is raised from a finished công đoạn.");
-        }
-
-        if (warrantyDays <= 0)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceHasNoWarranty,
-                "This service carries no warranty.");
-        }
-
-        if (WarrantyDaysLeft(warrantyDays, source.TreatmentDate, now) <= 0)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.WarrantyExpired,
-                "The warranty period is over.");
         }
 
         if (HasOpenWarranty(lineStages))
@@ -125,6 +114,8 @@ public class StageTeethPolicy : IDomainService
         {
             EnsurePickedAmong(allowed, requested);
         }
+
+        cover.EnsureCovers(requested);
     }
 
     /// <summary>
@@ -134,15 +125,6 @@ public class StageTeethPolicy : IDomainService
     public bool HasOpenWarranty(IEnumerable<TreatmentStage> lineStages) =>
         lineStages.Any(s =>
             s.IsGuarantee && !s.IsSuperseded && s.Status != TreatmentStageStatus.Completed);
-
-    /// <summary>
-    /// The reference's <c>getWarrantyDaysRemaining</c>: the period less the whole
-    /// days since the công đoạn was worked, counted calendar day to calendar day.
-    /// The period runs from its Ngày điều trị (owner, 2026-10-09), so a công
-    /// đoạn entered late is covered from the day it was actually worked.
-    /// </summary>
-    public static int WarrantyDaysLeft(int warrantyDays, DateOnly workedOn, DateTimeOffset now) =>
-        warrantyDays - (ClinicCalendar.DateOf(now).DayNumber - workedOn.DayNumber);
 
     private static void EnsurePickedAmong(
         IReadOnlyCollection<ToothSelection> allowed,

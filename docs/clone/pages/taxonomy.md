@@ -862,3 +862,15 @@ Không có trên bản gốc. Owner yêu cầu: master data cho "Loại" ở m�
   - DTO `restoration` trên `CatalogEntryDto` / Create / Update.
   - Gửi `restoration` cho danh mục khác → `BlueDental:Catalogs:0037`.
 - **Đọc / ghi từ ngoài Danh mục:** `src/hooks/useRestorationMaterials.ts`. Mẫu 5 dùng hook này để liệt kê, thêm (⊕, vào nhóm của phân loại) và sửa (double click) loại ngay trên tờ phiếu.
+
+## Nội dung bảo hành — BlueDental riêng (2026-11-03, R-1136)
+
+Không có trên bản gốc. Owner yêu cầu thêm một ô rich text "Nội dung bảo hành" vào tab Bảo hành của dịch vụ và combo. Ô nằm dưới "Tuỳ chỉnh / Đơn vị: Ngày". Đây là phần mở rộng màn đã chốt, không dựng lại màn.
+
+- **Editor:** dùng `RichTextField`, cùng editor với Dữ liệu tư vấn, nhưng truyền `media={false}`. Tuỳ chọn này bỏ nút ảnh và video, và whitelist `formats` loại cả ảnh/video dán vào. Đây là yêu cầu của owner: "rich text nhưng ẩn các media".
+- **BE:**
+  - Cột `WarrantyContent` (varchar 20000, nullable) trên `bd_catalog_service_configs`, migration `ServiceWarrantyContentR1136`.
+  - `ServiceConfigDto.WarrantyContent`.
+  - Hàm domain `CatalogServiceConfig.SetWarrantyContent`: trim, chuỗi trắng thì lưu null.
+- **Null = giữ nguyên:** request không gửi trường này thì nội dung cũ được giữ. Nhập Excel không gửi trường này nên không xoá nội dung. Chuỗi rỗng thì xoá. FE gửi qua `richTextForSave`, hàm này đổi `<p><br></p>` thành "".
+- **Chưa làm:** server chưa lọc `<img>`. Media hiện chỉ bị chặn ở FE.

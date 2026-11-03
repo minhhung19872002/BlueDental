@@ -1,19 +1,19 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { pickOption } from "./fixtures/antd";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { addPlanLine, driveLine, findLaboPatient, seedLaboOrder } from "./fixtures/laboSeed";
+import { laboCatalog, orderBody, passAll, receive, sentOrder } from "./fixtures/laboApi";
+import { addPlanLine, findLaboPatient, seedLaboOrder } from "./fixtures/laboSeed";
 
 /**
- * Feature: Labo → Mẫu Labo — the reference's eleven columns and the Thao tác
- * column (docs/clone/pages/labo.md §2.4–§2.6; R-479, R-480). The eye opens
- * the editable "Thông tin chung" modal (Trạng thái select, Tải ảnh well, In
- * Phiếu Labo, Tạo Lịch Hẹn Mới, Lưu); the plus and the shield raise the
- * tab-less "Làm tiếp công đoạn" / "Bảo hành" forms on the row through the URL.
+ * Feature: Labo → Mẫu Labo — the columns and the Thao tác column after
+ * P2910_03 (F-85). The BA folded "Ngày gửi / Tình trạng mẫu" and "Ngày giao /
+ * Trạng thái Labo" into "Gửi → Hẹn giao" and "Trạng thái", and moved every
+ * step of the order onto the patient record's one Labo dialog: on Mẫu Labo
+ * the eye alone is left, opening the read-only "Thông tin chung". The plus,
+ * the shield and the Trạng thái select of R-479/R-480 went with that change.
  *
- * Real stack: the browser logs in through the login screen, the list reads
- * from the real API, the order under test is created through the same
- * endpoint the dialog posts to, and Lưu goes up as the real multipart PUT.
- * Nothing is intercepted.
+ * Real stack: the browser logs in through the login screen, the lists read
+ * from the real API and the orders under test are moved through the same
+ * endpoints the workflow dialog posts to. Nothing is intercepted.
  */
 
 const HEADERS = [
@@ -21,19 +21,14 @@ const HEADERS = [
   "Nhà cung cấp / Ngày tạo",
   "Tên khách hàng",
   "Phiếu điều trị",
-  "Ngày gửi / Tình trạng mẫu",
-  "Ngày giao / Trạng thái Labo",
+  "Gửi → Hẹn giao",
+  "Trạng thái",
   "Bác sĩ chỉ định",
   "Vật liệu",
   "Răng",
   "File phòng khám gửi về",
   "Thao tác",
 ];
-
-const PNG_1PX = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-  "base64",
-);
 
 /** The row whose Mã phiếu cell is exactly this code. */
 function rowWithCode(page: Page, code: string) {
@@ -66,9 +61,9 @@ function valueOf(page: Page, dialog: Locator, label: string) {
     .locator("span:last-child");
 }
 
-/** A floating field of the child form, by its label. */
-function field(scope: Locator, label: string) {
-  return scope.locator(".floating-field").filter({ hasText: label }).first();
+/** The patient record's Labo dialog: the one with the three step tabs. */
+function workflowDialog(page: Page) {
+  return page.getByRole("dialog").filter({ has: page.locator(".pd-labo-steps") });
 }
 
 /** Opens the eye on the row and hands back the dialog. */
@@ -85,7 +80,7 @@ test.describe("Mẫu Labo — columns and Thao tác", () => {
     await login(page);
   });
 
-  test("the table has the reference's columns, links and row buttons", async ({ page }) => {
+  test("the table has the BA's columns and the eye opens the read-only detail", async ({ page }) => {
     const id = runId();
     const target = await findLaboPatient(page);
     const seeded = await seedLaboOrder(page, target, id);
@@ -93,7 +88,7 @@ test.describe("Mẫu Labo — columns and Thao tác", () => {
     await page.goto("/labo/mau-labo");
     await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
 
-    // ── Eleven headers, in the reference's order ─────────────────────────
+    // ── Eleven headers, Gửi → Hẹn giao and Trạng thái in the middle ──────
     await expect(page.locator(".bd-labo-screen thead th")).toHaveText(HEADERS);
 
     const row = rowWithCode(page, seeded.orderCode);
@@ -103,196 +98,119 @@ test.describe("Mẫu Labo — columns and Thao tác", () => {
     // ── Tên khách hàng is a link into the record, "[code] - name" ───────
     const patientLink = cells.nth(2).getByRole("link");
     await expect(patientLink).toHaveText(`[${target.patientCode}] - ${target.patientName}`);
-    await expect(patientLink).toHaveAttribute(
-      "href",
-      `/patient/${target.patientId}?branchId=${target.branchId}`,
-    );
+    // The branch rides along as its code (F-68).
+    await expect(patientLink).toHaveAttribute("href", `/patient/${target.patientId}?branch=BD-001`);
     // No treatment slip behind an order raised straight on the patient.
     await expect(cells.nth(3)).toHaveText("—");
 
-    // ── The two date/pill pairs ──────────────────────────────────────────
-    await expect(cells.nth(4)).toContainText(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/);
-    await expect(cells.nth(4)).toContainText("Mẫu mới");
-    await expect(cells.nth(5)).toContainText("—");
-    await expect(cells.nth(5)).toContainText("Đơn hàng mới");
+    // ── "dd/MM → dd/MM"; a Nháp is not at the Labo, so no due tag ───────
+    await expect(cells.nth(4)).toHaveText(/^\d{2}\/\d{2} → \d{2}\/\d{2}$/);
+    await expect(cells.nth(5)).toHaveText("Nháp");
 
     // ── No returned file yet: the folder is greyed ───────────────────────
-    const file = cells.nth(9).getByRole("button", { name: "Xem file phòng khám gửi về" });
-    await expect(file).toBeDisabled();
+    await expect(cells.nth(9).getByRole("button", { name: "Xem file phòng khám gửi về" })).toBeDisabled();
 
-    // ── Thao tác: eye, plus, shield ──────────────────────────────────────
-    const actions = cells.nth(10).locator(".pd-icon-actions .ant-btn");
-    await expect(actions).toHaveCount(3);
-    // The eye is "Xem" here; the patient tab's reads "Xem chi tiết".
-    await expect(actions.nth(0)).toHaveAttribute("aria-label", "Xem");
-    await expect(actions.nth(1)).toHaveAttribute("aria-label", "Tiếp tục công đoạn");
-    await expect(actions.nth(2)).toHaveAttribute("aria-label", "Bảo hành");
+    // ── Thao tác: the eye alone, whatever the status ─────────────────────
+    expect(await actionNames(row)).toEqual(["Xem"]);
 
-    // ── The eye opens the editable modal with this row's patient ─────────
+    // ── The eye opens the read-only modal with this row's patient ────────
     const detail = await openDetail(page, seeded.orderCode);
-    // The reference shows the name alone here; the code stays on the print sheet.
     await expect(valueOf(page, detail, "Khách hàng")).toHaveText(target.patientName);
     await expect(valueOf(page, detail, "Nhà cung cấp")).toHaveText(seeded.supplierName);
     await expect(valueOf(page, detail, "Răng")).toHaveText(seeded.teeth);
-    await expect(valueOf(page, detail, "Ghi chú")).toHaveText("");
-    // Its footer: In Phiếu Labo, Tạo Lịch Hẹn Mới, Lưu — no Đóng.
-    const footer = detail.locator(".pd-labo-detail-footer .ant-btn");
-    await expect(footer).toHaveText(["In Phiếu Labo", "Tạo Lịch Hẹn Mới", "Lưu"]);
-    await expect(detail.getByLabel("Trạng thái", { exact: true })).toBeVisible();
-    await expect(detail.locator(".pd-labo-well")).toHaveText("Tải ảnh");
-    await detail.locator(".ant-modal-close").click();
-    await expect(detail).toBeHidden();
+    // The status moves only on the patient record: no select, no well, no Lưu.
+    await expect(detail.getByLabel("Trạng thái", { exact: true })).toHaveCount(0);
+    await expect(detail.locator(".pd-labo-well")).toHaveCount(0);
+    await expect(detail.locator(".pd-labo-detail-footer .ant-btn")).toHaveText([
+      "In Phiếu Labo",
+      "Tạo Lịch Hẹn Mới",
+      "Đóng",
+    ]);
 
-    // ── The plus raises Làm tiếp công đoạn: one form, no pills, no picker ─
-    await actions.nth(1).click();
-    await expect(page).toHaveURL(new RegExp(`laboModal=continue-process&laboRowId=${seeded.id}`));
-    const cont = page.getByRole("dialog", { name: "Làm tiếp công đoạn" });
-    await expect(cont).toBeVisible();
-    // The row's patient is locked in as "code - name" in a disabled picker;
-    // the slip gets its own number.
-    const customer = `${target.patientCode} - ${target.patientName}`;
-    await expect(field(cont, "Tên khách hàng").getByRole("combobox")).toHaveText(customer);
-    await expect(field(cont, "Tên khách hàng").locator(".ss-wrapper--disabled")).toHaveCount(1);
-    // The time labels stay on the border over the reference's "HH:mm" hint.
-    await expect(field(cont, "Giờ nhận")).toHaveClass(/floating-field--floated/);
-    await expect(field(cont, "Giờ nhận").locator("input")).toHaveAttribute("placeholder", "HH:mm");
-    await expect(field(cont, "Giờ nhận").locator("input")).toHaveValue("");
-    await expect(field(cont, "Số phiếu Labo").locator("input")).toHaveValue(/^LABO-\d+$/);
-    await expect(cont.locator(".pd-labo-tabs")).toHaveCount(0);
-    await expect(cont.locator(".pd-labo-order-select")).toHaveCount(0);
-    await expect(cont.locator(".pd-labo-footer .ant-btn")).toHaveText(["Lưu"]);
-    await cont.locator(".ant-modal-close").click();
-    await expect(cont).toBeHidden();
-    await expect(page).not.toHaveURL(/laboModal=/);
-
-    // ── The shield raises Bảo hành the same way ──────────────────────────
-    await actions.nth(2).click();
-    await expect(page).toHaveURL(new RegExp(`laboModal=warranty&laboRowId=${seeded.id}`));
-    const warranty = page.getByRole("dialog", { name: "Bảo hành" });
-    await expect(warranty).toBeVisible();
-    await expect(field(warranty, "Tên khách hàng").getByRole("combobox")).toHaveText(customer);
-    await expect(warranty.locator(".pd-labo-tabs")).toHaveCount(0);
-    await expect(warranty.locator(".pd-labo-order-select")).toHaveCount(0);
-    await expect(warranty.locator(".pd-labo-footer .ant-btn")).toHaveText(["Lưu"]);
-    await warranty.locator(".ant-modal-close").click();
-    await expect(warranty).toBeHidden();
-    await expect(page).not.toHaveURL(/laboModal=/);
-  });
-
-  /**
-   * The reference (staging, 2026-09-24, Mẫu Labo and the patient's Labo tab
-   * alike): the eye is always drawn; with treatmentLabo:create the shield is
-   * always drawn and the plus is drawn unless the order's treatment line is
-   * done (`isTreatmentServiceDone` in the bundle). The order's own status and
-   * kind never matter — an "Đã huỷ" order keeps all three buttons.
-   */
-  test("the plus follows the treatment line, not the order, on both tables", async ({ page }) => {
-    const id = runId();
-    const doneLine = await addPlanLine(page);
-    const onDoneLine = await seedLaboOrder(page, doneLine, `${id}a`, doneLine.lineId);
-    const cancelledLine = await addPlanLine(page, doneLine.planId);
-    const onCancelledLine = await seedLaboOrder(page, cancelledLine, `${id}b`, cancelledLine.lineId);
-
-    // The first line is finished; the second loses its order and is cancelled.
-    await driveLine(page, doneLine, "complete");
-    await driveLine(page, cancelledLine, "cancel-labo-orders");
-    await driveLine(page, cancelledLine, "cancel");
-
-    // ── The patient's Labo tab ───────────────────────────────────────────
-    await page.goto(`/patient/${doneLine.patientId}?branchId=${doneLine.branchId}&tab=labo`);
-    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
-    const doneRow = patientRowWithCode(page, onDoneLine.orderCode);
-    await expect(doneRow).toBeVisible();
-    expect(await actionNames(doneRow)).toEqual(["Xem chi tiết", "Bảo hành"]);
-
-    const cancelledRow = patientRowWithCode(page, onCancelledLine.orderCode);
-    await expect(cancelledRow.getByRole("cell").nth(1)).toContainText("Đã huỷ");
-    await expect(cancelledRow.getByRole("cell").nth(2)).toContainText("Đã huỷ");
-    expect(await actionNames(cancelledRow)).toEqual(["Xem chi tiết", "Tiếp tục công đoạn", "Bảo hành"]);
-
-    // ── Mẫu Labo, after a fresh load ─────────────────────────────────────
-    await page.goto("/labo/mau-labo");
-    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
-    const doneListRow = rowWithCode(page, onDoneLine.orderCode);
-    await expect(doneListRow).toBeVisible();
-    expect(await actionNames(doneListRow)).toEqual(["Xem", "Bảo hành"]);
-    const cancelledListRow = rowWithCode(page, onCancelledLine.orderCode);
-    await expect(cancelledListRow.getByRole("cell").nth(4)).toContainText("Đã huỷ");
-    expect(await actionNames(cancelledListRow)).toEqual(["Xem", "Tiếp tục công đoạn", "Bảo hành"]);
-
-    // The shield still raises Bảo hành on the finished line.
-    await doneListRow.getByRole("button", { name: "Bảo hành" }).click();
-    await expect(page.getByRole("dialog", { name: "Bảo hành" })).toBeVisible();
-  });
-
-  test("the detail modal saves the status and the pictures", async ({ page }) => {
-    const id = runId();
-    const target = await findLaboPatient(page);
-    const seeded = await seedLaboOrder(page, target, id);
-
-    await page.goto("/labo/mau-labo");
-    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
-
-    // ── Trạng thái → Đã nhận hàng, one picture through the well ─────────
-    let detail = await openDetail(page, seeded.orderCode);
-    await pickOption(page, detail.getByLabel("Trạng thái", { exact: true }), "Đã nhận hàng");
-    await detail
-      .locator(".pd-labo-pictures input[type=file]")
-      .setInputFiles([{ name: `labo-${id}.png`, mimeType: "image/png", buffer: PNG_1PX }]);
-    const tiles = detail.locator(".pd-labo-gallery-tile");
-    await expect(tiles).toHaveCount(1);
-    await expect(tiles.getByRole("button", { name: `Xem ảnh labo-${id}.png` })).toBeVisible();
-    await expect(tiles.getByRole("button", { name: `Xóa ảnh labo-${id}.png` })).toBeVisible();
-
-    const saved = page.waitForResponse(
-      (r) => r.url().includes(`/api/v1/app/labo-orders/${seeded.id}/detail`) && r.request().method() === "PUT",
-    );
-    await detail.getByRole("button", { name: "Lưu" }).click();
-    expect((await saved).status()).toBe(200);
-    await expect(page.getByText("Đã lưu phiếu Labo")).toBeVisible();
-    await expect(detail).toBeHidden();
-
-    // ── The row follows: the pill and the folder ─────────────────────────
-    const cells = rowWithCode(page, seeded.orderCode).getByRole("cell");
-    await expect(cells.nth(5)).toContainText("Đã nhận hàng");
-    const file = cells.nth(9).getByRole("button", { name: "Xem file phòng khám gửi về" });
-    await expect(file).toBeEnabled();
-    await file.click();
-    await expect(page.locator(".ant-image-preview")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.locator(".ant-image-preview")).toBeHidden();
-
-    // ── Persisted: after a reload the dialog reopens on the saved state ──
-    await page.reload();
-    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
-    detail = await openDetail(page, seeded.orderCode);
-    await expect(detail.locator(".pd-labo-status")).toContainText("Đã nhận hàng");
-    await expect(detail.locator(".pd-labo-gallery-tile")).toHaveCount(1);
-
-    // ── Đã huỷ is refused on a received order, on the client ─────────────
-    await pickOption(page, detail.getByLabel("Trạng thái", { exact: true }), "Đã huỷ");
-    await expect(page.getByText("Chỉ được huỷ đơn hàng mới")).toBeVisible();
-    await expect(detail.locator(".pd-labo-status")).toContainText("Đã nhận hàng");
-
-    // ── Tạo Lịch Hẹn Mới opens the appointment editor ───────────────────
+    // ── Tạo Lịch Hẹn Mới still opens the appointment editor ─────────────
     await detail.getByRole("button", { name: "Tạo Lịch Hẹn Mới" }).click();
     const appointment = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
     await expect(appointment).toBeVisible();
     await appointment.locator(".ant-modal-close").click();
     await expect(appointment).toBeHidden();
 
-    // ── Removing the tile and saving drops the picture ───────────────────
-    await detail.getByRole("button", { name: /^Xóa ảnh / }).click();
-    await expect(detail.locator(".pd-labo-gallery-tile")).toHaveCount(0);
-    await detail.getByRole("button", { name: "Lưu" }).click();
+    await detail.locator(".pd-labo-detail-footer").getByRole("button", { name: "Đóng" }).click();
     await expect(detail).toBeHidden();
-    await page.reload();
+  });
+
+  test("a sent order's pictures show in the folder and the detail, read-only", async ({ page }) => {
+    const id = runId();
+    const line = await addPlanLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const sent = await sentOrder(page, orderBody(catalog, line, id, { treatmentServiceId: line.lineId }));
+
+    await page.goto("/labo/mau-labo");
     await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
-    await expect(
-      rowWithCode(page, seeded.orderCode)
-        .getByRole("cell")
-        .nth(9)
-        .getByRole("button", { name: "Xem file phòng khám gửi về" }),
-    ).toBeDisabled();
+    const cells = rowWithCode(page, sent.orderCode).getByRole("cell");
+    await expect(cells.nth(3)).not.toHaveText("—");
+    await expect(cells.nth(4)).toContainText(/còn \d+ ngày/);
+    await expect(cells.nth(5)).toHaveText("Đã gửi Labo");
+
+    // ── The folder previews the picture sent with the order ─────────────
+    const file = cells.nth(9).getByRole("button", { name: "Xem file phòng khám gửi về" });
+    await expect(file).toBeEnabled();
+    await file.click();
+    await expect(page.locator(".ant-image-preview")).toBeVisible();
+    await page.keyboard.press("Escape");
+    // AntD leaves the closed preview mounted in its fade-leave state at opacity 0.
+    await expect(page.locator(".ant-image-preview:not(.ant-image-preview-fade-leave)")).toHaveCount(0);
+
+    // ── The detail lists it with Xem ảnh only, no Xóa ảnh ────────────────
+    const detail = await openDetail(page, sent.orderCode);
+    const tiles = detail.locator(".pd-labo-gallery-tile");
+    await expect(tiles).toHaveCount(1);
+    await expect(tiles.getByRole("button", { name: /^Xem ảnh / })).toBeVisible();
+    await expect(tiles.getByRole("button", { name: /^Xóa ảnh / })).toHaveCount(0);
+  });
+
+  /**
+   * The patient tab draws one step beside the eye, the one the status waits
+   * on (Kiểm tra Labo while at the Labo, Kích hoạt bảo hành once Hoàn thành);
+   * Mẫu Labo keeps the eye alone for the same orders.
+   */
+  test("the patient tab's step button follows the status; Mẫu Labo keeps the eye", async ({ page }) => {
+    test.setTimeout(120_000);
+    const id = runId();
+    const line = await addPlanLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const atLab = await sentOrder(page, orderBody(catalog, line, `${id}a`, { treatmentServiceId: line.lineId }));
+    const done = await sentOrder(page, orderBody(catalog, line, `${id}b`, { treatmentServiceId: line.lineId }));
+    const received = await receive(page, done.id, 2);
+    expect(received.status, received.text).toBe(200);
+    await passAll(page, done.id, [11, 21]);
+
+    // ── The patient's Labo tab ───────────────────────────────────────────
+    await page.goto(`/patient/${line.patientId}?branchId=${line.branchId}&tab=labo`);
+    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
+    const atLabRow = patientRowWithCode(page, atLab.orderCode);
+    await expect(atLabRow).toBeVisible();
+    expect(await actionNames(atLabRow)).toEqual(["Xem chi tiết", "Kiểm tra Labo"]);
+    const doneRow = patientRowWithCode(page, done.orderCode);
+    await expect(doneRow).toContainText("Hoàn thành");
+    expect(await actionNames(doneRow)).toEqual(["Xem chi tiết", "Kích hoạt bảo hành"]);
+
+    // Each step button opens the one dialog on its own tab.
+    const dialog = workflowDialog(page);
+    await atLabRow.getByRole("button", { name: "Kiểm tra Labo" }).click();
+    await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Nhận hàng & kiểm tra");
+    await dialog.locator(".pd-labo-step-footer").getByRole("button", { name: "Huỷ", exact: true }).click();
+    await expect(dialog).toBeHidden();
+    await doneRow.getByRole("button", { name: "Kích hoạt bảo hành" }).click();
+    await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Bảo hành");
+
+    // ── Mẫu Labo, after a fresh load ─────────────────────────────────────
+    await page.goto("/labo/mau-labo");
+    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
+    for (const code of [atLab.orderCode, done.orderCode]) {
+      const listRow = rowWithCode(page, code);
+      await expect(listRow).toBeVisible();
+      expect(await actionNames(listRow)).toEqual(["Xem"]);
+    }
+    await expect(rowWithCode(page, done.orderCode).getByRole("cell").nth(5)).toHaveText("Hoàn thành");
   });
 });

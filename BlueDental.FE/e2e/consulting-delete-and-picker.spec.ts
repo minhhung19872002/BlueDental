@@ -7,7 +7,8 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
  * group. Read off the reference's published bundle 2026-09-24:
  * `patientDiagnosisApi.delete` → "Đã xoá chẩn đoán", `patientAdviseApi.delete`
  * → "Đã xoá dịch vụ", and `careServiceApi.list({ taxonomyId, search, page,
- * perPage: 20 })` behind the "Lựa chọn dịch vụ" strip.
+ * perPage: 20 })` behind the groups — since P0111_02 (R-1114) the "Nhóm
+ * dịch vụ" list on the dialog's left.
  *
  * Real stack: fixtures go through the real API with the session the login
  * screen gave; nothing is intercepted.
@@ -240,20 +241,21 @@ test.describe("Chẩn đoán & Tư vấn — xoá và chọn dịch vụ", () =>
     const dialog = page.getByRole("dialog", { name: /Chọn Dịch Vụ/ });
     await expect(dialog).toBeVisible();
 
-    // The reference's layout: label + search on one line, the pill strip under it
-    // between two arrows, and no "Tất cả dịch vụ" pill.
-    await expect(dialog.getByText("Lựa chọn dịch vụ", { exact: true })).toBeVisible();
+    // P0111_02 (R-1114): the groups list down the left under "Nhóm dịch vụ",
+    // "Tất cả" first and picked; the search runs above the list.
+    const nav = dialog.getByRole("navigation", { name: "Nhóm dịch vụ" });
+    await expect(nav.getByText("Nhóm dịch vụ", { exact: true })).toBeVisible();
     await expect(dialog.getByPlaceholder("Tìm dịch vụ")).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Trượt Lựa chọn dịch vụ sang trái" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Trượt Lựa chọn dịch vụ sang phải" })).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Tất cả dịch vụ" })).toHaveCount(0);
+    const everyGroup = nav.locator(".am-nav-item").first();
+    await expect(everyGroup.locator(".am-nav-name")).toHaveText("Tất cả");
+    await expect(everyGroup).toHaveAttribute("aria-pressed", "true");
 
     // Picking the group asks the server for that group, and its service is there.
     const filtered = page.waitForResponse(
       (res) =>
         res.url().includes("/api/v1/app/catalog-entries") && res.url().includes(`taxonomyId=${target.groupId}`),
     );
-    const pill = dialog.locator(".am-picker-row > button", { hasText: target.groupName }).first();
+    const pill = nav.locator(".am-nav-item", { hasText: target.groupName }).first();
     await pill.click();
     expect((await filtered).ok()).toBeTruthy();
     await expect(pill).toHaveAttribute("aria-pressed", "true");
@@ -261,10 +263,12 @@ test.describe("Chẩn đoán & Tư vấn — xoá và chọn dịch vụ", () =>
     await expect(rows.filter({ hasText: target.serviceName }).first()).toBeVisible();
     await expect(dialog.getByText("Không có dịch vụ phù hợp")).toHaveCount(0);
 
-    // A tick survives the group being let go of, and Lưu writes it.
+    // A tick survives going back to every group, and Lưu writes it.
     await rows.filter({ hasText: target.serviceName }).first().getByRole("checkbox").check();
-    await pill.click();
+    await everyGroup.click();
     await expect(pill).toHaveAttribute("aria-pressed", "false");
+    await expect(everyGroup).toHaveAttribute("aria-pressed", "true");
+    await expect(dialog.getByRole("complementary", { name: "Dịch vụ đã chọn" })).toContainText(target.serviceName);
 
     // The search goes to the server too.
     const searched = page.waitForResponse(

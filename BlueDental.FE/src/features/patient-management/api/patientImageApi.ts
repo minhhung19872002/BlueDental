@@ -39,6 +39,8 @@ export interface PatientImageDto {
   /** Server-side path to the bytes; MinIO holds the file, never PostgreSQL. */
   url: string;
   staffName: string | null;
+  /** Xóa ảnh is offered: false on a công đoạn picture once its upload day is over (R-1111). */
+  deletable: boolean;
 }
 
 export interface UploadPatientImageInput {

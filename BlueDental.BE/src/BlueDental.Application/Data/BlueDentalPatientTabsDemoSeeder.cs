@@ -238,27 +238,24 @@ public class BlueDentalPatientTabsDemoSeeder(
             var supplier = suppliers[index % suppliers.Count];
             var material = materials[index % materials.Count];
 
+            // Nháp only: Tạo phiếu Labo (P2910_03) needs a plan line and
+            // pictures, which demo data does not have.
             var order = new LaboOrder(
                 DemoIdFor("00A3", patient.Id, 0),
                 $"LB-{patient.PatientCode}",
                 patient.Id,
                 _branchId,
-                supplier.Name,
-                (8 + index % 20) * 250_000m,
-                staffIds[index % staffIds.Count],
-                toothNumbers: (11 + index % 8).ToString(CultureInfo.InvariantCulture),
-                workDescription: material.Name,
-                dueAt: new DateTimeOffset(DateTime.UtcNow.Date.AddDays(7 + index % 14).AddHours(9), TimeSpan.Zero),
-                kind: index % 3 == 2 ? LaboOrderKind.Guarantee : LaboOrderKind.New,
-                supplierId: supplier.Id,
-                materialId: material.Id);
-
-            // Half are already at the lab, so the status chips are not all one
-            // colour.
-            if (index % 2 == 0)
-            {
-                order.Send();
-            }
+                new LaboOrderDetails
+                {
+                    LabProviderName = supplier.Name,
+                    EstimatedCost = (8 + index % 20) * 250_000m,
+                    DentistId = staffIds[index % staffIds.Count],
+                    Teeth = [11 + index % 8],
+                    WorkDescription = material.Name,
+                    DueAt = new DateTimeOffset(DateTime.UtcNow.Date.AddDays(7 + index % 14).AddHours(9), TimeSpan.Zero),
+                    SupplierId = supplier.Id,
+                    MaterialId = material.Id,
+                });
 
             fresh.Add(order);
         }

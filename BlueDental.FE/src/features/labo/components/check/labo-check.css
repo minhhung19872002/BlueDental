@@ -1,0 +1,552 @@
+/* Labo workflow tab 2 "Nhận hàng & kiểm tra" and the summary card tabs 2–3 share (P2910_03, P3110 REQ-D). */
+
+/* Three by three: slip · patient · service / teeth · supplier · doctor / sent · due · detail (m175, m281). */
+.pd-labo-summary-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  background: var(--bd-bg-soft);
+}
+
+.pd-labo-summary-fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pd-labo-summary-label {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-summary-value {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--bd-ink);
+  text-overflow: ellipsis;
+}
+
+.pd-labo-summary-value b {
+  font-weight: 700;
+}
+
+.pd-labo-summary-card .pd-labo-summary-link {
+  justify-content: flex-start;
+  height: auto;
+  padding: 0;
+  font-weight: 500;
+  color: var(--bd-link);
+}
+
+.pd-labo-check-section {
+  margin-bottom: 14px;
+}
+
+.pd-labo-check-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.pd-labo-check-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.pd-labo-check-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-card);
+  background: var(--bd-primary);
+}
+
+.pd-labo-check-badge--fail {
+  background: var(--bd-red);
+}
+
+.pd-labo-check-hint {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-check-aside,
+.pd-labo-check-tally {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-check-tally {
+  font-weight: 600;
+}
+
+/* Colour of a tally, a Xử lý cell or a round sub-label. */
+.pd-labo-tone--pass {
+  color: var(--bd-green);
+}
+
+.pd-labo-tone--fail {
+  color: var(--bd-red);
+}
+
+.pd-labo-tone--warn {
+  color: var(--bd-amber);
+}
+
+.pd-labo-tone--muted {
+  color: var(--bd-muted);
+}
+
+.pd-labo-tone--ink {
+  color: var(--bd-ink);
+}
+
+.pd-labo-check-tally--pass {
+  color: var(--bd-green);
+}
+
+.pd-labo-check-tally--fail {
+  color: var(--bd-red);
+}
+
+.pd-labo-check-tally--warn {
+  color: var(--bd-amber);
+}
+
+.pd-labo-check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Row gap only shows once the grid wraps (2 columns at 640px); it keeps the
+     next row's floating label off the field above. */
+  gap: 16px 12px;
+}
+
+.pd-labo-check-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Bảo hành's per-tooth card fields (m374, R-1091). */
+.pd-labo-check-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pd-labo-check-control {
+  width: 100%;
+}
+
+/* B. before «Kiểm tra Labo»: a locked card (m279). */
+.pd-labo-start-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 16px;
+  border: 1px dashed var(--bd-border);
+  border-radius: 10px;
+  text-align: center;
+  background: var(--bd-bg-soft);
+}
+
+.pd-labo-start-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 16px;
+  color: var(--bd-purple);
+  background: var(--bd-purple-pale);
+}
+
+.pd-labo-start-card strong {
+  font-size: 14px;
+  color: var(--bd-ink);
+}
+
+.pd-labo-start-card p {
+  max-width: 520px;
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-tooth-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pd-labo-tooth-row {
+  padding: 8px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+  background: var(--bd-card);
+}
+
+/* m278: a soft pink card, the red is kept for the text. */
+.pd-labo-tooth-row--fail {
+  border-color: color-mix(in srgb, var(--bd-red) 35%, transparent);
+  background: color-mix(in srgb, var(--bd-red) 3%, var(--bd-card));
+}
+
+.pd-labo-tooth-row--locked {
+  background: var(--bd-bg-soft);
+}
+
+/* Răng N · shade · Đạt/Lỗi · Đã trả · BH Labo · Thu gọn (m342). */
+.pd-labo-tooth-line {
+  display: grid;
+  grid-template-columns: 64px 80px auto 120px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-labo-tooth-row--locked .pd-labo-tooth-line {
+  grid-template-columns: 64px 80px minmax(0, 1fr) 120px minmax(0, 1fr);
+}
+
+.pd-labo-tooth-no {
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+
+.pd-labo-tooth-row .ant-form-item {
+  margin-bottom: 0;
+}
+
+.pd-labo-tooth-shade {
+  display: inline-flex;
+  overflow: hidden;
+  white-space: nowrap;
+  align-items: center;
+  font-size: 13px;
+  color: var(--bd-sub);
+}
+
+.pd-labo-tooth-toggle {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.pd-labo-tooth-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--bd-sub);
+  background: var(--bd-card);
+  cursor: pointer;
+}
+
+.pd-labo-tooth-choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.pd-labo-tooth-choice--pass {
+  border-color: var(--bd-green);
+  color: var(--bd-green);
+  background: var(--bd-green-pale);
+}
+
+.pd-labo-tooth-choice--fail {
+  border-color: color-mix(in srgb, var(--bd-red) 45%, transparent);
+  color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+
+.pd-labo-tooth-returns {
+  display: inline-flex;
+  flex-direction: column;
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--bd-sub);
+}
+
+.pd-labo-tooth-returns--alert {
+  color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+
+.pd-labo-tooth-row--fail .pd-labo-tooth-returns--alert {
+  background: transparent;
+}
+
+.pd-labo-tooth-returns small {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pd-labo-tooth-warranty {
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--bd-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-labo-tooth-warranty b {
+  color: var(--bd-green);
+}
+
+.pd-labo-tooth-passed {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: var(--bd-green);
+}
+
+.pd-labo-tooth-passed small {
+  font-size: 11px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-tooth-fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-primary);
+  background: none;
+  cursor: pointer;
+}
+
+/* A Lỗi tooth's Kết luận: pictures and Mô tả gửi Labo (m278, m342). */
+.pd-labo-defect {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed color-mix(in srgb, var(--bd-red) 35%, transparent);
+}
+
+.pd-labo-defect[hidden] {
+  display: none;
+}
+
+.pd-labo-defect-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pd-labo-defect-head strong {
+  font-size: 13px;
+  color: var(--bd-red);
+}
+
+.pd-labo-defect-head span {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-defect-label {
+  font-size: 12px;
+  color: var(--bd-sub);
+}
+
+/* Room for the floating label under the pictures. The margin goes on the
+   wrapper the label is placed against, not on the Form.Item inside it, or the
+   box slides down and leaves its label behind (P0111_02, R-1113). */
+.pd-labo-defect > .floating-field {
+  margin-top: 16px;
+}
+
+.pd-labo-pictures.pd-labo-pictures--defect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.pd-labo-pictures--defect .pd-labo-gallery {
+  gap: 10px;
+  margin: 0;
+  padding-top: 6px;
+}
+
+/* Square tiles, the red "Xóa ảnh" in the top-right corner (R-1113), shared
+   with a Đạt tooth's own pictures (R-1110). */
+.pd-labo-pictures--defect .pd-labo-gallery-tile,
+.pd-labo-tooth-pictures .pd-labo-gallery-tile {
+  width: 72px;
+  height: 72px;
+  overflow: visible;
+  border-radius: 6px;
+}
+
+.pd-labo-pictures--defect .pd-labo-gallery-view,
+.pd-labo-tooth-pictures .pd-labo-gallery-view {
+  overflow: hidden;
+  border-radius: 6px;
+}
+
+.pd-labo-pictures--defect .pd-labo-gallery-remove,
+.pd-labo-tooth-pictures .pd-labo-gallery-remove {
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  color: var(--bd-card);
+  background: var(--bd-red);
+  box-shadow: 0 1px 2px rgb(27 42 65 / 25%);
+}
+
+.pd-labo-tooth-pictures {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--bd-border);
+}
+
+.pd-labo-tooth-pictures .pd-labo-gallery {
+  gap: 10px;
+  margin: 0;
+  padding: 6px 6px 0 0;
+}
+
+.pd-labo-tooth-upload.ant-btn {
+  justify-self: end;
+}
+
+.pd-labo-defectwell {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 1px dashed color-mix(in srgb, var(--bd-primary) 40%, transparent);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--bd-primary);
+  background: var(--bd-card);
+  cursor: pointer;
+}
+
+.pd-labo-defectwell:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* A Lỗi tooth refused for having no Hình ảnh lỗi (REQ-D6, R-1093). */
+.pd-labo-defect--missing .pd-labo-defectwell {
+  border: 1px solid var(--bd-red);
+  color: var(--bd-red);
+}
+
+.pd-labo-defect-error {
+  font-size: 12px;
+  color: var(--bd-red);
+}
+
+.pd-labo-conclusion {
+  margin-bottom: 14px;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--bd-red);
+  border-radius: 10px;
+  background: var(--bd-red-pale);
+}
+
+/* The floating labels of the dates need room under the title. */
+.pd-labo-conclusion .pd-labo-check-grid {
+  margin-top: 16px;
+}
+
+.pd-labo-history-sub {
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-history-sub.pd-labo-tone--pass {
+  color: var(--bd-green);
+}
+
+/* The round being entered reads amber-tinted, as in m294. */
+.pd-labo-check-section .pd-labo-history-live > td {
+  background: color-mix(in srgb, var(--bd-amber-pale) 50%, var(--bd-card));
+}
+
+.pd-labo-history-sub.pd-labo-tone--fail {
+  color: var(--bd-red);
+}
+
+.pd-labo-history-sub.pd-labo-tone--warn {
+  color: var(--bd-amber);
+}
+
+.pd-labo-result-pill {
+  display: inline-flex;
+  padding: 1px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pd-labo-result-pill.pd-labo-tone--pass {
+  background: var(--bd-green-pale);
+}
+
+.pd-labo-result-pill.pd-labo-tone--fail {
+  background: var(--bd-red-pale);
+}
+
+/* Xác nhận Labo đạt / Trả hàng bị lỗi: purple as the mock draws them. */
+.pd-labo-footer .ant-btn.pd-labo-btn-purple:not(:disabled) {
+  border-color: var(--bd-purple);
+  background: var(--bd-purple);
+}
+
+.pd-labo-footer .ant-btn.pd-labo-btn-purple:not(:disabled):hover {
+  border-color: var(--bd-violet);
+  background: var(--bd-violet);
+}
+
+@media (max-width: 640px) {
+  .pd-labo-summary-card,
+  .pd-labo-check-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pd-labo-tooth-line,
+  .pd-labo-tooth-row--locked .pd-labo-tooth-line {
+    grid-template-columns: 1fr 1fr;
+  }
+}

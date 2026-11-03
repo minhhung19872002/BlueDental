@@ -204,8 +204,7 @@ export function treatmentColumns({
           );
         }
 
-        // Grey and disabled while another warranty of the line is open or
-        // once the period ran out; the tooltip says which.
+        // Opens the slip's Bảo hành tab on this line (P3110 REQ-A9).
         return (
           <ActionTooltip title={warrantyTitle(warranty)}>
             <Button
@@ -213,7 +212,6 @@ export function treatmentColumns({
               className="pd-tr-warranty"
               aria-label={t("Patient:Labo:Warranty")}
               icon={<BriefcaseMedicalIcon />}
-              disabled={warranty.kind === "blocked"}
               onClick={() => onWarranty(row)}
             />
           </ActionTooltip>

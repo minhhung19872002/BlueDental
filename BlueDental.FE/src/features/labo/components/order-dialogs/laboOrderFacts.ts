@@ -1,11 +1,26 @@
-import type { LaboOrderDto } from "@/features/labo/api/laboApi";
-import { formatDate, formatDateTime } from "@/utils/format";
+import type { LaboOrderDto, LaboOrderToothDto } from "@/features/labo/api/laboApi";
+import { formatDate } from "@/utils/format";
 import { printedDoctorName } from "@/utils/printedDoctorName";
 
 export interface LaboDetailPatient {
   code: string;
   name: string;
   dateOfBirth: string | null;
+}
+
+type ToothField = (tooth: LaboOrderToothDto) => string | null | undefined;
+
+/**
+ * One spec across the teeth (P3110 REQ-C7): the value itself when every tooth
+ * carries the same one, else "R11 A1, R12 A2". An order sent before the
+ * per-tooth table has no tooth values and keeps its order-level one.
+ */
+function perTooth(order: LaboOrderDto, field: ToothField, orderValue: string | null | undefined): string {
+  const values = order.teeth.map((tooth) => ({ tooth: tooth.toothNumber, value: field(tooth)?.trim() ?? "" }));
+  const filled = values.filter((entry) => entry.value !== "");
+  if (filled.length === 0) return orderValue ?? "";
+  if (filled.length === values.length && new Set(filled.map((entry) => entry.value)).size === 1) return filled[0].value;
+  return filled.map((entry) => `R${entry.tooth} ${entry.value}`).join(", ");
 }
 
 /**
@@ -22,12 +37,13 @@ export function laboOrderFacts(order: LaboOrderDto, patient: LaboDetailPatient) 
     customer: patient.name,
     birthDate: formatDate(patient.dateOfBirth),
     supplier: order.supplierName ?? order.labProviderName,
-    sentAt: formatDateTime(order.sentAt),
-    dueAt: formatDateTime(order.dueAt),
+    // Days only: Giờ gửi / Giờ nhận are gone (P3110 REQ-C2).
+    sentAt: formatDate(order.sentAt),
+    dueAt: formatDate(order.dueAt),
     material: order.materialName ?? "",
-    finishLine: order.finishLineName ?? "",
-    bite: order.biteName ?? "",
-    rhythm: order.rhythmName ?? "",
+    finishLine: perTooth(order, (tooth) => tooth.finishLineName, order.finishLineName),
+    bite: perTooth(order, (tooth) => tooth.biteName, order.biteName),
+    rhythm: perTooth(order, (tooth) => tooth.rhythmName, order.rhythmName),
     instruction: order.workDescription ?? order.notes ?? "",
     note: order.notes ?? "",
     treatmentService: order.treatmentServiceName ?? "",
@@ -38,7 +54,8 @@ export function laboOrderFacts(order: LaboOrderDto, patient: LaboDetailPatient) 
      */
     laboService: order.laboServiceName ?? "",
     teeth: order.toothNumbers ?? "",
-    shade: order.toothShade ?? "",
+    shade: perTooth(order, (tooth) => tooth.shade, order.toothShade),
+    labNote: perTooth(order, (tooth) => tooth.labNote, null),
     quantity: String(order.quantity),
   };
 }

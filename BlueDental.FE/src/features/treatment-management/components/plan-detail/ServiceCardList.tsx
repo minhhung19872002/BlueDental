@@ -4,6 +4,7 @@ import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { formatToothCodes } from "../../api/consultingApi";
+import { PlanLaboCell } from "./PlanLaboCell";
 import {
   DiscountCell,
   dentistOf,
@@ -29,13 +30,18 @@ interface Props {
 }
 
 /** The table's columns, in its order; the money folds behind "Xem thêm". */
-function cardRows(row: PlanDetailRow) {
+function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
   const rows: RecordCardRow[] = [
     { key: "service", label: t("Treatment:Service:Service"), value: <ServiceNameCell row={row} /> },
     { key: "dentist", label: t("Treatment:PlanDetail:Col:Dentist"), value: dentistOf(row) },
     { key: "diagnosis", label: t("Treatment:PlanDetail:Col:Diagnosis"), value: diagnosisOf(row) },
     { key: "teeth", label: t("Treatment:PlanDetail:Col:Teeth"), value: dash(formatToothCodes(row.service.teeth)) },
     { key: "status", label: t("Common:Status"), value: <StatusCell row={row} /> },
+    {
+      key: "labo",
+      label: t("Treatment:PlanDetail:Col:Labo"),
+      value: <PlanLaboCell row={row} onOpen={actions.onLabo} />,
+    },
   ];
   const moreRows: RecordCardRow[] = [
     { key: "price", label: t("Treatment:Pricing:UnitPrice"), value: <UnitPriceCell row={row} /> },
@@ -94,7 +100,7 @@ export function ServiceCardList({ rows, total, pagination, actions, showTotal }:
       {rows.length === 0 && <p className="bd-rc-empty">{t("Treatment:Common:NoData")}</p>}
       <div className="bd-rc-list">
         {rows.map((row) => {
-          const card = cardRows(row);
+          const card = cardRows(row, actions);
           return (
             <RecordCard
               key={row.service.id}

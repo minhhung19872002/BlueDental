@@ -123,6 +123,13 @@ public class PatientAdviseDto : FullAuditedEntityDto<Guid>
     public decimal DiscountAmount { get; set; }
     public decimal EffectiveAmount { get; set; }
 
+    /// <summary>
+    /// "Ưu đãi khi thanh toán" (P2910): what paid receipts let off the slip
+    /// lines this advice became — TN giảm and payment-time vouchers with the
+    /// VAT that went with them. Zero until a receipt does; list reads only.
+    /// </summary>
+    public decimal PaymentReliefAmount { get; set; }
+
     public string? ServiceName { get; set; }
     public string? StaffName { get; set; }
     public string? SecondStaffName { get; set; }

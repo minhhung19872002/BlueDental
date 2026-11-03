@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Billing;
 using BlueDental.Catalogs;
 using BlueDental.Organizations;
 using BlueDental.Staff;
 using BlueDental.Permissions;
+using BlueDental.TreatmentManagement.Values;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -25,6 +27,8 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
     private readonly IRepository<PatientAdvise, Guid> _repository;
     private readonly IRepository<PatientDiagnosis, Guid> _diagnosisRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
+    private readonly IRepository<TreatmentPlan, Guid> _planRepository;
+    private readonly IRepository<PatientPayment, Guid> _paymentRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
 
@@ -32,12 +36,16 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
         IRepository<PatientAdvise, Guid> repository,
         IRepository<PatientDiagnosis, Guid> diagnosisRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
+        IRepository<TreatmentPlan, Guid> planRepository,
+        IRepository<PatientPayment, Guid> paymentRepository,
         IIdentityUserRepository userRepository,
         ICurrentClinicBranchResolver branchResolver)
     {
         _repository = repository;
         _diagnosisRepository = diagnosisRepository;
         _catalogRepository = catalogRepository;
+        _planRepository = planRepository;
+        _paymentRepository = paymentRepository;
         _userRepository = userRepository;
         _branchResolver = branchResolver;
     }
@@ -57,8 +65,55 @@ public class PatientAdviseAppService : ApplicationService, IPatientAdviseAppServ
 
         var dtos = items.Select(MapToDto).ToList();
         await FillNamesAsync(dtos);
+        await FillPaymentReliefAsync(dtos);
 
         return new PagedResultDto<PatientAdviseDto>(totalCount, dtos);
+    }
+
+    /// <summary>
+    /// "Ưu đãi khi thanh toán" under TỔNG KẾ HOẠCH (P2910): what the paid
+    /// receipts let off each slip line raised from these advices, VAT included,
+    /// as the slip's own rollup takes it off the debt. The payment repository's
+    /// filter keeps only "Đã thanh toán" receipts, so a waiting one adds nothing.
+    /// </summary>
+    private async Task FillPaymentReliefAsync(IReadOnlyList<PatientAdviseDto> dtos)
+    {
+        var adviseIds = dtos.Select(d => d.Id).ToList();
+        if (adviseIds.Count == 0)
+        {
+            return;
+        }
+
+        var planQuery = await _planRepository.WithDetailsAsync(x => x.Services, x => x.AppliedVouchers);
+        var plans = await AsyncExecuter.ToListAsync(planQuery.Where(p =>
+            p.Services.Any(s => s.SourceAdviseId.HasValue && adviseIds.Contains(s.SourceAdviseId.Value))));
+        if (plans.Count == 0)
+        {
+            return;
+        }
+
+        var planIds = plans.Select(p => (Guid?)p.Id).ToList();
+        var paymentQuery = await _paymentRepository.WithDetailsAsync(x => x.Lines);
+        var payments = await AsyncExecuter.ToListAsync(
+            paymentQuery.Where(p => planIds.Contains(p.TreatmentPlanId)));
+
+        var reliefByAdvise = new Dictionary<Guid, decimal>();
+        foreach (var plan in plans)
+        {
+            var settled = LineSettlement.Of(plan, payments);
+            foreach (var line in plan.Services.Where(s => s.SourceAdviseId.HasValue))
+            {
+                var relief = settled.GetValueOrDefault(line.Id, LineSettlement.None).Relief;
+                var adviseId = line.SourceAdviseId!.Value;
+                reliefByAdvise[adviseId] =
+                    reliefByAdvise.GetValueOrDefault(adviseId) + plan.ReliefOffPayableOf(line, relief);
+            }
+        }
+
+        foreach (var dto in dtos)
+        {
+            dto.PaymentReliefAmount = reliefByAdvise.GetValueOrDefault(dto.Id);
+        }
     }
 
     /// <summary>

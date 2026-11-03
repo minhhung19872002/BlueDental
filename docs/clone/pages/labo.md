@@ -665,6 +665,7 @@ the reference does; BlueDental sends the window the label promises.
 | `PUT /v1/orders/{id}` `{ status, imageLaboIds }` after separate media uploads | One `PUT /api/v1/app/labo-orders/{id}/detail` as `multipart/form-data` carrying `status`, `keepImageIds[]` and the new `pictures[]` | Same one-request rule as R-315; the pictures are `PatientImage` rows with `LaboOrderId`, read back as `images[]` |
 | A magnifier on each chip strip opens a "Tìm dịch vụ" popover | **Vật liệu** only: a search box always shown after the label (R-1062). Lựa chọn dịch vụ has no search | Owner's request 2026-10-28 ("thêm thanh tìm kiếm vật liệu"), in Đặt mới and in the row dialogs' Thay đổi vật liệu mới. The box filters the group's loaded materials blind to case and marks (`matchesSearch`). A choice that is filtered out stays chosen, and the box clears when the group changes |
 | Supplier names are plain text; the supplier dialog has no colour | **Màu nhãn** section at the foot of Tạo / Sửa nhà cung cấp: Mặc định (grey `#64748B`), eight presets, a custom `<input type=color>` and a preview badge. The name then reads as a solid badge in that colour — white text, dark on a pale colour — on Nhà cung cấp Labo, Mẫu Labo and the patient's Labo tab (R-1072) | BA request 2026-10-29 ("Thêm lựa chọn màu nhãn… k thì mặc định xám"). Not observed on the reference, nothing to compare against. Stored as `#RRGGBB` upper case on `LaboSupplier.LabelColor`; anything else is 400 / `Labo:0014`. An order that only carries a typed lab name (no `SupplierId`) stays grey |
+| A Labo warranty is part of the service: an open one keeps the service line in progress | A Labo-warranty công đoạn never moves the service line, open or closed; "Bảo hành dịch vụ" waits until no Labo order of the line is unfinished (`Treatment:0062`) (F-88, R-1122) | BA 2026-11-02: the lab's warranty is a third party's, a sub-status of the service; the clinic's service warranty is the line's final lock. Found on staging, where an open Labo warranty left a finished line "Đang điều trị" with no "Bảo hành dịch vụ" button |
 
 ### Mẫu Labo — the Thao tác column and its three dialogs (2026-09-24)
 
@@ -747,3 +748,29 @@ when the child is a plain `Input`. It predates this work, fires on every dialog
 in the app that pairs the two, and the component is shared with the finished
 Danh mục screen — so it wants its own change with that screen's suite run
 against it.
+
+## 10. P2910_03 — quy trình Labo mới (F-85, R-1083, 2026-10-30)
+
+**BA requirement, not the reference.** BA `P2910_03.drawio` replaces the
+Labo order flow in BlueDental; app.nfcdental.com still runs the order
+described in §1–§9, so from here on BlueDental deliberately differs from it.
+Decisions, statuses, guards, data and tests are in
+`docs/testing/features/labo-workflow.md`; assumptions taken without the BA
+are in `docs/clone/unknowns.md` (P2910_03).
+
+What in §1–§9 no longer describes BlueDental:
+
+- The hand status select (`LaboStatusSelect`), the detail footer and the
+  `PUT {id}/detail` status write are gone. Statuses are Nháp / Đã gửi Labo /
+  Chờ kiểm tra / Trả hàng / Hoàn thành / Đã hủy / Bảo hành (+ Hết hạn bảo hành,
+  computed); Giao trễ and Replaced are no longer stored.
+- The child-order dialogs (Làm tiếp công đoạn, Bảo hành) and their plus /
+  shield row actions are gone; old child orders still open read-only.
+- Every entry point — tab Labo, "Tạo Labo" on a công đoạn, the plan column,
+  the `/labo` eye — opens one 3-step dialog: Đặt hàng / Nhận hàng & kiểm tra /
+  Bảo hành.
+- `/labo` Mẫu Labo: status pill instead of the select; the sample chips are
+  recomputed from the new statuses and the due day (table in the feature
+  doc).
+- The order form fields, chip strips (Vật liệu search R-1062), supplier label
+  colour (R-1072) and print sheet are kept as cloned.

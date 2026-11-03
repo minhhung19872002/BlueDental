@@ -10,18 +10,17 @@ import {
 } from "./fixtures/restrictedDentist";
 
 /**
- * Feature: Labo → Mẫu Labo — which buttons a user sees, by permission leaf,
- * exactly as staging's bundle gates them (docs/clone/pages/labo.md §2.6;
- * R-532):
+ * Feature: Labo → Mẫu Labo — which buttons a user sees, by permission leaf
+ * (docs/clone/pages/labo.md §2.6; R-532, reworked by P2910_03 / F-85):
  *
- *  - `laboTemplate:read`   — the list, the eye, "In Phiếu Labo"; the Trạng
- *                            thái select is on screen but greyed;
- *  - `treatmentLabo:create` — the plus and the shield on the row;
+ *  - `laboTemplate:read`   — the list, the eye, "In Phiếu Labo" and Đóng;
  *  - `appointment:create`  — "Tạo Lịch Hẹn Mới" in the detail's footer;
- *  - `laboTemplate:update` — the select enabled, the "Tải ảnh" well, "Lưu";
  *  - `laboTemplate:export` — Xuất Excel (never granted here, so never shown).
  *
- * There is no Đóng in this footer, whatever the user holds.
+ * Since F-85 every step of an order runs in the patient record's Labo
+ * dialog (labo-workflow.spec.ts covers its treatmentLabo leaves), so
+ * `treatmentLabo:create` and `laboTemplate:update` no longer add anything
+ * here: no plus, no shield, no Trạng thái select, no "Tải ảnh" well, no Lưu.
  *
  * Real stack: a dentist is created through the Nhân sự dialog, the admin
  * grants leaves one at a time on Cài đặt → Phân quyền, and the dentist's
@@ -73,7 +72,7 @@ async function closeDetail(page: Page, detail: Locator) {
 }
 
 test.describe("Mẫu Labo — buttons by permission leaf", () => {
-  test("the eye, plus, shield, select, well and footer follow four leaves, as on staging", async ({
+  test("the eye and the detail's footer follow their leaves; the workflow leaves add nothing", async ({
     page,
     browser,
   }) => {
@@ -95,43 +94,40 @@ test.describe("Mẫu Labo — buttons by permission leaf", () => {
 
     const dentist = await openDentistSession(browser, userName, password);
     try {
-      // ── laboTemplate:read only: the eye, a greyed select, In Phiếu Labo ──
+      // ── laboTemplate:read only: the eye, In Phiếu Labo, Đóng ─────────────
       let row = await reopenList(dentist.page, seeded.orderCode);
       expect(await actionNames(row)).toEqual(["Xem"]);
       await expect(dentist.page.getByRole("button", { name: "Xuất Excel" })).toHaveCount(0);
 
       let detail = await openDetail(dentist.page, row);
-      const status = detail.getByLabel("Trạng thái", { exact: true });
-      await expect(status).toBeVisible();
-      await expect(status).toBeDisabled();
+      await expect(detail.getByLabel("Trạng thái", { exact: true })).toHaveCount(0);
       await expect(detail.locator(".pd-labo-well")).toHaveCount(0);
-      await expect(footerButtons(detail)).toHaveText(["In Phiếu Labo"]);
+      await expect(footerButtons(detail)).toHaveText(["In Phiếu Labo", "Đóng"]);
       // The letterhead comes from the accessible-branch list, which any
       // signed-in user may read — so the sheet prints for a labo reader too.
       await expect(footerButtons(detail).first()).toBeEnabled();
       await closeDetail(dentist.page, detail);
 
-      // ── + treatmentLabo:create: the plus and the shield ──────────────────
+      // ── + treatmentLabo:create: still the eye alone on Mẫu Labo ──────────
       await setDentistLeaf(page, "treatmentLabo.create", true);
       row = await reopenList(dentist.page, seeded.orderCode);
-      expect(await actionNames(row)).toEqual(["Xem", "Tiếp tục công đoạn", "Bảo hành"]);
+      expect(await actionNames(row)).toEqual(["Xem"]);
 
-      // ── + appointment:create: Tạo Lịch Hẹn Mới, still nothing to edit ────
+      // ── + appointment:create: Tạo Lịch Hẹn Mới joins the footer ──────────
       await setDentistLeaf(page, "appointment.create", true);
       row = await reopenList(dentist.page, seeded.orderCode);
       detail = await openDetail(dentist.page, row);
-      await expect(detail.getByLabel("Trạng thái", { exact: true })).toBeDisabled();
-      await expect(detail.locator(".pd-labo-well")).toHaveCount(0);
-      await expect(footerButtons(detail)).toHaveText(["In Phiếu Labo", "Tạo Lịch Hẹn Mới"]);
+      await expect(footerButtons(detail)).toHaveText(["In Phiếu Labo", "Tạo Lịch Hẹn Mới", "Đóng"]);
       await closeDetail(dentist.page, detail);
 
-      // ── + laboTemplate:update: the select, the well and Lưu ──────────────
+      // ── + laboTemplate:update: nothing to edit here any more ─────────────
       await setDentistLeaf(page, "laboTemplate.update", true);
       row = await reopenList(dentist.page, seeded.orderCode);
+      expect(await actionNames(row)).toEqual(["Xem"]);
       detail = await openDetail(dentist.page, row);
-      await expect(detail.getByLabel("Trạng thái", { exact: true })).toBeEnabled();
-      await expect(detail.locator(".pd-labo-well")).toHaveCount(1);
-      await expect(footerButtons(detail)).toHaveText(["In Phiếu Labo", "Tạo Lịch Hẹn Mới", "Lưu"]);
+      await expect(detail.getByLabel("Trạng thái", { exact: true })).toHaveCount(0);
+      await expect(detail.locator(".pd-labo-well")).toHaveCount(0);
+      await expect(footerButtons(detail)).toHaveText(["In Phiếu Labo", "Tạo Lịch Hẹn Mới", "Đóng"]);
       await closeDetail(dentist.page, detail);
     } finally {
       await dentist.context.close();

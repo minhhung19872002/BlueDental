@@ -16,8 +16,9 @@ const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
 const ENTRIES = "/api/v1/app/catalog-entries";
 const ADVISES = "/api/v1/app/patient-advises";
 const PASSWORD = "NhanhDv@123456";
-const QUICK_SERVICE = "Thêm nhanh dịch vụ";
-const QUICK_COMBO = "Thêm nhanh combo";
+// A text button beside the search since P0111_02 (R-1114).
+const QUICK_SERVICE = "Thêm dịch vụ";
+const QUICK_COMBO = "Thêm combo";
 /** Enough to write a slip and pick services for it — but not to add to the catalog. */
 const ADVISE_ONLY = [
   "BlueDental.patient.read",
@@ -121,11 +122,9 @@ test.describe("Thêm nhanh dịch vụ (BA #34)", () => {
     const dialog = await openPicker(page, patientId);
     await served;
 
-    // The + sits beside "Tìm dịch vụ" and says what it does.
-    const quick = dialog.getByRole("button", { name: QUICK_SERVICE });
+    // "+ Thêm dịch vụ" sits beside "Tìm dịch vụ" and says what it does.
+    const quick = dialog.getByRole("button", { name: QUICK_SERVICE, exact: true });
     await expect(quick).toBeEnabled();
-    await quick.hover();
-    await expect(page.getByRole("tooltip")).toHaveText(QUICK_SERVICE);
     await quick.click();
 
     // Danh mục's "Thêm dịch vụ", already on a group, with no Loại switch.
@@ -216,8 +215,8 @@ test.describe("Thêm nhanh dịch vụ (BA #34)", () => {
     await dialog.locator(".am-table tbody tr", { hasText: part.body.name }).getByRole("checkbox").check();
 
     await dialog.getByRole("tab", { name: /Combo/ }).click();
-    await expect(dialog.getByRole("button", { name: QUICK_SERVICE })).toHaveCount(0);
-    await dialog.getByRole("button", { name: QUICK_COMBO }).click();
+    await expect(dialog.getByRole("button", { name: QUICK_SERVICE, exact: true })).toHaveCount(0);
+    await dialog.getByRole("button", { name: QUICK_COMBO, exact: true }).click();
 
     const comboDialog = page.locator(".bd-combo-dialog");
     await expect(comboDialog.getByText("Thành phần combo")).toBeVisible();
@@ -244,15 +243,15 @@ test.describe("Thêm nhanh dịch vụ (BA #34)", () => {
     expect(combo.price).toBe(600_000);
     await expect(comboDialog).toBeHidden();
 
-    // Picked at once: its card says "Hủy dịch vụ", and it alone is in the summary.
+    // Picked at once: its row is ticked, and it alone is in the summary.
     const summary = page.locator(".am-summary");
     await expect(summary.locator(".am-summary-items li")).toHaveCount(1);
     await expect(summary).toContainText(comboName);
     await expect(summary).not.toContainText(part.body.name);
     await expect(summary.locator(".am-summary-total")).toHaveText(money(600_000));
-    const card = dialog.getByRole("article", { name: comboName });
+    const card = dialog.locator(".am-table tbody tr", { hasText: comboName });
     await expect(card).toBeVisible({ timeout: 15_000 });
-    await expect(card.getByRole("button", { name: "Hủy dịch vụ" })).toBeVisible();
+    await expect(card.getByRole("checkbox", { name: comboName })).toBeChecked();
 
     const saved = savedAdvise(page);
     await dialog.getByRole("button", { name: /Lưu/ }).click();
@@ -313,9 +312,9 @@ test.describe("Thêm nhanh dịch vụ (BA #34)", () => {
       // The search is there to pick from; the + that adds to the catalog is not.
       await expect(dialog.getByPlaceholder("Tìm dịch vụ")).toBeVisible();
       await expect(dialog.locator(".am-table tbody tr").first()).toBeVisible({ timeout: 15_000 });
-      await expect(dialog.getByRole("button", { name: QUICK_SERVICE })).toHaveCount(0);
+      await expect(dialog.getByRole("button", { name: QUICK_SERVICE, exact: true })).toHaveCount(0);
       await dialog.getByRole("tab", { name: /Combo/ }).click();
-      await expect(dialog.getByRole("button", { name: QUICK_COMBO })).toHaveCount(0);
+      await expect(dialog.getByRole("button", { name: QUICK_COMBO, exact: true })).toHaveCount(0);
 
       const refused = await call(limited.page, ENTRIES, {
         method: "POST",

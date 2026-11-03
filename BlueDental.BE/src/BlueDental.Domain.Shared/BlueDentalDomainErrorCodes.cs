@@ -164,6 +164,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>Another hồ sơ on the same phone already has this full name (P2710_02).</summary>
         public const string DuplicateNameOnPhone = "BlueDental:Patient:0035";
+
+        /// <summary>A công đoạn picture may only be deleted on the day it was uploaded (P0111_02).</summary>
+        public const string StageImageDeleteExpired = "BlueDental:Patient:0036";
     }
 
     public static class Appointments
@@ -358,6 +361,60 @@ public static class BlueDentalDomainErrorCodes
         /// tab already hides from them.
         /// </summary>
         public const string PlanOutsideTreatingScope = "BlueDental:Treatment:0052";
+
+        /// <summary>"Bảo hành dịch vụ" on a line that is not Hoàn thành (P3110 REQ-B5).</summary>
+        public const string WarrantyLineNotDone = "BlueDental:Treatment:0053";
+
+        /// <summary>
+        /// A dental warranty card for a tooth the line does not treat, a tooth asked
+        /// twice, or a tooth that already has its card (P3110 REQ-B5).
+        /// </summary>
+        public const string WarrantyToothInvalid = "BlueDental:Treatment:0054";
+
+        /// <summary>"Ngày bắt đầu bảo hành" before the day the line was finished (P3110 REQ-B5).</summary>
+        public const string WarrantyStartBeforeCompletion = "BlueDental:Treatment:0055";
+
+        /// <summary>"Thời hạn" outside 1..600 months (P3110 REQ-B5).</summary>
+        public const string WarrantyDurationInvalid = "BlueDental:Treatment:0056";
+
+        /// <summary>A warranty card photo for a tooth not being activated, or a side sent twice (P3110 REQ-B5).</summary>
+        public const string WarrantyCardPhotoInvalid = "BlueDental:Treatment:0057";
+
+        /// <summary>A warranty công đoạn that names no "Thẻ bảo hành áp dụng" (P3110 REQ-F7).</summary>
+        public const string WarrantyKindRequired = "BlueDental:Treatment:0058";
+
+        /// <summary>"Nha khoa" picked on a line with no dental warranty card still running (P3110 REQ-F7).</summary>
+        public const string WarrantyCardNotValid = "BlueDental:Treatment:0059";
+
+        /// <summary>
+        /// "Labo" picked without a Labo order of the line whose warranty is still
+        /// running, or a Labo order sent with "Nha khoa" (P3110 REQ-F7).
+        /// </summary>
+        public const string WarrantyLaboOrderInvalid = "BlueDental:Treatment:0060";
+
+        /// <summary>A warranty công đoạn on a tooth its card does not cover (P3110 REQ-F7).</summary>
+        public const string WarrantyToothNotCovered = "BlueDental:Treatment:0061";
+
+        /// <summary>
+        /// "Bảo hành dịch vụ" while a Labo order of the line has not passed QC:
+        /// the clinic's warranty is the line's final lock (BA 2026-11-02).
+        /// </summary>
+        public const string WarrantyLaboUnfinished = "BlueDental:Treatment:0062";
+
+        /// <summary>
+        /// Hoàn thành / Tạo Labo on a công đoạn older than its line's newest
+        /// "Ngày điều trị": continue it to the newest day instead (BA 2026-11-02).
+        /// </summary>
+        public const string StageDateLocked = "BlueDental:Treatment:0063";
+
+        /// <summary>Deleting a công đoạn a Labo order still hangs on: cancel the order first.</summary>
+        public const string StageDeleteHasLabo = "BlueDental:Treatment:0064";
+
+        /// <summary>
+        /// Deleting a công đoạn something was built on top of — continued
+        /// further, or warrantied: delete the newer row first.
+        /// </summary>
+        public const string StageDeleteHasSuccessor = "BlueDental:Treatment:0065";
     }
 
     public static class Billing
@@ -383,11 +440,80 @@ public static class BlueDentalDomainErrorCodes
         /// <summary>A receipt is cancelled with a reason, never silently (bug list item 28).</summary>
         public const string PaymentCancelReasonRequired = "BlueDental:Billing:0095";
 
-        /// <summary>A "Hoàn tất" receipt is final: it cannot be edited, confirmed again or cancelled.</summary>
+        /// <summary>An exported or paid receipt is locked: it cannot be edited or confirmed again.</summary>
         public const string PaymentAlreadyCompleted = "BlueDental:Billing:0096";
 
-        /// <summary>A "Chưa thanh toán" receipt has no money behind it yet, so it cannot be e-invoiced.</summary>
+        /// <summary>A receipt not yet "Đã thanh toán" has no money behind it, so it cannot be e-invoiced.</summary>
         public const string PaymentNotCompleted = "BlueDental:Billing:0097";
+
+        /// <summary>✓ "Xác nhận thanh toán" only follows "Đã xuất phiếu thu" (P2610).</summary>
+        public const string PaymentNotIssued = "BlueDental:Billing:0098";
+
+        /// <summary>An exported or paid receipt is cancelled with one of the four fixed reasons.</summary>
+        public const string PaymentCancelReasonCodeRequired = "BlueDental:Billing:0099";
+
+        /// <summary>A cancelled receipt is final.</summary>
+        public const string PaymentAlreadyCancelled = "BlueDental:Billing:0100";
+
+        /// <summary>
+        /// A paid receipt whose money was partly refunded cannot be cancelled:
+        /// the service would read as having paid back more than it took.
+        /// </summary>
+        public const string PaymentCancelBelowRefunded = "BlueDental:Billing:0101";
+
+        /// <summary>The branch's iPad shows another receipt; the message names it ({0}).</summary>
+        public const string SigningDeviceBusy = "BlueDental:Billing:0102";
+
+        /// <summary>The signing session ended (cancelled, replaced or exported) before this step.</summary>
+        public const string SigningSessionClosed = "BlueDental:Billing:0103";
+
+        /// <summary>Ký tên comes after both boxes of the review screen are ticked.</summary>
+        public const string SigningNotChecked = "BlueDental:Billing:0104";
+
+        /// <summary>The signature is not a PNG drawing, or is empty or too large.</summary>
+        public const string SignatureInvalid = "BlueDental:Billing:0105";
+
+        /// <summary>The branch has no iPad paired (Kết nối iPad in the clinic settings).</summary>
+        public const string SigningDeviceMissing = "BlueDental:Billing:0106";
+
+        /// <summary>The server has no ReceiptVault:Key, so nothing can be encrypted.</summary>
+        public const string ReceiptVaultKeyMissing = "BlueDental:Billing:0107";
+
+        /// <summary>Only a receipt still "Chưa thanh toán" goes to the iPad.</summary>
+        public const string ReceiptNotSendable = "BlueDental:Billing:0108";
+
+        /// <summary>A paired iPad needs a name to tell it apart.</summary>
+        public const string SigningDeviceNameRequired = "BlueDental:Billing:0109";
+
+        /// <summary>Yêu cầu khách ký lại needs a signature to redo.</summary>
+        public const string SigningNotSigned = "BlueDental:Billing:0110";
+
+        /// <summary>The iPad's link is unknown or was revoked: it must be paired again.</summary>
+        public const string SigningDeviceNotPaired = "BlueDental:Billing:0111";
+
+        /// <summary>Xuất phiếu thu needs the customer's signature from the iPad first.</summary>
+        public const string ReceiptNotSignedByCustomer = "BlueDental:Billing:0112";
+
+        /// <summary>Ký số is not available yet (P2610 phase 7).</summary>
+        public const string ReceiptDigitalSignUnavailable = "BlueDental:Billing:0113";
+
+        /// <summary>The receipt has no exported PDF (not exported, or exported before P2610 phase 5).</summary>
+        public const string ReceiptFileMissing = "BlueDental:Billing:0114";
+
+        /// <summary>The stored PDF no longer matches the SHA-256 taken at export.</summary>
+        public const string ReceiptFileTampered = "BlueDental:Billing:0115";
+
+        /// <summary>P2910: a line's TN giảm and voucher share let off more than it still owes.</summary>
+        public const string ReliefExceedsOutstanding = "BlueDental:Billing:0116";
+
+        /// <summary>P2910_02: Ký điện tử picked by an accountant who has no saved signature yet.</summary>
+        public const string AccountantSignatureMissing = "BlueDental:Billing:0117";
+
+        /// <summary>P2910_02: an accountant's signature image over 200 KB once shrunk.</summary>
+        public const string AccountantSignatureTooLarge = "BlueDental:Billing:0118";
+
+        /// <summary>P2910_02: the receipt was printed for a hand signature, so the iPad is out of its flow.</summary>
+        public const string ReceiptSignedOnPaper = "BlueDental:Billing:0119";
         public const string InsufficientPaymentAmount = "BlueDental:Billing:0004";
         public const string InsuranceClaimNotFound = "BlueDental:Billing:0005";
         public const string InvalidCurrency = "BlueDental:Billing:0006";
@@ -434,6 +560,48 @@ public static class BlueDentalDomainErrorCodes
         public const string DueBeforeSent = "BlueDental:Labo:0013";
         /// <summary>A supplier's label colour that is not #RRGGBB (R-1072).</summary>
         public const string InvalidLabelColor = "BlueDental:Labo:0014";
+
+        // P2910_03 workflow (F-85).
+        /// <summary>Tạo phiếu Labo with a required order field still empty.</summary>
+        public const string OrderIncomplete = "BlueDental:Labo:0015";
+        /// <summary>Hình ảnh gửi Labo: at most five per set (the shared ones, or one tooth's).</summary>
+        public const string ImageCountInvalid = "BlueDental:Labo:0016";
+        /// <summary>Số lượng nhận outside 1 … Số lượng đặt.</summary>
+        public const string ReceivedQuantityInvalid = "BlueDental:Labo:0017";
+        public const string ReceivedBeforeSent = "BlueDental:Labo:0018";
+        /// <summary>A tooth waiting for its check has no Đạt / Lỗi.</summary>
+        public const string ToothResultsIncomplete = "BlueDental:Labo:0019";
+        public const string ToothNotOnOrder = "BlueDental:Labo:0020";
+        /// <summary>Trả toàn bộ / Trả hàng bị lỗi with no tooth marked Lỗi.</summary>
+        public const string ReturnNeedsDefect = "BlueDental:Labo:0021";
+        /// <summary>Xác nhận Labo đạt while a tooth is marked Lỗi.</summary>
+        public const string NotAllPassed = "BlueDental:Labo:0022";
+        /// <summary>Ngày trả hàng or Hẹn Labo giao lại missing.</summary>
+        public const string ReturnDetailsRequired = "BlueDental:Labo:0023";
+        public const string RedeliveryBeforeReturn = "BlueDental:Labo:0024";
+        /// <summary>Ảnh kiểm tra is required once a tooth is marked Lỗi.</summary>
+        public const string CheckImagesRequired = "BlueDental:Labo:0025";
+        /// <summary>Kích hoạt bảo hành before the order is Hoàn thành.</summary>
+        public const string WarrantyNotAvailable = "BlueDental:Labo:0026";
+        /// <summary>Only a passed tooth whose warranty is not active yet.</summary>
+        public const string ToothNotWarrantable = "BlueDental:Labo:0027";
+        public const string WarrantyStartBeforePass = "BlueDental:Labo:0028";
+        public const string WarrantyMonthsInvalid = "BlueDental:Labo:0029";
+        public const string DeleteOnlyDraft = "BlueDental:Labo:0030";
+        /// <summary>A later công đoạn of the service while its labo order has not passed QC.</summary>
+        public const string StageLockedByLabo = "BlueDental:Labo:0031";
+        /// <summary>Dịch vụ điều trị that is not one of this customer's plan lines.</summary>
+        public const string TreatmentServiceMismatch = "BlueDental:Labo:0032";
+        /// <summary>Hoàn thành of a service line while its labo order has not passed QC.</summary>
+        public const string ServiceLockedByLabo = "BlueDental:Labo:0033";
+        /// <summary>Gửi Labo while a tooth lacks Màu răng or Đường hoàn tất; data "tooth" names it.</summary>
+        public const string ToothSpecIncomplete = "BlueDental:Labo:0034";
+        /// <summary>Trả hàng while a Lỗi tooth has no Mô tả gửi Labo (P3110 REQ-D6); data "tooth" names it.</summary>
+        public const string DefectDescriptionRequired = "BlueDental:Labo:0035";
+        /// <summary>Ảnh thẻ for a tooth not being activated, or two of one face (P3110 REQ-E1).</summary>
+        public const string WarrantyCardPhotoInvalid = "BlueDental:Labo:0036";
+        /// <summary>Kích hoạt bảo hành on an order with no service line: its card number has none to count on (P3110 R-1090).</summary>
+        public const string WarrantyNeedsServiceLine = "BlueDental:Labo:0037";
     }
 
     public static class Promotions

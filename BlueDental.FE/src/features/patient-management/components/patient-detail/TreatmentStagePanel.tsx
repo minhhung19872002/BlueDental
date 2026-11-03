@@ -1,20 +1,29 @@
 import { useState, type Ref } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "antd";
 import { DollarOutlined, PrinterOutlined } from "@ant-design/icons";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useAbility } from "@/hooks/useAbility";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
+import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
-import { LaboOrderDialog } from "./stage/LaboOrderDialog";
-import { StageForm } from "./stage/StageForm";
+import { planDetailPath } from "@/features/treatment-management/components/plan/planTypes";
+import { PLAN_TAB } from "@/features/treatment-management/components/plan-detail/planDetailTypes";
+import { sourceFromStage } from "@/features/labo/components/order-dialogs/laboOrderSource";
+import { LaboWorkflowDialog } from "@/features/labo/components/workflow/LaboWorkflowDialog";
+import type { LaboWorkflowTarget } from "@/features/labo/components/workflow/laboWorkflowSteps";
+import { StageItemForm } from "./stage/StageItemForm";
+import { StageChangeLogDialog } from "./stage/StageChangeLogDialog";
 import { StageHistory } from "./stage/StageHistory";
 import { StagePicks } from "./stage/StagePicks";
 import { TreatmentHistoryPrintDialog } from "./stage/TreatmentHistoryPrintDialog";
-import { StageFollowUpDialog } from "./stage/StageFollowUpDialog";
 import type { StageTab } from "./stage/stageModel";
 import type { StageComposer } from "./stage/useStageComposer";
+import { useStageDelete } from "./stage/useStageDelete";
+import { useStageImageDelete } from "./stage/useStageImageDelete";
 import "./patient-detail.css";
 
 /** i18n keys per tab: its caption, what an empty tab says, its save button. */
@@ -83,13 +92,27 @@ export function TreatmentStagePanel({
   // "Thanh toán" leads to collecting money on the slip — payment.create.
   const canPay = useAbility("payment").canCreate;
   const stageAbility = useAbility("treatmentStage");
-  const canCreateLabo = useAbility("treatmentLabo").canCreate;
+  const laboAbility = useAbility("treatmentLabo");
+  const imageAbility = useAbility("treatmentImage");
+  const imageDelete = useStageImageDelete();
+  const stageDelete = useStageDelete();
 
   const [printing, setPrinting] = useState(false);
-  const [laboStage, setLaboStage] = useState<TreatmentStageDto | null>(null);
-  const [warrantyStage, setWarrantyStage] = useState<TreatmentStageDto | null>(null);
+  const [laboTarget, setLaboTarget] = useState<LaboWorkflowTarget | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  // The slip the history belongs to; a deleted công đoạn's log is still read by it.
+  const treatmentId = plan?.id ?? composer.stages.find((stage) => stage.treatmentId)?.treatmentId ?? null;
 
+  const navigate = useNavigate();
   const last = composer.chosen[composer.chosen.length - 1];
+
+  // "Bảo hành dịch vụ" leads to the slip's Bảo hành tab, on this line (P3110 D1).
+  const handleWarranty = (stage: TreatmentStageDto) => {
+    if (!stage.treatmentId) return;
+    navigate(
+      planDetailPath(patient.id, stage.treatmentId, branchId, PLAN_TAB.warranty, stage.treatmentServiceId),
+    );
+  };
 
   return (
     <div className="pd-stage-panel">
@@ -161,16 +184,10 @@ export function TreatmentStagePanel({
                 <p className="pd-stage-hint">{t("Patient:Stage:SelectHint")}</p>
               ) : (
                 composer.chosen.map((item) => (
-                  <StageForm
+                  <StageItemForm
                     key={item.id}
                     item={item}
-                    draft={composer.draftOf(item)}
-                    errors={composer.errorsOf(item)}
-                    handlers={{
-                      onChange: (patch) => composer.patchDraft(item, patch),
-                      onPickSteps: (stepIds) => composer.pickSteps(item, stepIds),
-                      onPickImages: () => composer.pickForForm(item),
-                    }}
+                    composer={composer}
                     actions={
                       item === last
                         ? {
@@ -203,15 +220,23 @@ export function TreatmentStagePanel({
           update: stageAbility.canUpdate,
           complete: stageAbility.can("complete"),
           warranty: stageAbility.canCreate,
-          labo: canCreateLabo,
+          labo: laboAbility.canCreate,
+          laboRead: laboAbility.canRead,
+          imageDelete: imageAbility.canDelete,
+          delete: stageAbility.canDelete,
         }}
         onSaveNote={(stage, next) => void composer.saveNote(stage, next)}
         onSaveRemark={composer.saveRemark}
+        onDeleteImage={imageDelete.ask}
         onComplete={(stage) => void composer.finish(stage)}
         onUpload={composer.pickForStage}
-        onCreateLabo={setLaboStage}
-        onWarranty={setWarrantyStage}
+        onCreateLabo={(stage) => setLaboTarget({ kind: "create", source: sourceFromStage(plan, stage) })}
+        onOpenLabo={(orderId, step) => setLaboTarget({ kind: "open", orderId, step })}
+        onWarranty={handleWarranty}
+        onDelete={stageDelete.ask}
+        onOpenChangeLog={() => setLogOpen(true)}
         warrantyOf={composer.warrantyOf}
+        laboListHref={withBranch(`/patient/${patient.id}?tab=labo`, branchId)}
       />
 
       <TreatmentHistoryPrintDialog
@@ -223,27 +248,33 @@ export function TreatmentStagePanel({
         onClose={() => setPrinting(false)}
       />
 
-      <StageFollowUpDialog
-        open={warrantyStage !== null}
-        patientId={patient.id}
-        branchId={branchId}
-        plan={plan}
-        stage={warrantyStage}
-        lineStages={composer.stages.filter(
-          (stage) => stage.treatmentServiceId === warrantyStage?.treatmentServiceId,
-        )}
-        kind="guarantee"
-        inheritSteps
-        onClose={() => setWarrantyStage(null)}
+      <ConfirmDeleteDialog
+        open={imageDelete.removing !== null}
+        noun={t("Patient:Image:Noun")}
+        title={t("Patient:Image:DeleteTitle")}
+        question={t("Patient:Image:DeleteQuestion")}
+        pending={imageDelete.pending}
+        onConfirm={() => void imageDelete.confirm()}
+        onClose={imageDelete.cancel}
       />
 
-      <LaboOrderDialog
-        open={laboStage !== null}
+      <ConfirmDeleteDialog
+        open={stageDelete.removing !== null}
+        noun={t("Patient:Stage:DeleteNoun")}
+        title={t("Patient:Stage:Delete")}
+        question={t("Patient:Stage:DeleteQuestion")}
+        pending={stageDelete.pending}
+        onConfirm={() => void stageDelete.confirm()}
+        onClose={stageDelete.cancel}
+      />
+
+      <StageChangeLogDialog treatmentId={logOpen ? treatmentId : null} onClose={() => setLogOpen(false)} />
+
+      <LaboWorkflowDialog
+        target={laboTarget}
         branchId={branchId}
         patient={patient}
-        plan={plan}
-        stage={laboStage}
-        onClose={() => setLaboStage(null)}
+        onClose={() => setLaboTarget(null)}
       />
     </div>
   );

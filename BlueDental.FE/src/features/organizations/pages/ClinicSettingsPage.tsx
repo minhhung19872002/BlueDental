@@ -17,6 +17,7 @@ import {
   BranchesOutlined,
   TeamOutlined,
   SearchOutlined,
+  TabletOutlined,
 } from "@ant-design/icons";
 import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import {
@@ -43,6 +44,7 @@ import {
 } from "../api/branchManagerQueries";
 import { useDebounce } from "@/hooks/useDebounce";
 import { PermissionsTab } from "../components/PermissionsTab";
+import { IpadPairingTab } from "../components/IpadPairingTab";
 import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId, useBranchStore } from "@/lib/clinicBranch";
@@ -58,7 +60,7 @@ import { getLocale, t } from "@/lib/i18n";
 import { foldFilterOption } from "@/utils/foldForSearch";
 import "../components/organizations.css";
 
-type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage";
+type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage" | "ipad";
 
 /**
  * The account's own tabs carry no permission; the clinic-wide ones need the
@@ -73,6 +75,7 @@ const TAB_ITEMS: { key: TabKey; icon: React.ReactNode; label: string; permission
   { key: "permission", icon: <SafetyOutlined />, label: "Organization:TabPermissions", permissions: [abilityPermission("rolePermission", "read")] },
   { key: "branches", icon: <BranchesOutlined />, label: "Organization:TabBranchList", permissions: [LegacyPermissions.Organizations.View] },
   { key: "branch-manage", icon: <TeamOutlined />, label: "Organization:TabBranchManage", permissions: [LegacyPermissions.BranchManager.View] },
+  { key: "ipad", icon: <TabletOutlined />, label: "Organization:TabIpad", permissions: [LegacyPermissions.Organizations.View] },
 ];
 
 /* ── Tab: Thông tin cá nhân ───────────────────────────────────────────── */
@@ -978,6 +981,8 @@ export function ClinicSettingsPage() {
         return <BranchListTab />;
       case "branch-manage":
         return <BranchManageTab />;
+      case "ipad":
+        return <IpadPairingTab branchId={branchId} canEdit={grantedSet.has(LegacyPermissions.Organizations.Edit)} />;
       default:
         return <PersonalInfoTab branchId={branchId} />;
     }

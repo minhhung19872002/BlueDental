@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -74,6 +75,21 @@ public sealed class TreatmentStageController(ITreatmentStageAppService service)
     public Task<TreatmentStageDto> UpdateRemarkAsync(
         Guid id,
         [FromBody] UpdateTreatmentStageRemarkDto input) => service.UpdateRemarkAsync(id, input);
+
+    /// <summary>Nội dung điều trị on its own, open on every row and logged (BA 2026-11-02).</summary>
+    [HttpPut("{id:guid}/note")]
+    public Task<TreatmentStageDto> UpdateNoteAsync(
+        Guid id,
+        [FromBody] UpdateTreatmentStageNoteDto input) => service.UpdateNoteAsync(id, input);
+
+    /// <summary>The công đoạn's change log, oldest first — admin only.</summary>
+    [HttpGet("{id:guid}/change-logs")]
+    public Task<List<TreatmentStageChangeLogDto>> GetChangeLogsAsync(Guid id) => service.GetChangeLogsAsync(id);
+
+    /// <summary>"Lịch sử chỉnh sửa" of a slip, deleted công đoạn included, newest first — admin only.</summary>
+    [HttpGet("change-logs")]
+    public Task<List<TreatmentStageChangeLogDto>> GetTreatmentChangeLogsAsync([FromQuery] Guid treatmentId) =>
+        service.GetTreatmentChangeLogsAsync(treatmentId);
 
     [HttpPost("{id:guid}/images")]
     public Task<TreatmentStageDto> AttachImageAsync(

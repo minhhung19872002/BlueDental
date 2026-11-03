@@ -927,7 +927,7 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
                 note,
                 draft.AccountId,
                 PaymentSplitMode.Manual,
-                group.Select(s => (s.Line.Line.Id, s.Amount)),
+                group.Select(s => new PaymentLineDraft(s.Line.Line.Id, s.Amount)),
                 GuidGenerator.Create), errors);
             if (payment == null)
             {

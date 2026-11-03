@@ -55,6 +55,12 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 
         if (!string.IsNullOrWhiteSpace(input.Group))
             query = query.Where(x => x.Group == input.Group);
+        if (input.HasCombo == true)
+        {
+            // The Combo tab of "Chọn dịch vụ" lists only the groups it can fill.
+            var entries = await _entryRepository.GetQueryableAsync();
+            query = query.Where(x => entries.Any(e => e.TaxonomyId == x.Id && e.IsCombo));
+        }
         // Every word has to appear somewhere in the row, in any field and in
         // any order — see SearchTerms for what "somewhere" means.
         foreach (var term in SearchTerms.From(input.Filter))
@@ -78,7 +84,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 
         var counts = input.IncludeCount
             ? await CountEntriesAsync(items.Select(x => x.Id).ToList())
-            : new Dictionary<Guid, int>();
+            : new Dictionary<Guid, EntryCounts>();
 
         return new PagedResultDto<TaxonomyDto>(
             totalCount,
@@ -115,7 +121,7 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
             input.SortOrder);
 
         await _repository.InsertAsync(taxonomy, autoSave: true);
-        return MapToDto(taxonomy, new Dictionary<Guid, int>());
+        return MapToDto(taxonomy, new Dictionary<Guid, EntryCounts>());
     }
 
     [Authorize(BlueDentalPermissions.Catalogs.Edit)]
@@ -279,39 +285,47 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
         CatalogNames.EnsureFree(name, taken, BlueDentalDomainErrorCodes.Catalogs.DuplicateTaxonomyName);
     }
 
-    private async Task<Dictionary<Guid, int>> CountEntriesAsync(IReadOnlyCollection<Guid> taxonomyIds)
+    /// <summary>A group's rows, and how many of them are combos.</summary>
+    private readonly record struct EntryCounts(int Total, int Combo);
+
+    private async Task<Dictionary<Guid, EntryCounts>> CountEntriesAsync(IReadOnlyCollection<Guid> taxonomyIds)
     {
         if (taxonomyIds.Count == 0)
         {
-            return new Dictionary<Guid, int>();
+            return new Dictionary<Guid, EntryCounts>();
         }
 
         var query = await _entryRepository.GetQueryableAsync();
         return query
             .Where(x => taxonomyIds.Contains(x.TaxonomyId))
             .GroupBy(x => x.TaxonomyId)
-            .Select(g => new { g.Key, Count = g.Count() })
-            .ToDictionary(x => x.Key, x => x.Count);
+            .Select(g => new { g.Key, Count = g.Count(), Combo = g.Count(x => x.IsCombo) })
+            .ToDictionary(x => x.Key, x => new EntryCounts(x.Count, x.Combo));
     }
 
-    private static TaxonomyDto MapToDto(Taxonomy entity, IReadOnlyDictionary<Guid, int> counts) => new()
+    private static TaxonomyDto MapToDto(Taxonomy entity, IReadOnlyDictionary<Guid, EntryCounts> counts)
     {
-        Id = entity.Id,
-        ClinicBranchId = entity.ClinicBranchId,
-        Group = entity.Group,
-        Name = entity.Name,
-        Alias = entity.Alias,
-        Color = entity.Color,
-        Description = entity.Description,
-        SubGroup = entity.SubGroup,
-        IsSystem = entity.IsSystem,
-        SortOrder = entity.SortOrder,
-        IsPriced = entity.IsPriced,
-        IsTemplated = entity.IsTemplated,
-        ItemCount = counts.TryGetValue(entity.Id, out var count) ? count : 0,
-        CreationTime = entity.CreationTime,
-        CreatorId = entity.CreatorId,
-        LastModificationTime = entity.LastModificationTime,
-        LastModifierId = entity.LastModifierId
-    };
+        var count = counts.GetValueOrDefault(entity.Id);
+        return new TaxonomyDto
+        {
+            Id = entity.Id,
+            ClinicBranchId = entity.ClinicBranchId,
+            Group = entity.Group,
+            Name = entity.Name,
+            Alias = entity.Alias,
+            Color = entity.Color,
+            Description = entity.Description,
+            SubGroup = entity.SubGroup,
+            IsSystem = entity.IsSystem,
+            SortOrder = entity.SortOrder,
+            IsPriced = entity.IsPriced,
+            IsTemplated = entity.IsTemplated,
+            ItemCount = count.Total,
+            ComboCount = count.Combo,
+            CreationTime = entity.CreationTime,
+            CreatorId = entity.CreatorId,
+            LastModificationTime = entity.LastModificationTime,
+            LastModifierId = entity.LastModifierId
+        };
+    }
 }

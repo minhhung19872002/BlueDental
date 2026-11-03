@@ -260,3 +260,9 @@ order and wording, rating colours, dialog title size and locked-select fill
 now match. Remaining deviations: the app's navy sidebar and purple primary
 button, and the shared `ConfirmDeleteDialog` (440px, 14px question) against
 the reference's ~380px / 16px. Retest level 2.
+
+2026-11-01, R-1100 (Level 2): Sau điều trị — Ghi chú shows the doctor's note
+(`DoctorNote` = Remark of the linked công đoạn) until care staff write their
+own (`Description`). Clearing it brings the doctor's note back. The stage
+Remark is never written. Excel follows the same rule. New e2e in
+`cskh-after-treatment` green on build :8180 → host :5150 → real DB.

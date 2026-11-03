@@ -30,5 +30,8 @@ public enum InvoiceRequestSource
     CustomerQr = 1,
 
     /// <summary>Staff, with "Tạo yêu cầu xuất HĐ".</summary>
-    Staff = 2
+    Staff = 2,
+
+    /// <summary>The customer, on the iPad while checking the receipt (P2610).</summary>
+    SigningDevice = 3
 }

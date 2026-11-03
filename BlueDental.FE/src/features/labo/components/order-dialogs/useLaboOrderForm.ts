@@ -5,14 +5,19 @@ import dayjs, { type Dayjs } from "dayjs";
 import {
   LABO_TAXONOMY,
   useLaboMaterialOptions,
+  useLaboServiceOptions,
   useLaboSupplierOptions,
   useLaboTaxonomyOptions,
-  type CreateLaboOrderInput,
+  type LaboMaterialOption,
+  type LaboServiceOption,
   type PickerOption,
 } from "@/hooks/useLaboPickers";
-import { useLaboPictures, type LaboPictures } from "./useLaboPictures";
+import type { LaboOrderDto, LaboOrderImageDto } from "@/features/labo/api/laboApi";
+import type { LaboOrderFields } from "@/features/labo/api/laboMutations";
+import { savedSpecRows, specInputs, type LaboSpecRows } from "./laboToothSpecs";
+import { useLaboPictureTiles, type LaboPictureTiles } from "./useLaboPictureTiles";
 
-/** The fields every labo order form shares, whichever tab it is on. */
+/** The fields of the Đặt hàng tab. */
 export interface LaboOrderValues {
   /** Picked in the header when the dialog opens from the Labo tab. */
   planId?: string;
@@ -21,31 +26,41 @@ export interface LaboOrderValues {
   supplierId?: string;
   serviceGroupId?: string;
   materialId?: string;
-  biteId?: string;
-  finishLineId?: string;
-  rhythmId?: string;
-  shade: string;
   quantity: string;
   notes: string;
+  /** Days only: the hour went with P3110 (REQ-C2); the server stamps when the order was made. */
   sentDate: Dayjs | null;
-  sentTime: Dayjs | null;
   dueDate: Dayjs | null;
-  dueTime: Dayjs | null;
-  /** Every tooth the source offers, and the ones still ticked. */
+  /** The FDI numbers the order carries, picked on the chart (P3110 REQ-C6). */
   teeth: string[];
-  picked: string[];
+  /** "Dùng chung 1 thông số cho tất cả răng". */
+  sharedSpec: boolean;
+  /** Thông số từng răng, by FDI, and the shared row under "0". */
+  specs: LaboSpecRows;
 }
 
 export type LaboOrderSeed = Partial<LaboOrderValues> & Pick<LaboOrderValues, "teeth">;
 
-export interface LaboOrderForm extends Omit<LaboPictures, "reset"> {
+export interface LaboOrderForm extends Omit<LaboPictureTiles, "reset"> {
   form: FormInstance<LaboOrderValues>;
-  toggleTooth: (label: string) => void;
-  setAllTeeth: (checked: boolean) => void;
-  options: Record<
-    "suppliers" | "services" | "materials" | "bites" | "finishLines" | "rhythms",
-    PickerOption[]
-  >;
+  /** A sent or cancelled order, or a Nháp the user may not edit: every control is shown, none moves. */
+  readOnly: boolean;
+  options: Record<"suppliers" | "bites" | "finishLines" | "rhythms", PickerOption[]> & {
+    services: LaboServiceOption[];
+    /** Every material of the branch; the material row narrows them to the service picked. */
+    materials: LaboMaterialOption[];
+  };
+}
+
+export interface LaboOrderFormSetup {
+  branchId: string;
+  open: boolean;
+  seed: LaboOrderSeed;
+  /** Re-applies the seed when it changes: the công đoạn, the order, or the dialog opening. */
+  seedKey: string;
+  /** The order's saved pictures, put back in their sets with the seed. */
+  savedImages: LaboOrderImageDto[];
+  readOnly: boolean;
 }
 
 /** The one rule the reference puts on its required fields, worded its way. */
@@ -53,25 +68,45 @@ export function requiredRule(message: string): Rule[] {
   return [{ required: true, message }];
 }
 
-/** The reference opens with "now" in Ngày gửi / Giờ gửi and everything else blank. */
+/** A new order opens on today in Ngày gửi and everything else blank. */
 export function fromSeed(seed: LaboOrderSeed): LaboOrderValues {
-  const now = dayjs();
   return {
-    shade: "",
     quantity: String(seed.teeth.length),
     notes: "",
-    sentDate: now,
-    sentTime: now,
+    sentDate: dayjs(),
     dueDate: null,
-    dueTime: null,
-    picked: seed.teeth,
+    sharedSpec: false,
+    specs: {},
     ...seed,
   };
 }
 
 /**
- * Teeth and picks are read here with `preserve`: they never sit in a
- * Form.Item, and without it useWatch drops values no field registered.
+ * A saved order back in the form, with the teeth it was saved with; a Nháp
+ * saved before its line named any takes the line's.
+ */
+export function orderSeed(order: LaboOrderDto, lineTeeth: string[] = []): LaboOrderSeed {
+  const saved = order.teeth.map((tooth) => String(tooth.toothNumber));
+  const teeth = saved.length > 0 ? saved : lineTeeth;
+  const sharedSpec = order.sharedSpec ?? false;
+  return {
+    dentistId: order.dentistId,
+    supplierId: order.supplierId,
+    serviceGroupId: order.laboServiceId,
+    materialId: order.materialId,
+    quantity: String(saved.length > 0 ? order.quantity : teeth.length),
+    notes: order.notes ?? "",
+    sentDate: order.sentAt ? dayjs(order.sentAt) : dayjs(),
+    dueDate: order.dueAt ? dayjs(order.dueAt) : null,
+    teeth,
+    sharedSpec,
+    specs: savedSpecRows(order.teeth, sharedSpec),
+  };
+}
+
+/**
+ * Values no Form.Item registers — the teeth, Số lượng, the spec rows — are
+ * read with `preserve`: without it useWatch drops them.
  */
 export function useLaboValue<K extends keyof LaboOrderValues>(
   form: FormInstance<LaboOrderValues>,
@@ -81,129 +116,80 @@ export function useLaboValue<K extends keyof LaboOrderValues>(
 }
 
 /**
- * Option lists and the tooth row behind the AntD form the labo dialogs share.
- * The seed is re-applied whenever `seedKey` changes — the công đoạn, the parent
- * order, or the dialog opening — so a dialog reopened on another row never
- * shows the last one's values. Validation lives on the fields themselves.
+ * Option lists and the picture sets behind the Đặt hàng tab.
+ * The seed is re-applied whenever `seedKey` changes, so a dialog reopened on
+ * another row never shows the last one's values. Validation lives on the
+ * fields themselves.
  */
 export function useLaboOrderForm(
   form: FormInstance<LaboOrderValues>,
-  branchId: string,
-  open: boolean,
-  seed: LaboOrderSeed,
-  seedKey: string,
+  { branchId, open, seed, seedKey, savedImages, readOnly }: LaboOrderFormSetup,
 ): LaboOrderForm {
-  const { pictures, previews, addPictures, removePicture, reset } = useLaboPictures();
-  const seedRef = useRef(seed);
-  seedRef.current = seed;
+  const { reset, ...pictures } = useLaboPictureTiles();
+  const seedRef = useRef({ seed, savedImages });
+  seedRef.current = { seed, savedImages };
 
   useEffect(() => {
     if (!open) return;
     form.resetFields();
-    form.setFieldsValue(fromSeed(seedRef.current));
-    reset();
+    form.setFieldsValue(fromSeed(seedRef.current.seed));
+    reset(seedRef.current.savedImages);
   }, [form, open, seedKey, reset]);
 
-  const serviceGroupId = useLaboValue(form, "serviceGroupId");
   const suppliers = useLaboSupplierOptions(branchId, open);
-  const services = useLaboTaxonomyOptions(LABO_TAXONOMY.material, branchId, open);
+  const services = useLaboServiceOptions(branchId, open);
+  const materials = useLaboMaterialOptions(branchId, open);
   const bites = useLaboTaxonomyOptions(LABO_TAXONOMY.bite, branchId, open);
   const finishLines = useLaboTaxonomyOptions(LABO_TAXONOMY.finishLine, branchId, open);
   const rhythms = useLaboTaxonomyOptions(LABO_TAXONOMY.rhythm, branchId, open);
-  const materials = useLaboMaterialOptions(branchId, serviceGroupId);
-
-  /**
-   * Số lượng is the count of ticked teeth, 0 once they are all unticked. A
-   * tick also clears the "Vui lòng chọn răng." a failed Lưu may have left.
-   */
-  const setPicked = (picked: string[]) => {
-    form.setFields([{ name: "picked", value: picked, errors: [] }]);
-    form.setFieldsValue({ quantity: String(picked.length) });
-  };
 
   return {
     form,
-    toggleTooth: (label) => {
-      const teeth: string[] = form.getFieldValue("teeth") ?? [];
-      const picked: string[] = form.getFieldValue("picked") ?? [];
-      setPicked(
-        picked.includes(label)
-          ? picked.filter((item) => item !== label)
-          : teeth.filter((item) => item === label || picked.includes(item)),
-      );
-    },
-    setAllTeeth: (checked) => setPicked(checked ? (form.getFieldValue("teeth") ?? []) : []),
+    readOnly,
     options: {
       suppliers: suppliers.data ?? [],
       services: services.data ?? [],
-      materials: serviceGroupId ? (materials.data ?? []) : [],
+      materials: materials.data ?? [],
       bites: bites.data ?? [],
       finishLines: finishLines.data ?? [],
       rhythms: rhythms.data ?? [],
     },
-    pictures,
-    previews,
-    addPictures,
-    removePicture,
+    ...pictures,
   };
 }
 
-/** The part of the payload the shared fields decide. */
+/** The day itself, sent as the clinic's midnight; the server keeps only the day. */
+const dayOf = (date: Dayjs | null | undefined) => date?.startOf("day").toISOString();
+
+/** The part of the payload the form's own fields decide. */
 export function laboOrderBody(
   values: LaboOrderValues,
-  suppliers: PickerOption[],
-): Pick<
-  CreateLaboOrderInput,
-  | "labProviderName"
-  | "supplierId"
-  | "materialId"
-  | "biteId"
-  | "finishLineId"
-  | "rhythmId"
-  | "toothNumbers"
-  | "toothShade"
-  | "quantity"
-  | "notes"
-  | "sentAt"
-  | "dueAt"
+): Omit<
+  LaboOrderFields,
+  "estimatedCost" | "treatmentServiceId" | "treatmentStageId" | "submit" | "pictures" | "toothPictures"
 > {
+  const teeth = (values.teeth ?? []).map(Number).filter((fdi) => fdi > 0);
+  const sharedSpec = values.sharedSpec ?? false;
   return {
-    labProviderName: suppliers.find((row) => row.value === values.supplierId)?.label ?? "",
+    dentistId: values.dentistId,
     supplierId: values.supplierId,
     materialId: values.materialId,
-    biteId: values.biteId,
-    finishLineId: values.finishLineId,
-    rhythmId: values.rhythmId,
-    toothNumbers: values.picked.join(", ") || undefined,
-    toothShade: values.shade.trim() || undefined,
+    teeth,
     quantity: Number(values.quantity) || 1,
-    notes: values.notes.trim() || undefined,
-    // The reference collects each day and hour apart; the server takes one stamp of each.
-    sentAt: stamp(values.sentDate, values.sentTime)?.toISOString(),
-    dueAt: stamp(values.dueDate, values.dueTime)?.toISOString(),
+    notes: values.notes?.trim() || undefined,
+    sentAt: dayOf(values.sentDate),
+    dueAt: dayOf(values.dueDate),
+    sharedSpec,
+    toothSpecs: specInputs(teeth, values.specs, sharedSpec),
   };
 }
 
-/** A day and an hour picked apart, as the one stamp the server takes; none without the day. */
-export function stamp(date: Dayjs | null | undefined, time: Dayjs | null | undefined): Dayjs | undefined {
-  if (!date) return undefined;
-  return date
-    .hour(time?.hour() ?? 0)
-    .minute(time?.minute() ?? 0)
-    .second(0)
-    .millisecond(0);
-}
-
-type StampFields = Pick<LaboOrderValues, "sentDate" | "sentTime" | "dueDate" | "dueTime">;
-
 /**
- * "Ngày và giờ nhận dự kiến phải sau ngày và giờ gửi" — the reference's second
- * rule on the due pair. Holds while either pair is still incomplete: the
- * required rules speak to that.
+ * Ngày nhận dự kiến has to fall after Ngày gửi — a later day, as the server
+ * holds it (DueBeforeSent). Holds while either day is blank: the required
+ * rules speak to that.
  */
-export function dueAfterSent(values: StampFields): boolean {
-  if (!values.sentDate || !values.sentTime || !values.dueDate || !values.dueTime) return true;
-  const sent = stamp(values.sentDate, values.sentTime);
-  const due = stamp(values.dueDate, values.dueTime);
-  return sent === undefined || due === undefined || due.isAfter(sent);
+export function dueAfterSent(sentDate: Dayjs | null | undefined, dueDate: Dayjs | null | undefined): boolean {
+  if (!sentDate || !dueDate) return true;
+  return dueDate.startOf("day").isAfter(sentDate.startOf("day"));
 }

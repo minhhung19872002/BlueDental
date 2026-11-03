@@ -11243,12 +11243,42 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **E2E** `payment-amount-select.spec.ts`: bấm ô Tự động → vùng chọn = cả số; Thủ công → bấm ô → cả số được chọn, gõ nửa Còn nợ → ô thay hẳn bằng số mới; bấm lần hai → vùng chọn rỗng; Lưu → đọc lại bằng request riêng, `amount` = số đã gõ. **Xanh**.
 - **Hồi quy** (bản build production, `vite preview` :8080): `payment-amount-cap` + `payment-from-slip` (2 ca) → 4/4 **xanh** cùng spec mới.
 
+## R-1041 (2026-10-27, mức 1: chỉ đổi nhãn) Tab Hóa đơn: segment "Phiếu thu" đổi thành "Hóa đơn đã tạo"
+
+- **Yêu cầu (owner, ảnh chụp hồ sơ → tab Hóa đơn)**: đổi tiêu đề segment thứ hai "Phiếu thu" → "Hóa đơn đã tạo".
+- **Sửa**: chỉ đổi giá trị localization BE `Patient:InvoiceRequest:Tab:Receipts` — vi "Hóa đơn đã tạo", en "Issued invoices". Key, `PatientRecordTabs.tsx` và bảng bên dưới không đổi.
+- **E2E**: `patient.spec.ts` (ca tab Hóa đơn) bấm theo tên mới.
+- Các nút "Phiếu thu <mã phiếu>" ở kế hoạch điều trị và combobox "Phiếu thu" trong dialog Yêu cầu xuất HĐ là chỗ khác, không đổi.
+
+## R-1042 (2026-10-27, mức 2) Kế hoạch điều trị: nút Phiếu thu mở trang thanh toán của phiếu, chỉ phiếu "Đã tạo" có nút xoá
+
+- **Yêu cầu (owner, ảnh chụp bảng Kế hoạch điều trị)**:
+  1. Nút 🧾 Phiếu thu ở cột Thao tác điều hướng tới trang thanh toán của phiếu điều trị đó, thay vì mở dialog.
+  2. Phiếu có trạng thái khác "Đã tạo" thì ẩn nút xoá. Chỉ xoá được phiếu mới tạo.
+- **Owner chốt khi duyệt plan**:
+  1. Phiếu "Đã tạo" nhưng đã thu tiền vẫn xoá được, nhưng confirm phải cảnh báo số tiền trước.
+  2. Chỉ ẩn nút ở FE, BE không chặn thêm.
+  3. Nút Phiếu thu vẫn theo quyền `payment.create`.
+- **Sửa (FE)**:
+  - `planTypes.isPlanUntouched`: cùng điều kiện với pill "Đã tạo" (Draft/PendingApproval/Approved, hoặc InProgress mà mọi dòng còn Created). `planPill` dùng lại hàm này.
+  - Bảng (`planColumns`) và thẻ điện thoại (`PlanCardList`) chỉ render thùng rác khi `isPlanUntouched`.
+  - `TreatmentPlanPanel`: Phiếu thu → `planDetailPath(..., PLAN_TAB.payment)` (`?planTab=payment-v2`). Đã bỏ `CreatePaymentDialog` khỏi panel.
+  - `DeletePlanDialog`: khi `payment.totalPaid > 0` thì hiện dòng đỏ trước ghi chú.
+- **Text (BE localization)**:
+  - `Treatment:Plan:DeletePaidWarning`: "Phiếu đã thu {0}, các phiếu thu này cũng sẽ bị xoá."
+  - `Treatment:Plan:DeleteNote` rút gọn theo góp ý owner: "Dữ liệu của phiếu sẽ bị xoá, dịch vụ tư vấn quay về trạng thái đã chốt."
+- **E2E**:
+  - `treatment-plan-delete.spec`: kiểm câu cảnh báo và số tiền (có / không có). Ca mới: phiếu có công đoạn → pill "Đang điều trị", không có thùng rác, nút Phiếu thu vẫn còn.
+  - `treatment-plan.spec`, `payment-from-slip.spec`: bấm Phiếu thu → URL `planTab=payment-v2` và tab Thanh toán được chọn.
+- **Kết quả**: stack thật, BE :5000, bản build production `vite preview` :8160, không chặn request.
+  - `payment-from-slip`, `payment-permission-buttons`, `plan-treating-scope`, `treatment-plan-delete`, `treatment-plan` → **36/36**.
+  - Sau khi rút gọn text: chạy lại `treatment-plan-delete` → **4/4**.
+
 ## R-1043 (2026-10-27, mức 1: Tìm kiếm Ctrl+K) Năm sinh sau tên bệnh nhân
 
 - **Yêu cầu** (2026-10-27, ảnh chụp bảng tìm kiếm Ctrl+K): "Thêm năm sinh sau tên nha". Mẫu: `Huỳnh Văn Định (2002)`.
 - **Sửa**: `GlobalSearch` hiện `Tên (YYYY)` ở dòng tên của mỗi kết quả. Năm lấy từ `dateOfBirth` mà `GET /patients` đã trả sẵn, nên không sửa BE. Hồ sơ chưa có ngày sinh chỉ hiện tên.
 - **E2E** `patient-search-unaccent.spec.ts` ca 2: dòng tên của kết quả kết thúc bằng `Hà My (1990)`. Chạy trên bản build production của `main` (`vite preview` :8091, API :5000): 2/2 **xanh**.
-
 
 ## R-1044 (2026-10-27, mức 1: bệnh án mẫu 6) Quốc hiệu xuống hàng riêng, căn giữa trang; nhãn hiệu phòng khám nhỏ lại
 
@@ -11300,6 +11330,91 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `payment-from-slip.spec` "In Hóa Đơn → Tạo phiếu thanh toán…" → **pass**.
   - `tsc -b` và `oxlint` không báo lỗi. BE build qua (chạy `dotnet run`).
 
+## R-1044 (2026-10-27, mức 3: trạng thái phiếu thu) P2610 phase 2 — 4 trạng thái phiếu thu, ✓ xác nhận thanh toán trên tab Thanh toán
+
+- **Nguồn**: BA P2610 (`P2610.drawio`) + trả lời của owner 2026-10-27. Phase 2/7 của luồng ký / xuất phiếu thu (F-81). Phase 1 là R-1042.
+- **Owner chốt**:
+  1. Bấm Lưu thì ghi phiếu "Chưa thanh toán", không hỏi gì thêm. Còn lại chỉ giảm khi phiếu "Đã thanh toán". Điều này đảo lại R-929 (trước đây Lưu là ghi luôn Hoàn tất).
+  2. Nút ✓ chỉ hiện khi phiếu "Đã xuất phiếu thu". Bấm ✓ chuyển sang "Đã thanh toán".
+  3. Phiếu Đã xuất / Đã thanh toán huỷ bằng 1 trong 4 lý do cố định, kèm mô tả bắt buộc. Huỷ phiếu đã thanh toán thì Còn lại tăng lại.
+- **Sửa (BE)**:
+  - `PatientPaymentStatus`: Pending=1 (Chưa thanh toán), Completed=2 (Đã thanh toán), Issued=3 (Đã xuất phiếu thu), Cancelled=4 (Phiếu bị hủy). Thêm lý do huỷ (mã 1–4, 4 = Khác) và thời điểm huỷ.
+  - Migration `20261027032559_PaymentReceiptStatuses`.
+  - `PatientPayment.Issue / Confirm / Cancel` giữ các luật trạng thái:
+    - Confirm giữ nguyên Ngày thanh toán đã chọn (R-934) và ghi người bấm ✓ làm `StaffId`.
+    - Hoàn tiền và tiền giữ được ghi Completed và không đổi được nữa (0096).
+  - Mã lỗi mới: 0097 (chưa thanh toán, chưa lập HĐĐT được), 0098 (chưa xuất), 0099 (thiếu lý do huỷ), 0100 (đã huỷ).
+  - Endpoint:
+    - `POST patient-payments/{id}/issue` là **tạm**. Phase 4–5 (iPad ký + xuất PDF) sẽ thay nó.
+    - `PUT {id}/confirm`.
+    - `POST {id}/cancel` với `{reasonCode, reason}`.
+  - Huỷ vẫn xoá mềm như cũ. `CancelAsync` tìm qua `ISoftDelete`, nên huỷ lần 2 báo 0100 thay vì 404. Phiếu đã mất cùng phiếu điều trị thì vẫn trả 404.
+  - Filter `ISettleable`, sổ thu và mọi con số tiền chỉ tính phiếu Completed.
+  - Review trước commit: huỷ một phiếu đã thanh toán mà khoản hoàn tiền đã rút từ nó sẽ làm "đã thu" của dịch vụ âm. Thêm chặn bằng mã **0101** (`GuardRefundsStillCoveredAsync`), có kiểm ở cuối ca API của `payment-status`.
+  - Owner xác nhận 2026-10-27: Confirm giữ Ngày thanh toán đã chọn và ghi người bấm ✓ làm `StaffId`.
+- **Sửa (FE)**:
+  - Tab Thanh toán của phiếu điều trị có pill trạng thái và nút ✓ (`PaymentConfirmPrompt`).
+  - `CreatePaymentDialog` / `useSavePayment` ghi phiếu Chưa thanh toán.
+  - `paymentColumns.statusCell`: pill, kèm HĐĐT bên dưới nếu có.
+- **E2E**:
+  - Fixture `ledgerReceipt` có thêm `writeOnFirstLine` (Chưa thanh toán), `issueReceipt`, `settleReceipt`, `confirmOnRow`. `collectOnFirstLine` = ghi phiếu + xuất + xác nhận.
+  - `billing-ledger` ca 1: ghi phiếu → xuất → pill "Đã xuất phiếu thu" → bấm ✓ trên UI → pill "Đã thanh toán" → sổ thu có dòng đó mà không cần tải lại.
+  - Các spec huỷ phiếu gửi `reasonCode: 4`.
+  - `invoice-request-api` R-915 bật lại: huỷ phiếu đã thanh toán vẫn đóng yêu cầu xuất HĐ đang mở và vô hiệu QR.
+  - `report-service-paid` xác nhận phiếu trước khi đọc báo cáo.
+- **Kết quả**:
+  - BE: Application (Billing / EInvoicing / Printing) 45/45, Domain Billing 34/34, HttpApi.Host 24/24.
+  - E2E trên stack thật (API :5000, bản build production `vite preview` :8080, không chặn request): 16 spec, 69 ca. **67 xanh**. `payment-status` chạy riêng sau khi sửa: 5/5. Sau khi thêm chặn 0101: `payment-status`, `billing-ledger`, `invoice-request-api`, `payment-from-slip`, `report-service-paid` 15/15.
+  - 2 ca đỏ, đều **không** do thay đổi này:
+    - `qa-bugs-25-30:102`: đỏ sẵn do TEMP-BUG25-OFF.
+    - `vat-payment-einvoice-api:102`: spec chọn phiếu điều trị đang mở mới nhất (DT14). Phiếu này có giảm giá cấp phiếu 20.000, chia đều xuống các dòng, nên số tiền khác 900.000. Lỗi do dữ liệu và xảy ra trước bước thanh toán. Lượt chạy đầu của phiên này vẫn xanh.
+- **Chưa làm / lưu ý**:
+  - Chưa có đường UI tới "Đã xuất phiếu thu" (phase 4–5), nên **không deploy staging** cho tới hết phase 5.
+  - Lưu vẫn tự mở PDF PHIẾU THU cho tới phase 3.
+
+## R-1045 (2026-10-27, mức 3: phiếu thu) P2610 phase 3 — nội dung phiếu thu chốt lúc ghi, trang Tài chính → Phiếu thu, stepper
+
+- **Nguồn**: BA P2610 (`P2610.drawio`) + trả lời owner 2026-10-27. Phase 3/7 của F-81.
+- **Owner chốt**:
+  1. Đầu trang phiếu thu: logo + tên phòng khám. Bỏ Nợ/Có TK, Quầy, dòng Zalo/SMS.
+  2. Dialog có stepper 7 bước (phương án "10. B"). Nút tạo đổi thành "Tạo phiếu thanh toán".
+  3. Không làm bước "báo sai thông tin" trên trang (mục 12). Ở quầy thì báo miệng rồi sửa luôn.
+- **Sửa (BE)**:
+  - Thêm `PaymentReceiptSnapshot` (owned JSON trên `PatientPayment.ReceiptSnapshot`), migration `20261027043515_PaymentReceiptSnapshot`. Nội dung gồm: mã BN, người nộp, số phiếu điều trị, ngày thanh toán, phương thức, số tiền + bằng chữ, tổng phiếu, đã thu trước đó, còn lại + bằng chữ, người lập, các dòng {tên dịch vụ, số tiền}.
+  - `PatientPayment.FreezeReceipt` chỉ nhận phiếu Payment còn Pending, và số tiền phải bằng số tiền phiếu. Sau khi xuất thì phiếu bị khoá (0096).
+  - `TakeReceiptAsync` chốt nội dung khi ghi, chốt lại khi Sửa. Còn lại = tổng phiếu − đã thu (chỉ Completed) − số tiền phiếu này.
+  - `GET patient-payments/{id}/receipt` trả trạng thái, các mốc thời gian và `content`. Có lọc chi nhánh: chi nhánh khác nhận 4xx. Phiếu ghi trước phase 3 chưa có snapshot thì đọc sống, không lưu.
+- **Sửa (FE)**:
+  - Trang `/billing/receipts/:id` (`ReceiptPage`, ghép ở `app/ReceiptRoute.tsx` vì billing không được import auth). Trang có:
+    - breadcrumb Tài chính;
+    - stepper 6 bước (`components/StepTrack`, dùng chung với dialog);
+    - tờ PHIẾU THU vẽ từ nội dung đã chốt;
+    - panel Trạng thái.
+  - Dialog Tạo phiếu thanh toán có `PaymentSteps` 7 bước. Lưu xong thì sang thẳng trang phiếu thu, bỏ việc tự mở tab PDF.
+  - Tab Thanh toán của phiếu điều trị: số phiếu là link, 👁 mở trang phiếu thu.
+- **E2E**:
+  - Spec mới `receipt-page`, 3 ca:
+    1. Bước và panel đi theo trạng thái Pending → Issued → Completed.
+    2. Đổi tên dịch vụ trong danh mục thì phiếu vẫn giữ tên cũ (đọc bằng API và trên trang).
+    3. Tài khoản chi nhánh 2 bị từ chối, cả API lẫn trang.
+  - `payment-from-slip` kiểm stepper 7 bước, trang phiếu thu sau Lưu, ngày trên tờ phiếu, 👁.
+  - `ledgerReceipt.saveReceipt` chờ trang phiếu thu rồi `goBack`. Nút tạo có tên truy cập "save Tạo phiếu thanh toán", nên bỏ `exact: true` ở mọi chỗ. `patient.spec` 2 ca đổi "Lưu" → `CREATE_RECEIPT`.
+- **Kết quả**:
+  - BE: Domain Billing 39/39, Application Billing 27/27.
+  - E2E trên stack thật (API :5000, `vite preview` :8080, không chặn request):
+    - `receipt-page` + `payment-from-slip` + `payment-status` + `treatment-plan-detail`: 23/23.
+    - 13 spec tiền khác: 45/53 xanh. `patient` (các ca thanh toán): 2/4.
+  - Các ca đỏ, **không** do thay đổi này:
+    - 7 ca (`invoice-request-api` ×2, `invoice-request-ui`, `payment-amount-cap`, `plan-service-delete` ×3) dừng ở `openNewSlip`: bấm `.tp-table .tp-code` bị `<th>` che. Nguyên nhân: bệnh nhân demo đã có 3 thẻ "Dịch vụ đang điều trị" do e2e để lại, khối thẻ cao lên, còn `.bd-cat-card` (`overflow: hidden; min-height: 0`) trong cột vừa chiều cao màn hình bị ép thân bảng còn ~0px ở 1280×720. Phase 3 không đụng `plan/` hay `TreatmentPlanPanel`. Đây là lỗi layout thật, đã báo owner.
+    - `patient:1827`: kỳ vọng 5 tiêu đề dialog cũ, trước mock 2026-10-12. HEAD đã có mục "Số phiếu cần thanh toán".
+    - `patient:1916`: `fetch` thô không gửi `X-Clinic-Branch-Id` (R-716).
+    - `qa-bugs-25-30:102`: TEMP-BUG25-OFF.
+- **Chưa làm / lưu ý**:
+  - 👁 trên sổ thu `/billing` vẫn mở dialog cũ.
+  - Chỉ bước Tạo và Xuất có mốc giờ. Các bước iPad chờ phase 4.
+  - Chưa có trường ConfirmedAt. Panel "Đã thanh toán" ghi tên người bấm ✓ (`StaffId`).
+  - Vẫn **không deploy staging** cho tới hết phase 5.
+
 ## R-1046 (2026-10-27, mức 2: Lịch hẹn — Lịch tạm) Nội dung đặt lịch trên Tạo / Chỉnh sửa lịch tạm
 
 - **Yêu cầu** (2026-10-27, ảnh chụp Tạo lịch hẹn khoanh ô "Nội dung đặt lịch" và ảnh chụp Lịch tạm): "Lịch tạm cho phần nội dung đặt lịch luôn nha". Chủ dự án chọn đặt ô này **dưới Chọn bác sĩ**, đúng chỗ của Tạo lịch hẹn.
@@ -11336,7 +11451,6 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy: `reception-live-late` 3/3 **xanh** (chip vẫn cộng lại bằng Tất cả). Vitest reception 3/3 xanh.
   - `reception-restore-arrived` đỏ 4 ca. Cả 4 hỏng ở bước đặt lịch của fixture `bookVisitToday` ("every dentist was booked") vì DB riêng không có bác sĩ, trước khi chạm tới code đã sửa.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152), host riêng :5120, DB riêng `BlueDental_zalofix`.
-
 
 ## R-1048 (2026-10-27, mức 3: Tiếp nhận + domain Lịch hẹn) Kết quả lượt khám theo P2710.drawio: "Đổi lịch hẹn", đồng bộ thanh tiến trình ↔ radio
 
@@ -11422,6 +11536,78 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **E2E mới** `reception-search-fullname.spec.ts` (stack thật): đọc họ và tên thật của bệnh nhân rồi tìm theo 7 kiểu (đúng, thường, HOA, khoảng trắng hai đầu, khoảng trắng giữa, chỉ tên, chỉ họ) → đều ra lượt khám đó. Thêm một ký tự sai thì không ra. Trên board, gõ HOA có khoảng trắng → các thẻ đều của bệnh nhân đó. → **pass**.
 - **Hồi quy**: `reception-follow-up`, `reception-rebook-undated`, `reception-revisit-counter` (trừ ca Lịch hẹn đã nêu ở R-1049), `reception-search-fullname` → **17/17**.
 
+## R-1048 (2026-10-27, mức 3: phiếu thu + Cài đặt) P2610 phase 4 — khách kiểm tra và ký phiếu thu trên iPad
+
+- **Nguồn**: BA P2610 (`P2610.drawio`) + trả lời owner 2026-10-27. Phase 4/7 của F-81. Chi tiết: `docs/testing/features/receipt-ipad-signing.md`. (R-1047 đã dùng cho commit tab Đã đến.)
+- **Owner chốt**:
+  1. iPad là trang web riêng `/sign`, không đăng nhập nhân viên, không có đường dự phòng trên PC.
+  2. Ghép theo chi nhánh: Cài đặt → Kết nối iPad cho link + QR, mỗi iPad một mã thu hồi được. Mỗi chi nhánh một phiên đang mở.
+  3. iPad bận thì PC hiện "iPad đang chờ khách ký phiếu …": thu ngân chờ, hoặc hủy phiên đó rồi gửi phiếu mới.
+  4. Đầu trang iPad: logo + tên chi nhánh. Không Quầy, không "Báo sai thông tin".
+  5. Chưa làm panel kế toán; ✓ / `POST {id}/issue` tạm vẫn giữ.
+- **Sửa (BE)**:
+  - Aggregate `ReceiptSigningSession` (`bd_receipt_signing_sessions`, unique phiên mở theo chi nhánh) và `SigningDevice` (`bd_signing_devices`, chỉ lưu SHA-256 của mã), migration `20261027062435_ReceiptSigning`. `SigningCloseReason` Cancelled / Issued / ReceiptCancelled / Revised / Replaced.
+  - Chữ ký: `SignatureImage` chỉ nhận PNG data URL (0105), mã hoá AES-256-GCM bằng `ReceiptCipher` (khoá `ReceiptVault:Key`, thiếu khoá → 0107). Khoá nằm trong `appsettings.Development.json` (git-ignore) ở local, biến môi trường `ReceiptVault__Key` trên server.
+  - `ReceiptSigningDesk`: `SendIfFreeAsync` khi ghi phiếu; Sửa / Hủy / Xuất phiếu đóng phiên (Revised / ReceiptCancelled / Issued).
+  - PC: `receipt-signing/{paymentId}` (GET, `/send {replace}`, `/cancel`, `/resign`), quyền Payment Read / Update, lọc chi nhánh. Thiết bị: `signing-devices` (Organizations View / Edit), `/{id}/revoke`.
+  - iPad: `public/signing-station` + `sessions/{id}/check | sign | invoice-request`, header `X-Signing-Device-Token`. Mã sai / thu hồi → 403 `0111`, không bao giờ 401 (tránh mở màn đăng nhập). Ký trước khi tích → 0104; phiên đã đóng → 0103. Yêu cầu hoá đơn từ iPad có nguồn 3 `SigningDevice`.
+  - SignalR `ReceiptSigningChanged`: iPad qua hub `/signalr/receipt-signing` (`JoinDevice(token)`, nhóm theo chi nhánh), PC qua `/signalr/notifications` (chỉ gửi id).
+  - Mã lỗi mới `Billing:0102` → `0111`.
+- **Sửa (FE)**:
+  - Feature mới `signing-station`: `/sign/pair#<token>` lưu mã rồi về `/sign` (mã sau `#` không tới server); `/sign` có màn chờ, PHIẾU THU + 2 ô + "Xác nhận thông tin", bảng ký, "Cảm ơn quý khách đã ký", form Yêu cầu xuất hóa đơn (Doanh nghiệp / Cá nhân), "Đã xuất phiếu thu".
+  - Tờ phiếu thu chuyển thành `components/ReceiptPaper` (dùng chung PC + iPad), có chữ ký + "Ký lúc".
+  - Trang phiếu thu: `ReceiptIpadControls` (Gửi tới iPad / Gửi lại / Hủy phiên & sửa phiếu / Yêu cầu khách ký lại, thông báo iPad bận + "Hủy & gửi"); stepper có mốc giờ các bước iPad; cập nhật sống qua SignalR.
+  - Cài đặt: tab Kết nối iPad (`IpadPairingTab`), link + QR hiện một lần, danh sách Đang kết nối / Đã thu hồi.
+- **E2E**:
+  - Spec mới `receipt-ipad`, 6 ca nối tiếp, iPad là browser context thứ hai 1024×1366 có touch:
+    1. Ghép: link + QR, danh sách "Đang kết nối", tải lại vẫn ở `/sign`.
+    2. Tự gửi → kiểm tra → ký → PC thấy sống; GET riêng trả `data:image/png`; Ký lại; Xuất → iPad "Đã xuất phiếu thu" → màn chờ; PC đủ 6 bước.
+    3. iPad bận, giành phiên, Hủy phiên, Gửi tới iPad bằng tay.
+    4. Yêu cầu hoá đơn Cá nhân trên iPad, đọc lại thấy nguồn 3.
+    5. API trạm ký: không mã / mã giả → 0111; ký trước khi tích → 0104; ảnh không phải PNG → 0105; phiên đã hủy → 0103.
+    6. Chi nhánh 2 không xem được iPad của chi nhánh 1; Thu hồi → iPad "iPad chưa được kết nối".
+  - Dọn: `afterEach` hủy phiên của phiếu do ca tạo; `afterAll` thu hồi mọi thiết bị "iPad e2e …".
+- **Kết quả**:
+  - BE: Domain Billing 51/51 (12 ca mới `ReceiptSigningTests`), Application Billing 27/27, `ControllerConventionTests` 21/21.
+  - FE: `tsc -b` sạch, eslint sạch.
+  - E2E trên stack thật (API :5000, `vite preview` :8080, không chặn request):
+    - `receipt-ipad` 6/6 (chạy 3 lần, 2 lần đầu 5/5 trước khi thêm ca 5). Sau khi chạy: 0 thiết bị đang hoạt động, 0 phiên mở.
+    - Hồi quy tiền: `receipt-page`, `billing-ledger`, `payment-amount-cap`, `payment-from-slip`, `payment-permission-buttons`, `payment-qr`, `payment-receipt-pdf`, `payment-status`, `invoice-request-api`, `invoice-request-ui`: 28/28 xanh (các ca `openNewSlip` đỏ ở R-1045 lần này xanh).
+- **Chưa làm / lưu ý**:
+  - **Server cần `RECEIPT_VAULT_KEY` trong `.env` của VM** (`openssl rand -base64 32`, mỗi server một khoá). `docker-compose.prod.yml` truyền nó vào `ReceiptVault__Key` và dùng `:?`, nên thiếu biến thì compose dừng, deploy đỏ. Cách tạo: `docs/cicd-setup.md` mục 5. Mất khoá = mất mọi chữ ký đã lưu; khoá không đưa vào git.
+  - Chi nhánh có iPad đang ghép và rảnh thì mọi phiếu mới tự lên iPad: không chạy `receipt-ipad` song song với spec tiền khác.
+  - Giả định chưa có xác nhận: `docs/clone/unknowns.md` → P2610 phase 4.
+  - Vẫn **không deploy staging** cho tới hết phase 5.
+
+## R-1049 (2026-10-27, mức 3: phiếu thu + mọi spec tiền) P2610 phase 5 — kế toán kiểm tra & xuất phiếu thu
+
+- **Nguồn**: BA P2610 (`P2610.drawio`), bước "Kế toán kiểm tra & xuất". Phase 5/7 của F-81. Chi tiết: `docs/testing/features/receipt-export.md`.
+- **Mặc định tự chọn (chưa có xác nhận)**: chỉ xuất khi khách đã ký trong phiên đang mở; Ký số hiện nhưng khoá tới phase 7; không chọn sẵn hình thức; file dùng mẫu PHIẾU THU `.docx` của F-56; phiếu đã xuất rồi hủy vẫn giữ file. Đủ danh sách: `docs/clone/unknowns.md` → P2610 phase 5.
+- **Sửa (BE)**:
+  - `ReceiptExporter`: điền mẫu docx từ nội dung đã chốt (R-1045), đặt chữ ký ngay trên tên Người nộp tiền (`DocxPicture.PlaceAbove`, tối đa 50 × 18 mm, giữ tỉ lệ), Gotenberg đổi sang PDF/A-2b (`pdfA` mới trên `GotenbergPdfConverter`), lấy SHA-256, `ReceiptCipher.Seal` (byte phiên bản 0x01 + nonce + tag + bản mã) rồi lưu MinIO `receipts/{chi nhánh}/{id}.pdf.enc`.
+  - `PatientPayment.EnsureIssuable` / `Issue(signMode, file, sha256)`; cột mới `SignMode`, `ReceiptFileName`, `ReceiptFileSha256`, migration `20261027073623_ReceiptExportFile`.
+  - `POST patient-payments/{id}/export { signMode }` (Payment.Update, lọc chi nhánh): chưa ký trong phiên mở → 403 `0112`; Ký số → 403 `0113`; không còn "Chưa thanh toán" → 403 `0096`. Xuất xong phiên iPad đóng (Issued).
+  - `GET patient-payments/{id}/receipt-file`: mở khoá, kiểm tra lại SHA-256; thiếu file → `0114`, sai / không giải mã được → `0115`.
+  - `PaymentReceiptDto` có `signMode`, `hasFile`. Đường tạm `POST {id}/issue` đã bỏ.
+- **Sửa (FE)**:
+  - `ReceiptExportPanel` trên trang phiếu thu (hiện khi khách đã ký): Hình thức ký Ký số (khoá) / Không ký số, gợi ý "Chọn hình thức ký trước khi xuất.", nút "Xuất phiếu thu" / "Ký số và xuất phiếu thu" có loading.
+  - `useReceiptExport`: xuất rồi mở file đã lưu ở tab mới. "In phiếu thu" của phiếu đã xuất in đúng file đã lưu (`receipt-file`), phiếu chưa có file vẫn dựng lại từ mẫu.
+  - i18n vi/en cho panel và mã lỗi 0112–0115.
+- **E2E**:
+  - Spec mới `receipt-export`, 2 ca nối tiếp: (1) chưa ký → 0112, file → 0114; ghép iPad tạm, ký qua API trạm; Ký số → 0113; Không ký số → Issued; đọc riêng thấy `signMode` 1, `hasFile`, phiên đóng; file là PDF có `pdfaid:part`, đọc lần hai giống từng byte; xuất lần hai → 0096. (2) Chi nhánh 2 không xuất, không đọc được file; chi nhánh 1 vẫn đọc được.
+  - `receipt-ipad` ca 2 xuất qua panel thật (nút khoá + gợi ý, Ký số khoá, chọn Không ký số, tab PDF mở, iPad "Đã xuất phiếu thu", tải lại "In phiếu thu" đọc `receipt-file`).
+  - `fixtures/ledgerReceipt.ts`: `issueReceipt` đi đường thật cho mọi spec tiền (ghép iPad tạm theo chi nhánh của phiếu → gửi (replace) → tích → ký → xuất Không ký số → thu hồi thiết bị), thử lại tối đa 5 lần khi worker khác giành phiên (`0112`). `issueReceipt` / `settleReceipt` nhận `{ id, clinicBranchId }`; sửa các nơi gọi (`billing-ledger`, `report-service-paid`, `vat-payment-einvoice-api`). `payment-status` đổi `/issue` → `/export`.
+- **Kết quả**:
+  - BE: Domain Billing 54/54, `PaymentReceiptTemplateTests` 19/19.
+  - FE: `tsc -b` sạch, eslint sạch.
+  - E2E trên stack thật (API :5000, `vite preview` :8080 bản `dist-p5`, MinIO + Gotenberg thật, không chặn request):
+    - `receipt-export` 2/2, `receipt-ipad` 6/6.
+    - Hồi quy tiền: `billing-ledger`, `payment-status`, `receipt-page`, `treatment-plan-detail`, `payment-receipt-pdf`, `report-service-paid`, `vat-payment-einvoice-api`, `payment-from-slip`: 33/34. Ca đỏ duy nhất `vat-payment-einvoice-api:102` là lỗi dữ liệu có sẵn (như R-1045): phiếu điều trị mở mới nhất có giảm giá cấp phiếu nên `chargedAmount` 881.818 ≠ 900.000, đỏ trước bước thanh toán / xuất phiếu.
+  - Kiểm tay: object MinIO bắt đầu bằng 0x01 và không chứa `%PDF`; giải mã ra 1 trang A5 ngang, PDF/A part 2, chữ ký nằm trên tên Người nộp tiền.
+- **Chưa làm / lưu ý**:
+  - **Server cần `RECEIPT_VAULT_KEY` trong `.env` của cả hai VM** (prod hung@14.225.83.131, staging hung@14.225.83.93) trước khi deploy. Mất khoá = mất mọi chữ ký và file phiếu thu đã lưu.
+  - Phase 5 xong → có thể deploy staging sau khi commit. Phase 6 (trang hủy) và 7 (Ký số thật) chưa làm.
+  - Lỗi có sẵn, không do phase 5: seed demo của DbMigrator `SlotInThePast` đỏ tuỳ giờ chạy.
 
 ## R-1051 (2026-10-27, mức 3: Tìm kiếm — toàn hệ thống) Mọi ô tìm kiếm cho gõ không dấu
 
@@ -11454,8 +11640,8 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `reception-revisit-counter` (lọc ngày trên Lịch hẹn): chạy lại cùng giờ thì bản chưa sửa cũng **đỏ** ở cùng bước. Lịch đặt lúc bây giờ + 70 phút nằm ngoài khung giờ hiển thị, phụ thuộc giờ chạy, không liên quan tìm kiếm.
   - Gộp với R-1050 (đã lên `main` cùng lúc): giữ cách chuẩn hoá chuỗi gõ của R-1050 (gộp khoảng trắng), điều kiện tên bệnh nhân là họ tên đầy đủ bỏ dấu (đã gồm cả họ riêng, tên riêng). Chạy lại sau khi gộp: xem dòng kế.
   - Sau khi gộp (build lại BE + FE): `search-unaccent-everywhere`, `reception-search-fullname` (R-1050), `patient-search-unaccent` và `reception.spec` — **8/8 xanh**.
+  - Trên `develop` (cherry-pick): dropdown bác sĩ của Tạo tiếp nhận vẫn nằm trong `ReceptionNewDrawer.tsx` (chưa tách `ReceptionNewFields`), nên sửa ở đó. Điều kiện tên bệnh nhân dùng họ tên đầy đủ bỏ dấu như trên `main`.
   - Môi trường chạy: bản build production của `main` (`vite preview` :8152, bản chưa sửa :8153), host riêng :5120 / :5121, DB riêng `BlueDental_zalofix`.
-
 
 ## R-1052 (2026-10-27, mức 2: bệnh án mẫu 2, 6, 7) Ô "MS:" điền sẵn mã biểu mẫu
 
@@ -11474,6 +11660,28 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy "every form draws the whole…", "what is written on a sheet survives a reload", "a blank that agrees with the record is not frozen…", "Enter moves to the blank below…" → **pass**.
   - "picking the day prints it on the sheet…" **đỏ**, nhưng đỏ y hệt trên code gốc khi tạm cất thay đổi này (mong 15/08/2026, ra 03/09/2026). Lỗi có từ trước, liên quan bộ chọn ngày, chưa sửa.
   - `tsc -b` và `oxlint` không báo lỗi.
+
+## R-1052 (2026-10-27, mức 2: phiếu thu) P2610 phase 6 — trang Hủy phiếu thu, panel đã xuất / đã thanh toán theo mock BA, skeleton tải trang
+
+- **Nguồn**: BA P2610 (`P2610.drawio`) màn "Hủy phiếu thu" và "Đã xuất phiếu thu"; BA trả lời 27/10: "Ở step nào cũng có hủy hết", "Hủy thì mình update status", "Ko cho mở lại". Phase 6/7 của F-81. Chi tiết: `docs/testing/features/receipt-cancel.md`.
+- **Sửa (FE, BE không đổi)**:
+  - Trang mới `/billing/receipts/:id/cancel` (`ReceiptCancelPage` + `components/receipt/cancel/*`): thẻ "Phiếu thu gốc" bên trái, "Lý do hủy" bên phải (4 lý do cố định + Mô tả chi tiết, cả hai bắt buộc), gọi `POST patient-payments/{id}/cancel { reasonCode, reason }` có sẵn. Nút "Hủy phiếu thu" ở đầu trang phiếu thu (quyền `payment.delete`), hiện ở mọi bước trừ khi đã hủy (`isCancellable`). Bỏ dòng Hóa đơn của mock (chưa có dữ liệu).
+  - Bước đã ký: "Xuất phiếu thu" / "Ký số và xuất phiếu thu" nằm cùng hàng "Yêu cầu khách ký lại", "Hủy phiên & sửa phiếu" xuống dưới; không còn "Gửi lại" và "In phiếu thu".
+  - `ReceiptExportedPanel` dùng cho cả **Đã xuất phiếu thu** và **Đã thanh toán**: ✓ + tiêu đề + "Ghi nhận thanh toán lúc …", Hình thức ký / Ký số đơn vị / Lưu trữ (+ "Xác nhận thanh toán" khi đã thanh toán), nút In phiếu · Tải PDF · Tạo phiếu mới (mở "Tạo phiếu thanh toán" của phiếu điều trị một lần qua `?newPayment=1`). Panel chỉ cao bằng nội dung.
+  - Thanh bước: "Kế toán kiểm tra" mang giờ xuất (cùng một lần bấm với "Xuất phiếu thu"), không còn "—".
+  - Tải trang: `ReceiptPageSkeleton` thay Spin, chờ cả phiếu thu lẫn trạng thái iPad.
+  - Tờ phiếu (`ReceiptPaper`): đầu phiếu số phiếu bên phải, ô ký có tên người nộp / người lập dưới chữ ký.
+  - i18n vi/en: khoá trang hủy, `Receipt:Done:*`; bỏ `Receipt:Panel:ExportedBy` / `IssuedText` / `ConfirmedBy`.
+- **E2E (stack thật, bản build production `vite preview` :8080, API :5000, không chặn request)**:
+  - Mới `receipt-cancel` 2/2: hủy từ trang phiếu thu (thiếu lý do / mô tả bị chặn; hủy xong trạng thái Phiếu bị hủy, không còn nút hủy, tải lại vẫn vậy); chi nhánh 2 bị từ chối.
+  - Mới `receipt-exported` 1/1: panel đã xuất đúng mock, bước 5 = bước 6 cùng giờ, In phiếu mở `receipt-file` ở tab mới, Tải PDF tải file `THANHTOAN-…pdf` bắt đầu `%PDF-`, Tạo phiếu mới mở dialog một lần.
+  - `receipt-page` 3/3 (thêm phần Đã thanh toán: 4 dòng thông tin, 3 nút). Ca 1 đỏ khi chạy chung lô vì iPad "4234" đang ghép tự nhận phiếu mới (dữ liệu, có từ R-1048); chạy riêng xanh.
+  - `receipt-ipad` sửa theo hàng nút mới.
+  - `tsc -b` sạch, eslint sạch.
+- **Chưa làm / lưu ý**:
+  - Phiếu **Đã thanh toán** vẫn hủy được (theo câu BA). Đang hỏi BA có chặn không.
+  - Logo / tên phòng khám trên tờ phiếu ở màn hình đọc theo cài đặt hiện tại; file PDF đã xuất không đổi.
+  - Phase 7 (Ký số thật) chưa làm.
 
 ## R-1053 (2026-10-27, mức 3: Tìm kiếm Ctrl+K — header dùng chung) Ctrl+K tìm cả 4 nhóm
 
@@ -12363,6 +12571,280 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - File Word đánh số phần thỏa thuận "I." → "Sự đồng ý…" (không "II.") → "III." — giữ nguyên văn.
   - Server bỏ qua mục không biết mà vẫn trả 200; có thể đổi sang báo lỗi để lệch phiên bản FE/BE không còn "thành công giả".
 
+## R-1080 (2026-10-29, mức 3: F-83 Thanh toán nhiều đợt P2910) Tạo phiếu thanh toán theo đợt: TN giảm, voucher lúc thanh toán, VAT theo đợt
+
+- **Yêu cầu** (BA `P2910.drawio`, chủ dự án chốt 11 câu + 4 điểm ngày 29/10):
+  - Thẻ dịch vụ có tag đợt (từ đợt 2), tag BS giảm, lịch sử đợt kèm trạng thái.
+  - Mỗi dòng có Tên trên phiếu, TN giảm (đ / %) kèm lý do; voucher chọn lúc thanh toán, chia đều.
+  - Khối 10 dòng tổng tiền, Thu đợt này (trong đó VAT), Còn nợ sau đợt này, "Khách sẽ thấy trên phiếu".
+  - Chốt: VAT tính sau ưu đãi theo đợt, lệch làm tròn dồn đợt cuối; voucher % trên Còn nợ chưa thuế; TN giảm trừ thật vào nợ khi phiếu Đã TT; chỉ sửa phiếu Chưa TT.
+  - Số R-1077 → R-1079 đã bị phiên khác dùng trên `origin/main`, nên mục này lấy R-1080.
+- **Sửa**:
+  - Domain: `Billing/PaymentRound` (trần từng dòng, chia voucher, VAT đợt), `PaymentVoucherUse`, `LineSettlement` (Cash / Relief / Tax), `TreatmentPlan.PreTaxOutstandingOf`; dòng phiếu thu thêm ReceiptName, CashierDiscount + lý do, VoucherShare, TaxAmount (nullable, phiếu cũ vẫn tách VAT như trước); phiếu thu thêm VoucherId / Code / Amount, CashierDiscountTotal; lỗi `Billing:0116`; migration `20261029094513_PaymentRounds`.
+  - Application: `PatientPaymentAppService` (Record / Revise / Cancel giữ và trả lượt voucher, trần theo Còn nợ mới); `PatientTreatmentAppService`, `PaymentSummary`, `PatientMoneyCalculator` trừ ưu đãi gồm phần VAT giảm theo; `PatientAdviseAppService` → `PaymentReliefAmount` cho TỔNG KẾ HOẠCH; `ClinicReportAppService` đưa TN + voucher vào Giảm giá; `ElectronicInvoiceAppService` dùng VAT đã lưu; `PaymentReceiptSnapshot` / `PaymentReceiptContents` thêm dòng TN, voucher, VAT.
+  - FE: `PaymentRoundHistory`, `PaymentLineTermsForm`, `PaymentVoucherPicker` (có ô tìm), `PaymentSelectedTotals`, `PaymentCollectBox`, `PaymentCustomerPreview`; `ReceiptLines` trên trang phiếu thu, iPad `/sign` và PDF; `ReceiptCashierDiscounts` (lý do TN, chỉ kế toán thấy ở bước 6); TỔNG KẾ HOẠCH thêm "Ưu đãi khi thanh toán" (chỉ hiện khi > 0).
+- **E2E** (build production `vite preview` :8160 → host :5130 → PostgreSQL thật, DB riêng `BlueDental_p2910`, không chặn request):
+  - `payment-rounds` **2/2**: 2 đợt có VAT 10% (đợt 2 thu VAT 375.000 = 875.000 − 500.000), TN 1.000.000, voucher 500.000 chia 250k/250k, 10 dòng tổng, preview, đọc lại qua API và trang phiếu thu, TỔNG KẾ HOẠCH 1.625.000; phiếu 0 đ giữ lượt voucher, huỷ thì trả lượt.
+  - Domain.Tests **1196/1196** (gồm 13 ca `PaymentRoundTests`; sửa `PatientPaymentTests`, `PatientListRollupTests`, `SlipSeenThroughLinesTests`).
+  - Hồi quy mức 3 (payment / receipt / voucher / e-invoice / plan / report / migration, 189 test): **168 xanh / 20 đỏ / 1 bỏ qua** (`MIGRATION_PERF`, opt-in).
+    - `receipt-ipad` 6/6, `receipt-page` 3/3, `plan-treating-scope` 19/19, `treatment-plan-detail` 13/13, `data-migration-api` 19/19, `payment-amount-select` 1/1, `report` 4/5, `consulting-delete-and-picker` 2/3.
+  - Spec cũ đã hỏng sẵn ở HEAD, sửa tối thiểu:
+    - `payment-amount-select`: import `answerYes` đã bị xoá từ `a6b73c80` → dùng `saveReceipt` + `includePending`.
+    - `treatment-plan-detail:395`: nút in trên panel đã xuất là "In phiếu" (R-1052).
+    - `plan-treating-scope`: `/issue` đã bỏ ở R-1049 → `settleReceipt` (ký, xuất, ✓).
+    - `receipt-ipad:179`: link ghép lấy origin của trang thay vì cứng :8080.
+    - `data-migration-api:1100-1101`: câu báo lỗi số điện thoại mới ("8–15 chữ số, hoặc +mã vùng…").
+  - Spec phải cập nhật theo P2910: `data-migration-api` ×2 (dòng phiếu thu có thêm trường mới → `toMatchObject`), `treatment-plan-detail:1142` ("Giảm giá" tách thành Giảm giá bác sĩ / thu ngân / Voucher).
+  - Đỏ ban đầu ở `receipt-page`: DB riêng chép từ DB dev mang theo 2 iPad đang ghép ("4234", "4324") nên phiếu mới tự gửi sang iPad. Đã thu hồi **chỉ trong `BlueDental_p2910`**; DB dev vẫn còn 2 iPad này.
+  - 20 đỏ còn lại không do P2910:
+    - `operations-reports` ×18: DB riêng không có số liệu vận hành; không đụng OperationsReport.
+    - `consulting-delete-and-picker:123`: thiếu dữ liệu tiền điều kiện.
+    - `report:294`: hai nhãn đã đổi từ trước — header Excel "Hình thức" (từ `2eec1e9e`) thay vì "Phương thức thanh toán", và ô Tạm ứng "Tiêu dùng tạm ứng" giờ là "Tiêu tạm ứng theo tiến độ". Vá tạm header thì phần Excel thanh toán xanh; đã trả spec về nguyên trạng.
+- **Mức retest**: 3 (đổi tiền nợ, VAT, voucher và nội dung phiếu thu dùng chung cho nhiều màn).
+- **Ngoài phạm vi / còn mở** (chi tiết `features/payment-rounds.md`):
+  - Xoá phiếu điều trị chưa trả lượt voucher do phiếu thu của nó giữ.
+  - Xác nhận phiếu khác thứ tự tạo có thể lệch VAT ±1 đ.
+  - Docx PHIẾU THU chưa có ghi chú ưu đãi theo dòng.
+  - Doanh số bác sĩ ở `OperationsReport` chưa trừ TN / voucher (chờ chủ dự án).
+  - TỔNG KẾ HOẠCH: ưu đãi gồm phần VAT giảm, còn Thành tiền chưa thuế; bản in báo giá chưa có dòng ưu đãi.
+  - Quyền Khuyến mãi → Xem chưa có trong role seed nào.
+  - Kiểm tra API chạy bằng e2e stack thật trên DB riêng, chưa có bộ Application.Tests Testcontainers.
+
+## R-1081 (2026-10-29, mức 3: F-84 In phiếu thu ký tay & chữ ký kế toán P2910_02) In phiếu thu để khách ký giấy, chữ ký kế toán, log phiếu thu
+
+- **Yêu cầu** (BA `P2910_02.drawio`; chủ dự án chốt 4 câu: in bản nháp ngay, bỏ phần mô tả BA gạch, chữ ký ở ô Người lập phiếu giữ tên, ảnh ≤ 2 MB tự thu nhỏ):
+  - Khối tổng tiền trên phiếu thu: nhãn rộng theo chữ, một dòng; số canh phải.
+  - Form yêu cầu xuất HĐ (`/invoice-request`): ô Dịch vụ lấy "Tên trên phiếu" của dòng phiếu thu.
+  - In phiếu thu: hỏi xác nhận, in bản nháp, khách ký tay trên giấy; phiên iPad đóng; bước 2–4 "Ký tay trên giấy", sang bước 5; chỉ còn "Hủy phiên & sửa phiếu".
+  - Kế toán: "Khách đã ký" + chip giờ; Ký điện tử (mặc định) / Token điện tử / Ký tay trực tiếp; vẽ hoặc tải ảnh chữ ký; chữ ký nằm trên ô Người lập phiếu, giữ tên.
+  - Ghi chú BA về log: thời gian xuất phiếu, người ký, thời gian hủy phiếu (nếu có), user + timestamp; mã hoá file khi đã xuất ("cứ mã hóa hết").
+- **Sửa**:
+  - Domain:
+    - `PatientPayment.SignOnPaper` (giữ lần in đầu) và lấy lại khi Hủy phiên / sửa phiếu;
+    - xuất Ký điện tử ghi `AccountantSignerId` + `AccountantSignatureSavedAt`;
+    - `AccountantSignature` (mỗi user một chữ ký, mã hoá `v1:`, ≤ 200 KB) + lịch sử đổi;
+    - `PaymentReceiptLog` (In / Lấy lại / Xuất / Hủy);
+    - `ReceiptSigningSession` đóng `Printed`, iPad hiện 30 s;
+    - lỗi `Billing:0117` / `0118` / `0119`;
+    - migration `20261029141918_PaperSignAndAccountantSignature`.
+  - Application:
+    - `ReceiptSigningAppService.PrintForPaperAsync` + `GetLogAsync`;
+    - `AccountantSignatureAppService` (`GET` / `PUT accountant-signature/mine`, không audit body);
+    - `ReceiptLogBook` ghi trong cùng unit of work;
+    - `ReceiptExporter` đặt chữ ký kế toán trên ô Người lập phiếu;
+    - `InvoiceRequestSources.ServiceNamesAsync` ưu tiên `ReceiptName`;
+    - `PatientPaymentAppService` (sửa / hủy) ghi log.
+  - FE:
+    - `ReceiptPaperConfirm`, `useReceiptPrint`, `ReceiptWaitingPanel`, `AccountantSignatureField` / `Pad`, `SignatureUploadPreview`, `utils/signatureImage.ts` (thu về 600 × 200);
+    - iPad `PrintedScreen`;
+    - panel Đã xuất thêm Xuất phiếu / Chữ ký kế toán / Khách ký;
+    - `useSignaturePad` chuyển lên `src/hooks/`;
+    - `Emphasised`.
+- **E2E** (build production `vite preview` :8160 → host :5130 → PostgreSQL thật, DB riêng `BlueDental_p2910`, không chặn request):
+  - `receipt-paper-sign` **5/5**:
+    - in giấy → phiên Printed, in lại giữ giờ đầu, log In → Xuất;
+    - Hủy phiên và sửa phiếu đều lấy lại phiếu, log ghi `PaperTakenBack`;
+    - Ký điện tử: không có chữ ký → `0117`, > 200 KB → `0118`; có chữ ký thì có trên phiếu xuất và trong log;
+    - chi nhánh 2 bị chặn;
+    - trên màn: popup xác nhận, các bước ghi "Ký tay trên giấy".
+  - `invoice-request-api` **3/3**: test R-1081 — đợt 1 không đặt tên → tên danh mục; đợt 2 đặt tên riêng → draft và form QR công khai hiện đúng tên đó.
+  - `receipt-ipad` **6/6** (chạy riêng, không song song với spec tiền).
+  - Hồi quy mức 3, 19 spec: **55/55**.
+    - Spec receipt: `receipt-cancel`, `receipt-export`, `receipt-exported`, `receipt-page`, `receipt-paper-sign`.
+    - Spec billing / e-invoice: `billing-ledger`, `einvoice-api`, `invoice-request-api`, `invoice-request-ui`, `vat-payment-einvoice-api`.
+    - Spec payment: `payment-amount-cap`, `payment-amount-select`, `payment-from-slip`, `payment-permission-buttons`, `payment-qr`, `payment-receipt-pdf`, `payment-rounds`, `payment-status`.
+    - Và `voucher`.
+  - Spec cập nhật theo nhãn mới:
+    - `receipt-exported`, `receipt-page`: dt / dd của panel;
+    - `receipt-cancel`: "Khách đã ký · Kế toán ký tay trực tiếp";
+    - `receipt-ipad`: tiêu đề + chip thay dòng trạng thái;
+    - `fixtures/ledgerReceipt.ts`: `SIGN_MODE`, `issueReceipt` xuất Ký tay trực tiếp.
+  - BE: Domain **1209/1209** (13 ca `ReceiptPaperSignTests`), Application **835/835**, HttpApi.Host **24/24**, EFCore **66/66**.
+  - Kiểm tay: blob PDF trong MinIO bắt đầu bằng 0x01, không chứa `%PDF`; chữ ký trong DB dạng `v1:`.
+- **Mức retest**: 3 (đổi luồng ký / xuất phiếu thu dùng chung cho mọi spec tiền qua `issueReceipt`).
+- **Ngoài phạm vi / còn mở** (chi tiết `features/receipt-paper-sign.md`, `docs/clone/unknowns.md` P2910_02):
+  - Log mới có API, chưa có màn hình xem.
+  - Token điện tử (Ký số, phase 7) chưa làm, vẫn `0113`.
+  - Server prod cần `RECEIPT_VAULT_KEY` riêng trước khi merge lên main.
+  - Kiểm tra API chạy bằng e2e stack thật trên DB riêng, chưa có bộ Application.Tests Testcontainers cho endpoint mới.
+
+## R-1082 (2026-10-29, mức 3: F-84 Log phiếu thu chống sửa) Chuỗi niêm phong HMAC + trigger chỉ thêm trên `bd_payment_receipt_logs`
+
+- **Yêu cầu** (ghi chú BA trong `P2910_02.drawio`: log phải "mã hóa hết"; chủ dự án đồng ý cách đề xuất, chỉ làm ở BE):
+  - Log phiếu thu không sửa, không xoá được mà không bị phát hiện.
+  - Khoá con suy ra từ `RECEIPT_VAULT_KEY`, không thêm biến môi trường mới.
+  - API log báo log còn nguyên hay không.
+  - Không mã hoá theo cột; mã hoá ổ đĩa và backup để sau.
+- **Sửa**:
+  - Domain:
+    - `ReceiptCipher.Mac` / `MacMatches`: HMAC-SHA256, khoá suy ra bằng HKDF-SHA256 (info `bluedental/receipt-log/v1`), lưu `v1:` + hex, so sánh `FixedTimeEquals`;
+    - `PaymentReceiptLog` thêm `Sequence` (1..n trong mỗi phiếu) + `Seal` (MAC của các trường của dòng + seal dòng trước), `SealAfter` / `IsSealedAfter`; giờ lưu UTC cắt về micro giây như PostgreSQL;
+    - `ReceiptLogChain.Check` (mới): dòng bị sửa, mất dòng ở giữa / đầu, ghi không có khoá, đánh số sai → không nguyên vẹn; dòng cũ chưa niêm phong chỉ được nằm trước dòng niêm phong đầu tiên.
+  - Application:
+    - `ReceiptLogBook` niêm phong dòng mới sau dòng cuối của phiếu và **không lưu sớm**: dòng đã ghi trong cùng unit of work được nhớ qua `IUnitOfWorkManager.Current.GetOrAddItem`, ngoài ra đọc dòng đã lưu cuối cùng.
+    - `GET receipt-signing/{id}/log` trả thêm `intact`, `unsealedCount`; mỗi dòng có `sequence`, `verified`.
+  - EF: cột `Sequence`, `Seal`; unique index (`PatientPaymentId`, `Sequence`); migration `20261029154727_SealedReceiptLog`:
+    - đánh số dòng cũ theo thời gian, để chưa niêm phong;
+    - function `bd_payment_receipt_logs_append_only()` + trigger `bd_payment_receipt_logs_no_change` (BEFORE UPDATE OR DELETE) và `bd_payment_receipt_logs_no_truncate` (BEFORE TRUNCATE), lỗi `insufficient_privilege`.
+  - `deploy/db/clear-all-except-catalog.sql`: tắt trigger TRUNCATE trong lúc xoá trắng rồi bật lại.
+- **Lỗi bắt được trong lúc test và đã sửa**:
+  - Bản đầu ghi log bằng `autoSave: true`. Lệnh này flush cả DbContext, gồm thay đổi đang dở của nơi gọi.
+  - Hủy phiếu đã thanh toán, khi dịch vụ còn phiếu thu khác, đọc lại chính lệnh hủy của mình trong `GuardRefundsStillCoveredAsync` và tự từ chối `Billing:0101` (403).
+  - E2E `invoice-request-api` R-915 bắt được. Sửa bằng cách bỏ `autoSave`, nhớ dòng theo unit of work như trên.
+- **E2E** (build production `vite preview` :8160 → host :5130 → PostgreSQL thật, DB riêng `BlueDental_p2910`, không chặn request):
+  - `receipt-paper-sign` (helper `logOf`): mỗi lần đọc log đều `intact`, `unsealedCount` 0, `sequence` 1..n, mọi dòng `verified`.
+  - Sau bản sửa: `invoice-request-api` + `receipt-paper-sign` + `receipt-cancel` **10/10** (gồm R-915).
+  - Hồi quy tiền sau bản sửa (17 spec còn lại: billing / e-invoice / payment / receipt / voucher / plan-detail): **58/59**.
+    - Đỏ 1: `vat-payment-einvoice-api:96`. Spec lấy "phiếu mở đầu tiên nhận được dòng mới"; lần này trúng DT14, phiếu đang có giảm giá cấp phiếu 20.000đ (kiểm bằng psql), nên dòng mới chỉ còn 881.818 thay vì 900.000.
+    - Test hỏng ngay ở bước thêm dòng, trước mọi thao tác phiếu thu, nên không do R-1082 (spec phụ thuộc dữ liệu).
+  - `receipt-ipad` (chạy riêng): **6/6**. Lần đầu có 1 ca `Failed to fetch` trong `createSlipViaApi` do trang chuyển hướng giữa lúc fetch; host vẫn trả 200, chạy lại xanh.
+  - Hồi quy mức 3 lần đầu (229 test, trước bản sửa): 215 xanh / 14 đỏ. 1 đỏ là lỗi thật ở trên (R-915). 13 đỏ còn lại không do R-1082 (R-1082 không đổi FE, không đổi luồng ghi nào ngoài log):
+    - `patient-medical-record` 203 / 593 / 1998;
+    - `patient` 1827, 2321, 2441, 2556, 2737, 2867, 3680, 3935 (cùng nhóm đỏ đã ghi ở F-82);
+    - `patient:1916` (chạy riêng vẫn đỏ): `paidByService` lấy patientId từ đoạn cuối URL. Từ P2610, `expectReceiptPage` chuyển trang sang `/billing/receipts/{id}`, nên account bị đọc theo id phiếu thu và không có phiếu điều trị nào. Lỗi của spec, có từ trước, chưa sửa;
+    - `qa-bugs-25-30:103` (TEMP-BUG25-OFF).
+  - Lần chạy lại đầu sau bản sửa: 5 ca timeout ở `openNewSlip` (`fixtures/ledgerReceipt.ts:202`). Nguyên nhân: bệnh nhân đầu danh sách đã có 16 phiếu và 3 thẻ "Dịch vụ đang điều trị" xếp 2 hàng, nên ở viewport 1280×720 thân bảng phiếu co gần bằng 0 và hàng nằm dưới header. Lỗi bố cục FE có sẵn, không do R-1082. Tạo một bệnh nhân mới lên đầu danh sách rồi chạy lại thì xanh.
+- **BE**: Domain **1218/1218** (9 ca `ReceiptLogChainTests`), Application **835/835**, HttpApi.Host **24/24**, EFCore **66/66**.
+- **Kiểm tay bằng psql** trên DB riêng:
+  - UPDATE / DELETE / TRUNCATE đều bị trigger chặn;
+  - tắt trigger rồi sửa một dòng → `intact` false, đúng dòng đó `verified` false;
+  - phiếu chỉ có dòng ghi trước R-1082 → `unsealedCount` 5.
+- **Mức retest**: 3 (đổi cách ghi log trong unit of work của In / sửa / xuất / hủy phiếu thu, dùng chung cho mọi spec tiền).
+- **Ngoài phạm vi / còn mở**:
+  - Chưa có màn hình báo log bị sửa (chủ dự án: chưa cần).
+  - Xoá các dòng mới nhất không phát hiện được chỉ bằng chuỗi; trigger là lớp chặn. Chủ bảng vẫn `DISABLE TRIGGER` được, dòng sửa kiểu đó vẫn bị phát hiện.
+  - Mã hoá ổ đĩa và backup để sau.
+  - Staging / prod phải chạy DbMigrator để có migration + trigger; prod cần `RECEIPT_VAULT_KEY` riêng trước khi main nhận P2610 / P2910.
+  - Bố cục bảng phiếu điều trị co thân bảng khi nhiều thẻ dịch vụ (đã thấy ở trên), chưa sửa, chờ chủ dự án.
+  - Spec `patient:1916` và `vat-payment-einvoice-api:96` cần sửa cách chọn dữ liệu (ở trên), chưa làm.
+
+## R-1083 (2026-10-30, mức 3: F-85 Quy trình Labo mới P2910_03) Đặt hàng / Nhận hàng & kiểm tra / Bảo hành, kiểm tra từng răng, khoá công đoạn
+
+- **Yêu cầu** (BA `P2910_03.drawio` + 12 câu chủ dự án chốt 2026-10-30, bảng quyết định ở `features/labo-workflow.md`):
+  - Một popup 3 bước cho mọi lối vào phiếu Labo.
+  - Nhận hàng → Chờ kiểm tra; kiểm tra từng răng Đạt / Lỗi; Trả hàng có khung Kết luận đúng ảnh chủ dự án; nhận lại lần N chỉ kiểm lại răng lỗi (Trả toàn bộ kiểm lại hết).
+  - Kích hoạt bảo hành từng răng khi cả phiếu QC đạt; Hết hạn bảo hành tính lúc đọc; không gửi thẻ.
+  - Hoàn thành công đoạn sau bị khoá khi phiếu chưa QC đạt; cột Phiếu Labo trên phiếu điều trị; tab Labo 6 thẻ lọc; `/labo` bỏ chọn trạng thái tay.
+- **Sửa**:
+  - Domain: `LaboOrder` viết lại thành máy trạng thái (Draft 1 … Warranty 7, lỗi `Labo:0015`–`0030`), `LaboOrderTooth`, `LaboOrderRound` + `LaboRoundToothResult`, `LaboStagePolicy`; bỏ phiếu con và chọn trạng thái tay.
+  - Application / API: `POST` / `PUT labo-orders` (JSON hoặc multipart, cờ `Submit`), `POST {id}/cancel`, `DELETE {id}` (chỉ Nháp), `POST {id}/receive`, `POST {id}/check` (multipart), `POST {id}/warranty`; `TreatmentStageAppService` chặn Hoàn thành công đoạn bị khoá (`Labo:0031`); `Labo:0032` khi dòng dịch vụ không thuộc bệnh nhân của phiếu.
+  - EF: migration `20261030022639_LaboWorkflowP291003` — bảng răng, bảng lần nhận (jsonb), `bd_patient_images.LaboRoundNo`, đổi trạng thái cũ một `CASE` (1→1; 2, 3, 7→2; 4→3; 5→5; 6, 8→6), tách răng, phiếu Hoàn thành cũ có mọi răng Đạt, phiếu đã nhận có lần 1.
+  - FE: `features/labo/components/workflow/`, `check/`, `warranty/`; `PlanLaboCell`, `StageLaboParts`; xoá `LaboOrderTabsDialog`, các dialog phiếu con, `LaboStatusSelect`, `LaboDetailFooter`, `stage/LaboOrderDialog`.
+- **Spec viết lại theo luồng mới**:
+  - Mới: `labo-workflow` (3), `labo-api` (8), `labo-tab-list` (2), fixture `e2e/fixtures/laboApi.ts`.
+  - Viết lại: `labo` (14; `:65` đổi theo chip mẫu chia theo ngày hẹn giao), `labo-orders-actions` (3), `labo-orders-permissions` (1), `labo-detail` (1), `labo-material-search` (1).
+  - **Bỏ `labo-warranty.spec.ts`**: test chính của nó là phiếu con Bảo hành, đã bỏ cùng F-85 (quyết định 4); hai test còn lại (dialog trong URL, phân trang / lọc server của tab Labo) chuyển sang `labo-tab-list`.
+  - `treatment-plan-detail`: bảng Chi tiết điều trị có thêm cột "Phiếu Labo" (quyết định 10); phiếu Labo bị hủy giờ đọc "Đã hủy" (nhãn trạng thái mới theo BA) thay vì "Đã huỷ" của nhãn Rejected cũ. Hồi quy mức 3 bắt được cả hai.
+- **E2E** (build production `vite preview` :8170 → host :5140 → PostgreSQL thật, DB riêng `BlueDental_p291003`, không chặn request):
+  - 9 spec Labo: **36/36**.
+  - Hồi quy mức 3 (`stage-*`, `treatment-*`, `plan-*`, `branch-*`, `payment-from-slip`, 96 test) lần đầu 79 xanh / 5 đỏ / 12 không chạy:
+    - `treatment-plan-detail:188`: cột Phiếu Labo, lỗi của spec (ở trên); spec chạy nối tiếp nên 12 test sau không chạy. Sửa spec, chạy lại **13/13**, gồm test chặn chuyển đổi khi còn phiếu Labo mở.
+    - `plan-service-delete` 61 / 97 / 123: timeout ở `openNewSlip` (`fixtures/ledgerReceipt.ts:202`), cùng lỗi bố cục bảng phiếu đã ghi ở R-1082. Tạo bệnh nhân mới lên đầu danh sách rồi chạy lại: **4/4**.
+    - `stage-staff-pickers:163`: tìm nút "Thanh toán" trong Chi tiết phiếu, nút đã bỏ khỏi trang phiếu từ R-956 (`PlanStageSection.tsx`, F-85 không sửa file này). Đỏ có từ trước.
+  - Kết quả sau cùng: **95/96**.
+- **BE**: Domain **1247/1247**, Application **836/842**, EFCore **68/68**, HttpApi.Host **24/24**. 6 đỏ ở Application là `PaymentReceiptTemplateTests` (FileNotFoundException `PHIẾU THU.docx`): build với `--artifacts-path` ngoài repo nên không thấy file mẫu; không do F-85.
+- **FE**: `tsc` sạch, oxlint 0 lỗi, vitest 3/3, build production ổn.
+- **Mức retest**: 3 (đổi aggregate `LaboOrder`, migration dữ liệu, chặn Hoàn thành công đoạn dùng chung cho mọi màn công đoạn, thêm cột vào bảng phiếu điều trị).
+- **Ngoài phạm vi / còn mở**:
+  - Tiếp nhận bảo hành (Lần BH, phiếu BH1) để đợt sau; "Lần BH" luôn 0.
+  - "Tạo Labo" vẫn hiện ở công đoạn khác của dòng đã có phiếu đang chạy (cho phép phiếu thứ hai).
+  - Các điểm tự chọn khi BA chưa nói: `docs/clone/unknowns.md` (P2910_03), chờ chủ dự án xác nhận.
+  - Staging / prod phải chạy DbMigrator để có migration.
+- **Bổ sung cùng ngày (mức 3, câu hỏi 2 và 3 của chủ dự án)**:
+  - BA: "Nếu Dịch vụ có phiếu Labo có trạng thái <> Đạt chất lượng → vẫn cho tiếp tục các công đoạn… nhưng không cho hoàn thành". Trước đây chỉ ô Hoàn thành của công đoạn bị khoá; giờ Hoàn thành cả dòng dịch vụ cũng bị khoá.
+    - Server: `PatientTreatmentAppService.CompleteServiceAsync` trả 403 `BlueDental:Labo:0033` khi dòng có phiếu chưa QC đạt và chưa huỷ (Nháp cũng tính). Cùng điều kiện với `GuardNoOpenLaboOrderAsync` (helper `HasOpenLaboOrderAsync`).
+    - Màn hình: menu Đổi trạng thái trên phiếu điều trị làm mờ Hoàn thành, kèm dòng "Khoá: phiếu Labo chưa QC đạt" (`ServiceStatusMenu`, đọc `labOrders[].isUnfinished`).
+    - Không chặn đường nhập dữ liệu cũ (data migration) và seeder.
+  - Các ô khoá của tab Đặt hàng (Tên khách hàng, Kế hoạch / Dịch vụ điều trị, Số phiếu Labo, Số lượng) dùng `LaboLockedField`: ô nhập có tên truy cập bằng chính nhãn. Không sửa `FloatingLabel` dùng chung, để khỏi phải retest /taxonomy.
+  - E2E: `labo-api` thêm test Hoàn thành dịch vụ (Nháp → 0033, huỷ; phiếu đã gửi → 0033; QC đạt → 200, dòng = Hoàn thành). `labo-workflow` kiểm thêm menu khoá / mở và tìm các ô khoá bằng `getByRole("textbox", { name })`.
+  - Chạy trên build production :8170 → host :5140 → DB `BlueDental_p291003`: `labo-api` + `labo-workflow` **12/12**; các spec Labo còn lại + `treatment-plan-detail`, `plan-treating-scope`, `cskh-after-treatment` (dùng menu Đổi trạng thái) **60/60**. BE build sạch, FE `tsc` + oxlint sạch.
+
+## R-1084 (2026-10-31, mức 2: F-86 P3110 phase A) Bảng dịch vụ phiếu điều trị + LỊCH SỬ ĐIỀU TRỊ theo BA P3110
+
+- **Yêu cầu** (BA `P3110.drawio`, truy vết REQ-A1…A10 ở `docs/wip/p3110-labo-warranty-plan.md` §2A; chủ dự án chốt D1–D9 ngày 2026-10-31):
+  - Cột Trạng thái bỏ chữ "N lần"; cột Phiếu Labo = chip trạng thái phiếu mới nhất (không tính phiếu huỷ) + mã phiếu bấm mở popup + "Xem tất cả ›" mở tab Labo hồ sơ trong tab trình duyệt mới (G1).
+  - Chip luôn theo trạng thái thật (lỗi "vẫn Chờ Labo" sau khi hoàn thành: popup đóng thì làm mới kế hoạch).
+  - Ô Hành động công đoạn: chưa có phiếu → "Tạo Labo"; có phiếu → "BN có n phiếu", không sửa.
+  - Công đoạn bị khoá: dòng đỏ `🔒 Khoá: LABO-xxx chưa kiểm tra` + "Xem phiếu Labo ›" (mở bước 2), Tải ảnh vẫn bấm được; mở khoá khi mọi răng Đạt.
+  - Bỏ nút "Kích hoạt bảo hành" trên công đoạn; nút xanh đổi nhãn "Bảo hành dịch vụ" → tab Bảo hành của phiếu, đúng dòng (D1).
+  - REQ-A10 (cột Bảo hành) làm ở phase F, xem R-1089.
+- **Mức retest**: 2 (chỉ FE phiếu điều trị / công đoạn). Spec chạy lại trong R-1089: `treatment-plan-detail`, `treatment-stage*`, `labo-workflow`, `patient.spec -g Labo`.
+
+## R-1085 (2026-10-31, mức 2: F-86 P3110 phase C) Popup Labo bước 1 · Đặt hàng theo mock
+
+- **Yêu cầu** REQ-C1…C10 (mock m105/m106/m134/m139/m142/m143/m149/m154/m158):
+  - Header "Đặt hàng" + chip trạng thái + thanh 3 bước; bỏ Giờ gửi / Giờ nhận (giờ tạo lấy `CreationTime`); Ảnh đính kèm chung không bắt buộc (BE bỏ đòi ≥ 1 ảnh khi gửi, vẫn tối đa 5).
+  - Dịch vụ Labo / Vật liệu: 3 chip đầu + "Xem thêm" mở modal chọn một (`LaboChoiceList` / `LaboChoiceModal` / `LaboChoiceRow`, thay `ChipStrip` / `LaboChipStrips`); chọn dịch vụ lọc vật liệu; ô tìm R-1062 chuyển vào modal.
+  - Nút "Răng" mở sơ đồ chọn răng, đếm số răng; dòng R12… chỉ hiển thị.
+  - Bảng **Thông số từng răng** (`LaboToothSpecTable` / `LaboToothSpecRow`): Màu răng*, Đường hoàn tất*, Kiểu nhịp, Khớp cắn (sau Kiểu nhịp, D3), Ảnh từng răng lên MinIO (D7); "Dùng chung 1 thông số" gộp một dòng nhưng lưu tách từng răng.
+  - Footer Huỷ · Lưu nháp · "Gửi Labo & in phiếu".
+- **Sửa**: `LaboOrderTooth` thêm thông số theo răng, migration `20261031102022_LaboToothSpecP3110`; ảnh gắn răng.
+- **Sửa UI sau phản hồi chủ dự án (2026-10-31, "lỗi UI này")**: trong bảng Thông số từng răng, nút "+" cột Ảnh bị đẩy xuống thấp hơn ô nhập vì `.pd-labo-pictures` (margin-top 24px của ô ảnh chi tiết, `labo-order-dialog.css`) thắng `.pd-labo-pictures--cell` cùng độ ưu tiên; dòng thiếu thông số tô hồng đậm. Sửa `labo-order-rows.css`: biến thể dùng hai class `.pd-labo-pictures.pd-labo-pictures--cell`, nền dòng thiếu `color-mix(--bd-red-pale 45%, --bd-card)` như m139. `labo-workflow` thêm phép kiểm "+" nằm cùng đường giữa với ô Màu răng (lệch ≤ 2px).
+- **E2E**: labo-workflow 4/4, patient Đặt hàng 2/2, labo-api 11/11, các spec Labo khác 25/25; BE Labo Domain 65, EF 8, App 42. So ảnh m134/m139/m158.
+
+## R-1086 (2026-10-31, mức 2: F-86 P3110 phase D) Popup Labo bước 2 · Nhận hàng & kiểm tra theo răng
+
+- **Yêu cầu** REQ-D1…D12 (m175–m189, m238, m279–m307, m342):
+  - Card tóm tắt 3×3; ô "Răng" bỏ SL / Màu; bỏ nút "Lưu nhận hàng"; card khoá "Chưa bắt đầu kiểm tra" + nút chuyển Chờ kiểm tra (`LaboCheckStartCard`).
+  - Mỗi răng: Đạt / Lỗi, "Đã trả n lần" đếm theo lần trả (≥ 2 chữ đỏ nền đỏ nhạt); răng lỗi có nhóm mô tả + ảnh lỗi lưu riêng (`LaboToothDefectGroup`), lần sau hiện lại lần gần nhất; răng đã Đạt mờ; răng đã kích hoạt BH hiện mã thẻ.
+  - Bỏ Chi phí phát sinh; footer `Trả toàn bộ (n răng)` / `Trả hàng bị lỗi (n răng)` (nút tím, REQ-D11 thắng mock đỏ); lịch sử nhận / trả theo răng.
+- **Sửa**: BE mô tả + ảnh lỗi theo răng, `returnCount` / `returnHistory` theo răng, bỏ chi phí phát sinh khỏi kết luận.
+- **E2E**: labo* 41/41, patient Labo 2/2 (một timeout khởi động nguội, chạy lại xanh). So ảnh m279/m278/m294/m342/m189. Giả định G9–G15 (`docs/clone/unknowns.md`).
+
+## R-1087 (2026-10-31, mức 2: F-86 P3110 phase E) Popup Labo bước 3 · Bảo hành: ảnh thẻ Mặt trước / Mặt sau
+
+- **Yêu cầu** REQ-E1 (ảnh thẻ không bắt buộc, giống chụp CCCD), REQ-E2 (bỏ "Thông tin thẻ / Lịch sử" trong popup, lịch sử chuyển sang tab Bảo hành).
+- **Sửa**: `PatientImage.WarrantyCardSide` (migration `20261031135031_WarrantyCardPhotoP3110`), kích hoạt bảo hành multipart kèm ảnh thẻ, lỗi `Labo:0036`; module dùng chung `src/components/WarrantyCardPhotos/`; xoá `LaboWarrantyToothTabs`, `LaboWarrantyCardInfo`, `LaboWarrantyHistory` (logic sang `PlanWarrantyHistory`, R-1088). Ảnh thẻ không lẫn vào ảnh phiếu.
+- **E2E**: labo-api REQ-E1 (sai răng / trùng mặt / lệch số → 0036, mặt 3 → 400), labo-workflow tải Mặt trước → reload → cột Ảnh thẻ; labo* 42/42, patient Labo 2/2; Domain Labo + PatientImage 80/80. So ảnh m374. Chưa thêm / thay ảnh sau khi kích hoạt (unknowns).
+
+## R-1088 (2026-10-31, mức 2: F-86 P3110 phase B) Tab "Bảo hành" trên trang phiếu điều trị + thẻ bảo hành nha khoa
+
+- **Yêu cầu** REQ-B1…B7 (m348/m360/m361/m366/m371), D4/D5/D9; chi tiết ở `docs/testing/features/plan-warranty.md`.
+- **Sửa**: domain `ServiceWarrantyCard` (mã `BH-{mã dòng}-{ddMMyyyy}-{răng|00}`), `WarrantyCover`, `PatientImage.ServiceWarrantyCardId`, migration `20261031142735_ServiceWarrantyCardP3110`, lỗi `Treatment:0053..0057`; `PlanWarrantyAppService` + `PlanWarrantyOverviewBuilder` + `PlanWarrantyHistory`, `PlanWarrantyController`; FE `plan-warranty/` (3 card, `ServiceWarrantyDialog`, lọc "Xem thẻ ›" / "Lịch sử ↓"), badge "k chờ" + "Hôm nay".
+- **E2E**: `plan-warranty-api` 7/7, `plan-warranty-tab` 3/3, `--repeat-each=2` 20/20 (sau khi sắp `cardCodes` theo mã cho ổn định). `treatment-plan-detail` sửa spec vì có thêm tab "Bảo hành". Domain 11 ca mới.
+- **Có sẵn, không thuộc P3110** (ghi lại, không sửa): `TreatmentPlan.DiscountShareParts` âm → 500 trên phiếu dùng chung DT10 (spec mới dùng `freshSlip`); race `IX_bd_labo_orders_OrderCode` ở `NextOrderCodeAsync` khi hai phiên chạy chung host.
+
+## R-1089 (2026-10-31 → 2026-11-01, mức 3: F-86 P3110 phase F) Công đoạn bảo hành theo thẻ + chip Bảo hành trên bảng dịch vụ
+
+- **Yêu cầu** REQ-F1…F7 (m390/m394/m395/m400/m401/m412/m415), REQ-B8 (dòng có thẻ còn hạn vào TIẾP TỤC BẢO HÀNH), phần chip của REQ-A10 (cột "Bảo hành" sau "Phiếu Labo"); chi tiết ở `docs/testing/features/plan-warranty.md`.
+- **Sửa BE**: `TreatmentStage.WarrantyKind` (1 Nha khoa / 2 Labo) + `WarrantyLaboOrderId` (chép sang khi Tiếp tục), migration `20261031160612_StageWarrantyCardP3110`; `WarrantyCover` quyết định răng được phép; lỗi `Treatment:0058` (thiếu loại thẻ), `0059` (không có thẻ Nha khoa còn hạn), `0060` (phiếu Labo không thuộc dòng / đã huỷ / không có răng kích hoạt còn hạn, hoặc Nha khoa khi dòng đã gửi Labo), `0061` (răng ngoài thẻ). **Đổi hành vi (G23):** trước đây công đoạn bảo hành được mở khi `WarrantyDays` của danh mục, tính từ ngày điều trị, chưa hết; nay theo thẻ — chưa kích hoạt thẻ thì không mở được.
+- **Sửa FE**: form TIẾP TỤC BẢO HÀNH cùng khung 4 cột, "Thẻ bảo hành áp dụng *" hai card (loại không có thẻ còn hạn mờ + bất động), select "Dịch vụ bảo hành · Labo *" (dòng 1 nhà cung cấp, dòng 2 `{vật liệu} R.. · Hạn ..`, G25), răng theo thẻ; chuỗi đang mở giữ thẻ + phiếu, khoá. Bỏ popup "Tạo bảo hành" cũ — "Bảo hành dịch vụ" và icon bảo hành mở tab Bảo hành của phiếu (G24). `PlanWarrantyChips` trên bảng dịch vụ. Tái khám không đổi.
+- **Lỗi UI "lỗi UI này" (01/11, bảng Thông số từng răng)**: ô "+" cột Ảnh lệch xuống dưới so với ô nhập (lớp biến thể `.pd-labo-pictures--cell` thua `margin-top: 24px` của `.pd-labo-pictures` vì cùng độ ưu tiên) → đổi thành hai lớp; dòng thiếu thông tin hồng đậm → `color-mix(--bd-red-pale 45%, --bd-card)` như m139. Spec `labo-workflow` thêm kiểm tra "+" nằm giữa dòng (±2px) với ô Màu răng.
+- **E2E mới**: `warranty-stage-api` 2/2, `warranty-stage` 2/2. **Sửa spec**: `stage-treatment-date`, `treatment-stage-chain`, `medical-record-sheet-facts`, `patient.spec` (bảo hành nay cần thẻ đã kích hoạt), `treatment-plan-detail` (thêm cột "Bảo hành", 13/13). BE: Domain `StageChainAndWarrantyTests` + `LaboStagePolicyTests`, App `StageChainContractTests` xanh.
+- **Hồi quy (mức 3 — đổi luật công đoạn dùng chung)**: `labo*` + `branch-isolation` / `branch-code-url` / `branch-switcher` + `stage-treatment-date` 53/53, `patient.spec` phần Labo/bảo hành 2/2, `labo-workflow` 4/4 (có kiểm tra căn "+"), `treatment-plan-detail` 13/13; đợt trước 48/50 — 2 đỏ **không thuộc P3110**: `stage-staff-pickers:163` đỏ sẵn từ R-956; `medical-record-sheet-facts:169` đỏ do dữ liệu — fixture lấy chẩn đoán đầu danh mục ("Chẩn đoán nhanh E2E 895956", spec khác tạo 30/10), tờ bệnh án ngắt chữ theo bề rộng ô (`lineFit.ts`) nên "895956" xuống dòng chấm kế; P3110 không sửa file tờ bệnh án nào. Ảnh so khớp m139 sau sửa ("+" giữa dòng, nền hồng nhạt).
+- **Bước 2 sau Bảo hành (01/11, m342 REQ-D7/D8)**: phiếu Hoàn thành / Bảo hành mất hẳn mục B ở "Nhận hàng & kiểm tra" → thêm `LaboPassedTeethList`: khi mọi răng đã đạt, B hiện chỉ đọc (dòng mờ "Đạt lần k · đã lắp dd/mm" / "chờ lắp", "BH Labo: đã kích hoạt · mã"), không còn dòng "không có trong lần giao này", không nút Đạt/Lỗi. `labo-workflow` thêm bước mở lại tab 2 sau kích hoạt R11 → 4/4.
+- **Tràn chữ thẻ Labo (01/11, form TIẾP TỤC BẢO HÀNH)**: "1 Labo · chọn ở Nội dung điều trị" chạy sang cột Nội dung vì `.app-main button { white-space: nowrap }` (0,1,1) thắng `.pd-wcard` → `.pd-wcards .pd-wcard { white-space: normal; min-width: 0 }`. `warranty-stage` thêm kiểm tra khung chữ nằm trong thẻ: đỏ trên bản cũ, xanh sau sửa, 2/2.
+- **Tên thẻ trái (01/11, m415)**: owner chỉ mock — ô chọn thẻ bên trái đổi "Nha khoa" → **"Dịch vụ"** (en "Service"), bỏ giả định G21; chip / cột ở tab Bảo hành giữ "Nha khoa" (m348). Hành vi note m415 đã có: chọn Dịch vụ → cột Nội dung điều trị chỉ còn ô nội dung (không select Labo). `warranty-stage` thêm kiểm tra tên thẻ, 2/2.
+- **Bỏ chọn thẻ (01/11)**: owner "khi t chọn labo thì k unselect được" → bấm lại thẻ đang chọn thì bỏ chọn (`onPick(undefined)`), xoá luôn phiếu Labo đã chọn và răng đã tick (`pickPatch` kind `undefined` → `teeth: []`); chuỗi đang mở vẫn khoá như cũ. FE-only (`StageWarrantyCardPick`, `StageWarrantyForm`, `useStageComposer`, `useWarrantyCovers`). `warranty-stage` thêm bước chọn → bỏ chọn (`aria-pressed` false, select Labo biến mất) → chọn lại, 2/2.
+
+## R-1090 (2026-11-01, mức 2: F-86 P3110 sửa sau review) Mã thẻ bảo hành `BH-{mã dòng dịch vụ}-{ddMMyyyy}-{xx}`, xx đếm chung Dịch vụ + Labo
+
+- **Yêu cầu**: `xx` không còn là số răng — chạy từ 01 theo (dòng dịch vụ + ngày bắt đầu BH), thẻ Dịch vụ và thẻ Labo dùng chung một bộ đếm; số cấp cùng giao dịch với thẻ, liên tiếp trong một lần kích hoạt; mã không trùng. Sửa D4 / G5 trong `docs/wip/p3110-labo-warranty-plan.md`.
+- **Sửa BE**: `WarrantyCardCode` (định dạng + `IssueAsync`), `IWarrantyCardNumberer` / `EfCoreWarrantyCardNumberer` — một câu `INSERT … ON CONFLICT DO UPDATE … RETURNING` trên bảng mới `bd_warranty_card_sequences (TreatmentServiceId, StartDate, LastNo)`: khoá dòng làm lần kích hoạt thứ hai chờ giao dịch đầu, giao dịch lỗi thì số được trả lại (không có race đọc-rồi-chèn kiểu `NextOrderCodeAsync`). `ServiceWarrantyCard.ActivateAll` / `LaboOrder.ActivateWarranty` nhận mã từ ngoài, bỏ `CodeFor`. Index unique lọc soft-delete `(TreatmentServiceId, Code)` thay index `Code` (mã dòng `DT01-02` lặp giữa bệnh nhân nên không unique toàn cục được). Migration `20261031182508_WarrantyCardNumberR1090`.
+- **Phiếu Labo không gắn dòng dịch vụ**: không bịa mã — kích hoạt bị từ chối `Labo:0037` (`WarrantyNeedsServiceLine`). **Chờ owner quyết** (DB thật có 248/401 phiếu không có dòng).
+- **Thẻ cũ** (đuôi = số răng) trên develop / staging: **không đổi**, chờ owner. Rủi ro: một dòng + một ngày cấp > 10 thẻ mới có thể đụng mã cũ dạng `-11`, `-21`… → index unique từ chối (500). DB thử: 129 thẻ dịch vụ / 33 mã khác nhau, trùng chỉ giữa bệnh nhân, không trùng trong một dòng; thẻ Labo 154/154 khác nhau.
+- **FE**: cột Mã thẻ ở bước Bảo hành Labo hiện "—" trước khi kích hoạt (không còn đoán trước mã).
+- **Test**: Domain `ServiceWarrantyCardTests` (đánh số 01.. theo dòng + ngày, thẻ Labo đếm chung), `LaboOrderWorkflowTests` (mã từ ngoài), fixture `WarrantyTestCodes` — Domain 1280, EF 68 xanh; e2e `labo-api` (R11 = `-01`, R21 lần sau = `-02`), `plan-warranty-api` (đợt bị từ chối trả số lại, ngày khác đếm lại 01), `warranty-stage-api` (thẻ Labo `-01` rồi Dịch vụ `-02`; **ca mới**: 3 lần kích hoạt gửi cùng lúc trên một dòng một ngày → 01..05 không trùng, mỗi đợt liên tiếp, ngày mai lại 01), `labo-workflow` (`^BH-DT\d+-\d+-{ddMMyyyy}-01$`).
+
+## R-1091 (2026-11-01, mức 1: F-86 P3110 sửa sau review) `.pd-labo-check-grid--three` cho form thẻ từng răng
+
+- **Lỗi**: `LaboWarrantyToothForm` dùng lớp `pd-labo-check-grid--three` nhưng CSS chưa có → 3 ô (Ngày bắt đầu bảo hành* / Số serial nhà sản xuất / Ngày hết hạn) không chia 3 cột như m374.
+- **Sửa**: `labo-check.css` thêm `grid-template-columns: repeat(3, minmax(0, 1fr))`. So ảnh với m374.
+
+## R-1092 (2026-11-01, mức 2: F-86 P3110 REQ-C2) Ngày Labo không có giờ
+
+- **Yêu cầu REQ-C2**: chỉ ngày, không giờ.
+- **Sửa FE**: `LaboOrderSummaryCard`, `LaboRoundHistoryTable`, cột Phiếu Labo "Đã nhận: dd/MM/yyyy" (`PlanLaboCell`), `LaboConclusionBox` — ô "Ngày trả" và "Hẹn Labo giao lại" bỏ `showTime` (đây là ngày trả / hẹn giao lại, không phải giờ nhận thực tế; giờ nhận ở mục A giữ nguyên). Gửi `startOf("day")` nên luật "hẹn giao lại sau ngày trả" so theo ngày.
+- **Test**: `labo-workflow` nhập ngày dạng `dd/MM/yyyy`, kiểm tra ô "Đã nhận" không chứa `hh:mm`.
+
+## R-1093 (2026-11-01, mức 2: F-86 P3110 REQ-D6) Mỗi răng Lỗi phải có ≥1 ảnh lỗi của chính nó
+
+- **Yêu cầu REQ-D6** (owner chọn "Mỗi răng Lỗi ≥1 ảnh"): thiếu ảnh ở răng nào thì báo đúng răng đó.
+- **Sửa BE**: kiểm tra trả hàng theo răng — răng Lỗi không có ảnh gắn `LaboToothNumber` → `Labo:0025` kèm `tooth`.
+- **Sửa FE**: bấm "Trả hàng bị lỗi" khi thiếu ảnh → mở mọi nhóm đang thu gọn, nhóm răng đó viền đỏ ô tải ảnh + dòng đỏ `role="alert"` "Vui lòng tải ít nhất một hình ảnh lỗi cho R..", không gửi request; tải ảnh xong dòng đỏ mất.
+- **Test**: BE Domain `LaboOrderWorkflowTests` (hai răng Lỗi, chỉ R11 có ảnh → 0025 kèm `tooth` 21; răng Đạt có ảnh không tính); e2e `labo-workflow` bước D6 (bấm trả khi R21 chưa có ảnh → alert, tải ảnh → alert mất, trả thành công).
+- **Hồi quy chung R-1090..R-1093** (vite preview bản build production :8180 + host cô lập :5150 trên DB `BlueDental_p291003`, PostgreSQL thật, không chặn API): `labo-api` + `labo-workflow` + `plan-warranty-api` + `warranty-stage-api` 27/27; đợt 2 (`plan-warranty-*`, `warranty-stage*`, `labo*`, `treatment-plan-detail`, `treatment-stage*`, `stage-*`) 49 xanh / 3 đỏ / 11 không chạy (bỏ qua theo `describe.serial` sau test đỏ). Chạy riêng lại: `labo-orders-actions` 3/3 (đỏ đợt chung là ca chập chờn :141 đã biết); `treatment-plan-detail` 13/13 — đỏ đợt chung là do môi trường: host cô lập chạy với `--contentRoot .` rơi vào thư mục build nên không thấy `PHIẾU THU.docx` (`PaymentReceipt:0001`), chạy lại với content root tuyệt đối là xanh; `stage-staff-pickers:163` đỏ sẵn từ R-956 (xem trên), không thuộc P3110. BE: Domain 1280 / EF 68 xanh, Application 843 (6 `PaymentReceiptTemplateTests` đỏ chỉ khi build ra đường dẫn scratchpad, không liên quan). `tsc` sạch.
+
 ## R-1094 (2026-11-01, mức 2: F-30 Bệnh án → sheet facts) Bỏ dòng "Phiếu điều trị DTxx" ở Kế hoạch điều trị mẫu 3 và mẫu 10
 
 - **Yêu cầu** (anh Định, ảnh khoanh đỏ): ở mẫu 3 "Bệnh án chỉnh nha" mục IX và mẫu 10 "Hợp đồng thỏa thuận niềng răng" dòng "- Kế hoạch điều trị:", bỏ dòng "Phiếu điều trị DT01" in trên các dịch vụ.
@@ -12413,6 +12895,232 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc -p tsconfig.app.json`, eslint các file đổi → sạch.
 - **Mức retest**: 2 (F-30; đổi `autoOf` chỉ đi nhánh mẫu 10).
 
+## R-1098 (2026-11-01, mức 3: ToothChart dùng chung + F-85 Labo + F-86 Bảo hành) Dòng đúng nguyên một hàm ghi tên hàm
+
+- **Yêu cầu** (chủ dự án, đồng bộ với R-1096 của anh Định): khi răng của một dòng đúng bằng cả một hàm thì ghi "Hàm trên" / "Hàm dưới" / "Hai hàm" thay cho dãy số răng.
+- **Phạm vi** (chỉ hiển thị, không đổi dữ liệu):
+  - Popup Labo bước Đặt hàng, hàng "Răng *": một chip tên hàm. "Số lượng: n" vẫn đếm từng răng; nút Chọn răng và sơ đồ không đổi.
+  - Tab Bảo hành trên phiếu điều trị, cột "Dịch vụ · răng" và nhãn dòng: `{dịch vụ} - Hàm dưới`.
+  - Tiêu đề form TIẾP TỤC BẢO HÀNH, chữ trong ô chọn "Dịch vụ bảo hành · Labo", dòng phụ của Lịch sử bảo hành.
+  - Dòng không đủ một hàm vẫn liệt kê răng như cũ (`R36, R37`).
+- **Sửa — FE**:
+  - `components/ToothChart/toothPicker.ts`: thêm `wholeJawOfTeeth` (cho mảng số răng) và `teethCaption(teeth, label)`.
+  - `LaboToothRow` dùng `wholeJawOfTeeth` + `jawLabel`.
+  - `planWarrantyView.teethText`, `StageWarrantyForm.serviceTitle`, `StageLaboWarrantySelect` dùng `teethCaption`.
+- **E2E** (bản build production `vite preview` cổng 8185 → host :5000 → PostgreSQL thật, không chặn API):
+  - Mới `tooth-jaw-caption` (2 ca): phiếu Labo 16 răng hàm trên → một chip "Hàm trên", "Số lượng: 16"; phiếu 2 răng → "R11", "R21". Tab Bảo hành: dòng hàm dưới → "Hàm dưới", dòng 32 răng → "Hai hàm", dòng R36 + R37 giữ số răng → **xanh**.
+  - Hồi quy: `labo-workflow` (4), `plan-warranty-tab` (3), `warranty-stage` (2), `plan-warranty-api` (7), `warranty-stage-api` (3) + spec mới → **21/21 xanh**. Lượt đầu `warranty-stage:147` đỏ một lần, chạy riêng và chạy lại cả bộ đều xanh, nên là do tải song song.
+  - `tsc -p tsconfig.app.json`, eslint các file đổi → sạch.
+- **Mức retest**: 3 (helper của ToothChart dùng chung; các màn khác dùng `wholeJawOf` không đổi).
+- Chỉ trên develop (Labo P2910_03 / Bảo hành P3110 chưa có trên main).
+
+## R-1099 (2026-11-01, mức 2: F-19 Hồ sơ bệnh nhân) Thanh công cụ bảng điều trị: "Tạo lịch hẹn" thay "Tạo Tái khám" + "Thanh toán"
+
+- **Yêu cầu** (BA, ảnh chú thích 2026-11-01): tab Hồ sơ, thanh công cụ trên bảng điều trị bỏ nút "Thanh toán", đổi "Tạo tái khám" thành "Tạo lịch hẹn". Nút mới mở popup tạo lịch hẹn, tự điền thông tin khách.
+- **Quyết định chủ dự án**: giữ code, chỉ ẩn nút. `RecallDialog`, `StageFollowUpDialog`, `ServiceDetailDialog`, `PatientPaymentDialog` vẫn nằm trong cây, chỉ không còn đường mở từ thanh công cụ. Luật server của tái khám không đổi.
+- **Sửa — FE**:
+  - `PatientProfileTab.tsx`: thanh công cụ chỉ còn một nút `Tạo lịch hẹn` (hiện khi `appointmentAbility.canCreate`). Nút mở `AppointmentEditorModal` giống "Lịch hẹn gần nhất", với `initialPatientId` + `lockPatient`.
+  - Key i18n mới `Patient:Appt:CreateShort` ("Tạo lịch hẹn" / "Create appointment").
+- **E2E** (bản build production `vite preview` cổng 8180 → host riêng :5150 → PostgreSQL thật, không chặn API):
+  - Mới `patient-appointment` "Tạo lịch hẹn on the Hồ sơ toolbar books this patient for real": không còn Tạo Tái khám / Thanh toán → popup khoá đúng khách → chọn giờ + bác sĩ + nội dung → POST mang đúng `patientId` → reload → tab Lịch hẹn có dòng đó → **xanh**.
+  - Sửa `patient.spec` bố cục bảng: kiểm tra thanh công cụ mới, bấm nút rồi đóng popup → **xanh**.
+  - Skip có lý do R-1099 (không còn lối vào): 4 ca Tạo Tái khám trong `patient.spec` và ca "the payment dialog keeps every column title on one line".
+  - `stage-treatment-date`: bỏ phần UI tái khám, giữ phần kiểm tra API (server từ chối ngày sau) → **xanh**.
+  - Hồi quy mức 2 (`patient`, `patient-appointment`, `stage-treatment-date`, `cskh`, `cskh-after-treatment`): ngoài các ca trên, còn 12 ca đỏ trong `patient.spec`, đối chiếu với bản build HEAD (cổng 8181, cùng host và DB):
+    - 7 ca đỏ y hệt trên HEAD, có sẵn hoặc do dữ liệu: `:667` mã khách rỗng; `:1840` tiêu đề Tạo phiếu thanh toán đã đổi sau P2910; `:1929`; `:2334`; `:2899`; `:3690` TEMP-BUG25-OFF; `:3948`.
+    - 4 ca timeout khi chạy cả bộ (`:2207`, `:2300`, `:2390`, `:2433`) xanh khi chạy riêng trên bản build mới.
+    - `:2454` Tạo Labo đỏ trên cả hai bản build sau khi công đoạn còn mở bị dùng hết, do dữ liệu.
+  - `tsc` sạch. eslint chỉ còn 2 lỗi có sẵn từ HEAD.
+- **Mức retest**: 2.
+- Chỉ trên develop.
+
+## R-1100 (2026-11-01, mức 2: F-CSKH Chăm sóc khách hàng) Sau điều trị — Ghi chú mặc định là ghi chú của bác sĩ
+
+- **Yêu cầu** (BA 2026-11-01): cột Ghi chú tab Sau điều trị lấy ghi chú của bác sĩ (cột Ghi chú bảng Hồ sơ, vd "Hẹn tái khám: 22/11/2026"). Hiện dạng text, sửa được, để CSKH nhắn tin / chăm sóc.
+- **Quyết định chủ dự án**: chưa có ghi chú CSKH thì hiện trực tiếp ghi chú BS của các công đoạn liên kết. CSKH sửa thì lưu vào `CareRecord.Description`. **Không** sửa `TreatmentStage.Remark`. Xoá trắng ghi chú CSKH thì ghi chú BS hiện lại.
+- **Sửa — BE**:
+  - `CareRecordDto.DoctorNote` mới. `CustomerCareAppService` gom `Remark` (đã trim, bỏ trống, bỏ trùng) của các `StageIds` của từng phiếu, nối bằng xuống dòng.
+  - Xuất Excel cột Ghi chú Sau điều trị: `Description`, rỗng thì `DoctorNote`.
+- **Sửa — FE**: `careApi.ts` thêm `doctorNote`. `careColumns.tsx`: `CareNoteCell` nhận `description || doctorNote`, lưu khi blur như cũ.
+- **E2E** (8180 → :5150 → DB thật): mới `cskh-after-treatment` "Ghi chú shows the doctor's note until the care staff writes theirs, and the công đoạn keeps it" → **xanh**. Các bước:
+  1. Ghi Remark cho công đoạn → Hoàn thành → task có `description` null, `doctorNote` = remark.
+  2. Màn /cskh-grouping hiện ghi chú BS.
+  3. CSKH gõ ghi chú → PUT 200 → reload còn nguyên. Công đoạn vẫn giữ Remark gốc.
+  4. Xoá trắng → ghi chú BS hiện lại.
+  - Phần còn lại của `cskh-after-treatment` và `cskh` → **xanh**.
+- **Mức retest**: 2.
+- Chỉ trên develop.
+
+## R-1101 (2026-11-01, mức 2: F-84 In phiếu thu để ký tay P2910_02) Xác nhận in không mở tab phiếu nháp; chữ ký nằm giữa, ngay trên tên
+
+- **Yêu cầu** (chủ dự án, 2 ảnh 2026-11-01):
+  1. Bấm "In phiếu thu" rồi "Xác nhận in" thì không mở phiếu thu ở tab mới (chỉ bước này), chuyển thẳng tới "Kế toán kiểm tra". Thu ngân xuất phiếu ở đó giữ nguyên.
+  2. Trên PHIẾU THU (PDF), chữ ký nằm lệch so với tên bên dưới — "làm sao mà chữ ký nó nằm trên tên đó để cho cân đối".
+- **Nguyên nhân (2)**: đoạn chứa ảnh đã căn giữa, nhưng ảnh là **cả khung vẽ** (iPad 600×200, chữ ký kế toán cũng vậy) với nền trong/trắng. Nét ký nằm đâu trên khung thì lệch đó trên giấy.
+- **Sửa — FE**: `useReceiptPrint.ts` — `printForPaper` chỉ gọi `print-for-paper`, đóng popup, toast. Không còn mở tab phiếu nháp. `printDraft` (phiếu chưa có file, không chờ khách) vẫn mở tab như cũ.
+- **Sửa — BE**:
+  - `Printing/PngInk.cs` mới: đọc PNG 8-bit không interlace (xám / RGB / xám+alpha / RGBA, đủ 5 bộ lọc dòng). Trả khung bao nét ký (alpha ≥ 64 và kênh tối nhất ≤ 200) cộng lề 4 px. Không đọc được hoặc khung trống thì null → dùng cả ảnh như cũ.
+  - `DocxPicture.PlaceAbove`: cắt ảnh theo nét ký bằng `a:srcRect` (ảnh gốc lưu nguyên), co vào 50 × 18 mm theo kích thước đã cắt. Đặt `spacing before/after` để ảnh nằm giữa khoảng trống 4 dòng (4 × 276 twip), lệch xuống 28 twip (≈ 0,5 mm) cho cân với mực chữ: dòng nhãn chừa chỗ dưới chân chữ, dòng tên chừa chỗ cho dấu. Áp cho cả chữ ký khách (Người nộp tiền) và kế toán (Người lập phiếu). Phiếu đã xuất trước đây không đổi (PDF đã niêm phong).
+- **Đo trên Gotenberg** (bản dựng thật, ảnh 600×200 nét ký lệch góc):
+  - Tên không dịch: 113,07 mm, y hệt mẫu chưa ký.
+  - Ngang: tâm chữ ký 45,60 mm vs tên 45,86; kế toán 169,16 = 169,16.
+  - Dọc: khoảng trên/dưới 2,47 / 2,30 mm (khách) và 2,11 / 2,12 mm (kế toán). Trước nudge là 1,94 / 2,83.
+- **Test**:
+  - `Application.Tests` `PaymentReceiptTemplateTests`: mới "Only_The_Strokes_Go_On_The_Paper_Midway_Above_The_Name" (PNG RGBA thật, đủ 5 bộ lọc, CRC đúng: khung bao, srcRect, kích thước, spacing giữ chiều cao ô) và "A_Blank_Canvas_Or_A_Png_It_Cannot_Read_Is_Used_Whole". 14/14 xanh.
+  - E2E (bản build production `vite preview` cổng 8171 → host riêng :5141 → PostgreSQL thật, không chặn API): `receipt-paper-sign` 6/6 xanh. Ca "on screen" giờ đếm popup: Xác nhận in **không** mở tab, bước 5 là bước hiện tại. Ca xuất cuối vẫn mở tab PDF như cũ.
+  - Hồi quy: `receipt-ipad` 6/6 (chạy riêng; chạy chung có 1 ca đỏ do iPad bị phiên khác chiếm), `receipt-export`, `payment-receipt-pdf` xanh. `receipt-page` :84 đỏ có sẵn: iPad đã ghép trong DB tự gửi phiếu nên bước 2 đã xong (xem e2e-preexisting-reds).
+- **Mức retest**: 2.
+- Chỉ trên develop.
+
+## R-1102 (2026-11-01, mức 2: F-83 Thanh toán nhiều đợt P2910) Tạo phiếu thanh toán — Giá gốc lấy từ phiếu điều trị, voucher của phiếu vào dòng Voucher, bấm cả đầu thẻ để tick
+
+- **Yêu cầu** (BA, ảnh chú thích 2026-11-01):
+  - Tổng tiền đang sai so với dịch vụ chọn thanh toán. Phải bằng giá đã nhập trên kế hoạch điều trị, không phải giá Danh mục.
+  - Giảm giá bác sĩ đang sai: BS không giảm mà vẫn hiện −500.000 đ. Phải bằng đúng số BS giảm khi tạo kế hoạch.
+  - Tổng tiền sau giảm = Tổng tiền − (Giảm giá BS + Giảm giá thu ngân + Voucher).
+  - Tối ưu vùng bấm của thẻ dịch vụ.
+- **Nguyên nhân**: R-1045 lấy Giá gốc = `catalogPrice` × số lượng. Khi giá trên phiếu khác giá Danh mục hiện tại, Tổng tiền lệch, và "BS giảm" = Tổng tiền − Phải thu nhận luôn phần chênh đó. Voucher gắn trên phiếu điều trị cũng bị tính vào "BS giảm".
+- **Quyết định chủ dự án** (2026-11-01, thay quyết định Giá gốc của R-1045):
+  - Giá gốc = `originalPrice` của dòng trên phiếu (rỗng thì `price`) × số lượng.
+  - Voucher đã gắn trên phiếu điều trị (`serviceVoucherAmount` + `planVoucherShare`) vào **dòng Voucher**, không vào Giảm giá BS.
+  - Giảm giá BS = max(0, Giá gốc − Phải thu − voucher của phiếu).
+  - Giữ nút Áp dụng cho Giảm giá thu ngân: tổng chỉ đổi sau khi bấm.
+  - Bấm bất kỳ đâu trên đầu thẻ (tên, giá, Còn nợ) để tick / bỏ tick. Bấm vào chính ô checkbox vẫn để checkbox tự xử lý.
+- **Sửa — FE** (không đổi BE):
+  - `paymentDialogModel.ts`: `listAmount` dùng `originalPrice || price`. Thêm `slipVoucherOf`, `doctorDiscountOf`.
+  - `paymentRoundMoney.ts`: Tổng tiền = Σ Giá gốc. BS = Σ `doctorDiscountOf`. Voucher = voucher của phiếu + voucher chọn ở đợt này. Tổng sau giảm giữ nguyên Σ(Phải thu − TN − phần voucher đợt), bằng đúng công thức BA.
+  - `ServiceCard.tsx`: thẻ BS giảm dùng `doctorDiscountOf`. `.pd-newpay-card-row` bắt click để tick / bỏ tick.
+  - `patient-detail.css`: đầu thẻ phủ cả padding trên của thẻ, con trỏ tay, viền đậm lên khi rê chuột vào thẻ chưa tick.
+  - `treatmentPlanApi.ts`: ghi chú `catalogPrice` không còn được Tạo phiếu thanh toán đọc.
+- **E2E** (bản build production `vite preview` cổng 8197 → host Development riêng :5197 → PostgreSQL thật, không chặn API):
+  - `payment-rounds` mới, ca "Giá gốc is the slip's, not Danh mục's; the slip voucher is Voucher, not BS giảm; the card head ticks it (R-1102)" → **xanh**. Dữ liệu và kiểm tra:
+    - Dòng 1: giá 1.000.000 đ trên phiếu, Danh mục 500.000 đ, BS không giảm. Dòng 2: 500.000 đ, BS giảm 50.000 đ. Voucher 100.000 đ trên phiếu.
+    - Thẻ ghi đúng Giá gốc của phiếu. Chỉ dòng 2 có "BS giảm 50.000 đ".
+    - Bấm vùng giá thì tick, bấm lần hai thì bỏ tick. Bấm tên thì tick. Bấm Còn nợ của thẻ 2 thì tick.
+    - Tổng tiền 1.500.000, BS 50.000, TN 0, Voucher 100.000, sau giảm 1.350.000, Còn nợ 1.350.000.
+  - Helper `provision` của `payment-rounds`: tạo voucher trước phiếu, thêm tuỳ chọn gắn voucher lên phiếu và `catalogPrice` khác giá phiếu.
+  - `payment-rounds` (3 ca) + `payment-amount-select` → **4/4 xanh**.
+  - `treatment-plan-detail` "a discounted slip is collected at its after-discount price, never the gross one": sửa phép kiểm tra Giá gốc sang `originalPrice` → **xanh**.
+  - `tsc` sạch. eslint thư mục create-payment sạch.
+  - Ghi chú môi trường: host :5000 dùng chung đang chạy không có `ASPNETCORE_ENVIRONMENT=Development`, nên thiếu `ReceiptVault:Key` (Billing:0107). Hai ca chốt / huỷ phiếu thu chỉ xanh trên host Development.
+- **Mức retest**: 2.
+- Chỉ trên develop.
+
+## R-1103 (2026-11-01, mức 2: F-84 Phiếu thu P2610 / P2910_02) Xuất phiếu thu xong quay lại tab Thanh toán vẫn "Chưa thanh toán" tới khi F5
+
+- **Báo lỗi** (chủ dự án, ảnh 2026-11-01): xuất phiếu thu xong bấm quay lại, dòng phiếu trên tab Thanh toán của phiếu điều trị vẫn "Chưa thanh toán", không có ✓. F5 mới thấy "Đã xuất phiếu thu".
+- **Nguyên nhân**: `useExportReceipt` chỉ làm mới `paymentReceiptKeys.detail(id)`. Danh sách phiếu thu của phiếu điều trị (`treatmentKeys.payments`) còn tươi theo `staleTime` 5 phút toàn cục, nên Back đọc lại bản cũ ở trạng thái Pending, và `actionsFor` không đưa ✓ cho Pending.
+- **Sửa — FE** (không đổi BE): `paymentReceiptApi.ts` `useExportReceipt` dùng `meta: { invalidates: ["payment"] }` như ✓ Xác nhận thanh toán. Cả entity "payment" (danh sách phiếu thu của phiếu, sổ thu, báo cáo, trang phiếu thu) đọc lại.
+- **E2E** (bản build production `vite preview` → host Development riêng :5160 → PostgreSQL thật, không chặn API):
+  - `receipt-paper-sign` ca mới "Back from an export: the slip's Thanh toán tab reads Đã xuất phiếu thu and offers ✓ without F5". Bản chưa sửa (8192) **đỏ** đúng ở bước sau `goBack`. Bản đã sửa (8191) **xanh**.
+  - Hồi quy `receipt-paper-sign`, `receipt-page`, `receipt-exported`, `receipt-cancel`, `receipt-export` (workers=1) → 11/12 xanh.
+  - Ca đỏ `receipt-page` "steps follow the status": bản chưa sửa cũng đỏ y hệt. Nguyên nhân là DB local còn iPad đã ghép chưa thu hồi ("4234", "Ipad 3", "4324", "iPad e2e 245685"), nên `SendIfFreeAsync` tự gửi phiếu mới sang iPad và thanh tiến trình có 2 bước xong thay vì 1. Lỗi do dữ liệu, không do bản sửa này.
+- **Mức retest**: 2.
+- Chỉ trên develop (main chưa có P2610).
+
+## R-1104 (2026-11-01, mức 2: F-87 P0111_02) Tab Thanh toán của phiếu điều trị — bỏ Tạm ứng / Dư nợ, thêm Khuyến mãi
+
+- **Yêu cầu** (BA `P0111_02.drawio`): đầu tab Thanh toán bỏ Tạm ứng và Dư nợ, thêm **Khuyến mãi** (cam).
+- **Quyết định chủ dự án** (2026-11-01): Khuyến mãi = TN giảm + voucher của phiếu thu **đã xác nhận**, tính **trước VAT** (VAT nằm trong giá, ở lại Công nợ).
+- **Sửa — BE**: `PaymentSummary.Promotion` mới; `PatientMoneyCalculator` điền `promotion: plan.ReliefOn(settled)` cho phiếu, nhóm dòng và tổng bệnh nhân. DTO `PatientTreatmentDtos` có `promotion`.
+- **Sửa — FE**: `PlanDetailHead.tsx` 5 ô (bỏ Tạm ứng, Dư nợ; thêm Khuyến mãi màu cam), `plan-detail.css`.
+- **Test**: Domain `PaymentRoundTests` (Promotion). E2E `treatment-plan-detail` 13/13 (bản build production `vite preview` :8080 → host :5000 **Development** → PostgreSQL thật, không chặn API); ca "under 640px…" sửa `.pdt-stat` 6 → 5.
+- **Mức retest**: 2. Chỉ trên develop.
+
+## R-1105 (2026-11-01, mức 1: F-87 P0111_02) LỊCH SỬ ĐIỀU TRỊ — cột Hành động lệch dòng
+
+- **Nguyên nhân**: track `fr` trơn giãn theo nội dung rộng nhất; ô có Tạo Labo + "BN có n phiếu" đẩy dòng lệch tiêu đề.
+- **Sửa — FE**: `patient-detail.css` track `minmax(0, …)` dùng chung tiêu đề và dòng; `stage-labo.css` nút và số phiếu cùng một dòng, số phiếu xuống dòng khi ô hẹp.
+- **Mức retest**: 1.
+
+## R-1106 (2026-11-01, mức 2: F-87 P0111_02) Labo Đặt hàng — cảnh báo răng đã có phiếu Labo khác của phiếu điều trị
+
+- **Yêu cầu**: răng đã nằm trên phiếu Labo khác (chưa huỷ) của cùng phiếu điều trị → chip cam + khung "R11 đã có phiếu Labo trước đó", mã phiếu, «Xem phiếu ›». **Chỉ cảnh báo, không chặn.**
+- **Sửa — BE**: danh sách phiếu Labo nhận `TreatmentPlanId` (lọc qua dòng dịch vụ của phiếu điều trị, vì phiếu Labo chỉ gắn dòng).
+- **Sửa — FE**: `laboPriorTeeth.ts` (phiếu mới nhất trước), `LaboPriorOrderWarning.tsx`, `LaboToothRow` / `LaboOrderStep` / `useLaboOrderStep`, `labo-order-rows.css`. «Xem phiếu» mở dialog chi tiết của phiếu trước chồng lên, Esc đóng, popup đang làm vẫn giữ.
+- **E2E**: `labo-workflow` ca mới "a tooth already on another order of the slip is flagged, not blocked" → **xanh** (bản build production `vite preview` :8080 → host :5000 **Development** → PostgreSQL thật, không chặn API). Dialog chi tiết không in mã phiếu, nên ca này nhận phiếu trước qua "Răng 11, 21".
+- **Mức retest**: 2.
+
+## R-1107 (2026-11-01, mức 1: F-87 P0111_02) Sơ đồ răng Labo — nút Hủy / Chọn răng
+
+- `labo-teeth-chart.css`: hai nút nằm bên phải, có khoảng đệm quanh chữ. **Mức retest**: 1.
+
+## R-1108 (2026-11-01, mức 2: F-87 P0111_02) Labo — "Gửi Labo & in phiếu" → "Tạo phiếu Labo", không tự in
+
+- **Sửa — FE**: nhãn nút mới; xoá `LaboAutoPrint.tsx`, gửi xong không mở bản in. "In Phiếu Labo" vẫn ở dialog chi tiết.
+- **E2E**: `labo-workflow` bỏ helper đếm lệnh in, đổi tên nút; `patient.spec` "Tạo Labo opens Đặt hàng…" đổi tên nút → **xanh**.
+- **Mức retest**: 2.
+
+## R-1109 (2026-11-01, mức 1: F-87 P0111_02) Ô răng Labo — bỏ ô màu
+
+- `LaboToothCells.tsx`: màu răng chỉ còn chữ. **Mức retest**: 1.
+
+## R-1110 (2026-11-01, mức 2: F-87 P0111_02) Kiểm tra Labo — Tải ảnh trên răng Đạt
+
+- **Quyết định chủ dự án**: chỉ hiện trong popup Labo (bước 2).
+- **Sửa — FE**: `LaboToothPictureButton.tsx` "Tải ảnh (n/5)", tối đa 5 ảnh; `LaboPictureGallery.tsx`; `LaboToothCheckRow`, `useLaboCheckForm`, `laboCheckRules`. Ảnh lưu cùng ảnh của đợt, có `toothNumber`. **BE**: `LaboAppService` / `LaboOrderDto` nhận ảnh của răng Đạt.
+- **E2E**: `labo-workflow` bước mới: R11 Đạt tải 1 ảnh → "Tải ảnh (1/5)", 1 ảnh; sau trả hàng đợt 1 có ảnh của R11 và R21 → **xanh**.
+- **Mức retest**: 2.
+
+## R-1111 (2026-11-01, mức 2: F-87 P0111_02) Ảnh công đoạn — chỉ xoá được trong ngày tải lên
+
+- **Quyết định chủ dự án**: "khi ngày upload = ngày hiện tại; nếu qua ngày rồi thì không cho xoá nữa".
+- **Sửa — BE**: `PatientImage.IsDeletableOn(DateOnly)` (ảnh có `TreatmentStageId` chỉ xoá khi `UploadedOn` = hôm nay theo `ClinicCalendar`) và `EnsureDeletableOn` → lỗi mới `BlueDental:Patient:0036` (vi/en). `PatientImageDto.Deletable`. Ảnh không gắn công đoạn không đổi.
+- **Sửa — FE**: `StageHistoryShots.tsx` + `useStageImageDelete.ts`: nút × "Xóa ảnh" chỉ khi `deletable`, xác nhận "Xác nhận xoá ảnh", toast "Đã xoá ảnh".
+- **Test**: Domain `PatientImageTests` (đúng ngày / qua ngày / ảnh không gắn công đoạn). E2E `patient.spec` ca mới "a công đoạn picture carries its × on the day it was uploaded and is deleted by it" → **xanh**.
+- **Mức retest**: 2.
+
+## R-1112 (2026-11-01, mức 1: F-87 P0111_02) Kiểm tra Labo — bỏ "· bật sau khi lắp"
+
+- Dòng còn "BH Labo: chưa kích hoạt". E2E `labo-workflow` kiểm tra không còn chữ đó. **Mức retest**: 1.
+
+## R-1113 (2026-11-01, mức 1: F-87 P0111_02) Kiểm tra Labo — ô ảnh lỗi theo mockup
+
+- `LaboToothDefectGroup.tsx`, `LaboPictureWell.tsx`, `labo-check.css`: ô ảnh theo mockup, đếm "n/5". E2E `labo-workflow` kiểm tra "1/5". **Mức retest**: 1.
+
+## R-1114 (2026-11-01, mức 2: F-87 P0111_02) Popup Chọn dịch vụ dựng lại theo mockup
+
+- **Nguồn**: mockup "Chọn dịch vụ - popup-html". **Quyết định chủ dự án**: Đơn giá và Giảm giá vẫn sửa được; tab Combo đồng bộ cùng bố cục.
+- **Sửa — FE** (`treatment-management/components/advise/`):
+  - Mới: `AdviseSideNav` (nav "Nhóm dịch vụ", tab "Dịch vụ lẻ (n)" / "Combo (n)", "Tất cả" đầu), `AdviseToolbar` (tìm, "Chỉ xem đã chọn", đếm), `AdvisePickerPane`, `AdviseTableShell`, `AdviseComboTable`, `AdviseQtyStepper`, `AdviseSelectedPanel` + `AdviseSelectedCard` (cột phải "Dịch vụ đã chọn", Bỏ chọn tất cả, tổng, "Lưu n dịch vụ"), `useAdviseStaff`.
+  - Xoá: `AdviseGroupPicker`, `AdvisePickerHead`, `AdviseComboGrid`, `AdviseSummaryFooter`, `splitChipRows`, `hooks/useChipScroller` (dải chip nhóm và thẻ tổng dưới bảng không còn).
+  - `AdviseQuickCreate`: nút chữ "+ Thêm dịch vụ" / "+ Thêm combo" thay nút tròn có tooltip.
+- **E2E** cập nhật theo popup mới: `consulting-delete-and-picker` (nav thay dải chip, "Tất cả" thay bấm lại chip), `catalog-combo` (combo là dòng có checkbox), `service-quick-create` (tên nút mới, combo tick ở dòng), `consulting-review` không đổi. Tất cả **xanh** (bản build production `vite preview` :8080 → host :5000 **Development** → PostgreSQL thật, không chặn API).
+- **Giới hạn có sẵn**: tab Combo dừng ở 100 combo (`COMBO_LIMIT`), không có tải thêm.
+- **Mức retest**: 2.
+
+## R-1115 (2026-11-01, mức 2: F-87 P0111_02) Chọn Dịch Vụ — Chẩn đoán trống, nút Hủy lệch style, badge tràn, responsive
+
+- **Lỗi**: ô Chẩn đoán của popup trống khi mở từ phiếu vừa tạo/sửa; nút Hủy là `<button>` tự chế; badge "-%" ở cột Tiết kiệm (tab Combo) tràn ra khỏi ô; popup vỡ ở màn hẹp.
+- **Nguyên nhân**: Create/Update/in/đánh dấu đã điều trị/huỷ của `PatientDiagnosisAppService` trả DTO chưa điền tên (`diagnosisName` null); chỉ GetList điền.
+- **Sửa — BE**: `PatientDiagnosisAppService.ToNamedDtoAsync` (MapToDto + FillNamesAsync) dùng cho Get/Create/Update/UpdatePrintContent/MarkTreated/Cancel.
+- **Sửa — FE**: `AdviseSelectedPanel` Hủy = AntD `Button` (`.ant-btn.am-cancel`); `advise-modal.css` badge `.am-save-pct` xuống dưới số tiền; media 1440 / 1280 / 1100 / 768 / 640 (nav thành hàng pill, panel phải xuống dưới bảng).
+- **Kiểm chứng**: ảnh chụp các mức rộng trên dev server :5173 → host :5000 Development → PostgreSQL; e2e ở R-1116. **Mức retest**: 2.
+
+## R-1116 (2026-11-01, mức 2: F-87 P0111_02) Chọn Dịch Vụ — tab Combo có danh sách nhóm riêng
+
+- **Yêu cầu chủ dự án**: combo thuộc nhóm dịch vụ nhưng tab Combo không có cột nhóm; mỗi tab đếm đúng loại của mình.
+- **Sửa — BE**: `TaxonomyDto.ComboCount` (số combo sống trong nhóm, `CountEntriesAsync` đếm cùng lúc `Total`/`Combo`); `GetTaxonomyListInput.HasCombo` = chỉ nhóm có ít nhất một combo sống.
+- **Sửa — FE**: `useAdviseGroups` (mới) — danh sách nhóm theo trang, mỗi tab giữ lựa chọn riêng; Dịch vụ lẻ đếm `itemCount - comboCount`, Combo đếm `comboCount` và chỉ liệt kê nhóm có combo (`useTaxonomyGroupPages(..., withCombos)`); `useCatalogComboOptions(search, enabled, taxonomyId)` lọc combo theo nhóm; `AdviseSideNav` hiện danh sách nhóm ở cả hai tab; "Thêm combo" mặc định nhóm đang chọn.
+- **E2E** `catalog-combo` test mới (API `hasCombo` + `comboCount`; Dịch vụ lẻ đếm 2; Combo chỉ có nhóm có combo, đếm 1, tải hết trang vẫn không có nhóm lẻ; chọn nhóm còn đúng combo đó; quay lại Dịch vụ lẻ vẫn "Tất cả"). Nhóm test tạo với `sortOrder: 100000` để `firstGroup()` của test khác không rơi vào. Dev server :5173 → host :5000 Development → PostgreSQL thật, không chặn API: `catalog-combo` 4/4, `consulting-delete-and-picker` + `service-quick-create` + `diagnosis-quick-create` + `consulting-review` 15/15. `tsc -b`, eslint sạch.
+- **Mức retest**: 2 (đụng `useCatalogOptions` dùng chung: các picker nhóm khác chỉ thêm trường `comboCount`).
+
+> Ghi chú môi trường (R-1104..R-1114): `dotnet run --environment Development` **không** đặt hosting environment (cờ đó của `dotnet run` là biến môi trường); host lên Production, thiếu `ReceiptVault:Key` → Billing:0107. Chạy host bằng `ASPNETCORE_ENVIRONMENT=Development`. Hai ca đỏ khi chạy 2 worker (`consulting-delete-and-picker` Xoá phiếu chẩn đoán, `treatment-plan-detail` finished công đoạn) là timeout 5 s do tải; chạy 1 worker đều xanh.
+
+## R-1117 (2026-11-01, mức 2: F-85/F-86 Labo) Dialog Labo 3 bước theo mockup Labo 1–3
+
+- **Yêu cầu chủ dự án**: dialog Labo (Đặt hàng · Nhận hàng & kiểm tra · Bảo hành) giống mockup `docs/Labo 1–3 *-html` về style và bố cục; logic giữ nguyên, phần UI mới trong mockup bỏ qua.
+- **Sửa — FE (chỉ giao diện)**: `workflow/labo-workflow-theme.css` (mới, scope `.pd-labo-workflow`): dialog 1320×836, head/dải phiếu/foot cố định, các cột tự cuộn; label nằm trên ô 36px; màu indigo `#4F46E5`. Stepper lên cùng hàng tiêu đề, bước đã xong có tick xanh (`isStepDone`, chỉ hiển thị: Đặt hàng khi hết Nháp, Kiểm tra khi mọi răng Đạt, Bảo hành khi mọi răng có thẻ). Bước 1: cột trái "Thông tin phiếu" + Dịch vụ/Vật liệu/Răng, cột phải Thông số từng răng + Nội dung cạnh Ảnh đính kèm chung (`LaboOrderFields` tách `LaboTeethField` / `LaboOrderSpecs`). Bước 2: lịch sử nhận hàng thành thẻ theo lần giao ở cột trái (cùng dữ liệu `toothHistoryRows`, mỗi răng vẫn là `tbody tr`), A/B/C bên phải. Bước 3: tab "Kích hoạt bảo hành" (chọn răng · form thẻ · thẻ) và "Thẻ bảo hành theo từng răng (N)" (thẻ + bảng).
+- **E2E**: `labo-workflow` thêm bước bấm tab "Thẻ bảo hành theo từng răng" trước khi đọc bảng thẻ. Bản build production (`vite preview` :8080) → API :5000 (Docker, nhánh develop) → PostgreSQL thật, không chặn API: `labo-workflow`, `labo-detail`, `labo-tab-list`, `labo-material-search`, `tooth-jaw-caption` xanh; `labo-orders-actions` 2/3 — ca "a sent order's pictures…" đỏ do mask xem ảnh ở bảng Mẫu Labo chặn click, **cũng đỏ trên develop gốc** với cùng dữ liệu local (không do thay đổi này). `tsc`, eslint sạch.
+- **Mức retest**: 2.
+
+## R-1118 (2026-11-01, mức 1: F-85 Labo) Ô "Tải ảnh" cố định bên trái dãy ảnh
+
+- **Yêu cầu chủ dự án**: khi đã tải ảnh, ô tải ảnh phải nằm cố định bên trái (như mockup Labo 1), không bị đẩy ra sau các ảnh.
+- **Sửa — FE (chỉ CSS)**: bỏ `order: 1` trên `.pd-labo-row .pd-labo-well` (Ảnh đính kèm chung) và `.pd-labo-cellwell` (cột Ảnh của Thông số từng răng); trong DOM ô tải ảnh vốn đứng trước dãy ảnh.
+- **Kiểm chứng**: chọn 2 ảnh nháp trên phiếu Nháp, ô tải ảnh ở x nhỏ nhất, ảnh xếp sau. Bản build production :8080 → API :5000 → PostgreSQL thật: `labo-workflow` 5/5, `labo-detail` 1/1, `labo-orders-permissions` 1/1.
+- **Mức retest**: 1.
+
 ## R-1119 (2026-11-02, mức 2: F-02 Bệnh nhân + F-69 Xuất/nhập danh sách) Mã khách hàng tự tăng lại, số gõ tay không làm lệch dãy
 
 - **Yêu cầu** (BA, qua chủ dự án): ô "Mã khách hàng" tự tăng lại (51 → 52). Người dùng vẫn được gõ số khác, ví dụ 200, và hệ thống check trùng. Dãy tự động vẫn chạy tiếp 53; khi chạy tới 200 thì bỏ qua, sang 201. Đảo lại phần "không tự tăng" của R-1078.
@@ -12444,6 +13152,151 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Kết quả: `patient-code-check`, `patient-roster-api`, `patient-national-id*`, `patient-scan-id*`, `patient-shared-phone-ui` → **30/30 xanh**.
   - `tsc -p tsconfig.app.json` → sạch. eslint các file đổi → sạch (eslint cả thư mục báo 1 lỗi có sẵn ở `PatientProfileTab.tsx`: thiếu rule `react-hooks/exhaustive-deps`, không do R-1119).
 - **Mức retest**: 2 (F-02 dialog hồ sơ + F-69 cấp mã khi nhập).
+
+## R-1120 (2026-11-02, mức 2: F-86 tab Bảo hành + F-85 popup Labo) Nút "Xem chi tiết" trên PHIẾU BẢO HÀNH ĐÃ KÍCH HOẠT, popup Bảo hành chỉ xem
+
+- **Yêu cầu chủ dự án**: cột thao tác của bảng PHIẾU BẢO HÀNH ĐÃ KÍCH HOẠT (tab Bảo hành của phiếu điều trị) thêm nút **Xem chi tiết**. Bấm vào mở popup Bảo hành để xem lại thông tin bảo hành. Popup **chỉ xem**, không sửa được gì.
+- **Chủ dự án chốt (1.A, 2.A, 3. theo đề xuất)**:
+  - Thẻ **Labo** → popup Labo 3 bước, mở ở bước Bảo hành, chế độ chỉ xem. Vẫn xem được cả 3 tab, nhưng khoá hết: không Hủy phiếu, Lưu nháp / Tạo phiếu, nút kiểm tra, tab Kích hoạt, nút Kích hoạt. "In Phiếu Labo" vẫn dùng được. Răng của thẻ vừa bấm được tô nổi.
+  - Thẻ **Nha khoa** → popup mới, cùng khung bước 3 Labo: các thẻ nha khoa của dòng + bảng, thẻ vừa bấm tô nổi, chỉ nút Đóng. Không đổi BE.
+  - Cột đổi tên **Thao tác**, Xem chi tiết nằm trên Lịch sử ↓. Popup mở bằng state cục bộ, không qua URL: F5 không mở lại.
+- **Sửa — FE**:
+  - `LaboWorkflowTarget` thêm `readOnly` + `focusTooth`. Mỗi bước gate cờ "được sửa" bằng `!readOnly` (`useLaboOrderStep`, `useLaboCheckForm`/`LaboCheckStep`, `useLaboWarrantyForm`). `LaboOrderStep` ẩn Hủy phiếu khi chỉ xem.
+  - Mặt thẻ tách thành component chung `labo/components/warranty/WarrantyCardFace.tsx` (aria-label "Thẻ bảo hành · {mã}", `aria-current` khi được tô). `LaboWarrantyCard` và popup nha khoa đều dùng nó.
+  - `plan-warranty/WarrantyCardViewer.tsx` chọn popup theo loại thẻ. Mới: `DentalCardsViewDialog.tsx` + `dentalCardView.tsx`. `planWarrantyView.lineHeadline` dùng chung với `ServiceWarrantyDialog`.
+  - Key mới `Treatment:Warranty:ViewDetail` (vi "Xem chi tiết", en "View details"); tiêu đề cột dùng `Common:Actions`.
+  - CSS: `.pwt-actions--end` (căn phải, cách 4px) chỉ cho bảng thẻ. Bảng TÌNH TRẠNG dùng `.pwt-actions` vẫn giữ nguyên.
+- **E2E** (bản build production `vite preview` :8190 → host :5000 → PostgreSQL thật, không chặn API):
+  - `plan-warranty-tab` thêm ca "Xem chi tiết opens each card's warranty dialog, view only, on the card pressed (R-1120)". Phiếu có 1 dòng dịch vụ có thẻ nha khoa R46, và 1 dòng Labo R11 + R21, chỉ kích hoạt R11.
+  - Thẻ Labo: popup mở bước Bảo hành, thẻ R11 `aria-current`, R21 chưa kích hoạt. Không có tab / nút Kích hoạt, không có ô chọn file. Tab kiểm tra không có Đạt. Tab Đặt hàng còn "In Phiếu Labo", không có Hủy phiếu / Lưu nháp / Tạo phiếu. URL không đổi.
+  - Thẻ nha khoa: tiêu đề "Bảo hành dịch vụ", thẻ "Răng 46" `aria-current`, dòng tô có mã + "Còn hiệu lực". Không có ô nhập, không có nút Kích hoạt / Lưu. Đóng thì đóng popup. F5 → không có popup nào mở.
+- **Kết quả**:
+  - `plan-warranty-tab` **4/4 xanh**. `tsc -p tsconfig.app.json` sạch, eslint các thư mục labo + plan-warranty sạch.
+  - Mức 2 (13 spec Labo + bảo hành, 60 test): 57/60 xanh. 3 đỏ không do R-1120, đã chạy lại trên bản build HEAD (:8191) cùng host:
+    - `labo-api:340`: BE trả `Labo:0025` thay vì `0020`. Test API, đỏ y hệt trên HEAD.
+    - `labo-material-search:204`: "6 vật liệu" thay vì 4, do DB dùng chung đã có thêm vật liệu. Đỏ y hệt trên HEAD.
+    - `labo-orders-actions:141`: lớp phủ xem ảnh chặn click. Chập chờn 1/2 trên cả hai bản build.
+  - Lượt đầu có thêm 3 đỏ do host :5000 khởi động trước khi có key `Treatment:PlanDetail:Labo:Others` của R-1121 (409/500 chạy song song). Restart host thì xanh.
+- **Mức retest**: 2 (F-86 tab Bảo hành + F-85 popup Labo, vì đổi chung các bước của popup).
+
+## R-1121 (2026-11-02, mức 2: F-85/F-86 Labo trên phiếu điều trị) Cột "Phiếu Labo" chỉ hiện phiếu Chờ kiểm tra cũ nhất
+
+- **Yêu cầu chủ dự án**: cột "Phiếu Labo" ở tab Chi tiết điều trị của phiếu (DTxx) hiện phiếu Labo đang **Chờ kiểm tra**. Có nhiều phiếu thì hiện phiếu có **ngày tạo phiếu** cũ nhất. Kiểm tra xong phiếu đó thì hiện phiếu chờ kiểm tra cũ kế tiếp (A ngày 1, B ngày 3, C ngày 2 → A; A xong → C).
+- **BA chốt**: không có phiếu nào chờ kiểm tra thì ẩn hẳn, để trống ô (không hiện mã, không hiện "–").
+- **Giả định (cần chủ dự án xác nhận)**: dòng chưa có phiếu Labo nào, hoặc chỉ có phiếu đã huỷ, vẫn hiện "Không áp dụng" như cũ.
+- **Sửa — FE**:
+  - `PlanLaboCell` lấy phiếu Chờ kiểm tra đầu tiên trong `labOrders`. BE đã trả các phiếu theo `CreationTime` tăng dần, nên không đổi BE/DTO.
+  - Không còn phiếu chờ kiểm tra thì trả về rỗng.
+  - Nhãn "+N phiếu trước · Xem tất cả ›" đổi thành "+N phiếu khác · Xem tất cả ›" (key `Treatment:PlanDetail:Labo:Others`, thay `…:Older`), vì phiếu hiện ra không còn là phiếu mới nhất.
+  - Kiểm tra xong trong dialog thì ô tự đổi sang phiếu kế, không cần F5 (meta `invalidates: ["laboOrder"]` sẵn có).
+- **Hệ quả**: phiếu Đã gửi / Hoàn thành / Bảo hành không mở được từ ô này nữa; mở qua tab Labo của bệnh nhân ("Xem tất cả ›").
+- **E2E** (bản build production cổng 8121, host riêng :5121, DB thật, không chặn API):
+  - `labo-workflow` thêm ca mới: 4 phiếu A, B, C, D tạo lần lượt; nhận B, C, A (A sau cùng); D để ở Labo. Ô hiện A + "+3 phiếu khác". Xác nhận đạt A ngay từ ô → hiện B không cần reload, và sau reload vẫn là B. Đạt B → C. Đạt C → ô trống, D vẫn Đã gửi.
+  - Hai ca cũ đổi kỳ vọng: phiếu Đã gửi và phiếu Bảo hành → ô trống.
+  - Kết quả: `labo-workflow` **6/6 xanh**. `tsc -p tsconfig.app.json` sạch, eslint các file đổi sạch.
+- **Mức retest**: 2.
+
+## R-1122 (2026-11-02, mức 3: F-88 — F-38 công đoạn, F-85 Labo, F-86 tab Bảo hành) Bảo hành Labo không kéo trạng thái dòng dịch vụ; chặn Bảo hành dịch vụ khi Labo chưa xong
+
+- **Hiện tượng (staging)**: hồ sơ DH2601112026, phiếu DT01-02 "Trám răng thẩm mỹ – Hàm trên" đứng mãi ở "Đang điều trị", không có nút "Bảo hành dịch vụ". Nguyên nhân: công đoạn bảo hành Labo "Bảo hành 1" đang mở được tính vào trạng thái dòng.
+- **BA chốt (chat 2026-11-02)**: bảo hành Labo là của bên thứ ba, chỉ là trạng thái phụ của dịch vụ. Bảo hành dịch vụ là chốt cuối của dòng.
+- **Sửa — BE**:
+  - `TreatmentStage.IsLaboWarranty`.
+  - `ServiceLineProgress.Move` (domain) bỏ qua công đoạn bảo hành Labo, dù mở hay đã xong. Dòng chỉ còn bảo hành Labo (ví dụ dòng hoàn thành tay) → không đổi trạng thái.
+  - Kích hoạt Bảo hành dịch vụ khi dòng còn phiếu Labo chưa huỷ, chưa đạt QC → `BlueDental:Treatment:0062`. Ô Dịch vụ ở tab Bảo hành = Chưa đủ điều kiện (`ServiceWarrantyCard.LaboUnfinished`).
+  - `BlueDentalLaboWarrantyLineSeeder` (chạy trong DbMigrator, idempotent) tính lại các dòng đã bị kéo về.
+- **Lệch bản gốc có chủ ý**: bản gốc gộp bảo hành Labo vào trạng thái dịch vụ. Đã ghi ở `docs/clone/pages/labo.md` §Deliberate divergences.
+
+## R-1123 (2026-11-02, mức 3: F-88) Trong một dòng dịch vụ chỉ công đoạn có Ngày điều trị mới nhất được Hoàn thành / Tạo Labo
+
+- **BA chốt**:
+  - Khoá theo ngày trong **một dòng dịch vụ**, không theo răng.
+  - Dòng cũ hơn: Hoàn thành / bỏ Hoàn thành bị khoá; Tải ảnh, Nội dung, Ghi chú vẫn sửa được.
+  - Nhập ngày quá khứ vẫn được: dòng chỉ bị khoá nếu đã có dòng mới hơn.
+  - Lối ra: Tiếp tục công đoạn sang ngày mới nhất.
+  - "+n phiếu trước · Xem tất cả ›" mở tab Labo của bệnh nhân.
+- **Sửa — BE**:
+  - `StageDateLock` (domain), DTO `isDateLocked`.
+  - `complete` / `revert-status` trên dòng bị khoá → `Treatment:0063`.
+  - `LaboAppService` tạo phiếu từ dòng bị khoá → `0063`.
+  - Khoá theo ngày trả lời trước khoá Labo (`Labo:0031`).
+- **Sửa — FE**: `StageRowActions` làm mờ ô Hoàn thành, hiện ghi chú "Khoá: dịch vụ đã có công đoạn ngày mới hơn" (`.pd-stage-date-lock`), ẩn Tạo Labo trên dòng bị khoá. `StageLaboCount` thành link `?tab=labo`.
+- **Giả định (chưa hỏi BA)**: ẩn Tạo Labo trên dòng khoá; các dòng cùng ngày mới nhất đều mở; dòng đã "Tiếp tục" vẫn tính ngày; bảo hành Labo không khoá và không bị khoá. Ghi ở `docs/clone/unknowns.md`.
+- **Sửa spec cũ (không đổi ý nghĩa)**:
+  - `labo-api` REQ-A7: kiểm khoá Labo (`Labo:0031`) trước khi thêm dòng mới hơn, sau đó mới kiểm `isDateLocked`.
+  - `stage-treatment-date` R-951: tiếp tục công đoạn sang ngày mới hơn rồi mới Hoàn thành.
+  - `labo-workflow`: kiểm link "Xem tất cả ›".
+
+## R-1124 (2026-11-02, mức 3: F-88) Admin "Xóa công đoạn"
+
+- **BA chốt**: admin được xoá dòng lịch sử tạo nhầm (ví dụ tạo ngày 27 thay vì 28).
+- **Sửa — BE**:
+  - Quyền mới `treatmentStage.delete` ("Công đoạn › Xóa"), seed chỉ cho admin, có trong cây phân quyền.
+  - `DELETE /treatment-stages/{id}`: răng trả về công đoạn trước (`TreatmentStage.TakeBackTeeth`), dòng dịch vụ tính lại.
+  - Còn phiếu Labo chưa huỷ trên dòng → `0064`. Đã có công đoạn tiếp nối / bảo hành dựa trên nó → `0065`.
+  - Ảnh giữ lại.
+- **Sửa — FE**: nút đỏ "Xóa công đoạn" trên dòng còn sống, hỏi lại bằng `ConfirmDeleteDialog` (`useStageDelete`).
+- **Test (chung R-1122..R-1124)**: bản build production `vite preview` :8081 (bản build riêng ở scratchpad vì `dist/` đang bị preview :8080 của phiên khác giữ) → host :5000 Development → PostgreSQL thật, không chặn API.
+  - **Spec mới**:
+    - `e2e/stage-date-lock-api.spec.ts`: **7/7**.
+    - `e2e/stage-date-lock.spec.ts` (giao diện: dòng khoá + ghi chú + không Tạo Labo + Tải ảnh còn bật; Xóa công đoạn + xác nhận; reload → dòng cũ mở lại, dòng xoá 404): **1/1**.
+    - Helper chung `e2e/fixtures/stageDateLock.ts`.
+  - **Spec liên quan**:
+
+    | Spec | Kết quả |
+    |---|---|
+    | `warranty-stage-api` | 3/3 |
+    | `plan-warranty-api` | 7/7 |
+    | `stage-treatment-date` | 4/4 |
+    | `labo-workflow` | 6/6 |
+    | `treatment-stage-chain` | 9/9 |
+    | `labo-api` | 12/13 |
+
+    Ca đỏ `labo-api:340` (0025 vs 0020) là đỏ có sẵn, xem R-1120.
+  - **Hồi quy mức 3**: 21 spec `labo*` / `plan-*` / `stage-*` / `treatment-*` / `warranty-stage` / `medical-record-sheet-facts` → **83 xanh / 4 đỏ / 6 không chạy** (khối serial sau ca đỏ). Cả 4 ca đỏ không do F-88:
+    - `labo-material-search:204` (6 vật liệu thay vì 4, DB dùng chung) và `stage-staff-pickers:163` (nút Thanh toán đã bỏ từ R-956): đã ghi đỏ có sẵn ở R-1120 / R-1083.
+    - `plan-treating-scope:498` (thêm tab "Bảo hành" từ P3110) và `medical-record-sheet-facts:169` (Giảm giá = 0): chạy lại trên bản build HEAD 07161f05 (:8082, cùng host) → **đỏ y hệt**.
+  - **Backend**:
+    - Domain **1288/1288** (thêm `treatmentStage.delete` vào `BlueDentalAbilitiesTests`).
+    - Application lọc Labo/Treatment **199/199**.
+  - **Typecheck**: e2e sạch (trừ lỗi @types/node có sẵn).
+- **Mức retest**: 3. Develop, chưa commit.
+
+## R-1126 (2026-11-02, mức 3: F-88 vòng 2 — F-38 công đoạn, F-85 Labo) "Tiếp tục" lùi ngày thành lịch sử; Nội dung / Ghi chú sửa được trên mọi dòng; mọi chỉnh sửa có log
+
+- **BA chốt (vòng 2)**: "Cho phép chỉnh sửa hết — nhưng mọi chỉnh sửa có ghi log". Dòng ngày cũ vẫn khoá Hoàn thành / Tạo Labo nhưng Tải ảnh còn dùng được; logic tính theo từng dịch vụ; admin xoá được dòng nhầm.
+- **Sửa — BE**:
+  - "Tiếp tục công đoạn" có Ngày điều trị **cũ hơn** dòng gốc không bị từ chối: ghi thành lịch sử đóng băng (`TreatmentStage.IsBackfill`), không nhận răng; dòng gốc giữ răng và vẫn là dòng đang làm. Cùng ngày hoặc mới hơn → răng chuyển như cũ.
+  - `PUT /treatment-stages/{id}/note` và `/remark` nhận trên mọi dòng (đã Hoàn thành, đã Tiếp tục, bị khoá ngày).
+  - Bảng mới `TreatmentStageChangeLog` (sống lâu hơn công đoạn, không xoá mềm theo nó): thao tác 1..9 (sửa nội dung, ghi chú, công đoạn, Hoàn thành, bỏ Hoàn thành, tải ảnh, xoá ảnh, xoá công đoạn, sửa bước) + từng trường trước / sau. Ghi qua `TreatmentStageChangeRecorder`.
+  - Migration `20261102084709_StageBackfillAndChangeLogR1125` (cột `IsBackfill` + bảng log). Chạy DbMigrator trước host. (Tên migration mang số R1125 viết trước khi thấy R-1125 đã bị phiên khác dùng trên main — giữ nguyên vì đã áp vào DB local.)
+- **Sửa — FE**: bút chì Nội dung điều trị và Ghi chú hiện trên mọi dòng; Tải ảnh bật trên dòng đã Tiếp tục; dòng backfill admin vẫn xoá được.
+- **Sửa spec cũ (đổi theo yêu cầu BA mới)**:
+  - `treatment-stage-chain`: dòng đã Tiếp tục giờ có Tải ảnh bật và có bút chì "Sửa ghi chú".
+  - `stage-remark`: dòng đã Tiếp tục sửa Ghi chú qua bút chì và server lưu (trước đây bị từ chối). Ca dentist không quyền (không bút chì, 403) giữ nguyên.
+- **Test**: xem R-1127.
+
+## R-1127 (2026-11-02, mức 2: F-88) "Lịch sử chỉnh sửa" cho admin
+
+- **BA**: "hiển thị lịch sử chỉnh sửa để admin có thể coi".
+- **Chủ dự án**: chỉ một nút chung trên header LỊCH SỬ ĐIỀU TRỊ, không có nút ở từng công đoạn.
+- **Sửa — BE**:
+  - `GET /treatment-stages/change-logs?treatmentId=` — log cả phiếu, mới nhất trước, kể cả công đoạn đã xoá (tên dịch vụ, Ngày điều trị, cờ `stageDeleted`); tên bác sĩ / bước / người sửa đã dịch từ id (`TreatmentStageChangeDescriber`).
+  - `GET /treatment-stages/{id}/change-logs` — một dòng, cũ nhất trước.
+  - Cả hai cần quyền `treatmentStage.delete` (admin), kiểm chi nhánh.
+- **Sửa — FE**:
+  - Nút "Lịch sử chỉnh sửa" bên phải header LỊCH SỬ ĐIỀU TRỊ, cạnh "n công đoạn" — chỉ hiện khi có quyền Xóa công đoạn.
+  - Hộp thoại `StageChangeLogDialog` (khung giống "Lịch sử thay đổi" của Sơ đồ tổ chức): lọc Công đoạn (dòng đã xoá ghi "(Đã xóa)") và Thao tác; bảng Thời gian / Công đoạn / Thao tác / Trường thay đổi / Người sửa; mở rộng dòng → từng trường Trước → Sau. Phân trang chung `useTablePagination`.
+  - i18n `Patient:StageLog:*` ở BE vi/en.
+- **Test**: bản build production `vite preview` :8081 → host riêng :5005 Development (không đụng host :5000 của phiên khác) → PostgreSQL thật, không chặn API.
+  - **Spec mới**:
+    - `e2e/stage-backfill-log-api.spec.ts` (HTTP thật): **6/6** — Tiếp tục lùi ngày đóng băng, cùng ngày chuyển răng, sửa Nội dung / Ghi chú có log, ảnh + xoá công đoạn có log và log còn sau khi xoá, log cả phiếu đặt tên dòng + trường (dòng đã xoá cũng có), dentist không quyền → 403 cả hai endpoint.
+    - `e2e/stage-change-log.spec.ts` (trình duyệt): **1/1** — sửa Nội dung qua bút chì trên dòng khoá ngày, xoá dòng mới qua xác nhận, reload, mở nút header: 2 dòng mới nhất trước, "Đã xóa", mở rộng thấy Trước / Sau, lọc Thao tác, lọc Công đoạn, không có nút ở từng dòng, API trả cùng thứ tự.
+  - **Spec liên quan**: `stage-remark`, `treatment-stage-chain`, `stage-date-lock-api`, `stage-date-lock`, `stage-backfill-log-api`, `stage-change-log` → **26/26**.
+  - **Backend**: Domain lọc TreatmentManagement/Labo **380/380**, Application **195/195**.
+  - **Typecheck / lint**: `tsc -p tsconfig.app.json` sạch, ESLint các file đổi sạch.
+- **Còn mở**: các "Tiếp tục" lùi ngày tạo **trước** F-88 vẫn mang răng như cũ — chưa có seeder chuyển chúng thành backfill; hiện admin xử lý bằng Xóa công đoạn. Chờ chủ dự án quyết.
+- **Mức retest**: 3 (chung với R-1126). Develop, chưa commit.
 
 ## R-1125 (2026-11-02, mức 2: F-45 Tiếp nhận — Hẹn lại tái khám) Thêm chip 15 phút
 
@@ -12596,3 +13449,85 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `reception-arrival-call` + `reception-temporary` 6/6 trên bản build production, BE docker đã rebuild.
   - `lint:ts` sạch.
 - **Mức retest**: 2.
+
+## R-1137 (2026-11-03, mức 2: F-83 Thanh toán nhiều đợt — dialog Tạo phiếu thanh toán) Dòng "đợt này" gạch giá khi có TN giảm
+
+- **Yêu cầu** (owner, có ảnh mẫu): khi thu ngân nhập giảm giá, dòng Đợt N trong "Các đợt thanh toán" hiện giá cũ gạch ngang, giá mới màu cam, rồi nhãn "Chưa thanh toán".
+- **Trước**: dòng đợt này chỉ có số thu đợt này + nhãn; TN giảm chỉ thấy qua chip.
+- **Sửa** (chỉ FE):
+  - `PaymentRoundHistory` → `CurrentMoney`: khi `discount > 0` hiện `<s>` = số đợt này thu nếu không có TN giảm, dưới là số thu thật màu `--bd-orange`. Không có TN giảm thì như cũ.
+  - Số gạch ngang = số thu đợt này + phần TN giảm đã bớt **gồm VAT** (`lineFigures(line, 0, voucher).cap − cap`). Không tính voucher. Thu một phần thì gạch "phần thu + TN giảm" (owner duyệt theo đề xuất).
+  - Badge "Còn nợ" đầu thẻ giữ nguyên (owner duyệt theo đề xuất).
+  - **Bổ sung (owner, cùng ngày)**: "chỉ hiện lúc tạo, mở lại thì không hiện" → các đợt **đã tạo** có TN giảm cũng gạch giá. Số gạch = `line.amount` + `withTax(taxPercent, cashierDiscount)` (TN giảm lưu trước VAT trên dòng phiếu). Đợt không có TN giảm vẫn một số.
+- **Kiểm**:
+  - `payment-rounds.spec.ts` thêm assert: TN giảm 1.000.000 trên dịch vụ VAT 10% → ~~5.500.000~~ 4.400.000; thêm voucher 250.000 → ~~5.225.000~~ 4.125.000.
+  - Mở lại dialog sau khi tạo đợt 2 (phiếu Chưa thanh toán): Đợt 2 ~~5.225.000~~ 4.125.000, Đợt 1 không gạch.
+  - `payment-rounds` 3/3 trên bản build production (preview riêng cổng 8093), BE + DB thật.
+  - `tsc -b` + eslint sạch. Ảnh chụp thẻ khớp ảnh mẫu.
+- **Mức retest**: 2.
+## R-1136 (2026-11-03, mức 2: F-02 Danh mục — Dịch vụ / Combo, tab Bảo hành) Ô rich text "Nội dung bảo hành"
+
+- **Yêu cầu** (owner, có ảnh): master data dịch vụ, tab Bảo hành có thêm một rich text box "Nội dung bảo hành". Rich text nhưng ẩn các media.
+- **Sửa**:
+  - BE:
+    - `CatalogServiceConfig.WarrantyContent` + `SetWarrantyContent`, độ dài tối đa `CatalogServiceConfigConsts.MaxWarrantyContentLength` = 20000.
+    - DTO, `CatalogEntryParts.Apply`: null = giữ nguyên, nên nhập Excel không xoá nội dung.
+    - Mapping đọc, cấu hình EF, migration `ServiceWarrantyContentR1136` (chỉ thêm 1 cột).
+    - i18n `Taxonomy:Service:WarrantyContent(Placeholder)`.
+  - FE:
+    - `RichTextField` có prop `media` (mặc định true; các editor khác không đổi).
+    - `ServiceSettingsTabs` thêm `Form.Item warrantyContent`.
+    - `ServiceDialog` và `ComboDialog` nạp và gửi trường này qua `richTextForSave`.
+    - CSS trong `taxonomy.css`.
+- **Kiểm**:
+  - Domain tests 63/63, có test mới `Should_Keep_Warranty_Content_And_Clear_It_When_Blank`.
+  - E2E mới `taxonomy-warranty-content.spec.ts` 2/2, chạy trên bản build production (preview riêng 8090 → host 5100), DB thật:
+    - toolbar không có `.ql-image` / `.ql-video`;
+    - gõ chữ có in đậm, lưu, reload thì vẫn còn;
+    - xoá trắng thì DB lưu null;
+    - PUT không có trường thì nội dung cũ được giữ.
+  - Hồi quy §17: taxonomy*, payment-qr, branch-* được 89/95. 6 test đỏ:
+    - 5 test cũng đỏ trên bản build HEAD không có thay đổi này (preview 8091):
+      - `taxonomy-dialogs:104`: không thấy nhà cung cấp Labo trong dropdown.
+      - `taxonomy-dialogs:256`: chi nhánh không có nhóm dịch vụ.
+      - `taxonomy-dialogs:456`: `getByLabel('Khác')` đụng nút "Khách đã đến".
+      - `taxonomy-groups:169`.
+      - `taxonomy-import-api:708`.
+    - `taxonomy-dialogs:387` flaky, chạy lại thì xanh.
+  - `tsc` + eslint sạch.
+- **Mức retest**: 2.
+
+## R-1138 (2026-11-03, mức 2: F-86 P3110 — tab Bảo hành của phiếu điều trị) Dialog "Bảo hành dịch vụ" theo khung Kích hoạt bảo hành của Labo
+
+- **Yêu cầu** (owner, có ảnh): làm dialog Bảo hành dịch vụ giống phần bảo hành Labo, kèm các cập nhật gần đây của Labo. Owner đã chốt plan:
+  1. Thẻ dịch vụ không có mã hãng, nên khi bật Dùng chung chỉ còn 1 form chung kèm danh sách "Áp dụng cho".
+  2. Lấy theo các cập nhật Labo: chọn răng có tick, trạng thái đủ thông tin, nút › để nhảy tới form, "Tất cả", "Dùng chung 1 thông số cho tất cả răng" và "Xem trước thẻ bảo hành".
+  3. Cột phải giống Labo: thẻ đã kích hoạt màu tím, răng chưa có thẻ hiện thẻ xám "Chờ kích hoạt".
+- **Sửa** (chỉ FE):
+  - Dialog `plan-warranty/ServiceWarrantyDialog` chuyển sang khung 3 cột `pd-labo-workflow`, gồm:
+    - `ServiceWarrantyToothPicker` (1. Chọn răng kích hoạt);
+    - `ServiceWarrantyCardsSection` (2. Thẻ bảo hành, có Dùng chung);
+    - `ServiceWarrantyCardsAside`.
+  - `useServiceWarrantyForm` dùng lại `useWarrantySharing` của Labo.
+  - `dentalCardView.pendingDentalFace` dựng thẻ xám cho răng chưa có thẻ.
+  - `PlanWarrantyTab` truyền vào dialog các thẻ nha khoa của dòng.
+  - Mở rộng phần dùng chung của Labo, hành vi Labo không đổi:
+    - `LaboWarrantyCardFields` có `serial: "own" | "elsewhere" | "none"` và `catalogDays`.
+    - `cardEndDate` và `typedDurationText` (Theo danh mục = start + số ngày danh mục).
+    - Readiness tính "Theo danh mục" (months 0) là đã có thời hạn.
+  - Dòng không có răng: không có cột chọn răng; footer ghi "Nhập ngày bắt đầu và thời hạn rồi kích hoạt bảo hành"; nút "Kích hoạt bảo hành".
+  - i18n mới: `Treatment:Warranty:ShareHintOn`, `AppliesTo`, `FooterActivateLine`.
+- **Kiểm**:
+  - Chạy trên bản build production riêng: preview 8092 → host riêng 5091 build từ working tree (host :5000 chưa có key i18n mới). DB thật, không chặn route.
+  - `plan-warranty-tab.spec.ts` 6/6, trong đó có 2 test mới:
+    - Test 1:
+      - cột phải có 2 thẻ xám "Chờ kích hoạt";
+      - bỏ chọn "Tất cả" thì nút bị khoá, chọn lại thì đủ răng;
+      - bật Dùng chung: 1 form, có danh sách "Áp dụng cho", không còn form từng răng, có "Xem trước thẻ bảo hành";
+      - chọn 1 năm rồi kích hoạt 2 răng;
+      - F5: 3 thẻ; lịch sử có "Kích hoạt 2 thẻ" và "1 năm".
+    - Test 2: dòng không răng kích hoạt 1 thẻ, F5 vẫn còn.
+  - Test cũ chuyển sang chọn răng bằng checkbox. Lượt 2 có thêm kiểm tra cột phải: 1 thẻ tím R36 + 1 thẻ xám R37.
+  - Hồi quy Labo: `labo-workflow.spec.ts` 7/7.
+  - `tsc` + eslint sạch.
+- **Mức retest**: 2, có thêm hồi quy Labo vì đã sửa component bảo hành dùng chung.

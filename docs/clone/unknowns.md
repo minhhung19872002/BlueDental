@@ -3162,6 +3162,42 @@ Action taken: NONE on the reference. This is a deliberate departure (R-1039):
 - The calendar page's own "Chuyển đổi" chip follows the same rule. Owner, 2026-10-26: "đổi theo luôn". The owner also accepts that "Đã hẹn" and "Đã hẹn lại" sit side by side.
 The choices on cancelled and undated revisits are still to be confirmed by BA.
 
+## P2610 phase 4 — Ký phiếu thu trên iPad (F-81, R-1048, 2026-10-27, BA P2610)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/sign` (iPad), `/settings?tab=ipad` (Kết nối iPad), panel iPad trên `/billing/receipts/:id`
+Control: ghép iPad, màn PHIẾU THU trên iPad (2 ô xác nhận, Ký tên, Yêu cầu xuất hóa đơn), Gửi tới iPad / Gửi lại / Hủy phiên & sửa phiếu / Yêu cầu khách ký lại
+Reason: tính năng riêng của BlueDental theo `P2610.drawio`; bản gốc không có màn ký trên iPad. Xem `docs/testing/features/receipt-ipad-signing.md`.
+Action taken: NONE trên production. Chủ dự án đã chốt: trang web riêng `/sign`, ghép theo chi nhánh, một phiên mở mỗi chi nhánh, iPad bận thì thu ngân chờ hoặc hủy phiên rồi gửi, đầu trang chỉ logo + tên chi nhánh. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+- Phiếu mới tự gửi lên iPad khi chi nhánh có iPad đang rảnh. iPad bận thì không tự thay phiếu đang chờ.
+- Một chi nhánh ghép được nhiều iPad. Mọi iPad của chi nhánh hiện cùng một phiếu; iPad nào ký trước thì tính.
+- Mã ghép nằm sau `#` trong đường dẫn, nên không đi tới server log. iPad lưu mã trong trình duyệt (localStorage); xoá dữ liệu trình duyệt thì phải ghép lại. Server chỉ giữ SHA-256 của mã.
+- Thu hồi iPad có hiệu lực ngay ở lần gọi kế tiếp; iPad hiện "iPad chưa được kết nối", không mở màn đăng nhập.
+- Chữ ký lưu dạng ảnh PNG, mã hoá AES-256-GCM bằng khoá `ReceiptVault:Key`. Mất khoá = mất chữ ký đã lưu. Chưa có xoay khoá.
+- Câu chữ hai ô xác nhận và dòng "Xác thực" trên màn iPad lấy theo ảnh mock, chưa có bản chữ chính thức.
+- Yêu cầu xuất hóa đơn trên iPad: Doanh nghiệp giống form của nhân viên; Cá nhân hỏi Họ và tên, Số điện thoại, Số CCCD, email (không bắt buộc). Danh sách trường Cá nhân là giả định.
+- Ký lại: xoá chữ ký cũ, quay về bước ký (không phải bước kiểm tra lại 2 ô).
+- Sửa phiếu / hủy phiếu / xuất phiếu thì đóng phiên. Chỉ khi xuất, iPad hiện "Đã xuất phiếu thu" 15 giây rồi về màn chờ.
+- Chưa có panel kế toán: xuất phiếu vẫn qua nút ✓ tạm (`POST patient-payments/{id}/issue`).
+
+## P2610 phase 5 — Kế toán kiểm tra & xuất phiếu thu (F-81, R-1049, 2026-10-27, BA P2610)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/billing/receipts/:id` (panel "Kế toán kiểm tra & xuất phiếu thu"), `POST patient-payments/{id}/export`, `GET patient-payments/{id}/receipt-file`
+Control: Hình thức ký (Ký số / Không ký số), "Xuất phiếu thu" / "Ký số và xuất phiếu thu", "In phiếu thu" sau khi xuất
+Reason: tính năng riêng của BlueDental theo `P2610.drawio`; bản gốc không có bước xuất phiếu thu có chữ ký khách. Xem `docs/testing/features/receipt-export.md`.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+- Chỉ xuất được khi khách đã ký trên iPad trong phiên đang mở (chưa ký → `0112`). Không có đường xuất không cần chữ ký khách.
+- Ký số chưa làm (phase 7): lựa chọn hiện nhưng bị khoá, API trả `0113`. Không chọn sẵn hình thức nào; chưa chọn thì nút xuất bị khoá.
+- File xuất dùng mẫu PHIẾU THU `.docx` của F-56 (không phải tờ phiếu trên màn hình), chữ ký đặt ngay trên tên Người nộp tiền, tối đa 50 × 18 mm, giữ tỉ lệ.
+- Ngày lập phiếu trên file = ngày (giờ phòng khám) lúc ghi phiếu, không phải ngày xuất.
+- PDF/A-2b qua Gotenberg; SHA-256 tính trên PDF gốc, lưu cùng phiếu. File lưu ở MinIO `receipts/{chi nhánh}/{id}.pdf.enc`, mã hoá AES-256-GCM bằng cùng khoá `ReceiptVault:Key` với chữ ký. Mỗi lần đọc kiểm tra lại SHA-256; sai → `0115`, thiếu file → `0114`.
+- Xuất xong: phiên iPad đóng (iPad hiện "Đã xuất phiếu thu"), file mở ở tab mới, "In phiếu thu" từ đó in đúng file đã lưu.
+- Phiếu đã xuất rồi bị hủy vẫn giữ file (chưa có quy định xoá).
+- Phiếu xuất bằng đường tạm `/issue` của phase 2–4 (chỉ có trên máy dev, chưa lên staging) không có file; "In phiếu thu" của chúng vẫn dựng lại từ mẫu. Đường `/issue` đã bỏ.
+
 UNKNOWN_REFERENCE_BEHAVIOR
 
 Page: Header — Global Search Modal (Ctrl+K)
@@ -3203,3 +3239,101 @@ Action taken: NONE trên production. Mặc định BlueDental tự chọn, **ch�
 - Sửa hồ sơ, giữ nguyên số nhưng đổi tên: vẫn kiểm trùng tên với người khác cùng số (`0035`).
 - Một số, nhiều cách gõ: số Việt Nam thiếu số 0 (9–10 chữ số) hoặc có `84` / `+84` / `0084` phía trước được hiểu là cùng một số và lưu dạng `0…`; số nước ngoài lưu dạng E.164 (`+61…`), gõ `0061 …` cũng vậy. Số nước ngoài gõ kèm số 0 đầu của quốc gia đó (`0` + số quốc gia) KHÔNG được coi là cùng số. Hàng lưu trước R-1057 thiếu 0 hoặc có 84 vẫn được tìm ra, không sửa dữ liệu cũ.
 - Ở tab Hồ sơ, khối Người giám hộ đứng trên khối Người dùng chung SĐT (như mock). Tiêu đề khối giữ chữ thường như các khối khác của tab, mock viết hoa "NGƯỜI DÙNG CHUNG SĐT".
+
+## P2910_02 — In phiếu thu ký tay & chữ ký kế toán (F-84, R-1081, 2026-10-29, BA P2910_02)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: `/billing/receipts/:id` (panel Trạng thái, stepper, PHIẾU THU), iPad `/sign`, `/invoice-request/:token`
+Control: nút "In phiếu thu" + popup xác nhận, "Hủy phiên & sửa phiếu", radio Hình thức ký số (Ký điện tử / Token điện tử / Ký tay trực tiếp), khung vẽ / tải ảnh chữ ký kế toán, "Dùng chữ ký này", log phiếu thu
+Reason: tính năng riêng của BlueDental theo `P2910_02.drawio`. Bản gốc không có nên không có gì để quan sát. Các quyết định đã chốt nằm ở `docs/testing/features/receipt-paper-sign.md`. Mock và ghi chú BA không nói những điểm dưới đây.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+- iPad hiện màn "đã in phiếu" 30 giây rồi về màn chờ, giống màn "Đã xuất phiếu thu".
+- In phiếu thu lần nữa: giữ giờ in và thu ngân của lần đầu, không ghi thêm dòng log; vẫn in lại bản nháp.
+- "Hủy phiên & sửa phiếu" và sửa phiếu (PUT) đều lấy phiếu về trạng thái chưa in giấy và ghi log "Lấy lại" (`PaperTakenBack`). Sau đó có thể gửi iPad lại hoặc in lại.
+- Khách ký giấy: "lúc khách ký" = giờ in phiếu (không có cách nào biết giờ khách ký thật trên giấy).
+- Hình thức ký số chọn sẵn Ký điện tử (mock tô sẵn ô này).
+- Chữ ký điện tử thuộc từng tài khoản, không theo chi nhánh. Đổi chữ ký thì thay chỗ cũ; phiếu đã xuất giữ ảnh cũ vì đã in vào PDF, log ghi lúc lưu chữ ký.
+- Ảnh tải lên: chọn được ảnh ≤ 2 MB, trình duyệt thu về khung 600 × 200 PNG; server chặn ở 200 KB (`0118`).
+- Log phiếu thu: chỉ có API (`GET receipt-signing/{id}/log`, quyền Payment.Read), chưa có màn hình xem. Log chỉ lưu id + thời gian, tên người đọc lúc xem, không lưu PHI. Phiếu đã hủy (xoá mềm) vẫn đọc được log.
+- Log gồm 4 loại dòng: In để ký giấy, Lấy lại, Xuất, Hủy. In bản nháp không ghi như một file vì không lưu file nào.
+- "Mã hoá hết": mọi PDF/A đã xuất đều mã hoá AES-256-GCM (đã có từ P2610 phase 5), chữ ký khách và kế toán cũng lưu mã hoá. Bản nháp in không lưu nên không cần mã hoá.
+- Token điện tử vẫn khoá (phase 7, `0113`).
+- Log chống sửa (R-1082, chủ dự án đồng ý cách đề xuất, chỉ làm ở BE):
+  - Mỗi dòng log có số thứ tự trong phiếu và con dấu HMAC-SHA256 nối với dòng trước. Khoá HMAC suy ra từ `RECEIPT_VAULT_KEY` bằng HKDF.
+  - API log trả thêm `intact`, `unsealedCount` và `verified` cho từng dòng.
+  - Trigger PostgreSQL từ chối mọi UPDATE / DELETE / TRUNCATE trên `bd_payment_receipt_logs`.
+  - Dòng ghi trước R-1082 (chỉ có ở develop / staging / local) được đánh số theo thời gian và để nguyên không dấu. Chúng chỉ được nằm trước dòng có dấu đầu tiên.
+  - Chưa mã hoá theo cột, vì log chỉ có id + thời gian. Mã hoá ổ đĩa và backup để sau.
+  - Chưa có màn hình báo log bị sửa.
+
+## P2910_03 — Quy trình Labo mới (F-85, R-1083, 2026-10-30, BA P2910_03)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: hồ sơ bệnh nhân → tab Labo, popup Labo 3 bước (Đặt hàng / Nhận hàng & kiểm tra / Bảo hành), LỊCH SỬ ĐIỀU TRỊ, phiếu điều trị → cột Phiếu Labo, `/labo/mau-labo`
+Control: Hủy phiếu (tab 1), Chi phí phát sinh, Thời hạn bảo hành, khoá ô Hoàn thành công đoạn, thao tác ở dòng Bảo hành, tên phòng khám trên thẻ, Lần BH
+Reason: quy trình riêng của BlueDental theo `P2910_03.drawio`, bản gốc vẫn dùng phiếu Labo cũ nên không có gì để quan sát. Các quyết định chủ dự án đã chốt nằm ở `docs/testing/features/labo-workflow.md`. Mock, ghi chú BA và sơ đồ trạng thái không nói những điểm dưới đây.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. Nháp → Đã hủy: sơ đồ trạng thái không có mũi tên này, nhưng footer tab Đặt hàng có "Hủy phiếu". Phiếu Nháp bấm Hủy phiếu vẫn sang Đã hủy và ở lại danh sách; icon xoá ở danh sách thì xoá mềm phiếu Nháp (chỉ Nháp, `Labo:0030`).
+2. Chi phí phát sinh: chỉ hiện "0 đ", ô xám disabled, không lưu.
+3. Ngày hết hạn bảo hành = ngày bắt đầu + N tháng (cùng ngày của tháng đích; ngày 31 rơi vào tháng ngắn thì lùi về ngày cuối tháng).
+4. Phiếu tạo từ tab Labo (không gắn công đoạn) khoá ô Hoàn thành của mọi công đoạn cùng dịch vụ có ngày điều trị từ ngày tạo phiếu trở đi.
+5. Phiếu ở Bảo hành không có thao tác thêm trên danh sách (BA chưa vẽ). Kích hoạt thêm răng: Xem → tab Bảo hành.
+6. Tên phòng khám trên thẻ bảo hành xem trước lấy từ thông tin chi nhánh, không viết cứng "Nha Khoa Đức Hạnh Premium".
+7. Lần BH luôn 0 cho tới đợt Tiếp nhận bảo hành.
+8. Mẫu Giao Trễ / Mẫu Chưa Nhận ở `/labo` chia theo ngày: hạn giao trước hôm nay là trễ, hạn hôm nay vẫn là chưa nhận (chủ dự án chốt 2026-10-30). Nháp và Đã hủy chỉ hiện ở Tất cả.
+9. Dữ liệu cũ: phiếu Hoàn thành cũ có mọi răng Đạt, ngày Đạt = ngày nhận (hoặc ngày sửa cuối); phiếu đã nhận cũ có lần nhận 1. Phiếu con cũ (Làm tiếp công đoạn / Bảo hành) vẫn xem được, không tạo mới.
+
+## P3110 — Labo + Bảo hành (F-86, 2026-10-31, BA P3110)
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: popup Labo bước 3 Bảo hành (Kích hoạt bảo hành từng răng)
+Control: Ảnh thẻ bảo hành Mặt trước / Mặt sau (REQ-E1), panel Thông tin thẻ / Lịch sử (REQ-E2)
+Reason: quy trình riêng của BlueDental theo `P3110.drawio`; bản gốc không có ảnh thẻ bảo hành nên không có gì để quan sát. Kế hoạch + quyết định: `docs/wip/p3110-labo-warranty-plan.md`.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. Ảnh thẻ chỉ gửi cùng lúc bấm "Kích hoạt bảo hành"; răng đã kích hoạt **chưa** thêm / thay / xoá ảnh thẻ được (BA chỉ vẽ ô ảnh trong form kích hoạt). Ảnh đã lưu xem lại ở cột "Ảnh thẻ" của bảng thẻ (bấm để phóng to).
+2. Mỗi mặt một ảnh; định dạng và giới hạn dung lượng như ảnh hồ sơ (`validateImageFile`).
+3. Ảnh thẻ không lẫn vào ảnh phiếu Labo (dải ảnh Đặt hàng, popup chi tiết, nút hồ sơ ở danh sách).
+4. P2910_03 mục 6 (tên phòng khám trên thẻ xem trước) không còn áp dụng: REQ-E2 bỏ panel Thông tin thẻ.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: phiếu điều trị — tab Bảo hành; Chi tiết phiếu — tab TIẾP TỤC BẢO HÀNH (P3110 B/F)
+Control: Bảo hành dịch vụ (kích hoạt thẻ nha khoa), Thẻ bảo hành áp dụng, Dịch vụ bảo hành · Labo, cột Bảo hành của bảng dịch vụ
+Reason: tính năng riêng của BlueDental theo `P3110.drawio`; bản gốc không có tab này. Giả định G16–G25 ở `docs/wip/p3110-labo-warranty-plan.md` §4, tóm tắt ở `docs/testing/features/plan-warranty.md`.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. (G23) Công đoạn bảo hành chỉ mở được khi dòng còn ít nhất một thẻ hợp lệ (thẻ nha khoa `EndDate ≥ hôm nay` hoặc răng Labo đã kích hoạt còn hạn). Trước P3110 dùng số ngày bảo hành của danh mục tính từ ngày điều trị — dòng chưa kích hoạt thẻ nay **không** tạo công đoạn bảo hành được nữa.
+2. (G16) Ngày hoàn thành của dòng = ngày điều trị muộn nhất của các công đoạn thường đã hoàn thành; dòng hoàn thành tay lấy ngày sửa cuối. Ngày bắt đầu thẻ không được trước ngày này.
+3. (G18–G20) Bảng tình trạng / thẻ không phân trang; thời hạn ghi theo chip đã chọn ("1 năm", "6 tháng"), thẻ "Theo danh mục" ghi "{n} ngày"; dòng phụ sự kiện kích hoạt = `BS. {bác sĩ} · {thời hạn}`.
+4. (G21) Ô thẻ bên trái ghi "Nha khoa" (m415 vẽ "Dịch vụ").
+5. (G22) "Bác sĩ hỗ trợ" = trường nhân sự thứ hai đã có trên form công đoạn.
+6. (G24) Popup "Tạo bảo hành" cũ bị bỏ: nút "Bảo hành dịch vụ" ở lịch sử và icon bảo hành ở bảng điều trị của hồ sơ đều sang tab Bảo hành của phiếu.
+7. (G25) Dropdown Labo: dòng 1 nhà cung cấp, dòng 2 `{vật liệu} R.. · Hạn ..`.
+8. Chip cột Bảo hành ghi "Nha khoa · Đã kích hoạt" (không ghi số thẻ; m390 vẽ "Nha khoa 2 thẻ").
+9. (G6) Thẻ nha khoa chưa huỷ / sửa được sau khi kích hoạt.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: bảng dịch vụ phiếu điều trị, LỊCH SỬ ĐIỀU TRỊ, popup Labo bước 1 Đặt hàng / bước 2 Nhận hàng & kiểm tra (P3110 A/C/D)
+Control: "Xem tất cả ›", Dùng chung thông số, nhóm Lỗi theo răng, Trả hàng bị lỗi / Trả toàn bộ
+Reason: tính năng riêng của BlueDental theo `P3110.drawio`. Bảng đầy đủ G1–G15 ở `docs/wip/p3110-labo-warranty-plan.md` §4.
+Action taken: NONE trên production. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. (G1) "Xem tất cả ›" mở tab Labo của hồ sơ bệnh nhân trong tab trình duyệt mới.
+2. (G2/G8) Dùng chung: thông số và ảnh của dòng chung gắn cho mọi răng; phiếu cũ hiện thông số cấp phiếu cho mọi răng.
+3. (G7) Nút "Trả hàng bị lỗi" màu tím theo note BA, dù m306/m307 vẽ đỏ.
+4. (G9–G13) Thu gọn nhóm Lỗi chỉ ẩn phần nhập; "Không đạt n/n → trả toàn bộ" chỉ khi mọi răng của phiếu Lỗi; răng Đạt lần trước khoá `Đạt lần k · chờ lắp / đã lắp dd/mm`; Trả toàn bộ mở lại mọi răng; "Đã trả: n lần" tính luôn lần sắp bấm.
+5. (G14/G15) Ô màu cạnh "Răng N" là chip ngà cố định; lần kiểm tra sau điền sẵn mô tả lần trả gần nhất, không điền sẵn ảnh.
+
+UNKNOWN_REFERENCE_BEHAVIOR
+
+Page: phiếu điều trị — Chi tiết phiếu / LỊCH SỬ ĐIỀU TRỊ; tab Bảo hành (F-88, BA 2026-11-02)
+Control: Hoàn thành / Tạo Labo trên công đoạn có Ngày điều trị cũ hơn; "Xóa công đoạn"; "Bảo hành dịch vụ" khi Labo chưa xong
+Reason: quy tắc riêng của BlueDental theo BA (chat 2026-11-02). Bản gốc gộp bảo hành Labo vào trạng thái dịch vụ — BlueDental cố ý tách (xem `pages/labo.md` §Deliberate divergences). Tài liệu: `docs/testing/features/labo-workflow.md` §F-88.
+Action taken: NONE trên production. BA đã chốt: khoá theo ngày điều trị mới nhất **trong một dòng dịch vụ** (không theo răng); dòng cũ vẫn Tải ảnh / sửa Nội dung / Ghi chú; ngày quá khứ vẫn nhập được; admin được xoá dòng tạo nhầm. Mặc định BlueDental tự chọn, **chưa có xác nhận của BA / chủ dự án**:
+1. Dòng bị khoá ẩn "Tạo Labo" (server cũng chặn `Treatment:0063`).
+2. Nhiều dòng cùng ngày mới nhất: đều mở.
+3. Dòng đã được "Tiếp tục" (superseded) vẫn tính vào ngày mới nhất.
+4. Công đoạn bảo hành Labo không khoá và không bị khoá.
+5. "Xóa công đoạn" = quyền mới "Công đoạn › Xóa", chỉ admin; răng trả về công đoạn trước, dòng dịch vụ tính lại; chặn khi còn phiếu Labo chưa huỷ (`0064`) hoặc khi đã có công đoạn tiếp nối / bảo hành dựa trên nó (`0065`); ảnh giữ lại trong Hình ảnh của bệnh nhân.

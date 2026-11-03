@@ -1,0 +1,126 @@
+/*
+ * TIẾP TỤC BẢO HÀNH form (P3110 REQ-F3/F4; mocks m394 / m395 / m415).
+ * Nha khoa wears the app green, Labo the magenta of the slip's Bảo hành tab.
+ */
+.pd-stage-form--warranty {
+  --pd-w-dental: var(--bd-green);
+  --pd-w-dental-pale: var(--bd-green-pale);
+  --pd-w-labo: #a21caf;
+  --pd-w-labo-pale: #fbe8fb;
+}
+
+.pd-wform-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.pd-wform-sub {
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+
+.pd-wcards-field {
+  margin-top: 16px;
+}
+.pd-wcards-label {
+  margin: 0 0 10px;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+.pd-wcards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pd-wcard {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-height: 84px;
+  border: 1px solid var(--bd-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  color: var(--bd-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease;
+}
+/* A card is a button: the global nowrap on .app-main button would push its detail into the next column. */
+.pd-wcards .pd-wcard {
+  min-width: 0;
+  white-space: normal;
+}
+.pd-wcard:disabled {
+  cursor: not-allowed;
+}
+/* REQ-F3: a kind with no valid card on the line stays on show, faded. */
+.pd-wcard:disabled:not(.pd-wcard--picked) {
+  opacity: 0.45;
+}
+.pd-wcard-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.pd-wcard-detail {
+  font-size: 14px;
+  line-height: 1.45;
+}
+.pd-wcard--dental .pd-wcard-head {
+  color: var(--pd-w-dental);
+}
+.pd-wcard--labo .pd-wcard-head {
+  color: var(--pd-w-labo);
+}
+.pd-wcard--dental:not(:disabled):hover {
+  border-color: var(--pd-w-dental);
+}
+.pd-wcard--labo:not(:disabled):hover {
+  border-color: var(--pd-w-labo);
+}
+.pd-wcard--dental.pd-wcard--picked {
+  border: 2px solid var(--pd-w-dental);
+  padding: 9px 11px;
+  background: var(--pd-w-dental-pale);
+}
+.pd-wcard--labo.pd-wcard--picked {
+  border: 2px solid var(--pd-w-labo);
+  padding: 9px 11px;
+  background: var(--pd-w-labo-pale);
+}
+.pd-wcards--error .pd-wcard:not(:disabled) {
+  border-color: var(--bd-red);
+}
+
+.pd-wlabo-field {
+  margin-bottom: 16px;
+}
+.pd-stage-form .pd-wlabo-select.ant-select {
+  height: auto;
+  min-height: 56px;
+}
+.pd-wlabo-option {
+  display: grid;
+  gap: 2px;
+  padding: 4px 0;
+  line-height: 1.35;
+  white-space: normal;
+}
+.pd-wlabo-option > strong {
+  color: var(--bd-ink);
+  font-size: 15px;
+}
+.pd-wlabo-option > span {
+  color: var(--bd-muted);
+  font-size: 13px;
+}

@@ -1,14 +1,21 @@
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, BRANCH2_USER, login } from "./fixtures/auth";
 import { addExtraService } from "./fixtures/extraService";
-import { answerYes, createSlipViaApi } from "./fixtures/ledgerReceipt";
+import {
+  confirmOnRow,
+  createSlipViaApi,
+  expectReceiptPage,
+  issueReceipt,
+  saveAndSettle,
+  saveReceipt,
+} from "./fixtures/ledgerReceipt";
 
 /**
  * Feature: Chi tiết kế hoạch điều trị (F-38), /patient/:id/treatment-plan/:planId.
  *
  * The slip code in the plan tab opens the page. It carries the reference's
  * three-step breadcrumb, the four pill tabs (Chi tiết, Thanh toán, Hoàn tiền,
- * Dư nợ — kept in `?planTab=`), the six money figures (money tabs only), the 15-column service
+ * Dư nợ — kept in `?planTab=`), the five money figures (money tabs only), the 15-column service
  * table with its status menu and eye dialog, the receipts filed against the
  * slip with "Tạo Phiếu Thanh Toán" / "In hóa đơn tổng", the refunds with
  * "Hoàn Tiền", and the lines the held balance covered. Under 640px every table
@@ -215,25 +222,27 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     expect(await body.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
     expect(await body.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("0px");
 
-    // Four pill tabs, "Chi tiết" selected, and the six money figures.
+    // Five pill tabs, "Chi tiết" selected, and the five money figures. Bảo hành
+    // (P3110) carries its count: nothing finished yet on a new slip → 0.
     await expect(tabrow.getByRole("tab")).toHaveText([
       "Chi tiết điều trị",
       "Thanh toán",
       "Hoàn tiền",
       "Dư nợ",
+      "Bảo hành0",
     ]);
     await expect(tab(page, "Chi tiết điều trị")).toHaveAttribute("aria-selected", "true");
     // The money figures belong to the money tabs only (owner 2026-10-15).
     await expect(page.locator(".pdt-stat")).toHaveCount(0);
     await tab(page, "Thanh toán").click();
     const labels = page.locator(".pdt-stat dt");
+    // P0111_02 (R-1104): Tạm ứng and Dư nợ left, Khuyến mãi came in.
     await expect(labels).toHaveText([
       "Doanh thu dự kiến",
       "Đã thanh toán",
+      "Khuyến mãi",
       "Công nợ",
       "Đã hoàn",
-      "Tạm ứng",
-      "Dư nợ",
     ]);
     for (const value of await page.locator(".pdt-stat dd").allInnerTexts())
       expect(value.trim()).toMatch(MONEY);
@@ -261,6 +270,10 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       "Chẩn đoán",
       "Răng",
       "Trạng thái",
+      // F-85 (P2910_03): the Labo order of each line, "Không áp dụng" when none.
+      "Phiếu Labo",
+      // F-86 (P3110 REQ-A10): the line's warranty chips, "–" when none.
+      "Bảo hành",
       "Đơn giá",
       "Giảm giá",
       "Thành tiền",
@@ -351,43 +364,44 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     paidAmount = Math.max(1, Math.floor(due / 2));
 
     await dialog.locator(".pd-newpay-amount").fill(String(paidAmount));
-    await dialog.getByRole("button", { name: "Lưu" }).click();
-    // "Có" in the question writes it (owner 2026-10-13).
-    const written = await answerYes(page, dialog);
+    // "Tạo phiếu thanh toán" writes it "Chưa thanh toán" (P2610): listed, but no money moved yet.
+    const written = await saveReceipt(page, dialog);
 
-    // The receipt lands in the table already "Hoàn tất": the head figures move
-    // at once, and it can never be edited, cancelled or confirmed again.
     const row = page.locator(".pdt-table tbody tr.ant-table-row").first();
     await expect(row).toBeVisible();
     paymentCode = (await row.locator("td").first().innerText()).trim();
     expect(paymentCode).toBe(written.code);
-    await expect(row.locator(".tp-pill")).toHaveText("Hoàn tất");
+    await expect(row.locator(".tp-pill")).toHaveText("Chưa thanh toán");
+    await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(0);
+
+    // Exported, then ✓ on the row: "Đã thanh toán", the head figures move, and
+    // it can never be edited, cancelled here or confirmed again.
+    await issueReceipt(page, written);
+    await page.reload();
+    await tab(page, "Thanh toán").click();
+    await expect(row.locator(".tp-pill")).toHaveText("Đã xuất phiếu thu");
+    await confirmOnRow(page, row, written);
+    await expect(row.locator(".tp-pill")).toHaveText("Đã thanh toán");
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(paidAmount);
     await expect(row.getByRole("button", { name: `Chỉnh sửa phiếu ${paymentCode}` })).toHaveCount(0);
     await expect(row.getByRole("button", { name: `Huỷ phiếu ${paymentCode}` })).toHaveCount(0);
     await expect(row.getByRole("button", { name: `Xác nhận thanh toán phiếu ${paymentCode}` })).toHaveCount(0);
 
+    // 👁 opens it on Tài chính → Phiếu thu (P2610): the PHIẾU THU sheet with
+    // its one line and the sum in words, every step done, and "In phiếu thu".
     await row.getByRole("button", { name: `Xem phiếu ${paymentCode}` }).click();
-    const receipt = page.getByRole("dialog", { name: "Chi tiết phiếu" });
-    await expect(receipt).toBeVisible();
-    await expect(receipt.locator(".pdt-receipt-facts").first()).toContainText(paymentCode);
-    await expect(receipt.getByText("Tổng thanh toán dịch vụ")).toBeVisible();
-    await expect(receipt.locator(".pdt-receipt-table tbody tr.ant-table-row")).toHaveCount(1);
-    // A receipt prints its PHIẾU THU PDF (F-71); the off-screen sheet stays for
-    // "In hóa đơn tổng" and refunds: letterhead, title, sum in words, signatures.
-    await expect(receipt.getByRole("button", { name: "In phiếu thu" })).toBeVisible();
-    const sheet = receipt.locator(".pdt-sheet");
-    await expect(sheet).toHaveCount(1);
-    await expect(sheet).toBeHidden();
-    await expect(sheet.locator(".pdt-sheet-title")).toHaveText("Biên lai thu tiền");
-    await expect(sheet.locator(".pdt-sheet-clinic strong")).not.toBeEmpty();
-    await expect(sheet).toContainText("Số tiền bằng chữ");
-    await expect(sheet).toContainText(/[A-ZĐ][a-zăâđêôơưáàảãạ].* đồng/);
-    await expect(sheet.locator(".pdt-sheet-signs > div")).toContainText([
-      "Người lập phiếu",
-      "Khách hàng",
-    ]);
-    await receipt.getByRole("button", { name: "Đóng", exact: true }).last().click();
+    await expectReceiptPage(page, written);
+    await expect(page.locator(".rcpt-pill")).toHaveText("Đã thanh toán");
+    await expect(page.locator(".rcpt-sheet-title")).toHaveText("PHIẾU THU");
+    await expect(page.locator(".rcpt-sheet-clinic")).not.toBeEmpty();
+    await expect(page.locator(".rcpt-lines tbody tr")).toHaveCount(1);
+    await expect(page.locator(".rcpt-sheet")).toContainText(/[A-ZĐ][a-zăâđêôơưáàảãạ].* đồng/);
+    await expect(page.locator(".rcpt-sign-role")).toHaveText(["Người nộp tiền", "Kế toán / Người lập phiếu"]);
+    await expect(page.locator(".rcpt-track-card .step-track-item--done")).toHaveCount(6);
+    // A paid receipt shows the exported panel (R-1052), whose print button is "In phiếu".
+    await expect(page.getByRole("button", { name: "In phiếu", exact: true })).toBeVisible();
+    await page.goBack();
+    await expect(page).toHaveURL(/planTab=payment-v2/);
   });
 
   test("Hoàn tiền files a refund on a paid line and lists it", async ({ page }) => {
@@ -500,7 +514,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(page.locator(".pdt-stat")).toHaveCount(0);
 
     await tab(page, "Thanh toán").click();
-    await expect(page.locator(".pdt-stat")).toHaveCount(6);
+    await expect(page.locator(".pdt-stat")).toHaveCount(5);
     await expect(page.locator(".bd-rc-card", { hasText: paymentCode })).toBeVisible();
     await tab(page, "Hoàn tiền").click();
     await expect(page.locator(".bd-rc-card", { hasText: refundCode })).toBeVisible();
@@ -751,11 +765,11 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(dialog.getByRole("button", { name: "Lưu" })).toBeEnabled();
     await expect(page.locator(".ant-message, [data-sonner-toast]")).toHaveCount(0);
 
-    // Persisted: the patient's Labo tab now files the slip as Đã huỷ on both pills.
+    // Persisted: the patient's Labo tab now files the slip as Đã hủy on both pills.
     await page.goto(`${patientUrl}?tab=labo`);
     const laboRow = page.locator("tr.ant-table-row", { hasText: orderCode }).first();
     await expect(laboRow).toBeVisible();
-    await expect(laboRow).toContainText("Đã huỷ");
+    await expect(laboRow).toContainText("Đã hủy");
     // And the dialog no longer carries the block once reopened.
     await page.goto(slipUrl);
     await page
@@ -899,8 +913,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     const due = money(await payLine.locator(".pd-newpay-due").innerText());
     expect(due).toBeGreaterThan(1);
     await payDialog.locator(".pd-newpay-amount").fill(String(due));
-    await payDialog.getByRole("button", { name: "Lưu" }).click();
-    await answerYes(page, payDialog);
+    await saveAndSettle(page, payDialog);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(due);
 
     // What each line has collected, read from the slip itself — the table
@@ -1026,7 +1039,6 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
             chargedAmount: number;
             outstandingAmount: number;
             serviceId: string;
-            catalogPrice: number | null;
             originalPrice: number;
             price: number;
             quantity: number;
@@ -1109,11 +1121,11 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
         .toBe(charged);
       expect(money(await line.locator("b").innerText())).toBe(charged);
 
-      // Giá gốc over Giá sau giảm (owner 2026-10-27): the service's price in
-      // Danh mục, before anything is taken off, then what the line is charged.
-      const { serviceId, catalogPrice, originalPrice, price, quantity } = slip.services[index];
-      if (serviceId === figures.lineServiceId) expect(catalogPrice).toBe(figures.linePrice);
-      const listed = (catalogPrice || originalPrice || price) * quantity;
+      // Giá gốc over Giá sau giảm: the giá gốc the slip holds for the line
+      // (R-1102, over R-1045's Danh mục price), then what the line is charged.
+      const { serviceId, originalPrice, price, quantity } = slip.services[index];
+      if (serviceId === figures.lineServiceId) expect(originalPrice).toBe(figures.linePrice);
+      const listed = (originalPrice || price) * quantity;
       const prices = line.locator(".pd-newpay-price");
       await expect(prices.nth(0)).toContainText("Giá gốc:");
       expect(money(await prices.nth(0).innerText())).toBe(listed);
@@ -1132,9 +1144,12 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
         has: page.locator("span", { hasText: new RegExp(`^${label}$`) }),
       });
     expect(money(await fact("Tổng tiền").locator("span").last().innerText())).toBe(grossOwed);
-    expect(money(await fact("Giảm giá").locator("span").last().innerText())).toBe(
+    // P2910 splits "Giảm giá" into the doctor's (on the slip), this đợt's TN giảm and voucher.
+    expect(money(await fact("Giảm giá bác sĩ").locator("span").last().innerText())).toBe(
       figures.discount + 50_000,
     );
+    expect(money(await fact("Giảm giá thu ngân").locator("span").last().innerText())).toBe(0);
+    expect(money(await fact("Voucher").locator("span").last().innerText())).toBe(0);
     expect(money(await fact("Tổng tiền sau giảm").locator("span").last().innerText())).toBe(owed);
     expect(money(await fact("Còn nợ cần thanh toán").locator("span").last().innerText())).toBe(owed);
 
@@ -1200,9 +1215,8 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     // The after-discount amount goes through and settles the slip.
     await box.fill(String(owed));
     await expect(dialog.locator(".pd-newpay-error")).toHaveCount(0);
-    await dialog.getByRole("button", { name: "Lưu" }).click();
-    // Written "Hoàn tất" on "Có" (owner 2026-10-13): the slip is settled at once.
-    await answerYes(page, dialog);
+    // Exported and ✓ (P2610): now the slip is settled.
+    await saveAndSettle(page, dialog);
     await expect.poll(() => statValue(page, "Đã thanh toán")).toBe(owed);
     await expect.poll(() => statValue(page, "Công nợ")).toBe(0);
 

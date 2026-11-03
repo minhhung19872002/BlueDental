@@ -21,6 +21,9 @@ public class TaxonomyDto : FullAuditedEntityDto<Guid>
 
     /// <summary>Reference field <c>itemCount</c> — populated when includeCount is set.</summary>
     public int ItemCount { get; set; }
+
+    /// <summary>How many of <see cref="ItemCount"/> are combos — "Chọn dịch vụ" counts each tab apart.</summary>
+    public int ComboCount { get; set; }
 }
 
 public class CreateTaxonomyDto
@@ -88,6 +91,9 @@ public class GetTaxonomyListInput : PagedAndSortedResultRequestDto
 
     /// <summary>Mirrors the reference <c>includeCount=true</c> query flag.</summary>
     public bool IncludeCount { get; set; }
+
+    /// <summary>True keeps only the groups holding at least one live combo.</summary>
+    public bool? HasCombo { get; set; }
 }
 
 /// <summary>
@@ -107,6 +113,14 @@ public class ServiceConfigDto
     public bool RevenueByStage { get; set; }
     public bool RequireStageSequence { get; set; }
     public int WarrantyDays { get; set; }
+
+    /// <summary>
+    /// "Nội dung bảo hành" — HTML from the warranty tab's rich-text box. Null
+    /// leaves the stored terms as they are (the Excel import never sends them);
+    /// an empty string clears them.
+    /// </summary>
+    [StringLength(CatalogServiceConfigConsts.MaxWarrantyContentLength)]
+    public string? WarrantyContent { get; set; }
 
     /// <summary>
     /// Tab "Labo" — the suppliers a labo slip for this service may pick from;

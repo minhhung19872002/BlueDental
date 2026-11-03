@@ -1,0 +1,92 @@
+/* ── StepTrack ────────────────────────────────────────────────────────────────
+   Equal columns, each a 28px dot over its label and caption. The rule between
+   two dots is the ::before of the later step, drawn from the previous dot's
+   right edge to this dot's left edge; it turns primary once the earlier step
+   is done. */
+.step-track {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.step-track-item {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  text-align: center;
+}
+.step-track-item + .step-track-item::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  right: calc(50% + 22px);
+  left: calc(-50% + 22px);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bd-border);
+}
+.step-track-item--done + .step-track-item::before {
+  background: var(--bd-primary);
+}
+.step-track-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--bd-border);
+  border-radius: 50%;
+  background: var(--bd-card);
+  color: var(--bd-ink-4);
+  font-size: 12px;
+  font-weight: 700;
+}
+.step-track-label {
+  color: var(--bd-ink-4);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+.step-track-caption {
+  color: var(--bd-ink-4);
+  font-size: 12px;
+  line-height: 16px;
+}
+.step-track-item--done .step-track-dot {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: var(--bd-card);
+}
+.step-track-item--current .step-track-dot {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+.step-track-item--done .step-track-label,
+.step-track-item--current .step-track-label {
+  color: var(--bd-ink);
+}
+.step-track-item--current .step-track-caption {
+  color: var(--bd-primary);
+}
+
+/* Narrow screens: the labels wrap, the dots shrink. */
+@media (max-width: 640px) {
+  .step-track-dot {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  .step-track-item + .step-track-item::before {
+    top: 11px;
+    right: calc(50% + 16px);
+    left: calc(-50% + 16px);
+  }
+  .step-track-label,
+  .step-track-caption {
+    font-size: 11px;
+  }
+}

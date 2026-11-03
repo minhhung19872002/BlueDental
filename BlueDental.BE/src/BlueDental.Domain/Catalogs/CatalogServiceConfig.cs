@@ -41,6 +41,12 @@ public class CatalogServiceConfig : Entity<Guid>
     /// <summary>0 means "BE:Warranty:None"; otherwise the number of days.</summary>
     public int WarrantyDays { get; private set; }
 
+    /// <summary>
+    /// "Nội dung bảo hành" — the warranty terms as a rich-text (HTML) body,
+    /// typed under the period on the warranty tab. Null when none is set.
+    /// </summary>
+    public string? WarrantyContent { get; private set; }
+
     // ── tab "Labo" ──────────────────────────────────────────────────────────
     private List<Guid> _laboSupplierIds = [];
 
@@ -102,6 +108,17 @@ public class CatalogServiceConfig : Entity<Guid>
         RevenueByStage = revenueByStage;
         RequireStageSequence = requireStageSequence;
         WarrantyDays = warrantyDays;
+    }
+
+    /// <summary>
+    /// Sets the warranty terms. Blank clears them, so an editor the user emptied
+    /// stores nothing rather than whitespace.
+    /// </summary>
+    public void SetWarrantyContent(string? content)
+    {
+        WarrantyContent = string.IsNullOrWhiteSpace(content)
+            ? null
+            : Check.Length(content.Trim(), nameof(content), CatalogServiceConfigConsts.MaxWarrantyContentLength);
     }
 
     /// <summary>Replaces the Labo tab's picks, in the order given and without repeats.</summary>
