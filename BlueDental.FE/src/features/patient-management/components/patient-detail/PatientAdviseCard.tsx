@@ -7,6 +7,7 @@ import {
   PlusOutlined,
   PrinterOutlined,
 } from "@ant-design/icons";
+import { Stethoscope } from "lucide-react";
 import { DataTable } from "@/components/DataTable";
 import {
   formatToothCodes,
@@ -439,13 +440,28 @@ export function PatientAdviseCard({
               <b>{money(plan.net)}</b>
             </p>
 
+            {/* R-1140: "Bác sĩ điều trị * [Bắt buộc]" over the row it labels. */}
+            <div className="pd-plan-doctor-label">
+              <span>
+                {t("Patient:Staff:TreatingDoctor")} <i aria-hidden="true">*</i>
+              </span>
+              <em className="pd-plan-doctor-label__chip">{t("Common:Required")}</em>
+            </div>
             <div className="pd-plan-actions">
               <div className="pd-plan-dentist">
+                {/* R-1140: amber until a doctor is picked — the field to fill
+                    before "Thêm kế hoạch điều trị" (the doctors' mock-up). */}
                 <Select
+                  className={dentistId || dentistError ? undefined : "pd-plan-dentist--need"}
                   showSearch
                   allowClear
+                  prefix={
+                    <span className="pd-plan-dentist__icon" aria-hidden="true">
+                      <Stethoscope size={15} />
+                    </span>
+                  }
                   filterOption={foldFilterOption}
-                  placeholder={t("Patient:Stage:SelectDoctor")}
+                  placeholder={t("Patient:Plan:DoctorPlaceholder")}
                   aria-label={t("Patient:Stage:SelectDoctor")}
                   status={dentistError ? "error" : undefined}
                   value={dentistId}
@@ -492,6 +508,11 @@ export function PatientAdviseCard({
                 </Tooltip>
               )}
             </div>
+            {/* R-1140: what the amber field waits for; the red refusal under
+                the field takes over once "Thêm kế hoạch điều trị" is pressed. */}
+            {!dentistId && !dentistError && (
+              <span className="pd-plan-doctor-hint">{t("Patient:Plan:DoctorHint")}</span>
+            )}
           </div>
       </footer>
 

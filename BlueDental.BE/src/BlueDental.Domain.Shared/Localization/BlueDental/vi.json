@@ -3872,6 +3872,8 @@
     "Patient:Labo:RequiredTreatmentService": "Vui lòng chọn dịch vụ điều trị.",
     "Patient:Plan:Title": "Kế hoạch điều trị",
     "Patient:Plan:Add": "Thêm kế hoạch điều trị",
+    "Patient:Plan:DoctorPlaceholder": "— Chọn bác sĩ —",
+    "Patient:Plan:DoctorHint": "Cần chọn bác sĩ trước khi Thêm kế hoạch điều trị.",
     "Patient:Plan:Created": "Đã tạo kế hoạch điều trị",
     "Patient:Plan:Empty": "Chưa có kế hoạch",
     "Patient:Plan:Service": "Dịch vụ điều trị",

@@ -3617,6 +3617,8 @@
     "Patient:Labo:RequiredTreatmentService": "Please select a treatment service.",
     "Patient:Plan:Title": "Treatment plan",
     "Patient:Plan:Add": "Add treatment plan",
+    "Patient:Plan:DoctorPlaceholder": "— Select doctor —",
+    "Patient:Plan:DoctorHint": "Pick a doctor before Add treatment plan.",
     "Patient:Plan:Created": "Treatment plan created",
     "Patient:Plan:Empty": "No treatment plan yet",
     "Patient:Plan:Service": "Treatment service",

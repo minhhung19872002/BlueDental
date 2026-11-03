@@ -108,6 +108,10 @@
   /* Status tints — the fill behind a status accent. */
   --bd-green-pale: #e3f6ef;
   --bd-amber-pale: #fbf1de;
+  /* A required field still empty (R-1140, the doctors' mock-up): bright amber
+     border and "Bắt buộc" pill on a near-white amber fill. */
+  --bd-amber-bright: #f6b23e;
+  --bd-amber-field: #fffbeb;
   /* The highlight behind a reception card's Nội dung line. */
   --bd-note-highlight: beige;
   --bd-red-pale: #fdeced;
