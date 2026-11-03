@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 
@@ -72,20 +72,65 @@ export function useLaboSupplierOptions(clinicBranchId: string, enabled = true) {
   });
 }
 
-/**
- * Vật liệu inside one Lựa chọn dịch vụ group. Disabled until a group is
- * chosen — the reference prints "Chọn dịch vụ trước" in the empty box.
- */
-export function useLaboMaterialOptions(clinicBranchId: string, taxonomyId: string | undefined) {
-  return useQuery<PickerOption[]>({
-    queryKey: [...laboPickerKeys.materials, clinicBranchId, taxonomyId ?? null],
+/** A Dịch vụ Labo with what the Chọn dịch vụ Labo popup groups and prints it by (P3110 m158). */
+export interface LaboServiceOption extends PickerOption {
+  /** The catalog's sub-group: the popup's section and group chip. */
+  group?: string;
+  /** The line under the name. */
+  description?: string;
+}
+
+interface ServiceRow extends NamedRow {
+  subGroup?: string | null;
+  description?: string | null;
+}
+
+/** Dịch vụ Labo — the Lựa chọn dịch vụ groups, with their sub-group and description. */
+export function useLaboServiceOptions(clinicBranchId: string, enabled = true) {
+  return useQuery<LaboServiceOption[]>({
+    queryKey: [...laboPickerKeys.taxonomies, LABO_TAXONOMY.material, "rich", clinicBranchId],
     queryFn: () =>
       api
-        .get<PagedResult<NamedRow>>("/v1/app/labo-materials", {
-          params: { ClinicBranchId: clinicBranchId, TaxonomyId: taxonomyId, MaxResultCount: 200 },
+        .get<PagedResult<ServiceRow>>("/v1/app/taxonomies", {
+          params: { ClinicBranchId: clinicBranchId, Group: LABO_TAXONOMY.material, MaxResultCount: 200 },
         })
-        .then((r) => toOptions(r.data.items)),
-    enabled: Boolean(clinicBranchId) && Boolean(taxonomyId),
+        .then((r) =>
+          r.data.items.map((row) => ({
+            value: row.id,
+            label: row.name,
+            group: row.subGroup?.trim() || undefined,
+            description: row.description?.trim() || undefined,
+          })),
+        ),
+    enabled: enabled && Boolean(clinicBranchId),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** A Vật liệu and the Dịch vụ Labo it belongs to. */
+export interface LaboMaterialOption extends PickerOption {
+  serviceId: string;
+}
+
+interface MaterialRow extends NamedRow {
+  taxonomyId: string;
+}
+
+/**
+ * Every Vật liệu of the branch at once: the service popup counts them per
+ * service and searches their names, and the material row filters them by the
+ * service picked.
+ */
+export function useLaboMaterialOptions(clinicBranchId: string, enabled = true) {
+  return useQuery<LaboMaterialOption[]>({
+    queryKey: [...laboPickerKeys.materials, clinicBranchId],
+    queryFn: () =>
+      api
+        .get<PagedResult<MaterialRow>>("/v1/app/labo-materials", {
+          params: { ClinicBranchId: clinicBranchId, MaxResultCount: 1000 },
+        })
+        .then((r) => r.data.items.map((row) => ({ value: row.id, label: row.name, serviceId: row.taxonomyId }))),
+    enabled: enabled && Boolean(clinicBranchId),
     staleTime: 5 * 60_000,
   });
 }
@@ -102,58 +147,3 @@ export function useNextLaboCode(enabled: boolean) {
   });
 }
 
-/** What "Đặt mới" posts. Mirrors BlueDental.Labo.CreateLaboOrderDto. */
-export interface CreateLaboOrderInput {
-  patientId: string;
-  branchId: string;
-  dentistId?: string;
-  labProviderName: string;
-  orderCode?: string;
-  supplierId?: string;
-  materialId?: string;
-  biteId?: string;
-  finishLineId?: string;
-  rhythmId?: string;
-  toothNumbers?: string;
-  toothShade?: string;
-  quantity: number;
-  notes?: string;
-  sentAt?: string;
-  dueAt?: string;
-  estimatedCost: number;
-  treatmentServiceId?: string;
-  treatmentStageId?: string;
-  /** 1 Đặt mới (default) · 2 Làm tiếp công đoạn · 3 Bảo hành. */
-  kind?: number;
-  /** Required for kind 2 and 3: the order being continued / guaranteed. */
-  parentOrderId?: string;
-  /** Tải ảnh: filed into Hình ảnh under the order's plan and công đoạn, in the same request. */
-  pictures?: File[];
-}
-
-/**
- * The order goes up as multipart so its pictures ride along: one request,
- * and the server writes the order and the pictures in one unit of work.
- * Fields that are unset stay out of the form so the server keeps its defaults.
- */
-function toOrderForm({ pictures, ...fields }: CreateLaboOrderInput): FormData {
-  const form = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
-    if (value !== undefined && value !== null) form.append(key, String(value));
-  }
-  for (const file of pictures ?? []) form.append("pictures", file);
-  return form;
-}
-
-export function useCreateLaboOrder() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (input: CreateLaboOrderInput) =>
-      api.post("/v1/app/labo-orders", toOrderForm(input)).then((r) => r.data),
-    meta: { invalidates: ["laboOrder"] },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["labo-next-code"] });
-    },
-  });
-}

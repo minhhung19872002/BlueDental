@@ -19,3 +19,14 @@ public enum PrescriptionTreatmentType
     Outpatient = 1,
     Inpatient = 2
 }
+
+/// <summary>
+/// The two warranty cards of a service line (P3110): "Nha khoa", activated from
+/// the slip's Bảo hành tab, and "Labo", activated on a Labo order's teeth. A
+/// warranty công đoạn names the one it is worked under (REQ-F3).
+/// </summary>
+public enum WarrantyCardKind
+{
+    Dental = 1,
+    Labo = 2,
+}

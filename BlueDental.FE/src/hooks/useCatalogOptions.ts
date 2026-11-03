@@ -253,7 +253,7 @@ export function useTaxonomyGroupSearch(group: CatalogGroup, search: string, enab
         })
         .then((r) => r.data);
 
-      return page.items.map((item) => ({ id: item.id, name: item.name, itemCount: item.itemCount }));
+      return page.items.map(toGroupOption);
     },
     placeholderData: keepPreviousData,
     enabled: Boolean(branchId) && enabled,
@@ -271,12 +271,13 @@ export interface TaxonomyGroupPage {
  * reference's "Lựa chọn dịch vụ" strip reads them (`perPage: 20`,
  * `orderBy: order:asc`, the next page asked for as the strip nears its end).
  * A clinic can hold far more groups than one request should carry.
+ * `withCombos` keeps only the groups holding a combo — the Combo tab's list.
  */
-export function useTaxonomyGroupPages(group: CatalogGroup, enabled = true) {
+export function useTaxonomyGroupPages(group: CatalogGroup, enabled = true, withCombos = false) {
   const branchId = useCurrentBranchId();
 
   return useInfiniteQuery({
-    queryKey: [...catalogOptionKeys.group(branchId, group), "taxonomies", "pages"] as const,
+    queryKey: [...catalogOptionKeys.group(branchId, group), "taxonomies", "pages", withCombos] as const,
     initialPageParam: 0,
     queryFn: async ({ pageParam }): Promise<TaxonomyGroupPage> => {
       const page = await api
@@ -285,6 +286,7 @@ export function useTaxonomyGroupPages(group: CatalogGroup, enabled = true) {
             clinicBranchId: branchId,
             group,
             includeCount: true,
+            hasCombo: withCombos || undefined,
             skipCount: pageParam,
             maxResultCount: CATALOG_PAGE_SIZE,
           },
@@ -292,7 +294,7 @@ export function useTaxonomyGroupPages(group: CatalogGroup, enabled = true) {
         .then((r) => r.data);
 
       return {
-        items: page.items.map((t) => ({ id: t.id, name: t.name, itemCount: t.itemCount })),
+        items: page.items.map(toGroupOption),
         totalCount: page.totalCount,
       };
     },
@@ -308,12 +310,19 @@ export interface TaxonomyGroupOption {
   id: string;
   name: string;
   itemCount: number;
+  /** How many of `itemCount` are combos (Dịch vụ only). */
+  comboCount: number;
 }
 
 interface TaxonomyResponse {
   id: string;
   name: string;
   itemCount: number;
+  comboCount: number;
+}
+
+function toGroupOption(t: TaxonomyResponse): TaxonomyGroupOption {
+  return { id: t.id, name: t.name, itemCount: t.itemCount, comboCount: t.comboCount };
 }
 
 /**
@@ -332,7 +341,7 @@ export function useTaxonomyGroupOptions(group: CatalogGroup) {
         })
         .then((r) => r.data);
 
-      return page.items.map((t) => ({ id: t.id, name: t.name, itemCount: t.itemCount }));
+      return page.items.map(toGroupOption);
     },
     enabled: Boolean(branchId),
   });

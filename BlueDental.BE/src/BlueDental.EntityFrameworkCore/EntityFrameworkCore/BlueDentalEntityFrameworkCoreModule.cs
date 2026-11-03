@@ -10,6 +10,7 @@ using Volo.Abp.OpenIddict.EntityFrameworkCore;
 using Volo.Abp.PermissionManagement.EntityFrameworkCore;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using BlueDental.Catalogs;
+using BlueDental.Labo;
 using BlueDental.PatientManagement;
 using Microsoft.EntityFrameworkCore;
 
@@ -67,6 +68,14 @@ public class BlueDentalEntityFrameworkCoreModule : AbpModule
             // would let a slip into two live sets.
             options.Entity<MedicalRecordSet>(entity =>
                 entity.DefaultWithDetailsFunc = query => query.Include(x => x.Plans));
+
+            // A Labo order's workflow (P2910_03) is decided by its teeth and
+            // rounds: a transition run on an order read without them would
+            // find nothing to check and rewrite the tooth rows from scratch.
+            options.Entity<LaboOrder>(entity =>
+                entity.DefaultWithDetailsFunc = query => query
+                    .Include(x => x.Teeth)
+                    .Include(x => x.Rounds));
         });
 
         Configure<AbpDbContextOptions>(options =>

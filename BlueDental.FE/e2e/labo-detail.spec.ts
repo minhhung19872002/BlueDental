@@ -1,16 +1,19 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { findLaboPatient, seedLaboOrder } from "./fixtures/laboSeed";
+import { laboCatalog, orderBody, sentOrder } from "./fixtures/laboApi";
+import { addPlanLine } from "./fixtures/laboSeed";
 
 /**
- * Feature: hồ sơ bệnh nhân → tab Labo → "Xem chi tiết" on a row: the read-only
- * "Thông tin chung" modal and the "PHIẾU ĐẶT HÀNG LABO" sheet behind "In Phiếu
- * Labo" (docs/clone/pages/patient-detail.md, Tab 6; R-317).
+ * Feature: hồ sơ bệnh nhân → tab Labo → "Xem chi tiết" on a row. Since
+ * P2910_03 (F-85) the eye opens the one three-step Labo dialog; a sent order's
+ * Đặt hàng tab reads it back locked, with "In Phiếu Labo" and the "PHIẾU ĐẶT
+ * HÀNG LABO" sheet behind it (R-317). The old read-only "Thông tin chung"
+ * modal is gone from this tab.
  *
  * Real stack: the browser logs in through the login screen and the tab reads
  * its rows from the real API. The order under test is created through the same
- * endpoint the dialog posts to, with the cookie the browser holds, so the modal
- * has known values to show; the only browser-side shim is window.print, which
+ * endpoint the dialog posts to, with the cookie the browser holds, so the sheet
+ * has known values to print; the only browser-side shim is window.print, which
  * headless Chromium cannot open a preview for.
  */
 
@@ -18,7 +21,7 @@ import { findLaboPatient, seedLaboOrder } from "./fixtures/laboSeed";
 function rowWithCode(page: Page, code: string) {
   return page
     .locator(".pd-pane--fill tbody tr.ant-table-row")
-    .filter({ has: page.locator("td", { hasText: new RegExp(`^${code}$`) }) })
+    .filter({ has: page.getByRole("cell", { name: code, exact: true }) })
     .first();
 }
 
@@ -28,12 +31,19 @@ test.describe("Patient Labo tab — Xem chi tiết", () => {
     await login(page);
   });
 
-  test("the eye opens the read-only modal, and In Phiếu Labo prints the sheet", async ({
-    page,
-  }) => {
+  test("the eye opens the Labo dialog, and a sent order's Đặt hàng prints the sheet", async ({ page }) => {
     const id = runId();
-    const target = await findLaboPatient(page);
-    const seeded = await seedLaboOrder(page, target, id);
+    // A sent order hangs off a treatment line; a fresh one keeps the run apart.
+    const target = await addPlanLine(page);
+    const catalog = await laboCatalog(page, target.branchId, id);
+    const body = orderBody(catalog, target, id, { teeth: [11, 12], treatmentServiceId: target.lineId });
+    const sent = await sentOrder(page, body);
+    const seeded = {
+      orderCode: sent.orderCode,
+      supplierName: catalog.supplierName,
+      teeth: sent.toothNumbers ?? "11, 12",
+      instruction: body.workDescription,
+    };
 
     await page.goto(`/patient/${target.patientId}?branchId=${target.branchId}&tab=labo`);
     await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
@@ -45,40 +55,18 @@ test.describe("Patient Labo tab — Xem chi tiết", () => {
     await expect(actions.first()).toHaveAttribute("aria-label", "Xem chi tiết");
     await actions.first().click();
 
-    // ── Four blocks, the status pill, and the two footer buttons ─────────
-    const dialog = page.getByRole("dialog", { name: "Thông tin chung" });
-    await expect(dialog).toBeVisible();
-    const blocks = dialog.locator(".pd-labo-detail-block h3");
-    await expect(blocks).toHaveText([
-      "Thông tin chung",
-      "Thông tin labo",
-      "Thông số labo",
-      "Chi tiết phiếu",
-      "Trạng thái",
-    ]);
-    const valueOf = (label: string) =>
-      dialog
-        .locator(".pd-labo-detail-row")
-        .filter({ has: page.locator("span:first-child", { hasText: new RegExp(`^${label}$`) }) })
-        .locator("span:last-child");
-    await expect(valueOf("Khách hàng")).toHaveText(target.patientName);
-    await expect(valueOf("Nhà cung cấp")).toHaveText(seeded.supplierName);
-    await expect(valueOf("Ngày gửi")).toHaveText(/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/);
-    await expect(valueOf("Răng")).toHaveText(seeded.teeth);
-    await expect(valueOf("Màu chi tiết")).toHaveText(seeded.shade);
-    await expect(valueOf("Số lượng")).toHaveText("2");
-    await expect(valueOf("Chỉ định")).toHaveText(seeded.instruction);
-    // A value the order never had is left empty, not dashed (as on the reference).
-    await expect(valueOf("Kiểu nhịp")).toHaveText("");
-    await expect(dialog.locator(".pd-labo-detail-pill")).toHaveText("Đơn hàng mới");
-    // Nothing to edit here: no Lưu, no status control.
-    await expect(dialog.getByRole("button", { name: "Lưu" })).toHaveCount(0);
-    await expect(dialog.locator(".ant-select")).toHaveCount(0);
+    // ── A sent order opens on its check; Đặt hàng reads back locked ─────
+    const dialog = page.getByRole("dialog").filter({ has: page.locator(".pd-labo-steps") });
+    await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Nhận hàng & kiểm tra");
+    await dialog.getByRole("tab", { name: /Đặt hàng/ }).click();
+    await expect(dialog.getByRole("heading", { level: 2 })).toHaveText("Đặt hàng");
+    await expect(dialog.locator(`input[value="${seeded.orderCode}"]`)).toBeDisabled();
+    // Nothing to send again: no Lưu nháp, no Tạo phiếu Labo.
+    await expect(dialog.getByRole("button", { name: "Lưu nháp" })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Tạo phiếu Labo" })).toHaveCount(0);
     const printButton = dialog.getByRole("button", { name: "In Phiếu Labo" });
     await expect(printButton).toBeEnabled();
-    // AntD's corner "X" is also named Đóng; the footer's is the primary one.
-    const closeButton = dialog.locator(".pd-labo-detail-footer .ant-btn-primary");
-    await expect(closeButton).toHaveText("Đóng");
+    const closeButton = dialog.locator(".pd-labo-step-footer").getByRole("button", { name: "Huỷ", exact: true });
 
     // ── The sheet sits on <body>, outside the modal, off-screen ──────────
     const sheet = page.locator("body > .pd-print-sheet .pd-labo-sheet");

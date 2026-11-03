@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { daysFromNow, laboCatalog, orderBody, passAll, receive, sentOrder } from "./fixtures/laboApi";
+import { addPlanLine } from "./fixtures/laboSeed";
 
 /**
  * Feature: Labo.
@@ -63,38 +65,55 @@ test.describe("Labo", () => {
   });
 
   test("the three sample filters re-query the server by status", async ({ page }) => {
+    test.setTimeout(120_000);
+    const id = runId();
+    const line = await addPlanLine(page);
+    const catalog = await laboCatalog(page, line.branchId, id);
+    const onLine = { treatmentServiceId: line.lineId };
+    // One order per chip, moved through the endpoints the workflow dialog posts to.
+    const atLab = await sentOrder(page, orderBody(catalog, line, `${id}a`, onLine));
+    const late = await sentOrder(
+      page,
+      orderBody(catalog, line, `${id}b`, { ...onLine, sentAt: daysFromNow(-5), dueAt: daysFromNow(-2) }),
+    );
+    const back = await sentOrder(page, orderBody(catalog, line, `${id}c`, onLine));
+    const received = await receive(page, back.id, 2);
+    expect(received.status, received.text).toBe(200);
+    await passAll(page, back.id, [11, 21]);
+
     await page.goto("/labo/mau-labo");
     await assertRealApiTraffic(page, "/labo-orders");
 
-    // Each tab is one status filter the server applies (staging sends
-    // status=created|lateDelivery|delivered): the page it answers with holds
-    // rows of those statuses only, never a narrowed copy of "Tất cả".
-    const statusesUnder = async (tab: string, filter: number) => {
+    // Each chip is one filter the server applies on the P2910_03 statuses
+    // (Đã gửi 2, Chờ kiểm tra 3, Trả hàng 4, Hoàn thành 5, Bảo hành 7): the
+    // page it answers with holds those statuses only, never a narrowed copy
+    // of "Tất cả". Giao trễ is read off the due day, not a status of its own.
+    const answerTo = async (chip: string, filter: number) => {
       const answered = page.waitForResponse(
         (res) =>
           res.url().includes("/labo-orders?") &&
           res.url().includes(`sampleFilter=${filter}`) &&
           res.request().method() === "GET",
       );
-      await page.getByRole("button", { name: tab }).click();
-      const body = (await (await answered).json()) as {
-        totalCount: number;
-        items: { status: number }[];
-      };
-      return body;
+      await page.getByRole("button", { name: chip }).click();
+      return (await (await answered).json()) as { items: { orderCode: string; status: number }[] };
     };
+    const codes = (body: { items: { orderCode: string }[] }) => body.items.map((one) => one.orderCode);
 
-    const awaiting = await statusesUnder("Mẫu Chưa Nhận", 1);
-    // The demo clinic's orders are written as Đơn hàng mới, so the tab is never empty.
-    expect(awaiting.totalCount).toBeGreaterThan(0);
-    expect(awaiting.items.every((one) => [1, 2, 3].includes(one.status))).toBe(true);
+    const awaiting = await answerTo("Mẫu Chưa Nhận", 1);
+    expect(awaiting.items.every((one) => [2, 4].includes(one.status))).toBe(true);
+    expect(codes(awaiting)).toContain(atLab.orderCode);
+    expect(codes(awaiting)).not.toContain(late.orderCode);
     await expect(page.locator(".ant-table-row").first()).toBeVisible();
 
-    const overdue = await statusesUnder("Mẫu Giao Trễ", 2);
-    expect(overdue.items.every((one) => one.status === 7)).toBe(true);
+    const overdue = await answerTo("Mẫu Giao Trễ", 2);
+    expect(overdue.items.every((one) => [2, 4].includes(one.status))).toBe(true);
+    expect(codes(overdue)).toContain(late.orderCode);
+    expect(codes(overdue)).not.toContain(atLab.orderCode);
 
-    const returned = await statusesUnder("Mẫu Đã Nhận Hàng", 3);
-    expect(returned.items.every((one) => [4, 5].includes(one.status))).toBe(true);
+    const returned = await answerTo("Mẫu Đã Nhận Hàng", 3);
+    expect(returned.items.every((one) => [3, 5, 7].includes(one.status))).toBe(true);
+    expect(codes(returned)).toContain(back.orderCode);
   });
 
   test("Khớp cắn survives create, rename, reload and delete", async ({ page }) => {

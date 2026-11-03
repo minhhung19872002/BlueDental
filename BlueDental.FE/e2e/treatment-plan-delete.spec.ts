@@ -1,7 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 import { BRANCH_IN_URL, workingBranchId } from "./fixtures/branch";
-import { PAYMENTS_API, call, collectOnFirstLine, openNewSlip } from "./fixtures/ledgerReceipt";
+import { PAYMENTS_API, call, collectOnFirstLine, money, openNewSlip } from "./fixtures/ledgerReceipt";
+import { call as branchCall, clinicToday } from "./fixtures/timekeepingStaff";
 import {
   createDentist,
   deleteDentist,
@@ -21,8 +22,10 @@ import { currentUserId, firstPatientOf, openSlipFor } from "./fixtures/treatingS
  *
  *  - the bin deletes a slip nothing has been done against; it stays gone after
  *    a reload and its consulting lines are back to "accepted";
- *  - a slip with a receipt goes too, and its money with it: the receipt is
- *    gone, and the patient's account no longer counts the slip or the money;
+ *  - a slip with a receipt goes too, and its money with it: the confirm names
+ *    the sum first, then the receipt is gone, and the patient's account no
+ *    longer counts the slip or the money;
+ *  - a slip past "Đã tạo" (a công đoạn on it) has no bin (owner 2026-10-27);
  *  - the bin and the endpoint follow treatmentConsultation.deletePlan.
  */
 
@@ -75,10 +78,20 @@ async function openPlanTab(page: Page, slip: OpenedSlip) {
 const binOf = (page: Page, slip: OpenedSlip) =>
   page.getByRole("button", { name: `Xoá phiếu điều trị ${slip.code}` });
 
-async function confirmDelete(page: Page, slip: OpenedSlip) {
+const PAID_WARNING = /Phiếu đã thu ([\d.]+) đ, các phiếu thu này cũng sẽ bị xoá\./;
+
+/** Opens the bin's confirm, checks the money warning (or its absence), then confirms. */
+async function confirmDelete(page: Page, slip: OpenedSlip, paid = 0) {
   await binOf(page, slip).click();
   const dialog = page.getByRole("dialog", { name: "Xác nhận xoá phiếu điều trị" });
   await expect(dialog).toContainText(slip.code);
+  const warning = dialog.getByText(PAID_WARNING);
+  if (paid > 0) {
+    await expect(warning).toBeVisible();
+    expect(money((await warning.innerText()).match(PAID_WARNING)?.[1] ?? "")).toBe(paid);
+  } else {
+    await expect(warning).toHaveCount(0);
+  }
   const sent = page.waitForResponse(
     (res) => res.url().endsWith(`${PLANS_API}/${slip.planId}`) && res.request().method() === "DELETE",
   );
@@ -135,7 +148,8 @@ test.describe("Kế hoạch điều trị — Xoá phiếu điều trị", () =>
     expect(paidBefore).toBeGreaterThanOrEqual(receipt.amount);
 
     await openPlanTab(page, slip);
-    const { dialog, response } = await confirmDelete(page, slip);
+    // Still "Đã tạo", so the bin is there — but the confirm names the money first.
+    const { dialog, response } = await confirmDelete(page, slip, receipt.amount);
     expect(response.ok(), await response.text()).toBeTruthy();
     await expect(dialog).toBeHidden();
     await page.reload();
@@ -151,6 +165,44 @@ test.describe("Kế hoạch điều trị — Xoá phiếu điều trị", () =>
     expect(account.plans.some((plan) => plan.id === slip.planId)).toBe(false);
     expect(account.payments.some((payment) => payment.id === receipt.id)).toBe(false);
     expect(await paidOf(page, accountUrl)).toBe(paidBefore - receipt.amount);
+  });
+
+  test("a slip past Đã tạo offers no bin (owner 2026-10-27)", async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+
+    const slip = await openSlip(page);
+    const branchId = (await workingBranchId(page))!;
+    const { body: plan } = await call(page, `${PLANS_API}/${slip.planId}`);
+    const line = (plan.services as { id: string; serviceId: string; teeth: unknown }[])[0];
+    // The first công đoạn turns the slip "Đang điều trị".
+    const stage = await branchCall(page, "/api/v1/app/treatment-stages", {
+      method: "POST",
+      branchId,
+      json: {
+        patientId: slip.patientId,
+        clinicBranchId: branchId,
+        treatmentId: slip.planId,
+        treatmentServiceId: line.id,
+        serviceId: line.serviceId,
+        name: "Công đoạn E2E",
+        note: "R-1042",
+        staffId: plan.dentistId,
+        treatmentDate: clinicToday(),
+        teeth: line.teeth,
+        isGuarantee: false,
+        warrantySourceStageId: null,
+      },
+    });
+    expect(stage.status, JSON.stringify(stage.body)).toBe(200);
+
+    await openPlanTab(page, slip);
+    const row = page.locator(".tp-table .ant-table-row", { hasText: slip.code });
+    await expect(row.locator(".tp-pill")).toHaveText("Đang điều trị");
+    await expect(binOf(page, slip)).toHaveCount(0);
+    // The other actions stay.
+    await expect(row.getByRole("button", { name: `Phiếu thu ${slip.code}` })).toBeVisible();
   });
 
   test("the bin and the endpoint follow treatmentConsultation.deletePlan", async ({

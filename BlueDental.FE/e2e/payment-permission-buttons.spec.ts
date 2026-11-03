@@ -395,7 +395,7 @@ test.describe("Tài chính → Thanh toán — Xem opens the list, Xuất file t
       expect((await download).suggestedFilename()).toMatch(/\.xlsx$/);
     } finally {
       await context.close();
-      if (receipt) await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
+      if (receipt) await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reasonCode: 4, reason: "e2e cleanup" } });
       await resetDentistLeaves(page, LEDGER_LEAVES);
       await deleteDentist(page, fullName);
     }

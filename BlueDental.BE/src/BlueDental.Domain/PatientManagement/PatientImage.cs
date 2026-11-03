@@ -29,6 +29,33 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
     /// <summary>Phiếu Labo this image was attached to on the order's detail dialog, when it was.</summary>
     public Guid? LaboOrderId { get; private set; }
 
+    /// <summary>
+    /// Ảnh kiểm tra: the receive-and-check round of <see cref="LaboOrderId"/>
+    /// the picture was taken in (P2910_03). Null on the pictures sent to the lab
+    /// with the order itself.
+    /// </summary>
+    public int? LaboRoundNo { get; private set; }
+
+    /// <summary>
+    /// The tooth row of <see cref="LaboOrderId"/> the picture belongs to (P3110):
+    /// an FDI number, <see cref="AllLaboTeeth"/> for the row "Dùng chung" applies
+    /// to every tooth, null for Ảnh đính kèm chung.
+    /// </summary>
+    public int? LaboToothNumber { get; private set; }
+
+    public const int AllLaboTeeth = 0;
+
+    /// <summary>
+    /// Set on a photo of a warranty card — the Labo card of
+    /// <see cref="LaboToothNumber"/> (P3110 REQ-E1) or the dental card
+    /// <see cref="ServiceWarrantyCardId"/> (REQ-B5) — rather than a picture of the
+    /// work; null on every other image.
+    /// </summary>
+    public WarrantyCardSide? WarrantyCardSide { get; private set; }
+
+    /// <summary>The dental warranty card ("Bảo hành nha khoa") this photo shows a face of.</summary>
+    public Guid? ServiceWarrantyCardId { get; private set; }
+
     /// <summary>Name of the blob in object storage.</summary>
     public string BlobName { get; private set; } = string.Empty;
 
@@ -73,7 +100,11 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
         string? note = null,
         PatientImageType type = PatientImageType.Before,
         int ordering = 1,
-        Guid? laboOrderId = null)
+        Guid? laboOrderId = null,
+        int? laboRoundNo = null,
+        int? laboToothNumber = null,
+        WarrantyCardSide? warrantyCardSide = null,
+        Guid? serviceWarrantyCardId = null)
     {
         Check.NotNullOrWhiteSpace(blobName, nameof(blobName));
         Check.NotNullOrWhiteSpace(fileName, nameof(fileName));
@@ -109,7 +140,11 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
             Note = note,
             Type = type,
             Ordering = ordering,
-            LaboOrderId = laboOrderId
+            LaboOrderId = laboOrderId,
+            LaboRoundNo = laboOrderId.HasValue ? laboRoundNo : null,
+            LaboToothNumber = laboOrderId.HasValue ? laboToothNumber : null,
+            ServiceWarrantyCardId = serviceWarrantyCardId,
+            WarrantyCardSide = laboOrderId.HasValue || serviceWarrantyCardId.HasValue ? warrantyCardSide : null
         };
     }
 
@@ -123,6 +158,25 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
             "image/jpeg" or "image/jpg" or "image/png" or "image/webp" => true,
             _ => false
         };
+
+    /// <summary>The clinic day the picture was uploaded on.</summary>
+    public DateOnly UploadedOn => ClinicCalendar.DateOf(DateTime.SpecifyKind(CreationTime, DateTimeKind.Utc));
+
+    /// <summary>
+    /// A công đoạn picture can be deleted on the day it was uploaded and no
+    /// later (P0111_02, R-1111); every other picture stays deletable.
+    /// </summary>
+    public bool IsDeletableOn(DateOnly today) => TreatmentStageId is null || UploadedOn == today;
+
+    public void EnsureDeletableOn(DateOnly today)
+    {
+        if (!IsDeletableOn(today))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.PatientManagement.StageImageDeleteExpired,
+                "A treatment-stage picture can only be deleted on the day it was uploaded.");
+        }
+    }
 
     public PatientImage UpdateNote(string? note)
     {

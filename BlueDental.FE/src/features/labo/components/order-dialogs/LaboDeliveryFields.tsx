@@ -1,5 +1,4 @@
 import { DatePicker } from "antd";
-import { TimePicker } from "@/components/TimePicker";
 import type { Rule } from "antd/es/form";
 import type { Dayjs } from "dayjs";
 import { FloatingField } from "@/components/FloatingField";
@@ -9,60 +8,39 @@ import type { PickerOption } from "@/hooks/useLaboPickers";
 import { dueAfterSent, requiredRule } from "./useLaboOrderForm";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
-/** The due pair has to follow the sent pair; the message is the reference's. */
+/** Ngày nhận dự kiến has to be a later day than Ngày gửi. */
 const dueAfterSentRule: Rule = ({ getFieldValue }) => ({
   validator: () => {
-    const pick = (name: "sentDate" | "sentTime" | "dueDate" | "dueTime"): Dayjs | null =>
-      getFieldValue(name) ?? null;
-    const ok = dueAfterSent({
-      sentDate: pick("sentDate"),
-      sentTime: pick("sentTime"),
-      dueDate: pick("dueDate"),
-      dueTime: pick("dueTime"),
-    });
-    return ok ? Promise.resolve() : Promise.reject(new Error(t("Patient:Labo:DueAfterSent")));
+    const sent: Dayjs | null = getFieldValue("sentDate") ?? null;
+    const due: Dayjs | null = getFieldValue("dueDate") ?? null;
+    return dueAfterSent(sent, due) ? Promise.resolve() : Promise.reject(new Error(t("Patient:Labo:DueAfterSent")));
   },
 });
 
-/** Ngày nhận dự kiến and Giờ nhận are checked together, whichever one moved. */
-const DUE_PAIR = ["sentDate", "sentTime", "dueDate", "dueTime"];
+const DATE_PAIR = ["sentDate", "dueDate"];
 
 interface Props {
-  /** "Ngày gửi / Giờ gửi", or the warranty stamp on the Bảo hành tab. */
-  sentLabels: { date: string; time: string };
   suppliers: PickerOption[];
 }
 
 /**
- * The second half of every labo header: the sent stamp (prefilled with now),
- * the supplier and the due stamp, each with the reference's required message
- * under it. The time labels never drop into the field: the reference keeps
- * them on the border over an "HH:mm" hint (staging, docs/clone/pages/labo.md §2.6). The sent pair is prefilled, so its messages are only ever seen
- * when someone clears it; the reference's own wording for that is unknown.
+ * Ngày gửi, Nhà cung cấp and Ngày nhận dự kiến of the labo header — days
+ * only since P3110 (m142 dropped Giờ gửi / Giờ nhận). Ngày gửi starts on today;
+ * a sent order keeps both, locked by the form (REQ-C2).
  */
-export function LaboDeliveryFields({ sentLabels, suppliers }: Props) {
+export function LaboDeliveryFields({ suppliers }: Props) {
+  const sentLabel = t("Patient:Labo:SentDate");
   return (
     <>
-      <div className="pd-labo-pair">
-        <FloatingField
-          name="sentDate"
-          label={sentLabels.date}
-          required
-          rules={requiredRule(t("Patient:Labo:RequiredField", sentLabels.date.toLowerCase()))}
-        >
-          <DatePicker format={DATE_INPUT_FORMAT} />
-        </FloatingField>
-        <FloatingField
-          name="sentTime"
-          label={sentLabels.time}
-          required
-          alwaysFloat
-          rules={requiredRule(t("Patient:Labo:RequiredField", sentLabels.time.toLowerCase()))}
-        >
-          <TimePicker format="HH:mm" placeholder="HH:mm" />
-        </FloatingField>
-      </div>
-
+      <FloatingField
+        name="sentDate"
+        label={sentLabel}
+        required
+        dependencies={DATE_PAIR}
+        rules={requiredRule(t("Patient:Labo:RequiredField", sentLabel.toLowerCase()))}
+      >
+        <DatePicker format={DATE_INPUT_FORMAT} />
+      </FloatingField>
       <FloatingField
         name="supplierId"
         label={t("Patient:Labo:Supplier")}
@@ -71,27 +49,15 @@ export function LaboDeliveryFields({ sentLabels, suppliers }: Props) {
       >
         <SearchSelect options={suppliers} />
       </FloatingField>
-      <div className="pd-labo-pair">
-        <FloatingField
-          name="dueDate"
-          label={t("Patient:Labo:ExpectedReceiveDate")}
-          required
-          dependencies={DUE_PAIR}
-          rules={[...requiredRule(t("Patient:Labo:RequiredExpectedDate")), dueAfterSentRule]}
-        >
-          <DatePicker format={DATE_INPUT_FORMAT} />
-        </FloatingField>
-        <FloatingField
-          name="dueTime"
-          label={t("Patient:Labo:ReceiveTime")}
-          required
-          alwaysFloat
-          dependencies={DUE_PAIR}
-          rules={[...requiredRule(t("Patient:Labo:RequiredReceiveTime")), dueAfterSentRule]}
-        >
-          <TimePicker format="HH:mm" placeholder="HH:mm" />
-        </FloatingField>
-      </div>
+      <FloatingField
+        name="dueDate"
+        label={t("Patient:Labo:ExpectedReceiveDate")}
+        required
+        dependencies={DATE_PAIR}
+        rules={[...requiredRule(t("Patient:Labo:RequiredExpectedDate")), dueAfterSentRule]}
+      >
+        <DatePicker format={DATE_INPUT_FORMAT} />
+      </FloatingField>
     </>
   );
 }

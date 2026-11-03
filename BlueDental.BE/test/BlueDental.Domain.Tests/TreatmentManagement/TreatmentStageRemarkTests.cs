@@ -67,13 +67,32 @@ public class TreatmentStageRemarkTests
     }
 
     [Fact]
-    public void A_continued_stage_refuses_a_remark()
+    public void A_continued_stage_still_takes_a_remark()
     {
+        // BA 2026-11-02 "Cho phép chỉnh sửa hết": history rows too, logged instead.
         var stage = Stage();
         stage.ContinueAs(Guid.NewGuid(), 2, _staffId, "lần 2", null, null, null);
 
-        Should.Throw<BusinessException>(() => stage.SetRemark("muộn"))
-            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidStageTransition);
+        stage.SetRemark("bổ sung");
+
+        stage.Remark.ShouldBe("bổ sung");
+    }
+
+    [Fact]
+    public void The_treatment_content_stays_open_on_finished_and_continued_rows()
+    {
+        var finished = Stage();
+        finished.Complete();
+        finished.SetNote("Sửa sau khi hoàn thành");
+        finished.Note.ShouldBe("Sửa sau khi hoàn thành");
+
+        var continued = Stage();
+        continued.ContinueAs(Guid.NewGuid(), 2, _staffId, "lần 2", null, null, null);
+        continued.SetNote("Sửa dòng lịch sử");
+        continued.Note.ShouldBe("Sửa dòng lịch sử");
+
+        continued.SetNote("  ");
+        continued.Note.ShouldBeNull();
     }
 
     [Fact]

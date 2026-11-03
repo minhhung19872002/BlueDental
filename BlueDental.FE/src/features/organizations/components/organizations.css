@@ -21,3 +21,72 @@
 .branch-usage-hours__picker {
   width: 100%;
 }
+
+
+/* Kết nối iPad (P2610) — pair the counter iPad that shows PHIẾU THU to sign */
+.ipad-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ipad-pair-intro {
+  margin: 0;
+  color: var(--bd-muted);
+}
+
+.ipad-pair-create {
+  display: flex;
+  gap: 8px;
+  max-width: 520px;
+}
+
+.ipad-pair-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-bg-soft);
+}
+
+.ipad-pair-link .ant-qrcode {
+  flex: 0 0 auto;
+  background: var(--bd-card);
+}
+
+.ipad-pair-link-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ipad-pair-link-body p {
+  margin: 0;
+}
+
+.ipad-pair-link-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ipad-pair-link-row {
+  display: flex;
+  gap: 8px;
+}
+
+.ipad-pair-link-warn {
+  color: var(--bd-orange);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .ipad-pair-create,
+  .ipad-pair-link {
+    flex-direction: column;
+  }
+}

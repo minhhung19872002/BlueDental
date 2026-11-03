@@ -270,7 +270,7 @@ public static class BlueDentalAbilities
         ["treatmentDiagnosis"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         ["treatmentImage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["treatmentLabo"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
-        ["treatmentStage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Continue, Actions.Complete, Actions.Print],
+        ["treatmentStage"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Continue, Actions.Complete, Actions.Print, Actions.Delete],
         // BlueDental-local: the reference has no queue subject.
         ["queue"] = [Actions.Read, Actions.Create, Actions.Update],
         ["voucher"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],

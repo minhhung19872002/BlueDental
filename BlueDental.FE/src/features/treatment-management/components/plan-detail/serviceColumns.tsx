@@ -5,9 +5,12 @@ import { ActionTooltip } from "@/components/ActionTooltip";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { formatToothCodes } from "../../api/consultingApi";
+import type { WarrantyServiceRowDto } from "../../api/planWarrantyApi";
 import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
 import { LineMoney } from "../plan/LineMoney";
 import { DiscountBreakdown } from "./DiscountBreakdown";
+import { PlanLaboCell } from "./PlanLaboCell";
+import { PlanWarrantyChips } from "./PlanWarrantyChips";
 import { ServiceStatusMenu, type ServiceAction } from "./ServiceStatusMenu";
 import { ServiceStatusPill } from "./ServiceStatusPill";
 import {
@@ -27,6 +30,8 @@ export interface ServiceRowActions {
   onEdit?: (row: PlanDetailRow) => void;
   /** "Xóa". Left out without treatmentConsultation.delete; shown only on lines still "Đã tạo". */
   onDelete?: (row: PlanDetailRow) => void;
+  /** The LABO code under "Phiếu Labo": opens the shared Labo dialog on that order. */
+  onLabo?: (orderId: string) => void;
 }
 
 /**
@@ -96,13 +101,11 @@ export function ServiceNameCell({ row }: { row: PlanDetailRow }) {
   );
 }
 
-/** The status pill (read only — moving it is in Thao tác) and how many công đoạn the line has had. */
+/** The status pill (read only — moving it is in Thao tác); P3110 dropped the "N lần" beside it. */
 export function StatusCell({ row }: { row: PlanDetailRow }) {
-  const stages = row.service.stageCount;
   return (
     <span className="pdt-line-status">
       <ServiceStatusPill service={row.service} />
-      {stages > 0 && <span className="pdt-stage-count">{t("Treatment:Service:StageCount", stages)}</span>}
     </span>
   );
 }
@@ -187,19 +190,28 @@ function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
 }
 
 /**
- * The BA's nine columns (2026-10-15): the reference's fifteen cut down, Chẩn
- * đoán moved after Bác sĩ điều trị and the status pulled out of the name cell.
- * No drag grip — the order is the slip's.
+ * The BA's nine columns (2026-10-15), Phiếu Labo after Trạng thái (P2910_03) and Bảo hành after it (P3110):
+ * the reference's fifteen cut down, Chẩn đoán moved after Bác sĩ điều trị and the status pulled out of the name
+ * cell. No drag grip — the order is the slip's. `warrantyOf` reads the line's row of the Bảo hành tab.
  */
-export function buildServiceColumns(actions: ServiceRowActions): TableColumnsType<PlanDetailRow> {
+export function buildServiceColumns(
+  actions: ServiceRowActions,
+  warrantyOf: (lineId: string) => WarrantyServiceRowDto | undefined = () => undefined,
+): TableColumnsType<PlanDetailRow> {
   return [
     column("service", t("Treatment:Service:Service"), 240, (row) => <ServiceNameCell row={row} />),
     column("dentist", t("Treatment:PlanDetail:Col:Dentist"), 160, dentistOf),
     column("diagnosis", t("Treatment:PlanDetail:Col:Diagnosis"), 180, diagnosisOf),
     // Tooth numbers only — staging prints no surfaces in this column.
     column("teeth", t("Treatment:PlanDetail:Col:Teeth"), 100, (row) => dash(formatToothCodes(row.service.teeth))),
-    // The widest pill ("Đang điều trị") and "N lần" beside it.
-    column("status", t("Common:Status"), 156, (row) => <StatusCell row={row} />),
+    // The widest pill ("Đang điều trị").
+    column("status", t("Common:Status"), 140, (row) => <StatusCell row={row} />),
+    // P3110 (m385): pill, "LABO-YYYYMMDDn", "Đã nhận: dd/MM/yyyy", "+N phiếu trước · Xem tất cả ›" stacked.
+    column("labo", t("Treatment:PlanDetail:Col:Labo"), 200, (row) => <PlanLaboCell row={row} onOpen={actions.onLabo} />),
+    // P3110 REQ-A10 (m390): the widest chip is "Nha khoa · Chưa đủ điều kiện".
+    column("warranty", t("Treatment:PlanDetail:Col:Warranty"), 210, (row) => (
+      <PlanWarrantyChips row={warrantyOf(row.service.id)} />
+    )),
     column("price", t("Treatment:Pricing:UnitPrice"), 112, (row) => <UnitPriceCell row={row} />, { align: "right" }),
     column("discount", t("Treatment:Pricing:Discount"), 104, (row) => <DiscountCell row={row} />, { align: "right" }),
     column("amount", t("Treatment:Pricing:NetAmount"), 116, (row) => <NetAmountCell row={row} />, { align: "right" }),

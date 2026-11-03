@@ -99,6 +99,53 @@ async function combo(page: Page, taxonomyId: string, name: string, items: { id: 
   });
 }
 
+/** A fresh patient with one diagnosis slip. */
+async function patientWithSlip(page: Page, stamp: string): Promise<string> {
+  return page.evaluate(
+    async ({ branch, suffix }) => {
+      const headers = { "Content-Type": "application/json", "X-Clinic-Branch-Id": branch };
+      const get = async (url: string) => (await fetch(url, { credentials: "include", headers })).json();
+      const post = async (url: string, body: unknown) => {
+        const res = await fetch(url, { method: "POST", credentials: "include", headers, body: JSON.stringify(body) });
+        if (!res.ok) throw new Error(`${url} ${res.status} ${await res.text()}`);
+        return res.json();
+      };
+      const patient = await post("/api/v1/app/patients", {
+        firstName: `Combo ${suffix}`,
+        lastName: "E2E",
+        dateOfBirth: null,
+        gender: "male",
+        phoneNumber: `07${suffix.padStart(8, "0").slice(-8)}`,
+      });
+      const diagnosis = (
+        await get(`/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=diagnosis&isActive=true&maxResultCount=1`)
+      ).items[0];
+      const staff = (await get("/api/v1/app/staff?MaxResultCount=1")).items[0];
+      await post("/api/v1/app/patient-diagnoses", {
+        patientId: patient.id,
+        clinicBranchId: branch,
+        diagnosisId: diagnosis.id,
+        staffId: staff.id,
+        note: `e2e combo ${suffix}`,
+        teeth: [{ toothCode: 21, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
+      });
+      return patient.id as string;
+    },
+    { branch: BRANCH, suffix: stamp },
+  );
+}
+
+/** "Tạo Dịch Vụ" on the patient's diagnosis slip — the "Chọn Dịch Vụ" dialog. */
+async function openPicker(page: Page, patientId: string) {
+  await page.goto(`/patient/${patientId}?tab=consulting&branchId=${BRANCH}`);
+  const slipRow = page.locator(".pd-diagnosis-card tbody tr.ant-table-row").first();
+  await expect(slipRow).toBeVisible({ timeout: 20_000 });
+  await slipRow.getByRole("button", { name: "Tạo Dịch Vụ" }).click();
+  const dialog = page.getByRole("dialog", { name: /Chọn Dịch Vụ/ });
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
 const money = (value: number) => `${value.toLocaleString("vi-VN")} đ`;
 
 test.describe("Combo dịch vụ — review P0510", () => {
@@ -233,6 +280,91 @@ test.describe("Combo dịch vụ — review P0510", () => {
     expect(denied.status).toBe(403);
   });
 
+  test("Chọn Dịch Vụ lists on its Combo tab only the groups holding a combo, each tab counting its own kind (R-1116)", async ({ page }) => {
+    await page.setViewportSize({ width: 1700, height: 1000 });
+    await page.goto("/patient");
+    await assertRealApiTraffic(page, "/api/v1/app/taxonomies");
+
+    const stamp = runId();
+    // Last in Danh mục order, so firstGroup() of the other tests never lands here.
+    const newGroup = (name: string) =>
+      ok<{ id: string; name: string }>(page, "POST", "/api/v1/app/taxonomies", {
+        clinicBranchId: BRANCH,
+        group: "care_service",
+        name,
+        sortOrder: 100_000,
+      });
+    const withCombo = await newGroup(`e2e nhóm có combo ${stamp}`);
+    const singlesOnly = await newGroup(`e2e nhóm lẻ ${stamp}`);
+    const scaling = await service(page, withCombo.id, `e2e nhóm cạo vôi ${stamp}`, 300_000);
+    const polish = await service(page, withCombo.id, `e2e nhóm đánh bóng ${stamp}`, 200_000);
+    const comboName = `e2e Combo nhóm ${stamp}`;
+    await combo(page, withCombo.id, comboName, [
+      { id: scaling.id, quantity: 1, unitPrice: 250_000 },
+      { id: polish.id, quantity: 1, unitPrice: 150_000 },
+    ]);
+    await service(page, singlesOnly.id, `e2e nhóm lẻ trám ${stamp}`, 400_000);
+
+    // The API: hasCombo keeps the combo group, counted apart, and drops the other.
+    type Group = { id: string; itemCount: number; comboCount: number };
+    const listed = await ok<{ items: Group[] }>(
+      page,
+      "GET",
+      `/api/v1/app/taxonomies?ClinicBranchId=${BRANCH}&Group=care_service&IncludeCount=true&HasCombo=true&MaxResultCount=1000`,
+    );
+    const hit = listed.items.find((group) => group.id === withCombo.id);
+    expect(hit).toMatchObject({ itemCount: 3, comboCount: 1 });
+    expect(listed.items.some((group) => group.id === singlesOnly.id)).toBe(false);
+
+    const dialog = await openPicker(page, await patientWithSlip(page, stamp));
+    const nav = dialog.locator(".am-nav");
+    const navItem = (name: string) => nav.locator(".am-nav-item", { hasText: name });
+    // The groups come twenty at a time; scrolling the list to its end asks for more.
+    const reveal = async (name: string) =>
+      expect
+        .poll(
+          async () => {
+            await nav.locator(".am-nav-list").evaluate((list) => list.scrollTo(list.scrollWidth, list.scrollHeight));
+            return navItem(name).count();
+          },
+          { timeout: 30_000 },
+        )
+        .toBe(1);
+
+    // Dịch vụ lẻ counts the group's single services alone.
+    await reveal(withCombo.name);
+    await expect(navItem(withCombo.name).locator(".am-nav-count")).toHaveText("2");
+    await reveal(singlesOnly.name);
+    await expect(navItem(singlesOnly.name).locator(".am-nav-count")).toHaveText("1");
+
+    // Combo lists only the group with a combo, counting its combos.
+    await nav.getByRole("tab", { name: /Combo/ }).click();
+    await reveal(withCombo.name);
+    await expect(navItem(withCombo.name).locator(".am-nav-count")).toHaveText("1");
+    // Every page loaded, the group without a combo is still not there.
+    await expect
+      .poll(
+        async () => {
+          await nav.locator(".am-nav-list").evaluate((list) => list.scrollTo(list.scrollWidth, list.scrollHeight));
+          return nav.locator(".am-nav-more").count();
+        },
+        { timeout: 30_000 },
+      )
+      .toBe(0);
+    await expect(navItem(singlesOnly.name)).toHaveCount(0);
+
+    // Picking the group narrows the combos to its own.
+    await navItem(withCombo.name).click();
+    await expect(navItem(withCombo.name)).toHaveAttribute("aria-pressed", "true");
+    const rows = dialog.locator(".am-table tbody tr");
+    await expect(rows).toHaveCount(1, { timeout: 15_000 });
+    await expect(rows.first()).toContainText(comboName);
+
+    // Back on Dịch vụ lẻ, its own pick is untouched: Tất cả.
+    await nav.getByRole("tab", { name: /Dịch vụ lẻ/ }).click();
+    await expect(nav.locator(".am-nav-item.active")).toContainText("Tất cả");
+  });
+
   test("Chọn Dịch Vụ suggests the combo, opens it, and saves it as one advise line", async ({ page }) => {
     await page.setViewportSize({ width: 1700, height: 1000 });
     await page.goto("/patient");
@@ -249,46 +381,7 @@ test.describe("Combo dịch vụ — review P0510", () => {
     ]);
     expect(bundle.price).toBe(1_450_000);
 
-    // A fresh patient with one diagnosis slip.
-    const patientId = await page.evaluate(
-      async ({ branch, suffix }) => {
-        const headers = { "Content-Type": "application/json", "X-Clinic-Branch-Id": branch };
-        const get = async (url: string) => (await fetch(url, { credentials: "include", headers })).json();
-        const post = async (url: string, body: unknown) => {
-          const res = await fetch(url, { method: "POST", credentials: "include", headers, body: JSON.stringify(body) });
-          if (!res.ok) throw new Error(`${url} ${res.status} ${await res.text()}`);
-          return res.json();
-        };
-        const patient = await post("/api/v1/app/patients", {
-          firstName: `Combo ${suffix}`,
-          lastName: "E2E",
-          dateOfBirth: null,
-          gender: "male",
-          phoneNumber: `07${suffix.padStart(8, "0").slice(-8)}`,
-        });
-        const diagnosis = (
-          await get(`/api/v1/app/catalog-entries?clinicBranchId=${branch}&group=diagnosis&isActive=true&maxResultCount=1`)
-        ).items[0];
-        const staff = (await get("/api/v1/app/staff?MaxResultCount=1")).items[0];
-        await post("/api/v1/app/patient-diagnoses", {
-          patientId: patient.id,
-          clinicBranchId: branch,
-          diagnosisId: diagnosis.id,
-          staffId: staff.id,
-          note: `e2e combo ${suffix}`,
-          teeth: [{ toothCode: 21, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
-        });
-        return patient.id as string;
-      },
-      { branch: BRANCH, suffix: stamp },
-    );
-
-    await page.goto(`/patient/${patientId}?tab=consulting&branchId=${BRANCH}`);
-    const slipRow = page.locator(".pd-diagnosis-card tbody tr.ant-table-row").first();
-    await expect(slipRow).toBeVisible({ timeout: 20_000 });
-    await slipRow.getByRole("button", { name: "Tạo Dịch Vụ" }).click();
-    const dialog = page.getByRole("dialog", { name: /Chọn Dịch Vụ/ });
-    await expect(dialog).toBeVisible();
+    const dialog = await openPicker(page, await patientWithSlip(page, stamp));
 
     // The Dịch vụ lẻ list never offers the combo as a service.
     await dialog.getByPlaceholder("Tìm dịch vụ").fill(stamp);
@@ -305,19 +398,21 @@ test.describe("Combo dịch vụ — review P0510", () => {
     await notice.getByRole("button", { name: "Áp dụng Combo" }).click();
     await expect(dialog.getByRole("tab", { name: /Combo/ })).toHaveAttribute("aria-selected", "true");
     await dialog.getByPlaceholder("Tìm combo").fill(stamp);
-    const card = dialog.getByRole("article", { name: comboName });
+    // A row of the same table as Dịch vụ lẻ since P0111_02 (R-1114).
+    const card = dialog.locator(".am-table tbody tr", { hasText: comboName });
     await expect(card).toBeVisible({ timeout: 15_000 });
     await expect(card).toContainText(money(1_450_000));
     await expect(card).toContainText("-15%");
 
-    // Picking the combo clears the ticked service; the button turns into "Hủy dịch vụ".
-    await card.getByRole("button", { name: "Chọn combo" }).click();
-    await expect(card.getByRole("button", { name: "Hủy dịch vụ" })).toBeVisible();
+    // Ticking the combo clears the ticked service.
+    const comboCheck = card.getByRole("checkbox", { name: comboName });
+    await comboCheck.check();
+    await expect(comboCheck).toBeChecked();
     const summary = page.locator(".am-summary");
     await expect(summary.locator(".am-summary-items li")).toHaveCount(1);
     await expect(summary).toContainText(comboName);
     await expect(summary).not.toContainText(cleaning.name);
-    await expect(summary).toContainText(`Giảm giá combo:${money(250_000)}`);
+    await expect(summary.locator(".am-summary-combo-off")).toHaveText(money(250_000));
     await expect(summary.locator(".am-summary-total")).toHaveText(money(1_450_000));
     await expect(notice).toHaveCount(0);
 

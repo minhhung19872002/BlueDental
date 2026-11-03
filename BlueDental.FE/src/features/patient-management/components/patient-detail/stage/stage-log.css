@@ -1,0 +1,176 @@
+/* "Lịch sử chỉnh sửa" of LỊCH SỬ ĐIỀU TRỊ — the frame of the org chart's
+   "Lịch sử thay đổi" (org-chart.css), kept here as features do not share CSS. */
+
+.stage-log-modal {
+  max-width: calc(100vw - 32px);
+}
+
+.stage-log {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stage-log__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stage-log__filters .ant-select {
+  height: 36px;
+}
+
+.stage-log__stage {
+  flex: 1 1 280px;
+}
+
+.stage-log__action {
+  flex: 0 1 220px;
+}
+
+.stage-log__table .ant-table-thead > tr > th {
+  height: 40px;
+  background: var(--bd-table-head);
+}
+
+.stage-log-nowrap {
+  white-space: nowrap;
+}
+
+.stage-log-stage {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.stage-log-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.stage-log-pill--green {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
+.stage-log-pill--blue {
+  background: var(--bd-info-pale);
+  color: var(--bd-info);
+}
+
+.stage-log-pill--red {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
+.stage-log-pill--amber {
+  background: var(--bd-amber-pale);
+  color: var(--bd-amber);
+}
+
+.stage-log-pill--purple {
+  background: var(--bd-purple-pale);
+  color: var(--bd-purple);
+}
+
+.stage-log-pill--orange {
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+
+.stage-log-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 8px;
+}
+
+.stage-log-diff__row {
+  display: grid;
+  grid-template-columns: 152px 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+}
+
+.stage-log-diff__field {
+  color: var(--bd-title);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stage-log-diff__box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 26px;
+  padding: 4px 10px;
+  border-left: 3px solid var(--bd-border);
+  border-radius: 4px;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+/* Nội dung điều trị keeps its "- " lines. */
+.stage-log-diff__text {
+  white-space: pre-line;
+}
+
+.stage-log-diff__box--before {
+  border-left-color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+
+.stage-log-diff__box--after {
+  border-left-color: var(--bd-green);
+  background: var(--bd-green-pale);
+}
+
+.stage-log-diff__tag {
+  flex: none;
+  padding-top: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stage-log-diff__box--before .stage-log-diff__tag {
+  color: var(--bd-red);
+}
+
+.stage-log-diff__box--after .stage-log-diff__tag {
+  color: var(--bd-green);
+}
+
+.stage-log-diff__arrow {
+  color: var(--bd-muted);
+}
+
+.stage-log-diff__empty {
+  padding: 4px 8px;
+  color: var(--bd-muted);
+}
+
+/* The history header: title left, then the button just before the count. */
+.pd-stage-history > header .stage-log-open {
+  margin-right: 12px;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .stage-log-diff__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .stage-log-diff__arrow {
+    display: none;
+  }
+}

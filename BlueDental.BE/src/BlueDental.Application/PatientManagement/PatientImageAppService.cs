@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
@@ -28,17 +29,23 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
     private readonly IBlobContainer _blobContainer;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
+    private readonly IRepository<TreatmentStage, Guid> _stageRepository;
+    private readonly TreatmentStageChangeRecorder _stageChanges;
 
     public PatientImageAppService(
         IRepository<PatientImage, Guid> repository,
         IBlobContainer blobContainer,
         IIdentityUserRepository userRepository,
-        BranchAccessChecker branchAccess)
+        BranchAccessChecker branchAccess,
+        IRepository<TreatmentStage, Guid> stageRepository,
+        TreatmentStageChangeRecorder stageChanges)
     {
         _repository = repository;
         _blobContainer = blobContainer;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
+        _stageRepository = stageRepository;
+        _stageChanges = stageChanges;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Read)]
@@ -109,12 +116,17 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             input.Note,
             input.Type,
             ordering,
-            input.LaboOrderId);
+            input.LaboOrderId,
+            input.LaboRoundNo,
+            input.LaboToothNumber,
+            input.WarrantyCardSide,
+            input.ServiceWarrantyCardId);
 
         buffer.Position = 0;
         await _blobContainer.SaveAsync(blobName, buffer, overrideExisting: true);
 
         await _repository.InsertAsync(image, autoSave: true);
+        await LogStagePictureAsync(image, TreatmentStageChangeAction.ImageAdded);
         return (await MapManyAsync([image])).Single();
     }
 
@@ -165,9 +177,31 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
     public async Task DeleteAsync(Guid id)
     {
         var image = await LoadAsync(id);
+        image.EnsureDeletableOn(ClinicCalendar.DateOf(DateTimeOffset.UtcNow));
 
+        await LogStagePictureAsync(image, TreatmentStageChangeAction.ImageRemoved);
         await _repository.DeleteAsync(id, autoSave: true);
         await _blobContainer.DeleteAsync(image.BlobName);
+    }
+
+    /// <summary>
+    /// A picture of a công đoạn — its row's "Tải ảnh" — goes into that công
+    /// đoạn's change log (BA 2026-11-02). Logged by the picture's id.
+    /// </summary>
+    private async Task LogStagePictureAsync(PatientImage image, TreatmentStageChangeAction action)
+    {
+        if (image.TreatmentStageId is not { } stageId
+            || await _stageRepository.FindAsync(stageId, includeDetails: false) is not { } stage)
+        {
+            return;
+        }
+
+        var picture = $"{image.Id} {image.FileName}";
+        await _stageChanges.RecordAsync(
+            stage,
+            action,
+            before: action == TreatmentStageChangeAction.ImageRemoved ? picture : null,
+            after: action == TreatmentStageChangeAction.ImageAdded ? picture : null);
     }
 
     private async Task<int> NextOrderingAsync(Guid patientId, Guid clinicBranchId)
@@ -202,6 +236,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         var staffIds = items.Select(x => x.StaffId).Distinct().ToList();
         var users = await _userRepository.GetListByIdsAsync(staffIds);
         var staffNames = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
 
         return items.Select(x => new PatientImageDto
         {
@@ -220,6 +255,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             Ordering = x.Ordering,
             Url = $"/api/v1/app/patient-images/{x.Id}/content",
             StaffName = staffNames.TryGetValue(x.StaffId, out var staff) ? staff : null,
+            Deletable = x.IsDeletableOn(today),
             CreationTime = x.CreationTime,
             CreatorId = x.CreatorId,
             LastModificationTime = x.LastModificationTime,

@@ -96,12 +96,15 @@ public class BlueDentalDbContext :
     // Treatment Management
     public DbSet<TreatmentPlan> TreatmentPlans { get; set; }
     public DbSet<TreatmentPlanVoucher> TreatmentPlanVouchers { get; set; }
+    public DbSet<ServiceWarrantyCard> ServiceWarrantyCards { get; set; }
+    public DbSet<WarrantyCardSequence> WarrantyCardSequences { get; set; }
     public DbSet<TreatmentRecord> TreatmentRecords { get; set; }
     public DbSet<Prescription> Prescriptions { get; set; }
     public DbSet<DiagnosticRecord> DiagnosticRecords { get; set; }
     public DbSet<ConsultationRecord> ConsultationRecords { get; set; }
     public DbSet<PatientDiagnosis> PatientDiagnoses { get; set; }
     public DbSet<TreatmentStage> TreatmentStages { get; set; }
+    public DbSet<TreatmentStageChangeLog> TreatmentStageChangeLogs { get; set; }
     public DbSet<PatientReExamination> PatientReExaminations { get; set; }
     public DbSet<PatientAdvise> PatientAdvises { get; set; }
     public DbSet<PatientQuote> PatientQuotes { get; set; }
@@ -202,6 +205,11 @@ public class BlueDentalDbContext :
     public DbSet<EInvoiceProviderConfig> EInvoiceProviderConfigs { get; set; }
     public DbSet<InvoiceRequest> InvoiceRequests { get; set; }
     public DbSet<InvoiceRequestLink> InvoiceRequestLinks { get; set; }
+    public DbSet<ReceiptSigningSession> ReceiptSigningSessions { get; set; }
+    public DbSet<SigningDevice> SigningDevices { get; set; }
+    public DbSet<AccountantSignature> AccountantSignatures { get; set; }
+    public DbSet<AccountantSignatureChange> AccountantSignatureChanges { get; set; }
+    public DbSet<PaymentReceiptLog> PaymentReceiptLogs { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

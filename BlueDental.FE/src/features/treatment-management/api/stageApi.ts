@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
+import type { LaboStatus } from "@/features/labo/api/laboApi";
 import type { ToothSelectionDto } from "./consultingApi";
+import type { WarrantyCardKind } from "./planWarrantyApi";
 
 import { t } from "@/lib/i18n";
 /** Matches BlueDental.TreatmentManagement.TreatmentStageStatus. */
@@ -58,12 +60,21 @@ export interface TreatmentStageDto {
    * history greys it out and nothing on it can be worked any more.
    */
   isSuperseded: boolean;
+  /**
+   * Written dated before the row it continued (BA 2026-11-02): frozen history
+   * from birth, it took no teeth. Pictures still go on; an admin may delete it.
+   */
+  isBackfill: boolean;
   /** Teeth already handed on to a later công đoạn; the rest are still open here. */
   continuedToothCodes: number[];
   /** The công đoạn this one continues; null at the head of a chain. */
   continuedFromId: string | null;
   /** On a warranty: the ordinary công đoạn it descends from. */
   warrantyRootStageId: string | null;
+  /** On a warranty: the card it is worked under — Nha khoa or Labo (P3110 REQ-F3). */
+  warrantyKind: WarrantyCardKind | null;
+  /** With a Labo card: the order picked in "Dịch vụ bảo hành · Labo". */
+  warrantyLaboOrderId: string | null;
   startedAt: string | null;
   completedAt: string | null;
   teeth: ToothSelectionDto[];
@@ -84,6 +95,29 @@ export interface TreatmentStageDto {
    */
   treatmentDate: string;
   creationTime: string;
+  /** "LABO-xxxx · trạng thái" on the công đoạn that raised a labo order (P2910_03). */
+  labo: TreatmentStageLaboDto | null;
+  /** "🔒 Khoá: LABO-xxx chưa kiểm tra" — the server refuses Hoàn thành while it holds. */
+  completeLockedByLabo: boolean;
+  /** The order behind that lock — named by the note, opened by "Xem phiếu Labo ›". */
+  completeLockedByLaboOrder: TreatmentStageLaboDto | null;
+  /** "BN có n phiếu" beside Tạo Labo: the line's orders not cancelled (P3110 m7). */
+  lineLaboOrderCount: number;
+  /**
+   * Its line has a công đoạn of a newer Ngày điều trị (BA 2026-11-02): Hoàn
+   * thành and Tạo Labo are frozen; Tải ảnh, Nội dung and Ghi chú stay open.
+   */
+  isDateLocked: boolean;
+}
+
+/** A labo order as the history names it. */
+export interface TreatmentStageLaboDto {
+  orderId: string;
+  orderCode: string;
+  status: LaboStatus;
+  isWarrantyExpired: boolean;
+  /** "YYYY-MM-DD" its last tooth passed QC; null until then. */
+  qualityPassedOn: string | null;
 }
 
 export interface TreatmentStageProgressDto {
@@ -121,8 +155,15 @@ export interface CreateTreatmentStageInput {
   teeth?: ToothSelectionDto[];
   /** Set by "Tạo bảo hành". */
   isGuarantee?: boolean;
-  /** With `isGuarantee`: the finished công đoạn the warranty is raised from. */
-  warrantySourceStageId?: string;
+  /**
+   * With `isGuarantee`: the finished công đoạn the warranty is raised from;
+   * null for a line finished by hand (REQ-B8).
+   */
+  warrantySourceStageId?: string | null;
+  /** With `isGuarantee`: "Thẻ bảo hành áp dụng" (REQ-F3). */
+  warrantyKind?: WarrantyCardKind;
+  /** With a Labo card: the line's order whose warranty is worked under (REQ-F4). */
+  warrantyLaboOrderId?: string | null;
   /** The steps ticked under "Danh sách công đoạn"; they are stored unticked. */
   serviceItemIds?: string[];
   /** Ngày điều trị, "YYYY-MM-DD"; the server takes today when omitted. */
@@ -176,6 +217,30 @@ export interface StageListInput {
   maxResultCount?: number;
 }
 
+/** TreatmentStageChangeAction on the wire — what a change-log row records. */
+export const STAGE_CHANGE_ACTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+export type StageChangeAction = (typeof STAGE_CHANGE_ACTIONS)[number];
+
+/** One field of a logged change, by name, already readable (staff and steps named, dates dd/MM/yyyy). */
+export interface StageChangeFieldDto {
+  field: string;
+  before: string | null;
+  after: string | null;
+}
+
+/** A change to a công đoạn, kept after the công đoạn itself is deleted (BA 2026-11-02). */
+export interface StageChangeLogDto {
+  id: string;
+  treatmentStageId: string;
+  action: StageChangeAction;
+  actorName: string | null;
+  occurredAt: string;
+  stageName: string;
+  stageTreatmentDate: string | null;
+  stageDeleted: boolean;
+  changes: StageChangeFieldDto[];
+}
+
 const STAGES = "/v1/app/treatment-stages";
 
 const stageApi = {
@@ -226,6 +291,17 @@ const stageApi = {
   /** Ghi chú on its own endpoint, so no other edit can wipe it; null clears it. */
   updateRemark: (id: string, remark: string | null): Promise<TreatmentStageDto> =>
     api.put<TreatmentStageDto>(`${STAGES}/${id}/remark`, { remark }).then((r) => r.data),
+
+  /** Nội dung điều trị on its own: open on every row, finished or continued, and logged. */
+  updateNote: (id: string, note: string | null): Promise<TreatmentStageDto> =>
+    api.put<TreatmentStageDto>(`${STAGES}/${id}/note`, { note }).then((r) => r.data),
+
+  /** Admin only: "Lịch sử chỉnh sửa" of the slip, deleted công đoạn too, newest first. */
+  changeLogs: (treatmentId: string): Promise<StageChangeLogDto[]> =>
+    api.get<StageChangeLogDto[]>(`${STAGES}/change-logs`, { params: { treatmentId } }).then((r) => r.data),
+
+  /** Admin only: a row written by mistake; its teeth go back to the row it continued. */
+  remove: (id: string): Promise<void> => api.delete(`${STAGES}/${id}`).then(() => undefined),
 };
 
 /**
@@ -303,6 +379,7 @@ export const stageKeys = {
   latest: (patientId: string) => [...stageKeys.all, "latest", patientId] as const,
   progress: (treatmentServiceId: string) =>
     [...stageKeys.all, "progress", treatmentServiceId] as const,
+  changeLogs: (treatmentId: string) => [...stageKeys.all, "change-logs", treatmentId] as const,
 };
 
 export function useTreatmentStages(params: StageListInput, enabled = true) {
@@ -311,6 +388,16 @@ export function useTreatmentStages(params: StageListInput, enabled = true) {
     queryFn: () => stageApi.list(params),
     enabled: enabled && Boolean(params.patientId ?? params.treatmentServiceId),
     // A stage carries images, and an upload has to show up on the row.
+    staleTime: 0,
+  });
+}
+
+/** Read only while the dialog is open; every stage write refreshes it (stageKeys.all). */
+export function useStageChangeLogs(treatmentId: string | undefined) {
+  return useQuery({
+    queryKey: stageKeys.changeLogs(treatmentId ?? ""),
+    queryFn: () => stageApi.changeLogs(treatmentId ?? ""),
+    enabled: Boolean(treatmentId),
     staleTime: 0,
   });
 }
@@ -424,8 +511,18 @@ export function useUpdateStageRemark() {
   );
 }
 
+export function useUpdateStageNote() {
+  return useStageMutation((input: { id: string; note: string | null }) =>
+    stageApi.updateNote(input.id, input.note),
+  );
+}
+
 export function useAttachStageImage() {
   return useStageMutation((input: { id: string; imageUrl: string }) =>
     stageApi.attachImage(input.id, input.imageUrl),
   );
+}
+
+export function useDeleteStage() {
+  return useStageMutation((id: string) => stageApi.remove(id));
 }

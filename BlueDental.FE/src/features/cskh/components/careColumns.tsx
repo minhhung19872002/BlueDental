@@ -268,8 +268,10 @@ export function buildCareColumns(
       key: "note",
       width: 200,
       render: (_, record) => (
+        // The doctor's note stands in until the care staff writes their own;
+        // editing saves the care note and leaves the công đoạn alone (R-1100).
         <CareNoteCell
-          value={record.description}
+          value={record.description || record.doctorNote}
           onSave={(text) => handlers.onNote(record, text)}
         />
       ),

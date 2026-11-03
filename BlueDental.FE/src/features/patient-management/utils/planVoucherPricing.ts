@@ -22,7 +22,10 @@ export interface PricedVouchers {
 }
 
 /** A "Theo dịch vụ" voucher reaches a row by naming its service or the service's group. */
-export function voucherTargets(voucher: VoucherDto, row: PatientAdviseDto): boolean {
+export function voucherTargets(
+  voucher: VoucherDto,
+  row: Pick<PatientAdviseDto, "serviceId" | "serviceGroupId">,
+): boolean {
   return (
     voucher.targetIds.includes(row.serviceId) ||
     (row.serviceGroupId !== null && voucher.targetIds.includes(row.serviceGroupId))

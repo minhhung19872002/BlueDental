@@ -75,14 +75,15 @@ export function toComboOption(entry: ComboEntryResponse): CatalogComboOption {
 /**
  * The live combos of the current branch, searched on the server — the
  * "Combo" tab of "Chọn Dịch Vụ" and its suggestion both read them (review
- * P0510). Deleted combos are left out, as deleted services are.
+ * P0510), the tab narrowed to one group when one is picked. Deleted combos
+ * are left out, as deleted services are.
  */
-export function useCatalogComboOptions(search: string, enabled = true) {
+export function useCatalogComboOptions(search: string, enabled = true, taxonomyId: string | null = null) {
   const branchId = useCurrentBranchId();
   const term = search.trim();
 
   return useQuery({
-    queryKey: [...catalogOptionKeys.group(branchId, CATALOG_GROUP.CareService), "combos", term] as const,
+    queryKey: [...catalogOptionKeys.group(branchId, CATALOG_GROUP.CareService), "combos", term, taxonomyId] as const,
     queryFn: async () => {
       const page = await api
         .get<PagedResult<ComboEntryResponse>>("/v1/app/catalog-entries", {
@@ -90,6 +91,7 @@ export function useCatalogComboOptions(search: string, enabled = true) {
             clinicBranchId: branchId,
             group: CATALOG_GROUP.CareService,
             isCombo: true,
+            taxonomyId: taxonomyId ?? undefined,
             isDeleted: false,
             filter: term || undefined,
             maxResultCount: COMBO_LIMIT,

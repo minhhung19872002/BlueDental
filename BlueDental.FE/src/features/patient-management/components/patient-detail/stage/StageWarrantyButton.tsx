@@ -1,6 +1,7 @@
 import { Button, Tooltip } from "antd";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import { t } from "@/lib/i18n";
+import { formatDate } from "@/utils/format";
 import type { WarrantyState } from "./stageModel";
 
 /** lucide-briefcase-medical, the reference's warranty glyph. */
@@ -28,18 +29,16 @@ export function BriefcaseMedicalIcon() {
 }
 
 /**
- * The tooltip the reference puts on its warranty control, in its own words:
- * the open warranty's message, "Còn n ngày bảo hành", "Đã hết hạn bảo hành",
- * or "Không bảo hành".
+ * The warranty control's tooltip: "Bảo hành đến dd/mm/yyyy" when the line's
+ * valid cards are known, else where the button leads; "Không bảo hành" on a
+ * line without one.
  */
 export function warrantyTitle(state: WarrantyState): string {
   switch (state.kind) {
     case "available":
-      return t("Patient:Stage:WarrantyDaysLeft", state.daysLeft);
-    case "blocked":
-      return state.reason === "openWarranty"
-        ? t("Patient:Stage:OpenWarranty")
-        : t("Patient:Stage:WarrantyExpired");
+      return state.until
+        ? t("Patient:Stage:WarrantyUntil", formatDate(state.until))
+        : t("Patient:Stage:WarrantyOpenTab");
     case "noWarranty":
     case "none":
       return t("Patient:Labo:NoWarranty");
@@ -54,9 +53,9 @@ interface Props {
 /**
  * The warranty control of a finished LỊCH SỬ ĐIỀU TRỊ row, as the reference
  * draws it (its HistorySection, 2026-09-24): a grey disabled "Không bảo hành"
- * when the service carries no warranty, otherwise a green "Bảo hành" that is
- * disabled while another warranty of the line is open or once the period has
- * run out. Nothing at all on a row that is not finished.
+ * when the line carries no warranty, otherwise a green "Bảo hành dịch vụ" that
+ * opens the slip's Bảo hành tab (P3110 REQ-A9). Nothing at all on a row that
+ * is not finished.
  */
 export function StageWarrantyButton({ state, onClick }: Props) {
   if (state.kind === "none") return null;
@@ -74,9 +73,8 @@ export function StageWarrantyButton({ state, onClick }: Props) {
     );
   }
 
-  // The span the tooltip hangs off keeps it reachable on a disabled button, and
-  // ActionTooltip shuts it on press so the Escape meant for "Tạo bảo hành" is
-  // not eaten by a tip still open underneath.
+  // ActionTooltip shuts the tip on press, so it does not linger over the tab
+  // the button opens.
   return (
     <ActionTooltip title={warrantyTitle(state)} className="pd-stage-warrantywrap">
       <Button
@@ -84,10 +82,9 @@ export function StageWarrantyButton({ state, onClick }: Props) {
         type="primary"
         className="pd-stage-warranty"
         icon={<BriefcaseMedicalIcon />}
-        disabled={state.kind === "blocked"}
         onClick={onClick}
       >
-        {t("Patient:Labo:Warranty")}
+        {t("Patient:Stage:ServiceWarranty")}
       </Button>
     </ActionTooltip>
   );

@@ -98,6 +98,25 @@ sudo usermod -aG docker hung   # da co san tren VM nay
 **khong bi xoa**. Giu nguyen file `.env` hien tai tren VM — doi password trong
 do se lam api khong connect duoc vao volume postgres da init san.
 
+### `RECEIPT_VAULT_KEY` (bat buoc tu P2610 phase 4)
+
+Khoa ma hoa chu ky khach ky tren iPad. Thieu bien nay thi `docker compose`
+**khong chay** (deploy do), nen phai them truoc lan deploy dau tien co phase 4.
+
+Tao **mot lan cho moi server** (production va staging dung 2 khoa khac nhau):
+
+```bash
+cd /home/hung/BlueDental
+grep -q "^RECEIPT_VAULT_KEY=" .env || echo "RECEIPT_VAULT_KEY=$(openssl rand -base64 32)" >> .env
+grep RECEIPT_VAULT_KEY .env   # chep gia tri nay cat o noi an toan, ngoai VM
+```
+
+- **Khong doi** khoa sau khi da co chu ky: khoa moi khong doc duoc chu ky cu.
+- **Mat khoa = mat toan bo chu ky da luu.** Luu ban sao ngoai VM (vi du trinh
+  quan ly mat khau), khong dua vao git.
+- Local: khoa nam trong `appsettings.Development.json` (`ReceiptVault:Key`),
+  file nay da nam trong `.gitignore`.
+
 ## Deploy tay / hotfix
 
 - Chay lai deploy tu commit moi nhat: tab **Actions -> CD -> Run workflow**.

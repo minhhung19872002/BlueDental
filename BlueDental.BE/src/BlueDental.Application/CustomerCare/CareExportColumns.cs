@@ -61,7 +61,8 @@ public static class CareExportColumns
         new("Trạng thái đánh giá", r => OutcomeLabel(r.Outcome), 16),
         new("Lịch hẹn sắp tới", r => NextAppointmentText(r.NextAppointmentAt), 20),
         new("Trạng thái", r => StatusLabel(r.Status), 16),
-        new("Ghi chú", r => r.Description, 36),
+        // As on the board: the doctor's note until the care staff writes one (R-1100).
+        new("Ghi chú", r => string.IsNullOrEmpty(r.Description) ? r.DoctorNote : r.Description, 36),
     ];
 
     /// <summary>Chúc mừng sinh nhật — 7 cột.</summary>

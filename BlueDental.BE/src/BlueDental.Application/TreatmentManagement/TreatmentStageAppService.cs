@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Catalogs;
 using BlueDental.CustomerCare;
+using BlueDental.Labo;
 using BlueDental.Organizations;
 using BlueDental.Staff;
 using BlueDental.Permissions;
@@ -33,6 +34,12 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     private readonly BranchAccessChecker _branchAccess;
     private readonly StageTeethPolicy _teethPolicy;
     private readonly AfterTreatmentCareRecorder _afterTreatmentCare;
+    private readonly IRepository<LaboOrder, Guid> _laboRepository;
+    private readonly LaboStagePolicy _laboPolicy;
+    private readonly IRepository<ServiceWarrantyCard, Guid> _cardRepository;
+    private readonly ServiceLineProgress _lineProgress;
+    private readonly TreatmentStageChangeRecorder _changes;
+    private readonly IRepository<TreatmentStageChangeLog, Guid> _changeLogRepository;
 
     public TreatmentStageAppService(
         IRepository<TreatmentStage, Guid> repository,
@@ -41,7 +48,13 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         StageTeethPolicy teethPolicy,
-        AfterTreatmentCareRecorder afterTreatmentCare)
+        AfterTreatmentCareRecorder afterTreatmentCare,
+        IRepository<LaboOrder, Guid> laboRepository,
+        LaboStagePolicy laboPolicy,
+        IRepository<ServiceWarrantyCard, Guid> cardRepository,
+        ServiceLineProgress lineProgress,
+        TreatmentStageChangeRecorder changes,
+        IRepository<TreatmentStageChangeLog, Guid> changeLogRepository)
     {
         _repository = repository;
         _catalogRepository = catalogRepository;
@@ -50,6 +63,12 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         _branchAccess = branchAccess;
         _teethPolicy = teethPolicy;
         _afterTreatmentCare = afterTreatmentCare;
+        _laboRepository = laboRepository;
+        _laboPolicy = laboPolicy;
+        _cardRepository = cardRepository;
+        _lineProgress = lineProgress;
+        _changes = changes;
+        _changeLogRepository = changeLogRepository;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Read)]
@@ -140,26 +159,27 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         var lineStages = await StagesOfLineAsync(input.TreatmentServiceId);
 
         Guid? warrantyRootStageId = null;
+        WarrantyCover? cover = null;
         if (input.IsGuarantee)
         {
-            var source = lineStages.FirstOrDefault(s => s.Id == input.WarrantySourceStageId)
-                ?? throw new BusinessException(
-                    BlueDentalDomainErrorCodes.TreatmentManagement.WarrantySourceInvalid,
-                    "A warranty names the finished công đoạn it is raised from.");
+            // A line finished by hand has no công đoạn to continue (REQ-B8); a
+            // named source must still be one of the line's.
+            TreatmentStage? source = null;
+            if (input.WarrantySourceStageId.HasValue)
+            {
+                source = lineStages.FirstOrDefault(s => s.Id == input.WarrantySourceStageId)
+                    ?? throw new BusinessException(
+                        BlueDentalDomainErrorCodes.TreatmentManagement.WarrantySourceInvalid,
+                        "A warranty continues from a finished công đoạn of its line.");
 
-            // The root is the ordinary công đoạn the warranty chain started from;
-            // a warranty raised off a warranty inherits the one before it.
-            warrantyRootStageId = source.IsGuarantee ? source.WarrantyRootStageId : source.Id;
+                // The root is the ordinary công đoạn the warranty chain started from;
+                // a warranty raised off a warranty inherits the one before it.
+                warrantyRootStageId = source.IsGuarantee ? source.WarrantyRootStageId : source.Id;
+            }
+
             var root = lineStages.FirstOrDefault(s => s.Id == warrantyRootStageId);
-
-            _teethPolicy.EnsureWarranty(
-                source,
-                root,
-                lineTeeth,
-                lineStages,
-                teeth,
-                await WarrantyDaysAsync(input.ServiceId),
-                Clock.Now);
+            cover = await WarrantyCoverAsync(input);
+            _teethPolicy.EnsureWarranty(source, root, lineTeeth, lineStages, teeth, cover);
         }
         else
         {
@@ -187,6 +207,10 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             warrantyRootStageId: warrantyRootStageId,
             treatmentDate: input.TreatmentDate);
         stage.SetRemark(input.Remark);
+        if (cover is not null)
+        {
+            stage.WorkUnder(cover);
+        }
 
         await _repository.InsertAsync(stage, autoSave: true);
 
@@ -202,6 +226,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     public async Task<TreatmentStageDto> UpdateAsync(Guid id, UpdateTreatmentStageDto input)
     {
         var stage = await LoadAsync(id);
+        var before = TreatmentStageChangeRecorder.Snapshot(stage);
 
         stage.UpdateDetails(
             input.Name,
@@ -212,8 +237,132 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             input.SubStaffId,
             PatientDiagnosisAppService.ToToothSelections(input.Teeth));
 
+        var after = TreatmentStageChangeRecorder.Snapshot(stage);
+        if (before != after)
+        {
+            await _changes.RecordAsync(stage, TreatmentStageChangeAction.DetailsUpdated, before, after);
+        }
+
         await _repository.UpdateAsync(stage, autoSave: true);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
+    }
+
+    /// <summary>
+    /// Nội dung điều trị, edited in its cell. Open on every row — finished,
+    /// continued or back-dated — and logged (BA 2026-11-02 "Cho phép chỉnh sửa
+    /// hết – Nhưng mọi chỉnh sửa có ghi log"). The full edit above keeps its own
+    /// guards: it also moves teeth and doctors.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
+    public async Task<TreatmentStageDto> UpdateNoteAsync(Guid id, UpdateTreatmentStageNoteDto input)
+    {
+        var stage = await LoadAsync(id);
+        var before = stage.Note;
+        stage.SetNote(input.Note);
+        await _changes.RecordAsync(stage, TreatmentStageChangeAction.NoteChanged, before, stage.Note);
+        await _repository.UpdateAsync(stage, autoSave: true);
+        return MapToDto(stage, await BuildLookupsAsync([stage]));
+    }
+
+    /// <summary>
+    /// The công đoạn's change log, oldest first. Gated like Xóa công đoạn, the
+    /// admin's own ability (BA 2026-11-02: "để admin có thể coi").
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Delete)]
+    public async Task<List<TreatmentStageChangeLogDto>> GetChangeLogsAsync(Guid id)
+    {
+        var logs = await _changeLogRepository.GetListAsync(x => x.TreatmentStageId == id);
+        if (logs.Count == 0)
+        {
+            return [];
+        }
+
+        await _branchAccess.CheckAsync(logs[0].ClinicBranchId);
+        return (await DescribeLogsAsync(logs)).OrderBy(x => x.OccurredAt).ToList();
+    }
+
+    /// <summary>
+    /// "Lịch sử chỉnh sửa" of LỊCH SỬ ĐIỀU TRỊ: the log of every công đoạn on
+    /// the slip, newest first — a deleted one's too, which no row is left to
+    /// open it from.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Delete)]
+    public async Task<List<TreatmentStageChangeLogDto>> GetTreatmentChangeLogsAsync(Guid treatmentId)
+    {
+        List<(Guid Id, Guid ClinicBranchId)> stages;
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var query = await _repository.GetQueryableAsync();
+            stages = (await AsyncExecuter.ToListAsync(query
+                    .Where(x => x.TreatmentId == treatmentId)
+                    .Select(x => new { x.Id, x.ClinicBranchId })))
+                .Select(x => (x.Id, x.ClinicBranchId))
+                .ToList();
+        }
+
+        if (stages.Count == 0)
+        {
+            return [];
+        }
+
+        await _branchAccess.CheckAsync(stages[0].ClinicBranchId);
+        var stageIds = stages.Select(x => x.Id).ToList();
+        var logs = await _changeLogRepository.GetListAsync(x => stageIds.Contains(x.TreatmentStageId));
+        return (await DescribeLogsAsync(logs)).OrderByDescending(x => x.OccurredAt).ToList();
+    }
+
+    /// <summary>Each log row with its công đoạn (deleted or not) and its fields by name.</summary>
+    private async Task<List<TreatmentStageChangeLogDto>> DescribeLogsAsync(IReadOnlyCollection<TreatmentStageChangeLog> logs)
+    {
+        var stageIds = logs.Select(x => x.TreatmentStageId).Distinct().ToList();
+        List<TreatmentStage> stages;
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            stages = await _repository.GetListAsync(x => stageIds.Contains(x.Id));
+        }
+
+        var stageById = stages.ToDictionary(x => x.Id);
+        var serviceIds = stages.Select(x => x.ServiceId).Distinct().ToList();
+        var catalogQuery = await _catalogRepository.WithDetailsAsync(c => c.Stages);
+        var entries = catalogQuery.Where(c => serviceIds.Contains(c.Id)).ToList();
+        var serviceNames = entries.ToDictionary(c => c.Id, c => c.Name);
+
+        var names = new Dictionary<Guid, string>();
+        foreach (var step in entries.SelectMany(c => c.Stages))
+        {
+            names.TryAdd(step.Id, step.Name);
+        }
+
+        var userIds = logs.SelectMany(TreatmentStageChangeDescriber.ReferencedIds).Distinct()
+            .Where(id => !names.ContainsKey(id))
+            .ToList();
+        if (userIds.Count > 0)
+        {
+            foreach (var user in await _userRepository.GetListByIdsAsync(userIds))
+            {
+                names[user.Id] = user.Name ?? user.UserName;
+            }
+        }
+
+        return logs.Select(x =>
+        {
+            var stage = stageById.GetValueOrDefault(x.TreatmentStageId);
+            return new TreatmentStageChangeLogDto
+            {
+                Id = x.Id,
+                TreatmentStageId = x.TreatmentStageId,
+                Action = x.Action,
+                Before = x.Before,
+                After = x.After,
+                ActorUserId = x.ActorUserId,
+                ActorName = x.ActorName,
+                OccurredAt = x.OccurredAt,
+                StageName = stage is null ? string.Empty : serviceNames.GetValueOrDefault(stage.ServiceId) ?? stage.Name,
+                StageTreatmentDate = stage?.TreatmentDate,
+                StageDeleted = stage is null || stage.IsDeleted,
+                Changes = TreatmentStageChangeDescriber.Describe(x, names),
+            };
+        }).ToList();
     }
 
     /// <summary>
@@ -270,7 +419,10 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     public async Task<TreatmentStageDto> CompleteAsync(Guid id)
     {
         var stage = await LoadAsync(id);
+        await GuardNotDateLockedAsync(stage);
+        await GuardNotLockedByLaboAsync(stage);
         stage.Complete();
+        await _changes.RecordAsync(stage, TreatmentStageChangeAction.Completed);
         await _repository.UpdateAsync(stage, autoSave: true);
 
         await MoveServiceLineAsync(stage);
@@ -296,7 +448,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     public async Task<TreatmentStageDto> RevertAsync(Guid id)
     {
         var stage = await LoadAsync(id);
+        await GuardNotDateLockedAsync(stage);
         stage.Revert();
+        await _changes.RecordAsync(stage, TreatmentStageChangeAction.Reverted);
         await _repository.UpdateAsync(stage, autoSave: true);
 
         await MoveServiceLineAsync(stage);
@@ -315,6 +469,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         UpdateStageServiceItemsDto input)
     {
         var stage = await LoadAsync(id);
+        var before = TickedSteps(stage);
 
         stage.UpdateServiceItems(
             input.Items
@@ -323,13 +478,20 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             Clock.Now,
             CurrentUser.Id);
 
+        var after = TickedSteps(stage);
+        if (before != after)
+        {
+            await _changes.RecordAsync(stage, TreatmentStageChangeAction.ServiceItemsUpdated, before, after);
+        }
+
         await _repository.UpdateAsync(stage, autoSave: true);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 
     /// <summary>
-    /// Ghi chú. Gated by <c>update</c> like the treatment content, but goes
-    /// through even on a finished công đoạn (owner, 2026-10-19).
+    /// Ghi chú. Gated by <c>update</c> like the treatment content, and open on
+    /// every row, finished or continued (owner 2026-10-19, BA 2026-11-02);
+    /// the change is logged.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentStageDto> UpdateRemarkAsync(
@@ -337,7 +499,9 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         UpdateTreatmentStageRemarkDto input)
     {
         var stage = await LoadAsync(id);
+        var before = stage.Remark;
         stage.SetRemark(input.Remark);
+        await _changes.RecordAsync(stage, TreatmentStageChangeAction.RemarkChanged, before, stage.Remark);
         await _repository.UpdateAsync(stage, autoSave: true);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
@@ -347,15 +511,92 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     {
         var stage = await LoadAsync(id);
         stage.AttachImage(input.ImageUrl);
+        await _changes.RecordAsync(stage, TreatmentStageChangeAction.ImageAdded, after: input.ImageUrl.Trim());
         await _repository.UpdateAsync(stage, autoSave: true);
         return MapToDto(stage, await BuildLookupsAsync([stage]));
     }
 
-    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
+    /// <summary>
+    /// Xóa a wrongly written row of Lịch sử điều trị — say one dated the 27th
+    /// for work done on the 28th (BA 2026-11-02). Admin only.
+    ///
+    /// Only the head of a chain goes: nothing continued from it, no warranty
+    /// raised on it, no Labo order still on it. The teeth it took by "Tiếp tục"
+    /// go back to the rows it took them from, and the line is read again. Its
+    /// pictures stay in the patient's Hình ảnh. A back-dated row took no teeth,
+    /// so it goes without giving any back. The delete is logged.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Delete)]
     public async Task DeleteAsync(Guid id)
     {
-        await LoadAsync(id);
-        await _repository.DeleteAsync(id, autoSave: true);
+        var stage = await LoadAsync(id);
+        var lineStages = await _repository.GetListAsync(x => x.TreatmentServiceId == stage.TreatmentServiceId);
+        if ((stage.IsSuperseded && !stage.IsBackfill)
+            || stage.ContinuedToothCodes.Count > 0
+            || lineStages.Any(x => x.ContinuedFromId == stage.Id || x.WarrantyRootStageId == stage.Id))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.StageDeleteHasSuccessor);
+        }
+
+        if (await _laboRepository.AnyAsync(o => o.TreatmentStageId == stage.Id && o.Status != LaboStatus.Cancelled))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.StageDeleteHasLabo);
+        }
+
+        var givenBack = stage.IsBackfill ? new List<TreatmentStage>() : GiveTeethBack(stage, lineStages);
+        await _changes.RecordAsync(stage, TreatmentStageChangeAction.Deleted, TreatmentStageChangeRecorder.Snapshot(stage));
+        await _repository.DeleteAsync(stage, autoSave: true);
+        if (givenBack.Count > 0)
+        {
+            await _repository.UpdateManyAsync(givenBack, autoSave: true);
+        }
+
+        await MoveServiceLineAsync(stage);
+    }
+
+    /// <summary>The steps ticked on a công đoạn, as the log keeps them.</summary>
+    private static string TickedSteps(TreatmentStage stage) => string.Join(',', stage.ServiceItems
+        .Where(item => item.IsCompleted)
+        .Select(item => item.CatalogServiceStageId)
+        .Order());
+
+    /// <summary>
+    /// The rows a continued công đoạn took its teeth from, each given its teeth
+    /// back: for every tooth, the latest earlier row of the same kind that
+    /// handed it on — the main source and any "alsoFrom" alike.
+    /// </summary>
+    private static List<TreatmentStage> GiveTeethBack(TreatmentStage stage, IReadOnlyList<TreatmentStage> lineStages)
+    {
+        if (!stage.ContinuedFromId.HasValue)
+        {
+            return [];
+        }
+
+        var earlier = lineStages
+            .Where(x => x.Id != stage.Id && x.IsGuarantee == stage.IsGuarantee && x.CreationTime <= stage.CreationTime)
+            .ToList();
+        var givenBack = new HashSet<TreatmentStage>();
+        foreach (var code in stage.Teeth.Select(t => t.ToothCode).Distinct())
+        {
+            var source = earlier
+                .Where(x => x.ContinuedToothCodes.Contains(code))
+                .MaxBy(x => x.CreationTime);
+            if (source is not null)
+            {
+                source.TakeBackTeeth([code]);
+                givenBack.Add(source);
+            }
+        }
+
+        // A công đoạn with no teeth of its own stood for the whole line.
+        var main = earlier.FirstOrDefault(x => x.Id == stage.ContinuedFromId);
+        if (main is not null && main.Teeth.Count == 0)
+        {
+            main.TakeBackTeeth([]);
+            givenBack.Add(main);
+        }
+
+        return givenBack.ToList();
     }
 
     /// <summary>
@@ -381,49 +622,49 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
 
         var line = plan?.Services.FirstOrDefault(s => s.Id == stage.TreatmentServiceId);
 
-        // Cancelled and replaced lines are closed by a decision about the line,
-        // which its stages do not get to overturn.
-        if (plan == null
-            || line == null
-            || line.Status is TreatmentServiceStatus.Cancelled or TreatmentServiceStatus.Replaced)
+        if (plan == null || line == null)
         {
             return;
         }
 
         var stageQuery = await _repository.GetQueryableAsync();
-        var siblings = stageQuery.Where(x => x.TreatmentServiceId == line.Id).ToList();
-
-        // A superseded công đoạn stays at its old status for ever — its
-        // successor carries the work — so only the live ones are asked. And a
-        // line is only done once every tooth it treats has had a công đoạn: the
-        // first công đoạn may take some of its teeth and leave the rest waiting
-        // under "Thêm công đoạn".
-        var live = siblings.Where(x => !x.IsSuperseded).ToList();
-        var covered = _teethPolicy.CoveredTeeth(line.Teeth, siblings);
-        var allDone = live.Count > 0
-            && live.TrueForAll(x => x.Status == TreatmentStageStatus.Completed)
-            && line.Teeth.All(t => covered.Contains(t.ToothCode));
-
-        if (allDone)
+        var lineStages = stageQuery.Where(x => x.TreatmentServiceId == line.Id).ToList();
+        if (_lineProgress.Move(plan, line, lineStages))
         {
-            if (!line.IsCompleted)
-            {
-                line.Complete();
-            }
+            await _planRepository.UpdateAsync(plan, autoSave: true);
+        }
+    }
 
-            plan.CloseIfAllServicesDone();
-        }
-        else if (line.IsCompleted)
+    /// <summary>
+    /// Hoàn thành, either way, belongs to the rows of the line's newest "Ngày
+    /// điều trị" (BA 2026-11-02) — see <see cref="StageDateLock"/>.
+    /// </summary>
+    private async Task GuardNotDateLockedAsync(TreatmentStage stage)
+    {
+        var lineStages = await _repository.GetListAsync(x => x.TreatmentServiceId == stage.TreatmentServiceId);
+        if (StageDateLock.IsLocked(stage, lineStages))
         {
-            line.Reopen();
-            plan.ReopenIfAnyServiceActive();
+            throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.StageDateLocked);
         }
-        else
-        {
-            line.Start();
-        }
+    }
 
-        await _planRepository.UpdateAsync(plan, autoSave: true);
+    /// <summary>
+    /// Hoàn thành waits for the line's labo orders (P2910_03): the same rule
+    /// the history greys the tick out by — see <see cref="LaboStagePolicy"/>.
+    /// </summary>
+    private async Task GuardNotLockedByLaboAsync(TreatmentStage stage)
+    {
+        // With teeth: the day the last tooth passed QC decides the lock (P3110 note 27).
+        var orders = await _laboRepository.GetListAsync(
+            o => o.TreatmentServiceId == stage.TreatmentServiceId,
+            includeDetails: true);
+        if (orders.Count > 0
+            && _laboPolicy.LocksCompletion(stage, await StagesOfLineAsync(stage.TreatmentServiceId), orders))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Labo.StageLockedByLabo,
+                "A labo order of the service is not QC-passed yet.");
+        }
     }
 
     private async Task<TreatmentStage> LoadAsync(Guid id)
@@ -480,12 +721,21 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         return query.Where(x => x.TreatmentServiceId == treatmentServiceId).ToList();
     }
 
-    /// <summary>The warranty period the service's configuration carries, in days.</summary>
-    private async Task<int> WarrantyDaysAsync(Guid serviceId)
+    /// <summary>The card a new warranty công đoạn names, checked valid today (REQ-F3..F5).</summary>
+    private async Task<WarrantyCover> WarrantyCoverAsync(CreateTreatmentStageDto input)
     {
-        var query = await _catalogRepository.WithDetailsAsync(c => c.ServiceConfig);
-        var entry = query.FirstOrDefault(x => x.Id == serviceId);
-        return entry?.ServiceConfig?.WarrantyDays ?? 0;
+        var lineId = input.TreatmentServiceId;
+        var cards = await _cardRepository.GetListAsync(c => c.TreatmentServiceId == lineId);
+        var orderQuery = await _laboRepository.WithDetailsAsync();
+        var orders = orderQuery.Where(o => o.TreatmentServiceId == lineId).ToList();
+
+        return WarrantyCover.Resolve(
+            input.WarrantyKind,
+            input.WarrantyLaboOrderId,
+            lineId,
+            cards,
+            orders,
+            ClinicCalendar.DateOf(Clock.Now));
     }
 
     private async Task<List<TreatmentStage>> StagesOfServiceAsync(Guid treatmentServiceId)
@@ -546,14 +796,98 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
             serviceNames,
             users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName),
             StaffJobTitles.Of(users),
-            stageNames);
+            stageNames,
+            await LaboOfAsync(items),
+            await DateLockedOfAsync(items));
+    }
+
+    /// <summary>
+    /// The Labo chip, the Hoàn thành lock (and the order behind it) and the
+    /// "BN có n phiếu" count of each công đoạn, read against every công đoạn of
+    /// its line — a page of the history may hold only some of them.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<Guid, StageLabo>> LaboOfAsync(IReadOnlyCollection<TreatmentStage> items)
+    {
+        var lineIds = items.Select(x => x.TreatmentServiceId).Distinct().ToList();
+        var orderQuery = await _laboRepository.WithDetailsAsync();
+        var ordersByLine = orderQuery
+            .Where(o => o.TreatmentServiceId != null && lineIds.Contains(o.TreatmentServiceId.Value))
+            .ToList()
+            .GroupBy(o => o.TreatmentServiceId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+        if (ordersByLine.Count == 0)
+        {
+            return new Dictionary<Guid, StageLabo>();
+        }
+
+        var laboLineIds = ordersByLine.Keys.ToList();
+        var stageQuery = await _repository.GetQueryableAsync();
+        var stagesByLine = stageQuery
+            .Where(x => laboLineIds.Contains(x.TreatmentServiceId))
+            .ToList()
+            .GroupBy(x => x.TreatmentServiceId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
+        TreatmentStageLaboDto? ChipOf(LaboOrder? order) => order is null ? null : new TreatmentStageLaboDto
+        {
+            OrderId = order.Id,
+            OrderCode = order.OrderCode,
+            Status = order.Status,
+            IsWarrantyExpired = order.IsWarrantyExpiredOn(today),
+            QualityPassedOn = order.QualityPassedOn
+        };
+
+        return items
+            .Where(stage => ordersByLine.ContainsKey(stage.TreatmentServiceId))
+            .ToDictionary(stage => stage.Id, stage =>
+            {
+                var orders = ordersByLine[stage.TreatmentServiceId];
+                var siblings = stagesByLine.GetValueOrDefault(stage.TreatmentServiceId) ?? [stage];
+                var lockingOrder = stage.Status == TreatmentStageStatus.Completed
+                    ? null
+                    : _laboPolicy.LockingOrder(stage, siblings, orders);
+                return new StageLabo(
+                    ChipOf(_laboPolicy.OrderRaisedOn(stage, orders)),
+                    ChipOf(lockingOrder),
+                    orders.Count(o => o.Status != LaboStatus.Cancelled));
+            });
+    }
+
+    /// <summary>
+    /// The công đoạn frozen by a newer "Ngày điều trị" on their line — see
+    /// <see cref="StageDateLock"/>, whose rule the query below spells out: the
+    /// line's newest day, Labo warranties apart, replaced rows included.
+    /// </summary>
+    private async Task<IReadOnlySet<Guid>> DateLockedOfAsync(IReadOnlyCollection<TreatmentStage> items)
+    {
+        var lineIds = items.Select(x => x.TreatmentServiceId).Distinct().ToList();
+        var query = await _repository.GetQueryableAsync();
+        var newestByLine = query
+            .Where(x => lineIds.Contains(x.TreatmentServiceId)
+                && !(x.IsGuarantee && x.WarrantyKind == WarrantyCardKind.Labo))
+            .GroupBy(x => x.TreatmentServiceId)
+            .Select(g => new { Line = g.Key, Day = g.Max(x => x.TreatmentDate) })
+            .ToDictionary(x => x.Line, x => (DateOnly?)x.Day);
+
+        return items
+            .Where(stage => StageDateLock.IsLocked(stage, newestByLine.GetValueOrDefault(stage.TreatmentServiceId)))
+            .Select(stage => stage.Id)
+            .ToHashSet();
     }
 
     private sealed record StageLookups(
         IReadOnlyDictionary<Guid, string> ServiceNames,
         IReadOnlyDictionary<Guid, string> StaffNames,
         IReadOnlyDictionary<Guid, string> JobTitles,
-        IReadOnlyDictionary<Guid, string> ServiceStageNames);
+        IReadOnlyDictionary<Guid, string> ServiceStageNames,
+        IReadOnlyDictionary<Guid, StageLabo> Labo,
+        IReadOnlySet<Guid> DateLocked);
+
+    private sealed record StageLabo(
+        TreatmentStageLaboDto? Chip,
+        TreatmentStageLaboDto? LockingOrder,
+        int LineOrderCount);
 
     private static string? NameOf(Guid? staffId, StageLookups lookups) =>
         staffId.HasValue && lookups.StaffNames.TryGetValue(staffId.Value, out var name) ? name : null;
@@ -580,9 +914,12 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IsGuarantee = entity.IsGuarantee,
         HasReExamination = entity.HasReExamination,
         IsSuperseded = entity.IsSuperseded,
+        IsBackfill = entity.IsBackfill,
         ContinuedToothCodes = entity.ContinuedToothCodes.ToList(),
         ContinuedFromId = entity.ContinuedFromId,
         WarrantyRootStageId = entity.WarrantyRootStageId,
+        WarrantyKind = entity.WarrantyKind,
+        WarrantyLaboOrderId = entity.WarrantyLaboOrderId,
         StartedAt = entity.StartedAt,
         CompletedAt = entity.CompletedAt,
         Teeth = PatientDiagnosisAppService.ToToothDtos(entity.Teeth),
@@ -605,6 +942,11 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         StaffJobTitle = lookups.JobTitles.GetValueOrDefault(entity.StaffId),
         SecondStaffJobTitle = StaffJobTitles.Lookup(lookups.JobTitles, entity.SecondStaffId),
         SubStaffName = NameOf(entity.SubStaffId, lookups),
+        Labo = lookups.Labo.GetValueOrDefault(entity.Id)?.Chip,
+        CompleteLockedByLabo = lookups.Labo.GetValueOrDefault(entity.Id)?.LockingOrder is not null,
+        CompleteLockedByLaboOrder = lookups.Labo.GetValueOrDefault(entity.Id)?.LockingOrder,
+        LineLaboOrderCount = lookups.Labo.GetValueOrDefault(entity.Id)?.LineOrderCount ?? 0,
+        IsDateLocked = lookups.DateLocked.Contains(entity.Id),
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

@@ -1,35 +1,20 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button, Image, Tooltip } from "antd";
-import { EyeOutlined, FolderFilled, PlusOutlined, SafetyOutlined } from "@ant-design/icons";
-import { LabelBadge } from "@/components/LabelColor";
-import { StatusBadge } from "@/components/StatusBadge";
-import { t } from "@/lib/i18n";
-import { formatDateTime } from "@/utils/format";
 import {
-  canContinueLaboOrder,
+  DeleteOutlined,
+  EyeOutlined,
+  FileSearchOutlined,
+  FolderFilled,
+  SafetyOutlined,
+} from "@ant-design/icons";
+import { LabelBadge } from "@/components/LabelColor";
+import { t } from "@/lib/i18n";
+import {
+  LABO_STATUS,
   type LaboOrderDto,
   type LaboOrderImageDto,
+  type LaboStatus,
 } from "@/features/labo/api/laboApi";
-
-interface DatePillProps {
-  date: string | undefined;
-  pill: { label: string; bg: string; color: string };
-}
-
-/**
- * A `DD/MM/YYYY HH:mm` line with the pill under it — Ngày gửi / Tình trạng
- * mẫu and Ngày giao / Trạng thái Labo, stacked the way the reference stacks
- * them on both the patient's Labo tab and Mẫu Labo.
- */
-export function LaboDatePill({ date, pill }: DatePillProps) {
-  const text = formatDateTime(date);
-  return (
-    <div className="pd-labo-cell">
-      <span>{date ? text : "—"}</span>
-      <StatusBadge label={t(pill.label)} bg={pill.bg} color={pill.color} />
-    </div>
-  );
-}
 
 interface SupplierBadgeProps {
   name: string | undefined;
@@ -80,14 +65,31 @@ export function LaboImagesButton({ images, label }: ImagesButtonProps) {
   );
 }
 
+/** The row buttons beside the eye, as the BA gives them per status (P2910_03 §2D). */
+type LaboRowAction = "check" | "warranty" | "delete";
+
+const STATUS_ACTIONS: Record<LaboStatus, readonly LaboRowAction[]> = {
+  [LABO_STATUS.Draft]: ["delete"],
+  [LABO_STATUS.Sent]: ["check"],
+  [LABO_STATUS.AwaitingCheck]: ["check"],
+  [LABO_STATUS.Returned]: ["check"],
+  [LABO_STATUS.Completed]: ["warranty"],
+  [LABO_STATUS.Warranty]: [],
+  [LABO_STATUS.Cancelled]: [],
+};
+
+const ACTION_LOOK: Record<LaboRowAction, { label: string; tone: string; icon: ReactNode }> = {
+  check: { label: "Labo:Workflow:CheckAction", tone: "primary", icon: <FileSearchOutlined /> },
+  warranty: { label: "Labo:Workflow:WarrantyAction", tone: "success", icon: <SafetyOutlined /> },
+  delete: { label: "Common:Delete", tone: "danger", icon: <DeleteOutlined /> },
+};
+
 export interface LaboRowActionHandlers {
   onDetail: (order: LaboOrderDto) => void;
-  /**
-   * Both absent when the user may not raise child orders (treatmentLabo:create).
-   * The plus additionally hides itself on a row whose treatment line is done.
-   */
-  onContinue?: (order: LaboOrderDto) => void;
+  /** Each absent where the user may not do it; Mẫu Labo passes none of them. */
+  onCheck?: (order: LaboOrderDto) => void;
   onWarranty?: (order: LaboOrderDto) => void;
+  onDelete?: (order: LaboOrderDto) => void;
 }
 
 interface RowActionsProps extends LaboRowActionHandlers {
@@ -97,23 +99,18 @@ interface RowActionsProps extends LaboRowActionHandlers {
 }
 
 /**
- * Thao tác on a labo row: the eye opens the read-only detail, the plus raises
- * "Tiếp tục công đoạn" and the shield "Bảo hành" on the row — the same icon
- * buttons the other patient tables use, in the same three colours.
- *
- * The reference (staging, both Mẫu Labo and the patient's Labo tab) always
- * draws the eye; with the create permission it draws the shield always and
- * the plus unless the order's treatment line is done. The order's own status
- * and kind never matter — a cancelled order keeps all three.
+ * Thao tác on a labo row: the eye always opens the order; beside it the one
+ * step its status waits on — delete a Nháp, check what the Labo delivered,
+ * activate the warranty of a Hoàn thành order. Nothing more once it is under
+ * warranty or cancelled.
  */
-export function LaboRowActions({
-  row,
-  detailLabel,
-  onDetail,
-  onContinue,
-  onWarranty,
-}: RowActionsProps) {
+export function LaboRowActions({ row, detailLabel, onDetail, ...handlers }: RowActionsProps) {
   const viewLabel = detailLabel ?? t("Patient:Profile:ViewDetail");
+  const handlerOf: Record<LaboRowAction, ((order: LaboOrderDto) => void) | undefined> = {
+    check: handlers.onCheck,
+    warranty: handlers.onWarranty,
+    delete: handlers.onDelete,
+  };
   return (
     <span className="pd-icon-actions">
       <Tooltip title={viewLabel}>
@@ -125,28 +122,22 @@ export function LaboRowActions({
           onClick={() => onDetail(row)}
         />
       </Tooltip>
-      {onContinue && canContinueLaboOrder(row) && (
-        <Tooltip title={t("Patient:Stage:Continue")}>
-          <Button
-            type="text"
-            className="pd-labo-act pd-labo-act--primary"
-            icon={<PlusOutlined />}
-            aria-label={t("Patient:Stage:Continue")}
-            onClick={() => onContinue(row)}
-          />
-        </Tooltip>
-      )}
-      {onWarranty && (
-        <Tooltip title={t("Patient:Labo:Warranty")}>
-          <Button
-            type="text"
-            className="pd-labo-act pd-labo-act--success"
-            icon={<SafetyOutlined />}
-            aria-label={t("Patient:Labo:Warranty")}
-            onClick={() => onWarranty(row)}
-          />
-        </Tooltip>
-      )}
+      {STATUS_ACTIONS[row.status].map((action) => {
+        const handle = handlerOf[action];
+        if (!handle) return null;
+        const look = ACTION_LOOK[action];
+        return (
+          <Tooltip key={action} title={t(look.label)}>
+            <Button
+              type="text"
+              className={`pd-labo-act pd-labo-act--${look.tone}`}
+              icon={look.icon}
+              aria-label={t(look.label)}
+              onClick={() => handle(row)}
+            />
+          </Tooltip>
+        );
+      })}
     </span>
   );
 }

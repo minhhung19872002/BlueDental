@@ -75,6 +75,7 @@ public class BlueDentalApplicationModule : AbpModule
         // PHIẾU THU: the .docx template is filled here and rendered to PDF by
         // Gotenberg (LibreOffice in its own container).
         Configure<Printing.PaymentReceiptOptions>(configuration.GetSection(Printing.PaymentReceiptOptions.SectionName));
+        Configure<Billing.ReceiptVaultOptions>(configuration.GetSection(Billing.ReceiptVaultOptions.SectionName));
         context.Services.AddHttpClient(
             Printing.GotenbergPdfConverter.ClientName,
             client => client.Timeout = TimeSpan.FromSeconds(

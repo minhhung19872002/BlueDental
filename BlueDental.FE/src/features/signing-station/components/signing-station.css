@@ -1,0 +1,417 @@
+/* ── iPad ký phiếu thu (/sign, P2610) ───────────────────────────────────────
+   A full-screen page for the counter iPad: a slim header (logo + branch), the
+   four-step bar on its own card, then one screen at a time. Touch targets are
+   large (AntD size="large"); under 1100px the review column drops below the
+   sheet, which fits an iPad held upright. */
+.sst-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bd-bg);
+  color: var(--bd-ink);
+}
+.sst-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--bd-border);
+  background: var(--bd-card);
+}
+.sst-head-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.sst-head-name {
+  font-size: 18px;
+  font-weight: 600;
+}
+.sst-steps {
+  margin: 16px 24px 0;
+  padding: 16px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+.sst-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  padding: 16px 24px 24px;
+}
+.sst-loading {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+/* One message centred on the page: welcome, thanks, issued, not paired. */
+.sst-message {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
+}
+.sst-message-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+.sst-message-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+.sst-message-text {
+  margin: 0;
+  color: var(--bd-ink-3);
+  font-size: 17px;
+  line-height: 1.5;
+}
+.sst-signed-card {
+  margin: 0;
+  padding: 12px 24px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+.sst-signed-card img {
+  display: block;
+  width: 280px;
+  max-width: 100%;
+  height: 120px;
+  object-fit: contain;
+}
+.sst-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+  font-weight: 600;
+}
+.sst-issued-box {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 24px;
+  width: 100%;
+  margin: 0;
+  padding: 16px 20px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  text-align: left;
+}
+.sst-issued-box dt {
+  color: var(--bd-ink-3);
+}
+.sst-issued-box dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+.sst-issued-amount {
+  color: var(--bd-primary);
+  font-size: 18px;
+}
+
+/* "Cảm ơn quý khách" after "In phiếu thu" (P2910_02): who pays, how much, signed on paper. */
+.sst-message-text strong {
+  color: var(--bd-ink);
+}
+.sst-printed-box {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 8px 28px;
+  margin: 0;
+  padding: 14px 26px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  text-align: left;
+}
+.sst-printed-box dt {
+  color: var(--bd-ink-3);
+}
+.sst-printed-box dd {
+  margin: 0;
+}
+.sst-printed-payer {
+  font-weight: 600;
+}
+.sst-printed-amount {
+  color: var(--bd-primary);
+  font-weight: 700;
+}
+.sst-printed-note {
+  margin: 0;
+  color: var(--bd-ink-3);
+  font-size: 14px;
+}
+.sst-printed-back {
+  min-width: 200px;
+}
+
+/* Kiểm tra phiếu thu: the sheet, the column of cards beside it. */
+.sst-review {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+.sst-review-paper {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The sheet fills its side of the screen, as on the accountant's page. */
+.sst-review-paper .rcpt-sheet {
+  max-width: none;
+}
+.sst-review-side {
+  display: flex;
+  flex: 0 0 360px;
+  flex-direction: column;
+  gap: 16px;
+}
+.sst-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-card);
+}
+.sst-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+.sst-card-title svg {
+  color: var(--bd-primary);
+}
+.sst-card-text {
+  margin: 0;
+  color: var(--bd-ink-3);
+  font-size: 15px;
+}
+.sst-card-done {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+  font-weight: 600;
+}
+.sst-check {
+  font-size: 15px;
+  line-height: 1.5;
+}
+.sst-check + .sst-check {
+  margin-inline-start: 0;
+}
+
+/* Thông tin xuất hóa đơn. */
+.sst-form-card {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+.sst-form-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.sst-form-heading {
+  flex: 1 1 auto;
+  text-align: center;
+}
+.sst-form-heading h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.sst-form-heading p {
+  margin: 4px 0 0;
+  color: var(--bd-ink-3);
+}
+.sst-form-kind {
+  margin-bottom: 8px;
+}
+.sst-form-section {
+  margin: 16px 0 8px;
+  color: var(--bd-ink-4);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sst-form-error {
+  margin: 8px 0 0;
+  color: var(--bd-red);
+}
+.sst-form-foot {
+  margin: 16px 0 0;
+  color: var(--bd-ink-4);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Ký tên xác nhận: the pad fills the width; the baseline sits near its foot. */
+.sst-sign {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+.sst-sign-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.sst-sign-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.sst-sign-sub {
+  margin: 4px 0 0;
+  color: var(--bd-ink-3);
+  font-size: 15px;
+}
+.sst-sign-amount {
+  color: var(--bd-primary);
+  font-size: 22px;
+  white-space: nowrap;
+}
+.sst-pad {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 320px;
+  border: 2px dashed var(--bd-border-2);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-bg-head);
+}
+.sst-pad-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--bd-ink);
+  cursor: crosshair;
+  touch-action: none;
+}
+.sst-pad-placeholder {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+  color: var(--bd-ink-4);
+  font-size: 17px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.sst-pad-line {
+  position: absolute;
+  right: 40px;
+  bottom: 56px;
+  left: 40px;
+  border-bottom: 1px solid var(--bd-ink-4);
+  pointer-events: none;
+}
+.sst-pad-caption {
+  position: absolute;
+  bottom: 28px;
+  left: 0;
+  width: 100%;
+  color: var(--bd-ink-4);
+  font-size: 13px;
+  text-align: center;
+  pointer-events: none;
+}
+.sst-sign-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.sst-sign-note {
+  margin: 0;
+  color: var(--bd-ink-4);
+  font-size: 13px;
+}
+.sst-sign-actions {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 1100px) {
+  .sst-review {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sst-review-side {
+    flex-basis: auto;
+  }
+  .sst-sign-foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sst-sign-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .sst-head,
+  .sst-body {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+  .sst-steps {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+  .sst-form-head {
+    flex-wrap: wrap;
+  }
+  .sst-form-heading {
+    order: -1;
+    flex-basis: 100%;
+  }
+  .sst-sign-actions {
+    flex-wrap: wrap;
+  }
+}

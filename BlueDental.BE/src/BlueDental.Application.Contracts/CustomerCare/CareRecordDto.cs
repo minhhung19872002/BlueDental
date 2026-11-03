@@ -49,6 +49,13 @@ public class CareRecordDto : FullAuditedEntityDto<Guid>
     /// <summary>Dịch vụ — service names behind the linked treatment stages.</summary>
     public List<string> ServiceNames { get; set; } = new();
 
+    /// <summary>
+    /// Ghi chú của bác sĩ — the "Ghi chú lịch hẹn" of the linked treatment
+    /// stages, one per line. Sau điều trị shows it in Ghi chú while
+    /// <see cref="Description"/> is empty (R-1100).
+    /// </summary>
+    public string? DoctorNote { get; set; }
+
     /// <summary>Lịch hẹn sắp tới — the patient's next upcoming appointment.</summary>
     public DateTimeOffset? NextAppointmentAt { get; set; }
 

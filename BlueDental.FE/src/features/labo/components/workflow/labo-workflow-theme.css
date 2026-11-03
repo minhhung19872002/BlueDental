@@ -1,0 +1,1117 @@
+/*
+ * The Labo workflow dialog in the look of the P0111 mocks (docs/Labo 1 · Đặt
+ * hàng, Labo 2 · Nhận hàng & kiểm tra, Labo 3 · Bảo hành): style only — the
+ * dialog keeps its own layout and controls, and nothing the mocks add is
+ * built. Every rule is scoped to `.pd-labo-workflow`, so the other Labo
+ * dialogs (detail, choice, teeth chart) keep their own look.
+ */
+
+.pd-labo-workflow {
+  /* The mocks' palette: indigo actions over cool greys. */
+  --lw-primary: var(--bd-blue-dark);
+  --lw-primary-hover: #4338ca;
+  --lw-primary-pale: var(--bd-blue-pale);
+  --lw-primary-soft: var(--bd-blue-light);
+  --lw-ink: #111827;
+  --lw-label: #4b5563;
+  --lw-muted: #6b7280;
+  --lw-line: #e5e7eb;
+  --lw-line-soft: #f0f1f4;
+  --lw-input-line: #d1d5db;
+  --lw-panel: #fafafc;
+  --lw-head: #f3f4fa;
+  --lw-readonly: #f3f4f6;
+  --lw-pass: #16a34a;
+  --lw-pass-ink: #166534;
+  --lw-pass-pale: #f0fdf4;
+  --lw-pass-line: #bbf7d0;
+  --lw-fail: #b91c1c;
+  --lw-fail-pale: #fff7f7;
+  --lw-fail-soft: #fee2e2;
+  --lw-fail-line: #fca5a5;
+  --lw-card: #1e1b4b;
+  --lw-card-2: #312e81;
+  --lw-card-bar: #3730a3;
+  --lw-card-gold: #fcd34d;
+  --ff-input-height: 36px;
+}
+
+/* ── Shell: 16px corners, the deep shadow, a 14px/24px head and foot ─────── */
+.ant-modal.pd-labo-workflow .ant-modal-content,
+.ant-modal.pd-labo-workflow .ant-modal-container {
+  border-radius: 16px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.35);
+  color: var(--lw-ink);
+}
+.ant-modal.pd-labo-workflow .ant-modal-close {
+  top: 18px;
+  inset-inline-end: 20px;
+  border-radius: 8px;
+}
+
+.pd-labo-workflow .pd-labo-workflow-head {
+  flex-wrap: nowrap;
+  gap: 16px;
+  border-bottom-color: var(--lw-line);
+  padding-top: 16px;
+  padding-bottom: 14px;
+}
+.pd-labo-workflow-title {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.pd-labo-workflow-titlerow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-labo-workflow .pd-labo-workflow-head .bd-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--lw-ink);
+}
+.pd-labo-workflow .pd-labo-workflow-head .ant-tag {
+  margin: 0;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.pd-labo-workflow .pd-labo-step-hint {
+  margin: 0;
+  color: var(--lw-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* The steps: a filled pill for the one on screen, plain text for the rest,
+   a short rule between them. */
+.pd-labo-workflow .pd-labo-steps {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+}
+.pd-labo-workflow .pd-labo-step {
+  flex: 0 0 auto;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 5px 12px 5px 6px;
+  color: var(--lw-label);
+  font-size: 13px;
+  font-weight: 500;
+}
+/* The rule between two steps sits in the gap, outside either pill. */
+.pd-labo-workflow .pd-labo-step {
+  position: relative;
+}
+.pd-labo-workflow .pd-labo-step + .pd-labo-step {
+  margin-left: 44px;
+}
+.pd-labo-workflow .pd-labo-step + .pd-labo-step::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -36px;
+  width: 28px;
+  height: 2px;
+  background: #c7d2fe;
+  pointer-events: none;
+}
+.pd-labo-workflow .pd-labo-step:not(:disabled):hover {
+  color: var(--lw-primary);
+}
+.pd-labo-workflow .pd-labo-step-no {
+  background: var(--lw-line);
+  color: var(--lw-label);
+  font-weight: 700;
+}
+/* A finished step: the green tick on pale green, the label green. */
+.pd-labo-workflow .pd-labo-step--done {
+  color: var(--lw-pass-ink);
+}
+.pd-labo-workflow .pd-labo-step--done .pd-labo-step-no {
+  background: #dcfce7;
+  color: var(--lw-pass-ink);
+}
+.pd-labo-workflow .pd-labo-step + .pd-labo-step--joined::before {
+  background: var(--lw-pass-line);
+}
+.pd-labo-workflow .pd-labo-step--active,
+.pd-labo-workflow .pd-labo-step--active:not(:disabled):hover {
+  background: var(--lw-primary);
+  color: #fff;
+  font-weight: 600;
+}
+.pd-labo-workflow .pd-labo-step--active .pd-labo-step-no {
+  background: #fff;
+  color: var(--lw-primary);
+}
+@media (max-width: 1100px) {
+  .pd-labo-workflow .pd-labo-workflow-head {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 640px) {
+  .pd-labo-workflow .pd-labo-steps {
+    flex-basis: 100%;
+  }
+  .pd-labo-workflow .pd-labo-step + .pd-labo-step {
+    margin-left: 20px;
+  }
+  .pd-labo-workflow .pd-labo-step + .pd-labo-step::before {
+    left: -16px;
+    width: 12px;
+  }
+}
+
+
+.pd-labo-workflow .pd-labo-footer {
+  border-top-color: var(--lw-line);
+  padding-top: 16px;
+  padding-bottom: 14px;
+}
+.pd-labo-workflow .pd-labo-footer .ant-btn {
+  height: 44px;
+  border-radius: 8px;
+  padding-inline: 18px;
+  font-weight: 500;
+}
+.pd-labo-workflow .pd-labo-footer-hint {
+  color: var(--lw-label);
+}
+
+/* ── Buttons: the mocks' indigo, not the app's lighter one ─────────────── */
+.pd-labo-workflow .ant-btn-primary:not(:disabled) {
+  background: var(--lw-primary);
+  font-weight: 600;
+}
+.pd-labo-workflow .ant-btn-primary:not(:disabled):hover {
+  background: var(--lw-primary-hover);
+}
+.pd-labo-workflow .ant-btn-primary:disabled {
+  border-color: transparent;
+  background: var(--lw-primary-soft);
+  color: #fff;
+}
+.pd-labo-workflow .ant-btn-color-primary.ant-btn-variant-outlined:not(:disabled) {
+  border-color: var(--lw-primary-soft);
+  color: var(--lw-primary-hover);
+  font-weight: 600;
+}
+.pd-labo-workflow .ant-btn-default:not(.ant-btn-color-primary):not(.ant-btn-dangerous) {
+  border-color: var(--lw-input-line);
+  color: #374151;
+}
+
+/* ── Fields: the label above the box, 12px, the box 36px with 8px corners ─ */
+.pd-labo-workflow .floating-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pd-labo-workflow .floating-field > .floating-field-label,
+.pd-labo-workflow .floating-field--floated > .floating-field-label {
+  position: static;
+  order: -1;
+  height: auto;
+  margin: 0;
+  transform: none;
+  background: transparent;
+  color: var(--lw-label);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  overflow: visible;
+}
+.pd-labo-workflow .floating-field:has(.ant-form-item-has-error) > .floating-field-label {
+  color: var(--bd-red);
+}
+.pd-labo-workflow .ant-input,
+.pd-labo-workflow .ant-input-affix-wrapper,
+.pd-labo-workflow .ant-picker,
+.pd-labo-workflow .ant-input-number,
+.pd-labo-workflow .ant-select .ant-select-selector,
+.pd-labo-workflow .ss-trigger {
+  border-color: var(--lw-input-line);
+  border-radius: 8px;
+}
+/* Past the app-wide `.ant-modal .ant-input:not(…)` 42px rule. */
+.ant-modal.pd-labo-workflow .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
+.ant-modal.pd-labo-workflow .ant-input-affix-wrapper,
+.ant-modal.pd-labo-workflow .ant-input-number,
+.ant-modal.pd-labo-workflow .ant-picker,
+.ant-modal.pd-labo-workflow .ss-trigger {
+  height: 36px;
+  min-height: 36px;
+}
+.ant-modal.pd-labo-workflow .pd-labo-spec-table .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
+.ant-modal.pd-labo-workflow .pd-labo-spec-table .ss-trigger {
+  height: 34px;
+  min-height: 34px;
+}
+.pd-labo-workflow .ant-input:not(textarea),
+.pd-labo-workflow .ant-picker,
+.pd-labo-workflow .ss-trigger {
+  font-size: 13px;
+}
+.pd-labo-workflow .ant-input-disabled,
+.pd-labo-workflow .ant-input[disabled],
+.pd-labo-workflow .ant-picker-disabled,
+.pd-labo-workflow .ss-wrapper--disabled .ss-trigger {
+  border-color: var(--lw-line);
+  background: var(--lw-readonly);
+  color: #374151;
+}
+
+/* ── Đặt hàng: row labels, chips and the tooth row ─────────────────────── */
+.pd-labo-workflow .pd-labo-form {
+  --pd-labo-row-label: 90px;
+}
+.pd-labo-workflow.pd-labo-dialog .pd-labo-grid {
+  gap: 12px 20px;
+}
+.pd-labo-workflow .pd-labo-choice-label,
+.pd-labo-workflow .pd-labo-teeth > p {
+  color: var(--lw-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pd-labo-workflow .pd-labo-choice-chip {
+  height: 32px;
+  border-color: var(--lw-input-line);
+  padding: 0 14px;
+  font-size: 13px;
+}
+.pd-labo-workflow .pd-labo-choice-chip--on {
+  border-color: var(--lw-primary);
+  background: var(--lw-primary);
+  font-weight: 600;
+}
+.pd-labo-workflow .pd-labo-chartbtn--pick {
+  width: 34px;
+  min-width: 34px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--lw-primary);
+}
+.pd-labo-workflow .pd-labo-toothchip {
+  min-width: 0;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--lw-primary-pale);
+  color: var(--lw-primary-hover);
+  font-size: 13px;
+  font-weight: 700;
+}
+.pd-labo-workflow .pd-labo-teeth-count {
+  color: var(--lw-label);
+  font-size: 12px;
+}
+
+/* Thông số từng răng: the mock's grey head and hairline rows. */
+.pd-labo-workflow .pd-labo-spec {
+  border-top-color: var(--lw-line);
+}
+.pd-labo-workflow .pd-labo-spec-head h4 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.pd-labo-workflow .pd-labo-spec-head p {
+  color: var(--lw-muted);
+  font-size: 12px;
+}
+.pd-labo-workflow .pd-labo-spec-shared.ant-checkbox-wrapper {
+  height: 34px;
+  align-items: center;
+  border: 1px solid var(--lw-input-line);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+.pd-labo-workflow .pd-labo-spec-shared--on.ant-checkbox-wrapper {
+  border-color: var(--lw-primary-soft);
+  background: var(--lw-primary-pale);
+}
+.pd-labo-workflow .pd-labo-spec-table {
+  min-width: 720px;
+}
+.pd-labo-workflow .pd-labo-spec-scroll {
+  border-color: var(--lw-line);
+  border-radius: 10px;
+}
+.pd-labo-workflow .pd-labo-spec-table thead th {
+  height: 38px;
+  padding-block: 0;
+  background: var(--lw-head);
+  color: var(--lw-label);
+}
+.pd-labo-workflow .pd-labo-spec-table tbody tr {
+  height: 52px;
+}
+.pd-labo-workflow .pd-labo-spec-table tbody tr + tr > * {
+  border-top-color: var(--lw-line-soft);
+}
+.pd-labo-workflow .pd-labo-cellwell {
+  border: 1px dashed var(--lw-primary-soft);
+  border-radius: 8px;
+  background: #f8f8ff;
+  color: var(--lw-primary);
+}
+
+/* ── The order in one band over tabs 2 and 3 ───────────────────────────── */
+.pd-labo-workflow .pd-labo-summary-card {
+  grid-template-columns: 1.1fr 1.3fr 1.3fr 0.7fr 1.2fr 1fr 0.9fr 1fr auto;
+  gap: 0;
+  flex: none;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--lw-line);
+  border-radius: 0;
+  padding: 12px 24px;
+  background: var(--lw-panel);
+}
+.pd-labo-workflow .pd-labo-summary-fact {
+  gap: 3px;
+  padding: 0 12px;
+  border-left: 1px solid var(--lw-line);
+}
+.pd-labo-workflow .pd-labo-summary-fact:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.pd-labo-workflow .pd-labo-summary-label {
+  color: var(--lw-muted);
+  font-size: 11px;
+}
+.pd-labo-workflow .pd-labo-summary-value {
+  white-space: normal;
+}
+@media (max-width: 1100px) {
+  .pd-labo-workflow .pd-labo-summary-card {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 0;
+  }
+  .pd-labo-workflow .pd-labo-summary-fact:nth-child(3n + 1) {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* Tables in the dialog (history, warranty cards): the mocks' grey caps head. */
+.pd-labo-workflow .ant-table-thead > tr > th {
+  background: var(--lw-head);
+  color: var(--lw-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.pd-labo-workflow .ant-table-wrapper .ant-table {
+  border: 1px solid var(--lw-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.pd-labo-workflow .pd-labo-summary-link {
+  color: var(--lw-primary);
+}
+
+/* ── Nhận hàng & kiểm tra: the letter badges and one card per tooth ────── */
+.pd-labo-workflow .pd-labo-check-head h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+.pd-labo-workflow .pd-labo-check-badge {
+  background: var(--lw-primary);
+}
+.pd-labo-workflow .pd-labo-check-hint {
+  color: var(--lw-muted);
+  font-size: 12px;
+}
+.pd-labo-workflow .pd-labo-tooth-row {
+  min-height: 44px;
+  border-color: var(--lw-line);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+.pd-labo-workflow .pd-labo-tooth-row:has(.pd-labo-tooth-choice--pass) {
+  border-color: var(--lw-pass-line);
+  background: #f7fef9;
+}
+.pd-labo-workflow .pd-labo-tooth-row--fail {
+  border-color: var(--lw-fail-line);
+  background: var(--lw-fail-pale);
+}
+.pd-labo-workflow .pd-labo-tooth-no {
+  font-weight: 700;
+}
+.pd-labo-workflow .pd-labo-tooth-toggle {
+  gap: 8px;
+}
+.pd-labo-workflow .pd-labo-tooth-choice {
+  height: 34px;
+  border-color: var(--lw-input-line);
+  border-radius: 8px;
+  color: #374151;
+  font-weight: 600;
+}
+.pd-labo-workflow .pd-labo-tooth-choice--pass {
+  border-color: var(--lw-pass);
+  background: var(--lw-pass);
+  color: #fff;
+}
+.pd-labo-workflow .pd-labo-tooth-choice--fail {
+  border-color: var(--lw-fail-line);
+  background: var(--lw-fail-soft);
+  color: var(--lw-fail);
+}
+.pd-labo-workflow .pd-labo-defect {
+  border-top: 1px dashed var(--lw-fail-line);
+}
+.pd-labo-workflow .pd-labo-defect-head strong {
+  color: var(--lw-fail);
+  font-weight: 700;
+}
+.pd-labo-workflow .pd-labo-defect .floating-field > .floating-field-label,
+.pd-labo-workflow .pd-labo-defect-label {
+  color: #7f1d1d;
+}
+.pd-labo-workflow .pd-labo-defect .ant-input,
+.pd-labo-workflow .pd-labo-defect .ant-picker,
+.pd-labo-workflow .pd-labo-defect .ss-trigger {
+  border-color: var(--lw-fail-line);
+}
+
+/* ── Bảo hành: neutral panels, square-ish chips, the navy card ─────────── */
+.pd-labo-workflow .pd-labo-flow-main.pd-labo-warranty-box {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+.pd-labo-workflow .pd-labo-warranty-pick {
+  border: 1.5px solid var(--lw-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--lw-ink);
+}
+.pd-labo-workflow .pd-labo-warranty-pick--on {
+  border-color: var(--lw-primary);
+  background: #fff;
+  color: var(--lw-primary-hover);
+}
+.pd-labo-workflow .pd-labo-warranty-tooth {
+  border-color: var(--lw-line);
+  border-radius: 10px;
+  background: #fff;
+}
+/* "Khác (tháng)" carries its label above; the chips line up with its box. */
+.pd-labo-workflow .pd-labo-warranty-durations {
+  align-items: flex-end;
+}
+/* Labo 3 mock: Thời hạn and Ảnh thẻ carry their label above, like the fields. */
+.pd-labo-workflow .pd-labo-warranty-duration-row {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+}
+.pd-labo-workflow .pd-labo-warranty-duration-label {
+  color: var(--lw-label);
+  font-size: 12px;
+  font-weight: 500;
+}
+.pd-labo-workflow .pd-labo-warranty-duration {
+  height: 36px;
+  border: 1px solid var(--lw-input-line);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+}
+.pd-labo-workflow .pd-labo-warranty-duration:not(:disabled):hover {
+  border-color: #818cf8;
+}
+.pd-labo-workflow .pd-labo-warranty-duration--on,
+.pd-labo-workflow .pd-labo-warranty-duration--on:not(:disabled):hover {
+  border-color: var(--lw-primary);
+  background: var(--lw-primary);
+  color: #fff;
+}
+.pd-labo-workflow .pd-labo-warranty-card {
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(30, 27, 75, 0.25);
+}
+.pd-labo-workflow .pd-labo-warranty-card--active {
+  background: var(--lw-card);
+}
+.pd-labo-workflow .pd-labo-warranty-card--inactive {
+  background: #64748b;
+}
+.pd-labo-workflow .pd-labo-warranty-card-code {
+  color: #c7d2fe;
+  letter-spacing: 0.06em;
+}
+.pd-labo-workflow .pd-labo-warranty-card-bar {
+  background: var(--lw-card-bar);
+}
+.pd-labo-workflow .pd-labo-warranty-card-bar::after {
+  background: var(--lw-card-gold);
+}
+.pd-labo-workflow .pd-labo-warranty-logo {
+  background: var(--lw-card-2);
+}
+
+/* ── Layout of the Labo 1–3 mocks ──────────────────────────────────────────
+   A fixed-height dialog: head, the order band and the foot stay put, the
+   columns between them scroll on their own. */
+/* AntD 6's shell is `.ant-modal-container`; its body is `flex: 1` from a zero
+   basis, so the height goes on the shell and the body fills it. */
+.ant-modal.pd-labo-workflow .ant-modal-container {
+  height: min(836px, calc(100vh - 64px));
+}
+.ant-modal.pd-labo-workflow .ant-modal-body {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+.pd-labo-workflow .pd-labo-workflow-head {
+  position: static;
+  flex: none;
+  margin: 0;
+  padding: 14px 64px 14px 24px;
+}
+.pd-labo-workflow .pd-labo-footer {
+  position: static;
+  flex: none;
+  margin: 0;
+  padding: 14px 24px;
+}
+.pd-labo-workflow .pd-labo-loading {
+  flex: 1 1 auto;
+}
+
+.pd-labo-flow-main {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.pd-labo-flow-pane {
+  min-width: 0;
+  overflow-y: auto;
+  padding: 18px 24px;
+}
+.pd-labo-flow-pane--main {
+  flex: 1 1 auto;
+}
+.pd-labo-flow-pane--side {
+  display: flex;
+  flex: 0 0 320px;
+  flex-direction: column;
+  gap: 10px;
+  border-right: 1px solid var(--lw-line);
+  padding: 16px;
+  background: var(--lw-panel);
+}
+.pd-labo-flow-pane--order {
+  flex-basis: 440px;
+  gap: 0;
+  padding: 18px 20px;
+}
+/* 300px: room for "1 Chọn răng kích hoạt" and "Tất cả" apart on one line. */
+.pd-labo-flow-pane--teeth {
+  flex-basis: 300px;
+}
+.pd-labo-flow-pane--aside {
+  flex: 0 0 320px;
+  border-left: 1px solid var(--lw-line);
+  padding: 18px;
+  background: var(--lw-panel);
+}
+.pd-labo-flow-pane-title {
+  margin: 0 0 14px;
+  color: var(--lw-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-labo-flow-rule {
+  margin: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--lw-line);
+}
+/* Each column starts at its own top: no rule or gap above the first block. */
+.pd-labo-flow-pane > :first-child,
+.pd-labo-flow-pane--main > .pd-labo-spec:first-child {
+  margin-top: 0;
+}
+.pd-labo-flow-pane--main > .pd-labo-spec:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.pd-labo-flow-pane--order .pd-labo-grid {
+  gap: 12px;
+}
+
+/* Đặt hàng: Nội dung beside Ảnh đính kèm chung. */
+.pd-labo-extras {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: 16px;
+  margin-top: 16px;
+}
+.pd-labo-extras .pd-labo-notes {
+  margin: 0;
+}
+.pd-labo-workflow .pd-labo-extras .pd-labo-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0;
+}
+.pd-labo-workflow .pd-labo-extras .pd-labo-row-label {
+  width: auto;
+  margin: 0;
+  color: var(--lw-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Nhận hàng: one card per delivery down the left column. */
+.pd-labo-history .pd-labo-check-head h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-labo-history-empty {
+  margin: 8px 0;
+  color: var(--lw-muted);
+  font-size: 13px;
+}
+.pd-labo-history-round {
+  overflow: hidden;
+  margin-bottom: 8px;
+  border: 1px solid var(--lw-line);
+  border-radius: 10px;
+  background: #fff;
+}
+.pd-labo-history-round:hover {
+  border-color: var(--lw-primary-soft);
+}
+.pd-labo-history-round-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  color: var(--lw-ink);
+  font-size: 13px;
+}
+.pd-labo-history-round-head--pass {
+  background: var(--lw-pass-pale);
+}
+.pd-labo-history-round-head--fail {
+  background: #fef2f2;
+}
+.pd-labo-history-round-head--warn {
+  background: #fffbeb;
+}
+.pd-labo-history-round-head .pd-labo-history-sub {
+  border-radius: 999px;
+  padding: 1px 8px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.pd-labo-history-round table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pd-labo-history-round td {
+  border-top: 1px solid var(--lw-line-soft);
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.pd-labo-history-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pd-labo-history-line > b {
+  min-width: 30px;
+}
+.pd-labo-history-action {
+  margin-left: auto;
+  font-weight: 600;
+}
+.pd-labo-history-defect {
+  margin-top: 3px;
+  padding-left: 38px;
+  color: #7f1d1d;
+}
+.pd-labo-history-live {
+  border-style: dashed;
+}
+
+/* Bảo hành: the two views as underlined tabs over the columns. */
+.pd-labo-flow-tabs {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  gap: 4px;
+  border-bottom: 1px solid var(--lw-line);
+  padding: 0 24px;
+}
+/* inline-flex: a lone <span> tab (R-1120 view) centres its label like a <button>. */
+.pd-labo-flow-tab {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--lw-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-labo-flow-tab--on {
+  border-bottom-color: var(--lw-primary);
+  color: var(--lw-primary-hover);
+}
+.pd-labo-flow-tabs .pd-labo-check-aside {
+  align-self: center;
+  margin-left: auto;
+}
+/* 1. Chọn răng kích hoạt (BA mock): a card per tooth — the tick centred on the
+   left; number tile beside Răng n over its caption, › on the right; the
+   readiness pill on its own line under the tile. Indigo tile once picked,
+   green once the card form is complete. */
+.pd-labo-wpick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-labo-wpick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--lw-line);
+  border-radius: 12px;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.pd-labo-wpick--focus {
+  border-color: var(--lw-primary);
+  box-shadow: 0 0 0 3px var(--lw-primary-pale);
+}
+.pd-labo-wpick-check {
+  flex: none;
+}
+.pd-labo-wpick-body {
+  display: grid;
+  flex: 1;
+  grid-template-areas:
+    "no title chev"
+    "no caption chev"
+    "state state state";
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pd-labo-wpick-body:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.pd-labo-wpick-body:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--lw-primary);
+  outline-offset: 4px;
+}
+.pd-labo-wpick-no {
+  display: inline-flex;
+  grid-area: no;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--lw-readonly);
+  color: var(--lw-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.pd-labo-wpick--on .pd-labo-wpick-no {
+  background: var(--lw-primary-pale);
+  color: var(--lw-primary);
+}
+.pd-labo-wpick--ready .pd-labo-wpick-no {
+  background: var(--lw-pass-pale);
+  color: var(--lw-pass-ink);
+}
+.pd-labo-wpick-title {
+  grid-area: title;
+  align-self: end;
+  color: var(--lw-ink);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+/* A long restoration name wraps rather than "Sứ ki…" (owner); "Đạt dd/mm/yyyy"
+   never splits, so it drops to the next line whole. */
+.pd-labo-wpick-caption {
+  grid-area: caption;
+  align-self: start;
+  min-width: 0;
+  color: var(--lw-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.pd-labo-wpick-passed {
+  white-space: nowrap;
+}
+.pd-labo-wpick-chevron {
+  grid-area: chev;
+  color: var(--lw-muted);
+  font-size: 11px;
+}
+.pd-labo-wpick-body:hover .pd-labo-wpick-chevron {
+  color: var(--lw-primary);
+}
+.pd-labo-wpick-state {
+  display: flex;
+  grid-area: state;
+  margin-top: 8px;
+}
+.pd-labo-wpick-state .ant-tag {
+  margin: 0;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
+}
+/* The card form a row jumped to wears the same ring. */
+.pd-labo-workflow .pd-labo-warranty-tooth--focus {
+  border-color: var(--lw-primary);
+  box-shadow: 0 0 0 3px var(--lw-primary-pale);
+}
+.pd-labo-warranty-cards--stack {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pd-labo-flow-pane--main > .pd-labo-warranty-cards {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* Dùng chung 1 thông số (BA mock): the title wraps its "Sứ · LABO-… · 3 răng"
+   caption under the text, lined up past the badge. */
+.pd-labo-warranty-step-title:has(> .pd-labo-warranty-step-caption) {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+.pd-labo-warranty-step-caption {
+  flex-basis: 100%;
+  padding-left: 30px;
+  color: var(--lw-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.pd-labo-warranty-step > .ant-tag {
+  margin: 0 0 10px 30px;
+}
+.pd-labo-warranty-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--lw-primary-soft);
+  border-radius: 10px;
+  background: var(--lw-primary-pale);
+}
+.pd-labo-warranty-share .ant-checkbox-wrapper {
+  color: var(--lw-primary);
+  font-weight: 600;
+}
+.pd-labo-warranty-share-hint {
+  color: var(--lw-muted);
+  font-size: 12px;
+}
+.pd-labo-warranty-share-note {
+  margin: -4px 0 12px;
+  color: var(--lw-primary);
+  font-size: 12px;
+}
+/* The one form for every picked tooth: spaced like a tooth's card. */
+.pd-labo-warranty-shared {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 14px 12px;
+  border: 1px solid var(--lw-primary-soft);
+  border-radius: 10px;
+  background: #fff;
+}
+.pd-labo-warranty-serial-title {
+  margin: 0 0 8px;
+  color: var(--lw-label);
+  font-size: 12px;
+  font-weight: 600;
+}
+/* Under Dùng chung a tooth keeps only its serial. */
+.pd-labo-workflow .pd-labo-warranty-tooth--serial {
+  gap: 12px;
+  padding: 8px 12px 10px;
+}
+/* The shared card's head: its teeth as small chips while three at most (BA). */
+.pd-labo-warranty-card-teeth {
+  display: inline-flex;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.pd-labo-warranty-card-tooth {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.pd-labo-warranty-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+/* The shared card as a deck: up to two sheets peek out above it, each a
+   little narrower and paler than the one in front. */
+.pd-labo-warranty-stack {
+  --lw-sheet: var(--lw-primary);
+  position: relative;
+  isolation: isolate;
+}
+/* The sheets take the front card's colour: grey until it is ready. */
+.pd-labo-warranty-stack:has(> .pd-labo-warranty-card--inactive) {
+  --lw-sheet: #64748b;
+}
+.pd-labo-warranty-stack--1 {
+  padding-top: 8px;
+}
+.pd-labo-warranty-stack--2 {
+  padding-top: 16px;
+}
+.pd-labo-warranty-stack > .pd-labo-warranty-card {
+  position: relative;
+  z-index: 2;
+}
+.pd-labo-warranty-stack--1::before,
+.pd-labo-warranty-stack--2::before,
+.pd-labo-warranty-stack--2::after {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  border-radius: 14px;
+}
+.pd-labo-warranty-stack--1::before,
+.pd-labo-warranty-stack--2::before {
+  z-index: 1;
+  top: 0;
+  left: 10px;
+  right: 10px;
+  background: color-mix(in srgb, var(--lw-sheet) 50%, #fff);
+}
+.pd-labo-warranty-stack--2::before {
+  top: 8px;
+}
+.pd-labo-warranty-stack--2::after {
+  z-index: 0;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  background: color-mix(in srgb, var(--lw-sheet) 22%, #fff);
+}
+.pd-labo-warranty-preview-title {
+  margin: 0;
+  color: var(--lw-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pd-labo-warranty-preview-teeth {
+  padding: 10px 12px;
+  border: 1px solid var(--lw-line);
+  border-radius: 10px;
+  background: var(--lw-panel);
+  color: var(--lw-label);
+  font-size: 12px;
+  font-weight: 500;
+}
+.pd-labo-warranty-preview-teeth > ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pd-labo-warranty-preview-teeth li {
+  padding: 2px 10px;
+  border: 1px solid var(--lw-primary-soft);
+  border-radius: var(--bd-radius-pill);
+  background: var(--lw-primary-pale);
+  color: var(--lw-primary);
+  font-weight: 600;
+}
+
+/* Below 1100px the columns stack and the area between head and foot scrolls. */
+@media (max-width: 1100px) {
+  .pd-labo-flow-main {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .pd-labo-flow-pane,
+  .pd-labo-flow-pane--side,
+  .pd-labo-flow-pane--aside {
+    flex: none;
+    overflow: visible;
+    border-right: 0;
+    border-left: 0;
+  }
+  .pd-labo-flow-pane--side,
+  .pd-labo-flow-pane--aside {
+    border-bottom: 1px solid var(--lw-line);
+  }
+  .pd-labo-extras,
+  .pd-labo-flow-pane--main > .pd-labo-warranty-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+

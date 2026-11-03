@@ -121,7 +121,15 @@ BEGIN
    WHERE NOT kept;
 
   RAISE NOTICE 'TRUNCATE %', targets;
+  -- Sổ log phiếu thu chỉ cho thêm (R-1082). Xoá trắng là chủ ý: tắt chặn
+  -- TRUNCATE trong giao dịch này rồi bật lại; ROLLBACK cũng trả về như cũ.
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'bd_payment_receipt_logs_no_truncate') THEN
+    ALTER TABLE public.bd_payment_receipt_logs DISABLE TRIGGER bd_payment_receipt_logs_no_truncate;
+  END IF;
   EXECUTE 'TRUNCATE TABLE ' || targets;
+  IF EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'bd_payment_receipt_logs_no_truncate') THEN
+    ALTER TABLE public.bd_payment_receipt_logs ENABLE TRIGGER bd_payment_receipt_logs_no_truncate;
+  END IF;
 END $$;
 
 -- ---------------------------------------------------------------------

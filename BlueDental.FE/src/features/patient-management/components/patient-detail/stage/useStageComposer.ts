@@ -13,6 +13,10 @@ import {
   useTreatmentStages,
   type TreatmentStageDto,
 } from "@/features/treatment-management/api/stageApi";
+import {
+  WARRANTY_CARD_KIND,
+  type WarrantyCardKind,
+} from "@/features/treatment-management/api/planWarrantyApi";
 import type { TreatmentPlanSlipDto } from "@/features/treatment-management/api/treatmentPlanApi";
 import { usePatientImages, useUploadPatientImage } from "../../../api/patientImageApi";
 import type { StageDay } from "./StageHistory";
@@ -38,8 +42,10 @@ import {
   type StageTab,
   type WarrantyState,
 } from "./stageModel";
+import { warrantySource } from "./stageWarranty";
 import { syncStageContent } from "./syncStageContent";
 import { useStageHistoryActions } from "./useStageHistoryActions";
+import { useWarrantyCovers } from "./useWarrantyCovers";
 
 export type { StageTab };
 
@@ -135,6 +141,7 @@ export function useStageComposer({
     open && Boolean(patientId) && Boolean(plan),
   );
   const images = usePatientImages(open ? patientId : "", branchId);
+  const covers = useWarrantyCovers(plan?.id, services, open);
 
   const stages = useMemo(
     () =>
@@ -147,8 +154,9 @@ export function useStageComposer({
       buildStageItems(
         filterServiceId ? services.filter((line) => line.id === filterServiceId) : services,
         stages,
+        covers.warrantable,
       ),
-    [services, stages, filterServiceId],
+    [services, stages, filterServiceId, covers.warrantable],
   );
   /** The công đoạn the history lists — the filtered line's only, when there is one. */
   const shownStages = useMemo(
@@ -242,6 +250,11 @@ export function useStageComposer({
           teeth: "teeth" in patch && (patch.teeth?.length ?? 0) > 0 ? undefined : held.teeth,
           treatmentDate:
             "treatmentDate" in patch && patch.treatmentDate ? undefined : held.treatmentDate,
+          warranty: "warrantyKind" in patch && patch.warrantyKind !== undefined ? undefined : held.warranty,
+          laboOrder:
+            "warrantyKind" in patch && (patch.warrantyLaboOrderId || patch.warrantyKind === WARRANTY_CARD_KIND.Dental)
+              ? undefined
+              : held.laboOrder,
         },
       };
     });
@@ -298,7 +311,7 @@ export function useStageComposer({
   const saveOne = async (item: StageItem, draft: StageDraft) => {
     // Checked by draftErrors before anything is sent.
     const staffId = draft.staffId ?? "";
-    if (item.tab !== "add") {
+    if (item.stages.length > 0) {
       // One visit, one công đoạn: the teeth of every chain picked go on
       // together, continued from the first of them.
       const [first, ...rest] = stagesToContinue(item, draft.teeth);
@@ -319,24 +332,37 @@ export function useStageComposer({
       return;
     }
 
+    // A TIẾP TỤC BẢO HÀNH card with no chain yet (REQ-B8) opens one: a
+    // warranty công đoạn under the card picked, raised from the line's last
+    // finished one.
+    const warranty =
+      item.tab === "continueWarranty"
+        ? {
+            isGuarantee: true,
+            warrantySourceStageId: warrantySource(stages, item.line.id),
+            warrantyKind: draft.warrantyKind,
+            warrantyLaboOrderId: draft.warrantyLaboOrderId ?? null,
+          }
+        : {};
     const saved = await createStage.mutateAsync({
-          patientId,
-          clinicBranchId: branchId,
-          treatmentId: plan?.id,
-          treatmentServiceId: item.line.id,
-          serviceId: item.line.serviceId,
-          // The reference shows no name field: a công đoạn is listed under its
-          // service's name.
-          name: item.line.serviceName ?? item.line.code,
-          note: draft.note.trim(),
-          staffId,
-          subStaffId: draft.subStaffId,
-          secondStaffId: draft.secondStaffId,
-          teeth: pickTeeth(item.teeth, draft.teeth),
-          serviceItemIds: draft.steps,
-          treatmentDate: draft.treatmentDate,
-          remark: draft.remark.trim() || undefined,
-        });
+      patientId,
+      clinicBranchId: branchId,
+      treatmentId: plan?.id,
+      treatmentServiceId: item.line.id,
+      serviceId: item.line.serviceId,
+      // The reference shows no name field: a công đoạn is listed under its
+      // service's name.
+      name: item.line.serviceName ?? item.line.code,
+      note: draft.note.trim(),
+      staffId,
+      subStaffId: draft.subStaffId,
+      secondStaffId: draft.secondStaffId,
+      teeth: pickTeeth(item.teeth, draft.teeth),
+      serviceItemIds: draft.steps,
+      treatmentDate: draft.treatmentDate,
+      remark: draft.remark.trim() || undefined,
+      ...warranty,
+    });
 
     // Pictures chosen in the form belong to a công đoạn that did not exist
     // when they were picked, so they are attached now.
@@ -414,6 +440,10 @@ export function useStageComposer({
     }
   };
 
+  /** "Thẻ bảo hành áp dụng": a card picked, its covered teeth ticked; clicked again, unpicked. */
+  const pickWarranty = (item: StageItem, kind: WarrantyCardKind | undefined, laboOrderId?: string) =>
+    patchDraft(item, covers.pickPatch(item, kind, laboOrderId));
+
   const lineOf = (stage: TreatmentStageDto) =>
     services.find((line) => line.id === stage.treatmentServiceId) ?? null;
 
@@ -463,12 +493,10 @@ export function useStageComposer({
     warrantyOf: (stage: TreatmentStageDto): WarrantyState => {
       const line = lineOf(stage);
       if (!line) return { kind: "none" };
-      return warrantyState(
-        stage,
-        line,
-        stages.filter((item) => item.treatmentServiceId === line.id),
-      );
+      return warrantyState(stage, line, covers.untilOf(line.id));
     },
+    covers,
+    pickWarranty,
 
     ...history,
     uploadingFor: uploadImage.isPending ? uploadingFor : null,

@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BRANCH2_USER, assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { clinicToday } from "./fixtures/laboApi";
 import { openStageDialog, reopenStageDialog, stagePanel } from "./fixtures/stageDialog";
 
 /**
@@ -432,14 +433,15 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
 
     // Nothing left open on the first visit: now it is history — locked, but no
     // longer faded (owner, 2026-10-29), and its teeth still open for a look.
+    // Tải ảnh and Nội dung điều trị stay open on it (BA 2026-11-02, F-88).
     const oldRow = again.locator(`.pd-stage-histrow[data-stage-id="${firstStage}"]`);
     await expect(oldRow).toHaveAttribute("data-superseded", "true");
     await expect(again.locator(`.pd-stage-histrow[data-stage-id="${next.id}"]`)).toHaveAttribute("data-superseded", "false");
     await expect(oldRow).toHaveCSS("opacity", "1");
     await expect(oldRow.locator(".pd-stage-rowactions").getByRole("checkbox")).toBeDisabled();
-    await expect(oldRow.getByRole("button", { name: "Tải ảnh" })).toBeDisabled();
+    await expect(oldRow.getByRole("button", { name: "Tải ảnh" })).toBeEnabled();
     await expect(oldRow.getByRole("button", { name: "Tạo Labo" })).toHaveCount(0);
-    await expect(oldRow.getByRole("button", { name: "Sửa ghi chú" })).toHaveCount(0);
+    await expect(oldRow.getByRole("button", { name: "Sửa ghi chú" })).toHaveCount(1);
     const oldChart = await openRowChart(page, oldRow);
     await expect(oldChart.line).toHaveText(["31", "32"]);
     await expect(oldChart.worked).toHaveText(["31", "32"]);
@@ -610,7 +612,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expectNothingFinished();
   });
 
-  test("a warranty picks among the root's teeth, locks the line's Bảo hành until it is finished, and can follow itself", async ({
+  test("a warranty opens under a picked card on the teeth it covers, one chain at a time, and can follow itself", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
@@ -618,25 +620,36 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
       { teeth: [{ code: 11 }, { code: 21 }, { code: 22 }], warranty: true },
     ]);
     const root = await stageOn(page, line, [11, 21, 22], true);
+    // "Bảo hành dịch vụ" on the slip's Bảo hành tab: one Nha khoa card a tooth.
+    const activated = await call(page, "POST", `/api/v1/app/patient-treatments/${line.planId}/services/${line.lineId}/warranty`, {
+      cards: [11, 21, 22].map((toothNumber) => ({ toothNumber, startDate: clinicToday() })),
+    });
+    expect(activated.status, activated.text).toBe(200);
 
     const dialog = await openStageDialog(page, line);
     const rootRow = dialog.locator(`.pd-stage-histrow[data-stage-id="${root}"]`);
+    // The history row's Bảo hành leads to the slip's Bảo hành tab (P3110 REQ-A9).
     await rootRow.getByRole("button", { name: "Bảo hành" }).click();
+    await expect(page).toHaveURL(new RegExp(`planTab=warranty.*line=${line.lineId}`));
+    await openStageDialog(page, line);
 
-    const warranty = page.getByRole("dialog", { name: "Tạo bảo hành" });
-    await expect(warranty).toBeVisible();
-    expect(await chipStates(warranty)).toEqual(["11*", "21*", "22*"]);
-    await chips(warranty).filter({ hasText: "22" }).click();
-    await warranty.locator("textarea").fill(`e2e bảo hành ${runId()}`);
+    // A warranty is opened from TIẾP TỤC BẢO HÀNH, under the card picked (REQ-B8/F3).
+    await dialog.getByRole("tab", { name: /TIẾP TỤC BẢO HÀNH/ }).click();
+    await dialog.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`).click();
+    const form = dialog.locator(`.pd-stage-form[data-item-id="continueWarranty:${line.lineId}"]`);
+    await form.locator(".pd-wcard--dental").click();
+    expect(await chipStates(form)).toEqual(["11*", "21*", "22*"]);
+    await chips(form).filter({ hasText: "22" }).click();
+    await form.locator("textarea").first().fill(`e2e bảo hành ${runId()}`);
+    await pickDoctor(page, form);
     const created = page.waitForResponse(
       (res) => res.url().endsWith("/api/v1/app/treatment-stages") && res.request().method() === "POST",
     );
-    await warranty.locator(".ant-modal-footer").getByRole("button", { name: "Lưu" }).click();
+    await dialog.getByRole("button", { name: "Tiếp tục bảo hành" }).click();
     const firstWarranty = await (await created).json();
     expect(firstWarranty.isGuarantee).toBe(true);
     expect(firstWarranty.warrantyRootStageId).toBe(root);
     expect(firstWarranty.teeth.map((tooth: { toothCode: number }) => tooth.toothCode)).toEqual([11, 21]);
-    await expect(warranty).toBeHidden();
 
     // The finished root is green; the warranty re-working 11·21 shows those
     // blue on its own row, and 22 — finished, untouched — stays green.
@@ -649,8 +662,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(warrantyChart.done).toHaveText(["22"]);
     await warrantyChart.close();
 
-    // It waits under TIẾP TỤC BẢO HÀNH, and the line's Bảo hành is shut meanwhile.
-    await expect(rootRow.getByRole("button", { name: "Bảo hành" })).toBeDisabled();
+    // It waits under TIẾP TỤC BẢO HÀNH; a second chain is refused meanwhile.
     const second = await call(page, "POST", "/api/v1/app/treatment-stages", {
       patientId: line.patientId,
       clinicBranchId: line.branchId,
@@ -662,16 +674,18 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
       staffId: await staffId(page),
       isGuarantee: true,
       warrantySourceStageId: root,
+      warrantyKind: 1,
       teeth: [{ toothCode: 11, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
     });
     expect(second.status).not.toBe(200);
     expect(second.text).toContain("BlueDental:Treatment:0033");
 
-    await dialog.getByRole("tab", { name: /TIẾP TỤC BẢO HÀNH/ }).click();
     await dialog.locator(`.pd-stage-picks button[data-stage-id="${firstWarranty.id}"]`).click();
-    const form = dialog.locator(`.pd-stage-form[data-item-id="continueWarranty:${line.lineId}"]`);
-    // 22 is the line's but not this warranty's: listed, faded, inert.
+    // 22 is the line's but not this warranty's: listed, faded, inert. The
+    // chain keeps the card it was opened under.
     expect(await chipStates(form)).toEqual(["11*", "21*", "22!"]);
+    await expect(form.locator(".pd-wcard--dental")).toHaveAttribute("aria-pressed", "true");
+    await expect(form.locator(".pd-wcard--dental")).toBeDisabled();
     await form.locator("textarea").first().fill(`e2e tiếp tục bảo hành ${runId()}`);
     const continued = page.waitForResponse(
       (res) => res.url().includes(`/treatment-stages/${firstWarranty.id}/continue`) && res.request().method() === "POST",
@@ -684,7 +698,8 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
       "true",
     );
 
-    // Finishing the warranty takes it off the tab and opens Bảo hành again.
+    // Finishing the warranty takes its chain off the tab; the line's card
+    // stays, ready for a new one.
     const nextRow = dialog.locator(`.pd-stage-histrow[data-stage-id="${nextWarranty.id}"]`);
     const completed = page.waitForResponse(
       (res) => res.url().includes(`/treatment-stages/${nextWarranty.id}/complete`) && res.request().method() === "POST",
@@ -692,18 +707,17 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await nextRow.locator(".pd-stage-rowactions").getByRole("checkbox").click({ force: true });
     expect((await completed).ok()).toBe(true);
     await expect(dialog.locator(`.pd-stage-picks button[data-stage-id="${nextWarranty.id}"]`)).toHaveCount(0);
-    await expect(rootRow.getByRole("button", { name: "Bảo hành" })).toBeEnabled();
     // Finished in turn, the warranty's own teeth go green again.
     const nextChart = await openRowChart(page, nextRow);
     await expect(nextChart.done).toHaveText(["11", "21", "22"]);
     await nextChart.close();
 
-    // A warranty off the finished warranty offers the root's teeth again.
-    await nextRow.getByRole("button", { name: "Bảo hành" }).click();
-    await expect(warranty).toBeVisible();
-    expect(await chipStates(warranty)).toEqual(["11*", "21*", "22"]);
-    await warranty.locator(".ant-modal-footer").getByRole("button", { name: "Đóng" }).click();
-    await expect(warranty).toBeHidden();
+    // A new warranty offers every tooth the cards cover again.
+    const card = dialog.locator(`.pd-stage-picks button[data-line-id="${line.lineId}"]`);
+    await expect(card).not.toHaveAttribute("data-stage-id", /./);
+    if ((await card.getAttribute("aria-pressed")) !== "true") await card.click();
+    await form.locator(".pd-wcard--dental").click();
+    expect(await chipStates(form)).toEqual(["11*", "21*", "22*"]);
 
     // The profile tab's table: a warranty row reads Bảo hành, prints numbers
     // only, counts its own teeth and offers no payment.

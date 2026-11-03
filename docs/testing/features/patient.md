@@ -201,3 +201,10 @@ Re-run: `patient.spec` "Các chẩn đoán lists the patient's diagnosis slips a
 their own rows" 1/1 + "a tái khám picks its teeth…" 1/1 trên build production
 :8091, API :5000, DB thật. "Lưu Chẩn Đoán files a slip…" đỏ sẵn ở
 `toHaveURL(/tab=consulting/)` (ghi từ 2026-09-24), không thuộc đợt này.
+
+2026-11-01, R-1099 (Level 2, BA): thanh công cụ bảng điều trị tab Hồ sơ chỉ còn
+**Tạo lịch hẹn**. Nút mở popup lịch hẹn, khoá đúng khách. "Tạo Tái khám" và
+"Thanh toán" bị ẩn, code dialog giữ nguyên theo quyết định chủ dự án.
+E2E mới trong `patient-appointment` xanh: đặt thật, reload, thấy ở tab Lịch hẹn.
+5 ca `patient.spec` không còn lối vào nên skip có lý do R-1099. Chi tiết và đối
+chiếu bản HEAD ở regression log R-1099.

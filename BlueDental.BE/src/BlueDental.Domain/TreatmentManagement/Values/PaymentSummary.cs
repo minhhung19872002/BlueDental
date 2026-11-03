@@ -54,6 +54,20 @@ public class PaymentSummary : ComparableValueObject
     /// <summary>Chiết khấu đã áp dụng.</summary>
     public decimal Discount { get; private set; }
 
+    /// <summary>
+    /// Ưu đãi khi thanh toán (P2910): how far the TN giảm and payment-time
+    /// vouchers of paid receipts brought the payable down, the VAT that went
+    /// with them included. Settles debt like money but is not money collected.
+    /// </summary>
+    public decimal Relief { get; private set; }
+
+    /// <summary>
+    /// Khuyến mãi on the slip's Thanh toán head (P0111_02, R-1104): the same TN
+    /// giảm and vouchers of paid receipts as <see cref="Relief"/>, before VAT —
+    /// the VAT sits in the price and stays with Công nợ (BA 2026-11-01).
+    /// </summary>
+    public decimal Promotion { get; private set; }
+
     /// <summary>Dư nợ tồn — carried-over debt balance.</summary>
     public decimal OutstandingDebt { get; private set; }
 
@@ -81,9 +95,12 @@ public class PaymentSummary : ComparableValueObject
         decimal outstandingDebt = 0m,
         decimal outstandingDebtConsumed = 0m,
         decimal prepaid = 0m,
-        decimal? carryOverAmount = null)
+        decimal? carryOverAmount = null,
+        decimal relief = 0m,
+        decimal promotion = 0m)
     {
-        if (totalPrice < 0m || totalPaid < 0m || totalRefund < 0m || discount < 0m || prepaid < 0m)
+        if (totalPrice < 0m || totalPaid < 0m || totalRefund < 0m || discount < 0m || prepaid < 0m || relief < 0m
+            || promotion < 0m)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.NegativePaymentAmount,
@@ -103,6 +120,8 @@ public class PaymentSummary : ComparableValueObject
         OutstandingDebtConsumed = outstandingDebtConsumed;
         Prepaid = prepaid;
         CarryOverAmount = carryOverAmount;
+        Relief = relief;
+        Promotion = promotion;
     }
 
     public static PaymentSummary Zero() => new();
@@ -120,7 +139,9 @@ public class PaymentSummary : ComparableValueObject
         decimal outstandingDebt = 0m,
         decimal outstandingDebtConsumed = 0m,
         decimal prepaid = 0m,
-        decimal? carryOverAmount = null)
+        decimal? carryOverAmount = null,
+        decimal relief = 0m,
+        decimal promotion = 0m)
     {
         // Measured against the reference on 2026-09-21 (staging, three payloads:
         // two slips and the patient rollup). Its arithmetic is
@@ -129,11 +150,13 @@ public class PaymentSummary : ComparableValueObject
         //   totalDue   = receivable
         // A slip whose work has not started therefore still reports its whole
         // price as "BE:Field:Remaining" while "BE:Field:Receivable" stays at zero.
+        // Relief let off by a paid receipt (P2910) settles like the money did.
         var netPaid = totalPaid - totalRefund;
-        var receivable = completedValue - netPaid;
-        var debt = totalPrice - netPaid;
+        var settled = netPaid + relief;
+        var receivable = completedValue - settled;
+        var debt = totalPrice - settled;
         var totalDue = receivable;
-        var paidUncompleted = netPaid - completedValue;
+        var paidUncompleted = settled - completedValue;
 
         return new PaymentSummary(
             totalPrice: totalPrice,
@@ -148,7 +171,9 @@ public class PaymentSummary : ComparableValueObject
             outstandingDebt: outstandingDebt,
             outstandingDebtConsumed: outstandingDebtConsumed,
             prepaid: prepaid,
-            carryOverAmount: carryOverAmount);
+            carryOverAmount: carryOverAmount,
+            relief: relief,
+            promotion: promotion);
     }
 
     protected override IEnumerable<object> GetAtomicValues()
@@ -166,5 +191,7 @@ public class PaymentSummary : ComparableValueObject
         yield return OutstandingDebtConsumed;
         yield return Prepaid;
         yield return (object?)CarryOverAmount ?? string.Empty;
+        yield return Relief;
+        yield return Promotion;
     }
 }

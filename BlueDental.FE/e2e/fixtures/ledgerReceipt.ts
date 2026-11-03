@@ -1,5 +1,5 @@
-import { expect, type Locator, type Page } from "@playwright/test";
-import { assertRealApiTraffic } from "./auth";
+import { expect, request, type Locator, type Page } from "@playwright/test";
+import { assertRealApiTraffic, runId } from "./auth";
 
 /**
  * A THANHTOAN receipt written the way the BA does it: a fresh slip on the first
@@ -19,7 +19,7 @@ export interface Receipt {
   treatmentPlanId: string;
   treatmentPlanCode: string;
   staffId: string;
-  /** 1 = "Chưa thanh toán" (legacy only), 2 = "Hoàn tất" — every new receipt (owner 2026-10-13). */
+  /** RECEIPT_STATUS: a new receipt is 1 "Chưa thanh toán"; 3 "Đã xuất phiếu thu", 2 "Đã thanh toán", 4 "Phiếu bị hủy" (P2610). */
   status: number;
   lines: { treatmentServiceId: string; amount?: number }[];
 }
@@ -204,15 +204,30 @@ export async function openNewSlip(page: Page): Promise<NewSlip> {
   return { patientId, patientUrl, slip };
 }
 
+/** PatientPaymentStatus as the API writes it (P2610). */
+export const RECEIPT_STATUS = { Pending: 1, Completed: 2, Issued: 3, Cancelled: 4 } as const;
+
+/** The dialog button that writes a new receipt; "Lưu" only corrects a reopened one (P2610). */
+export const CREATE_RECEIPT = "Tạo phiếu thanh toán";
+
 /**
- * "Tạo Phiếu Thanh Toán" for half of the first line, "Lưu", then "Có" in the
- * "Xác nhận thanh toán" question: the receipt is written "Hoàn tất" and moves
- * money at once (owner 2026-10-13). Returns the saved receipt.
- *
- * `redInvoice` ticks "Xuất hóa đơn đỏ" first: a Hoàn tất receipt refuses every
- * later write, so the flag can only go on as the receipt is made.
+ * Tài chính → Phiếu thu, where a new receipt lands (`/billing/receipts/:id`):
+ * headed with its number, its PHIẾU THU sheet beside the status column.
  */
-export async function collectOnFirstLine(page: Page, { redInvoice = false } = {}): Promise<Receipt> {
+export async function expectReceiptPage(page: Page, receipt: Pick<Receipt, "id" | "code">): Promise<void> {
+  await expect(page).toHaveURL(new RegExp(`/billing/receipts/${receipt.id}`));
+  await expect(page.locator(".rcpt-head-code")).toHaveText(`Phiếu thu ${receipt.code}`, { timeout: 20_000 });
+  await expect(page.locator(".rcpt-sheet-number")).toHaveText(`Số: ${receipt.code}`);
+}
+
+/**
+ * "Tạo Phiếu Thanh Toán" for half of the first line, then "Tạo phiếu thanh toán": the
+ * "Chưa thanh toán" receipt. Run from the slip's Thanh toán tab.
+ *
+ * `redInvoice` ticks "Xuất hóa đơn đỏ" first: an exported or paid receipt
+ * refuses every write, so the flag can only go on as the receipt is made.
+ */
+export async function writeOnFirstLine(page: Page, { redInvoice = false } = {}): Promise<Receipt> {
   await page.getByRole("button", { name: "Tạo Phiếu Thanh Toán" }).click();
   const dialog = page.getByRole("dialog", { name: "Tạo phiếu thanh toán" });
   const line = dialog.locator(".pd-newpay-lines > li").first();
@@ -220,45 +235,161 @@ export async function collectOnFirstLine(page: Page, { redInvoice = false } = {}
   const due = money(await line.locator(".pd-newpay-due").innerText());
   await dialog.locator(".pd-newpay-amount").fill(String(Math.max(2, Math.floor(due / 2))));
   if (redInvoice) await dialog.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
-  await dialog.getByRole("button", { name: "Lưu" }).click();
-  return answerYes(page, dialog);
+  return saveReceipt(page, dialog);
+}
+
+/** `writeOnFirstLine`, then walked to "Đã thanh toán" so the money counts (`settleReceipt`). */
+export async function collectOnFirstLine(page: Page, options: { redInvoice?: boolean } = {}): Promise<Receipt> {
+  return settleReceipt(page, await writeOnFirstLine(page, options));
 }
 
 /**
- * The "Xác nhận thanh toán" question "Lưu" raises on a new receipt: "Có" sends
- * the one POST, and both dialogs close on the Hoàn tất receipt it returns.
+ * "Tạo phiếu thanh toán" on a filled create dialog: the one POST, no question
+ * first, no money moved — a "Chưa thanh toán" receipt — and the app lands on
+ * its receipt page (P2610). Then Back, to where the dialog was opened, so the
+ * caller carries on there.
  */
-export async function answerYes(page: Page, createDialog: Locator): Promise<Receipt> {
+export async function saveReceipt(page: Page, createDialog: Locator): Promise<Receipt> {
   const saved = page.waitForResponse(
     (res) => res.url().endsWith(PAYMENTS_API) && res.request().method() === "POST",
   );
-  await answerQuestionYes(page);
+  const openedFrom = page.url();
+  await createDialog.getByRole("button", { name: CREATE_RECEIPT }).click();
   const response = await saved;
   expect(response.ok(), await response.text()).toBeTruthy();
-  await expect(paymentQuestion(page)).toBeHidden();
-  await expect(createDialog).toBeHidden();
   const receipt = (await response.json()) as Receipt;
-  expect(receipt.status).toBe(2);
+  expect(receipt.status).toBe(RECEIPT_STATUS.Pending);
+  await expectReceiptPage(page, receipt);
+  await page.goBack();
+  await expect(page).toHaveURL(openedFrom);
   return receipt;
 }
 
-/** The question "Lưu" raises on a new receipt, the create dialog still open behind it. */
-export function paymentQuestion(page: Page): Locator {
+/** `saveReceipt`, then `settleReceipt`: for specs about what paid money does, not how it got paid. */
+export async function saveAndSettle(page: Page, createDialog: Locator): Promise<Receipt> {
+  return settleReceipt(page, await saveReceipt(page, createDialog));
+}
+
+const SIGNING_API = "/api/v1/app/receipt-signing";
+const DEVICES_API = "/api/v1/app/signing-devices";
+const STATION_API = "/api/v1/public/signing-station";
+/** A real 1 × 1 PNG: what the station takes is a PNG data URL, decoded and re-checked on the server. */
+export const SIGNATURE_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+/** Matches BlueDental.Billing.ReceiptSignMode: Ký tay trực tiếp, Token điện tử, Ký điện tử (P2910_02). */
+export const SIGN_MODE = { Unsigned: 1, Digital: 2, Electronic: 3 } as const;
+/** Parallel workers share the branch's one iPad session; a send can take another's. */
+const EXPORT_ATTEMPTS = 5;
+
+/**
+ * The customer's part on a paired iPad, through the station API the iPad
+ * itself calls: the receipt sent to it (ending any session it showed), both
+ * boxes ticked, the signature. The iPad has no staff session — its own
+ * request context carries only the device token.
+ */
+export async function signOnStation(page: Page, receipt: Pick<Receipt, "id">, token: string): Promise<void> {
+  const sent = await call(page, `${SIGNING_API}/${receipt.id}/send`, { method: "POST", json: { replace: true } });
+  expect(sent.status, JSON.stringify(sent.body)).toBe(200);
+
+  const ipad = await request.newContext({ baseURL: new URL(page.url()).origin });
+  try {
+    const asIpad = { headers: { "X-Signing-Device-Token": token, Accept: "application/json" } };
+    const current = await ipad.get(STATION_API, asIpad);
+    expect(current.status(), await current.text()).toBe(200);
+    const { sessionId } = (await current.json()) as { sessionId: string };
+    const checked = await ipad.post(`${STATION_API}/sessions/${sessionId}/check`, asIpad);
+    expect(checked.status(), await checked.text()).toBe(200);
+    const signed = await ipad.post(`${STATION_API}/sessions/${sessionId}/sign`, {
+      ...asIpad,
+      data: { signatureDataUrl: SIGNATURE_PNG },
+    });
+    expect(signed.status(), await signed.text()).toBe(200);
+  } finally {
+    await ipad.dispose();
+  }
+}
+
+/** An iPad paired to the receipt's branch for one export, then revoked so no other receipt goes to it. */
+export async function withPairedIpad<T>(
+  page: Page,
+  receipt: Pick<Receipt, "clinicBranchId">,
+  work: (token: string) => Promise<T>,
+): Promise<T> {
+  const paired = await call(page, DEVICES_API, {
+    method: "POST",
+    json: { clinicBranchId: receipt.clinicBranchId, name: `iPad e2e helper ${runId()}` },
+  });
+  expect(paired.status, JSON.stringify(paired.body)).toBe(200);
+  try {
+    return await work(String(paired.body.token));
+  } finally {
+    await call(page, `${DEVICES_API}/${String(paired.body.id)}/revoke`, { method: "POST" });
+  }
+}
+
+/**
+ * "Đã xuất phiếu thu" the real way (P2610 phases 4–5): signed by the
+ * customer on a paired iPad, then exported Không ký số by the accountant —
+ * the PDF/A written, sealed and kept. Specs about the money, not the export.
+ */
+export async function issueReceipt(page: Page, receipt: Pick<Receipt, "id" | "clinicBranchId">): Promise<Receipt> {
+  return withPairedIpad(page, receipt, async (token) => {
+    for (let attempt = 1; ; attempt += 1) {
+      await signOnStation(page, receipt, token);
+      const issued = await call(page, `${PAYMENTS_API}/${receipt.id}/export`, {
+        method: "POST",
+        json: { signMode: SIGN_MODE.Unsigned },
+      });
+      const takenOver = (issued.body.error as { code?: string } | undefined)?.code === "BlueDental:Billing:0112";
+      if (takenOver && attempt < EXPORT_ATTEMPTS) continue;
+      expect(issued.status, JSON.stringify(issued.body)).toBe(200);
+      expect(issued.body.status).toBe(RECEIPT_STATUS.Issued);
+      return issued.body as unknown as Receipt;
+    }
+  });
+}
+
+/**
+ * Exported, then ✓ "Xác nhận thanh toán" on the API: "Đã thanh toán", and the
+ * money counts. Reloads, so the page on screen reads the new figures.
+ */
+export async function settleReceipt(page: Page, receipt: Pick<Receipt, "id" | "clinicBranchId">): Promise<Receipt> {
+  await issueReceipt(page, receipt);
+  const confirmed = await call(page, `${PAYMENTS_API}/${receipt.id}/confirm`, { method: "PUT" });
+  expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200);
+  expect(confirmed.body.status).toBe(RECEIPT_STATUS.Completed);
+  await page.reload();
+  return confirmed.body as unknown as Receipt;
+}
+
+/** The question ✓ raises on an exported receipt's row. */
+export function confirmQuestion(page: Page): Locator {
   return page.getByRole("dialog", { name: "Xác nhận thanh toán", exact: true });
 }
 
 /**
- * "Có" in that question — for specs that watch the POST themselves. The
- * question names the amount and says the receipt is paid once saved.
+ * ✓ on the receipt's row in the slip's Thanh toán tab, then "Có": the one PUT
+ * …/confirm, and the receipt is "Đã thanh toán". The row must already be
+ * "Đã xuất phiếu thu" on screen.
  */
-export async function answerQuestionYes(page: Page): Promise<void> {
-  const question = paymentQuestion(page);
+export async function confirmOnRow(page: Page, scope: Locator, receipt: Pick<Receipt, "id" | "code">): Promise<Receipt> {
+  await scope.getByRole("button", { name: `Xác nhận thanh toán phiếu ${receipt.code}` }).click();
+  const question = confirmQuestion(page);
   await expect(question).toBeVisible();
-  await expect(question).toContainText("Phiếu sẽ được ghi nhận là đã thanh toán ngay khi lưu.");
+  await expect(question).toContainText(`cho phiếu ${receipt.code}`);
+  const confirmed = page.waitForResponse(
+    (res) => res.url().endsWith(`${PAYMENTS_API}/${receipt.id}/confirm`) && res.request().method() === "PUT",
+  );
   await question.getByRole("button", { name: "Có" }).click();
+  const response = await confirmed;
+  expect(response.ok(), await response.text()).toBeTruthy();
+  await expect(question).toBeHidden();
+  const paid = (await response.json()) as Receipt;
+  expect(paid.status).toBe(RECEIPT_STATUS.Completed);
+  return paid;
 }
 
-/** The body PUT …/{id} and PUT …/{id}/confirm take: the receipt's own figures unless overridden. Both refuse a Hoàn tất receipt. */
+/** The body PUT …/{id} takes: the receipt's own figures unless overridden. Refused once the receipt is exported. */
 export function revisionOf(receipt: Receipt & { splitMode?: number; note?: string | null; paymentAccountId?: string | null }, amount = receipt.amount) {
   const splitMode = receipt.splitMode ?? 1;
   return {

@@ -976,6 +976,12 @@ public static class BlueDentalAbilityPermissions
         public const string Continue = "BlueDental.treatmentStage.continue";
         public const string Complete = "BlueDental.treatmentStage.complete";
         public const string Print = "BlueDental.treatmentStage.print";
+
+        /// <summary>
+        /// Xóa a wrongly written row of Lịch sử điều trị (BA 2026-11-02): admin
+        /// only, BlueDental-local — the reference has no delete for a công đoạn.
+        /// </summary>
+        public const string Delete = "BlueDental.treatmentStage.delete";
     }
 
     /// <summary>Subject <c>queue</c>.</summary>

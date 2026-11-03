@@ -103,9 +103,23 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         CreateMap<ClinicConfigure, ClinicConfigureDto>();
 
         /* Labo */
+        // The due tags, Hết hạn bảo hành and the names are read by the app
+        // service against today's clinic date and the other aggregates.
         CreateMap<LaboOrder, LaboOrderDto>()
             .ForMember(d => d.PatientName, opt => opt.Ignore())
+            .ForMember(d => d.IsOverdue, opt => opt.Ignore())
+            .ForMember(d => d.IsAwaitingReturn, opt => opt.Ignore())
+            .ForMember(d => d.IsWarrantyExpired, opt => opt.Ignore())
             .ForMember(d => d.Images, opt => opt.Ignore());
+        CreateMap<LaboOrderTooth, LaboOrderToothDto>()
+            .ForMember(d => d.IsWarrantyExpired, opt => opt.Ignore())
+            .ForMember(d => d.ReturnCount, opt => opt.Ignore())
+            .ForMember(d => d.FinishLineName, opt => opt.Ignore())
+            .ForMember(d => d.RhythmName, opt => opt.Ignore())
+            .ForMember(d => d.BiteName, opt => opt.Ignore());
+        CreateMap<LaboOrderRound, LaboOrderRoundDto>()
+            .ForMember(d => d.ReceiverName, opt => opt.Ignore());
+        CreateMap<LaboRoundToothResult, LaboRoundToothResultDto>();
 
         /* Customer Care */
         CreateMap<CareRecord, CareRecordDto>()

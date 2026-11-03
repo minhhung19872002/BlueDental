@@ -40,7 +40,7 @@ test.describe("Hóa đơn → Phát Hành prints the PHIẾU THU", () => {
     if (!receipt) return;
     const page = await browser.newPage();
     await login(page);
-    await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reason: "e2e cleanup" } });
+    await call(page, `${PAYMENTS_API}/${receipt.id}/cancel`, { method: "POST", json: { reasonCode: 4, reason: "e2e cleanup" } });
     await page.close();
   });
 

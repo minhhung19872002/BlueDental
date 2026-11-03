@@ -1,0 +1,567 @@
+/*
+ * Đặt hàng after P3110 (m134 / m139 / m154 / m158): the Dịch vụ / Vật liệu
+ * chip rows, the Răng row's teeth, Thông số từng răng, the common pictures and
+ * the «Xem thêm» popup. Labels sit in the form's 150px column
+ * (--pd-labo-row-label, labo-order-dialog.css).
+ */
+
+/* ── Dịch vụ * / Vật liệu * ─────────────────────────────────────────────── */
+.pd-labo-choice {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+.pd-labo-choice-label {
+  flex-shrink: 0;
+  width: var(--pd-labo-row-label);
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-labo-choice--error .pd-labo-choice-label,
+.pd-labo-teeth--error > p {
+  color: var(--bd-red);
+}
+.pd-labo-choice-chips {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pd-labo-choice-chip,
+.pd-labo-choice-more {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-pill);
+  padding: 0 16px;
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s,
+    color 0.15s;
+}
+.pd-labo-choice-chip:hover:not(:disabled):not(.pd-labo-choice-chip--on) {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+.pd-labo-choice-chip--on {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: var(--bd-card);
+  font-weight: 600;
+}
+.pd-labo-choice-chip:disabled {
+  cursor: default;
+}
+.pd-labo-choice-more {
+  border-color: var(--bd-blue-light);
+  color: var(--bd-primary);
+  font-weight: 600;
+}
+.pd-labo-choice-more:hover {
+  background: var(--bd-blue-pale);
+}
+.pd-labo-choice-more .anticon {
+  font-size: 11px;
+}
+
+/* ── Răng *: R11 R12 R13 after the chart button ─────────────────────────── */
+.pd-labo-teeth {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pd-labo-teeth > p {
+  margin-right: 8px;
+}
+.pd-labo-chartbtn--pick {
+  border: 0;
+  color: var(--bd-card);
+  cursor: pointer;
+}
+.pd-labo-toothicon {
+  width: 20px;
+  height: 20px;
+}
+.pd-labo-toothchip {
+  display: inline-flex;
+  min-width: 46px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-labo-teeth .pd-labo-teeth-count {
+  margin-left: 4px;
+}
+
+/* ── Thông số từng răng ─────────────────────────────────────────────────── */
+.pd-labo-spec {
+  margin-top: 20px;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 20px;
+}
+.pd-labo-spec-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pd-labo-spec-head > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.pd-labo-spec-head h4 {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.pd-labo-spec-head p {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-labo-spec-shared.ant-checkbox-wrapper {
+  border: 1px solid var(--bd-border);
+  border-radius: 10px;
+  padding: 7px 14px;
+  color: var(--bd-ink);
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.pd-labo-spec-shared--on.ant-checkbox-wrapper {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+}
+.pd-labo-spec-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--bd-line);
+  border-radius: 12px;
+}
+.pd-labo-spec-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+.pd-labo-spec-table thead th {
+  padding: 10px 8px;
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.pd-labo-spec-table thead th:first-child,
+.pd-labo-spec-table tbody th {
+  width: 64px;
+  padding-left: 12px;
+}
+.pd-labo-spec-table tbody th {
+  color: var(--bd-ink);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+}
+.pd-labo-spec-table td {
+  padding: 8px;
+  vertical-align: middle;
+}
+.pd-labo-spec-table tbody tr + tr > * {
+  border-top: 1px solid var(--bd-line);
+}
+/* m139: the row lacking a cell is only faintly pink. */
+.pd-labo-spec-row--gap {
+  background: color-mix(in srgb, var(--bd-red-pale) 45%, var(--bd-card));
+}
+.pd-labo-spec-table .ant-input,
+.pd-labo-spec-table .ant-select {
+  width: 100%;
+  min-width: 120px;
+}
+/* The shared row names every tooth, so it reads smaller. */
+.pd-labo-spec-row[data-tooth="0"] > th {
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-labo-spec-caption {
+  margin: 10px 0 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+/* Ảnh in a row: 28px thumbnails and a small dashed "+". Two classes, so the
+   detail well's margin-top (labo-order-dialog.css) never pushes it down. */
+.pd-labo-pictures.pd-labo-pictures--cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.pd-labo-pictures--cell .pd-labo-gallery {
+  gap: 6px;
+  margin: 0;
+}
+.pd-labo-pictures--cell .pd-labo-gallery-tile {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+.pd-labo-pictures--cell .pd-labo-gallery-remove {
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 0 0 0 4px;
+  font-size: 8px;
+}
+/* First in its cell, the tooth's pictures after it — the strip grows rightwards. */
+.pd-labo-cellwell {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--bd-blue-light);
+  border-radius: 6px;
+  padding: 0;
+  background: transparent;
+  color: var(--bd-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+.pd-labo-cellwell:hover:not(:disabled) {
+  background: var(--pd-upload-hover);
+}
+.pd-labo-cellwell:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ── Ảnh đính kèm chung: the "+ Tải ảnh" well pinned left, 88px tiles after it ── */
+.pd-labo-row--common {
+  margin-top: 20px;
+  border-top: 1px solid var(--bd-line);
+  padding-top: 20px;
+}
+.pd-labo-row--common .pd-labo-gallery-tile,
+.pd-labo-row--common .pd-labo-well {
+  width: 88px;
+  height: 88px;
+}
+.pd-labo-row--common .pd-labo-well {
+  flex-direction: row;
+  gap: 4px;
+  border-color: var(--bd-blue-light);
+  font-size: 12px;
+}
+.pd-labo-row--common .pd-labo-well svg {
+  display: none;
+}
+.pd-labo-row--common .pd-labo-well::before {
+  content: "+";
+}
+.pd-labo-row--common .pd-labo-gallery-remove {
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+}
+
+.pd-labo-footer-hint--gap {
+  color: var(--bd-red);
+}
+
+/* ── «Xem thêm»: Chọn dịch vụ Labo / Chọn vật liệu (m158) ─────────────────── */
+.pd-labo-pick .ant-modal-content {
+  display: flex;
+  max-height: calc(100vh - 80px);
+  flex-direction: column;
+  border-radius: 16px;
+  padding: 0;
+}
+.pd-labo-pick .ant-modal-header {
+  margin: 0;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 20px 24px 16px;
+}
+.pd-labo-pick .ant-modal-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.pd-labo-pick-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--bd-ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+.pd-labo-pick-count {
+  border-radius: var(--bd-radius-pill);
+  padding: 2px 10px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-labo-pick-head {
+  display: grid;
+  gap: 12px;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 14px 24px;
+}
+.pd-labo-pick-head .ant-input-affix-wrapper {
+  height: 38px;
+  border-color: var(--bd-blue-light);
+  border-radius: 10px;
+}
+.pd-labo-pick-chips,
+.pd-labo-pick-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.pd-labo-pick-chip,
+.pd-labo-pick-recent button {
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-pill);
+  padding: 4px 12px;
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pd-labo-pick-chip:hover:not(.pd-labo-pick-chip--on),
+.pd-labo-pick-recent button:hover {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+.pd-labo-pick-chip--on {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+  color: var(--bd-card);
+  font-weight: 600;
+}
+.pd-labo-pick-chip b {
+  font-weight: 600;
+}
+.pd-labo-pick-recent > span {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-labo-pick-recent button {
+  border-color: transparent;
+  background: var(--bd-bg-soft);
+  font-size: 12px;
+}
+.pd-labo-pick-list {
+  min-height: 160px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 8px 16px 12px;
+}
+.pd-labo-pick-section {
+  margin: 12px 8px 6px;
+  color: var(--bd-sub);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.pd-labo-pick-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--bd-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pd-labo-pick-row:hover:not(.pd-labo-pick-row--on) {
+  background: var(--bd-bg-soft);
+}
+.pd-labo-pick-row--on {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+}
+.pd-labo-pick-radio {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--bd-ink-4);
+  border-radius: 50%;
+}
+.pd-labo-pick-row--on .pd-labo-pick-radio {
+  border: 5px solid var(--bd-primary);
+}
+.pd-labo-pick-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+.pd-labo-pick-text b {
+  font-size: 14px;
+  font-weight: 600;
+}
+.pd-labo-pick-text small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-labo-pick-extra {
+  flex-shrink: 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+.pd-labo-pick-row--on .pd-labo-pick-extra {
+  color: var(--bd-primary);
+}
+.pd-labo-pick-none {
+  margin: 32px 0;
+  color: var(--bd-muted);
+  text-align: center;
+}
+.pd-labo-pick-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--bd-line);
+  padding: 14px 24px;
+}
+.pd-labo-pick-foot > p {
+  flex: 1 1 200px;
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+.pd-labo-pick-foot > p b {
+  color: var(--bd-ink);
+}
+
+@media (max-width: 640px) {
+  .pd-labo-choice {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pd-labo-choice-label {
+    width: 100%;
+  }
+  .pd-labo-pick-head,
+  .pd-labo-pick-foot {
+    padding-inline: 16px;
+  }
+  .pd-labo-pick-list {
+    padding-inline: 8px;
+  }
+}
+
+/* ── Răng đã có phiếu Labo trong cùng phiếu điều trị (P0111_02, R-1106) ── */
+.pd-labo-toothchip--prior {
+  gap: 6px;
+  border: 1px solid var(--bd-orange-line);
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.pd-labo-toothchip--prior::after {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bd-amber);
+  content: "";
+}
+/* Below the Răng row, never into it: the form's items carry no bottom margin
+   (labo-order-dialog.css), so a negative top here would ride over the teeth. */
+.pd-labo-prior {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0 16px;
+  border: 1px solid var(--bd-orange-line);
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: var(--bd-orange-pale);
+}
+.pd-labo-prior-icon {
+  margin-top: 2px;
+  color: var(--bd-amber);
+  font-size: 20px;
+}
+.pd-labo-prior-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+}
+.pd-labo-prior-order {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pd-labo-prior-text {
+  min-width: 0;
+  flex: 1;
+}
+.pd-labo-prior-text p,
+.pd-labo-prior-hint {
+  margin: 2px 0 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pd-labo-prior-title {
+  color: var(--bd-orange);
+  font-size: 14px;
+}
+.pd-labo-prior-code {
+  color: var(--bd-primary);
+  font-weight: 600;
+}
+.pd-labo-prior-view {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--bd-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-labo-prior-view .anticon {
+  font-size: 11px;
+}

@@ -17,6 +17,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { useLaboSupplierOptions } from "@/hooks/useLaboPickers";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
+import { richTextForSave } from "@/utils/sanitizeHtml";
 import { ComboComponentPicker } from "./ComboComponentPicker";
 import { ComboItemsTable } from "./ComboItemsTable";
 import { ComboPriceSection } from "./ComboPriceSection";
@@ -55,6 +56,7 @@ interface FormValues {
   revenueByStage: boolean;
   requireStageSequence: boolean;
   warrantyDays: number;
+  warrantyContent: string;
   stageDraft: string;
   laboSupplierIds: string[];
 }
@@ -115,6 +117,7 @@ export function ComboDialog({
       revenueByStage: config?.revenueByStage ?? false,
       requireStageSequence: config?.requireStageSequence ?? false,
       warrantyDays: config?.warrantyDays ?? 0,
+      warrantyContent: config?.warrantyContent ?? "",
       stageDraft: "",
       laboSupplierIds: config?.laboSupplierIds ?? [],
     });
@@ -155,6 +158,7 @@ export function ComboDialog({
         revenueByStage: values.revenueByStage,
         requireStageSequence: values.requireStageSequence,
         warrantyDays: Number(values.warrantyDays ?? 0),
+        warrantyContent: richTextForSave(values.warrantyContent),
         laboSupplierIds: values.laboSupplierIds ?? [],
       },
     };

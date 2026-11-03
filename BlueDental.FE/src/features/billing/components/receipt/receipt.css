@@ -1,0 +1,639 @@
+/* ── Tài chính → Phiếu thu (P2610) ───────────────────────────────────────────
+   The head, the six-step bar on its own card, then the PHIẾU THU sheet with
+   the status column beside it: the sheet takes the width, the column keeps
+   500px — Gửi lại, Hủy phiên and In phiếu thu on one row — and is only as
+   tall as what it says. Under 1100px it drops below the sheet. */
+.rcpt-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rcpt-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+/* The page's own outline while it loads (ReceiptPageSkeleton). */
+.rcpt-page .rcpt-skel-back.ant-skeleton-element .ant-skeleton-button {
+  width: 30px;
+  min-width: 30px;
+  height: 30px;
+}
+.rcpt-head-main .ant-skeleton-element {
+  width: auto;
+}
+.rcpt-page .rcpt-skel-crumbs.ant-skeleton-element .ant-skeleton-input {
+  width: 120px;
+  min-width: 120px;
+  height: 14px;
+}
+.rcpt-page .rcpt-skel-title.ant-skeleton-element .ant-skeleton-input {
+  width: 320px;
+  min-width: 320px;
+  height: 22px;
+}
+.rcpt-page .rcpt-skel-step.ant-skeleton-element .ant-skeleton-input {
+  width: 90px;
+  min-width: 90px;
+  height: 14px;
+}
+
+/* Head: ← | crumbs over number + pill | created-at line. */
+.rcpt-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rcpt-back {
+  display: inline-flex;
+  flex: 0 0 30px;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+}
+.rcpt-back:hover {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+.rcpt-head-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rcpt-crumbs {
+  display: flex;
+  gap: 6px;
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}
+.rcpt-head-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.rcpt-head-code {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+.rcpt-head-meta {
+  color: var(--bd-ink-4);
+  font-size: 13px;
+  text-align: right;
+}
+
+/* Status pills: the colours of the slip's Thanh toán tab. */
+.rcpt-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+.rcpt-pill--pending {
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.rcpt-pill--issued {
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue);
+}
+.rcpt-pill--done {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.rcpt-pill--cancelled {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
+.rcpt-track-card {
+  padding: 16px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+
+.rcpt-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 500px;
+  gap: 16px;
+  align-items: start;
+}
+.rcpt-body .rcpt-sheet {
+  max-width: none;
+}
+
+/* ── The status column: heading, iPad callout, text, then one row of buttons
+   at the foot ── */
+.rcpt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 20px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+.rcpt-panel-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 17px;
+  font-weight: 700;
+}
+/* "Khách đã ký" on the left, the "Lúc 16:55:32" chip on the right (P2910_02). */
+.rcpt-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.rcpt-signed-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.rcpt-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--bd-ink-3);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.rcpt-panel-body p {
+  margin: 0;
+}
+.rcpt-panel-link {
+  color: var(--bd-link);
+  font-weight: 600;
+}
+.rcpt-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--bd-border);
+}
+/* Signed: [Yêu cầu khách ký lại][Xuất phiếu thu ———] then Hủy phiên below (BA mock). */
+.rcpt-panel-primary {
+  flex: 1 1 auto;
+}
+.rcpt-ipad-cancel-below {
+  order: 1;
+}
+
+/* ── Đã xuất phiếu thu (BA mock): ✓ + heading + when, the facts, then the
+   buttons — only as tall as that, like the steps before (owner) ── */
+.rcpt-done-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rcpt-done-icon {
+  display: inline-flex;
+  flex: 0 0 36px;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+.rcpt-done-sub {
+  margin: 2px 0 0;
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}
+.rcpt-done-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+.rcpt-done-fact {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px;
+}
+.rcpt-done-fact dt {
+  color: var(--bd-ink-4);
+}
+.rcpt-done-fact dd {
+  margin: 0;
+  color: var(--bd-ink);
+}
+/* ── Hủy phiếu thu (P2610 phase 6): Phiếu thu gốc | Lý do hủy, as tall as each other ── */
+.rcpt-cancel-body {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+  min-height: 440px;
+}
+.rcpt-cancel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px 20px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+.rcpt-cancel-card-title {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.rcpt-cancel-facts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.rcpt-cancel-fact {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--bd-border);
+  font-size: 13px;
+}
+.rcpt-cancel-fact:last-child {
+  border-bottom: 0;
+}
+.rcpt-cancel-fact dt {
+  color: var(--bd-ink-4);
+}
+.rcpt-cancel-fact dd {
+  margin: 0;
+  color: var(--bd-ink);
+  text-align: right;
+}
+.rcpt-cancel-amount {
+  color: var(--bd-primary);
+}
+.rcpt-cancel-form .ant-form-item {
+  margin-bottom: 0;
+}
+.rcpt-cancel-reasons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.rcpt-cancel-reason {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+}
+.rcpt-cancel-reason.ant-radio-wrapper-checked {
+  border-color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+.rcpt-cancel-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--bd-border);
+}
+
+@media (max-width: 1100px) {
+  .rcpt-body,
+  .rcpt-cancel-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rcpt-sheet {
+    max-width: none;
+  }
+}
+@media (max-width: 640px) {
+  .rcpt-head {
+    flex-wrap: wrap;
+  }
+  .rcpt-head-meta {
+    flex-basis: 100%;
+    text-align: left;
+  }
+}
+
+/* ── Where the iPad stands, as a callout under the heading ── */
+.rcpt-ipad-status {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--bd-radius);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+  font-weight: 600;
+}
+.rcpt-ipad-status svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+/* ── Kế toán kiểm tra & xuất phiếu thu, once the customer has signed
+   (P2910_02 mock): the mode boxes in one row, then what the mode needs ── */
+.rcpt-export {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg-soft);
+  color: var(--bd-ink-3);
+  font-size: 13px;
+}
+.rcpt-export p {
+  margin: 0;
+}
+.rcpt-export-title {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.rcpt-export-label {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.rcpt-export-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.rcpt-export-mode {
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  white-space: nowrap;
+}
+.rcpt-export-mode.ant-radio-wrapper-checked {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  box-shadow: 0 0 0 1px var(--bd-primary);
+}
+.rcpt-export-hint {
+  display: block;
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+/* Token điện tử: plug the USB key, then Kết nối Token (P2610 phase 7). */
+.rcpt-token {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink-3);
+}
+.rcpt-token-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.rcpt-token-connect {
+  flex: 0 0 auto;
+}
+
+/* Ký tay trực tiếp: the printout is signed by hand. */
+.rcpt-export .rcpt-hand-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+  line-height: 1.5;
+}
+.rcpt-hand-notice svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* Ký điện tử: the saved signature (or the pad), its owner, Ký lại · Tải ảnh lên. */
+.rcpt-acsign-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rcpt-acsign-loading {
+  align-self: center;
+  padding: 16px 0;
+}
+.rcpt-acsign-saved {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  padding: 8px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+}
+.rcpt-acsign-saved img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.rcpt-acsign-pad {
+  position: relative;
+  height: 140px;
+  border: 1px dashed var(--bd-border-2);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+}
+.rcpt-acsign-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--bd-ink);
+  cursor: crosshair;
+  touch-action: none;
+}
+.rcpt-acsign-placeholder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--bd-muted);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.rcpt-acsign-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.rcpt-acsign-owner {
+  color: var(--bd-ink-3);
+}
+.rcpt-acsign-links {
+  display: flex;
+  gap: 4px;
+  margin-inline-start: auto;
+}
+.rcpt-acsign-links .ant-btn {
+  padding-inline: 4px;
+  font-weight: 600;
+}
+.rcpt-acsign-buttons {
+  display: flex;
+  gap: 8px;
+}
+.rcpt-export .rcpt-acsign-warning {
+  padding: 8px 12px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+}
+
+/* "In phiếu thu để ký tay?" (P2910_02 mock): icon, heading, text, Hủy · Xác nhận in. */
+.rcpt-paper-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bd-orange-pale);
+  color: var(--bd-orange);
+}
+.rcpt-paper-title {
+  margin: 16px 0 8px;
+  color: var(--bd-ink);
+  font-size: 20px;
+  font-weight: 700;
+}
+.rcpt-paper-text {
+  margin: 0;
+  color: var(--bd-ink-3);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.rcpt-paper-text strong {
+  color: var(--bd-ink);
+}
+.rcpt-paper-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Xem ảnh chữ ký (P2910_02 mock): the picture on white, on a grey stage. */
+.rcpt-upload-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg-soft);
+}
+.rcpt-upload-image {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  aspect-ratio: 3 / 1;
+  padding: 8px;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  object-fit: contain;
+}
+.rcpt-upload-file {
+  margin: 10px 0 0;
+  color: var(--bd-ink-3);
+  font-size: 13px;
+}
+.rcpt-upload-other.ant-btn {
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
+}
+
+@media (max-width: 640px) {
+  .rcpt-export-modes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Giảm giá thu ngân with the cashier's reason (P2910, step 6): accountant only. */
+.rcpt-discounts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg-soft);
+  font-size: 13px;
+}
+.rcpt-discounts p {
+  margin: 0;
+}
+.rcpt-discounts-title {
+  color: var(--bd-ink);
+  font-weight: 600;
+}
+.rcpt-discounts ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rcpt-discounts li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rcpt-discounts-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--bd-ink-3);
+}
+.rcpt-discounts-line b {
+  color: var(--bd-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rcpt-discounts small {
+  color: var(--bd-muted);
+  font-size: 12px;
+}

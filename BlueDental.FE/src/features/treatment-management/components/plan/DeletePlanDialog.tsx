@@ -4,6 +4,7 @@ import { extractApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { notifyError } from "@/lib/notify";
 import { useDeleteTreatmentPlan, type TreatmentPlanSlipDto } from "../../api/treatmentPlanApi";
+import { moneyText } from "./planTypes";
 
 interface Props {
   /** The slip to delete; null keeps the dialog closed. */
@@ -12,12 +13,14 @@ interface Props {
 }
 
 /**
- * "Xoá phiếu điều trị". The server refuses a slip that already has money,
- * công đoạn, labo, prescriptions, re-exams or an e-invoice against it; that
- * refusal comes back as its own message and the dialog stays open.
+ * "Xoá phiếu điều trị". The slip goes with everything written against it, its
+ * receipts included, so a slip that has taken money says how much in red
+ * before the confirm (owner 2026-10-27). A refusal from the server comes back
+ * as its own message and the dialog stays open.
  */
 export function DeletePlanDialog({ plan, onClose }: Props) {
   const deletePlan = useDeleteTreatmentPlan();
+  const paid = plan?.payment.totalPaid ?? 0;
 
   const handleConfirm = async () => {
     if (!plan) return;
@@ -35,7 +38,16 @@ export function DeletePlanDialog({ plan, onClose }: Props) {
       open={plan !== null}
       noun={t("Treatment:Plan:DeleteNoun")}
       name={plan?.code}
-      note={t("Treatment:Plan:DeleteNote")}
+      note={
+        <>
+          {paid > 0 && (
+            <span className="tp-delete-paid">
+              {t("Treatment:Plan:DeletePaidWarning", moneyText(paid))}
+            </span>
+          )}
+          {t("Treatment:Plan:DeleteNote")}
+        </>
+      }
       pending={deletePlan.isPending}
       onConfirm={handleConfirm}
       onClose={onClose}

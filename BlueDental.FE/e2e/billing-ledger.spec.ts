@@ -6,8 +6,11 @@ import { BRANCH2_USER, login } from "./fixtures/auth";
 import {
   PAYMENTS_API,
   call,
-  collectOnFirstLine,
+  confirmOnRow,
+  issueReceipt,
   openNewSlip,
+  RECEIPT_STATUS,
+  writeOnFirstLine,
   type Receipt,
 } from "./fixtures/ledgerReceipt";
 
@@ -15,10 +18,10 @@ import {
  * Feature: Tài chính → Thanh toán lists the receipts written with "Tạo Phiếu
  * Thanh Toán" on a treatment plan (BA note, 2026-10-06).
  *
- * The spec walks the BA's own path: a fresh slip, a receipt saved on its
- * Thanh toán tab, then the list. The list is opened before the receipt exists
+ * The spec walks the BA's own path: a fresh slip, a receipt written, exported and
+ * ✓ paid on its Thanh toán tab, then the list. The list is opened while the receipt is unpaid
  * and returned to through browser history — same document, same five-minute
- * cache — so the row only shows if the save invalidated it.
+ * cache — so the row only shows if ✓ "Xác nhận thanh toán" invalidated it.
  *
  * Real stack only: real login, real ASP.NET Core API, real PostgreSQL.
  */
@@ -77,15 +80,22 @@ let receipt: Receipt | undefined;
 test.describe.configure({ mode: "serial", timeout: 150_000 });
 
 test.describe("Tài chính → Thanh toán", () => {
-  test("a receipt saved on the plan's Thanh toán tab is listed without a reload", async ({ page }) => {
+  test("a receipt paid with ✓ on the plan's Thanh toán tab is listed without a reload", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await login(page);
     await openNewSlip(page);
     await page.getByRole("tab", { name: "Thanh toán", exact: true }).click();
     await expect(page).toHaveURL(/planTab=payment-v2/);
+
+    // A receipt written and exported (P2610) — not paid yet, so not listed.
+    const written = await writeOnFirstLine(page);
+    await issueReceipt(page, written);
+    await page.reload();
+    const paymentRow = page.locator(".pdt-table tbody tr.ant-table-row", { hasText: written.code });
+    await expect(paymentRow.locator(".tp-pill")).toHaveText("Đã xuất phiếu thu");
     await markDocument(page);
 
-    // Fill the list's cache before the receipt exists. It opens on today.
+    // Fill the list's cache while the receipt is unpaid. It opens on today.
     await openLedgerFromMenu(page);
     const picker = page.locator(".bd-period");
     await expect(picker.getByRole("button", { name: "Ngày", exact: true })).toHaveAttribute(
@@ -95,11 +105,12 @@ test.describe("Tài chính → Thanh toán", () => {
     await expect(picker.locator("input")).toHaveValue(shownDay(new Date()));
     await expect(page.locator(".billing-kpi-label")).toHaveText(["Tổng tiền đã thu", "Số phiếu thanh toán"]);
 
-    // Back on the plan, "Tạo Phiếu Thanh Toán".
+    // Back on the plan, ✓ "Xác nhận thanh toán" on the receipt's row.
     await page.goBack();
     await expect(page).toHaveURL(/planTab=payment-v2/);
-    receipt = await collectOnFirstLine(page);
+    receipt = await confirmOnRow(page, paymentRow, written);
     expect(receipt.code).toMatch(/^THANHTOAN/);
+    await expect(paymentRow.locator(".tp-pill")).toHaveText("Đã thanh toán");
 
     // Forward to the list: same document, and the receipt is there.
     await page.goForward();
@@ -302,17 +313,17 @@ test.describe("Tài chính → Thanh toán", () => {
     expect(listed.body.totalAmount).toBe(0);
   });
 
-  // Owner 2026-10-13: every new receipt is written "Hoàn tất", and a Hoàn tất
-  // receipt is final. The old "a Chưa thanh toán one is never listed" half
-  // cannot be set up any more — no new receipt is ever pending — so what is
-  // held instead is that a freshly written one is listed straight away.
-  test("a Hoàn tất receipt stays listed for good; a new one is listed as soon as it is written", async ({ page }) => {
+  // P2610: a receipt is written "Chưa thanh toán" and counts only once it is
+  // exported and ✓ "Đã thanh toán". The ledger lists money that is in, so a
+  // new receipt is not listed until then; a paid one is not taken back by a
+  // cancel that names no fixed reason.
+  test("a paid receipt stays listed; a new one is listed only once it is paid", async ({ page }) => {
     expect(receipt).toBeDefined();
     const saved = receipt!;
     await login(page);
     const refused = await call(page, `${PAYMENTS_API}/${saved.id}/cancel`, { method: "POST", json: { reason: "e2e" } });
     expect(refused.status).toBe(403);
-    expect((refused.body.error as { code: string }).code).toBe("BlueDental:Billing:0096");
+    expect((refused.body.error as { code: string }).code).toBe("BlueDental:Billing:0099");
     expect((await call(page, `${LEDGER_API}?filter=${saved.code}`)).body.totalCount).toBe(1);
 
     const written = await call(page, PAYMENTS_API, {
@@ -331,9 +342,15 @@ test.describe("Tài chính → Thanh toán", () => {
       },
     });
     expect(written.status, JSON.stringify(written.body)).toBe(200);
-    expect(written.body.status).toBe(2);
+    expect(written.body.status).toBe(RECEIPT_STATUS.Pending);
     const code = String(written.body.code);
-    expect((await call(page, `${LEDGER_API}?filter=${code}`)).body.totalCount).toBe(1);
+    const listedCount = async () => (await call(page, `${LEDGER_API}?filter=${code}`)).body.totalCount;
+    expect(await listedCount()).toBe(0);
+    await issueReceipt(page, { id: String(written.body.id), clinicBranchId: String(written.body.clinicBranchId) });
+    expect(await listedCount(), "exported is not yet paid").toBe(0);
+    const paid = await call(page, `${PAYMENTS_API}/${String(written.body.id)}/confirm`, { method: "PUT" });
+    expect(paid.status, JSON.stringify(paid.body)).toBe(200);
+    expect(await listedCount()).toBe(1);
     await page.goto("/billing");
     await page.getByPlaceholder(SEARCH).fill(code);
     await expect(ledgerRow(page, code)).toBeVisible({ timeout: 20_000 });

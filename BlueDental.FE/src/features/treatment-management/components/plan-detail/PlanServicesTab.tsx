@@ -11,7 +11,9 @@ import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
+import { LaboWorkflowDialog } from "@/features/labo/components/workflow/LaboWorkflowDialog";
 import { usePatientAdvises } from "../../api/consultingQueries";
+import { usePlanWarrantyOverview } from "../../api/planWarrantyApi";
 import {
   PLAN_STATUS,
   useCancelServiceLine,
@@ -92,6 +94,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const canEditLines = consultation.canUpdate;
   const paymentAbility = useAbility("payment");
   const canReadStages = useAbility("treatmentStage").canRead;
+  const canReadLabo = useAbility("treatmentLabo").canRead;
   const pagination = useTablePagination(10);
   const advises = usePatientAdvises({ patientId: patient.id, clinicBranchId: branchId, maxResultCount: 200 });
   const clinic = useBranchInfo(branchId);
@@ -110,6 +113,8 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   // Dư nợ for the payment dialog; the server keeps it behind payment.read.
   const account = usePatientAccount(patient.id, branchId, payOpen && paymentAbility.canRead);
   const [slipOpen, setSlipOpen] = useState(false);
+  // The LABO code under "Phiếu Labo" opens this order in the shared Labo dialog.
+  const [laboOrderId, setLaboOrderId] = useState<string | null>(null);
 
   const rows = useMemo(() => planDetailRows(plan, advises.data?.items ?? []), [plan, advises.data]);
   const pageRows = rows.slice(pagination.skipCount, pagination.skipCount + pagination.pageSize);
@@ -153,11 +158,16 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       onEdit: canEditLines ? setEditing : undefined,
       // "Xóa" is the consulting chain's delete right, as on the server (R-953).
       onDelete: consultation.canDelete ? setDeleting : undefined,
+      onLabo: canReadLabo ? setLaboOrderId : undefined,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over stable mutations
-    [plan.id, canEditLines, consultation.canDelete],
+    [plan.id, canEditLines, consultation.canDelete, canReadLabo],
   );
-  const columns = useMemo(() => buildServiceColumns(actions), [actions]);
+  const warranty = usePlanWarrantyOverview(plan.id);
+  const columns = useMemo(() => {
+    const rows = new Map((warranty.data?.rows ?? []).map((row) => [row.lineId, row]));
+    return buildServiceColumns(actions, (lineId) => rows.get(lineId));
+  }, [actions, warranty.data]);
 
   // Held steady between renders: the form refills itself whenever this changes.
   const editTarget = useMemo<LineEditTarget | null>(
@@ -272,6 +282,12 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         heldForPatient={account.data?.heldForPatient ?? 0}
         onClose={() => setPayOpen(false)}
         onSaved={() => setPayOpen(false)}
+      />
+      <LaboWorkflowDialog
+        target={laboOrderId ? { kind: "open", orderId: laboOrderId } : null}
+        branchId={branchId}
+        patient={{ id: patient.id, code: patient.patientCode, name: patient.fullName }}
+        onClose={() => setLaboOrderId(null)}
       />
       <PlanSlipDialog open={slipOpen} patient={patient} plan={plan} clinic={clinic.data} onClose={() => setSlipOpen(false)} />
     </div>

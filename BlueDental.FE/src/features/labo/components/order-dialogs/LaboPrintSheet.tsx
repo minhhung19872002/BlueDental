@@ -95,6 +95,7 @@ export function LaboPrintSheet({ clinic, patient, orderCode, facts }: Props) {
             <section>
               <Row label={t("Patient:DentalChart:ToothNumber")} value={facts.teeth} />
               <Row label={t("Patient:Viewer:DetailColorLabel")} value={facts.shade} />
+              <Row label={t("Labo:Spec:Note")} value={facts.labNote} />
               <Row label={t("Patient:Payment:Quantity")} value={facts.quantity} />
               <Row label={t("Patient:QuoteSheet:PrescriptionContent")} value={facts.instruction} />
             </section>

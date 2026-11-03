@@ -6,6 +6,7 @@ import { useAbility } from "@/hooks/useAbility";
 import { useCurrentBranchId, withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { describeApiError } from "@/lib/apiError";
+import { usePlanWarrantyOverview } from "../api/planWarrantyApi";
 import { useTreatingPlanSlip } from "../api/treatmentPlanApi";
 import { PlanDebtTab } from "../components/plan-detail/PlanDebtTab";
 import { PlanDetailHead } from "../components/plan-detail/PlanDetailHead";
@@ -13,9 +14,12 @@ import { PlanDetailHeader } from "../components/plan-detail/PlanDetailHeader";
 import { PlanPaymentsTab } from "../components/plan-detail/PlanPaymentsTab";
 import { PlanRefundsTab } from "../components/plan-detail/PlanRefundsTab";
 import { PlanServicesTab } from "../components/plan-detail/PlanServicesTab";
+import { PlanWarrantyTab } from "../components/plan-warranty/PlanWarrantyTab";
+import { WarrantyToday } from "../components/plan-warranty/WarrantyToday";
 import {
   PLAN_TAB,
   PLAN_TAB_KEYS,
+  PLAN_TAB_KEYS_NO_PAYMENT,
   isPlanTab,
   type PlanTabKey,
 } from "../components/plan-detail/planDetailTypes";
@@ -30,7 +34,7 @@ const OUTSIDE_TREATING_SCOPE = "BlueDental:Treatment:0052";
  * /patient/:id/treatment-plan/:planId — "Chi tiết kế hoạch điều trị".
  *
  * The reference keeps the open tab in `?planTab=` (detail, payment-v2,
- * refund, debt) and the branch in `?branchId=` (here `?branch=<code>`); both
+ * refund, debt; warranty is ours, P3110) and the branch in `?branchId=` (here `?branch=<code>`); both
  * survive a reload.
  * The tabs (with the money summary) are their own white strip under the
  * breadcrumb, as on the patient record (BA 2026-10-15); toolbar and table
@@ -45,14 +49,17 @@ export function TreatmentPlanDetailPage() {
   // Read through the Sơ đồ tổ chức check: a slip hidden from the user's
   // "Kế hoạch điều trị" tab cannot be opened by its link either (R-961).
   const plan = useTreatingPlanSlip(planId);
+  // Read here, not in the tab: its count and "k chờ" show on every tab.
+  const warranty = usePlanWarrantyOverview(planId);
 
   // Thanh toán, Hoàn tiền and Dư nợ are payment views: without payment.read
   // only Chi tiết is offered, and a ?planTab= pointing at one falls back to it.
   // A slip seen only through the viewer's lines offers none of them either —
-  // they read the whole slip's money (BA bug 40).
+  // they read the whole slip's money (BA bug 40). Bảo hành is no money tab:
+  // every viewer of the slip has it (P3110 REQ-B1).
   const canReadPayments = useAbility("payment").canRead;
   const tabs: readonly PlanTabKey[] =
-    canReadPayments && !plan.data?.seenThroughLines ? PLAN_TAB_KEYS : [PLAN_TAB.detail];
+    canReadPayments && !plan.data?.seenThroughLines ? PLAN_TAB_KEYS : PLAN_TAB_KEYS_NO_PAYMENT;
   const rawTab = searchParams.get(TAB_PARAM);
   const tab: PlanTabKey = isPlanTab(rawTab) && tabs.includes(rawTab) ? rawTab : PLAN_TAB.detail;
 
@@ -87,16 +94,31 @@ export function TreatmentPlanDetailPage() {
   }
 
   const tabProps = { patient: patient.data, plan: plan.data, branchId };
+  const warrantyCounts = warranty.data
+    ? { count: warranty.data.tabCount, pending: warranty.data.pendingCount }
+    : undefined;
 
   return (
     <div className="page-container pdt-page">
-      <PlanDetailHeader patient={patient.data} plan={plan.data} branchId={branchId} />
-      <PlanDetailHead tab={tab} tabs={tabs} payment={plan.data.payment} onTabChange={handleTabChange} />
+      <PlanDetailHeader
+        patient={patient.data}
+        plan={plan.data}
+        branchId={branchId}
+        aside={tab === PLAN_TAB.warranty && warranty.data && <WarrantyToday today={warranty.data.today} />}
+      />
+      <PlanDetailHead
+        tab={tab}
+        tabs={tabs}
+        payment={plan.data.payment}
+        warranty={warrantyCounts}
+        onTabChange={handleTabChange}
+      />
       <section className="pdt-body">
         {tab === PLAN_TAB.detail && <PlanServicesTab {...tabProps} />}
         {tab === PLAN_TAB.payment && <PlanPaymentsTab {...tabProps} />}
         {tab === PLAN_TAB.refund && <PlanRefundsTab {...tabProps} />}
         {tab === PLAN_TAB.debt && <PlanDebtTab {...tabProps} />}
+        {tab === PLAN_TAB.warranty && <PlanWarrantyTab {...tabProps} overview={warranty} />}
       </section>
     </div>
   );

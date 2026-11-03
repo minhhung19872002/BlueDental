@@ -60,22 +60,76 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
 
     public const int MaxCancelReasonLength = 500;
 
+    public const int MaxReceiptFileNameLength = 200;
+
+    public const int ReceiptFileSha256Length = 64;
+
     /// <summary>
-    /// Why the receipt was cancelled. A cancelled receipt is soft-deleted — so
-    /// no rollup, debt or report counts it — and keeps who cancelled it and
-    /// when in <c>DeleterId</c> / <c>DeletionTime</c>; the Thanh toán tab still
-    /// lists it as "Đã hủy" (bug list item 28).
+    /// Mô tả lý do hủy — what the canceller wrote. A cancelled receipt is
+    /// "Phiếu bị hủy" and is also soft-deleted, so no rollup, debt or report
+    /// counts it; the row itself stays (bug list item 28, P2610).
     /// </summary>
     public string? CancelReason { get; private set; }
 
     /// <summary>
-    /// "Chưa thanh toán" until the cashier confirms the money was taken, then
-    /// "Hoàn tất". Only a payment waits; a refund or money held for the patient
-    /// is written already settled. See <see cref="ISettleable"/>.
+    /// Which of the four fixed reasons; null on a receipt cancelled before the
+    /// cancel page existed, or one cancelled while still "Chưa thanh toán".
+    /// </summary>
+    public PaymentCancelReason? CancelReasonCode { get; private set; }
+
+    /// <summary>When it was cancelled — kept apart from when it was exported or paid.</summary>
+    public DateTimeOffset? CancelledAt { get; private set; }
+
+    public Guid? CancelledById { get; private set; }
+
+    /// <summary>When the accountant exported it ("Đã xuất phiếu thu").</summary>
+    public DateTimeOffset? IssuedAt { get; private set; }
+
+    public Guid? IssuedById { get; private set; }
+
+    /// <summary>Ký điện tử, Token điện tử or Ký tay trực tiếp, as the accountant chose on the export.</summary>
+    public ReceiptSignMode? SignMode { get; private set; }
+
+    /// <summary>
+    /// "In phiếu thu" (P2910_02): when the draft was printed for the customer
+    /// to sign by hand at the counter instead of on the iPad.
+    /// </summary>
+    public DateTimeOffset? PaperSignedAt { get; private set; }
+
+    public Guid? PaperSignedById { get; private set; }
+
+    public bool IsSignedOnPaper => PaperSignedAt != null;
+
+    /// <summary>Ký điện tử: whose saved signature went on the exported PDF.</summary>
+    public Guid? AccountantSignerId { get; private set; }
+
+    /// <summary>
+    /// When that signature was saved — the BA's "user timestamp", kept apart
+    /// from <see cref="IssuedAt"/>.
+    /// </summary>
+    public DateTimeOffset? AccountantSignatureSavedAt { get; private set; }
+
+    /// <summary>
+    /// The exported PHIẾU THU (PDF/A, AES-encrypted) in blob storage. Null on a
+    /// receipt not yet exported, or exported before P2610 phase 5.
+    /// </summary>
+    public string? ReceiptFileName { get; private set; }
+
+    /// <summary>SHA-256 (hex) of the PDF as exported, checked on every read.</summary>
+    public string? ReceiptFileSha256 { get; private set; }
+
+    public bool HasReceiptFile => ReceiptFileName != null;
+
+    /// <summary>
+    /// See <see cref="PatientPaymentStatus"/>. Only a payment goes through the
+    /// signing flow; a refund or money held for the patient is written already
+    /// settled. See <see cref="ISettleable"/>.
     /// </summary>
     public PatientPaymentStatus Status { get; private set; } = PatientPaymentStatus.Completed;
 
     public bool IsPending => Status == PatientPaymentStatus.Pending;
+
+    public bool IsCompleted => Status == PatientPaymentStatus.Completed;
 
     /// <summary>
     /// The patient asked for a red (VAT) invoice when the receipt was written
@@ -90,6 +144,36 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     /// "Yêu cầu xuất HĐ" — the old system dealt with its invoices.
     /// </summary>
     public bool IsImported { get; private set; }
+
+    /// <summary>
+    /// The PHIẾU THU content as written — see <see cref="PaymentReceiptSnapshot"/>.
+    /// Null on refunds, held money and receipts written before P2610 phase 3.
+    /// </summary>
+    public PaymentReceiptSnapshot? ReceiptSnapshot { get; private set; }
+
+    public const int MaxVoucherCodeLength = 64;
+
+    /// <summary>
+    /// The voucher picked at payment time (P2910) — one per receipt, its use
+    /// held from the moment the receipt is written and given back when it is
+    /// cancelled or the voucher is taken off. Not the slip's own vouchers.
+    /// </summary>
+    public Guid? VoucherId { get; private set; }
+
+    /// <summary>The voucher's code as it was, so the receipt reads the same if the voucher is renamed.</summary>
+    public string? VoucherCode { get; private set; }
+
+    /// <summary>What the voucher took off, split over <see cref="Lines"/> as their <c>VoucherShare</c>.</summary>
+    public decimal VoucherAmount { get; private set; }
+
+    /// <summary>"Giảm giá thu ngân" over every line — kept here so a rollup needs no lines.</summary>
+    public decimal CashierDiscountTotal { get; private set; }
+
+    /// <summary>
+    /// Ưu đãi khi thanh toán: what this receipt lets off the slip without money.
+    /// Like <see cref="Amount"/> it counts only once the receipt is "Đã thanh toán".
+    /// </summary>
+    public decimal Relief => CashierDiscountTotal + VoucherAmount;
 
     /// <summary>Signed value for a rollup: a refund takes money back out.</summary>
     public decimal SignedAmount => Kind == PatientPaymentKind.Refund ? -Amount : Amount;
@@ -110,11 +194,20 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         string? note = null,
         Guid? paymentAccountId = null,
         PaymentSplitMode splitMode = PaymentSplitMode.Auto,
-        IEnumerable<(Guid TreatmentServiceId, decimal Amount)>? lines = null,
+        IEnumerable<PaymentLineDraft>? lines = null,
         Func<Guid>? lineIdFactory = null,
-        PatientPaymentStatus status = PatientPaymentStatus.Completed)
+        PatientPaymentStatus status = PatientPaymentStatus.Completed,
+        PaymentVoucherUse? voucher = null)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code));
+
+        // Exported and cancelled are reached through Issue and Cancel, never written.
+        if (status is not (PatientPaymentStatus.Pending or PatientPaymentStatus.Completed))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidInvoiceTransition,
+                "A receipt is written unpaid or paid.");
+        }
 
         if (status == PatientPaymentStatus.Pending && kind != PatientPaymentKind.Payment)
         {
@@ -123,12 +216,8 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
                 "Only a payment waits for confirmation; refunds and held money are settled when written.");
         }
 
-        if (amount <= 0m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Billing.InsufficientPaymentAmount,
-                "A money movement must be greater than zero.");
-        }
+        var drafts = (lines ?? []).ToList();
+        EnsureAmount(kind, amount, drafts);
 
         if (kind == PatientPaymentKind.Prepaid && treatmentPlanId.HasValue)
         {
@@ -167,17 +256,56 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
             Status = status
         };
 
-        payment.ReplaceLines(lines, lineIdFactory);
+        payment.ReplaceLines(drafts, lineIdFactory, voucher);
         return payment;
     }
 
-    private void ReplaceLines(
-        IEnumerable<(Guid TreatmentServiceId, decimal Amount)>? lines, Func<Guid>? lineIdFactory)
+    /// <summary>
+    /// A money movement is above zero — except a payment whose lines are let
+    /// off wholly by TN giảm or a voucher (P2910), which may collect nothing.
+    /// </summary>
+    private static void EnsureAmount(
+        PatientPaymentKind kind, decimal amount, IReadOnlyCollection<PaymentLineDraft> lines)
     {
-        _lines.Clear();
-        foreach (var (serviceId, share) in lines ?? [])
+        var relief = lines.Sum(line => line.Relief);
+        if (relief > 0m && kind != PatientPaymentKind.Payment)
         {
-            _lines.Add(new PatientPaymentLine(lineIdFactory?.Invoke() ?? Guid.NewGuid(), serviceId, share));
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "Only a payment can let a line off without money.");
+        }
+
+        if (amount < 0m || (amount == 0m && relief <= 0m))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InsufficientPaymentAmount,
+                "A money movement must be greater than zero.");
+        }
+    }
+
+    private void ReplaceLines(
+        IReadOnlyCollection<PaymentLineDraft> lines, Func<Guid>? lineIdFactory, PaymentVoucherUse? voucher)
+    {
+        if (lines.Select(line => line.TreatmentServiceId).Distinct().Count() != lines.Count
+            && lines.Any(line => line.Relief > 0m || line.ReceiptName != null))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "A service is named once on a receipt that lets it off or renames it.");
+        }
+
+        var voucherAmount = lines.Sum(line => line.VoucherShare);
+        if ((voucher is null) != (voucherAmount == 0m))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "A voucher share needs the voucher it comes from, and a voucher must take something off.");
+        }
+
+        _lines.Clear();
+        foreach (var line in lines)
+        {
+            _lines.Add(new PatientPaymentLine(lineIdFactory?.Invoke() ?? Guid.NewGuid(), line));
         }
 
         // The lines are how the receipt is spent; letting them disagree with the
@@ -188,6 +316,13 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
                 BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
                 "The receipt's service lines must add up to its total.");
         }
+
+        VoucherId = voucher?.VoucherId;
+        VoucherCode = voucher is null
+            ? null
+            : Check.NotNullOrWhiteSpace(voucher.Code, nameof(voucher.Code), MaxVoucherCodeLength);
+        VoucherAmount = voucherAmount;
+        CashierDiscountTotal = _lines.Sum(line => line.CashierDiscount);
     }
 
     private static void EnsureAccount(PatientPaymentKind kind, PaymentMethodKind method, Guid? paymentAccountId)
@@ -202,11 +337,22 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
 
     private void EnsurePending()
     {
+        EnsureNotCancelled();
         if (!IsPending)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted,
-                "A completed receipt is final.");
+                "An exported or paid receipt is locked.");
+        }
+    }
+
+    private void EnsureNotCancelled()
+    {
+        if (Status == PatientPaymentStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCancelled,
+                "A cancelled receipt is final.");
         }
     }
 
@@ -217,7 +363,8 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     ///
     /// The receipt's own total never changes: a share too big for the new line
     /// is split, and the remainder stays on the old one for the caller to
-    /// refund or leave as credit.
+    /// refund or leave as credit. Only money moves — what the receipt let off
+    /// the old line (TN giảm, voucher) was let off that line and stays on it.
     /// </summary>
     public decimal Redirect(
         Guid fromServiceId, Guid toServiceId, decimal limit, Func<Guid> lineIdFactory)
@@ -230,19 +377,25 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         var moved = 0m;
         foreach (var line in _lines.Where(l => l.TreatmentServiceId == fromServiceId).ToList())
         {
+            if (moved >= limit)
+            {
+                break;
+            }
+
             var take = Math.Min(line.Amount, limit - moved);
             if (take <= 0m)
             {
-                break;
+                continue;
             }
 
             _lines.Remove(line);
             _lines.Add(new PatientPaymentLine(lineIdFactory(), toServiceId, take));
 
-            if (take < line.Amount)
+            // The stored VAT was the old line's; both pieces back theirs out again.
+            var left = line.ToDraft() with { Amount = line.Amount - take, TaxAmount = null };
+            if (left.Amount + left.Relief > 0m)
             {
-                _lines.Add(
-                    new PatientPaymentLine(lineIdFactory(), fromServiceId, line.Amount - take));
+                _lines.Add(new PatientPaymentLine(lineIdFactory(), left));
             }
 
             moved += take;
@@ -294,6 +447,33 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         return this;
     }
 
+    /// <summary>
+    /// Writes down what the PHIẾU THU says. Only a payment has one, and only
+    /// while it is still "Chưa thanh toán": from the export on the receipt is
+    /// locked (Billing:0096).
+    /// </summary>
+    public PatientPayment FreezeReceipt(PaymentReceiptSnapshot snapshot)
+    {
+        Check.NotNull(snapshot, nameof(snapshot));
+        EnsurePending();
+        if (Kind != PatientPaymentKind.Payment)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidInvoiceTransition,
+                "Only a payment carries a PHIẾU THU.");
+        }
+
+        if (snapshot.Amount != Amount)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.InvalidPaymentAllocation,
+                "The PHIẾU THU must state the receipt's own total.");
+        }
+
+        ReceiptSnapshot = snapshot;
+        return this;
+    }
+
     public PatientPayment MarkImported()
     {
         IsImported = true;
@@ -322,14 +502,39 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
     }
 
     /// <summary>
-    /// Records why the receipt is being cancelled; the caller then soft-deletes
-    /// it. A receipt with no reason is not cancelled (bug list item 28: one
-    /// vanished from the list with no reason and no trace).
+    /// "Phiếu bị hủy"; the caller then soft-deletes it so nothing counts it and
+    /// the debt comes back. A receipt with no description is not cancelled (bug
+    /// list item 28: one vanished from the list with no reason and no trace).
+    ///
+    /// An exported or paid payment is cancelled from the cancel page, which
+    /// also asks one of the four fixed reasons (P2610) — cancelling a paid one
+    /// raises Còn lại again. A receipt still "Chưa thanh toán" keeps the plain
+    /// reason of the Thanh toán tab. A refund or held money is final once written.
     /// </summary>
-    public PatientPayment Cancel(string? reason)
+    public PatientPayment Cancel(
+        PaymentCancelReason? reasonCode,
+        string? reason,
+        DateTimeOffset cancelledAt,
+        Guid? cancelledById)
     {
-        // BA 2026-10-08: a "Hoàn tất" receipt hides Sửa and Xoá — the money was taken.
-        EnsurePending();
+        EnsureNotCancelled();
+
+        if (!IsPending)
+        {
+            if (Kind != PatientPaymentKind.Payment)
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted,
+                    "A refund or held money is final once written.");
+            }
+
+            if (reasonCode is null || !Enum.IsDefined(reasonCode.Value))
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Billing.PaymentCancelReasonCodeRequired,
+                    "An exported or paid receipt is cancelled with one of the fixed reasons.");
+            }
+        }
 
         if (string.IsNullOrWhiteSpace(reason))
         {
@@ -339,14 +544,94 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         }
 
         CancelReason = Check.Length(reason.Trim(), nameof(reason), MaxCancelReasonLength);
+        CancelReasonCode = reasonCode;
+        CancelledAt = cancelledAt;
+        CancelledById = cancelledById;
+        Status = PatientPaymentStatus.Cancelled;
+        return this;
+    }
+
+    /// <summary>
+    /// Checked before the PDF is rendered, so a locked receipt or Ký số is
+    /// refused without the cost of a render.
+    /// </summary>
+    public void EnsureIssuable(ReceiptSignMode signMode)
+    {
+        EnsurePending();
+        if (signMode == ReceiptSignMode.Digital)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.ReceiptDigitalSignUnavailable,
+                "Ký số is not available yet.");
+        }
+    }
+
+    /// <summary>
+    /// "Xuất phiếu thu": the customer has signed and the accountant has
+    /// checked it. The PDF written from it is stored with its SHA-256. From
+    /// here nothing on the receipt changes; the money is still not counted
+    /// until ✓ <see cref="Confirm"/>.
+    /// </summary>
+    public PatientPayment Issue(
+        DateTimeOffset issuedAt,
+        Guid? accountantId,
+        ReceiptSignMode signMode,
+        string receiptFileName,
+        string receiptFileSha256,
+        ReceiptSigner? signer = null)
+    {
+        EnsureIssuable(signMode);
+        Check.NotNullOrWhiteSpace(receiptFileName, nameof(receiptFileName), MaxReceiptFileNameLength);
+        if (receiptFileSha256.Length != ReceiptFileSha256Length)
+        {
+            throw new ArgumentException("A SHA-256 is 64 hex digits.", nameof(receiptFileSha256));
+        }
+
+        if (signMode == ReceiptSignMode.Electronic && signer == null)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Billing.AccountantSignatureMissing);
+        }
+
+        IssuedAt = issuedAt;
+        IssuedById = accountantId;
+        SignMode = signMode;
+        ReceiptFileName = receiptFileName;
+        ReceiptFileSha256 = receiptFileSha256;
+        AccountantSignerId = signMode == ReceiptSignMode.Electronic ? signer!.UserId : null;
+        AccountantSignatureSavedAt = signMode == ReceiptSignMode.Electronic ? signer!.SavedAt : null;
+        Status = PatientPaymentStatus.Issued;
+        return this;
+    }
+
+    /// <summary>
+    /// "Xác nhận in" (P2910_02): the customer signs the printed draft instead
+    /// of the iPad, so the receipt goes straight to the accountant. Printing
+    /// again keeps the first time.
+    /// </summary>
+    public PatientPayment SignOnPaper(DateTimeOffset printedAt, Guid? printedById)
+    {
+        EnsurePending();
+        if (Kind != PatientPaymentKind.Payment)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Billing.ReceiptNotSendable);
+        }
+
+        if (PaperSignedAt == null)
+        {
+            PaperSignedAt = printedAt;
+            PaperSignedById = printedById;
+        }
+
         return this;
     }
 
     /// <summary>
     /// "Chỉnh sửa" on a receipt still "Chưa thanh toán": nothing has been
     /// collected, so everything the create dialog asked can be rewritten — the
-    /// split, the amount and its service lines, the channel and the note. The
-    /// caller re-checks each line against what the slip still owes.
+    /// split, the amount and its service lines, the channel and the note, and
+    /// from P2910 each line's name and TN giảm and the voucher. The caller
+    /// re-checks each line against what the slip still owes, and gives back
+    /// the old voucher's use when it is swapped or taken off.
     /// </summary>
     public PatientPayment Revise(
         PaymentSplitMode splitMode,
@@ -354,18 +639,14 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         decimal amount,
         Guid? paymentAccountId,
         string? note,
-        IEnumerable<(Guid TreatmentServiceId, decimal Amount)> lines,
-        Func<Guid> lineIdFactory)
+        IEnumerable<PaymentLineDraft> lines,
+        Func<Guid> lineIdFactory,
+        PaymentVoucherUse? voucher = null)
     {
         EnsurePending();
 
-        if (amount <= 0m)
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.Billing.InsufficientPaymentAmount,
-                "A money movement must be greater than zero.");
-        }
-
+        var drafts = lines.ToList();
+        EnsureAmount(Kind, amount, drafts);
         EnsureAccount(Kind, method, paymentAccountId);
 
         SplitMode = splitMode;
@@ -373,21 +654,43 @@ public class PatientPayment : FullAuditedAggregateRoot<Guid>, ISettleable
         Amount = amount;
         PaymentAccountId = RequiresAccount(method) ? paymentAccountId : null;
         Note = note;
-        ReplaceLines(lines, lineIdFactory);
+        ReplaceLines(drafts, lineIdFactory, voucher);
+        // What was signed on paper no longer says the same.
+        return TakeBackPaper();
+    }
+
+    /// <summary>"Hủy phiên &amp; sửa phiếu" also ends a paper signing: the receipt waits for the iPad again.</summary>
+    public PatientPayment TakeBackPaper()
+    {
+        PaperSignedAt = null;
+        PaperSignedById = null;
         return this;
     }
 
     /// <summary>
-    /// "Xác nhận thanh toán": the money is in. From here the receipt counts
-    /// everywhere and is dated by when it was collected — revenue is reported
-    /// by this day, while <c>CreationTime</c> keeps when it was written.
+    /// ✓ "Xác nhận thanh toán" on an exported receipt: the money is in. From
+    /// here the receipt counts everywhere. It keeps the "Ngày thanh toán" picked
+    /// when it was written (R-934) — revenue is reported by that day, not by
+    /// when ✓ was pressed. The one who confirms is credited as the cashier.
     /// </summary>
-    public PatientPayment Confirm(DateTimeOffset collectedAt, Guid cashierId)
+    public PatientPayment Confirm(Guid cashierId)
     {
-        EnsurePending();
+        EnsureNotCancelled();
+        if (IsPending)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentNotIssued,
+                "A receipt is confirmed as paid only once it has been exported.");
+        }
+
+        if (Status != PatientPaymentStatus.Issued)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Billing.PaymentAlreadyCompleted,
+                "A paid receipt is final.");
+        }
 
         Status = PatientPaymentStatus.Completed;
-        PaidAt = collectedAt;
         StaffId = cashierId;
         return this;
     }

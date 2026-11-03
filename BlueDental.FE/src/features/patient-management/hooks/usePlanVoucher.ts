@@ -39,7 +39,12 @@ export interface PlanVoucherState {
   gross: number;
   /** "Voucher": the service and the plan vouchers together. */
   discount: number;
-  /** "Thành tiền": Tổng cộng − Giảm giá − Voucher. */
+  /**
+   * "Ưu đãi khi thanh toán" (P2910): what paid receipts let off the ticked
+   * rows' slip lines — TN giảm and payment-time vouchers. Shown only when > 0.
+   */
+  paymentRelief: number;
+  /** "Thành tiền": Tổng cộng − Giảm giá − Voucher − Ưu đãi khi thanh toán. */
   net: number;
   vouchers: VoucherDto[];
   selected: VoucherDto[];
@@ -108,6 +113,7 @@ export function usePlanVoucher(
   const subtotal = ticked.reduce((sum, row) => sum + row.grossAmount, 0);
   const serviceDiscount = ticked.reduce((sum, row) => sum + row.discountAmount, 0);
   const gross = ticked.reduce((sum, row) => sum + row.effectiveAmount, 0);
+  const paymentRelief = ticked.reduce((sum, row) => sum + (row.paymentReliefAmount ?? 0), 0);
 
   // The server judges the minimum order on the whole ticked amount, which is
   // never less than any voucher's own base — so its list is a superset, and
@@ -168,7 +174,8 @@ export function usePlanVoucher(
     serviceDiscount,
     gross,
     discount,
-    net: gross - discount,
+    paymentRelief,
+    net: Math.max(0, gross - discount - paymentRelief),
     vouchers: vouchers.filter((voucher) => matchesQuery(voucher, query)),
     selected: applied,
     loading: available.isPending,

@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { t } from "@/lib/i18n";
-import { LABO_STATUS_CONFIG, type LaboStatus } from "@/features/labo/api/laboApi";
+import type { LaboPill } from "@/features/labo/api/laboStatus";
 import type { LaboOrderFacts } from "./laboOrderFacts";
 
 interface BlockProps {
@@ -28,8 +28,7 @@ function Block({ title, rows, children }: BlockProps) {
 }
 
 /** The status pill under the fourth block, in the same tone as the table's. */
-function StatusPill({ status }: { status: LaboStatus }) {
-  const tone = LABO_STATUS_CONFIG[status];
+function StatusPill({ tone }: { tone: LaboPill }) {
   return (
     <span
       className="pd-labo-detail-pill"
@@ -42,16 +41,15 @@ function StatusPill({ status }: { status: LaboStatus }) {
 
 interface Props {
   facts: LaboOrderFacts;
-  status: LaboStatus;
-  /** Mẫu Labo's Trạng thái select; without it the status is a pill. */
-  statusControl?: ReactNode;
+  /** The order's status pill — the stored status, or Hết hạn bảo hành. */
+  pill: LaboPill;
 }
 
 /**
  * The read-only body of "Thông tin chung": two columns of two blocks each,
  * measured on the reference (docs/clone/pages/patient-detail.md, Tab 6).
  */
-export function LaboDetailFacts({ facts, status, statusControl }: Props) {
+export function LaboDetailFacts({ facts, pill }: Props) {
   return (
     <div className="pd-labo-detail">
       <Block
@@ -88,11 +86,12 @@ export function LaboDetailFacts({ facts, status, statusControl }: Props) {
           [t("Patient:Labo:ProsthesisType"), facts.laboService],
           [t("Patient:DentalChart:Tooth"), facts.teeth],
           [t("Patient:Viewer:DetailColor"), facts.shade],
+          [t("Labo:Spec:Note"), facts.labNote],
           [t("Patient:Payment:Quantity"), facts.quantity],
         ]}
       >
         <h3>{t("Patient:Misc:StatusLabel")}</h3>
-        {statusControl ?? <StatusPill status={status} />}
+        <StatusPill tone={pill} />
       </Block>
     </div>
   );

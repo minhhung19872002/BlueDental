@@ -1,74 +1,41 @@
-import { useEffect, useState } from "react";
-import { Modal } from "antd";
-import { useBranchInfo } from "@/hooks/useBranchInfo";
+import { useState } from "react";
+import { Button, Modal } from "antd";
+import { CalendarOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import type { LaboOrderDto } from "@/features/labo/api/laboApi";
+import { isWarrantyCardPhoto, type LaboOrderDto } from "@/features/labo/api/laboApi";
+import { laboStatusPill } from "@/features/labo/api/laboStatus";
 import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { LaboDetailFacts } from "./LaboDetailFacts";
-import { LaboDetailFooter } from "./LaboDetailFooter";
 import { LaboPictureWell } from "./LaboPictureWell";
-import { LaboPrintSheet } from "./LaboPrintSheet";
-import { LaboStatusSelect } from "./LaboStatusSelect";
-import type { LaboDetailMode } from "./laboDetailMode";
+import { LaboPrintButton } from "./LaboPrintButton";
 import { laboOrderFacts, type LaboDetailPatient } from "./laboOrderFacts";
-import { useLaboDetailEditor } from "./useLaboDetailEditor";
 import "../labo-order-dialog.css";
 
 interface Props {
   /** The row behind the eye; null keeps the dialog closed. */
   order: LaboOrderDto | null;
   branchId: string;
-  patient: LaboDetailPatient;
-  /** Which screen opened the dialog and which of its controls the user holds. */
-  mode: LaboDetailMode;
+  /** `appointment:create` — the footer's "Tạo Lịch Hẹn Mới". */
+  canCreateAppointment: boolean;
   onClose: () => void;
 }
 
-/** The browser's file name for the printed sheet, as the reference names it. */
-const sheetTitle = (orderCode: string) => `phieu-labo-${orderCode}`;
+const patientOf = (order: LaboOrderDto): LaboDetailPatient => ({
+  code: order.patientCode ?? "",
+  name: order.patientName ?? "",
+  dateOfBirth: order.patientDateOfBirth ?? null,
+});
 
 /**
- * "Xem chi tiết" on a labo row: the "Thông tin chung" modal with "In Phiếu
- * Labo" in its footer. On Mẫu Labo it also carries the Trạng thái select and
- * the picture strip — enabled, with the Tải ảnh well and "Lưu", only with
- * `laboTemplate:update` — and "Tạo Lịch Hẹn Mới" with `appointment:create`
- * (staging, docs/clone/pages/labo.md §2.6); on the patient's tab it ends in
- * "Đóng".
+ * "Xem chi tiết" on a Mẫu Labo row: the "Thông tin chung" facts, the status
+ * pill and the pictures, read-only. Since P2910_03 the status moves only
+ * through the Labo workflow on the patient record, so the old Trạng thái
+ * select, Tải ảnh well and Lưu are gone; In Phiếu Labo and "Tạo Lịch Hẹn Mới"
+ * stay (docs/clone/pages/labo.md §2.6).
  */
-export function LaboDetailDialog({ order, branchId, patient, mode, onClose }: Props) {
-  const clinic = useBranchInfo(branchId);
-  const orders = mode.variant === "orders" ? mode : null;
-  // The patient's tab shows neither the status select nor the pictures.
-  const editor = useLaboDetailEditor(orders ? order : null);
+export function LaboDetailDialog({ order, branchId, canCreateAppointment, onClose }: Props) {
   const [appointmentOpen, setAppointmentOpen] = useState(false);
-
-  // Dropped when the browser is finished (see TreatmentHistoryPrintDialog):
-  // window.print() does not reliably block until the preview closes.
-  useEffect(() => {
-    const title = document.title;
-    const done = () => {
-      document.body.classList.remove("pd-printing");
-      document.title = title;
-    };
-    window.addEventListener("afterprint", done);
-    return () => {
-      window.removeEventListener("afterprint", done);
-      done();
-    };
-  }, []);
-
-  const handlePrint = () => {
-    if (!order) return;
-    document.title = sheetTitle(order.orderCode);
-    document.body.classList.add("pd-printing");
-    window.print();
-  };
-
-  const handleSave = async () => {
-    if (await editor.save()) onClose();
-  };
-
-  const facts = order ? laboOrderFacts(order, patient) : null;
+  const patient = order ? patientOf(order) : null;
 
   return (
     <>
@@ -81,49 +48,36 @@ export function LaboDetailDialog({ order, branchId, patient, mode, onClose }: Pr
         footer={null}
         destroyOnHidden
       >
-        {order && facts && (
-          <LaboDetailFacts
-            facts={facts}
-            status={order.status}
-            statusControl={
-              orders ? (
-                <LaboStatusSelect
-                  value={editor.status}
-                  onChange={editor.pickStatus}
-                  disabled={!orders.canUpdate}
-                />
-              ) : undefined
-            }
-          />
+        {order && patient && (
+          <>
+            <LaboDetailFacts facts={laboOrderFacts(order, patient)} pill={laboStatusPill(order)} />
+            <LaboPictureWell
+              tiles={order.images
+                .filter((image) => !isWarrantyCardPhoto(image))
+                .map((image) => ({ key: image.id, url: image.url, name: image.fileName }))}
+              busy={false}
+              readOnly
+            />
+            <div className="pd-labo-footer pd-labo-detail-footer">
+              <LaboPrintButton order={order} branchId={branchId} patient={patient} />
+              {canCreateAppointment && (
+                <Button
+                  color="primary"
+                  variant="outlined"
+                  icon={<CalendarOutlined />}
+                  onClick={() => setAppointmentOpen(true)}
+                >
+                  {t("Patient:Labo:NewAppointment")}
+                </Button>
+              )}
+              <Button type="primary" onClick={onClose}>
+                {t("Common:Close")}
+              </Button>
+            </div>
+          </>
         )}
-        {orders && (
-          <LaboPictureWell
-            tiles={editor.tiles}
-            busy={editor.saving}
-            readOnly={!orders.canUpdate}
-            onAdd={editor.addPictures}
-            onRemove={editor.removeTile}
-          />
-        )}
-        <LaboDetailFooter
-          mode={mode}
-          printDisabled={!clinic.data}
-          saving={editor.saving}
-          onPrint={handlePrint}
-          onNewAppointment={() => setAppointmentOpen(true)}
-          onSave={() => void handleSave()}
-          onClose={onClose}
-        />
       </Modal>
-      {order && facts && clinic.data && (
-        <LaboPrintSheet
-          clinic={clinic.data}
-          patient={patient}
-          orderCode={order.orderCode}
-          facts={facts}
-        />
-      )}
-      {orders?.canCreateAppointment && order && (
+      {canCreateAppointment && order && (
         <AppointmentEditorModal
           open={appointmentOpen}
           initialPatientId={order.patientId}

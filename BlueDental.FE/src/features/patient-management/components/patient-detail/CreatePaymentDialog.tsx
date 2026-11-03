@@ -1,15 +1,14 @@
 import { useMemo } from "react";
 import { Button, Modal } from "antd";
 import dayjs from "dayjs";
-import { CheckCircleOutlined, FileTextOutlined, InfoCircleOutlined, SaveOutlined } from "@ant-design/icons";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { FileTextOutlined, InfoCircleOutlined, SaveOutlined } from "@ant-design/icons";
 import {
   PAYMENT_ACCOUNT_KIND,
   usePaymentAccountOptions,
   type PaymentAccountKindCode,
 } from "@/hooks/usePaymentAccountOptions";
 import { t } from "@/lib/i18n";
-import { formatDate, formatMoneyUnit } from "@/utils/format";
+import { formatDate } from "@/utils/format";
 import {
   PAYMENT_METHOD,
   useTreatmentPlans,
@@ -20,7 +19,7 @@ import {
 import { owingSlipOptions } from "./create-payment/paymentDialogModel";
 import { PaymentDateField } from "./create-payment/PaymentDateField";
 import { PaymentInfoPanel } from "./create-payment/PaymentInfoPanel";
-import { Fact, PaymentSelectedTotals } from "./create-payment/PaymentSelectedTotals";
+import { Fact } from "./create-payment/PaymentSelectedTotals";
 import { PaymentServiceList } from "./create-payment/PaymentServiceList";
 import { PaymentSlipPicker } from "./create-payment/PaymentSlipPicker";
 import { PaymentSteps } from "./create-payment/PaymentSteps";
@@ -39,25 +38,13 @@ interface Props {
   /** Dư nợ — money the clinic already holds for the patient. */
   heldForPatient: number;
   /**
-   * A "Chưa thanh toán" receipt reopened from its row: "edit" saves the
-   * dialog's figures, "confirm" saves them and settles the receipt (BA
-   * 2026-10-08). Left out, the dialog writes a new receipt.
+   * A "Chưa thanh toán" receipt reopened from its row to correct its figures.
+   * Left out, the dialog writes a new receipt.
    */
-  revision?: PaymentRevision | null;
+  revision?: PatientPaymentDto | null;
   onClose: () => void;
   onSaved: () => void;
 }
-
-export interface PaymentRevision {
-  payment: PatientPaymentDto;
-  action: "edit" | "confirm";
-}
-
-const TITLE_KEYS = {
-  create: "Patient:Payment:CreateTitle",
-  edit: "Treatment:Payment:EditPayment",
-  confirm: "Treatment:Payment:ConfirmPayment",
-} as const;
 
 /**
  * Ngân hàng and Ví momo collect into one of the clinic's accounts, and the
@@ -70,8 +57,9 @@ const ACCOUNT_KIND_BY_METHOD: Partial<Record<PaymentMethodKind, PaymentAccountKi
 
 /**
  * "Tạo phiếu thanh toán": ① the slip, ② its services that still owe money,
- * ③ how much and how. Laid out from the reference's own dialog (1024px, two
- * columns); the slip picker and steps follow the owner's mock (2026-10-12).
+ * then how much and how; the step bar runs on to the receipt's journey
+ * (P2610). Laid out from the reference's own dialog (1024px, two columns);
+ * the slip picker and steps follow the owner's mock (2026-10-12).
  * Every line the money is split across is recorded on one receipt naming it,
  * so the row's Còn nợ moves rather than only the slip's rollup.
  */
@@ -86,14 +74,15 @@ export function CreatePaymentDialog({
   onClose,
   onSaved,
 }: Props) {
-  const intent = revision?.action ?? "create";
   const plansQuery = useTreatmentPlans(open ? patientId : "", branchId);
   const slips = useMemo(() => plansQuery.data?.items ?? [], [plansQuery.data]);
   const payment = usePaymentForm({
     open,
+    patientId,
+    branchId,
     initialSlipId: plan?.id ?? null,
     focusServiceId,
-    revision: revision?.payment ?? null,
+    revision,
     slips,
     fallbackSlip: plan,
     heldForPatient,
@@ -108,8 +97,7 @@ export function CreatePaymentDialog({
   const submit = useSavePayment(payment, {
     patientId,
     branchId,
-    intent,
-    revision: revision?.payment ?? null,
+    revision,
     needsAccount: accountKind !== null,
     onSaved,
     onClose,
@@ -124,24 +112,25 @@ export function CreatePaymentDialog({
       // 1024px, measured off the reference's own dialog.
       width="min(1024px, calc(100vw - 48px))"
       className="pd-newpay-dialog"
-      title={t(TITLE_KEYS[intent])}
+      title={t(revision ? "Treatment:Payment:EditPayment" : "Patient:Payment:CreateTitle")}
       onCancel={onClose}
       destroyOnHidden
       footer={
         <div className="pd-newpay-footer">
           <p>
             <InfoCircleOutlined />{" "}
-            {/* A new receipt is "Hoàn tất" at once, and a Hoàn tất one is final. */}
+            {/* A new receipt is "Chưa thanh toán" and moves no money until it is paid. */}
             {t(revision ? "Patient:Payment:EditWarning" : "Patient:Payment:FinalWarning")}
           </p>
           <Button
             type="primary"
-            icon={intent === "confirm" ? <CheckCircleOutlined /> : <SaveOutlined />}
+            icon={<SaveOutlined />}
             loading={submit.pending}
             disabled={submit.pending}
             onClick={submit.request}
           >
-            {intent === "confirm" ? t("Treatment:Payment:ConfirmPayment") : t("Common:Save")}
+            {/* Lưu corrects a reopened receipt; a new one is written and opened on its page. */}
+            {t(revision ? "Common:Save" : "Patient:Payment:CreateSubmit")}
           </Button>
         </div>
       }
@@ -175,15 +164,7 @@ export function CreatePaymentDialog({
             />
           </section>
 
-          <PaymentServiceList
-            slipCode={payment.slip?.code ?? null}
-            lines={payment.lines}
-            picked={payment.form.picked}
-            onToggle={payment.toggle}
-            onToggleAll={payment.toggleAll}
-          />
-
-          <PaymentSelectedTotals totals={payment.totals} />
+          <PaymentServiceList payment={payment} />
         </div>
 
         <PaymentInfoPanel
@@ -193,14 +174,6 @@ export function CreatePaymentDialog({
           accounts={accounts}
         />
       </div>
-      <ConfirmDialog
-        open={submit.confirming}
-        title={t("Treatment:Payment:ConfirmPayment")}
-        message={t("Patient:Payment:ConfirmCreate", formatMoneyUnit(payment.total))}
-        pending={submit.pending}
-        onConfirm={() => void submit.commit()}
-        onClose={submit.cancel}
-      />
     </Modal>
   );
 }

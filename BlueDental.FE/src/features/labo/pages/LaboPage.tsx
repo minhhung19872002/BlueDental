@@ -19,7 +19,7 @@ function LaboScreen({ tab }: { tab: LaboTab }) {
   switch (tab.screen) {
     case "orders":
       return (
-        <LaboOrdersScreen canExport={ability.canExport} canUpdate={ability.canUpdate} />
+        <LaboOrdersScreen canExport={ability.canExport} />
       );
     case "supplier":
       return (

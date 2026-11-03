@@ -207,6 +207,7 @@ export const voucherKeys = {
     [...voucherKeys.all, "list", status ?? "", filter ?? "", branchId ?? ""] as const,
   available: (orderAmount: number, branchId?: string) =>
     [...voucherKeys.all, "available", orderAmount, branchId ?? ""] as const,
+  detail: (id: string) => [...voucherKeys.all, "detail", id] as const,
 };
 
 /**
@@ -214,11 +215,21 @@ export const voucherKeys = {
  * published, active, inside their dates, not exhausted and above their minimum.
  * The server already sorts them best discount first.
  */
-export function useAvailableVouchers(orderAmount: number, branchId?: string) {
+export function useAvailableVouchers(orderAmount: number, branchId?: string, enabled = true) {
   return useQuery({
     queryKey: voucherKeys.available(orderAmount, branchId),
     queryFn: () => voucherApi.available({ orderAmount, clinicBranchId: branchId }),
     placeholderData: (previous) => previous,
+    enabled,
+  });
+}
+
+/** One voucher by id — e.g. the one a receipt already holds, which the available list may no longer offer. */
+export function useVoucherDetail(id: string | null) {
+  return useQuery({
+    queryKey: voucherKeys.detail(id ?? ""),
+    queryFn: () => voucherApi.get(id ?? ""),
+    enabled: Boolean(id),
   });
 }
 

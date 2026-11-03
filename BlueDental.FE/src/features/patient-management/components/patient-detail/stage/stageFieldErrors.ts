@@ -15,6 +15,10 @@ export interface StageFieldErrors {
   teeth?: string;
   /** Ngày điều trị — every công đoạn and follow-up form carries the field. */
   treatmentDate?: string;
+  /** "Thẻ bảo hành áp dụng" of a new warranty công đoạn (P3110 REQ-F3). */
+  warranty?: string;
+  /** "Dịch vụ bảo hành · Labo" under a Labo card (REQ-F4). */
+  laboOrder?: string;
 }
 
 interface Draft {
@@ -37,4 +41,6 @@ export function stageFieldErrors({ staffId, note, teethPicked }: Draft): StageFi
 }
 
 export const hasStageFieldError = (errors: StageFieldErrors): boolean =>
-  Boolean(errors.staff || errors.note || errors.teeth || errors.treatmentDate);
+  Boolean(
+    errors.staff || errors.note || errors.teeth || errors.treatmentDate || errors.warranty || errors.laboOrder,
+  );

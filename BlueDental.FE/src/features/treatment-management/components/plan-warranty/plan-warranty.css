@@ -1,0 +1,540 @@
+/* Tab "Bảo hành" of the slip page (P3110, REQ-B1…B7; mocks m366 / m360 / m371). */
+
+.pwt-tab {
+  --pwt-dental: var(--tp-green);
+  --pwt-dental-pale: var(--tp-green-pale);
+  --pwt-labo: #a21caf;
+  --pwt-labo-strong: #86198f;
+  --pwt-labo-pale: #fbe8fb;
+  --pwt-pending: #c2410c;
+  --pwt-pending-pale: var(--tp-orange-pale);
+  --pwt-ready-row: #fffaf2;
+  --pwt-ready-dot: #f59e0b;
+  --pwt-rail: var(--bd-blue-light);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.pwt-center {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
+}
+
+/* ---- Card frame: indigo uppercase title at the left, outline chips at the right ---- */
+
+.pwt-card {
+  background: var(--bd-card);
+  border: 1px solid var(--tp-line);
+  border-radius: var(--bd-radius);
+  box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
+  overflow: hidden;
+}
+
+.pwt-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--bd-divider);
+}
+
+.pwt-card-title {
+  margin: 0;
+  margin-right: auto;
+  color: var(--bd-primary);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pwt-card-head .pwt-filter-tag {
+  margin: 0;
+  border-color: var(--bd-blue-light);
+  background: var(--bd-blue-pale);
+  color: var(--bd-blue-dark);
+  font-weight: 600;
+}
+
+.pwt-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pwt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid var(--tp-line);
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-card);
+  color: var(--tp-ink);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pwt-chip:hover {
+  border-color: var(--bd-blue-light);
+}
+
+.pwt-chip:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+}
+
+.pwt-chip--dental {
+  color: var(--pwt-dental);
+}
+
+.pwt-chip--labo {
+  color: var(--pwt-labo);
+}
+
+.pwt-chip--on {
+  border-color: var(--bd-primary);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+
+.pwt-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pwt-ready-dot);
+}
+
+.pwt-sort {
+  min-width: 230px;
+}
+
+/* ---- Tables sit flush inside the card ---- */
+
+.pwt-card .pwt-table.bd-cat-card {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.pwt-table .ant-table-tbody > tr > td {
+  vertical-align: middle;
+}
+
+.pwt-table .pwt-row--ready > td {
+  background: var(--pwt-ready-row);
+}
+
+.pwt-table .pwt-row--focus > td {
+  background: var(--bd-hover-tint);
+}
+
+.pwt-table .pwt-row--focus > td:first-child {
+  box-shadow: inset 3px 0 0 var(--bd-primary);
+}
+
+.pwt-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pwt-table .pwt-service {
+  color: var(--tp-ink);
+  font-weight: 600;
+}
+
+.pwt-sub {
+  color: var(--tp-label);
+  font-size: 13px;
+}
+
+.pwt-sub--pending {
+  color: var(--pwt-pending);
+}
+
+.pwt-none {
+  color: var(--bd-faint);
+}
+
+/* ---- Column heads of the two warranty kinds ---- */
+
+.pwt-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.pwt-head--dental {
+  color: var(--pwt-dental);
+}
+
+.pwt-head--labo {
+  color: var(--pwt-labo);
+}
+
+/* ---- Pills ---- */
+
+.pwt-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pwt-pill--pending {
+  background: var(--pwt-pending-pale);
+  color: var(--pwt-pending);
+}
+
+.pwt-pill--active {
+  background: var(--pwt-dental-pale);
+  color: var(--pwt-dental);
+}
+
+.pwt-pill--labo {
+  background: var(--pwt-labo-pale);
+  color: var(--pwt-labo);
+}
+
+.pwt-pill--muted {
+  background: var(--tp-pill);
+  color: var(--bd-sub);
+}
+
+.pwt-pill--expired {
+  background: var(--tp-red-pale);
+  color: var(--tp-red);
+}
+
+/* ---- Thao tác ---- */
+
+.pwt-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pwt-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.pwt-action:hover {
+  filter: brightness(0.94);
+}
+
+.pwt-action:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+}
+
+.pwt-action--dental {
+  background: var(--pwt-dental);
+}
+
+.pwt-action--labo {
+  background: var(--pwt-labo);
+}
+
+.pwt-action--labo:hover {
+  background: var(--pwt-labo-strong);
+  filter: none;
+}
+
+.pwt-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bd-primary);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* Thao tác of an activated card: Xem chi tiết over Lịch sử ↓, at the right (R-1120). */
+.pwt-actions--end {
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.pwt-link:hover {
+  text-decoration: underline;
+}
+
+.pwt-link:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+}
+
+/* ---- Phiếu bảo hành đã kích hoạt ---- */
+
+.pwt-card .pwt-table .pwt-code {
+  color: var(--bd-primary);
+  font-weight: 700;
+}
+
+.pwt-life {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 120px;
+}
+
+.pwt-life-bar {
+  position: relative;
+  display: block;
+  height: 4px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--tp-line);
+  overflow: hidden;
+}
+
+/* Filled from the left with the part of the period already gone (m360). */
+.pwt-life-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--pwt-elapsed, 0%);
+  border-radius: inherit;
+  background: var(--pwt-dental);
+}
+
+/* ---- Lịch sử bảo hành ---- */
+
+.pwt-history {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+}
+
+.pwt-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  padding: 20px 20px 22px;
+  list-style: none;
+}
+
+.pwt-day {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+}
+
+.pwt-day-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pwt-day-date strong {
+  color: var(--tp-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pwt-today {
+  color: var(--tp-label);
+  font-size: 13px;
+}
+
+.pwt-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0 0 0 18px;
+  border-left: 2px solid var(--pwt-rail);
+  list-style: none;
+}
+
+.pwt-event {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+}
+
+.pwt-event-time {
+  color: var(--tp-label);
+  font-size: 13.5px;
+}
+
+.pwt-event-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pwt-event-title {
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.pwt-event-title strong {
+  font-weight: 700;
+}
+
+.pwt-event-body .pwt-sub {
+  margin: 0;
+}
+
+.pwt-source {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+
+.pwt-source--labo {
+  background: var(--pwt-labo-pale);
+  color: var(--pwt-labo);
+}
+
+.pwt-source--dental {
+  background: var(--pwt-dental-pale);
+  color: var(--pwt-dental);
+}
+
+.pwt-source--treatment {
+  background: var(--tp-pill);
+  color: var(--bd-sub);
+}
+
+.pwt-empty-note {
+  margin: 0;
+  padding: 28px 20px;
+  color: var(--tp-label);
+}
+
+/* ---- Yêu cầu bảo hành (right of the timeline) ---- */
+
+.pwt-requests {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 22px;
+  border-left: 1px solid var(--bd-divider);
+}
+
+.pwt-requests-title {
+  margin: 0;
+  color: var(--tp-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.pwt-request-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pwt-request-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+}
+
+.pwt-request-stat strong {
+  color: var(--tp-ink);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.pwt-request-stat span {
+  color: var(--tp-label);
+  font-size: 13.5px;
+}
+
+.pwt-request-note {
+  margin: 0;
+  padding: 18px 20px;
+  border: 1px dashed var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+  color: var(--tp-label);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 1280px) {
+  .pwt-history {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .pwt-history {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pwt-requests {
+    border-top: 1px solid var(--bd-divider);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .pwt-card-head {
+    padding: 12px 14px;
+  }
+
+  .pwt-sort {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pwt-timeline {
+    padding: 16px 14px;
+  }
+
+  .pwt-day {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .pwt-event {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+}

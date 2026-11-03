@@ -1,107 +1,110 @@
 /*
- * "Chọn Dịch Vụ" — the dialog behind Tạo dịch vụ on a diagnosis slip.
- * Sits on the .tp-dialog chrome (treatment-plan.css); everything primary goes
- * through --tp-accent so the dialog wears this app's colour, not staging's.
+ * "Chọn dịch vụ" — the dialog behind Tạo dịch vụ on a diagnosis slip, laid
+ * out as P0111_02's mockup (R-1114): a strip of the slip's fields, then three
+ * columns — groups, the list, what is ticked. Sits on the .tp-dialog chrome
+ * (treatment-plan.css); everything primary goes through --tp-accent.
  */
 
-.am-dialog .ant-modal-content {
-  box-shadow: rgba(0, 0, 0, 0.2) 0 20px 60px;
+/* ── Frame: a fixed-height dialog whose columns scroll on their own ── */
+.am-dialog .ant-modal-container {
+  display: flex;
+  height: min(900px, calc(100dvh - 32px));
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--bd-shadow-modal);
+}
+.am-dialog .ant-modal-header {
+  flex-shrink: 0;
+  margin-bottom: 0;
+  padding: 14px 64px 14px 24px;
+}
+.am-dialog .ant-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+.am-dialog .ant-modal-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 0;
 }
 .am-title {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 12px;
 }
 .am-chip {
   display: inline-flex;
-  height: 32px;
+  height: 26px;
   align-items: center;
-  border-radius: 8px;
-  padding: 0 8px;
-  background: color-mix(in srgb, var(--tp-accent) 12%, #fff);
-  color: var(--tp-accent);
-  font-size: 12px;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+  font-size: 13px;
   font-weight: 600;
   line-height: 1;
+}
+.am-patient {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tp-label);
+  font-size: 13px;
+  font-weight: 400;
 }
 
 .am-body {
   display: flex;
+  min-height: 0;
+  flex: 1;
   flex-direction: column;
-  gap: 16px;
 }
 .am-body .ant-form-item {
   margin-bottom: 0;
 }
 
-/* ── Header grid: 3 × 2 ── */
-.am-grid {
+/* ── Strip: Vị trí răng · Chẩn đoán · two consultants ── */
+.am-strip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-.am-grid .floating-field {
-  --ff-prefix-offset: 42px;
-}
-.am-grid .ant-select-prefix {
-  display: flex;
-  margin-inline-start: 7px;
-  margin-inline-end: 5px;
-  color: var(--tp-label);
-}
-.am-consultant {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-.am-consultant > .floating-field {
-  flex: 1;
-  min-width: 0;
-}
-.am-round.ant-btn.ant-btn-circle {
-  display: inline-flex;
-  width: 36px;
-  min-width: 36px;
-  height: 36px;
   flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border-color: var(--tp-line);
-  color: var(--tp-ink);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  border-bottom: 1px solid var(--tp-line);
+  padding: 12px 24px;
+  background: var(--bd-bg-soft);
 }
-.am-round.ant-btn.ant-btn-dangerous {
-  border-color: var(--tp-red);
-  background: #fff;
+.am-strip-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.ant-modal.tp-dialog .am-strip .ant-select {
+  height: 36px;
+}
+.am-strip-label {
+  color: var(--tp-label);
+  font-size: 12px;
+  font-weight: 500;
+}
+.am-required {
   color: var(--tp-red);
 }
-
-/* A read-only field drawn like a floated input: the label sits on the border. */
-.am-static {
-  position: relative;
+.am-strip-box {
   display: flex;
-  height: 40px;
+  height: 36px;
   align-items: center;
   gap: 8px;
   border: 1px solid var(--tp-line);
   border-radius: 8px;
-  padding: 0 12px 0 16px;
-  background: #fff;
+  padding: 0 6px 0 12px;
+  background: var(--bd-card);
 }
-.am-static-label {
-  position: absolute;
-  top: -10px;
-  left: 12px;
-  height: 20px;
-  padding: 0 4px;
-  background: #fff;
-  color: var(--tp-label);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 19.5px;
-}
-.am-static-value {
+.am-strip-value {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -111,400 +114,220 @@
   font-size: 14px;
   font-weight: 500;
 }
-.am-static-value--accent {
-  color: var(--tp-accent);
+.am-strip-value--accent {
+  color: var(--bd-primary-strong);
 }
-
-/* ── Group filter + search ── */
-.am-services {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-/*
- * "Lựa chọn dịch vụ" — the reference's shared chip select (staging bundle,
- * 2026-09-24): a 14px/600 label with a 260px search beside it; below, the
- * groups as pills in a strip that scrolls sideways (scrollbar hidden) between
- * two 32px round arrows that grey to 45% once their side is spent. Pills are
- * 13px/500, 6×16 padding, #DCE3EE on #F8FAFD; the picked one is filled.
- */
-.am-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.am-picker-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.am-picker-head > p {
-  flex-shrink: 0;
-  margin: 0;
-  color: var(--tp-ink);
-  font-size: 14px;
-  font-weight: 600;
-}
-.am-picker-search.ant-input-affix-wrapper {
-  width: 260px;
-  height: 40px;
-  border-radius: 10px;
-}
-.am-picker-search .ant-input-prefix {
-  color: var(--tp-label);
-}
-.am-picker-strip {
-  position: relative;
-}
-.am-picker-loading {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  background: rgb(255 255 255 / 70%);
-}
-.am-picker-empty {
-  display: flex;
-  width: fit-content;
-  min-height: 36px;
-  align-items: center;
-  margin-inline: auto;
-  border: 1px dashed #dce3ee;
-  border-radius: 999px;
-  padding: 0 16px;
-  color: var(--tp-label);
-  font-size: 13px;
-  font-weight: 500;
-}
-.am-picker-carousel {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.am-picker-arrow {
-  display: inline-flex;
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #dce3ee;
-  border-radius: 999px;
-  padding: 0;
-  background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-  color: #5a6b82;
-  cursor: pointer;
-}
-.am-picker-arrow:hover:not(:disabled) {
-  border-color: #b8d4f6;
-  color: var(--tp-accent);
-}
-.am-picker-arrow:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.am-picker-chips {
-  display: flex;
-  min-width: 0;
-  min-height: 40px;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scroll-behavior: smooth;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-.am-picker-chips::-webkit-scrollbar {
-  display: none;
-}
-.am-picker-row {
-  display: flex;
-  min-width: max-content;
-  gap: 8px;
-}
-.am-picker-row > button {
-  max-width: 280px;
-  overflow: hidden;
-  scroll-snap-align: start;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border: 1px solid #dce3ee;
-  border-radius: 999px;
-  padding: 6px 16px;
-  background: #f8fafd;
-  color: var(--tp-ink);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.am-picker-row > button:hover:not(.active) {
-  border-color: #b8d4f6;
-  background: #f3f8ff;
-  color: var(--tp-accent);
-}
-.am-picker-row > button.active {
-  border-color: var(--tp-accent);
-  background: var(--tp-accent);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
-  color: #fff;
-}
-.am-picker-more {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid #dce3ee;
-  border-radius: 999px;
-  padding: 6px 16px;
-  background: #f8fafd;
-}
-
-/* ── Service table ── */
-.am-table-card {
-  overflow: hidden;
-  border: 1px solid var(--tp-line);
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-/* Owner (R-687): the list grows with the screen instead of a fixed 400px box —
-   what is left of the viewport once the dialog's title, header fields, group
-   strip and summary footer (~534px measured) and its margins (~64px) are
-   drawn, so the body itself does not scroll too. Never under 240px. */
-.am-table-scroll {
-  max-height: max(240px, calc(100dvh - 600px));
-  overflow: auto;
-}
-.am-more {
-  display: flex;
-  justify-content: center;
-  padding: 12px 0;
-}
-.am-sentinel {
-  height: 4px;
-}
-/* An unticked row's read-outs, grey as the reference prints them. */
-.am-muted {
-  color: var(--tp-label);
-  font-size: 13px;
-}
-/* R-687: the columns are shares of the table and the service column takes
-   what is left, so a wider dialog widens every column, not just one. It only
-   scrolls sideways once the dialog is under 1131px. */
-.am-table {
-  width: 100%;
-  min-width: 1131px;
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;
-}
-.am-col-check {
-  width: 52px;
-}
-.am-col-price {
-  width: 11%;
-}
-.am-col-quantity {
-  width: 8%;
-}
-.am-col-discount {
-  width: 20%;
-}
-.am-col-amount {
-  width: 12%;
-}
-.am-col-note {
-  width: 17%;
-}
-.am-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  height: 40px;
-  border-bottom: 1px solid var(--tp-line);
-  padding: 0 12px;
-  background: var(--bd-table-head);
-  color: var(--bd-table-head-ink);
-  font-size: 14px;
-  font-weight: 500;
-  text-align: left;
-  white-space: nowrap;
-}
-.am-table td {
-  border-bottom: 1px solid var(--tp-line);
-  padding: 8px 12px;
-  color: var(--tp-ink);
-  font-size: 14px;
-  vertical-align: middle;
-}
-.am-table tbody tr:last-child td {
-  border-bottom: 0;
-}
-/* Ruled columns, like every other table in the app (R-997). */
-.am-table th:not(:last-child),
-.am-table td:not(:last-child) {
-  border-right: 1px solid var(--tp-line);
-}
-.am-table th:not(:last-child) {
-  border-right-color: var(--bd-table-head-line);
-}
-.am-cell-check {
-  text-align: center;
-}
-.am-table td.am-cell-check {
-  padding: 8px 0;
-}
-.am-cell-name {
-  font-weight: 500;
-}
-.am-cell-amount {
-  font-weight: 600;
-}
-.am-row--on td {
-  background: color-mix(in srgb, var(--tp-accent) 4%, #fff);
-}
-.am-table td.am-empty {
-  height: 128px;
-  padding: 24px;
-  color: var(--tp-label);
-  text-align: center;
-}
-.am-table .ant-input-number {
-  width: 100%;
-}
-.am-discount {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.am-discount .tp-toggle {
-  flex-shrink: 0;
-  padding: 3px;
-}
-.am-discount .tp-toggle > button {
-  height: 26px;
-  padding: 0 10px;
-  font-size: 13px;
-}
-.am-discount .ant-input {
-  flex: 1;
-  min-width: 0;
-}
-
-/* ── Footer ── */
-.am-foot {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-.am-summary {
-  width: 715px;
-  max-width: 100%;
-  border: 1px solid var(--tp-line);
-  border-radius: 12px;
-  padding: 12px 16px;
-  background: var(--tp-ground);
-  text-align: left;
-}
-.am-summary-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--tp-line);
-  padding-bottom: 8px;
-  color: var(--tp-ink);
-  font-size: 15px;
-  font-weight: 600;
-}
-.am-summary-count {
+.am-tooth-btn {
   display: inline-flex;
   width: 28px;
   height: 28px;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border: 0;
+  border-radius: 6px;
+  padding: 0;
   background: var(--tp-accent);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
+  cursor: pointer;
 }
-.am-summary-code {
-  color: var(--tp-accent);
-  font-weight: 700;
+.am-tooth-btn:hover {
+  background: var(--bd-primary-strong);
 }
-.am-summary-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 2px 0;
-  color: var(--tp-label);
-  font-size: 13px;
-  line-height: 20px;
-}
-.am-summary-row--total {
-  margin-top: 6px;
-  border-top: 1px solid var(--tp-line);
-  padding-top: 8px;
-  color: var(--tp-ink);
-  font-size: 15px;
-  font-weight: 700;
-}
-.am-summary-total {
-  color: var(--tp-accent);
-}
-/* flex: none — the ≤640px .tp-btn { flex: 1 } rule would otherwise squash
-   the button's height once .am-foot stacks vertically. */
-.am-save.tp-btn {
-  flex: none;
-  width: 110px;
-  height: 40px;
-  justify-content: center;
-}
-.am-spin {
-  animation: am-spin 1s linear infinite;
-}
-@keyframes am-spin {
-  to {
-    transform: rotate(360deg);
-  }
+.am-tooth-btn img {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
 }
 
-/* ── Combo (review P0510) ─────────────────────────────────────────────── */
+/* ── Three columns ── */
+.am-layout {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+/* Left: Dịch vụ lẻ | Combo, then the groups. */
+.am-nav {
+  display: flex;
+  width: 220px;
+  flex-shrink: 0;
+  flex-direction: column;
+  border-right: 1px solid var(--tp-line);
+  padding: 14px 12px;
+}
 .am-kind-tabs {
-  display: inline-flex;
+  display: flex;
   flex-shrink: 0;
   gap: 2px;
-  border-radius: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
   padding: 3px;
-  background: var(--tp-ground);
-  border: 1px solid var(--tp-line);
+  background: var(--tp-pill);
 }
 .am-kind-tabs button {
-  height: 32px;
+  min-height: 32px;
+  flex: 1;
+  min-width: 0;
   border: 0;
-  border-radius: 8px;
-  padding: 0 14px;
+  border-radius: 6px;
+  padding: 4px 6px;
   background: transparent;
   color: var(--tp-label);
+  font: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1.25;
   cursor: pointer;
 }
 .am-kind-tabs button.active {
-  background: #fff;
-  color: var(--tp-accent);
+  background: var(--bd-card);
   box-shadow: var(--bd-shadow-card);
+  color: var(--bd-primary-strong);
+  font-weight: 600;
 }
-.am-combo-notice {
+.am-nav-title {
+  margin: 0;
+  padding: 6px 10px;
+  color: var(--tp-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.am-nav-list {
+  position: relative;
   display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+.am-nav-spin {
+  align-self: center;
+  padding: 8px 0;
+}
+.am-nav-item {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--tp-ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.am-nav-item:hover:not(.active) {
+  background: var(--bd-hover-tint);
+}
+.am-nav-item.active {
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+  font-weight: 600;
+}
+.am-nav-name {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+.am-nav-count {
+  flex-shrink: 0;
+  color: var(--tp-label);
+  font-size: 12px;
+  font-weight: 400;
+}
+.am-nav-more {
+  display: flex;
+  justify-content: center;
+  border: 0;
+  padding: 8px 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Middle: the toolbar over the list. */
+.am-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.am-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+  padding: 12px 16px;
+}
+.ant-modal.tp-dialog .am-search.ant-input-affix-wrapper {
+  height: 38px;
+  min-width: 220px;
+  flex: 1 1 260px;
+  border-radius: 8px;
+}
+.am-search .ant-input-prefix {
+  color: var(--tp-label);
+}
+.am-kbd {
+  border: 1px solid var(--tp-line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--tp-label);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.am-tool-btn {
+  display: inline-flex;
+  height: 38px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--tp-line);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--bd-card);
+  color: var(--tp-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.am-tool-btn:hover:not(:disabled):not(.active) {
+  border-color: var(--bd-blue-light);
+  color: var(--tp-accent);
+}
+.am-tool-btn.active {
+  border-color: var(--tp-accent);
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
+}
+.am-tool-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.am-count {
+  flex-shrink: 0;
+  color: var(--tp-label);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.am-combo-notice {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 12px;
   border: 1px solid var(--bd-orange-line);
   border-radius: 10px;
   padding: 8px 8px 8px 14px;
@@ -528,7 +351,7 @@
   border-radius: 8px;
   padding: 0 14px;
   background: var(--bd-orange);
-  color: #fff;
+  color: var(--bd-card);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -536,134 +359,342 @@
 .am-combo-notice-btn:hover {
   background: var(--bd-orange-hover);
 }
-.am-combo-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+
+/* ── The list ── */
+.am-table-scroll {
+  min-height: 0;
+  flex: 1;
+  margin: 0 16px 16px;
+  overflow: auto;
+  border: 1px solid var(--tp-line);
+  border-radius: 10px;
 }
-.am-combo-empty {
-  border: 1px dashed var(--tp-line);
-  border-radius: 12px;
-  padding: 32px 16px;
+.am-more {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+}
+.am-sentinel {
+  height: 4px;
+}
+/* An unticked row's read-outs, grey as the reference prints them. */
+.am-muted {
+  color: var(--tp-label);
+  font-size: 13px;
+}
+.am-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+.am-table--single {
+  min-width: 940px;
+}
+.am-table--combo {
+  min-width: 780px;
+}
+.am-col-check {
+  width: 44px;
+}
+.am-table--single .am-col-group {
+  width: 140px;
+}
+.am-table--single .am-col-price {
+  width: 130px;
+}
+.am-table--single .am-col-quantity {
+  width: 112px;
+}
+.am-table--single .am-col-discount {
+  width: 180px;
+}
+.am-table--single .am-col-amount {
+  width: 120px;
+}
+/* The combo name keeps two lines at most; Gồm takes what is left. */
+.am-table--combo .am-col-service {
+  width: 220px;
+}
+.am-table--combo .am-col-retail,
+.am-table--combo .am-col-savings,
+.am-table--combo .am-col-amount {
+  width: 120px;
+}
+.am-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 38px;
+  border-bottom: 1px solid var(--tp-line);
+  padding: 0 12px;
+  background: var(--bd-table-head);
+  color: var(--bd-table-head-ink);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.am-table th.am-th--end {
+  text-align: right;
+}
+.am-table th.am-th--center {
+  text-align: center;
+}
+.am-table td {
+  height: 40px;
+  border-bottom: 1px solid var(--bd-line-soft);
+  padding: 6px 12px;
+  color: var(--tp-ink);
+  font-size: 14px;
+  vertical-align: middle;
+}
+.am-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+/* Ruled columns, like every other table in the app (R-997). */
+.am-table th:not(:last-child),
+.am-table td:not(:last-child) {
+  border-right: 1px solid var(--bd-line-soft);
+}
+.am-table th:not(:last-child) {
+  border-right-color: var(--bd-table-head-line);
+}
+.am-row:hover td {
+  background: var(--bd-row-alt);
+}
+.am-row--on td,
+.am-row--on:hover td {
+  background: var(--bd-surface-2);
+}
+/* Centred here, not on `.am-cell-check` alone: `.am-table th` would outrank it
+   and leave the select-all tick off the row ticks' axis. */
+.am-table th.am-cell-check,
+.am-table td.am-cell-check {
+  padding: 6px 0;
+  text-align: center;
+}
+.am-cell-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+.am-row--on .am-cell-name {
+  font-weight: 600;
+}
+.am-cell-group {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.am-table td.am-cell-group {
+  color: var(--tp-label);
+  font-size: 12px;
+}
+.am-cell-money,
+.am-cell-amount {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.am-cell-money .ant-input {
+  text-align: right;
+}
+.am-cell-center {
+  text-align: center;
+}
+.am-cell-amount {
+  font-weight: 600;
+}
+.am-cell-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tp-label);
+  font-size: 12px;
+  font-weight: 400;
+}
+.am-parts-count {
+  display: block;
+  color: var(--tp-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.am-cell-save {
+  color: var(--bd-orange);
+  font-weight: 600;
+}
+/* Under the saving, not beside it: side by side "1.250.000 đ -15%" ran into
+   Giá combo. */
+.am-save-pct {
+  display: block;
+  width: fit-content;
+  margin: 2px 0 0 auto;
+  border-radius: 4px;
+  padding: 0 4px;
+  background: var(--bd-orange-pale);
+  font-size: 11px;
+}
+.am-table td.am-empty {
+  height: 128px;
+  padding: 24px;
   color: var(--tp-label);
   text-align: center;
 }
-.am-combo-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Beats the 40px dialog inputs of treatment-plan.css: the mockup draws
+   the editors in a row at the stepper's height. */
+.ant-modal.tp-dialog .am-table td .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input) {
+  height: 30px;
+  padding: 0 8px;
+  text-align: right;
+}
+.am-table .ant-input-number {
+  width: 100%;
+}
+.am-stepper {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
   border: 1px solid var(--tp-line);
-  border-radius: 12px;
-  padding: 12px;
-  background: #fff;
-}
-.am-combo-card--on {
-  border-color: var(--tp-accent);
-  box-shadow: 0 0 0 2px var(--tp-blue-ring);
-}
-.am-combo-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
-}
-.am-combo-card-head h3 {
-  margin: 0;
-  color: var(--tp-ink);
-  font-size: 14px;
-  font-weight: 700;
-}
-.am-combo-card-desc {
-  margin: 2px 0 0;
-  color: var(--tp-label);
-  font-size: 12px;
-}
-.am-combo-card-off {
-  flex-shrink: 0;
   border-radius: 6px;
-  padding: 1px 6px;
-  background: var(--bd-orange-pale);
-  color: var(--bd-orange);
-  font-size: 12px;
-  font-weight: 600;
+  background: var(--bd-card);
 }
-.am-combo-card-parts {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
+.am-stepper > button {
+  display: inline-flex;
+  width: 26px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
   padding: 0;
-  list-style: none;
+  background: transparent;
   color: var(--tp-ink);
-  font-size: 12px;
+  cursor: pointer;
 }
-.am-combo-card-parts li {
+.am-stepper > button:disabled {
+  color: var(--bd-faint);
+  cursor: not-allowed;
+}
+.ant-modal.tp-dialog .am-stepper .ant-input-number {
+  width: 40px;
+  height: 28px;
+  border: 0;
+  box-shadow: none;
+}
+.ant-modal.tp-dialog .am-stepper .ant-input-number-input {
+  height: 28px;
+  padding: 0 2px;
+  font-weight: 600;
+  text-align: center;
+}
+.am-discount {
   display: flex;
   align-items: center;
   gap: 6px;
 }
-.am-combo-card-parts svg {
+.am-discount .tp-toggle {
   flex-shrink: 0;
-  color: var(--tp-accent);
+  padding: 2px;
 }
-.am-combo-card-part {
-  flex: 1;
-  min-width: 0;
-}
-.am-combo-card-foot {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: auto;
+.am-discount .tp-toggle > button {
+  height: 26px;
+  padding: 0 8px;
   font-size: 12px;
 }
-.am-combo-card-price {
-  margin: 0;
-  color: var(--tp-accent);
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 26px;
+.am-discount .ant-input {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
 }
-.am-combo-card-save {
-  margin: 0;
-  color: var(--bd-orange);
+
+/* Right: what is ticked, then the totals and the buttons. */
+.am-summary {
+  display: flex;
+  width: clamp(320px, 26%, 380px);
+  flex-shrink: 0;
+  flex-direction: column;
+  border-left: 1px solid var(--tp-line);
+  background: var(--bd-bg-soft);
+}
+.am-summary-head {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 10px;
+}
+.am-summary-count {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  padding: 0 6px;
+  background: var(--tp-accent);
+  color: var(--bd-card);
+  font-size: 12px;
+  font-weight: 700;
+}
+.am-summary-title {
+  flex: 1;
+  color: var(--tp-ink);
+  font-size: 15px;
   font-weight: 600;
 }
-.am-combo-card-btn.tp-btn {
-  flex: none;
-  height: 36px;
+.am-unpick-all {
+  border: 0;
+  padding: 6px;
+  background: transparent;
+  color: var(--bd-red-dark);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
 }
-.am-combo-card-btn--on.tp-btn {
-  border-color: var(--tp-red);
-  color: var(--tp-red);
-  background: var(--tp-red-pale);
+.am-unpick-all:hover {
+  text-decoration: underline;
+}
+.am-summary-empty {
+  margin: 24px 18px;
+  color: var(--tp-label);
+  font-size: 13px;
+  text-align: center;
 }
 .am-summary-items {
   display: flex;
+  min-height: 0;
+  flex: 1;
   flex-direction: column;
-  gap: 6px;
-  margin: 0 0 8px;
-  padding: 0;
+  gap: 8px;
+  margin: 0;
+  overflow-y: auto;
+  padding: 0 18px 12px;
   list-style: none;
 }
-.am-summary-items li {
+.am-pick {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
   border: 1px solid var(--tp-line);
   border-radius: 8px;
-  padding: 6px 8px;
-  background: #fff;
-  color: var(--tp-ink);
-  font-size: 13px;
+  padding: 10px 12px;
+  background: var(--bd-card);
+}
+.am-pick-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 .am-summary-kind {
   flex-shrink: 0;
+  margin-top: 1px;
   border-radius: 4px;
-  padding: 0 6px;
-  background: var(--tp-blue-pale);
-  color: var(--tp-accent);
+  padding: 1px 6px;
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary-strong);
   font-size: 11px;
   font-weight: 700;
 }
@@ -671,18 +702,24 @@
   background: var(--tp-violet-pale);
   color: var(--tp-violet-ink);
 }
-.am-summary-name {
+.am-pick-name {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--tp-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 .am-summary-remove {
   display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 6px;
-  padding: 2px;
+  padding: 0;
   background: transparent;
   color: var(--tp-label);
   cursor: pointer;
@@ -691,29 +728,247 @@
   background: var(--tp-red-pale);
   color: var(--tp-red);
 }
+.am-pick-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tp-label);
+  font-size: 12px;
+}
+.am-pick-detail {
+  font-variant-numeric: tabular-nums;
+}
+.am-pick-note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--bd-link);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.am-pick-amount {
+  margin-left: auto;
+  color: var(--tp-ink);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ant-modal.tp-dialog .am-pick-note.ant-input {
+  height: 32px;
+  font-size: 13px;
+}
+.am-summary-foot {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+  border-top: 1px solid var(--tp-line);
+  padding: 14px 18px 18px;
+  background: var(--bd-card);
+}
+.am-summary-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--tp-label);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
 .am-summary-combo-off {
   color: var(--bd-orange);
 }
+.am-summary-row--total {
+  align-items: baseline;
+  margin-top: 6px;
+  border-top: 1px dashed var(--tp-line);
+  padding-top: 8px;
+  color: var(--tp-ink);
+  font-weight: 700;
+}
+.am-summary-total {
+  color: var(--bd-primary-strong);
+  font-size: 20px;
+  font-weight: 700;
+}
+.am-summary-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+/* Hủy is the app's plain AntD button, as on every other dialog; only its
+   height follows "Lưu n dịch vụ" beside it. */
+.ant-btn.am-cancel {
+  flex: none;
+  height: 44px;
+  padding: 0 20px;
+}
+.am-save.tp-btn {
+  height: 44px;
+  flex: 1;
+  justify-content: center;
+}
+.am-save.tp-btn:not(:disabled) {
+  background: var(--bd-primary-strong);
+}
+.am-spin {
+  animation: am-spin 1s linear infinite;
+}
+@keyframes am-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
+/* Laptop widths: the side columns give way so every column of the list
+   still fits beside them. */
+@media (max-width: 1440px) {
+  .am-nav {
+    width: 184px;
+    padding: 12px 10px;
+  }
+  .am-summary {
+    width: 300px;
+  }
+  .am-table th,
+  .am-table td {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+  .am-table--single {
+    min-width: 800px;
+  }
+  .am-table--single .am-col-group,
+  .am-table--single .am-col-price,
+  .am-table--single .am-col-amount {
+    width: 116px;
+  }
+  .am-table--single .am-col-discount {
+    width: 160px;
+  }
+  .am-table--combo {
+    min-width: 700px;
+  }
+  .am-table--combo .am-col-service {
+    width: 180px;
+  }
+  .am-table--combo .am-col-retail,
+  .am-table--combo .am-col-savings,
+  .am-table--combo .am-col-amount {
+    width: 108px;
+  }
+}
+/* Nhóm goes: the group picked on the left already names it. */
+@media (max-width: 1280px) {
+  .am-summary {
+    width: 280px;
+  }
+  .am-table--single {
+    min-width: 680px;
+  }
+  .am-table--single .am-col-group,
+  .am-table--single th:nth-child(3),
+  .am-table--single td:nth-child(3) {
+    display: none;
+  }
+  .am-table--combo {
+    min-width: 660px;
+  }
+}
+
+/* Narrow screens: the strip folds to two columns, the groups run along one
+   row of pills and the three columns stack, the dialog scrolling as one
+   page — with the totals and Hủy / Lưu held at its foot. */
 @media (max-width: 1100px) {
-  .am-grid {
-    grid-template-columns: minmax(0, 1fr);
+  .am-dialog .ant-modal-container {
+    height: auto;
+    max-height: calc(100dvh - 32px);
   }
-  .am-picker-head {
+  .am-dialog .ant-modal-body {
+    overflow-y: auto;
+  }
+  .am-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .am-layout {
     flex-direction: column;
-    align-items: stretch;
   }
-  .am-picker-search.ant-input-affix-wrapper {
-    width: 100%;
+  .am-nav {
+    width: auto;
+    border-right: 0;
+    padding: 12px 16px 0;
+  }
+  .am-nav-title {
+    display: none;
+  }
+  .am-nav-list {
+    flex-direction: row;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+  }
+  .am-nav-item {
+    width: auto;
+    min-height: 32px;
+    border: 1px solid var(--tp-line);
+    border-radius: 16px;
+    padding: 4px 12px;
+    white-space: nowrap;
+  }
+  .am-nav-item.active {
+    border-color: var(--tp-accent);
+  }
+  .am-table-scroll {
+    max-height: 60dvh;
+  }
+  /* The panel's parts join the page, so its foot can stick to the bottom of
+     the whole scroll, not only of the panel. */
+  .am-summary {
+    display: contents;
+  }
+  .am-summary-head {
+    border-top: 1px solid var(--tp-line);
+    background: var(--bd-bg-soft);
+  }
+  .am-summary-empty {
+    margin: 0;
+    padding: 4px 18px 16px;
+    background: var(--bd-bg-soft);
+  }
+  .am-summary-items {
+    max-height: 40dvh;
+    flex: none;
+    background: var(--bd-bg-soft);
+  }
+  .am-summary-foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    box-shadow: var(--bd-shadow-card);
   }
   .am-combo-notice {
     flex-wrap: wrap;
   }
-  .am-foot {
-    flex-direction: column;
-    align-items: stretch;
+}
+@media (max-width: 768px) {
+  /* tp-dialog's full-screen sheet puts the close icon on the left. */
+  .am-dialog .ant-modal-header {
+    padding: 14px 16px 14px 48px;
   }
-  .am-save.tp-btn {
-    width: 100%;
+}
+@media (max-width: 640px) {
+  .am-strip {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px 16px;
+  }
+  .am-patient {
+    display: none;
+  }
+  .am-dialog .am-title {
+    gap: 8px;
   }
 }

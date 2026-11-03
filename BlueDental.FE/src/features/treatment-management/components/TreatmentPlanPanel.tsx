@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Spin } from "antd";
-import { CreatePaymentDialog } from "@/features/patient-management/components/patient-detail/CreatePaymentDialog";
 import type { PatientDto } from "@/features/patient-management/types/patient";
 import { useAbility } from "@/hooks/useAbility";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { usePatientAdvises } from "../api/consultingQueries";
-import { usePatientAccount, useTreatingPlans, type TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
+import { useTreatingPlans, type TreatmentPlanSlipDto } from "../api/treatmentPlanApi";
+import { PLAN_TAB } from "./plan-detail/planDetailTypes";
 import { DeletePlanDialog } from "./plan/DeletePlanDialog";
 import { PlanColumnConfigPopover } from "./plan/PlanColumnConfigPopover";
 import { PrintMedicalRecordDialog } from "./plan/PrintMedicalRecordDialog";
@@ -52,20 +52,17 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
   const branchId = useCurrentBranchId();
   // There is no treatmentPlan subject: slips hang off the consulting leaves.
   const ability = useAbility("treatmentConsultation");
-  // Hóa đơn opens "Tạo phiếu thanh toán" on the slip (owner 2026-10-12) — payment.create.
+  // The receipt icon opens the slip's Thanh toán tab (owner 2026-10-27), still behind payment.create.
   const paymentAbility = useAbility("payment");
   // "Xoá phiếu điều trị" has a leaf of its own, apart from the consulting delete.
   const canDeletePlan = ability.can("deletePlan");
   const pagination = useTablePagination(20);
   const [columns, setColumns] = useState(defaultPlanColumns);
   const [serviceList, setServiceList] = useState<ServiceListTarget | null>(null);
-  const [payPlan, setPayPlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [deletingPlan, setDeletingPlan] = useState<TreatmentPlanSlipDto | null>(null);
   const [printOpen, setPrintOpen] = useState(false);
 
   const plansQuery = useTreatingPlans(patientId, branchId);
-  // Dư nợ for the payment dialog; the server keeps it behind payment.read.
-  const account = usePatientAccount(patientId, branchId, payPlan !== null && paymentAbility.canRead);
   const advises = usePatientAdvises({ patientId, clinicBranchId: branchId, maxResultCount: 200 });
 
   // The server's order: newest first, and a team head's own slips ahead of
@@ -90,7 +87,9 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       // The reference's print dialog is about the patient, not the slip: it
       // reads the record files and the patient, and nothing off the row.
       onPrintRecord: () => setPrintOpen(true),
-      onReceipt: paymentAbility.canCreate ? setPayPlan : undefined,
+      onReceipt: paymentAbility.canCreate
+        ? (plan) => navigate(planDetailPath(patientId, plan.id, branchId, PLAN_TAB.payment))
+        : undefined,
       onOpenPlan: (plan) => navigate(planDetailPath(patientId, plan.id, branchId)),
       onDelete: canDeletePlan ? setDeletingPlan : undefined,
     }),
@@ -145,16 +144,6 @@ export function TreatmentPlanPanel({ patientId, patient }: Props) {
       {printOpen && (
         <PrintMedicalRecordDialog patient={patient} onClose={() => setPrintOpen(false)} />
       )}
-      <CreatePaymentDialog
-        open={payPlan !== null}
-        patientId={patientId}
-        branchId={branchId}
-        plan={payPlan}
-        focusServiceId={null}
-        heldForPatient={account.data?.heldForPatient ?? 0}
-        onClose={() => setPayPlan(null)}
-        onSaved={() => setPayPlan(null)}
-      />
       <DeletePlanDialog plan={deletingPlan} onClose={() => setDeletingPlan(null)} />
     </div>
   );

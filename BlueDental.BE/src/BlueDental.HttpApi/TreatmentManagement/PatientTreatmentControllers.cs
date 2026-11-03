@@ -105,9 +105,19 @@ public sealed class PatientPaymentController(IPatientPaymentAppService service)
     public Task<PatientPaymentDto> UpdateAsync(Guid id, [FromBody] UpdatePatientPaymentDto input) =>
         service.UpdateAsync(id, input);
 
+    [HttpGet("{id:guid}/receipt")]
+    public Task<PaymentReceiptDto> GetReceiptAsync(Guid id) => service.GetReceiptAsync(id);
+
+    [HttpPost("{id:guid}/export")]
+    public Task<PatientPaymentDto> ExportAsync(Guid id, [FromBody] ExportPatientPaymentDto input) =>
+        service.ExportAsync(id, input);
+
+    [HttpGet("{id:guid}/receipt-file")]
+    public async Task<IActionResult> GetReceiptFileAsync(Guid id) =>
+        Pdf(await service.GetReceiptFileAsync(id), $"phieu-thu-{id:N}");
+
     [HttpPut("{id:guid}/confirm")]
-    public Task<PatientPaymentDto> ConfirmAsync(Guid id, [FromBody] UpdatePatientPaymentDto input) =>
-        service.ConfirmAsync(id, input);
+    public Task<PatientPaymentDto> ConfirmAsync(Guid id) => service.ConfirmAsync(id);
 
     [HttpPost("{id:guid}/cancel")]
     public Task CancelAsync(Guid id, [FromBody] CancelPatientPaymentDto input) =>
