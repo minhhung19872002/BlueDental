@@ -114,6 +114,16 @@ export function AppointmentCalendarPage() {
     );
   };
 
+  // BA (R-1141): a filter narrowed to exactly one doctor pre-fills Chọn bác sĩ on a new appointment and Lịch tạm.
+  const filterDoctorId = filters.doctorIds.length === 1 ? filters.doctorIds[0] : undefined;
+
+  const handleCreateNew = useCallback(() => {
+    setEditId(null);
+    setInitialTime(undefined);
+    setInitialDoctorId(filterDoctorId);
+    setAddOpen(true);
+  }, [filterDoctorId]);
+
   const handleCellClick = useCallback((doctorId: string, time: string) => {
     setInitialDate(state.currentDate.format("YYYY-MM-DD"));
     setInitialTime(time);
@@ -221,7 +231,7 @@ export function AppointmentCalendarPage() {
 
         {state.topTab === "customer" && ability.canCreate && (
           <div className="mobile-only cal-mobile-actions">
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateNew}>
               {t("Appointment:Action:Create")}
             </Button>
             <Button icon={<PlusOutlined />} onClick={() => setTempOpen(true)}>
@@ -242,7 +252,7 @@ export function AppointmentCalendarPage() {
               slotMinutes={filters.slotMinutes}
               onToggleSlot={filters.toggleSlotMinutes}
               onExport={handleExport}
-              onCreateAppointment={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}
+              onCreateAppointment={handleCreateNew}
               onCreateTemp={() => setTempOpen(true)}
               onFullscreen={() => setFullscreen(true)}
             >
@@ -311,7 +321,7 @@ export function AppointmentCalendarPage() {
                     state.currentDate.startOf("week").add(dayIdx, "day").format("YYYY-MM-DD"),
                   );
                   setInitialTime(time);
-                  setInitialDoctorId(undefined);
+                  setInitialDoctorId(filterDoctorId);
                   setEditId(null);
                   setAddOpen(true);
                 }}
@@ -361,6 +371,7 @@ export function AppointmentCalendarPage() {
         open={tempOpen}
         appointmentId={editTempId}
         initialDate={state.currentDate.format("YYYY-MM-DD")}
+        initialDoctorId={filterDoctorId}
         onClose={() => { setTempOpen(false); setEditTempId(null); }}
         onSuccess={() => { setTempOpen(false); setEditTempId(null); }}
       />
@@ -406,7 +417,7 @@ export function AppointmentCalendarPage() {
           <CalendarFabs
             onExitFullscreen={() => setFullscreen(false)}
             onCreateTemp={ability.canCreate ? () => setTempOpen(true) : undefined}
-            onCreateAppointment={ability.canCreate ? () => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); } : undefined}
+            onCreateAppointment={ability.canCreate ? handleCreateNew : undefined}
             onTogglePanel={() => setPanelOpen((v) => !v)}
             filterCount={filters.filterCount}
           />
@@ -420,7 +431,7 @@ export function AppointmentCalendarPage() {
             onNavigate={state.navigateDate}
             slotMinutes={filters.slotMinutes}
             onToggleSlot={filters.toggleSlotMinutes}
-            onCreateAppointment={() => { setEditId(null); setInitialTime(undefined); setInitialDoctorId(undefined); setAddOpen(true); }}
+            onCreateAppointment={handleCreateNew}
             onCreateTemp={() => setTempOpen(true)}
             onExport={handleExport}
             keyword={filters.keyword}

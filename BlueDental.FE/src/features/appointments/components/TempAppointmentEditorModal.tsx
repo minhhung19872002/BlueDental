@@ -39,6 +39,8 @@ interface Props {
   open: boolean;
   appointmentId?: string | null;
   initialDate?: string;
+  /** Pre-fills Chọn bác sĩ on a new Lịch tạm (the calendar's one-doctor filter, R-1141). */
+  initialDoctorId?: string;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -47,6 +49,7 @@ export function TempAppointmentEditorModal({
   open,
   appointmentId,
   initialDate,
+  initialDoctorId,
   onClose,
   onSuccess,
 }: Props) {
@@ -144,7 +147,7 @@ export function TempAppointmentEditorModal({
         patientName: "",
         patientPhone: "",
         branchId: currentBranchId,
-        doctorId: "",
+        doctorId: initialDoctorId ?? "",
         date: initialDate ?? dayjs().format("YYYY-MM-DD"),
         startTime: "",
         durationMinutes: 15,
@@ -155,7 +158,7 @@ export function TempAppointmentEditorModal({
         notes: "",
       });
     }
-  }, [open, isEdit, existingAppt, reset, currentBranchId, initialDate]);
+  }, [open, isEdit, existingAppt, reset, currentBranchId, initialDate, initialDoctorId]);
 
   const activeMutation = isEdit ? updateMutation : createMutation;
 
