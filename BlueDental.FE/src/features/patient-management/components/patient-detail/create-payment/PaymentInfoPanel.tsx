@@ -26,14 +26,20 @@ const MODE_KEYS: ReadonlyArray<[SplitMode, string]> = [
 const NOTE_LIMIT = 500;
 
 /**
- * The right column (P2910): how much and how it is split, the đợt's voucher,
- * Thu đợt này and the note; then how it is paid, the ticked services' totals
- * and the receipt as the customer will see it.
+ * The right column: how it is paid first (owner, 2026-11-03), then how much
+ * and how it is split, the đợt's voucher, Thu đợt này and the note; then the
+ * ticked services' totals and the receipt as the customer will see it.
  */
 export function PaymentInfoPanel({ payment, heldForPatient, accountKind, accounts }: Props) {
   const { form, update, money } = payment;
   return (
     <div className="pd-newpay-col pd-newpay-col--right">
+      <PaymentMethodSection
+        payment={payment}
+        heldForPatient={heldForPatient}
+        accountKind={accountKind}
+        accounts={accounts}
+      />
       <section>
         <h4 className="pd-newpay-head">
           <DollarOutlined /> {t("Patient:Payment:InfoHeader")}
@@ -66,12 +72,6 @@ export function PaymentInfoPanel({ payment, heldForPatient, accountKind, account
         </div>
       </section>
 
-      <PaymentMethodSection
-        payment={payment}
-        heldForPatient={heldForPatient}
-        accountKind={accountKind}
-        accounts={accounts}
-      />
       <PaymentSelectedTotals totals={money.totals} />
       <PaymentCustomerPreview payment={payment} />
     </div>
