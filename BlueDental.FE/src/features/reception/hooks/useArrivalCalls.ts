@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useAbility } from "@/hooks/useAbility";
@@ -8,6 +8,7 @@ import { useInvitedArrivals, useWaitingArrivals } from "../api/arrivalCallQuerie
 import { useAdmitArrival, useInviteArrival } from "../api/arrivalCallMutations";
 import type { ArrivalCallAction, ArrivalCallSection } from "../types/arrivalCall";
 import type { TemporaryPatientTarget } from "../types/temporaryPatient";
+import { useInviteChime } from "./useInviteChime";
 
 /** The seeded admin role (`BlueDentalAbilitySeedContributor.AdminRoleName`). */
 const ADMIN_ROLE = "admin";
@@ -28,6 +29,8 @@ const ADMIN_ROLE = "admin";
  * A called-up "Lịch tạm" is not seated straight away: its button opens "Tạo
  * hồ sơ" first, and once the record is attached the row offers "Tiếp nhận"
  * (BA 2026-11-02). The server refuses to seat it before then.
+ *
+ * A patient newly on "Bác sĩ mời lên" rings a "ting ting" once (R-1144).
  */
 export function useArrivalCalls() {
   const branchId = useBranchFilter();
@@ -42,6 +45,9 @@ export function useArrivalCalls() {
   const inviteMutation = useInviteArrival();
   const admitMutation = useAdmitArrival();
   const [recordTarget, setRecordTarget] = useState<TemporaryPatientTarget | null>(null);
+  // What this tab called up itself (an admin): no ring for one's own click.
+  const selfInvited = useRef(new Set<string>()).current;
+  useInviteChime(canAdmit ? invited.data : undefined, branchId, selfInvited);
 
   const sections = useMemo(() => {
     const list: ArrivalCallSection[] = [];
@@ -78,6 +84,7 @@ export function useArrivalCalls() {
 
   const runAction = (id: string, action: ArrivalCallAction) => {
     if (action === "invite") {
+      selfInvited.add(id);
       inviteMutation.mutate(id, { onSuccess: () => toast.success(t("Reception:ArrivalCallInviteSuccess")) });
       return;
     }

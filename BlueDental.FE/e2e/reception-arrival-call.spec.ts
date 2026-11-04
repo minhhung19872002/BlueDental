@@ -124,9 +124,40 @@ async function tearDown(page: Page, branchId: string, fixture: Fixture) {
   }
 }
 
+/**
+ * Counts the "ting ting" sounds the page plays (R-1144), and which file.
+ * Only watches the browser's audio; no API is touched, and the sound still plays.
+ */
+function countChimes() {
+  Reflect.set(window, "__bdChimes", []);
+  const play = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    const played: unknown = Reflect.get(window, "__bdChimes");
+    const src = this.currentSrc || this.src;
+    const result = play.call(this);
+    // Every attempt counts; it reads as the URL only once the browser really
+    // played it, "blocked:…" if refused.
+    if (Array.isArray(played)) {
+      const index = played.push(`pending:${src}`) - 1;
+      result.then(
+        () => (played[index] = src),
+        () => (played[index] = `blocked:${src}`),
+      );
+    }
+    return result;
+  };
+}
+const chimesPlayed = (page: Page) =>
+  page.evaluate(() => {
+    const played: unknown = Reflect.get(window, "__bdChimes");
+    return Array.isArray(played) ? played.map(String) : [];
+  });
+const chimeCount = async (page: Page) => (await chimesPlayed(page)).length;
+
 /** A separate browser signed in as `userName` on the login screen, on `path`. */
 async function openAs(browser: Browser, userName: string, path: string) {
   const context = await browser.newContext();
+  await context.addInitScript(countChimes);
   const page = await context.newPage();
   await login(page, { userName, password: RUN_STAFF_PASSWORD });
   await page.goto(path);
@@ -168,6 +199,8 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(panel(receptionist.page)).toContainText("Bác sĩ mời lên");
       await expect(panel(receptionist.page)).not.toContainText("Khách đã đến");
       await expect(rowOf(receptionist.page, fixture.ownVisit)).toHaveCount(0);
+      // Patients called up before the panel loaded do not ring.
+      expect(await chimeCount(receptionist.page), "no ring for the first list").toBe(0);
 
       // Neither may press the other's button through the API.
       const admitByDoctor = await call(doctor.page, branchId, `${ARRIVAL_CALLS}/${fixture.ownVisit.id}/admit`, { method: "POST" });
@@ -190,6 +223,16 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(seatRow).toBeVisible({ timeout: 15_000 });
       await expect(seatRow).toContainText(fixture.ownVisit.searchKey);
       await expect(seatRow.locator(".arrival-row-doctor")).toContainText(fixture.doctor.userName);
+      // …and rings "ting ting" once (R-1144); the doctor's own screen stays quiet.
+      await expect.poll(() => chimeCount(receptionist.page), { message: "one chime on the receptionist" }).toBe(1);
+      // BA's sound file, really played: a refused play reads "blocked:…".
+      await expect
+        .poll(async () => (await chimesPlayed(receptionist.page))[0], { message: "BA's sound file, played" })
+        .toMatch(/^https?:\/\/[^/]+\/sounds\/invite-chime\.mp3$/);
+      const sound = await receptionist.page.request.get("/sounds/invite-chime.mp3");
+      expect(sound.status(), "the sound file is served").toBe(200);
+      expect(sound.headers()["content-type"]).toContain("audio/mpeg");
+      expect(await chimeCount(doctor.page), "no chime for the doctor").toBe(0);
       // The branch is shared: other visits called up today count too.
       const seatRows = panel(receptionist.page).locator(".arrival-row");
       await expect(dockButton(receptionist.page).locator(".arrival-dock-badge")).toHaveText(String(await seatRows.count()));
@@ -199,16 +242,20 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(receptionist.page.getByText("Đã tiếp nhận bệnh nhân")).toBeVisible();
       await expect(seatRow).toHaveCount(0);
       await expect(rowOf(doctor.page, fixture.ownVisit)).toHaveCount(0, { timeout: 15_000 });
+      // Seating someone takes them off the list; that never rings.
+      expect(await chimeCount(receptionist.page), "no chime for seating").toBe(1);
 
       const stored = await getAppointment(page, branchId, fixture.ownVisit.id);
       expect(stored.status, "Đang khám").toBe(4);
       expect(stored.startedAt).not.toBeNull();
 
-      // Reloaded, the panel still has nothing of it.
+      // Reloaded, the panel still has nothing of it, and the list it loads does not ring.
       await receptionist.page.reload();
       await dockButton(receptionist.page).click();
       await expect(panel(receptionist.page)).toBeVisible();
+      await expect(panel(receptionist.page).locator(".arrival-panel-empty .ant-spin")).toHaveCount(0);
       await expect(rowOf(receptionist.page, fixture.ownVisit)).toHaveCount(0);
+      expect(await chimeCount(receptionist.page), "no chime after a reload").toBe(0);
 
       // A click outside folds the panel away.
       await receptionist.page.locator("main.app-content").click({ position: { x: 5, y: 5 } });
@@ -299,6 +346,7 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       expect((await call(page, branchId, `${APPOINTMENTS}/${visit.id}/check-in`, { method: "POST" })).status).toBe(200);
 
       // The seeded admin is not ticked "Bác sĩ", yet gets both lists, after a reload too.
+      await page.addInitScript(countChimes);
       await page.goto("/calendar/list");
       await page.reload();
       await dockButton(page).click();
@@ -314,6 +362,9 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(waitingRow).toContainText("Đã mời");
 
       const seatRow = invited.locator(".arrival-row").filter({ hasText: visit.searchKey });
+      await expect(seatRow).toBeVisible();
+      // The admin called this one up themselves: no ring for their own click (R-1144).
+      expect(await chimeCount(page), "no chime for one's own Mời lên").toBe(0);
       await seatRow.getByRole("button", { name: "Tiếp nhận" }).click();
       await expect(page.getByText("Đã tiếp nhận bệnh nhân")).toBeVisible();
       await expect(seatRow).toHaveCount(0);

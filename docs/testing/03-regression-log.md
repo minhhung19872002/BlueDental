@@ -13628,3 +13628,27 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
       - `reception-live-late:157`: chạy riêng thì xanh (chập chờn).
       - `reception-revisit-counter:153`: dòng 192 `.dtl-block` = 0, đỏ y hệt trên bản build HEAD 11089bf6.
 - **Mức retest**: 2.
+
+## R-1144 (2026-11-04, mức 2: Tiếp nhận — nút nổi "Khách đã đến") Lễ tân nghe tiếng "ting ting" khi bác sĩ bấm "Mời lên"
+
+- **Yêu cầu (BA, kèm ảnh chat)**: "phần lễ tân khi có thông báo bác sĩ mời lên sẽ cho thêm tiếng ting ting". Âm thanh do BA gửi (`yahoo.mp3`, 0,78 giây, 13,8 KB). Đã chốt với chủ dự án:
+  - Mỗi bệnh nhân mới được mời chỉ kêu **một lần**, không kêu lặp đến khi Tiếp nhận.
+  - **Chỉ có tiếng**, không thêm toast. Badge vẫn như cũ.
+  - Làm trên `main`.
+- **Ai nghe**: người đang thấy list "Bác sĩ mời lên" (R-1130/R-1135), tức tài khoản không tick Bác sĩ có Tiếp nhận Xem + Sửa, và admin. Bác sĩ không nghe.
+- **FE** (không sửa BE):
+  - `public/sounds/invite-chime.mp3`: chính là file BA gửi.
+  - `src/lib/chime.ts` `playChime()`: một `HTMLAudioElement` dùng chung, phát lại từ đầu. Nếu trình duyệt chặn thì `console.warn`, không nuốt lỗi.
+  - `features/reception/hooks/useInviteChime.ts`: so id của list "Bác sĩ mời lên" sau mỗi lần refetch, có id mới thì kêu. Không dựa vào SignalR `ArrivalsChanged`, vì sự kiện đó còn phát khi khách đến hoặc được tiếp nhận.
+    - List đầu tiên sau khi tải trang hoặc đổi chi nhánh chỉ được ghi nhớ, không kêu.
+    - Người rời list (đã tiếp nhận) không kêu.
+    - Admin tự bấm "Mời lên" trên tab của mình thì không kêu (`selfInvited` trong `useArrivalCalls`).
+  - **Giới hạn của trình duyệt**: âm thanh bị chặn cho tới khi trang có một lần click hoặc bấm phím. Lễ tân vừa F5 mà chưa bấm gì thì lần mời đầu có thể im lặng; badge vẫn hiện.
+- **Kiểm thử** (bản build production từ working tree trên HEAD 676d2c9e, preview riêng :8145, API :5000, DB thật, không chặn API):
+  - `reception-arrival-call` thêm init script đếm các lần gọi `HTMLMediaElement.play()`. Script không động vào API và âm thanh vẫn phát thật. Một lần gọi chỉ được tính là "đã phát" khi promise resolve; bị chặn thì ghi `blocked:…`.
+    - Test 1: list đầu của lễ tân → 0 lần. Bác sĩ Mời lên → lễ tân đúng 1 lần, phát thật `…/sounds/invite-chime.mp3` (200 `audio/mpeg`), máy bác sĩ 0 lần. Tiếp nhận → vẫn 1. Reload → 0.
+    - Test 3: admin tự Mời lên → 0 lần.
+  - `reception-arrival-call` + `reception-board-order` + `reception-temporary`: **8/8 xanh**.
+  - Trước khi đổi sang file mp3 (lúc đó âm tạo bằng Web Audio), `reception-arrival-call` cũng 3/3.
+  - Chưa chạy trên bản build HEAD để chứng minh đỏ. Tuy nhiên HEAD không có chỗ nào phát âm thanh, nên assert "đúng 1 lần" không thể xanh trên HEAD.
+- **Mức retest**: 2.
