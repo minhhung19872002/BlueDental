@@ -1,7 +1,6 @@
 import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Users } from "lucide-react";
-import { t } from "@/lib/i18n";
 import { useArrivalCalls } from "../hooks/useArrivalCalls";
+import { ArrivalCallDockButton } from "./ArrivalCallDockButton";
 import { ArrivalCallPanel } from "./ArrivalCallPanel";
 import "./arrival-call.css";
 
@@ -16,9 +15,11 @@ const TemporaryPatientDialog = lazy(() =>
  * The round button in the bottom-right corner of every screen (the app shell
  * mounts it, owner 2026-11-02): its badge counts the patients waiting for the
  * viewer, a click opens the list and a click anywhere else folds it away.
+ * Opening the list also stops the blink of a chime the browser blocked.
  */
 export const ArrivalCallDock: React.FC = () => {
-  const { visible, sections, badgeCount, pendingId, runAction, recordTarget, closeRecord } = useArrivalCalls();
+  const calls = useArrivalCalls();
+  const { visible, sections, pendingId, runAction, recordTarget, closeRecord, acknowledgeChime } = calls;
   const [open, setOpen] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
 
@@ -35,19 +36,21 @@ export const ArrivalCallDock: React.FC = () => {
 
   if (!visible) return null;
 
+  const handleToggle = () => {
+    setOpen((v) => !v);
+    acknowledgeChime();
+  };
+
   return (
     <div className="arrival-dock" ref={dockRef}>
       {open && <ArrivalCallPanel sections={sections} pendingId={pendingId} onAction={runAction} />}
-      <button
-        type="button"
-        className={["arrival-dock-button", open && "arrival-dock-button--open"].filter(Boolean).join(" ")}
-        aria-label={t("Reception:ArrivalCallOpen")}
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <Users size={26} aria-hidden />
-        {badgeCount > 0 && <span className="arrival-dock-badge">{badgeCount > 99 ? "99+" : badgeCount}</span>}
-      </button>
+      <ArrivalCallDockButton
+        open={open}
+        badgeCount={calls.badgeCount}
+        soundOff={calls.soundOff}
+        missedChime={calls.missedChime}
+        onToggle={handleToggle}
+      />
       {recordTarget && (
         <Suspense fallback={null}>
           <TemporaryPatientDialog target={recordTarget} onClose={closeRecord} />

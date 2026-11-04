@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { useAbility } from "@/hooks/useAbility";
+import { useSoundUnlocked } from "@/hooks/useSoundUnlocked";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useInvitedArrivals, useWaitingArrivals } from "../api/arrivalCallQueries";
@@ -30,7 +31,9 @@ const ADMIN_ROLE = "admin";
  * hồ sơ" first, and once the record is attached the row offers "Tiếp nhận"
  * (BA 2026-11-02). The server refuses to seat it before then.
  *
- * A patient newly on "Bác sĩ mời lên" rings a "ting ting" once (R-1144).
+ * A patient newly on "Bác sĩ mời lên" rings a "ting ting" once (R-1144); until
+ * the page has had a click the browser keeps it silent, so the dock shows a
+ * muted bell and blinks for a ring it could not play (R-1145).
  */
 export function useArrivalCalls() {
   const branchId = useBranchFilter();
@@ -47,7 +50,8 @@ export function useArrivalCalls() {
   const [recordTarget, setRecordTarget] = useState<TemporaryPatientTarget | null>(null);
   // What this tab called up itself (an admin): no ring for one's own click.
   const selfInvited = useRef(new Set<string>()).current;
-  useInviteChime(canAdmit ? invited.data : undefined, branchId, selfInvited);
+  const chime = useInviteChime(canAdmit ? invited.data : undefined, branchId, selfInvited);
+  const soundUnlocked = useSoundUnlocked();
 
   const sections = useMemo(() => {
     const list: ArrivalCallSection[] = [];
@@ -101,5 +105,17 @@ export function useArrivalCalls() {
 
   const closeRecord = () => setRecordTarget(null);
 
-  return { visible: canCall || canAdmit, sections, badgeCount, pendingId, runAction, recordTarget, closeRecord };
+  return {
+    visible: canCall || canAdmit,
+    sections,
+    badgeCount,
+    pendingId,
+    runAction,
+    recordTarget,
+    closeRecord,
+    // The muted bell only matters to whoever the chime is for.
+    soundOff: canAdmit && !soundUnlocked,
+    missedChime: chime.missed,
+    acknowledgeChime: chime.acknowledge,
+  };
 }

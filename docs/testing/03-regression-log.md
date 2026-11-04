@@ -13652,3 +13652,28 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Trước khi đổi sang file mp3 (lúc đó âm tạo bằng Web Audio), `reception-arrival-call` cũng 3/3.
   - Chưa chạy trên bản build HEAD để chứng minh đỏ. Tuy nhiên HEAD không có chỗ nào phát âm thanh, nên assert "đúng 1 lần" không thể xanh trên HEAD.
 - **Mức retest**: 2.
+
+## R-1145 (2026-11-04, mức 2, Tiếp nhận / nút nổi "Khách đã đến", main)
+
+- **Vấn đề** (owner, sau R-1144): lễ tân vừa mở trang mà chưa click gì thì không nghe "ting ting". Đã đo trên Chrome 155 thật, profile trắng, không qua DevTools: `hasBeenActive=false`, `play()` → `NotAllowedError: play() failed because the user didn't interact with the document first`. Đây là chính sách autoplay của trình duyệt; code trang không vượt qua được. Playwright luôn báo `hasBeenActive=true` nên không tự tái hiện được.
+- **Owner chọn phương án A** (báo cho lễ tân, sửa FE, không sửa BE ngoài bản dịch):
+  - Trang chưa được click hoặc bấm phím → nút nổi có thêm chuông gạch 🔕 (`BellOff`, góc dưới trái) và tooltip `Reception:ArrivalCallSoundOff` "Bấm vào trang một lần để bật âm thanh". Chỉ hiện cho người nghe chuông (list "Bác sĩ mời lên"); bác sĩ không thấy.
+  - Click hoặc bấm phím ở bất kỳ đâu → biểu tượng tự mất. Một lần `play()` thành công cũng tính là đã mở.
+  - Một lần kêu bị chặn → nút nhấp nháy đỏ (`arrival-dock-button--missed`) cho tới khi lễ tân mở list, hoặc khi những khách đó đã rời list. Click ra ngoài trang không tắt nhấp nháy. Khi bật `prefers-reduced-motion` thì nút đỏ đứng yên thay vì nhấp nháy.
+  - F5 là trang mới: 🔕 hiện lại. Khách đã có sẵn trên list thì không kêu và không nhấp nháy.
+- **Code**:
+  - `src/lib/chime.ts`: theo dõi trạng thái mở âm (`isSoundUnlocked` / `subscribeSoundUnlocked`). `playChime()` trả về `Promise<boolean>`.
+  - Hook dùng chung `src/hooks/useSoundUnlocked.ts`.
+  - `useInviteChime` trả về `{ missed, acknowledge }`.
+  - Component mới `ArrivalCallDockButton.tsx`.
+  - CSS nằm trong `arrival-call.css`.
+  - Thêm key vi/en `Reception:ArrivalCallSoundOff`.
+- **Kiểm thử** (bản build production từ working tree trên HEAD d2ce51f6, preview :8155, host riêng :5145 build từ working tree để có key dịch mới, cùng DB thật, không chặn API):
+  - `reception-arrival-call` thêm test "before the first click…". Init script `blockSoundUntilClick` giả lập Chrome lúc vừa tải: `navigator.userActivation` = false và `play()` bị từ chối cho tới pointerdown/keydown đầu tiên. Script chỉ đụng tới API của trình duyệt.
+    - Lễ tân vào `/reception`, chưa click: 🔕 hiện, tooltip đúng chữ; bác sĩ không có 🔕.
+    - Bác sĩ Mời lên → đúng 1 lần `blocked:…/invite-chime.mp3`; nút nhấp nháy, list vẫn đóng.
+    - Click vào trang → 🔕 mất, vẫn nhấp nháy. Mở list → thấy khách, hết nhấp nháy, đóng list vẫn không nhấp nháy.
+    - F5 → 🔕 lại, 0 lần kêu, không nhấp nháy.
+  - Test 1 thêm: trình duyệt đã click thì không có 🔕.
+  - `reception-arrival-call` **4/4 xanh**. Lần chạy cả bộ đầu tiên có 1 đỏ ở bước đóng context trong `finally`. Chạy riêng test đó xanh, chạy lại cả bộ 4/4 xanh.
+- **Mức retest**: 2.

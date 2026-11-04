@@ -2922,6 +2922,7 @@
     "Reception:ArrivalCallEmpty": "Chưa có khách",
     "Reception:ArrivalCallInviteSuccess": "Đã mời bệnh nhân lên",
     "Reception:ArrivalCallAdmitSuccess": "Đã tiếp nhận bệnh nhân",
+    "Reception:ArrivalCallSoundOff": "Bấm vào trang một lần để bật âm thanh",
     "Reception:UndoArrivedHint": "Bấm để huỷ Đã đến",
     "Reception:UndoArrivedSuccess": "Đã huỷ Đã đến",
     "Reception:UndoStartHint": "Bấm để huỷ Đang khám",

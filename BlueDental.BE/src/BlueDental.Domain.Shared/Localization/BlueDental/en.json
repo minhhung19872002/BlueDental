@@ -3023,6 +3023,7 @@
     "Reception:ArrivalCallEmpty": "No patients",
     "Reception:ArrivalCallInviteSuccess": "Patient called up",
     "Reception:ArrivalCallAdmitSuccess": "Patient admitted",
+    "Reception:ArrivalCallSoundOff": "Click anywhere on the page once to turn sound on",
     "Reception:UndoArrivedHint": "Click to undo Arrived",
     "Reception:UndoArrivedSuccess": "Arrival undone",
     "Reception:UndoStartHint": "Click to undo In progress",

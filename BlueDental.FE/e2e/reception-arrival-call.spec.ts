@@ -147,6 +147,27 @@ function countChimes() {
     return result;
   };
 }
+/**
+ * Makes this browser act like Chrome on a fresh load or F5 (R-1145): no user
+ * activation and audio refused until the first click or key press. Playwright's
+ * own pages always report activation, so the state cannot happen otherwise.
+ * Only the browser's activation flag and `play()` are touched; no API is.
+ * Install it before {@link countChimes} so the count sees the refusals.
+ */
+function blockSoundUntilClick() {
+  let active = false;
+  const activate = () => (active = true);
+  window.addEventListener("pointerdown", activate, true);
+  window.addEventListener("keydown", activate, true);
+  Object.defineProperty(navigator, "userActivation", {
+    get: () => ({ hasBeenActive: active, isActive: active }),
+  });
+  const play = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    if (active) return play.call(this);
+    return Promise.reject(new DOMException("play() failed: no user activation", "NotAllowedError"));
+  };
+}
 const chimesPlayed = (page: Page) =>
   page.evaluate(() => {
     const played: unknown = Reflect.get(window, "__bdChimes");
@@ -155,8 +176,9 @@ const chimesPlayed = (page: Page) =>
 const chimeCount = async (page: Page) => (await chimesPlayed(page)).length;
 
 /** A separate browser signed in as `userName` on the login screen, on `path`. */
-async function openAs(browser: Browser, userName: string, path: string) {
+async function openAs(browser: Browser, userName: string, path: string, options: { soundBlocked?: boolean } = {}) {
   const context = await browser.newContext();
+  if (options.soundBlocked) await context.addInitScript(blockSoundUntilClick);
   await context.addInitScript(countChimes);
   const page = await context.newPage();
   await login(page, { userName, password: RUN_STAFF_PASSWORD });
@@ -165,6 +187,8 @@ async function openAs(browser: Browser, userName: string, path: string) {
 }
 
 const dockButton = (page: Page) => page.getByRole("button", { name: "Khách đã đến" });
+const SOUND_OFF_HINT = "Bấm vào trang một lần để bật âm thanh";
+const mutedBell = (page: Page) => dockButton(page).getByRole("img", { name: SOUND_OFF_HINT });
 const panel = (page: Page) => page.getByRole("dialog", { name: "Khách đã đến" });
 const rowOf = (page: Page, visit: Visit) => panel(page).locator(".arrival-row").filter({ hasText: visit.patientName });
 /** One list of the panel, by its title: an admin has both, so a patient can be in each. */
@@ -201,6 +225,11 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(rowOf(receptionist.page, fixture.ownVisit)).toHaveCount(0);
       // Patients called up before the panel loaded do not ring.
       expect(await chimeCount(receptionist.page), "no ring for the first list").toBe(0);
+      // Sound is on (this browser has had a click): no muted bell (R-1145).
+      await expect(mutedBell(receptionist.page)).toHaveCount(0);
+      // The panel is folded away again: the chime must not need it open.
+      await receptionist.page.locator("main.app-content").click({ position: { x: 5, y: 5 } });
+      await expect(panel(receptionist.page)).toHaveCount(0);
 
       // Neither may press the other's button through the API.
       const admitByDoctor = await call(doctor.page, branchId, `${ARRIVAL_CALLS}/${fixture.ownVisit.id}/admit`, { method: "POST" });
@@ -218,13 +247,12 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(rowOf(doctor.page, fixture.ownVisit)).toContainText("Đã mời");
       await expect(dockButton(doctor.page).locator(".arrival-dock-badge")).toHaveCount(0);
 
-      // The receptionist's open panel picks it up with no reload.
-      const seatRow = rowOf(receptionist.page, fixture.ownVisit);
-      await expect(seatRow).toBeVisible({ timeout: 15_000 });
-      await expect(seatRow).toContainText(fixture.ownVisit.searchKey);
-      await expect(seatRow.locator(".arrival-row-doctor")).toContainText(fixture.doctor.userName);
-      // …and rings "ting ting" once (R-1144); the doctor's own screen stays quiet.
-      await expect.poll(() => chimeCount(receptionist.page), { message: "one chime on the receptionist" }).toBe(1);
+      // The receptionist hears "ting ting" once (R-1144) with the panel still
+      // closed; the doctor's own screen stays quiet.
+      await expect
+        .poll(() => chimeCount(receptionist.page), { message: "one chime, panel closed", timeout: 15_000 })
+        .toBe(1);
+      await expect(panel(receptionist.page)).toHaveCount(0);
       // BA's sound file, really played: a refused play reads "blocked:…".
       await expect
         .poll(async () => (await chimesPlayed(receptionist.page))[0], { message: "BA's sound file, played" })
@@ -233,6 +261,13 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       expect(sound.status(), "the sound file is served").toBe(200);
       expect(sound.headers()["content-type"]).toContain("audio/mpeg");
       expect(await chimeCount(doctor.page), "no chime for the doctor").toBe(0);
+
+      // The panel, opened now, has it with no reload.
+      await dockButton(receptionist.page).click();
+      const seatRow = rowOf(receptionist.page, fixture.ownVisit);
+      await expect(seatRow).toBeVisible();
+      await expect(seatRow).toContainText(fixture.ownVisit.searchKey);
+      await expect(seatRow.locator(".arrival-row-doctor")).toContainText(fixture.doctor.userName);
       // The branch is shared: other visits called up today count too.
       const seatRows = panel(receptionist.page).locator(".arrival-row");
       await expect(dockButton(receptionist.page).locator(".arrival-dock-badge")).toHaveText(String(await seatRows.count()));
@@ -260,6 +295,76 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       // A click outside folds the panel away.
       await receptionist.page.locator("main.app-content").click({ position: { x: 5, y: 5 } });
       await expect(panel(receptionist.page)).toHaveCount(0);
+    } finally {
+      for (const session of sessions) await session.context.close();
+      await tearDown(page, branchId, fixture);
+    }
+  });
+
+  test("before the first click the dock says sound is off, and a chime the browser refused blinks it (R-1145)", async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(240_000);
+    await login(page);
+    const branchId = await openBoard(page);
+    const fixture = await setUp(page, branchId);
+    const sessions: Awaited<ReturnType<typeof openAs>>[] = [];
+
+    try {
+      const doctor = await openAs(browser, fixture.doctor.userName, "/reception");
+      // Reception just opened the page: no click yet, the list not opened.
+      const receptionist = await openAs(browser, fixture.receptionist.userName, "/reception", { soundBlocked: true });
+      sessions.push(doctor, receptionist);
+      const desk = receptionist.page;
+
+      // The muted bell, and its hint on hover (a hover is no click).
+      await expect(mutedBell(desk)).toBeVisible();
+      await dockButton(desk).hover();
+      await expect(desk.getByRole("tooltip")).toHaveText(SOUND_OFF_HINT);
+      await expect(mutedBell(doctor.page), "the chime is not for the doctor").toHaveCount(0);
+      await expect(dockButton(desk)).not.toHaveClass(/arrival-dock-button--missed/);
+      // The list the call-up is compared with has loaded.
+      await expect
+        .poll(() =>
+          desk.evaluate(() =>
+            performance.getEntriesByType("resource").some((entry) => entry.name.includes("/arrival-calls/invited")),
+          ),
+        )
+        .toBe(true);
+
+      // The doctor calls the patient up; the browser refuses the chime.
+      await dockButton(doctor.page).click();
+      await rowOf(doctor.page, fixture.ownVisit).getByRole("button", { name: "Mời lên" }).click();
+      await expect(doctor.page.getByText("Đã mời bệnh nhân lên")).toBeVisible();
+      await expect
+        .poll(() => chimesPlayed(desk), { message: "one chime, tried and refused", timeout: 15_000 })
+        .toEqual([expect.stringMatching(/^blocked:https?:\/\/[^/]+\/sounds\/invite-chime\.mp3$/)]);
+      // So the dock blinks instead, with the list still closed.
+      await expect(dockButton(desk)).toHaveClass(/arrival-dock-button--missed/);
+      await expect(panel(desk)).toHaveCount(0);
+
+      // One click anywhere turns sound on: the bell goes, the blink stays
+      // until the list is seen.
+      await desk.locator("main.app-content").click({ position: { x: 5, y: 5 } });
+      await expect(mutedBell(desk)).toHaveCount(0);
+      await expect(dockButton(desk)).toHaveClass(/arrival-dock-button--missed/);
+
+      // Opening the list shows the patient and stops the blink, for good.
+      await dockButton(desk).click();
+      await expect(rowOf(desk, fixture.ownVisit)).toBeVisible();
+      await expect(dockButton(desk)).not.toHaveClass(/arrival-dock-button--missed/);
+      await desk.locator("main.app-content").click({ position: { x: 5, y: 5 } });
+      await expect(panel(desk)).toHaveCount(0);
+      await expect(dockButton(desk)).not.toHaveClass(/arrival-dock-button--missed/);
+
+      // F5 is a fresh page: sound is off again until the next click, and the
+      // patient already on the list neither rings nor blinks.
+      await desk.reload();
+      await expect(mutedBell(desk)).toBeVisible();
+      await expect(dockButton(desk).locator(".arrival-dock-badge")).not.toHaveCount(0);
+      expect(await chimeCount(desk), "no chime after a reload").toBe(0);
+      await expect(dockButton(desk)).not.toHaveClass(/arrival-dock-button--missed/);
     } finally {
       for (const session of sessions) await session.context.close();
       await tearDown(page, branchId, fixture);

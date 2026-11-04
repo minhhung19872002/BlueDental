@@ -64,6 +64,52 @@ body:has(.arrival-panel) .scroll-top-button {
   text-align: center;
 }
 
+/* Muted bell (R-1145): the page has had no click yet, so the browser keeps
+   the "Mời lên" chime silent. Bottom-left, clear of the count badge. */
+.arrival-dock-mute {
+  position: absolute;
+  bottom: -4px;
+  left: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--bd-card);
+  border-radius: 50%;
+  background: var(--bd-ink);
+  color: #fff;
+}
+
+/* A chime the browser blocked: the button blinks red with a ring until the
+   list is opened, so the call-up is still noticed without the sound. */
+.arrival-dock-button--missed {
+  animation: arrival-dock-blink 1s step-end infinite, arrival-dock-ring 1s ease-out infinite;
+}
+
+@keyframes arrival-dock-blink {
+  50% {
+    background: var(--bd-red);
+  }
+}
+
+@keyframes arrival-dock-ring {
+  0% {
+    box-shadow: var(--bd-shadow-glow), 0 0 0 0 rgba(229, 72, 77, 0.55);
+  }
+  100% {
+    box-shadow: var(--bd-shadow-glow), 0 0 0 16px rgba(229, 72, 77, 0);
+  }
+}
+
+/* No motion asked for: stay red instead of blinking. */
+@media (prefers-reduced-motion: reduce) {
+  .arrival-dock-button--missed {
+    animation: none;
+    background: var(--bd-red);
+  }
+}
+
 .arrival-panel {
   position: absolute;
   right: 0;
