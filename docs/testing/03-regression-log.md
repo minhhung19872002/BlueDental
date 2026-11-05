@@ -13857,3 +13857,32 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `fitShade` (`toothShapes.ts`): mỗi mặt có bề rộng riêng (trên/dưới 60, giữa 46, Gần/Xa 27 đơn vị viewBox). Màu không vừa ở 10px thì xuống 8px (`.tsp-shade--small`); vẫn không vừa thì cắt kèm "…", và mặt đó có `<title>` "Mặt: màu đầy đủ". Ô Màu và tiêu đề thẻ vẫn hiện đủ.
 - **Kiểm thử**: build production :8090 → host :5152, DB thật. Spec chụp ảnh tạm (đã xoá) với R16 chọn Gần+Má, màu "A4324343", và R36 chọn Gần+Nhai, màu "A1/A2/A3": chữ màu nằm gọn trong mặt (Gần "A432…", Má đủ chữ), hình R36 ở trên vòng. `tsc -b` sạch. Push develop trước theo ý owner, chạy regression sau: `labo-workflow`, `plan-warranty-tab`, `labo-api`, `labo-orders-actions`, `warranty-stage` **32/32** (`--workers=1`, 6.8 phút).
 - **Mức retest**: 2 (component dùng chung chỉ có Labo dùng).
+
+
+## R-1154 (2026-11-05, mức 2: Bộ chọn mặt răng theo mock BA "Ba trạng thái tương tác", bỏ "?" trên mặt, tiêu đề thẻ răng nền xanh nhạt, main)
+
+- **Yêu cầu** (BA, 3 ảnh):
+  - Tiêu đề thẻ từng răng ở Thông số từng răng có nền xanh nhạt.
+  - Bỏ "?" dưới tên mặt khi mặt chưa có Màu.
+  - Vòng mặt theo 3 trạng thái:
+    - Chưa chọn: nền `#EEF2F7`, chữ `#1E293B`, các mặt cách nhau khe trắng 4px thay cho vạch kẻ.
+    - Hover: nền `#DCE7FD`, chữ `#1E3A8A`, phóng to 3,5% trong 120ms.
+    - Đã chọn: nền `#2563EB`, chữ trắng kèm ✓, chọn được nhiều mặt. Hover lên mặt đã chọn đổi sang `#1D4ED8`, bấm lần nữa để bỏ chọn.
+- **Owner chốt** theo đề xuất a–f:
+  - a. Nền xanh nhạt `#EFF6FF` cho tiêu đề mọi thẻ răng, cả khi đóng lẫn khi mở; thẻ Tất cả giữ nguyên.
+  - b. Bỏ viền đỏ trên vòng: thiếu màu báo bằng ô Màu và nhãn "n lỗi".
+  - c. ✓ nằm dưới tên mặt; khi mặt có Màu thì ✓ đứng cạnh tên, Màu ở dòng dưới.
+  - d. Mặt đang nhập màu (Riêng theo mặt) dùng `#1D4ED8` với viền trắng dày hơn.
+  - e. Áp cho cả Đặt hàng, Kiểm tra và Bảo hành. Kiểm tra vẫn tô đỏ mặt lỗi; mặt không đặt vẫn mờ, không có ✓.
+  - f. Không thêm nút "Bỏ chọn" và dòng "Đã chọn" của bản chạy thử.
+- **Thiết kế**:
+  - `ToothSurfacePicker` bỏ mark `missing`, bỏ fallback "?" và bỏ đường viền ngoài; thêm ✓ (`.tsp-tick`).
+  - `tooth-surface-picker.css` đổi sang token `--tsp-*` theo mock: `transform-box: fill-box` và scale 1.035 khi hover.
+  - `laboSpecRules.missingSurfaces` bị xoá.
+  - Thêm `--lts-tooth-head` vào `labo-tooth-spec.css`.
+- **Kiểm thử**:
+  - Build production :8090 trỏ host :5152, DB thật.
+  - Spec chụp ảnh tạm (đã xoá) trên R12: Gần+Cắn đã chọn, hover Xa, rồi Màu "A2". Ảnh khớp mock: mặt xám, khe trắng, hover xanh nhạt và phóng to, đã chọn xanh đặc có ✓, tiêu đề xanh nhạt.
+  - `tsc`/eslint sạch.
+  - Push develop trước, chạy regression sau: `labo-workflow`, `plan-warranty-tab`, `labo-api`, `labo-orders-actions`, `warranty-stage` **32/32** (`--workers=1`, 7.5 phút).
+- **Mức retest**: 2 (component dùng chung chỉ có Labo dùng).
