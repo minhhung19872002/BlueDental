@@ -43,6 +43,11 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public List<Guid> PatientTagIds { get; set; } = [];
 
     public bool IsTemporary { get; set; }
+
+    /// <summary>"Đặt cờ" on the reception card — the card, the booking and the panel row glow.</summary>
+    public bool IsFlagged { get; set; }
+    public DateTimeOffset? FlaggedAt { get; set; }
+
     public Guid? SourceTaxonomyId { get; set; }
     public Guid? SourceEntryId { get; set; }
 

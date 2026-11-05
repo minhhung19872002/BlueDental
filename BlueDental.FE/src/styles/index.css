@@ -4688,11 +4688,18 @@ html:has(.ant-modal-wrap) {
     padding: 0;
   }
 
+  /* 100vh on a phone is the screen behind the browser's address and nav bars
+     too. The full-screen block further down sets `height: 100dvh`, but a
+     min-height beats a smaller height, so 100vh here kept the dialog taller
+     than the visible screen and its footer (Huỷ / Tải lên / Lưu) under the
+     browser's bar, out of reach — the wrap does not scroll. vh stays as the
+     fallback for browsers without dvh. */
   .ant-modal .ant-modal-content,
   .ant-modal .ant-modal-container {
     border-radius: 0;
     max-height: 100vh;
     min-height: 100vh;
+    min-height: 100dvh;
   }
 }
 
@@ -9044,5 +9051,100 @@ html:has(.ant-modal-wrap) {
 @media (max-width: 900px) {
   .pd-print-facts {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ── Flagged visit: a dashed neon ring running round the edge ─────────────────
+   "Đặt cờ" on a reception card (R-1150) singles the visit out everywhere it
+   shows — the Tiếp nhận card, its booking on Lịch hẹn, its row on the
+   floating "Đã đến" panel. Style from the owner's "RGB Dashed Glow Blink"
+   sample (2026-11-05): a neon conic gradient spinning every 2s, cut into
+   dashes, blinking, with a glow.
+
+   Kept from the sample: palette, dashes every 14°, 2s spin, 1.4s blink.
+   Changed for a light UI, our layouts and speed:
+   - the gaps between dashes are real holes (a third mask layer), not black
+     dashes painted over the ring — black reads as gaps only on a dark page;
+   - the ring is drawn over the element's own edge (inset 0), since the
+     reception card clips anything outside it (overflow: hidden);
+   - the glow is the element's own box-shadow, held still: on the masked ring
+     the sample's box-shadow is masked away and never shows;
+   - only opacity blinks — the sample's animated filter and an animated
+     box-shadow repaint every frame on every flagged card; opacity is left to
+     the compositor. The palette is already neon, so the brightness/saturate
+     boost is dropped with it.
+   `--bd-rgb-width` sets the thickness. `:where()` keeps `position: relative`
+   from beating a block that is already positioned (the day timeline's are
+   absolute). */
+@property --bd-rgb-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+:root {
+  --bd-rgb-ring: conic-gradient(
+    from var(--bd-rgb-angle),
+    #ff1a75, #ffaa00, #ffff00, #39ff14, #00e5ff, #bf00ff, #ff1a75
+  );
+}
+
+:where(.bd-rgb-ring) {
+  position: relative;
+}
+
+.bd-rgb-ring {
+  box-shadow:
+    0 0 10px rgb(255 26 117 / 45%),
+    0 0 20px rgb(0 229 255 / 30%),
+    0 0 30px rgb(191 0 255 / 20%);
+}
+
+.bd-rgb-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: var(--bd-rgb-width, 3px);
+  border-radius: inherit;
+  background: var(--bd-rgb-ring);
+  /* Top layer: the dashes, turning with the colours. Under it, the ring
+     (content box cut out of the whole box). Dashes ∩ ring = a dashed ring. */
+  -webkit-mask:
+    repeating-conic-gradient(from var(--bd-rgb-angle), #000 0deg 7deg, transparent 7deg 14deg),
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: source-in, xor;
+  mask:
+    repeating-conic-gradient(from var(--bd-rgb-angle), #000 0deg 7deg, transparent 7deg 14deg),
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: intersect, exclude;
+  will-change: opacity;
+  animation:
+    bd-rgb-spin 2s linear infinite,
+    bd-rgb-blink 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes bd-rgb-spin {
+  to {
+    --bd-rgb-angle: 360deg;
+  }
+}
+
+@keyframes bd-rgb-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Still a dashed neon edge with its glow, just not a moving or blinking one. */
+@media (prefers-reduced-motion: reduce) {
+  .bd-rgb-ring::after {
+    animation: none;
   }
 }

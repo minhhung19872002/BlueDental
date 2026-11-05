@@ -137,6 +137,7 @@ interface ServerAppointmentDto {
   color: string | null;
   creationTime: string;
   isTemporary: boolean;
+  isFlagged: boolean;
   checkedInAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
@@ -206,6 +207,7 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     selectedOutcome: dto.outcome ? (OUTCOME_MAP[dto.outcome] ?? null) : null,
     followUpAt: dto.followUpAt ?? undefined,
     isTemporary: dto.isTemporary,
+    isFlagged: dto.isFlagged,
     isTimeLate: timeLate,
     color: dto.color,
   };
@@ -311,6 +313,11 @@ export const receptionApi = {
 
   async cancel(id: string, _reason: string): Promise<void> {
     await api.post(`${APPT_BASE}/${id}/cancel`, { reason: 1, note: _reason });
+  },
+
+  /** "Đặt cờ" / "Gỡ cờ" on the card: the visit glows on every board until it is cleared. */
+  async setFlag(id: string, flagged: boolean): Promise<void> {
+    await api.post(`${APPT_BASE}/${id}/${flagged ? "flag" : "unflag"}`);
   },
 
   async assignDentist(id: string, dentistId: string): Promise<void> {

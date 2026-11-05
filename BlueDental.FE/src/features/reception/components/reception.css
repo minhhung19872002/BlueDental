@@ -1745,3 +1745,60 @@
     display: none;
   }
 }
+
+/* ── "Đặt cờ" (R-1150, owner 2026-11-05) ──────────────────────────────────────
+   ⋮ leads the ticket row: a 24px circle 8px in from the card's left edge,
+   clear background that tints on hover; it alone sets and clears the flag.
+   A flagged card shows the waving pennant in the top padding, its pole
+   over the ⋮'s dots and 5px above it — absolute, so it takes no room — as a marker that
+   takes no clicks. A "Lịch tạm" tab would sit on it, so on a flagged card
+   the tab moves right, past the pennant. */
+/* The row starts 16px in; -8px puts the circle 8px from the edge, and -4px on
+   the right leaves 6px to the folder icon. */
+.rc-flag-menu {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: 0 -4px 0 -8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--bd-muted);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+/* A see-through tint, so it shows on a white card and an arrived lavender one alike. */
+.rc-flag-menu:hover,
+.rc-flag-menu.ant-dropdown-open {
+  background: color-mix(in srgb, var(--bd-primary) 10%, transparent);
+  color: var(--bd-ink);
+}
+.rc-flag-menu:focus-visible {
+  outline: 2px solid var(--bd-blue);
+  outline-offset: 1px;
+}
+/* The pole lines up with the ⋮ the eye sees — its dots, 20.3px in, centred
+   in the 24px circle — not with the circle's edge: the pole sits 0.27px into
+   the image, so left 20px (owner 2026-11-05, measured). 8px from the top,
+   clear of the 4px ring, and 16px tall, so it ends 5px above the ⋮. */
+.rc-pennant {
+  position: absolute;
+  top: 8px;
+  left: 20px;
+  z-index: 10;
+  width: auto;
+  height: 16px;
+  pointer-events: none;
+}
+/* The pennant ends ~36px in; the tab starts 6px after it. */
+.rc-wrapper:has(.rc-pennant) .rc-temp-tab {
+  left: 42px;
+}
+/* Thick enough for the dashes to read, as the owner's 5px sample does on a big card. */
+.rc-card.bd-rgb-ring {
+  --bd-rgb-width: 4px;
+}

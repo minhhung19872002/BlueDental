@@ -13685,6 +13685,24 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - E2E: init script đổi thành `noClickYet("blocked" | "allowed")`. `countChimes` bỏ qua lần phát volume 0. Thêm test "a browser that lets the site play sound shows no muted bell, and rings with no click": không 🔕, `hasBeenActive` vẫn false, Mời lên → đúng 1 lần phát thật, không nhấp nháy. Code cũ sẽ đỏ test này vì 🔕 chỉ mất sau click.
   - Kết quả: build production (preview :8155, host riêng :5145, DB thật, không chặn API) → `reception-arrival-call` **5/5 xanh**. `tsc` và `eslint` sạch.
 
+## R-1146 (2026-11-05, mức 1: Hồ sơ bệnh nhân trên điện thoại + mọi dialog trên điện thoại, main)
+
+- **Vấn đề** (owner, ảnh chụp Chrome Android trên duchanhpremium.vn):
+  1. Màn chi tiết hồ sơ, rộng ≤640px: cụm "Chi tiết hồ sơ / Bệnh án" nằm cùng hàng với 10 tab và bóp dãy tab chỉ còn thấy "Hồ sơ".
+  2. Tab Hình ảnh › "Chụp ảnh": trên điện thoại không thấy footer "Đã chụp n ảnh · Huỷ · Tải lên (n)" nên không tải ảnh lên được.
+- **Nguyên nhân (2)**: ở ≤640px, `index.css` đặt `.ant-modal-content/.ant-modal-container { min-height: 100vh }`. Block "Mobile full-screen modals" phía dưới (từ 024d5cf3) đã có `height: 100dvh !important`, nhưng min-height lớn hơn thì thắng height. Trên Chrome Android, `100vh` gồm cả phần màn hình nằm sau thanh địa chỉ/thanh điều hướng, nên dialog cao hơn phần nhìn thấy và footer nằm dưới thanh đó. `.ant-modal-wrap` có `overflow: hidden`, nên không cuộn tới được. Lỗi có ở mọi dialog full-screen trên điện thoại, không riêng "Chụp ảnh".
+- **Code** (chỉ CSS):
+  - `styles/index.css`: thêm `min-height: 100dvh` sau `min-height: 100vh` (vh giữ làm fallback).
+  - `patient-detail.css`: ở ≤640px, `.pd-tabrow` xếp dọc, `.pd-viewswitch` `order: -1` lên trên, dãy tab `flex: none; width: 100%`. Bắt buộc `flex: none`, vì item có basis 0 và tự cuộn trong flex dọc sẽ co về 0 chiều cao.
+  - `patient-image.css`: ở ≤640px, khung camera cao `clamp(200px, calc(100dvh - 420px), 420px)` (fallback `55vh`), để camera, "Chụp", dãy ảnh và footer vừa một màn hình.
+- **Kiểm thử** (Vite dev :5173, API Docker :5000, DB thật, không chặn API):
+  - Viewport 390×844, `/patient/<id>?tab=image`: switch nằm dòng trên, 10 tab nằm dòng dưới, rộng hết khung và cuộn ngang được.
+  - Mở "Chụp ảnh" với camera giả bằng canvas (chỉ đè `navigator.mediaDevices` trong trình duyệt local), chụp 1 ảnh: footer top 774 / bottom 843 trên `innerHeight` 844, body không cuộn, `min-height` tính ra 844px.
+  - 1440×900: hàng tab desktop không đổi.
+  - `oxlint` 0 lỗi (cảnh báo cũ), `npm run build` (tsc + vite) xanh, `vitest run` 3/3.
+  - **Chưa đo được**: Playwright headless không có thanh địa chỉ nên vh = dvh; tình huống footer bị che chỉ tái hiện được trên điện thoại thật. Cần owner thử lại trên Chrome Android sau deploy.
+- **Mức retest**: 1 (CSS, không đổi hành vi). Dialog ở ≤640px đều nhận thay đổi min-height, nhưng chiều cao đã bị `height: 100dvh !important` cố định, nên chỉ khác ở trình duyệt có vh ≠ dvh.
+
 ## R-1147 (2026-11-05, mức 2: Lịch hẹn — view Ngày, timeline bác sĩ theo cột, main)
 
 - **Yêu cầu** (BA, ảnh chụp `/calendar` view Ngày): "Mấy lịch không trùng khung giờ có thể bung hết view được không?". Ở cột một bác sĩ, chỉ cần có một chỗ trùng 2 lịch là mọi lịch trong ngày của bác sĩ đó đều chỉ rộng 1/2 cột, kể cả lịch đứng một mình. Owner chọn làm cả hai mức: chia làn theo cụm và kéo dài sang làn trống.
@@ -13724,3 +13742,53 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Mới `e2e/appointment-open-record.spec.ts` **3/3**: view Ngày bấm khối → URL hồ sơ, không mở dialog; view Ngày Lịch tạm → Tạo hồ sơ điền sẵn → Lưu → `attach-patient` 200, server `isTemporary=false`, reload bấm lại → hồ sơ mới; view Tuần tên Lịch tạm → Tạo hồ sơ điền sẵn, đóng không lưu thì vẫn là Lịch tạm.
   - Spec cũ đổi đường mở hộp sửa sang ⋮ → Cập nhật (fixture mới `e2e/fixtures/calendarBlock.ts`): `appointment-day-timeline`, `appointment-mini-cal-date`, `temp-booking-content`; cùng `appointment-patient-link`, `appointment-slot-pick`, `appointment-shown-hours`: **20/20**.
 - **Mức retest**: 2 (hành vi trong feature Lịch hẹn).
+
+## R-1150 (2026-11-05, mức 2: Tiếp nhận — "Đặt cờ" / "Gỡ cờ", viền RGB ở Tiếp nhận, Lịch hẹn và nút nổi "Đã đến", main)
+
+- **Yêu cầu** (owner, ảnh chụp + `docs/Red Pennant Flag Wave Animation.gif`): card tiếp nhận có nút đặt cờ và gỡ cờ. Card có cờ chạy viền RGB quanh thẻ. Lịch hẹn tương ứng ở trang Lịch hẹn và nút nổi "Mời lên / Đã đến" cũng chạy viền RGB.
+- **Thiết kế**:
+  - Cờ lưu ở server, vì bác sĩ và lễ tân phải thấy cùng một cờ trên mọi máy.
+  - Cờ chỉ là dấu hiệu: không đổi bước, trạng thái hay kết quả của lượt khám, và trạng thái nào cũng đặt được, kể cả đã huỷ.
+  - Đặt lại cờ trên một lượt đã có cờ thì giữ nguyên người đặt và thời điểm đặt đầu tiên. Gỡ cờ trên lượt không có cờ thì không làm gì.
+  - Không ghi vào lịch sử thay đổi lịch hẹn. ABP audit log vẫn ghi lại request.
+- **BE**:
+  - `Appointment.IsFlagged / FlaggedAt / FlaggedById`, method `Flag(userId)` / `Unflag()`. Migration `20261105082307_AppointmentFlagR1150` thêm 3 cột vào `bd_appointments`, cột bool mặc định false.
+  - `POST appointments/{id}/flag` và `/unflag`: cần `Appointment.Update`, có kiểm tra chi nhánh (`GuardBranchAccess`), sau khi commit thì phát `ArrivalsChanged`, nên mọi màn hình đang mở tự tải lại.
+  - `AppointmentDto.IsFlagged/FlaggedAt`, `ArrivalCallDto.IsFlagged`.
+  - Thêm key vi/en `Reception:FlagMenu / FlagSet / FlagClear / FlagSetSuccess / FlagClearSuccess / Flagged`.
+- **FE**:
+  - `ReceptionCardFlag`: nút ⋮ ở góc trái trên card (đối xứng nút "Hủy lịch") mở menu "Đặt cờ". Nút ngồi trên mép trên của card (`top: -8px`), cách hàng mã phiếu 13px; owner góp ý bản đầu nằm trong card, chạm sát hàng "BD…". Khi đã có cờ, lá cờ động thay chỗ ⋮ và mở menu "Gỡ cờ". Người không có `reception.update` chỉ thấy lá cờ, không có ⋮.
+  - Utility dùng chung `.bd-rgb-ring` (`index.css`): `::after` vẽ conic-gradient xoay quanh viền (biến `@property --bd-rgb-angle`), giữ bo góc của phần tử, kèm quầng sáng đổi màu. Độ dày đặt qua `--bd-rgb-width`. `prefers-reduced-motion` thì viền đứng yên.
+  - Viền gắn vào: card tiếp nhận (3px), `EventCard` view Tuần, `TimelineBlock` view Ngày, dòng trong panel "Đã đến", và nút tròn khi panel đang có bệnh nhân có cờ (3px). View Tháng chỉ có số đếm nên không có chỗ gắn viền.
+  - Ảnh cờ: GIF của owner có nền carô in cứng (chỉ phần lề ngoài là trong suốt). Mình tách nền bằng Pillow (bỏ pixel xám trung tính sáng, gỡ màu viền răng cưa), cắt sát lá cờ và xuất APNG 118×120, 9 khung hình, 160ms/khung: `public/img/flags/red-pennant.png`, 92KB.
+- **Kiểm thử**:
+  - BE (container `dotnet/sdk:9.0`): `Domain.Tests` 1311/1311, có 4 test mới cho cờ. `Application.Tests` lọc Appointment 33/33, có thêm `FlagAsync/UnflagAsync` cần `Appointment.Update`.
+  - E2E `reception-flag` trên bản build production (preview :8147, API Docker :5000, DB thật, không chặn API), 2/2 xanh:
+    - Test 1: đặt cờ từ menu → toast, viền, lá cờ; server `isFlagged=true`, trạng thái không đổi; reload vẫn còn. "Đã đến" → nút nổi có viền, dòng trong panel có viền. `/calendar` view Ngày → block có viền. "Gỡ cờ" → hết viền ở card và nút nổi, server `isFlagged=false`, block trên lịch hết viền.
+    - Test 2: role chỉ có `reception.read`, `appointment.read`, `patient.read` → thấy lá cờ, không có ⋮, gọi `unflag` bị 403. Tài khoản chi nhánh 2 gọi `unflag` bị 403/404. Cờ vẫn còn.
+  - Hồi quy (cùng bản build, sau khi gộp R-1147..R-1149 của upstream): `appointment-day-timeline` 8, `appointment-patient-link` 2, `reception-arrival-call` 5, `reception-board-order` 2, `reception-temporary` 3 → tất cả xanh.
+  - `tsc -b`, `oxlint` (0 lỗi, chỉ cảnh báo cũ), `vitest` 3/3.
+  - Ngoài ra đã thử tay trên Vite dev, xem đủ card tiếp nhận, view Ngày, view Tuần, panel và nút nổi. Lượt khám dùng để thử đã được huỷ check-in, trả về trạng thái cũ.
+- **Mức retest**: 2, cộng hồi quy các màn hình phụ thuộc như trên, vì đổi `AppointmentDto` và thêm utility vào `index.css` (chỉ là class mới, không sửa rule cũ).
+- **Bổ sung (cùng ngày, owner góp ý sau khi deploy)**:
+  - Nút ⋮ ở mép trên đè lên nhãn "Lịch tạm". Bản thử chip ở góc trái dưới bị owner bác; owner chọn **trong card, góc trái trên**. Chip đặt ở `top: 16px`, nằm dưới nhãn "Lịch tạm" (nhãn lấn vào card 12px), cách nhãn 4px. Padding trên của `.rc-card` tăng từ 16px lên 36px nên hàng mã phiếu cách chip 9px (đã đo); card cao thêm 20px.
+  - Khi đã có cờ, lá cờ (cao 20px) nằm trong cùng chip đó, không còn lá cờ 40px đứng trên góc. Người chỉ có quyền xem thấy chip lá cờ (`role="img"`, nhãn "Đã đặt cờ").
+  - Nút tròn nổi bỏ viền RGB. Dòng trong panel giữ viền và có thêm lá cờ (18px) ở đầu dòng tên. Lá cờ đặt ngay trong dòng chứ không thò ra góc, để dòng đầu của vùng cuộn không bị cắt mất. Đường dẫn ảnh dùng chung `reception/utils/flagPennant.ts`.
+  - Sửa e2e: nút tròn không có viền; dòng trong panel có lá cờ, sau "Gỡ cờ" thì mất cả viền lẫn lá cờ. Trên lịch chỉ đếm block có viền, vì bệnh nhân fixture chọn có thể còn một lịch đã huỷ trong ngày: lần chạy trước đỏ ở đây với "Expected 1, Received 2".
+  - Kiểm thử (bản build production :8147, API :5000, DB thật, không chặn API): `reception-flag` 2/2, `reception-arrival-call` 5/5, `reception-temporary` 3/3, `reception-temp-cancel` 2/2. Sau khi chuyển chip lên góc trái trên, chạy lại: `reception-flag` 2, `reception-temporary` 3, `reception-temp-cancel` 2, `reception-board-order` 2, `reception-patient-tags` 6, `reception-wait-time` 1 → 16/16 xanh. `tsc`, `oxlint` sạch.
+- **Bổ sung lần 2 (cùng ngày, owner góp ý tiếp)**:
+  - **Nút ⋮** nằm đầu hàng mã phiếu: khung tròn 24px, cách mép trái card 8px, cách icon thư mục 6px. Nền trong suốt; rê chuột hoặc khi menu mở thì ửng `color-mix(--bd-primary 10%)`. Không dùng `--bd-bg-soft` vì nó nhạt hơn nền tím của card "Đã đến". Nút ⋮ là cách duy nhất để đặt và gỡ cờ.
+  - **Lá cờ trên card** chỉ để hiển thị (`pointer-events: none`). Đặt `absolute` trong khoảng padding trên nên không chiếm chỗ. Cột cờ thẳng hàng với ba chấm của ⋮ chứ không theo mép khung tròn 24px: ba chấm ở 20,3px, cột cờ nằm 0,27px trong ảnh, nên đặt `left: 20px` (bản `left: 9px` theo mép khung bị owner bắt lệch). Cách đỉnh card 8px (cách viền 4px), cao 16px, cách ⋮ 5px. Nhãn Lịch tạm trên card có cờ ở `left: 42px`. Padding trên của card trả về 16px. Card vừa có cờ vừa là Lịch tạm thì nhãn "Lịch tạm" dời sang phải để không trùng lá cờ (đã đo).
+  - **Panel nổi**: lá cờ `absolute` ở góc trên bên trái của dòng. Bản `left: -8px` thò sang trái ra ngoài dòng, owner bảo "đừng về bên trái quá", nên đổi thành `top: -8px`, cao 18px. Thử `left: 12px` (cột cờ thẳng icon người) thì owner bảo nhích trái thêm chút, chốt `left: 6px`. Lá cờ thò lên trên dòng 7px, đáy cách icon 2px. Khoảng cách giữa các dòng tăng từ 6px lên 10px, nên lá cờ cách dòng phía trên 3px (đã đo trên 3 dòng có cờ).
+  - **Viền** đổi theo mẫu "RGB Dashed Glow Blink" của owner: bảng màu neon, nét đứt 7°/14°, xoay 2s, nhấp nháy 1.4s, `brightness(1.45) saturate(1.6)`. Ba chỗ chỉnh để hợp giao diện sáng:
+    - khoảng hở giữa các nét là lỗ thật (mask 3 lớp `intersect, exclude`) chứ không vẽ vạch đen;
+    - viền vẽ ở mép trong (`inset: 0`), vì card cắt mọi thứ thò ra ngoài;
+    - quầng sáng là `box-shadow` của phần tử, nhấp nháy cùng nhịp, vì `box-shadow` trên lớp có mask bị cắt mất.
+    Card tiếp nhận dùng viền 4px. `prefers-reduced-motion` thì viền đứng yên, vẫn có quầng sáng.
+  - Kiểm thử (bản build production :8147, API :5000, DB thật, không chặn API): `reception-flag` 2, `reception-temporary` 3, `reception-patient-tags` 6, `appointment-day-timeline` 8 → 19/19 xanh. Trước đó cùng bản build, `reception-arrival-call` 5 và `reception-board-order` 2 cũng xanh. `tsc`, `oxlint` sạch.
+- **Tối ưu độ mượt (owner: "ấn đặt cờ / gỡ cờ hơi lag")**: đo trước khi sửa. Trên bản build production với 87 card, cờ hiện sau ~260ms, request chỉ được gửi sau ~60ms. Lý do: lớp phủ busy làm React vẽ lại cả bảng, sau đó phải chờ API rồi tải lại toàn bộ danh sách; request tải lại còn bị gửi hai lần (một từ mutation, một từ SignalR `ArrivalsChanged`). Khi đứng yên, hiệu ứng viền chỉ làm giảm khoảng 1 fps (58,7 so với 59,7 fps với 18 phần tử có viền) — không phải nguyên nhân chính.
+  - **Cập nhật lạc quan**: `reception/api/flagCache.ts`. `onMutate` huỷ các fetch đang chạy, chụp lại cache, rồi đảo `isFlagged` ngay trong cache của bảng (`["receptions", filter]`, các trang của infinite query) và của panel (`arrival-calls`). Type guard chỉ đụng đúng dữ liệu bảng, vì key `["receptions", …]` còn khớp cả lịch bận và lịch làm việc của bác sĩ. `onError` trả lại cache đã chụp. Bỏ lớp phủ busy cho thao tác cờ.
+  - **Hiệu ứng nhẹ hơn**: nhấp nháy chỉ còn `opacity` (`will-change: opacity`). Bỏ `filter` động và `box-shadow` động, vì cả hai vẽ lại từng khung hình trên mỗi phần tử có cờ; quầng sáng giữ tĩnh.
+  - **Sau khi sửa** (cùng bản build, 87 card): cờ hiện sau ~70ms khi đặt và khi gỡ, tức một lượt vẽ lại; request gửi sau ~3ms; không có lớp phủ; sau khi tải lại vẫn đúng trạng thái.
+  - E2E (bản build production :8147): `reception-flag` 2, `reception-temporary` 3, `appointment-day-timeline` 8, `reception-arrival-call` 5. Lần chạy chung đầu tiên có 1 đỏ ở `reception-arrival-call` "a called-up Lịch tạm…", bước chờ toast "Đã tiếp nhận bệnh nhân" (luồng không đụng tới cờ). Chạy riêng 2/2 xanh, chạy lại cả file cùng `reception-flag` 7/7 xanh.
+  - Chưa làm: bảng vẫn vẽ lại cả 87 card mỗi lần đổi cờ (~70ms), vì các handler trong `ReceptionPage` không ổn định nên `React.memo` trên card chưa có tác dụng. Tải lại hai lần (mutation + SignalR) vẫn còn.

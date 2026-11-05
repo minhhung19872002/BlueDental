@@ -1,4 +1,5 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { flipFlagInCache, restoreFlagCache } from "./flagCache";
 import { receptionApi } from "./receptionApi";
 import type {
   AppointmentOutcome,
@@ -46,6 +47,17 @@ export function useCancelReception() {
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       receptionApi.cancel(id, reason),
+    meta: INVALIDATES_APPOINTMENTS,
+  });
+}
+
+/** Optimistic: the card and the panel row flip on the click, and flip back if the server refuses. */
+export function useSetReceptionFlag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, flagged }: { id: string; flagged: boolean }) => receptionApi.setFlag(id, flagged),
+    onMutate: ({ id, flagged }) => flipFlagInCache(queryClient, id, flagged),
+    onError: (_error, _variables, snapshot) => restoreFlagCache(queryClient, snapshot),
     meta: INVALIDATES_APPOINTMENTS,
   });
 }

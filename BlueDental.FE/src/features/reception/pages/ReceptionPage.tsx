@@ -34,6 +34,7 @@ import {
 import {
   useUpdateReceptionStatus,
   useCancelReception,
+  useSetReceptionFlag,
   useAssignReceptionDentist,
   useSetReceptionOutcome,
 } from "../api/receptionMutations";
@@ -115,6 +116,7 @@ export const ReceptionPage: React.FC = () => {
   const cancelMutation = useCancelReception();
   const assignDentistMutation = useAssignReceptionDentist();
   const setOutcomeMutation = useSetReceptionOutcome();
+  const setFlagMutation = useSetReceptionFlag();
 
   const items = useMemo(
     () => orderForBoard(listData?.pages.flatMap((p) => p.items) ?? [], activeTab),
@@ -180,6 +182,15 @@ export const ReceptionPage: React.FC = () => {
       "undo-complete": t("Reception:UndoCompleteSuccess"),
     };
     runCommand(id, planStepClick(item, action), () => toast.success(labels[action]));
+  };
+
+  // No busy overlay: the flag shows on the click (optimistic), so a spinner
+  // over the card would only add a re-render of the whole board.
+  const handleFlagChange = (id: string, flagged: boolean) => {
+    setFlagMutation.mutate(
+      { id, flagged },
+      { onSuccess: () => toast.success(t(flagged ? "Reception:FlagSetSuccess" : "Reception:FlagClearSuccess")) },
+    );
   };
 
   const handleCancel = (id: string) => {
@@ -314,6 +325,7 @@ export const ReceptionPage: React.FC = () => {
                   canEditTags={patientAbility.canUpdate}
                   onStatusChange={ability.canUpdate ? handleStatusChange : undefined}
                   onCancel={ability.canUpdate ? handleCancel : undefined}
+                  onFlagChange={ability.canUpdate ? handleFlagChange : undefined}
                   onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}
                   onDoctorChange={ability.canUpdate ? handleDoctorChange : undefined}
                   onFollowUpClick={ability.canUpdate && ability.canCreate ? handleFollowUpClick : undefined}

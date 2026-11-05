@@ -15,6 +15,8 @@ export interface ArrivalCall {
   content: string;
   /** The doctor already pressed "Mời lên". */
   invited: boolean;
+  /** "Đặt cờ" on its reception card: the row glows here too. */
+  isFlagged: boolean;
 }
 
 /** "invite" is the doctor's "Mời lên"; "admit" is reception's "Tiếp nhận". */

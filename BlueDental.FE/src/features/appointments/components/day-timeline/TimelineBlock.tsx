@@ -67,7 +67,12 @@ export const TimelineBlock = React.memo(function TimelineBlock({ placed, state, 
     onAction?.(info.key, id);
   }, [onAction, id]);
 
-  const className = ["dtl-block", `dtl-block--${state}`, selected && "dtl-block--selected"]
+  const className = [
+    "dtl-block",
+    `dtl-block--${state}`,
+    selected && "dtl-block--selected",
+    placed.appointment.isFlagged && "bd-rgb-ring",
+  ]
     .filter(Boolean)
     .join(" ");
 

@@ -78,6 +78,8 @@ export interface ReceptionItem {
   followUpAt?: string;
   createdAt: string;
   isTemporary?: boolean;
+  /** "Đặt cờ": the card runs a rainbow border, and so do its booking and panel row. */
+  isFlagged: boolean;
   /** True when "Late" badge is derived from time, not from backend NoShow status. */
   isTimeLate?: boolean;
   color?: string | null;

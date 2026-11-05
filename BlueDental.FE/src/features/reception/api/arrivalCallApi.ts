@@ -15,6 +15,7 @@ interface ServerArrivalCallDto {
   slotStart: string;
   content: string | null;
   invitedAt: string | null;
+  isFlagged: boolean;
 }
 
 function adaptArrivalCall(dto: ServerArrivalCallDto): ArrivalCall {
@@ -29,6 +30,7 @@ function adaptArrivalCall(dto: ServerArrivalCallDto): ArrivalCall {
     time: dayjs(dto.slotStart).format("HH:mm"),
     content: dto.content ?? "",
     invited: !!dto.invitedAt,
+    isFlagged: dto.isFlagged,
   };
 }
 

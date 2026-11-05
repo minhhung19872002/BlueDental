@@ -2253,6 +2253,27 @@
 .pd-viewswitch .seg-tabs-item {
   gap: 6px;
 }
+/* On a phone the switch would squeeze the ten tabs down to one visible pill
+   (BA 2026-11-05): the switch goes on its own line above, and the tabs get
+   the strip's full width to scroll in. `flex: none` because a column flex
+   item with basis 0 and its own scroller collapses to no height. */
+@media (max-width: 640px) {
+  .pd-tabrow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    padding: 12px 0 0;
+  }
+  .pd-viewswitch {
+    order: -1;
+    margin-left: 12px;
+  }
+  .pd-page .pd-tabrow > .bd-tabbar {
+    flex: none;
+    width: 100%;
+    padding: 10px 12px 12px;
+  }
+}
 
 /* ==========================================================================
    Bệnh án — the record's second view.

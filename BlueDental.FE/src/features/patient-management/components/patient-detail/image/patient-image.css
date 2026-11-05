@@ -921,8 +921,11 @@
   .pi-search.ant-input-affix-wrapper {
     width: 100%;
   }
+  /* What the visible screen has left once the title, camera picker, "Chụp",
+     the shot strip and the footer are counted, so all of it fits unscrolled. */
   .pi-cam-view {
     height: clamp(220px, 55vh, 420px);
+    height: clamp(200px, calc(100dvh - 420px), 420px);
   }
   .pi-cam-controls {
     flex-wrap: wrap;

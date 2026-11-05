@@ -27,6 +27,7 @@ import type {
 import { useWaitState } from "../hooks/useWaitState";
 import { isCancelledVisit } from "../utils/receptionFlow";
 import type { WaitLevel } from "../utils/waitTime";
+import { ReceptionCardFlagMenu, ReceptionCardPennant } from "./ReceptionCardFlag";
 import { ReceptionCardSteps } from "./ReceptionCardSteps";
 
 interface ReceptionCardProps {
@@ -42,6 +43,8 @@ interface ReceptionCardProps {
   onDoctorChange?: (id: string, doctorId: string) => void;
   onStatusChange?: (id: string, action: StatusAction) => void;
   onCancel?: (id: string) => void;
+  /** "Đặt cờ" / "Gỡ cờ" from the card's top-left corner; absent for a viewer who may not. */
+  onFlagChange?: (id: string, flagged: boolean) => void;
   /** A "Lịch tạm" has no patient record yet: its name opens "Tạo hồ sơ" instead. */
   onTemporaryPatientClick?: (id: string) => void;
   /** "Đã hẹn tiếp" and "Hẹn tái khám" ask for a date first, so they open the picker instead of saving. */
@@ -126,6 +129,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   onDoctorChange,
   onStatusChange,
   onCancel,
+  onFlagChange,
   onFollowUpClick,
   pendingBooking = null,
   onTemporaryPatientClick,
@@ -208,6 +212,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
           <Loader2 size={28} className="rc-busy-spinner" />
         </div>
       )}
+      {item.isFlagged && <ReceptionCardPennant />}
       {showCancel && (
         <button
           type="button"
@@ -219,12 +224,15 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
         </button>
       )}
 
-      <div className="rc-card" style={getCardStyle()}>
+      <div className={["rc-card", item.isFlagged && "bd-rgb-ring"].filter(Boolean).join(" ")} style={getCardStyle()}>
         <div className="rc-content">
           <div className="rc-grid">
             {/* Col 1: patient info */}
             <div className="rc-col-info">
               <div className="rc-header-row">
+                {onFlagChange && (
+                  <ReceptionCardFlagMenu flagged={item.isFlagged} onChange={(flagged) => onFlagChange(item.id, flagged)} />
+                )}
                 <div className="rc-ticket">
                   <Folder size={20} aria-hidden />
                   <span>{item.voucherCode}</span>

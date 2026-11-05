@@ -163,7 +163,8 @@ body:has(.arrival-panel) .scroll-top-button {
 .arrival-panel-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  /* 10px, not 6: a flagged row's pennant rises 8px into it. */
+  gap: 10px;
   margin: 0;
   padding: 0 8px;
   list-style: none;
@@ -267,4 +268,22 @@ body:has(.arrival-panel) .scroll-top-button {
     inset-inline-end: 23px;
     inset-block-end: 92px;
   }
+}
+
+/* A patient flagged on Tiếp nhận (R-1150): the row runs the rainbow ring and the
+   pennant pokes up from its top-left corner (owner 2026-11-05) — 6px in, just
+   inside the ring and short of the person icon, not out past the row's left
+   edge. 18px tall from 8px above the row, it ends where the icon begins. The
+   round button stays plain. */
+.arrival-row {
+  position: relative;
+}
+.arrival-row-flag {
+  position: absolute;
+  top: -8px;
+  left: 6px;
+  z-index: 4;
+  width: auto;
+  height: 18px;
+  pointer-events: none;
 }

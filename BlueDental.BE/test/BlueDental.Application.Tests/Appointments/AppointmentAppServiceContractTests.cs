@@ -44,6 +44,8 @@ public class AppointmentAppServiceContractTests
     [InlineData("UndoCheckInAsync")]
     [InlineData("UndoStartAsync")]
     [InlineData("UndoCompleteAsync")]
+    [InlineData("FlagAsync")]
+    [InlineData("UnflagAsync")]
     public void Undo_Steps_Should_Need_Appointment_Update(string name)
     {
         var method = _serviceType.GetMethod(name);

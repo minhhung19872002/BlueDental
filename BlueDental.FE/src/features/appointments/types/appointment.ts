@@ -40,6 +40,8 @@ export interface AppointmentDto {
   color: string | null;
   createdAt: string;
   isTemporary: boolean;
+  /** "Đặt cờ" on its Tiếp nhận card: the booking runs the rainbow ring here too. */
+  isFlagged: boolean;
   sourceTaxonomyId: string | null;
   sourceEntryId: string | null;
   /** Stamped as the Tiếp nhận stepper is walked. */
