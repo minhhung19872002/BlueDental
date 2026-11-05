@@ -9,8 +9,6 @@ import "./tooth-surface-picker.css";
 export interface ToothSurfaceMarks {
   /** The surface whose Màu is being typed. */
   active?: ToothSurfaceCode;
-  /** Picked surfaces still lacking a colour: ringed red. */
-  missing?: readonly ToothSurfaceCode[];
   /**
    * Fault mode (Labo 2 v2, R-1151): `picked` are the faces ordered, greyed
    * otherwise, and only they can be clicked; these are the ones found faulty, red.
@@ -22,7 +20,7 @@ export interface ToothSurfacePickerProps {
   /** FDI number: a front tooth shows Cắn / Ngoài, a back one Nhai / Má. */
   tooth: number;
   picked: readonly ToothSurfaceCode[];
-  /** Màu under each picked surface's name, "?" when blank; left out, no colour line. */
+  /** Màu under each picked surface's name; a blank one shows nothing (BA "Bỏ cái ?", R-1154). */
   shades?: Partial<Record<ToothSurfaceCode, string>>;
   marks?: ToothSurfaceMarks;
   /** Left out, the picture only shows the pick. In fault mode it toggles a fault. */
@@ -58,7 +56,7 @@ export function ToothSurfacePicker({
   const clipId = useId();
   const upper = isUpperTooth(tooth);
   const pictureFirst = upper || picturePlacement === "top";
-  const { active, missing, faults } = marks;
+  const { active, faults } = marks;
   const faultMode = faults !== undefined;
 
   const stateOf = (code: ToothSurfaceCode) => {
@@ -73,12 +71,12 @@ export function ToothSurfacePicker({
     // In fault mode a face not ordered is only drawn.
     const pick = state === "blank" ? undefined : onPick;
     const name = surfaceName(code);
-    const shade = state === "off" || state === "blank" || !shades ? undefined : shades[code]?.trim() || "?";
+    const shade = state === "off" || state === "blank" || !shades ? undefined : shades[code]?.trim() || undefined;
     const [x, nameY, shadeY] = shape.labels[slot];
     const fitted = shade === undefined ? undefined : fitShade(shade, slot);
-    const className = ["tsp-face", `tsp-face--${state}`, missing?.includes(code) && "tsp-face--missing"]
-      .filter(Boolean)
-      .join(" ");
+    // BA picker mock (R-1154): a picked face reads white with a tick, under its name or beside it over its Màu.
+    const ticked = !faultMode && (state === "on" || state === "active");
+    const className = ["tsp-face", `tsp-face--${state}`].join(" ");
     const handleKey = (event: KeyboardEvent) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
@@ -102,12 +100,22 @@ export function ToothSurfacePicker({
         ) : (
           <polygon points={outerFace(slot, shape.hub)} clipPath={`url(#${clipId})`} />
         )}
-        <text x={x} y={shade ? nameY : (nameY + shadeY) / 2} className="tsp-name">
+        <text x={x} y={fitted || ticked ? nameY : (nameY + shadeY) / 2} className="tsp-name">
           {name}
+          {ticked && fitted && (
+            <tspan className="tsp-tick" dx="2">
+              ✓
+            </tspan>
+          )}
         </text>
         {fitted && (
           <text x={x} y={shadeY} className={["tsp-shade", fitted.small && "tsp-shade--small"].filter(Boolean).join(" ")}>
             {fitted.text}
+          </text>
+        )}
+        {ticked && !fitted && (
+          <text x={x} y={shadeY} className="tsp-tick">
+            ✓
           </text>
         )}
       </g>
@@ -146,7 +154,6 @@ export function ToothSurfacePicker({
       </defs>
       {outer.map(face)}
       {center.map(face)}
-      <path d={shape.outline} className="tsp-outline" />
     </svg>
   );
 

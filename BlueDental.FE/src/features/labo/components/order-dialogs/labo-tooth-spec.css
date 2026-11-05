@@ -3,6 +3,7 @@
   --lts-line: #e5e7eb;
   --lts-line-soft: #f0f1f4;
   --lts-head: #f9fafb;
+  --lts-tooth-head: #eff6ff;
   --lts-text: #4b5563;
   --lts-muted: #6b7280;
   --lts-indigo: #4338ca;
@@ -145,6 +146,10 @@
 }
 .pd-lts-card:has(.pd-lts-body) > .pd-lts-head {
   background: var(--lts-head);
+}
+/* A tooth's header line, shut or open: light blue (BA, R-1154). Tất cả keeps its own. */
+.pd-lts-card:not(.pd-lts-card--all) > .pd-lts-head {
+  background: var(--lts-tooth-head);
 }
 .pd-lts-card--all > .pd-lts-head {
   background: var(--lts-indigo-pale);
