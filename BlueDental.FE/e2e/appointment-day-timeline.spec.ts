@@ -38,6 +38,11 @@ function at(day: string, time: string): string {
   return new Date(`${day}T${time}:00+07:00`).toISOString();
 }
 
+/** Laid-out pixels agree within one, whatever the browser rounds subpixels to. */
+function expectNear(actual: number, expected: number): void {
+  expect(Math.abs(actual - expected), `${actual} ≈ ${expected}`).toBeLessThanOrEqual(1);
+}
+
 /** The branch the calendar is showing, read off its own request. */
 async function openCalendarBranch(page: Page): Promise<string> {
   const request = page.waitForRequest(
@@ -47,7 +52,10 @@ async function openCalendarBranch(page: Page): Promise<string> {
   return (await request).headers()["x-clinic-branch-id"];
 }
 
-/** Books `dentistId` with the first patient the server accepts at that time; `content` is its Nội dung đặt lịch. */
+/**
+ * Books `dentistId` with the first patient the server accepts at that time; `content` is its Nội dung đặt lịch.
+ * `overlap` confirms the doctor's double-booking warning (R-971) the way Xác nhận does.
+ */
 async function book(
   page: Page,
   branchId: string,
@@ -55,6 +63,7 @@ async function book(
   slotStart: string,
   slotEnd: string,
   content = `e2e-timeline-${runId()}`,
+  overlap = false,
 ): Promise<Booking> {
   const patients = await call<{ items: { id: string; patientCode: string | null }[] }>(
     page, `/api/v1/app/patients?MaxResultCount=50&ClinicBranchId=${branchId}`, { branchId },
@@ -64,7 +73,11 @@ async function book(
     const res = await call<Booking>(page, APPOINTMENTS, {
       method: "POST",
       branchId,
-      json: { patientId: patient.id, dentistId, branchId, slotStart, slotEnd, type: 2, ...(content ? { chiefComplaint: content } : {}) },
+      json: {
+        patientId: patient.id, dentistId, branchId, slotStart, slotEnd, type: 2,
+        ...(content ? { chiefComplaint: content } : {}),
+        ...(overlap ? { allowDentistOverlap: true } : {}),
+      },
     });
     if (res.status === 200) return res.body;
     lastError = res.body.error;
@@ -212,6 +225,59 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     await expect(edit).toBeHidden();
     await expect(column.locator(".dtl-block-note")).toHaveText(updated);
     await expect(column.locator(".dtl-block").filter({ hasNot: page.locator(".dtl-block-note") })).toHaveCount(1);
+  });
+
+  test("only bookings that overlap share the column: a lone one takes the whole width, one with free lanes beside it widens into them", async ({ page }) => {
+    // R-1147, BA 2026-11-05: "Mấy lịch không trùng khung giờ có thể bung hết view".
+    const day = shiftDays(clinicToday(), 11);
+    const id = runId();
+    // 09:00–10:00 three deep (lanes 0, 1, 2); the 09:30 one takes lane 1 once its 09:00–09:30 owner is done
+    // and widens over lane 2, whose 09:00–09:15 booking is over by then. 11:00 overlaps nobody.
+    const layout = [
+      { key: "long", from: "09:00", to: "10:00" },
+      { key: "half", from: "09:00", to: "09:30" },
+      { key: "quarter", from: "09:00", to: "09:15" },
+      { key: "late", from: "09:30", to: "10:00" },
+      { key: "lone", from: "11:00", to: "11:30" },
+    ];
+    for (const { key, from, to } of layout) {
+      const booking = await book(page, branchId, working.id, at(day, from), at(day, to), `${key}-${id}`, true);
+      bookings.push(booking.id);
+    }
+
+    await openDay(page, day);
+    const column = page.locator(".dtl-col").filter({ hasText: workingName });
+    await expect(column.locator(".dtl-block")).toHaveCount(layout.length);
+    const track = await column.locator(".dtl-track").boundingBox();
+    if (!track) throw new Error("the doctor's column is not laid out");
+    const box = async (key: string) => {
+      const found = await column.locator(".dtl-block").filter({ hasText: `${key}-${id}` }).boundingBox();
+      if (!found) throw new Error(`block ${key} is not laid out`);
+      return found;
+    };
+    // Each block keeps a 3px gutter on both sides of its lanes.
+    const lanesWide = (lanes: number, of: number) => (track.width * lanes) / of - 6;
+
+    const lone = await box("lone");
+    expectNear(lone.width, lanesWide(1, 1));
+    expectNear(lone.x, track.x + 3);
+
+    const long = await box("long");
+    const half = await box("half");
+    const quarter = await box("quarter");
+    for (const third of [long, half, quarter]) expectNear(third.width, lanesWide(1, 3));
+    expect([long.x, half.x, quarter.x]).toEqual([...[long.x, half.x, quarter.x]].sort((a, b) => a - b));
+
+    const late = await box("late");
+    expectNear(late.x, half.x);
+    expectNear(late.width, lanesWide(2, 3));
+
+    // The column is still wide enough for three readable lanes.
+    expect(track.width).toBeGreaterThanOrEqual(3 * 110 - 1);
+
+    await page.reload();
+    await expect(column.locator(".dtl-block")).toHaveCount(layout.length);
+    expectNear((await box("lone")).width, lanesWide(1, 1));
   });
 
   test("clicking an empty slot opens Tạo lịch hẹn for that doctor and time", async ({ page }) => {

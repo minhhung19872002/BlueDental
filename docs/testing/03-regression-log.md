@@ -13684,3 +13684,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - File cho máy lễ tân: `deploy/clinic-pc/bat-am-thanh-duchanhpremium.reg` (HKLM Chrome + Edge `AutoplayAllowlist` "1" = https://duchanhpremium.vn) và file gỡ `go-am-thanh-duchanhpremium.reg`. Chạy bằng quyền admin, rồi đóng hẳn trình duyệt và mở lại.
   - E2E: init script đổi thành `noClickYet("blocked" | "allowed")`. `countChimes` bỏ qua lần phát volume 0. Thêm test "a browser that lets the site play sound shows no muted bell, and rings with no click": không 🔕, `hasBeenActive` vẫn false, Mời lên → đúng 1 lần phát thật, không nhấp nháy. Code cũ sẽ đỏ test này vì 🔕 chỉ mất sau click.
   - Kết quả: build production (preview :8155, host riêng :5145, DB thật, không chặn API) → `reception-arrival-call` **5/5 xanh**. `tsc` và `eslint` sạch.
+
+## R-1147 (2026-11-05, mức 2: Lịch hẹn — view Ngày, timeline bác sĩ theo cột, main)
+
+- **Yêu cầu** (BA, ảnh chụp `/calendar` view Ngày): "Mấy lịch không trùng khung giờ có thể bung hết view được không?". Ở cột một bác sĩ, chỉ cần có một chỗ trùng 2 lịch là mọi lịch trong ngày của bác sĩ đó đều chỉ rộng 1/2 cột, kể cả lịch đứng một mình. Owner chọn làm cả hai mức: chia làn theo cụm và kéo dài sang làn trống.
+- **Nguyên nhân**: `placeBlocks` (`day-timeline/timelineLayout.ts`) đếm **một** số làn cho cả ngày của bác sĩ (`laneCount`). CSS chia bề ngang mọi block theo `--dtl-lanes` của cột.
+- **Code** (chỉ FE):
+  - `timelineLayout.ts`: gom các lịch chồng giờ nhau (trực tiếp hoặc nối qua lịch khác) thành cụm. Trong mỗi cụm, xếp vào làn trống đầu tiên như trước. Mỗi block nhận `lanes` = số làn của cụm mình, và `span` = số làn nó phủ: block được kéo sang phải chừng nào làn bên phải còn trống suốt thời gian nó chạy. `laneCount` của cột = số làn lớn nhất trong các cụm, vẫn dùng cho bề rộng cột (mỗi làn tối thiểu 110px).
+  - `TimelineBlock.tsx`: truyền thêm `--dtl-block-lanes`, `--dtl-block-span`.
+  - `calendar.css` `.dtl-block`: `left`/`width` tính theo `--dtl-block-lanes` và `--dtl-block-span` thay cho `--dtl-lanes` của cột.
+  - Lịch đứng một mình rộng hết cột. Cụm trùng giờ vẫn chia làn, không lịch nào che lịch nào. View Tuần/Tháng không đổi.
+- **Kiểm thử** (bản build production `vite preview` :8097 build từ working tree, API :5000, DB thật, không chặn API):
+  - `e2e/appointment-day-timeline.spec.ts` **8/8** (7 test cũ + 1 test mới). Test mới tạo qua API thật (`allowDentistOverlap` như khi bấm Xác nhận) 5 lịch cho một bác sĩ: 09:00–10:00, 09:00–09:30, 09:00–09:15 (3 làn), 09:30–10:00 (vào làn 2, kéo sang làn 3 vì lịch 09:00–09:15 đã xong), 11:00–11:30 (đứng riêng). Đo bounding box: ba lịch 09:00 mỗi lịch rộng 1/3 cột, lịch 09:30 rộng 2/3 và thẳng mép trái làn 2, lịch 11:00 rộng hết cột. Cột vẫn rộng ≥ 3×110px. Reload xong kết quả giữ nguyên.
+  - Helper `book()` có thêm tham số `overlap`. Các test cũ không truyền tham số này nên không đổi hành vi.
+  - `tsc -b` và eslint sạch.
+  - Chưa chạy test mới trên bản build HEAD cũ để thấy nó đỏ. Về logic thì code cũ cho lịch 11:00 rộng 1/3 cột, nên test sẽ đỏ.
+- **Mức retest**: 2 (layout trong một feature, không đổi API).
