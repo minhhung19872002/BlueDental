@@ -136,7 +136,7 @@ export const EventCard = React.memo(function EventCard({
 
   return (
     <div
-      className={["evt-card", selected && "evt-card--selected"].filter(Boolean).join(" ")}
+      className={["evt-card", selected && "evt-card--selected", appointment.isFlagged && "bd-rgb-ring"].filter(Boolean).join(" ")}
       style={{
         "--evt-border": look.border,
         "--evt-bg": look.bg,

@@ -1084,6 +1084,66 @@ public class AppointmentTests
         Assert.NotNull(sameDoctor.InvitedAt);
     }
 
+    [Fact]
+    public void Flagging_Should_Mark_The_Visit_And_Remember_Who_And_When()
+    {
+        var appointment = NewAppointment();
+        var flaggedBy = Guid.NewGuid();
+
+        appointment.Flag(flaggedBy);
+
+        Assert.True(appointment.IsFlagged);
+        Assert.Equal(flaggedBy, appointment.FlaggedById);
+        Assert.NotNull(appointment.FlaggedAt);
+    }
+
+    [Fact]
+    public void Flagging_Again_Should_Keep_The_First_Flag()
+    {
+        var appointment = NewAppointment();
+        var first = Guid.NewGuid();
+        appointment.Flag(first);
+        var firstAt = appointment.FlaggedAt;
+
+        appointment.Flag(Guid.NewGuid());
+
+        Assert.Equal(first, appointment.FlaggedById);
+        Assert.Equal(firstAt, appointment.FlaggedAt);
+    }
+
+    [Fact]
+    public void Unflagging_Should_Clear_The_Flag_And_Be_Harmless_When_None()
+    {
+        var flagged = NewAppointment();
+        flagged.Flag(Guid.NewGuid());
+        flagged.Unflag();
+
+        var plain = NewAppointment();
+        plain.Unflag();
+
+        Assert.False(flagged.IsFlagged);
+        Assert.Null(flagged.FlaggedAt);
+        Assert.Null(flagged.FlaggedById);
+        Assert.False(plain.IsFlagged);
+    }
+
+    [Fact]
+    public void A_Flag_Should_Not_Move_The_Visit_And_Any_Status_Should_Take_One()
+    {
+        var waiting = NewAppointment();
+        waiting.CheckIn();
+        waiting.Flag(Guid.NewGuid());
+
+        var cancelled = NewAppointment();
+        cancelled.Cancel(CancellationReason.PatientRequest, "sick");
+        cancelled.Flag(Guid.NewGuid());
+
+        Assert.Equal(AppointmentStatus.CheckedIn, waiting.Status);
+        Assert.NotNull(waiting.CheckedInAt);
+        Assert.True(cancelled.IsFlagged);
+        Assert.Equal(AppointmentStatus.Cancelled, cancelled.Status);
+    }
+
     private Appointment NewAppointment() =>
         new(Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot, AppointmentType.Consultation);
 }

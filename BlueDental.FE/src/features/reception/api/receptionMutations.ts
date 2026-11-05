@@ -50,6 +50,13 @@ export function useCancelReception() {
   });
 }
 
+export function useSetReceptionFlag() {
+  return useMutation({
+    mutationFn: ({ id, flagged }: { id: string; flagged: boolean }) => receptionApi.setFlag(id, flagged),
+    meta: INVALIDATES_APPOINTMENTS,
+  });
+}
+
 export function useAssignReceptionDentist() {
   return useMutation({
     mutationFn: ({ id, dentistId }: { id: string; dentistId: string }) =>

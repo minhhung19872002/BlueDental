@@ -9053,3 +9053,75 @@ html:has(.ant-modal-wrap) {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Flagged visit: a rainbow running round the edge ─────────────────────────
+   "Đặt cờ" on a reception card (R-1150) singles the visit out everywhere it
+   shows — the Tiếp nhận card, its booking on Lịch hẹn, its row and the round
+   button of the floating "Đã đến" panel. The ring is drawn by ::after over the
+   element's own border, keeping its border-radius, so it works on a card, a
+   calendar block or a circle alike. `--bd-rgb-width` sets how thick it is.
+   `:where()` keeps `position: relative` from beating a block that is already
+   positioned (the day timeline's blocks are absolute). */
+@property --bd-rgb-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+:root {
+  --bd-rgb-ring: conic-gradient(
+    from var(--bd-rgb-angle),
+    #ff2d55, #ff9500, #ffd60a, #34c759, #00c7be, #0a84ff, #bf5af2, #ff2d55
+  );
+}
+
+:where(.bd-rgb-ring) {
+  position: relative;
+}
+
+.bd-rgb-ring {
+  animation: bd-rgb-glow 3s linear infinite;
+}
+
+.bd-rgb-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: var(--bd-rgb-width, 2px);
+  border-radius: inherit;
+  background: var(--bd-rgb-ring);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: bd-rgb-spin 3s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes bd-rgb-spin {
+  to {
+    --bd-rgb-angle: 360deg;
+  }
+}
+
+/* The glow follows the colour passing the top edge. */
+@keyframes bd-rgb-glow {
+  0%, 100% { box-shadow: 0 0 12px 1px rgb(255 45 85 / 45%); }
+  17% { box-shadow: 0 0 12px 1px rgb(255 149 0 / 45%); }
+  33% { box-shadow: 0 0 12px 1px rgb(52 199 89 / 45%); }
+  50% { box-shadow: 0 0 12px 1px rgb(0 199 190 / 45%); }
+  67% { box-shadow: 0 0 12px 1px rgb(10 132 255 / 45%); }
+  83% { box-shadow: 0 0 12px 1px rgb(191 90 242 / 45%); }
+}
+
+/* Still a rainbow edge, just not a moving one. */
+@media (prefers-reduced-motion: reduce) {
+  .bd-rgb-ring,
+  .bd-rgb-ring::after {
+    animation: none;
+  }
+  .bd-rgb-ring {
+    box-shadow: 0 0 10px 1px rgb(10 132 255 / 35%);
+  }
+}

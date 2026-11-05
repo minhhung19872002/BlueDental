@@ -10,6 +10,8 @@ interface ArrivalCallDockButtonProps {
   soundOff: boolean;
   /** A chime was blocked and its patient still waits: the button blinks. */
   missedChime: boolean;
+  /** A listed patient carries the reception card's flag: the button runs the rainbow ring. */
+  flagged: boolean;
   onToggle: () => void;
 }
 
@@ -23,6 +25,7 @@ export const ArrivalCallDockButton: React.FC<ArrivalCallDockButtonProps> = ({
   badgeCount,
   soundOff,
   missedChime,
+  flagged,
   onToggle,
 }) => {
   const soundOffHint = t("Reception:ArrivalCallSoundOff");
@@ -30,6 +33,7 @@ export const ArrivalCallDockButton: React.FC<ArrivalCallDockButtonProps> = ({
     "arrival-dock-button",
     open && "arrival-dock-button--open",
     missedChime && !open && "arrival-dock-button--missed",
+    flagged && "bd-rgb-ring",
   ]
     .filter(Boolean)
     .join(" ");

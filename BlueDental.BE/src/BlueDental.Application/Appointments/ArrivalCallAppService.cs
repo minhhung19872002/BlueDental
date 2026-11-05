@@ -171,6 +171,7 @@ public class ArrivalCallAppService(
                 Content = string.IsNullOrWhiteSpace(a.ChiefComplaint) ? a.Notes : a.ChiefComplaint,
                 CheckedInAt = a.CheckedInAt,
                 InvitedAt = a.InvitedAt,
+                IsFlagged = a.IsFlagged,
             };
         }).ToList();
     }

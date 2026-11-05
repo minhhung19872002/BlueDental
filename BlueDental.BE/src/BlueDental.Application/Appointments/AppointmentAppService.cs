@@ -18,6 +18,7 @@ using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
+using Volo.Abp.Users;
 
 namespace BlueDental.Appointments;
 
@@ -711,6 +712,33 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
         await _repository.UpdateAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
             AppointmentChangeAction.StatusChanged, appointment, before, await SnapshotAsync(appointment));
+        ArrivalBroadcast.AfterCommit(appointment.BranchId);
+        return await ToDtoAsync(appointment);
+    }
+
+    /// <summary>"Đặt cờ" on the reception card (owner 2026-11-05).</summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public Task<AppointmentDto> FlagAsync(Guid id)
+    {
+        var userId = CurrentUser.GetId();
+        return SetFlagAsync(id, a => a.Flag(userId));
+    }
+
+    /// <summary>"Gỡ cờ" on the reception card.</summary>
+    [Authorize(BlueDentalAbilityPermissions.Appointment.Update)]
+    public Task<AppointmentDto> UnflagAsync(Guid id) => SetFlagAsync(id, a => a.Unflag());
+
+    /// <summary>
+    /// The flag is a marker, not a change to the booking, so it leaves no row
+    /// in the appointment's change history. Every open board refetches, so
+    /// the rainbow border shows — or goes — on the other screens at once.
+    /// </summary>
+    private async Task<AppointmentDto> SetFlagAsync(Guid id, Action<Appointment> mark)
+    {
+        var appointment = await _repository.GetAsync(id);
+        GuardBranchAccess(appointment);
+        mark(appointment);
+        await _repository.UpdateAsync(appointment, autoSave: true);
         ArrivalBroadcast.AfterCommit(appointment.BranchId);
         return await ToDtoAsync(appointment);
     }

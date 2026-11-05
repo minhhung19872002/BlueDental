@@ -1745,3 +1745,53 @@
     display: none;
   }
 }
+
+/* ── "Đặt cờ" (R-1150): ⋮ in the top-left corner, as "Hủy lịch" sits top-right.
+   Once flagged the waving pennant stands on that corner instead, its pole on
+   the card's edge, and the card runs the shared rainbow ring. ─────────────── */
+.rc-flag {
+  position: absolute;
+  top: 3px;
+  left: 10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.rc-flag:focus-visible {
+  outline: 2px solid var(--bd-blue);
+  outline-offset: 2px;
+}
+/* Sits on the card's top edge, clear of the ticket row under it (owner
+   2026-11-05: inside the card it touched "BD…"). */
+.rc-flag--menu {
+  top: -8px;
+  width: 24px;
+  height: 24px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+  border: 1px solid var(--bd-border);
+  border-radius: 8px;
+  background: var(--bd-card);
+  color: var(--bd-muted);
+}
+.rc-flag--menu:hover {
+  background: var(--bd-bg-soft);
+  color: var(--bd-ink);
+}
+.rc-flag--on {
+  top: -20px;
+  left: 4px;
+}
+.rc-flag-img {
+  display: block;
+  width: auto;
+  height: 40px;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 25%));
+}
+.rc-card.bd-rgb-ring {
+  --bd-rgb-width: 3px;
+}

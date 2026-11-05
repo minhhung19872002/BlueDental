@@ -48,4 +48,7 @@ public class ArrivalCallDto
     public string? Content { get; set; }
     public DateTimeOffset? CheckedInAt { get; set; }
     public DateTimeOffset? InvitedAt { get; set; }
+
+    /// <summary>"Đặt cờ" on the reception card: the row glows on the panel too.</summary>
+    public bool IsFlagged { get; set; }
 }

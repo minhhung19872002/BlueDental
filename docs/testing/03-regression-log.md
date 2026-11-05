@@ -13742,3 +13742,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Mới `e2e/appointment-open-record.spec.ts` **3/3**: view Ngày bấm khối → URL hồ sơ, không mở dialog; view Ngày Lịch tạm → Tạo hồ sơ điền sẵn → Lưu → `attach-patient` 200, server `isTemporary=false`, reload bấm lại → hồ sơ mới; view Tuần tên Lịch tạm → Tạo hồ sơ điền sẵn, đóng không lưu thì vẫn là Lịch tạm.
   - Spec cũ đổi đường mở hộp sửa sang ⋮ → Cập nhật (fixture mới `e2e/fixtures/calendarBlock.ts`): `appointment-day-timeline`, `appointment-mini-cal-date`, `temp-booking-content`; cùng `appointment-patient-link`, `appointment-slot-pick`, `appointment-shown-hours`: **20/20**.
 - **Mức retest**: 2 (hành vi trong feature Lịch hẹn).
+
+## R-1150 (2026-11-05, mức 2: Tiếp nhận — "Đặt cờ" / "Gỡ cờ", viền RGB ở Tiếp nhận, Lịch hẹn và nút nổi "Đã đến", main)
+
+- **Yêu cầu** (owner, ảnh chụp + `docs/Red Pennant Flag Wave Animation.gif`): card tiếp nhận có nút đặt cờ và gỡ cờ. Card có cờ chạy viền RGB quanh thẻ. Lịch hẹn tương ứng ở trang Lịch hẹn và nút nổi "Mời lên / Đã đến" cũng chạy viền RGB.
+- **Thiết kế**:
+  - Cờ lưu ở server, vì bác sĩ và lễ tân phải thấy cùng một cờ trên mọi máy.
+  - Cờ chỉ là dấu hiệu: không đổi bước, trạng thái hay kết quả của lượt khám, và trạng thái nào cũng đặt được, kể cả đã huỷ.
+  - Đặt lại cờ trên một lượt đã có cờ thì giữ nguyên người đặt và thời điểm đặt đầu tiên. Gỡ cờ trên lượt không có cờ thì không làm gì.
+  - Không ghi vào lịch sử thay đổi lịch hẹn. ABP audit log vẫn ghi lại request.
+- **BE**:
+  - `Appointment.IsFlagged / FlaggedAt / FlaggedById`, method `Flag(userId)` / `Unflag()`. Migration `20261105082307_AppointmentFlagR1150` thêm 3 cột vào `bd_appointments`, cột bool mặc định false.
+  - `POST appointments/{id}/flag` và `/unflag`: cần `Appointment.Update`, có kiểm tra chi nhánh (`GuardBranchAccess`), sau khi commit thì phát `ArrivalsChanged`, nên mọi màn hình đang mở tự tải lại.
+  - `AppointmentDto.IsFlagged/FlaggedAt`, `ArrivalCallDto.IsFlagged`.
+  - Thêm key vi/en `Reception:FlagMenu / FlagSet / FlagClear / FlagSetSuccess / FlagClearSuccess / Flagged`.
+- **FE**:
+  - `ReceptionCardFlag`: nút ⋮ ở góc trái trên card (đối xứng nút "Hủy lịch") mở menu "Đặt cờ". Nút ngồi trên mép trên của card (`top: -8px`), cách hàng mã phiếu 13px; owner góp ý bản đầu nằm trong card, chạm sát hàng "BD…". Khi đã có cờ, lá cờ động thay chỗ ⋮ và mở menu "Gỡ cờ". Người không có `reception.update` chỉ thấy lá cờ, không có ⋮.
+  - Utility dùng chung `.bd-rgb-ring` (`index.css`): `::after` vẽ conic-gradient xoay quanh viền (biến `@property --bd-rgb-angle`), giữ bo góc của phần tử, kèm quầng sáng đổi màu. Độ dày đặt qua `--bd-rgb-width`. `prefers-reduced-motion` thì viền đứng yên.
+  - Viền gắn vào: card tiếp nhận (3px), `EventCard` view Tuần, `TimelineBlock` view Ngày, dòng trong panel "Đã đến", và nút tròn khi panel đang có bệnh nhân có cờ (3px). View Tháng chỉ có số đếm nên không có chỗ gắn viền.
+  - Ảnh cờ: GIF của owner có nền carô in cứng (chỉ phần lề ngoài là trong suốt). Mình tách nền bằng Pillow (bỏ pixel xám trung tính sáng, gỡ màu viền răng cưa), cắt sát lá cờ và xuất APNG 118×120, 9 khung hình, 160ms/khung: `public/img/flags/red-pennant.png`, 92KB.
+- **Kiểm thử**:
+  - BE (container `dotnet/sdk:9.0`): `Domain.Tests` 1311/1311, có 4 test mới cho cờ. `Application.Tests` lọc Appointment 33/33, có thêm `FlagAsync/UnflagAsync` cần `Appointment.Update`.
+  - E2E `reception-flag` trên bản build production (preview :8147, API Docker :5000, DB thật, không chặn API), 2/2 xanh:
+    - Test 1: đặt cờ từ menu → toast, viền, lá cờ; server `isFlagged=true`, trạng thái không đổi; reload vẫn còn. "Đã đến" → nút nổi có viền, dòng trong panel có viền. `/calendar` view Ngày → block có viền. "Gỡ cờ" → hết viền ở card và nút nổi, server `isFlagged=false`, block trên lịch hết viền.
+    - Test 2: role chỉ có `reception.read`, `appointment.read`, `patient.read` → thấy lá cờ, không có ⋮, gọi `unflag` bị 403. Tài khoản chi nhánh 2 gọi `unflag` bị 403/404. Cờ vẫn còn.
+  - Hồi quy (cùng bản build, sau khi gộp R-1147..R-1149 của upstream): `appointment-day-timeline` 8, `appointment-patient-link` 2, `reception-arrival-call` 5, `reception-board-order` 2, `reception-temporary` 3 → tất cả xanh.
+  - `tsc -b`, `oxlint` (0 lỗi, chỉ cảnh báo cũ), `vitest` 3/3.
+  - Ngoài ra đã thử tay trên Vite dev, xem đủ card tiếp nhận, view Ngày, view Tuần, panel và nút nổi. Lượt khám dùng để thử đã được huỷ check-in, trả về trạng thái cũ.
+- **Mức retest**: 2, cộng hồi quy các màn hình phụ thuộc như trên, vì đổi `AppointmentDto` và thêm utility vào `index.css` (chỉ là class mới, không sửa rule cũ).

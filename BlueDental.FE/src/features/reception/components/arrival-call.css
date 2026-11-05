@@ -268,3 +268,8 @@ body:has(.arrival-panel) .scroll-top-button {
     inset-block-end: 92px;
   }
 }
+
+/* A listed patient is flagged on Tiếp nhận (R-1150): a thicker ring on the round button. */
+.arrival-dock-button.bd-rgb-ring {
+  --bd-rgb-width: 3px;
+}

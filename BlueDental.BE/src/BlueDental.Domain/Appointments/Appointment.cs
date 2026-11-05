@@ -64,6 +64,17 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public bool IsImported { get; private set; }
 
+    /// <summary>
+    /// "Đặt cờ" on the reception card: the visit is singled out for everyone
+    /// at the branch — its card on Tiếp nhận, its booking on Lịch hẹn and its
+    /// row on the floating "Đã đến" panel all run a moving rainbow border
+    /// until someone presses "Gỡ cờ" (owner 2026-11-05). It is a marker only:
+    /// no step, booking or outcome depends on it.
+    /// </summary>
+    public bool IsFlagged { get; private set; }
+    public DateTimeOffset? FlaggedAt { get; private set; }
+    public Guid? FlaggedById { get; private set; }
+
     protected Appointment() { }
 
     public Appointment(
@@ -700,6 +711,29 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         }
 
         Notes = string.IsNullOrEmpty(text) ? null : text;
+        return this;
+    }
+
+    /// <summary>
+    /// "Đặt cờ". Any status takes one — a marker never moves the visit.
+    /// Flagging a flagged visit again keeps who flagged it first, and when.
+    /// </summary>
+    public Appointment Flag(Guid flaggedById)
+    {
+        if (IsFlagged) return this;
+
+        IsFlagged = true;
+        FlaggedAt = DateTimeOffset.UtcNow;
+        FlaggedById = flaggedById;
+        return this;
+    }
+
+    /// <summary>"Gỡ cờ". Clearing a visit that carries no flag changes nothing.</summary>
+    public Appointment Unflag()
+    {
+        IsFlagged = false;
+        FlaggedAt = null;
+        FlaggedById = null;
         return this;
     }
 

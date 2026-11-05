@@ -24,7 +24,7 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
   const actionLabelKey = needsRecord ? "Reception:ArrivalCallCreateRecord" : ACTION_LABEL_KEY[action];
 
   return (
-    <li className="arrival-row">
+    <li className={["arrival-row", item.isFlagged && "bd-rgb-ring"].filter(Boolean).join(" ")}>
       <div className="arrival-row-info">
         <div className="arrival-row-line arrival-row-name">
           <UserRound size={16} aria-hidden />

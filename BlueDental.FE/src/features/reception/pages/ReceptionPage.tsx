@@ -34,6 +34,7 @@ import {
 import {
   useUpdateReceptionStatus,
   useCancelReception,
+  useSetReceptionFlag,
   useAssignReceptionDentist,
   useSetReceptionOutcome,
 } from "../api/receptionMutations";
@@ -115,6 +116,7 @@ export const ReceptionPage: React.FC = () => {
   const cancelMutation = useCancelReception();
   const assignDentistMutation = useAssignReceptionDentist();
   const setOutcomeMutation = useSetReceptionOutcome();
+  const setFlagMutation = useSetReceptionFlag();
 
   const items = useMemo(
     () => orderForBoard(listData?.pages.flatMap((p) => p.items) ?? [], activeTab),
@@ -180,6 +182,17 @@ export const ReceptionPage: React.FC = () => {
       "undo-complete": t("Reception:UndoCompleteSuccess"),
     };
     runCommand(id, planStepClick(item, action), () => toast.success(labels[action]));
+  };
+
+  const handleFlagChange = (id: string, flagged: boolean) => {
+    markBusy(id);
+    setFlagMutation.mutate(
+      { id, flagged },
+      {
+        onSuccess: () => toast.success(t(flagged ? "Reception:FlagSetSuccess" : "Reception:FlagClearSuccess")),
+        onSettled: () => clearBusy(id),
+      },
+    );
   };
 
   const handleCancel = (id: string) => {
@@ -314,6 +327,7 @@ export const ReceptionPage: React.FC = () => {
                   canEditTags={patientAbility.canUpdate}
                   onStatusChange={ability.canUpdate ? handleStatusChange : undefined}
                   onCancel={ability.canUpdate ? handleCancel : undefined}
+                  onFlagChange={ability.canUpdate ? handleFlagChange : undefined}
                   onOutcomeChange={ability.canUpdate ? handleOutcomeChange : undefined}
                   onDoctorChange={ability.canUpdate ? handleDoctorChange : undefined}
                   onFollowUpClick={ability.canUpdate && ability.canCreate ? handleFollowUpClick : undefined}

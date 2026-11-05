@@ -88,6 +88,12 @@ namespace BlueDental.Migrations
                         .HasColumnType("text")
                         .HasColumnName("ExtraProperties");
 
+                    b.Property<DateTimeOffset?>("FlaggedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FlaggedById")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("FollowUpAppointmentId")
                         .HasColumnType("uuid");
 
@@ -102,6 +108,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("IsDeleted");
+
+                    b.Property<bool>("IsFlagged")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsImported")
                         .HasColumnType("boolean");

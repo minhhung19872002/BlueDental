@@ -33,6 +33,7 @@ export interface ServerAppointmentDto {
   color: string | null;
   creationTime: string;
   isTemporary: boolean;
+  isFlagged: boolean;
   sourceTaxonomyId: string | null;
   sourceEntryId: string | null;
   /** When each Tiếp nhận step was taken; null until it is. */
@@ -157,6 +158,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     color: dto.color,
     createdAt: dto.creationTime,
     isTemporary: dto.isTemporary,
+    isFlagged: dto.isFlagged,
     sourceTaxonomyId: dto.sourceTaxonomyId,
     sourceEntryId: dto.sourceEntryId,
     statusCode: dto.status,
