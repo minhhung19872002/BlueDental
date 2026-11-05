@@ -132,6 +132,8 @@ function countChimes() {
   Reflect.set(window, "__bdChimes", []);
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function () {
+    // The silent check of whether sound may play on load (R-1145) is no chime.
+    if (this.volume === 0) return play.call(this);
     const played: unknown = Reflect.get(window, "__bdChimes");
     const src = this.currentSrc || this.src;
     const result = play.call(this);
@@ -149,12 +151,14 @@ function countChimes() {
 }
 /**
  * Makes this browser act like Chrome on a fresh load or F5 (R-1145): no user
- * activation and audio refused until the first click or key press. Playwright's
- * own pages always report activation, so the state cannot happen otherwise.
- * Only the browser's activation flag and `play()` are touched; no API is.
+ * activation until the first click or key press. `blocked`: audio is refused
+ * until then too (Chrome's default). `allowed`: audio plays anyway, as on a
+ * site in the AutoplayAllowlist policy. Playwright's own pages always report
+ * activation, so neither state can happen otherwise. Only the browser's
+ * activation flag and `play()` are touched; no API is.
  * Install it before {@link countChimes} so the count sees the refusals.
  */
-function blockSoundUntilClick() {
+function noClickYet(sound: "blocked" | "allowed") {
   let active = false;
   const activate = () => (active = true);
   window.addEventListener("pointerdown", activate, true);
@@ -162,6 +166,7 @@ function blockSoundUntilClick() {
   Object.defineProperty(navigator, "userActivation", {
     get: () => ({ hasBeenActive: active, isActive: active }),
   });
+  if (sound === "allowed") return;
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function () {
     if (active) return play.call(this);
@@ -176,9 +181,9 @@ const chimesPlayed = (page: Page) =>
 const chimeCount = async (page: Page) => (await chimesPlayed(page)).length;
 
 /** A separate browser signed in as `userName` on the login screen, on `path`. */
-async function openAs(browser: Browser, userName: string, path: string, options: { soundBlocked?: boolean } = {}) {
+async function openAs(browser: Browser, userName: string, path: string, options: { noClick?: "blocked" | "allowed" } = {}) {
   const context = await browser.newContext();
-  if (options.soundBlocked) await context.addInitScript(blockSoundUntilClick);
+  if (options.noClick) await context.addInitScript(noClickYet, options.noClick);
   await context.addInitScript(countChimes);
   const page = await context.newPage();
   await login(page, { userName, password: RUN_STAFF_PASSWORD });
@@ -314,7 +319,7 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
     try {
       const doctor = await openAs(browser, fixture.doctor.userName, "/reception");
       // Reception just opened the page: no click yet, the list not opened.
-      const receptionist = await openAs(browser, fixture.receptionist.userName, "/reception", { soundBlocked: true });
+      const receptionist = await openAs(browser, fixture.receptionist.userName, "/reception", { noClick: "blocked" });
       sessions.push(doctor, receptionist);
       const desk = receptionist.page;
 
@@ -365,6 +370,50 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(dockButton(desk).locator(".arrival-dock-badge")).not.toHaveCount(0);
       expect(await chimeCount(desk), "no chime after a reload").toBe(0);
       await expect(dockButton(desk)).not.toHaveClass(/arrival-dock-button--missed/);
+    } finally {
+      for (const session of sessions) await session.context.close();
+      await tearDown(page, branchId, fixture);
+    }
+  });
+
+  test("a browser that lets the site play sound shows no muted bell, and rings with no click (R-1145)", async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(240_000);
+    await login(page);
+    const branchId = await openBoard(page);
+    const fixture = await setUp(page, branchId);
+    const sessions: Awaited<ReturnType<typeof openAs>>[] = [];
+
+    try {
+      const doctor = await openAs(browser, fixture.doctor.userName, "/reception");
+      // F5 with the site in Chrome/Edge's AutoplayAllowlist: no click, yet sound may play.
+      const receptionist = await openAs(browser, fixture.receptionist.userName, "/reception", { noClick: "allowed" });
+      sessions.push(doctor, receptionist);
+      const desk = receptionist.page;
+
+      await expect(dockButton(desk)).toBeVisible();
+      await expect(mutedBell(desk), "the silent check found sound allowed").toHaveCount(0);
+      expect(await desk.evaluate(() => navigator.userActivation.hasBeenActive), "still no click").toBe(false);
+      expect(await chimeCount(desk), "the silent check is no chime").toBe(0);
+      await expect
+        .poll(() =>
+          desk.evaluate(() =>
+            performance.getEntriesByType("resource").some((entry) => entry.name.includes("/arrival-calls/invited")),
+          ),
+        )
+        .toBe(true);
+
+      // The call-up rings, really played, with no click on the page and no blink.
+      await dockButton(doctor.page).click();
+      await rowOf(doctor.page, fixture.ownVisit).getByRole("button", { name: "Mời lên" }).click();
+      await expect(doctor.page.getByText("Đã mời bệnh nhân lên")).toBeVisible();
+      await expect
+        .poll(() => chimesPlayed(desk), { message: "one chime, played", timeout: 15_000 })
+        .toEqual([expect.stringMatching(/^https?:\/\/[^/]+\/sounds\/invite-chime\.mp3$/)]);
+      await expect(dockButton(desk)).not.toHaveClass(/arrival-dock-button--missed/);
+      expect(await desk.evaluate(() => navigator.userActivation.hasBeenActive), "still no click").toBe(false);
     } finally {
       for (const session of sessions) await session.context.close();
       await tearDown(page, branchId, fixture);

@@ -13677,3 +13677,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Test 1 thêm: trình duyệt đã click thì không có 🔕.
   - `reception-arrival-call` **4/4 xanh**. Lần chạy cả bộ đầu tiên có 1 đỏ ở bước đóng context trong `finally`. Chạy riêng test đó xanh, chạy lại cả bộ 4/4 xanh.
 - **Mức retest**: 2.
+- **Bổ sung (cùng ngày, sau khi owner đặt policy `AutoplayAllowlist` cho Chrome/Edge)**: F5 vẫn thấy 🔕, vì code chỉ ẩn 🔕 sau click hoặc sau một lần kêu được.
+  - Sửa `chime.ts`: khi có người đầu tiên đăng ký nghe trạng thái âm, `probeAutoplay()` chạy một lần mỗi trang, thử phát chuông ở `volume = 0`. Nếu phát được thì tạm dừng ngay và coi như đã mở âm (🔕 không hiện). Nếu bị từ chối thì im lặng, 🔕 giữ nguyên tới khi click.
+  - Đã đo trên Chrome 155 thật, profile trắng: không cờ → `BLOCKED NotAllowedError`; có `--autoplay-policy=no-user-gesture-required` → `PLAYED`, `hasBeenActive` vẫn false. Chrome/Edge tính volume 0 là có tiếng; chỉ `muted` mới được miễn.
+  - Firefox lại cho phát im lặng (volume 0) mà không cần click, nên ở trình duyệt có `navigator.getAutoplayPolicy` thì hỏi trực tiếp, chỉ mở âm khi trả về `"allowed"`.
+  - File cho máy lễ tân: `deploy/clinic-pc/bat-am-thanh-duchanhpremium.reg` (HKLM Chrome + Edge `AutoplayAllowlist` "1" = https://duchanhpremium.vn) và file gỡ `go-am-thanh-duchanhpremium.reg`. Chạy bằng quyền admin, rồi đóng hẳn trình duyệt và mở lại.
+  - E2E: init script đổi thành `noClickYet("blocked" | "allowed")`. `countChimes` bỏ qua lần phát volume 0. Thêm test "a browser that lets the site play sound shows no muted bell, and rings with no click": không 🔕, `hasBeenActive` vẫn false, Mời lên → đúng 1 lần phát thật, không nhấp nháy. Code cũ sẽ đỏ test này vì 🔕 chỉ mất sau click.
+  - Kết quả: build production (preview :8155, host riêng :5145, DB thật, không chặn API) → `reception-arrival-call` **5/5 xanh**. `tsc` và `eslint` sạch.
