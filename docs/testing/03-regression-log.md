@@ -13798,3 +13798,12 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chụp ảnh so với mock ở 1600 / 1024 / 390px.
   - Đỏ có sẵn ở backend: chạy 2 worker song song thì `IX_bd_labo_orders_OrderCode` trùng → 500 (race sinh mã phiếu, có từ trước) → các spec Labo chạy 1 worker.
 - **Mức retest**: 2 (feature Labo, chỉ FE).
+
+## R-1153 (2026-11-05, mức 2: Labo Đặt hàng — hình răng hàm dưới nằm trên vòng mặt, Màu dài không tràn khỏi mặt, main)
+
+- **Yêu cầu** (owner, ảnh chụp R35/R16): ở thẻ từng răng của Đặt hàng, răng hàm dưới đang có hình răng nằm dưới vòng mặt; owner muốn hình luôn ở trên, **chỉ chỗ này**. Màu dài ("A4324343") tràn ra ngoài mặt Gần.
+- **Thiết kế**:
+  - `ToothSurfacePicker` thêm prop `picturePlacement` (`"jaw"` mặc định, giữ như sơ đồ răng; `"top"` luôn đặt hình trên vòng). Chỉ `LaboToothSpecCard` truyền `"top"`; Kiểm tra (`LaboToothFaultPicker`) và Bảo hành (`LaboWarrantyToothInfo`) không đổi. Hình răng hàm dưới vẫn xoay như cũ.
+  - `fitShade` (`toothShapes.ts`): mỗi mặt có bề rộng riêng (trên/dưới 60, giữa 46, Gần/Xa 27 đơn vị viewBox). Màu không vừa ở 10px thì xuống 8px (`.tsp-shade--small`); vẫn không vừa thì cắt kèm "…", và mặt đó có `<title>` "Mặt: màu đầy đủ". Ô Màu và tiêu đề thẻ vẫn hiện đủ.
+- **Kiểm thử**: build production :8090 → host :5152, DB thật. Spec chụp ảnh tạm (đã xoá) với R16 chọn Gần+Má, màu "A4324343", và R36 chọn Gần+Nhai, màu "A1/A2/A3": chữ màu nằm gọn trong mặt (Gần "A432…", Má đủ chữ), hình R36 ở trên vòng. `tsc -b` sạch. **Chưa chạy** regression `labo-workflow` / `plan-warranty-tab` (owner cho push develop trước khi chạy test).
+- **Mức retest**: 2 (component dùng chung chỉ có Labo dùng).

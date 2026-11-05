@@ -62,6 +62,7 @@ export function LaboToothSpecCard({ fdi, context, prior, open, onToggle }: Props
               marks={{ active: split ? active : undefined, missing: missingSurfaces(errors, picked) }}
               onPick={form.readOnly ? undefined : handlePick}
               onPickAll={form.readOnly ? undefined : handlePickAll}
+              picturePlacement="top"
             />
             {picked.length === 0 && <p className="pd-lts-nosurface">{t("Labo:Spec:NoSurface")}</p>}
             {!form.readOnly && <p className="pd-lts-hint">{t("Labo:Spec:SurfaceHint")}</p>}

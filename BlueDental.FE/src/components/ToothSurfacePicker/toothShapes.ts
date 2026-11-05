@@ -30,6 +30,31 @@ export const TOOTH_CIRCLE: ToothShape = {
   },
 };
 
+/** Width (viewBox units) a face's colour may take on its line without leaving the face. */
+const SHADE_ROOM: Record<ToothSurfaceSlot, number> = { top: 60, bottom: 60, center: 46, left: 27, right: 27 };
+/** Rough advance of one bold glyph at the .tsp-shade size and at .tsp-shade--small. */
+const GLYPH = 6.3;
+const GLYPH_SMALL = 5;
+
+export interface FittedShade {
+  text: string;
+  small: boolean;
+  /** The colour had to be cut: the face carries it whole in a tooltip. */
+  cut: boolean;
+}
+
+/**
+ * A long Màu (owner: "A43243" spilled over Gần) first takes the smaller size,
+ * then is cut with "…" so it never leaves its face.
+ */
+export function fitShade(shade: string, slot: ToothSurfaceSlot): FittedShade {
+  const room = SHADE_ROOM[slot];
+  if (shade.length * GLYPH <= room) return { text: shade, small: false, cut: false };
+  const fits = Math.floor(room / GLYPH_SMALL);
+  if (shade.length <= fits) return { text: shade, small: true, cut: false };
+  return { text: `${shade.slice(0, Math.max(1, fits - 1))}…`, small: true, cut: true };
+}
+
 /** An outer face: a triangle from the box's edge to the hub, cut by the outline. */
 export function outerFace(slot: Exclude<ToothSurfaceSlot, "center">, [x, y]: readonly [number, number]): string {
   const corners: Record<typeof slot, string> = {

@@ -1,7 +1,7 @@
 import { useId, type KeyboardEvent } from "react";
 import { t } from "@/lib/i18n";
 import { isMolar } from "@/components/ToothChart/toothModel";
-import { outerFace, TOOTH_CIRCLE as shape } from "./toothShapes";
+import { fitShade, outerFace, TOOTH_CIRCLE as shape } from "./toothShapes";
 import { slotOf, surfaceName, surfacesOf, type ToothSurfaceCode } from "./toothSurfaces";
 import "./tooth-surface-picker.css";
 
@@ -29,6 +29,11 @@ export interface ToothSurfacePickerProps {
   onPick?: (code: ToothSurfaceCode) => void;
   /** The tooth picture clicked: every surface at once (BA, R-1150). */
   onPickAll?: () => void;
+  /**
+   * "jaw" (default): a lower tooth's picture sits under the circle, as on the
+   * chart. "top": every tooth's picture sits over it (Labo Đặt hàng, owner).
+   */
+  picturePlacement?: "jaw" | "top";
 }
 
 /** Quadrants 1, 2, 5, 6: the crown hangs down over the circle, as on the chart. */
@@ -41,9 +46,18 @@ const isUpperTooth = (fdi: number) => [1, 2, 5, 6].includes(Math.floor(fdi / 10)
  * pressed to pick it; the picture picks all five (BA "chọn hình răng là chọn
  * tất cả các mặt"), or takes them all off when all five are on.
  */
-export function ToothSurfacePicker({ tooth, picked, shades, marks = {}, onPick, onPickAll }: ToothSurfacePickerProps) {
+export function ToothSurfacePicker({
+  tooth,
+  picked,
+  shades,
+  marks = {},
+  onPick,
+  onPickAll,
+  picturePlacement = "jaw",
+}: ToothSurfacePickerProps) {
   const clipId = useId();
   const upper = isUpperTooth(tooth);
+  const pictureFirst = upper || picturePlacement === "top";
   const { active, missing, faults } = marks;
   const faultMode = faults !== undefined;
 
@@ -61,6 +75,7 @@ export function ToothSurfacePicker({ tooth, picked, shades, marks = {}, onPick, 
     const name = surfaceName(code);
     const shade = state === "off" || state === "blank" || !shades ? undefined : shades[code]?.trim() || "?";
     const [x, nameY, shadeY] = shape.labels[slot];
+    const fitted = shade === undefined ? undefined : fitShade(shade, slot);
     const className = ["tsp-face", `tsp-face--${state}`, missing?.includes(code) && "tsp-face--missing"]
       .filter(Boolean)
       .join(" ");
@@ -81,6 +96,7 @@ export function ToothSurfacePicker({ tooth, picked, shades, marks = {}, onPick, 
         onClick={pick ? () => pick(code) : undefined}
         onKeyDown={pick ? handleKey : undefined}
       >
+        {fitted?.cut && <title>{`${name}: ${shade}`}</title>}
         {slot === "center" ? (
           <path d={shape.center} />
         ) : (
@@ -89,9 +105,9 @@ export function ToothSurfacePicker({ tooth, picked, shades, marks = {}, onPick, 
         <text x={x} y={shade ? nameY : (nameY + shadeY) / 2} className="tsp-name">
           {name}
         </text>
-        {shade && (
-          <text x={x} y={shadeY} className="tsp-shade">
-            {shade}
+        {fitted && (
+          <text x={x} y={shadeY} className={["tsp-shade", fitted.small && "tsp-shade--small"].filter(Boolean).join(" ")}>
+            {fitted.text}
           </text>
         )}
       </g>
@@ -136,8 +152,8 @@ export function ToothSurfacePicker({ tooth, picked, shades, marks = {}, onPick, 
 
   return (
     <div className={["tsp", faultMode && "tsp--fault-mode"].filter(Boolean).join(" ")}>
-      {upper ? picture : diagram}
-      {upper ? diagram : picture}
+      {pictureFirst ? picture : diagram}
+      {pictureFirst ? diagram : picture}
     </div>
   );
 }
