@@ -117,6 +117,8 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
             .ForMember(d => d.FinishLineName, opt => opt.Ignore())
             .ForMember(d => d.RhythmName, opt => opt.Ignore())
             .ForMember(d => d.BiteName, opt => opt.Ignore());
+        CreateMap<LaboToothSurface, LaboOrderToothSurfaceDto>()
+            .ForMember(d => d.FinishLineName, opt => opt.Ignore());
         CreateMap<LaboOrderRound, LaboOrderRoundDto>()
             .ForMember(d => d.ReceiverName, opt => opt.Ignore());
         CreateMap<LaboRoundToothResult, LaboRoundToothResultDto>();

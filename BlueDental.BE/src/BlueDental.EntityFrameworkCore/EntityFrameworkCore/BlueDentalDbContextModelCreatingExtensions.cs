@@ -817,6 +817,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.EstimatedCost).HasPrecision(18, 2);
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
             entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Property(x => x.SpecMode).HasConversion<short>().HasDefaultValue(LaboSpecMode.PerTooth);
             entity.Property(x => x.AttachmentUrl).HasMaxLength(500);
             entity.Property(x => x.ToothShade).HasMaxLength(100);
             // A child (Làm tiếp công đoạn / Bảo hành) keeps its parent's code,
@@ -852,6 +853,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.WarrantyCardCode).HasMaxLength(50);
             entity.Property(x => x.ManufacturerSerial).HasMaxLength(100);
             entity.Property(x => x.WarrantyConditions).HasMaxLength(1000);
+            // R-1150: Mặt răng, kept on the tooth row as JSON like a round's results.
+            entity.OwnsMany(x => x.Surfaces, s =>
+            {
+                s.ToJson();
+                s.Property(x => x.Code).HasMaxLength(1);
+                s.Property(x => x.Shade).HasMaxLength(100);
+            });
+            entity.Navigation(x => x.Surfaces).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.LaboOrderId, x.ToothNumber }).IsUnique();
         });
 

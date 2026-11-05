@@ -3,7 +3,7 @@ import { Form, Input } from "antd";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import type { LaboOrderDto } from "@/features/labo/api/laboApi";
-import { isBridge } from "./laboToothSpecs";
+import { DEFAULT_SPEC_MODE, isBridge } from "./laboToothSpecs";
 import { LaboPictureWell } from "./LaboPictureWell";
 import { LaboPriorOrderWarning } from "./LaboPriorOrderWarning";
 import { priorGroups, type LaboPriorTeeth } from "./laboPriorTeeth";
@@ -31,7 +31,7 @@ interface TeethProps {
  */
 export function LaboTeethField({ form, code, emptyTeeth, priors, onViewPrior }: TeethProps) {
   const teeth = useLaboValue(form.form, "teeth") ?? [];
-  const shared = useLaboValue(form.form, "sharedSpec") ?? false;
+  const mode = useLaboValue(form.form, "specMode") ?? DEFAULT_SPEC_MODE;
   const specs = useLaboValue(form.form, "specs");
   const rhythmName = (id: string) => form.options.rhythms.find((rhythm) => rhythm.value === id)?.label ?? "";
 
@@ -45,7 +45,7 @@ export function LaboTeethField({ form, code, emptyTeeth, priors, onViewPrior }: 
         rules={[{ type: "array", min: 1, message: t("Treatment:Tooth:ToothRequired") }]}
       >
         <LaboToothRow
-          bridge={isBridge(teeth, specs, shared, rhythmName)}
+          bridge={isBridge(teeth, specs, mode, rhythmName)}
           code={code}
           empty={emptyTeeth}
           readOnly={form.readOnly}
@@ -62,16 +62,18 @@ interface SpecsProps {
   form: LaboOrderForm;
   /** While Lưu nháp / Gửi Labo is uploading. */
   busy: boolean;
+  /** The teeth already on another order of the slip: their cards wear the orange dot. */
+  priors: LaboPriorTeeth;
 }
 
 /**
- * The right column of the Labo 1 mock: Thông số từng răng, then Nội dung
- * beside the common pictures — none required (REQ-C3).
+ * The right column of the Labo v2 mock: Thông số từng răng, then Nội dung
+ * beside the common pictures — the only pictures an order takes now (R-1150).
  */
-export function LaboOrderSpecs({ form, busy }: SpecsProps) {
+export function LaboOrderSpecs({ form, busy, priors }: SpecsProps) {
   return (
     <>
-      <LaboToothSpecTable form={form} busy={busy} />
+      <LaboToothSpecTable form={form} priors={priors} />
 
       <div className="pd-labo-extras">
         <div className="pd-labo-notes">
@@ -80,7 +82,9 @@ export function LaboOrderSpecs({ form, busy }: SpecsProps) {
           </FloatingField>
         </div>
         <div className="pd-labo-row pd-labo-row--common">
-          <p className="pd-labo-row-label">{t("Labo:Workflow:CommonImages")}</p>
+          <p className="pd-labo-row-label">
+            {t("Labo:Workflow:CommonImages")} <span className="pd-labo-row-hint">{t("Labo:Workflow:CommonImagesHint")}</span>
+          </p>
           <LaboPictureWell
             tiles={form.tilesOf("common")}
             busy={busy}

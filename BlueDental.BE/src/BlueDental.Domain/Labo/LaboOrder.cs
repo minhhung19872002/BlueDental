@@ -79,8 +79,8 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public string? ToothShade { get; private set; }
 
-    /// <summary>"Dùng chung 1 thông số cho tất cả răng" was ticked.</summary>
-    public bool SharedSpec { get; private set; }
+    /// <summary>Thông số răng / Màu răng Chung or Riêng (R-1150; was the SharedSpec tick).</summary>
+    public LaboSpecMode SpecMode { get; private set; } = LaboSpecMode.PerTooth;
 
     /// <summary>Số lượng. Always at least one unit of work.</summary>
     public int Quantity { get; private set; } = 1;
@@ -189,10 +189,15 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.OrderIncomplete);
         }
 
-        var missing = _teeth.FirstOrDefault(t => !t.HasRequiredSpec);
-        if (missing is not null)
+        var noSurface = _teeth.FirstOrDefault(t => t.Surfaces.Count == 0);
+        if (noSurface is not null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothSurfaceMissing)
+                .WithData("tooth", noSurface.ToothNumber);
+
+        var noShade = _teeth.FirstOrDefault(t => !t.HasShade);
+        if (noShade is not null)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothSpecIncomplete)
-                .WithData("tooth", missing.ToothNumber);
+                .WithData("tooth", noShade.ToothNumber);
 
         Status = LaboStatus.Sent;
         return this;
@@ -389,21 +394,26 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// Thông số từng răng. A caller that sends no rows (pre-P3110) gives every
-    /// tooth the order-level values (G8). The order-level columns then mirror
-    /// the first tooth.
+    /// tooth the order-level values (G8) and leaves its surfaces as they were.
+    /// Otherwise the mode decides what is shared (R-1150): Chung thông số
+    /// copies the first row's Đường hoàn tất and Kiểu nhịp to every tooth,
+    /// chung màu its Màu răng too. Khớp cắn is the order's and goes to every
+    /// tooth. The order-level Màu / Đường hoàn tất / Kiểu nhịp then mirror the
+    /// first tooth.
     /// </summary>
     private void SetToothSpecs(LaboOrderDetails details)
     {
-        SharedSpec = details.SharedSpec;
+        SpecMode = Enum.IsDefined(details.SpecMode) ? details.SpecMode : LaboSpecMode.PerTooth;
+        BiteId = details.BiteId;
         var specs = details.ToothSpecs?.GroupBy(s => s.ToothNumber).ToDictionary(g => g.Key, g => g.Last());
-        foreach (var tooth in _teeth)
+        if (specs is null)
         {
-            if (specs is null)
-                tooth.SetSpec(details.ToothShade, details.FinishLineId, details.RhythmId, details.BiteId, null);
-            else if (specs.TryGetValue(tooth.ToothNumber, out var spec))
-                tooth.SetSpec(spec.Shade, spec.FinishLineId, spec.RhythmId, spec.BiteId, spec.LabNote);
-            else
-                tooth.SetSpec(null, null, null, null, null);
+            foreach (var tooth in _teeth)
+                tooth.SetSpec(details.ToothShade, details.FinishLineId, details.RhythmId, BiteId);
+        }
+        else
+        {
+            SetModeSpecs(details.Teeth, specs);
         }
 
         var first = details.Teeth.Count == 0 ? null : ToothOf(details.Teeth[0]);
@@ -413,14 +423,26 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
             ToothShade = specs is null ? Blank(details.ToothShade) : null;
             FinishLineId = specs is null ? details.FinishLineId : null;
             RhythmId = specs is null ? details.RhythmId : null;
-            BiteId = specs is null ? details.BiteId : null;
             return;
         }
 
         ToothShade = first.Shade;
         FinishLineId = first.FinishLineId;
         RhythmId = first.RhythmId;
-        BiteId = first.BiteId;
+    }
+
+    private void SetModeSpecs(IReadOnlyList<int> picked, Dictionary<int, LaboToothSpec> specs)
+    {
+        var lead = picked.Select(n => specs.GetValueOrDefault(n)).FirstOrDefault(s => s is not null);
+        var sharedSpec = SpecMode != LaboSpecMode.PerTooth;
+        var sharedShade = SpecMode == LaboSpecMode.SharedAll;
+        foreach (var tooth in _teeth)
+        {
+            var own = specs.GetValueOrDefault(tooth.ToothNumber);
+            var spec = sharedSpec ? lead : own;
+            tooth.SetSpec(sharedShade ? lead?.Shade : own?.Shade, spec?.FinishLineId, spec?.RhythmId, BiteId);
+            tooth.SetSurfaces(own?.Surfaces ?? [], !sharedShade && (own?.ShadeBySurface ?? false), !sharedSpec);
+        }
     }
 
     /// <summary>Ngày gửi / Ngày nhận dự kiến are days (P3110): kept as the clinic's midnight.</summary>

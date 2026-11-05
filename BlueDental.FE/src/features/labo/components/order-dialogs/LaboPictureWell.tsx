@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import { PlusOutlined } from "@ant-design/icons";
 import { ImagePlus } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { IMAGE_ACCEPT } from "@/utils/validateImageFile";
@@ -17,12 +16,10 @@ interface Props {
    */
   readOnly?: boolean;
   /**
-   * "cell" is the Ảnh column of Thông số từng răng (P3110 m139): 28px
-   * thumbnails and a small dashed "+" in place of the 110px well. "defect"
-   * is a Lỗi tooth's Hình ảnh lỗi: a square dashed tile reading `label`, the
-   * square thumbnails beside it (P3110 m278, P0111_02 R-1113).
+   * "defect" is a Lỗi tooth's Hình ảnh lỗi: a square dashed tile reading
+   * `label`, the square thumbnails beside it (P3110 m278, P0111_02 R-1113).
    */
-  variant?: "well" | "cell" | "defect";
+  variant?: "well" | "defect";
   /** The text of the "defect" tile, e.g. "2/5". */
   label?: string;
   /** The accessible name of the "defect" tile, e.g. "Tải ảnh lỗi R12". */
@@ -39,7 +36,6 @@ interface Props {
  * that picture; the well takes several files at once.
  */
 export function LaboPictureWell({ tiles, busy, readOnly, variant = "well", label, addLabel, onAdd, onRemove }: Props) {
-  const cell = variant === "cell";
   const defect = variant === "defect";
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -61,12 +57,11 @@ export function LaboPictureWell({ tiles, busy, readOnly, variant = "well", label
           />
           <button
             type="button"
-            className={cell ? "pd-labo-cellwell" : defect ? "pd-labo-defectwell" : "pd-labo-well"}
+            className={defect ? "pd-labo-defectwell" : "pd-labo-well"}
             disabled={busy}
-            aria-label={cell ? t("Patient:Photo:Upload") : addLabel}
+            aria-label={addLabel}
             onClick={() => fileInput.current?.click()}
           >
-            {cell && <PlusOutlined />}
             {defect && (
               <>
                 <ImagePlus size={20} aria-hidden />

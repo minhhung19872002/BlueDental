@@ -4101,8 +4101,10 @@ namespace BlueDental.Migrations
                     b.Property<DateTimeOffset?>("SentAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("SharedSpec")
-                        .HasColumnType("boolean");
+                    b.Property<short>("SpecMode")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)3);
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
@@ -4227,6 +4229,9 @@ namespace BlueDental.Migrations
                     b.Property<string>("Shade")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("ShadeBySurface")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("ToothNumber")
                         .HasColumnType("integer");
@@ -11634,6 +11639,39 @@ namespace BlueDental.Migrations
                         .HasForeignKey("LaboOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.OwnsMany("BlueDental.Labo.LaboToothSurface", "Surfaces", b1 =>
+                        {
+                            b1.Property<Guid>("LaboOrderToothId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Code")
+                                .IsRequired()
+                                .HasMaxLength(1)
+                                .HasColumnType("character varying(1)");
+
+                            b1.Property<Guid?>("FinishLineId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Shade")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)");
+
+                            b1.HasKey("LaboOrderToothId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_labo_order_teeth");
+
+                            b1.ToJson("Surfaces");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboOrderToothId");
+                        });
+
+                    b.Navigation("Surfaces");
                 });
 
             modelBuilder.Entity("BlueDental.Marketing.TicketActivity", b =>

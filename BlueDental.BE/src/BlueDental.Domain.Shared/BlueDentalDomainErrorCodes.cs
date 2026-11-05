@@ -594,8 +594,12 @@ public static class BlueDentalDomainErrorCodes
         public const string TreatmentServiceMismatch = "BlueDental:Labo:0032";
         /// <summary>Hoàn thành of a service line while its labo order has not passed QC.</summary>
         public const string ServiceLockedByLabo = "BlueDental:Labo:0033";
-        /// <summary>Gửi Labo while a tooth lacks Màu răng or Đường hoàn tất; data "tooth" names it.</summary>
+        /// <summary>Gửi Labo while a tooth (or one of its split surfaces) lacks Màu răng; data "tooth" names it.</summary>
         public const string ToothSpecIncomplete = "BlueDental:Labo:0034";
+        /// <summary>Gửi Labo while a tooth has no Mặt răng picked (R-1150); data "tooth" names it.</summary>
+        public const string ToothSurfaceMissing = "BlueDental:Labo:0038";
+        /// <summary>A Mặt răng code the tooth does not have (I/F on a molar, O/B on an incisor); data "tooth", "surface".</summary>
+        public const string ToothSurfaceInvalid = "BlueDental:Labo:0039";
         /// <summary>Trả hàng while a Lỗi tooth has no Mô tả gửi Labo (P3110 REQ-D6); data "tooth" names it.</summary>
         public const string DefectDescriptionRequired = "BlueDental:Labo:0035";
         /// <summary>Ảnh thẻ for a tooth not being activated, or two of one face (P3110 REQ-E1).</summary>

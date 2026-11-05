@@ -223,7 +223,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         // the labo service a material belongs to ("BE:LaboField:CurrentService").
         var taxonomyIds = entities
             .SelectMany(o => new[] { o.BiteId, o.FinishLineId, o.RhythmId }
-                .Concat(o.Teeth.SelectMany(t => new[] { t.BiteId, t.FinishLineId, t.RhythmId })))
+                .Concat(o.Teeth.SelectMany(t => new[] { t.BiteId, t.FinishLineId, t.RhythmId }
+                    .Concat(t.Surfaces.Select(s => s.FinishLineId)))))
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
             .Concat(materials.Values.Select(m => m.TaxonomyId))
@@ -290,6 +291,10 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                 tooth.BiteName = tooth.BiteId.HasValue ? taxonomies.GetValueOrDefault(tooth.BiteId.Value) : null;
                 tooth.FinishLineName = tooth.FinishLineId.HasValue ? taxonomies.GetValueOrDefault(tooth.FinishLineId.Value) : null;
                 tooth.RhythmName = tooth.RhythmId.HasValue ? taxonomies.GetValueOrDefault(tooth.RhythmId.Value) : null;
+                foreach (var surface in tooth.Surfaces)
+                    surface.FinishLineName = surface.FinishLineId.HasValue
+                        ? taxonomies.GetValueOrDefault(surface.FinishLineId.Value)
+                        : null;
             }
 
             if (entity.TreatmentServiceId.HasValue &&
@@ -683,9 +688,12 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             RhythmId = input.RhythmId,
             Teeth = input.Teeth,
             ToothSpecs = input.ToothSpecs?
-                .Select(s => new LaboToothSpec(s.ToothNumber, s.Shade, s.FinishLineId, s.RhythmId, s.BiteId, s.LabNote))
+                .Select(s => new LaboToothSpec(
+                    s.ToothNumber, s.Shade, s.FinishLineId, s.RhythmId,
+                    (s.Surfaces ?? []).Select(f => new LaboToothSurface(f.Code, f.Shade, f.FinishLineId)).ToList(),
+                    s.ShadeBySurface))
                 .ToList(),
-            SharedSpec = input.SharedSpec,
+            SpecMode = input.SpecMode,
             ToothShade = input.ToothShade,
             Quantity = input.Quantity,
             WorkDescription = input.WorkDescription,

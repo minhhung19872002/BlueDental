@@ -37,6 +37,7 @@ public class LaboStagePolicyTests
             SupplierId = Guid.NewGuid(),
             MaterialId = Guid.NewGuid(),
             Teeth = teeth.Length == 0 ? [11] : teeth,
+            ToothSpecs = LaboTestSpecs.For(teeth.Length == 0 ? [11] : teeth),
             ToothShade = "A2",
             FinishLineId = Guid.NewGuid(),
             SentAt = SentAt,

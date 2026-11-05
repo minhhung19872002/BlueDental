@@ -37,8 +37,8 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     public string? AttachmentUrl { get; set; }
     public string? ToothShade { get; set; }
 
-    /// <summary>"Dùng chung 1 thông số cho tất cả răng" was ticked (P3110).</summary>
-    public bool SharedSpec { get; set; }
+    /// <summary>Thông số răng / Màu răng Chung or Riêng (R-1150).</summary>
+    public LaboSpecMode SpecMode { get; set; }
     public int Quantity { get; set; }
     public Guid? TreatmentServiceId { get; set; }
     public Guid? TreatmentStageId { get; set; }
@@ -131,6 +131,10 @@ public class LaboOrderToothDto
     public Guid? BiteId { get; set; }
     public string? BiteName { get; set; }
     public string? LabNote { get; set; }
+
+    /// <summary>Mặt răng (R-1150) and, when <see cref="ShadeBySurface"/>, each one's Màu / Đường hoàn tất.</summary>
+    public bool ShadeBySurface { get; set; }
+    public List<LaboOrderToothSurfaceDto> Surfaces { get; set; } = [];
     public LaboToothCheckResult CheckResult { get; set; }
     public string? DefectNote { get; set; }
     public DateTimeOffset? PassedAt { get; set; }
@@ -240,8 +244,8 @@ public class SaveLaboOrderDto
     /// </summary>
     public List<LaboToothSpecDto>? ToothSpecs { get; set; }
 
-    /// <summary>"Dùng chung 1 thông số cho tất cả răng".</summary>
-    public bool SharedSpec { get; set; }
+    /// <summary>Thông số răng / Màu răng Chung or Riêng (R-1150).</summary>
+    public LaboSpecMode SpecMode { get; set; } = LaboSpecMode.PerTooth;
 
     /// <summary>Số lượng.</summary>
     public int Quantity { get; set; } = 1;
@@ -286,11 +290,29 @@ public class LaboToothSpecDto
     public string? Shade { get; set; }
     public Guid? FinishLineId { get; set; }
     public Guid? RhythmId { get; set; }
-    public Guid? BiteId { get; set; }
 
-    /// <summary>Ghi chú cho Labo.</summary>
-    [StringLength(1000)]
-    public string? LabNote { get; set; }
+    /// <summary>"Riêng theo mặt": each surface has its own Màu (R-1150).</summary>
+    public bool ShadeBySurface { get; set; }
+
+    /// <summary>Mặt răng; Gửi Labo needs at least one.</summary>
+    public List<LaboToothSurfaceDto> Surfaces { get; set; } = [];
+}
+
+/// <summary>One Mặt răng of a <see cref="LaboToothSpecDto"/>: M · D · I · O · F · B · L.</summary>
+public class LaboToothSurfaceDto
+{
+    [Required]
+    [StringLength(1)]
+    public string Code { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string? Shade { get; set; }
+    public Guid? FinishLineId { get; set; }
+}
+
+public class LaboOrderToothSurfaceDto : LaboToothSurfaceDto
+{
+    public string? FinishLineName { get; set; }
 }
 
 public class CreateLaboOrderDto : SaveLaboOrderDto

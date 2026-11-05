@@ -313,6 +313,33 @@ Tests (round 2): `e2e/stage-backfill-log-api.spec.ts` (6, real HTTP),
 `treatment-stage-chain` updated to the new rule; related run 26/26; Domain
 `TreatmentStageBackfillTests`.
 
+## Labo v2 — Đặt hàng (BA mock "màn 15b", R-1150, 2026-11-05)
+
+- Thông số từng răng is one card per tooth. Each card has a Mặt răng picker:
+  the chart's tooth picture plus a big five-face circle (no tooth number, the
+  card head already says R11). Clicking the picture picks every surface;
+  clicking it again when all five are on takes them all off.
+- Surfaces: incisors/canines M · D · I · F · L, premolars/molars
+  M · D · O · B · L (`ToothSurfaces`). "Riêng theo mặt" splits Màu răng /
+  Đường hoàn tất per surface.
+- Two switches: Thông số răng Chung / Riêng, and while Chung, Màu răng
+  Chung / Riêng → `LaboSpecMode` 1 SharedAll · 2 SharedSpecOwnShade ·
+  3 PerTooth. Values stay on every tooth; switching modes keeps what was typed.
+- Khớp cắn belongs to the order (old orders: the first tooth's value).
+- Required to send: Mặt răng and Màu răng on every tooth (`Labo:0038`,
+  `Labo:0034`); Đường hoàn tất is not required. Each card shows "n lỗi" /
+  "Đủ thông tin"; the footer gives the summary and the list of gaps.
+- Per-tooth Ảnh and Ghi chú are gone (owner, following the mock). Lưu nháp,
+  "Tạo phiếu Labo" and the old prior-tooth warning stay.
+- Old drafts must pick surfaces before sending. Sent orders without surfaces
+  show "—".
+- Tests: `e2e/labo-workflow.spec.ts` rewritten (7). `labo-api` fixtures send
+  `toothSpecs` with surface M by default.
+
+Open for Phase 2 (Nhận hàng & kiểm tra) and Phase 3 (Bảo hành), to ask the
+owner first: is "Sửa tại phòng khám" = Đạt + flag + note with no return? Are
+fault surfaces stored per round? Is "Chỉnh sửa" only on cards not activated?
+
 ## Not built / open
 
 - Tiếp nhận bảo hành (Lần BH, phiếu BH1) — later round.

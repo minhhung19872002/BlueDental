@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Volo.Abp;
 using Volo.Abp.Domain.Entities;
 
 namespace BlueDental.Labo;
@@ -28,8 +31,19 @@ public class LaboOrderTooth : Entity<Guid>
     /// <summary>Khớp cắn, a Labo taxonomy row (owner D3: a column after Kiểu nhịp).</summary>
     public Guid? BiteId { get; private set; }
 
-    /// <summary>Ghi chú cho Labo.</summary>
+    /// <summary>Ghi chú cho Labo — written before Labo v2 (R-1150) only, read back as it was.</summary>
     public string? LabNote { get; private set; }
+
+    /// <summary>
+    /// "Riêng theo mặt": each surface carries its own Màu (and, Riêng từng răng,
+    /// its own Đường hoàn tất). Only on a tooth with two or more surfaces.
+    /// </summary>
+    public bool ShadeBySurface { get; private set; }
+
+    private readonly List<LaboToothSurface> _surfaces = [];
+
+    /// <summary>Mặt răng (R-1150), in <see cref="ToothSurfaces"/> order; none on an order made before it.</summary>
+    public IReadOnlyList<LaboToothSurface> Surfaces => _surfaces.AsReadOnly();
 
     /// <summary>What the clinic has accepted so far; None while a check is due.</summary>
     public LaboToothCheckResult CheckResult { get; private set; }
@@ -63,16 +77,47 @@ public class LaboOrderTooth : Entity<Guid>
 
     public bool IsWarrantyActivated => WarrantyActivatedAt.HasValue;
 
-    /// <summary>Màu răng and Đường hoàn tất — what Gửi Labo needs on every tooth.</summary>
-    public bool HasRequiredSpec => !string.IsNullOrWhiteSpace(Shade) && FinishLineId.HasValue;
+    /// <summary>
+    /// Màu răng — on the tooth, or on every surface while it is split. Gửi Labo
+    /// needs it on every tooth; Đường hoàn tất is optional since R-1150.
+    /// </summary>
+    public bool HasShade => ShadeBySurface
+        ? _surfaces.All(s => !string.IsNullOrWhiteSpace(s.Shade))
+        : !string.IsNullOrWhiteSpace(Shade);
 
-    internal void SetSpec(string? shade, Guid? finishLineId, Guid? rhythmId, Guid? biteId, string? labNote)
+    internal void SetSpec(string? shade, Guid? finishLineId, Guid? rhythmId, Guid? biteId)
     {
         Shade = string.IsNullOrWhiteSpace(shade) ? null : shade.Trim();
         FinishLineId = finishLineId;
         RhythmId = rhythmId;
         BiteId = biteId;
-        LabNote = string.IsNullOrWhiteSpace(labNote) ? null : labNote.Trim();
+    }
+
+    /// <summary>
+    /// Mặt răng and their values. A code not of this tooth's kind is refused;
+    /// repeats collapse. A tooth left with fewer than two surfaces cannot be
+    /// split, and <paramref name="splitFinishLine"/> false (Chung thông số)
+    /// keeps Đường hoàn tất off the surfaces.
+    /// </summary>
+    internal void SetSurfaces(IReadOnlyCollection<LaboToothSurface> surfaces, bool split, bool splitFinishLine)
+    {
+        var allowed = ToothSurfaces.Of(ToothNumber);
+        var invalid = surfaces.FirstOrDefault(s => !allowed.Contains(s.Code));
+        if (invalid is not null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothSurfaceInvalid)
+                .WithData("tooth", ToothNumber)
+                .WithData("surface", invalid.Code);
+
+        var byCode = surfaces.GroupBy(s => s.Code).ToDictionary(g => g.Key, g => g.Last());
+        ShadeBySurface = split && byCode.Count > 1;
+        _surfaces.Clear();
+        foreach (var code in allowed.Where(byCode.ContainsKey))
+        {
+            var surface = byCode[code];
+            _surfaces.Add(ShadeBySurface
+                ? new LaboToothSurface(code, surface.Shade, splitFinishLine ? surface.FinishLineId : null)
+                : new LaboToothSurface(code));
+        }
     }
 
     /// <summary>A tooth whose card has run out: the day after its end date.</summary>

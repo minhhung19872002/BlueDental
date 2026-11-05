@@ -1,117 +1,138 @@
-import type { LaboOrderToothDto } from "@/features/labo/api/laboApi";
+import { orderedSurfaces, type ToothSurfaceCode } from "@/components/ToothSurfacePicker";
+import { LABO_SPEC_MODE, type LaboOrderToothDto, type LaboSpecMode } from "@/features/labo/api/laboApi";
 import type { LaboToothSpecInput } from "@/features/labo/api/laboMutations";
 import { foldForSearch } from "@/utils/foldForSearch";
 
-/** One row of Thông số từng răng as the form holds it. */
+/** Màu / Đường hoàn tất of one Mặt răng while its tooth is "Riêng theo mặt". */
+export interface LaboSurfaceValue {
+  shade?: string;
+  finishLineId?: string;
+}
+
+/** One tooth card of Thông số từng răng as the form holds it, or the "Tất cả" row. */
 export interface LaboSpecValue {
   shade?: string;
   finishLineId?: string;
   rhythmId?: string;
-  biteId?: string;
-  labNote?: string;
+  /** Mặt răng picked, in the tooth's order (R-1150). */
+  surfaces?: ToothSurfaceCode[];
+  /** "Riêng theo mặt" ticked; counts only on a tooth with two surfaces or more. */
+  bySurface?: boolean;
+  surfaceSpecs?: Partial<Record<ToothSurfaceCode, LaboSurfaceValue>>;
 }
 
-/** The form's rows: one per tooth, keyed by its FDI, and the "Dùng chung" row under {@link SHARED_ROW}. */
+/** The form's cards: one per tooth, keyed by its FDI, and the "Tất cả" row under {@link SHARED_ROW}. */
 export type LaboSpecRows = Record<string, LaboSpecValue>;
 
-/** The "Dùng chung" row; its pictures go to the server as tooth 0 (P3110 G2). */
+/** The "Tất cả" row; its old pictures went to the server as tooth 0 (P3110 G2). */
 export const SHARED_ROW = "0";
-
-export interface LaboSpecRow {
-  key: string;
-  /** "R11", or "R11, R12, R13" for the shared row. */
-  label: string;
-}
 
 export const toothLabel = (fdi: string | number) => `R${fdi}`;
 
-/** The rows the table shows: the one shared row, or one per tooth. */
-export function specRows(teeth: string[], shared: boolean): LaboSpecRow[] {
-  if (shared) return teeth.length === 0 ? [] : [{ key: SHARED_ROW, label: teeth.map(toothLabel).join(", ") }];
-  return teeth.map((fdi) => ({ key: fdi, label: toothLabel(fdi) }));
+/** Labo v2's default (the BA's mock opens on it): Đường hoàn tất / Kiểu nhịp shared, a Màu per tooth. */
+export const DEFAULT_SPEC_MODE: LaboSpecMode = LABO_SPEC_MODE.SharedSpecOwnShade;
+
+/** Thông số răng: Chung tất cả răng. */
+export const sharesParams = (mode: LaboSpecMode) => mode !== LABO_SPEC_MODE.PerTooth;
+
+/** Màu răng: Chung tất cả răng — only while Thông số răng is Chung. */
+export const sharesShade = (mode: LaboSpecMode) => mode === LABO_SPEC_MODE.SharedAll;
+
+/** The mode the two switches above the cards spell. */
+export function specModeOf(sharedParams: boolean, sharedShade: boolean): LaboSpecMode {
+  if (!sharedParams) return LABO_SPEC_MODE.PerTooth;
+  return sharedShade ? LABO_SPEC_MODE.SharedAll : LABO_SPEC_MODE.SharedSpecOwnShade;
 }
 
-/** What a row still lacks before the order may go to the Labo — Màu răng and Đường hoàn tất. */
-export interface LaboSpecGap {
-  label: string;
-  shade: boolean;
-  finishLine: boolean;
-}
+/** «Chung / Riêng theo mặt» is offered once a tooth has two surfaces, unless one Màu serves all teeth. */
+export const canSplit = (mode: LaboSpecMode, value: LaboSpecValue | undefined) =>
+  !sharesShade(mode) && (value?.surfaces?.length ?? 0) > 1;
 
-function gapOf(row: LaboSpecRow, value: LaboSpecValue | undefined): LaboSpecGap | null {
-  const shade = !value?.shade?.trim();
-  const finishLine = !value?.finishLineId;
-  return shade || finishLine ? { label: row.label, shade, finishLine } : null;
-}
+export const isSplit = (mode: LaboSpecMode, value: LaboSpecValue | undefined) =>
+  canSplit(mode, value) && value?.bySurface === true;
 
-/** Every row still incomplete, in table order. */
-export function specGaps(rows: LaboSpecRow[], values: LaboSpecRows | undefined): LaboSpecGap[] {
-  return rows.map((row) => gapOf(row, values?.[row.key])).filter((gap): gap is LaboSpecGap => gap !== null);
-}
+export const trimmed = (text: string | undefined | null) => text?.trim() || undefined;
 
-/** "R13 chưa chọn đường hoàn tất." — the footer's wording of the first gap. */
-export function gapMessageKey(gap: LaboSpecGap): string {
-  if (gap.shade && gap.finishLine) return "Labo:Spec:MissingBoth";
-  return gap.shade ? "Labo:Spec:MissingShade" : "Labo:Spec:MissingFinishLine";
-}
-
-const trimmed = (text: string | undefined) => text?.trim() || undefined;
-
-/** The payload's rows: every tooth its own row, the shared one copied onto each in shared mode. */
-export function specInputs(teeth: number[], rows: LaboSpecRows | undefined, shared: boolean): LaboToothSpecInput[] {
+/**
+ * The payload's rows: every tooth its own row with the "Tất cả" values
+ * copied in — the server reads a shared mode off the first tooth.
+ */
+export function specInputs(teeth: number[], mode: LaboSpecMode, rows: LaboSpecRows | undefined): LaboToothSpecInput[] {
+  const shared = rows?.[SHARED_ROW];
   return teeth.map((fdi) => {
-    const value = rows?.[shared ? SHARED_ROW : String(fdi)];
+    const own = rows?.[String(fdi)];
+    const params = sharesParams(mode) ? shared : own;
+    const split = isSplit(mode, own);
     return {
       toothNumber: fdi,
-      shade: trimmed(value?.shade),
-      finishLineId: value?.finishLineId,
-      rhythmId: value?.rhythmId,
-      biteId: value?.biteId,
-      labNote: trimmed(value?.labNote),
+      shade: trimmed(sharesShade(mode) ? shared?.shade : own?.shade),
+      finishLineId: params?.finishLineId,
+      rhythmId: params?.rhythmId,
+      shadeBySurface: split,
+      surfaces: orderedSurfaces(fdi, own?.surfaces ?? []).map((code) => {
+        const surface = own?.surfaceSpecs?.[code];
+        if (!split) return { code };
+        return { code, shade: trimmed(surface?.shade), finishLineId: sharesParams(mode) ? undefined : surface?.finishLineId };
+      }),
     };
   });
 }
 
-/** A saved order's rows; a shared order's first tooth stands for the shared row. */
-export function savedSpecRows(teeth: LaboOrderToothDto[], shared: boolean): LaboSpecRows {
+function savedSurfaceSpecs(tooth: LaboOrderToothDto): LaboSpecValue["surfaceSpecs"] {
+  if (!tooth.shadeBySurface) return {};
+  const specs: LaboSpecValue["surfaceSpecs"] = {};
+  for (const surface of orderedSurfaces(tooth.toothNumber, (tooth.surfaces ?? []).map((s) => s.code))) {
+    const saved = tooth.surfaces.find((s) => s.code === surface);
+    specs[surface] = { shade: saved?.shade ?? "", finishLineId: saved?.finishLineId ?? undefined };
+  }
+  return specs;
+}
+
+/** A saved order's cards; its first tooth stands for the "Tất cả" row. */
+export function savedSpecRows(teeth: LaboOrderToothDto[]): LaboSpecRows {
   const rows: LaboSpecRows = {};
   for (const tooth of teeth) {
     rows[String(tooth.toothNumber)] = {
       shade: tooth.shade ?? "",
       finishLineId: tooth.finishLineId ?? undefined,
       rhythmId: tooth.rhythmId ?? undefined,
-      biteId: tooth.biteId ?? undefined,
-      labNote: tooth.labNote ?? "",
+      surfaces: orderedSurfaces(tooth.toothNumber, (tooth.surfaces ?? []).map((s) => s.code)),
+      bySurface: tooth.shadeBySurface ?? false,
+      surfaceSpecs: savedSurfaceSpecs(tooth),
     };
   }
-  if (shared && teeth.length > 0) rows[SHARED_ROW] = { ...rows[String(teeth[0].toothNumber)] };
+  const first = teeth[0];
+  if (first) {
+    rows[SHARED_ROW] = {
+      shade: first.shade ?? "",
+      finishLineId: first.finishLineId ?? undefined,
+      rhythmId: first.rhythmId ?? undefined,
+    };
+  }
   return rows;
 }
 
 /**
- * "Bỏ chọn «Dùng chung» để chỉnh riêng từng răng – giá trị chung được điền sẵn
- * vào mỗi dòng" (m154). Ticking it again starts the shared row from the first tooth.
- */
-export function toggledSpecRows(rows: LaboSpecRows | undefined, teeth: string[], shared: boolean): LaboSpecRows {
-  const next = { ...rows };
-  if (shared) {
-    next[SHARED_ROW] = { ...(teeth.length > 0 ? rows?.[teeth[0]] : undefined) };
-  } else {
-    for (const fdi of teeth) next[fdi] = { ...rows?.[SHARED_ROW] };
-  }
-  return next;
-}
-
-/**
  * "cầu n đơn vị" beside Số lượng (m134): two or more teeth with a Kiểu nhịp
- * other than "Không có nhịp" on any row (P3110 G10 — the catalog marks no
- * rhythm as a bridge, so the name decides).
+ * other than "Không có nhịp" (P3110 G10 — the catalog marks no rhythm as a
+ * bridge, so the name decides).
  */
-export function isBridge(teeth: string[], rows: LaboSpecRows | undefined, shared: boolean, rhythmName: (id: string) => string) {
+export function isBridge(teeth: string[], rows: LaboSpecRows | undefined, mode: LaboSpecMode, rhythmName: (id: string) => string) {
   if (teeth.length < 2) return false;
-  const keys = shared ? [SHARED_ROW] : teeth;
+  const keys = sharesParams(mode) ? [SHARED_ROW] : teeth;
   return keys.some((key) => {
     const id = rows?.[key]?.rhythmId;
     return id !== undefined && !foldForSearch(rhythmName(id)).startsWith("khong");
   });
+}
+
+/** The Màu printed under each picked surface on the picture: the one that applies to it in the mode. */
+export function pickerShades(fdi: string, mode: LaboSpecMode, rows: LaboSpecRows | undefined) {
+  const own = rows?.[fdi];
+  const shades: Partial<Record<ToothSurfaceCode, string>> = {};
+  for (const code of own?.surfaces ?? []) {
+    if (sharesShade(mode)) shades[code] = rows?.[SHARED_ROW]?.shade ?? "";
+    else shades[code] = (isSplit(mode, own) ? own?.surfaceSpecs?.[code]?.shade : own?.shade) ?? "";
+  }
+  return shades;
 }

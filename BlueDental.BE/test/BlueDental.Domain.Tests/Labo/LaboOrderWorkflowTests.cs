@@ -25,6 +25,7 @@ public class LaboOrderWorkflowTests
         SupplierId = Guid.NewGuid(),
         MaterialId = Guid.NewGuid(),
         Teeth = teeth,
+        ToothSpecs = LaboTestSpecs.For(teeth),
         ToothShade = "A2",
         FinishLineId = Guid.NewGuid(),
         Quantity = 2,
@@ -105,23 +106,117 @@ public class LaboOrderWorkflowTests
     }
 
     [Fact]
-    public void Submit_Should_Name_The_Tooth_Missing_Its_Finish_Line()
+    public void Submit_Should_Name_The_Tooth_Missing_Its_Shade()
     {
-        var finish = Guid.NewGuid();
         var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
             Complete(11, 12, 13) with
             {
                 ToothSpecs =
                 [
-                    new LaboToothSpec(11, "A1", finish, null, null, null),
-                    new LaboToothSpec(12, "A1/A2", finish, null, null, null),
-                    new LaboToothSpec(13, "A2", null, null, null, null)
+                    new LaboToothSpec(11, "A1", null, null, LaboTestSpecs.MainSurfaces(11)),
+                    new LaboToothSpec(12, "A1/A2", null, null, LaboTestSpecs.MainSurfaces(12)),
+                    new LaboToothSpec(13, " ", null, null, LaboTestSpecs.MainSurfaces(13))
                 ]
             });
 
         var error = Should.Throw<BusinessException>(() => order.Submit());
         error.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.ToothSpecIncomplete);
         error.Data["tooth"].ShouldBe(13);
+    }
+
+    [Fact]
+    public void Submit_Should_Name_The_Tooth_With_No_Surface()
+    {
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(11, 46) with
+            {
+                ToothSpecs = [new LaboToothSpec(11, "A1", null, null, LaboTestSpecs.MainSurfaces(11)), new LaboToothSpec(46, "A1", null, null, [])]
+            });
+
+        var error = Should.Throw<BusinessException>(() => order.Submit());
+        error.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.ToothSurfaceMissing);
+        error.Data["tooth"].ShouldBe(46);
+    }
+
+    [Fact]
+    public void A_Surface_The_Tooth_Does_Not_Have_Should_Be_Refused()
+    {
+        var error = Should.Throw<BusinessException>(() => new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(46) with { ToothSpecs = [new LaboToothSpec(46, "A1", null, null, [new LaboToothSurface("I")])] }));
+
+        error.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.ToothSurfaceInvalid);
+        error.Data["surface"].ShouldBe("I");
+    }
+
+    [Fact]
+    public void A_Split_Tooth_Should_Need_A_Shade_On_Every_Surface()
+    {
+        var surfaces = new[] { new LaboToothSurface("M", "A1"), new LaboToothSurface("D"), new LaboToothSurface("I", "A2") };
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(11) with { ToothSpecs = [new LaboToothSpec(11, "A3", null, null, surfaces, ShadeBySurface: true)] });
+
+        var tooth = order.Teeth.Single();
+        tooth.ShadeBySurface.ShouldBeTrue();
+        tooth.Surfaces.Select(s => s.Code).ShouldBe(["M", "D", "I"]);
+        Should.Throw<BusinessException>(() => order.Submit()).Code
+            .ShouldBe(BlueDentalDomainErrorCodes.Labo.ToothSpecIncomplete);
+    }
+
+    [Fact]
+    public void One_Surface_Should_Never_Be_Split()
+    {
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(11) with { ToothSpecs = [new LaboToothSpec(11, "A3", null, null, [new LaboToothSurface("F", "B1")], ShadeBySurface: true)] });
+
+        var tooth = order.Teeth.Single();
+        tooth.ShadeBySurface.ShouldBeFalse();
+        tooth.Surfaces.Single().Shade.ShouldBeNull();
+        order.Submit().Status.ShouldBe(LaboStatus.Sent);
+    }
+
+    [Fact]
+    public void Shared_Mode_Should_Copy_The_First_Row_To_Every_Tooth()
+    {
+        var (finish, bite) = (Guid.NewGuid(), Guid.NewGuid());
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(21, 11) with
+            {
+                SpecMode = LaboSpecMode.SharedAll,
+                BiteId = bite,
+                ToothSpecs =
+                [
+                    new LaboToothSpec(21, "A1", finish, null, LaboTestSpecs.MainSurfaces(21), ShadeBySurface: true),
+                    new LaboToothSpec(11, "B3", null, null, [new LaboToothSurface("M", "C1"), new LaboToothSurface("D")], ShadeBySurface: true)
+                ]
+            });
+
+        order.Teeth.ShouldAllBe(t => t.Shade == "A1" && t.FinishLineId == finish && t.BiteId == bite && !t.ShadeBySurface);
+        order.Teeth.Single(t => t.ToothNumber == 11).Surfaces.Select(s => s.Code).ShouldBe(["M", "D"]);
+        order.BiteId.ShouldBe(bite);
+    }
+
+    [Fact]
+    public void Shared_Spec_Own_Shade_Should_Keep_Each_Shade_And_Share_The_Finish_Line()
+    {
+        var (a, b) = (Guid.NewGuid(), Guid.NewGuid());
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(11, 12) with
+            {
+                SpecMode = LaboSpecMode.SharedSpecOwnShade,
+                ToothSpecs =
+                [
+                    new LaboToothSpec(11, "A1", a, null, LaboTestSpecs.MainSurfaces(11)),
+                    new LaboToothSpec(12, "B2", b, null, [new LaboToothSurface("I", "C1", b), new LaboToothSurface("F", "C2", b)], ShadeBySurface: true)
+                ]
+            }).Submit();
+
+        var tooth12 = order.Teeth.Single(t => t.ToothNumber == 12);
+        order.SpecMode.ShouldBe(LaboSpecMode.SharedSpecOwnShade);
+        order.Teeth.Single(t => t.ToothNumber == 11).Shade.ShouldBe("A1");
+        tooth12.FinishLineId.ShouldBe(a);
+        tooth12.ShadeBySurface.ShouldBeTrue();
+        tooth12.Surfaces.ShouldAllBe(s => s.FinishLineId == null);
+        tooth12.Surfaces.Select(s => s.Shade).ShouldBe(["C1", "C2"]);
     }
 
     [Fact]
@@ -133,15 +228,15 @@ public class LaboOrderWorkflowTests
             {
                 ToothSpecs =
                 [
-                    new LaboToothSpec(11, "B1", b, null, null, " cạnh cắn "),
-                    new LaboToothSpec(21, "A1/A2", a, null, null, null)
+                    new LaboToothSpec(11, "B1", b, null, [new LaboToothSurface("M", "B1", a), new LaboToothSurface("I", "B2", b)], ShadeBySurface: true),
+                    new LaboToothSpec(21, "A1/A2", a, null, LaboTestSpecs.MainSurfaces(21))
                 ]
             }).Submit();
 
         var tooth11 = order.Teeth.Single(t => t.ToothNumber == 11);
         tooth11.Shade.ShouldBe("B1");
         tooth11.FinishLineId.ShouldBe(b);
-        tooth11.LabNote.ShouldBe("cạnh cắn");
+        tooth11.Surfaces.Select(s => s.FinishLineId).ShouldBe([a, b]);
         order.ToothShade.ShouldBe("A1/A2");
         order.FinishLineId.ShouldBe(a);
     }
@@ -149,9 +244,12 @@ public class LaboOrderWorkflowTests
     [Fact]
     public void A_Caller_Without_Tooth_Rows_Should_Give_Every_Tooth_The_Order_Values()
     {
-        var order = Draft(11, 12);
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(11, 12) with { ToothSpecs = null });
 
-        order.Teeth.ShouldAllBe(t => t.Shade == "A2" && t.FinishLineId == order.FinishLineId);
+        order.Teeth.ShouldAllBe(t => t.Shade == "A2" && t.FinishLineId == order.FinishLineId && t.Surfaces.Count == 0);
+        Should.Throw<BusinessException>(() => order.Submit()).Code
+            .ShouldBe(BlueDentalDomainErrorCodes.Labo.ToothSurfaceMissing);
     }
 
     [Fact]

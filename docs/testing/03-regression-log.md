@@ -13742,3 +13742,23 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Mới `e2e/appointment-open-record.spec.ts` **3/3**: view Ngày bấm khối → URL hồ sơ, không mở dialog; view Ngày Lịch tạm → Tạo hồ sơ điền sẵn → Lưu → `attach-patient` 200, server `isTemporary=false`, reload bấm lại → hồ sơ mới; view Tuần tên Lịch tạm → Tạo hồ sơ điền sẵn, đóng không lưu thì vẫn là Lịch tạm.
   - Spec cũ đổi đường mở hộp sửa sang ⋮ → Cập nhật (fixture mới `e2e/fixtures/calendarBlock.ts`): `appointment-day-timeline`, `appointment-mini-cal-date`, `temp-booking-content`; cùng `appointment-patient-link`, `appointment-slot-pick`, `appointment-shown-hours`: **20/20**.
 - **Mức retest**: 2 (hành vi trong feature Lịch hẹn).
+
+## R-1150 (2026-11-05, mức 2: Labo — Đặt hàng v2 theo mock BA, main)
+
+- **Yêu cầu** (BA AnTran, mock "Labo 1 · Đặt hàng v2 (màn 15b)"): Thông số từng răng đổi thành thẻ theo răng, mỗi răng chọn **Mặt răng** trên hình 1 răng ("lấy hình của 1 răng và chọn mặt tương ứng"), 2 công tắc Thông số răng Chung/Riêng + Màu răng Chung/Riêng, Khớp cắn theo phiếu. Phản hồi BA sau đó: dùng hình răng của sơ đồ răng + vòng tròn lớn cho dễ bấm, bỏ số "11" dưới hình (đã có R11 ở đầu thẻ), **bấm hình răng = chọn tất cả mặt**.
+- **Owner chốt**: theo UI mới, bỏ Ảnh + Ghi chú từng răng; giữ cảnh báo răng đã có phiếu như cũ; giữ Lưu nháp; nút gửi vẫn "Tạo phiếu Labo"; Đường hoàn tất không bắt buộc; nháp cũ phải chọn mặt răng trước khi gửi, phiếu đã gửi không có mặt hiện "—"; Khớp cắn theo phiếu (phiếu cũ lấy của răng đầu).
+- **BE**:
+  - `LaboSpecMode` (1 SharedAll · 2 SharedSpecOwnShade · 3 PerTooth) thay cờ `SharedSpec`; migration `20261105081920_LaboToothSurfacesR1150` đổi dữ liệu cũ (SharedSpec → 1, còn lại → 3), thêm `bd_labo_order_teeth.ShadeBySurface` + `Surfaces` (jsonb, cũ = `[]`).
+  - `LaboToothSurface` (mã M · D · I · O · F · B · L, màu/đường hoàn tất riêng khi "Riêng theo mặt"); `ToothSurfaces` biết răng cửa M/D/I/F/L, răng hàm M/D/O/B/L.
+  - Lỗi mới `Labo:0038` gửi khi răng chưa chọn mặt, `Labo:0039` mã mặt răng không có trên răng đó.
+- **FE**:
+  - Shared `components/ToothSurfacePicker/`: hình răng (`/img/teeth/*.png` của sơ đồ răng) + vòng tròn 164px 5 mặt, không số răng; hình răng là nút "Chọn tất cả mặt R12" / "Bỏ tất cả mặt R12" (đủ 5 mặt rồi bấm lại = bỏ hết; bỏ hết giữ lại màu / đường hoàn tất của mặt đầu cho răng).
+  - Thẻ theo răng (`LaboToothSpecCard`, `LaboSharedSpecCard`, `LaboPerToothSpec`, `LaboSurfaceRows`, `LaboSpecModeBar`…), chip "n lỗi" / "Đủ thông tin" trên thẻ, footer tóm tắt "Riêng thông số · riêng màu — R11 1 mặt · …" + "n lỗi: …" / "✓ Đã đủ thông tin bắt buộc". Đổi chế độ giữ giá trị đã nhập. Xoá `LaboToothSpecRow.tsx`.
+- **Kiểm thử** (bản build production `vite preview` :8090 build từ working tree, API :5000, DB thật, không chặn API):
+  - `e2e/labo-workflow.spec.ts` viết lại theo UI mới **7/7**; test mới "Đặt hàng per tooth…": răng mới thiếu Mặt răng + Màu → 2 lỗi, nút gửi khoá; bấm hình = 5 mặt, bấm lại = bỏ hết; Lưu nháp → reload giữ mặt / màu / Khớp cắn (API: biteId, specMode PerTooth, surfaces [I, M]); Chung ↔ Riêng giữ màu; gửi → API Sent đúng shades / surfaces; reload tab Đặt hàng chỉ đọc.
+  - `e2e/labo-api.spec.ts`: fixture `orderPayload` / `orderForm` gửi `toothSpecs` có Mặt gần (M) khi test không đưa (Gửi Labo cần mặt răng); test răng sai đổi sang `[12]`.
+  - Fixture `restrictedDentist.createDentist`: option Nhóm quyền mở dưới mép màn hình 1600×900 và không bao giờ "stable" → bấm bằng `dispatchEvent("click")`, kiểm bằng chữ hiển thị (AntD 6 không còn `.ant-select-selection-item[title]`).
+  - Liên quan: `e2e/labo*`, `plan-warranty*`, `stage-date-lock*`, `treatment-plan-detail`, `warranty-stage*` — 82/85 lần đầu; 3 đỏ: `labo-detail:34` xanh khi chạy lại một mình (chạy song song bị chậm), `stage-date-lock-api:287` do fixture `createDentist` khớp 2 chữ "dentist" (strict mode) → sửa kiểm bằng `.ant-select-content[title]`, chạy lại xanh; `labo-material-search:204` đỏ do dữ liệu: nhóm e2e có thêm 2 vật liệu "Tedd", "Tedd 2" tạo tay 2026-10-31 (6 thay vì 4), không liên quan R-1150, để nguyên dữ liệu.
+  - `e2e/patient.spec.ts` "Đặt hàng is built from the app's own fields" sửa theo thẻ mới (Tất cả: Màu răng*, Đường hoàn tất, Kiểu nhịp; thẻ răng: Mặt răng*, Màu răng*; 5 SearchSelect) và tiêu đề Nội dung / chỉ định đậm, không đổi màu khi focus → xanh.
+  - Bỏ 8 khoá i18n `Labo:Spec:*` cũ không còn dùng (Complete, Missing*, NotePlaceholder, Pictures, Shared, SharedCaption).
+- **Mức retest**: 2 (feature Labo; picker là component chung mới, chưa ai khác dùng).

@@ -47,6 +47,9 @@ export interface LaboToothView {
   shade?: string | null;
   finishLineId?: string | null;
   labNote?: string | null;
+  biteId?: string | null;
+  shadeBySurface?: boolean;
+  surfaces?: { code: string; shade?: string | null; finishLineId?: string | null }[];
   checkResult: number;
   defectNote: string | null;
   passedAt: string | null;
@@ -81,6 +84,10 @@ export interface LaboOrderView {
   supplierName: string | null;
   toothNumbers: string | null;
   toothShade: string | null;
+  /** Thông số răng / Màu răng Chung or Riêng (R-1150). */
+  specMode?: number;
+  /** Khớp cắn is the order's since R-1150. */
+  biteId?: string | null;
   workDescription: string | null;
   quantity: number;
   sentAt: string | null;
@@ -108,7 +115,7 @@ export interface Paged<T> {
   totalCount: number;
 }
 
-type FormValue = string | number | boolean | null | undefined | readonly (string | number)[];
+export type FormValue = string | number | boolean | null | undefined | readonly (string | number)[];
 
 export interface CallOptions {
   method?: "GET" | "PUT" | "POST" | "DELETE";
@@ -182,8 +189,11 @@ export interface LaboCatalog {
   supplierId: string;
   supplierName: string;
   materialId: string;
-  /** Đường hoàn tất: with Màu răng, what every tooth needs before Gửi Labo (P3110 REQ-C1). */
+  /** Đường hoàn tất: optional before Gửi Labo since R-1150 (was required, P3110 REQ-C1). */
   finishLineId: string;
+  /** Khớp cắn, picked once per order since R-1150. */
+  biteId: string;
+  biteName: string;
 }
 
 /** The branch's first lab, labo_material group, material, finish line and dentist — each created only when missing. */
@@ -215,6 +225,9 @@ export async function laboCatalog(page: Page, branchId: string, id: string): Pro
   const finishLine =
     (await first(`/api/v1/app/taxonomies?ClinicBranchId=${branchId}&Group=labo_finish_line&MaxResultCount=1`)) ??
     (await create("/api/v1/app/taxonomies", { group: "labo_finish_line", name: `Đường hoàn tất e2e ${id}`, clinicBranchId: branchId }));
+  const bite =
+    (await first(`/api/v1/app/taxonomies?ClinicBranchId=${branchId}&Group=labo_bite&MaxResultCount=1`)) ??
+    (await create("/api/v1/app/taxonomies", { group: "labo_bite", name: `Khớp cắn e2e ${id}`, clinicBranchId: branchId }));
   const dentist = await first("/api/v1/app/staff?MaxResultCount=1&Role=1");
   expect(dentist, "the demo clinic should have a dentist").toBeTruthy();
 
@@ -224,6 +237,8 @@ export async function laboCatalog(page: Page, branchId: string, id: string): Pro
     supplierName: supplier.name,
     materialId: material.id,
     finishLineId: finishLine.id,
+    biteId: bite.id,
+    biteName: bite.name,
   };
 }
 
@@ -460,15 +475,65 @@ export interface LaboOrderBody {
   dueAt: string;
   treatmentServiceId?: string;
   treatmentStageId?: string;
+  /** Khớp cắn, one per order (R-1150). */
+  biteId?: string;
+  /** {@link SpecMode}; read only with toothSpecs. */
+  specMode?: number;
+  /**
+   * Thông số từng răng. Left out, the fixture sends one row per tooth with the
+   * order-level Màu / Đường hoàn tất and Mặt gần (M), every tooth's surface,
+   * since Gửi Labo needs a Mặt răng on each tooth (R-1150).
+   */
+  toothSpecs?: LaboToothSpec[];
   submit: boolean;
 }
 
-/** One row of Thông số từng răng (P3110). */
+/** LaboSpecMode on the wire (R-1150). */
+export const SpecMode = { SharedAll: 1, SharedSpecOwnShade: 2, PerTooth: 3 } as const;
+
+/** One Mặt răng of a tooth row: M · D · I · O · F · B · L. */
+export interface LaboToothSurfaceSpec {
+  code: string;
+  shade?: string;
+  finishLineId?: string;
+}
+
+/** One row of Thông số từng răng (P3110, surfaces since R-1150). */
 export interface LaboToothSpec {
   toothNumber: number;
   shade?: string;
   finishLineId?: string;
-  labNote?: string;
+  rhythmId?: string;
+  shadeBySurface?: boolean;
+  surfaces: LaboToothSurfaceSpec[];
+}
+
+/** The body as posted: toothSpecs filled in from the order-level values when the test gave none. */
+export function orderPayload(body: LaboOrderBody): LaboOrderBody {
+  if (body.toothSpecs || body.teeth.length === 0) return body;
+  return {
+    ...body,
+    specMode: body.specMode ?? SpecMode.PerTooth,
+    toothSpecs: body.teeth.map((toothNumber) => ({
+      toothNumber,
+      shade: body.toothShade,
+      finishLineId: body.finishLineId,
+      surfaces: [{ code: "M" }],
+    })),
+  };
+}
+
+/** The body as the dialog posts it in multipart: `toothSpecs[0].surfaces[1].code` keys. */
+export function orderForm(body: LaboOrderBody): Record<string, FormValue> {
+  const { toothSpecs, ...fields } = orderPayload(body);
+  const form: Record<string, FormValue> = { ...fields };
+  (toothSpecs ?? []).forEach(({ surfaces, ...spec }, i) => {
+    for (const [key, value] of Object.entries(spec)) form[`toothSpecs[${i}].${key}`] = value;
+    surfaces.forEach((surface, j) => {
+      for (const [key, value] of Object.entries(surface)) form[`toothSpecs[${i}].surfaces[${j}].${key}`] = value;
+    });
+  });
+  return form;
 }
 
 const DAY_MS = 24 * 60 * 60_000;
@@ -506,8 +571,8 @@ export function orderBody(
 /** Lưu nháp / Tạo phiếu Labo: JSON without pictures, multipart with them. */
 export async function createOrder(page: Page, body: LaboOrderBody, pictures = 0): Promise<ApiResult<LaboOrderView>> {
   return pictures === 0
-    ? call<LaboOrderView>(page, LABO_ORDERS, { method: "POST", branchId: body.branchId, json: body })
-    : call<LaboOrderView>(page, LABO_ORDERS, { method: "POST", branchId: body.branchId, form: { ...body }, pictures });
+    ? call<LaboOrderView>(page, LABO_ORDERS, { method: "POST", branchId: body.branchId, json: orderPayload(body) })
+    : call<LaboOrderView>(page, LABO_ORDERS, { method: "POST", branchId: body.branchId, form: orderForm(body), pictures });
 }
 
 /** A Đã gửi Labo order — submitted with one picture (optional since P3110) — answered 200. */

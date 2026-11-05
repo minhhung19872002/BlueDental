@@ -1,13 +1,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { WarrantyCardSide } from "@/components/WarrantyCardPhotos";
 import { api } from "@/lib/axios";
-import { LABO_ORDERS_URL, type LaboCheckConclusion, type LaboOrderDto, type LaboToothResult } from "./laboApi";
+import {
+  LABO_ORDERS_URL,
+  type LaboCheckConclusion,
+  type LaboOrderDto,
+  type LaboSpecMode,
+  type LaboToothResult,
+} from "./laboApi";
 
 /** The Đặt hàng tab. Mirrors BlueDental.Labo.SaveLaboOrderDto. */
 export interface LaboOrderFields {
   dentistId?: string;
   supplierId?: string;
   materialId?: string;
+  /** Khớp cắn — one for the whole order since R-1150. */
   biteId?: string;
   finishLineId?: string;
   rhythmId?: string;
@@ -21,10 +28,10 @@ export interface LaboOrderFields {
   estimatedCost: number;
   treatmentServiceId?: string;
   treatmentStageId?: string;
-  /** Thông số từng răng (P3110), one row per tooth. */
+  /** Thông số từng răng (P3110), one row per tooth, the shared values copied in. */
   toothSpecs: LaboToothSpecInput[];
-  /** "Dùng chung 1 thông số cho tất cả răng". */
-  sharedSpec: boolean;
+  /** Thông số răng / Màu răng Chung or Riêng (R-1150). */
+  specMode: LaboSpecMode;
   /** Gửi Labo (true) or Lưu nháp (false). */
   submit: boolean;
   /** New Ảnh đính kèm chung; at most five with the ones kept. */
@@ -33,14 +40,22 @@ export interface LaboOrderFields {
   toothPictures: LaboToothPicture[];
 }
 
-/** One row of Thông số từng răng. Mirrors BlueDental.Labo.LaboToothSpecDto. */
+/** One Mặt răng. Mirrors BlueDental.Labo.LaboToothSurfaceDto. */
+export interface LaboToothSurfaceInput {
+  code: string;
+  shade?: string;
+  finishLineId?: string;
+}
+
+/** One tooth of Thông số từng răng. Mirrors BlueDental.Labo.LaboToothSpecDto. */
 export interface LaboToothSpecInput {
   toothNumber: number;
   shade?: string;
   finishLineId?: string;
   rhythmId?: string;
-  biteId?: string;
-  labNote?: string;
+  /** "Riêng theo mặt". */
+  shadeBySurface: boolean;
+  surfaces: LaboToothSurfaceInput[];
 }
 
 export interface LaboToothPicture {
@@ -66,11 +81,18 @@ function toForm(values: Record<string, FormValue>, pictures: File[] = []): FormD
   return form;
 }
 
-/** The order's own values with each spec row under indexed keys, as ABP binds a list of objects. */
+/**
+ * The order's own values with each spec row under indexed keys, as ABP binds
+ * a list of objects — its surfaces one level down: `toothSpecs[0].surfaces[1].code`.
+ */
 function orderValues({ toothSpecs, ...fields }: Omit<LaboOrderFields, "pictures" | "toothPictures">) {
   const values: Record<string, FormValue> = { ...fields };
-  toothSpecs.forEach((spec, i) => {
-    for (const [key, value] of Object.entries(spec)) values[`toothSpecs[${i}].${key}`] = value;
+  toothSpecs.forEach(({ surfaces, ...spec }, i) => {
+    const row = `toothSpecs[${i}]`;
+    for (const [key, value] of Object.entries(spec)) values[`${row}.${key}`] = value;
+    surfaces.forEach((surface, j) => {
+      for (const [key, value] of Object.entries(surface)) values[`${row}.surfaces[${j}].${key}`] = value;
+    });
   });
   return values;
 }

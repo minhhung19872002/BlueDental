@@ -78,7 +78,12 @@ export async function createDentist(
   await dialog.getByLabel(/^Mật khẩu/).fill(password);
   await dialog.getByLabel(/Nhập lại mật khẩu/).fill(password);
   await dialog.getByLabel(/Nhóm quyền/).click();
-  await page.locator(`.ant-select-item-option[title="${DENTIST_ROLE}"]`).click();
+  // No search on Nhóm quyền, and in a tall window its list opens past the
+  // fold and keeps moving (never "stable"): the option takes its own click.
+  const role = page.locator(`.ant-select-item-option[title="${DENTIST_ROLE}"]`);
+  await expect(role).toBeAttached();
+  await role.dispatchEvent("click");
+  await expect(dialog.locator(`.ant-select-content[title="${DENTIST_ROLE}"]`)).toBeVisible();
   // Search first: test runs pile up branches, pushing this one out of the
   // virtual list's rendered window. Since R-1051 the select searches the
   // branch names (foldFilterOption), so it is found by its name.

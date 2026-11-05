@@ -1,94 +1,82 @@
-import { Checkbox, Form, type CheckboxChangeEvent } from "antd";
+import { useState } from "react";
 import { t } from "@/lib/i18n";
-import { specGaps, specRows, toggledSpecRows } from "./laboToothSpecs";
-import { LaboToothSpecRow } from "./LaboToothSpecRow";
-import { useLaboValue, type LaboOrderForm } from "./useLaboOrderForm";
-import "./labo-order-rows.css";
+import type { LaboSpecMode } from "@/features/labo/api/laboApi";
+import type { LaboPriorTeeth } from "./laboPriorTeeth";
+import { switchedRows } from "./laboSpecEdits";
+import { SHARED_ROW, sharesParams } from "./laboToothSpecs";
+import { useLaboSpecContext } from "./laboSpecContext";
+import { LaboSharedSpecCard } from "./LaboSharedSpecCard";
+import { LaboSpecModeBar } from "./LaboSpecModeBar";
+import { LaboToothSpecCard } from "./LaboToothSpecCard";
+import type { LaboOrderForm } from "./useLaboOrderForm";
+import "./labo-tooth-spec.css";
 
 interface Props {
   form: LaboOrderForm;
-  busy: boolean;
+  /** The teeth already on another order of the slip; their cards wear the orange dot. */
+  priors: LaboPriorTeeth;
 }
 
 /**
- * Thông số từng răng on the Đặt hàng tab (P3110 m134/m139/m154, REQ-C7/C8):
- * one row per tooth picked, or a single row for all of them once «Dùng chung»
- * is ticked. Rows still lacking Màu răng or Đường hoàn tất read pink with the
- * missing cells red, live (REQ-C9).
+ * Thông số từng răng on the Đặt hàng tab (Labo v2 mock, R-1150): the two
+ * Chung / Riêng switches, the "Tất cả" card while the parameters are shared,
+ * then one card per tooth with its Mặt răng picked on a drawn tooth. Every
+ * card folds, and reads "n lỗi" until it lacks nothing (REQ-C9).
  */
-export function LaboToothSpecTable({ form, busy }: Props) {
-  const teeth = useLaboValue(form.form, "teeth") ?? [];
-  const shared = useLaboValue(form.form, "sharedSpec") ?? false;
-  const values = useLaboValue(form.form, "specs");
-  const rows = specRows(teeth, shared);
-  const gaps = specGaps(rows, values);
-
-  // The Form.Item already stored sharedSpec; the rows follow it.
-  const handleShared = (event: CheckboxChangeEvent) => {
-    form.form.setFieldsValue({
-      specs: toggledSpecRows(form.form.getFieldValue("specs"), teeth, event.target.checked),
-    });
-  };
-
+export function LaboToothSpecTable({ form, priors }: Props) {
+  const context = useLaboSpecContext(form);
+  const [closed, setClosed] = useState<ReadonlySet<string>>(() => new Set());
+  const { teeth, mode } = context;
   if (teeth.length === 0) return null;
 
+  const shared = sharesParams(mode);
+  const keys = shared ? [SHARED_ROW, ...teeth] : teeth;
+  const anyOpen = keys.some((key) => !closed.has(key));
+
+  const handleToggle = (key: string) =>
+    setClosed((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
+  const handleToggleAll = () => setClosed(anyOpen ? new Set(keys) : new Set());
+  const handleMode = (next: LaboSpecMode) => {
+    form.form.setFieldValue("specs", switchedRows(context.rows, teeth, mode, next));
+    form.form.setFieldValue("specMode", next);
+  };
+
   return (
-    <section className="pd-labo-spec" aria-label={t("Labo:Spec:Title")}>
-      <header className="pd-labo-spec-head">
-        <div>
-          <h4>{t("Labo:Spec:Title")}</h4>
-          <p>{t("Labo:Spec:Hint")}</p>
-        </div>
-        {/* Registered, so the tick lands at once instead of a watch tick later. */}
-        <Form.Item name="sharedSpec" valuePropName="checked" noStyle>
-          <Checkbox
-            className={shared ? "pd-labo-spec-shared pd-labo-spec-shared--on" : "pd-labo-spec-shared"}
-            disabled={form.readOnly}
-            onChange={handleShared}
-          >
-            {t("Labo:Spec:Shared")}
-          </Checkbox>
-        </Form.Item>
+    <section className="pd-lts" aria-label={t("Labo:Spec:Title")}>
+      <header className="pd-lts-header">
+        <h4>{t("Labo:Spec:Title")}</h4>
+        <p>{t("Labo:Spec:Hint")}</p>
       </header>
-      <div className="pd-labo-spec-scroll">
-        <table className="pd-labo-spec-table">
-          <thead>
-            <tr>
-              <th scope="col">{t("Patient:DentalChart:Tooth")}</th>
-              <th scope="col">
-                {t("Patient:DentalChart:ToothColor")}
-                <span className="floating-field-required">*</span>
-              </th>
-              <th scope="col">
-                {t("Patient:Viewer:CompletedPath")}
-                <span className="floating-field-required">*</span>
-              </th>
-              <th scope="col">{t("Patient:DentalChart:RhythmType")}</th>
-              <th scope="col">{t("Patient:DentalChart:Occlusion")}</th>
-              <th scope="col">{t("Labo:Spec:Pictures")}</th>
-              <th scope="col">{t("Labo:Spec:Note")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <LaboToothSpecRow
-                key={row.key}
-                row={row}
-                gap={gaps.find((gap) => gap.label === row.label)}
-                options={form.options}
-                pictures={{
-                  tiles: form.tilesOf(Number(row.key)),
-                  onAdd: (files) => form.addPictures(Number(row.key), files),
-                  onRemove: form.removeTile,
-                }}
-                readOnly={form.readOnly}
-                busy={busy}
-              />
-            ))}
-          </tbody>
-        </table>
+      <LaboSpecModeBar mode={mode} disabled={form.readOnly} onChange={handleMode} />
+      <div className="pd-lts-count">
+        <span>{t(shared ? "Labo:Spec:GroupCountShared" : "Labo:Spec:GroupCount", teeth.length)}</span>
+        <button type="button" className="pd-lts-foldall" onClick={handleToggleAll}>
+          {t(anyOpen ? "Labo:Spec:CollapseAll" : "Labo:Spec:ExpandAll")}
+        </button>
       </div>
-      {shared && <p className="pd-labo-spec-caption">{t("Labo:Spec:SharedCaption", teeth.length)}</p>}
+      <div className="pd-lts-cards">
+        {shared && (
+          <LaboSharedSpecCard
+            context={context}
+            open={!closed.has(SHARED_ROW)}
+            onToggle={() => handleToggle(SHARED_ROW)}
+          />
+        )}
+        {teeth.map((fdi) => (
+          <LaboToothSpecCard
+            key={fdi}
+            fdi={fdi}
+            context={context}
+            prior={priors.has(fdi)}
+            open={!closed.has(fdi)}
+            onToggle={handleToggle}
+          />
+        ))}
+      </div>
     </section>
   );
 }

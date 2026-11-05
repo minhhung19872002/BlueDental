@@ -29,6 +29,13 @@ export type LaboToothResult = (typeof LABO_TOOTH_RESULT)[keyof typeof LABO_TOOTH
 export const LABO_ROUND_OUTCOME = { Pending: 0, Passed: 1, ReturnedAll: 2, ReturnedDefective: 3 } as const;
 export type LaboRoundOutcome = (typeof LABO_ROUND_OUTCOME)[keyof typeof LABO_ROUND_OUTCOME];
 
+/**
+ * Thông số răng / Màu răng Chung or Riêng above the tooth cards (R-1150).
+ * Mirrors BlueDental.Labo.LaboSpecMode.
+ */
+export const LABO_SPEC_MODE = { SharedAll: 1, SharedSpecOwnShade: 2, PerTooth: 3 } as const;
+export type LaboSpecMode = (typeof LABO_SPEC_MODE)[keyof typeof LABO_SPEC_MODE];
+
 /** Kết luận of a check. Mirrors BlueDental.Labo.LaboCheckConclusion. */
 export const LABO_CHECK_CONCLUSION = { Pass: 1, ReturnAll: 2, ReturnDefective: 3 } as const;
 export type LaboCheckConclusion = (typeof LABO_CHECK_CONCLUSION)[keyof typeof LABO_CHECK_CONCLUSION];
@@ -87,6 +94,14 @@ export interface LaboOrderImageDto {
 /** A warranty card photo is the tooth's, not one of the pictures sent to or checked from the Labo. */
 export const isWarrantyCardPhoto = (image: LaboOrderImageDto): boolean => image.warrantyCardSide != null;
 
+/** One Mặt răng: M · D · I · O · F · B · L, with its own values when the tooth is split. */
+export interface LaboOrderToothSurfaceDto {
+  code: string;
+  shade?: string | null;
+  finishLineId?: string | null;
+  finishLineName?: string | null;
+}
+
 /** One tooth of the order, with its check result and warranty card. */
 export interface LaboOrderToothDto {
   toothNumber: number;
@@ -98,8 +113,12 @@ export interface LaboOrderToothDto {
   rhythmName?: string | null;
   biteId?: string | null;
   biteName?: string | null;
-  /** Ghi chú cho Labo. */
+  /** Ghi chú cho Labo — only on orders made before R-1150, which dropped it from the form. */
   labNote?: string | null;
+  /** "Riêng theo mặt": each surface carries its own Màu (R-1150). */
+  shadeBySurface: boolean;
+  /** Mặt răng, in the tooth's order; none on an order made before R-1150. */
+  surfaces: LaboOrderToothSurfaceDto[];
   checkResult: LaboToothResult;
   defectNote?: string | null;
   /** Đã trả n lần: the returns where this tooth was Lỗi (P3110 REQ-D5). */
@@ -184,8 +203,8 @@ export interface LaboOrderDto {
   finishLineName?: string;
   rhythmName?: string;
   toothShade?: string;
-  /** "Dùng chung 1 thông số cho tất cả răng" was ticked. */
-  sharedSpec?: boolean;
+  /** Thông số răng / Màu răng Chung or Riêng (R-1150; was the sharedSpec tick). */
+  specMode: LaboSpecMode;
   quantity: number;
   treatmentServiceId?: string;
   treatmentStageId?: string;
