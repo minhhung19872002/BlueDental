@@ -252,11 +252,6 @@
   height: 36px;
   min-height: 36px;
 }
-.ant-modal.pd-labo-workflow .pd-labo-spec-table .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
-.ant-modal.pd-labo-workflow .pd-labo-spec-table .ss-trigger {
-  height: 34px;
-  min-height: 34px;
-}
 .pd-labo-workflow .ant-input:not(textarea),
 .pd-labo-workflow .ant-picker,
 .pd-labo-workflow .ss-trigger {
@@ -314,56 +309,6 @@
 .pd-labo-workflow .pd-labo-teeth-count {
   color: var(--lw-label);
   font-size: 12px;
-}
-
-/* Thông số từng răng: the mock's grey head and hairline rows. */
-.pd-labo-workflow .pd-labo-spec {
-  border-top-color: var(--lw-line);
-}
-.pd-labo-workflow .pd-labo-spec-head h4 {
-  font-size: 16px;
-  font-weight: 700;
-}
-.pd-labo-workflow .pd-labo-spec-head p {
-  color: var(--lw-muted);
-  font-size: 12px;
-}
-.pd-labo-workflow .pd-labo-spec-shared.ant-checkbox-wrapper {
-  height: 34px;
-  align-items: center;
-  border: 1px solid var(--lw-input-line);
-  border-radius: 8px;
-  padding: 0 12px;
-  font-size: 13px;
-}
-.pd-labo-workflow .pd-labo-spec-shared--on.ant-checkbox-wrapper {
-  border-color: var(--lw-primary-soft);
-  background: var(--lw-primary-pale);
-}
-.pd-labo-workflow .pd-labo-spec-table {
-  min-width: 720px;
-}
-.pd-labo-workflow .pd-labo-spec-scroll {
-  border-color: var(--lw-line);
-  border-radius: 10px;
-}
-.pd-labo-workflow .pd-labo-spec-table thead th {
-  height: 38px;
-  padding-block: 0;
-  background: var(--lw-head);
-  color: var(--lw-label);
-}
-.pd-labo-workflow .pd-labo-spec-table tbody tr {
-  height: 52px;
-}
-.pd-labo-workflow .pd-labo-spec-table tbody tr + tr > * {
-  border-top-color: var(--lw-line-soft);
-}
-.pd-labo-workflow .pd-labo-cellwell {
-  border: 1px dashed var(--lw-primary-soft);
-  border-radius: 8px;
-  background: #f8f8ff;
-  color: var(--lw-primary);
 }
 
 /* ── The order in one band over tabs 2 and 3 ───────────────────────────── */
@@ -652,10 +597,10 @@
 }
 /* Each column starts at its own top: no rule or gap above the first block. */
 .pd-labo-flow-pane > :first-child,
-.pd-labo-flow-pane--main > .pd-labo-spec:first-child {
+.pd-labo-flow-pane--main > .pd-lts:first-child {
   margin-top: 0;
 }
-.pd-labo-flow-pane--main > .pd-labo-spec:first-child {
+.pd-labo-flow-pane--main > .pd-lts:first-child {
   border-top: 0;
   padding-top: 0;
 }
@@ -674,12 +619,25 @@
 .pd-labo-extras .pd-labo-notes {
   margin: 0;
 }
+/* Both titles read as headings, 13px dark semibold, as on the mock (R-1150). */
+.pd-labo-workflow .pd-labo-extras .pd-labo-notes .floating-field {
+  gap: 6px;
+}
+.pd-labo-workflow .pd-labo-extras .pd-labo-notes .floating-field > .floating-field-label {
+  color: var(--lw-ink);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+}
+/* The old full-width row drew a rule and a gap above itself; beside Nội dung it starts level. */
 .pd-labo-workflow .pd-labo-extras .pd-labo-row {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
   margin: 0;
+  border-top: 0;
+  padding-top: 0;
 }
 .pd-labo-workflow .pd-labo-extras .pd-labo-row-label {
   width: auto;
@@ -687,6 +645,10 @@
   color: var(--lw-ink);
   font-size: 13px;
   font-weight: 600;
+  line-height: 20px;
+}
+.pd-labo-workflow .pd-labo-extras .pd-labo-row-hint {
+  display: inline;
 }
 
 /* Nhận hàng: one card per delivery down the left column. */

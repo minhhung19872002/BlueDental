@@ -15,10 +15,12 @@ import {
   laboLine,
   LaboStatus,
   orderBody,
+  orderForm,
   passAll,
   PLANS,
   receive,
   sentOrder,
+  SpecMode,
   STAGES,
   ToothResult,
   type LaboCatalog,
@@ -140,24 +142,29 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const orderId = draft.body.id!;
     const self = `${LABO_ORDERS}/${orderId}`;
 
-    // Gửi Labo needs Màu răng and Đường hoàn tất on every tooth (P3110 REQ-C1):
-    // R21 without its finish line is refused, the order stays a Nháp.
-    const gap = await call<LaboOrderView>(page, self, {
-      method: "PUT",
-      json: {
-        ...body,
-        submit: true,
-        toothSpecs: [
-          { toothNumber: 11, shade: "A1", finishLineId: catalog.finishLineId },
-          { toothNumber: 21, shade: "A2" },
-        ],
-      },
-    });
-    expect(gap.status).toBe(403);
-    expect(gap.body.error?.code).toBe(code(34));
-    expect((await read(page, orderId)).status).toBe(LaboStatus.Draft);
+    // Gửi Labo needs a Mặt răng and a Màu răng on every tooth (R-1150; Đường
+    // hoàn tất is no longer required): each gap is refused, the order stays a Nháp.
+    const tooth = (toothNumber: number, extra: object = {}) => ({ toothNumber, shade: "A1", surfaces: [{ code: "M" }], ...extra });
+    const refused = async (toothSpecs: object[], expected: string) => {
+      const gap = await call<LaboOrderView>(page, self, {
+        method: "PUT",
+        json: { ...body, submit: true, specMode: SpecMode.PerTooth, toothSpecs },
+      });
+      expect(gap.status, gap.text).toBe(403);
+      expect(gap.body.error?.code).toBe(expected);
+      expect((await read(page, orderId)).status).toBe(LaboStatus.Draft);
+    };
+    await refused([tooth(11), tooth(21, { surfaces: [] })], code(38));
+    await refused([tooth(11), tooth(21, { shade: " " })], code(34));
+    // Nhai (O) is a back tooth's surface; R21 is a front one.
+    await refused([tooth(11), tooth(21, { surfaces: [{ code: "O" }] })], code(39));
+    // Riêng theo mặt: every surface needs its own Màu.
+    await refused(
+      [tooth(11), tooth(21, { shade: undefined, shadeBySurface: true, surfaces: [{ code: "F", shade: "A2" }, { code: "L" }] })],
+      code(34),
+    );
 
-    const sent = await call<LaboOrderView>(page, self, { method: "PUT", form: { ...body, submit: true }, pictures: 1 });
+    const sent = await call<LaboOrderView>(page, self, { method: "PUT", form: orderForm({ ...body, submit: true }), pictures: 1 });
     expect(sent.status, sent.text).toBe(200);
     expect(sent.body.status).toBe(LaboStatus.Sent);
     expect(sent.body.images).toHaveLength(1);
@@ -198,7 +205,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(missing.body.error?.code).toBe(code(19));
     const mixed = [
       { toothNumber: 11, result: ToothResult.Passed },
-      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}` },
+      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}`, faultSurfaces: ["M"] },
     ];
     const notAll = await check(page, orderId, { teeth: mixed, conclusion: Conclusion.Pass });
     expect(notAll.status).toBe(403);
@@ -319,7 +326,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
       {
         teeth: [
           { toothNumber: 11, result: ToothResult.Passed },
-          { toothNumber: 21, result: ToothResult.Failed, note: `Sai khớp cắn ${id}` },
+          { toothNumber: 21, result: ToothResult.Failed, note: `Sai khớp cắn ${id}`, faultSurfaces: ["M"] },
         ],
         conclusion: Conclusion.ReturnAll,
         description: `Làm lại cả hàm ${id}`,
@@ -344,9 +351,10 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const catalog = await laboCatalog(page, line.branchId, id);
     const order = await sentOrder(page, orderBody(catalog, line, id, { treatmentServiceId: line.lineId }));
     const dates = { returnedAt: new Date().toISOString(), redeliveryDueAt: daysFromNow(3) };
-    const failBoth = (note21: string) => [
-      { toothNumber: 11, result: ToothResult.Failed, note: `Lệch màu ${id}` },
-      { toothNumber: 21, result: ToothResult.Failed, note: note21 },
+    // The fixture orders each tooth on Gần (M) alone, so that is the face a Lỗi names (R-1151).
+    const failBoth = (note21: string, faults21 = ["M"]) => [
+      { toothNumber: 11, result: ToothResult.Failed, note: `Lệch màu ${id}`, faultSurfaces: ["M"] },
+      { toothNumber: 21, result: ToothResult.Failed, note: note21, faultSurfaces: faults21 },
     ];
 
     expect((await receive(page, order.id, 2)).status).toBe(200);
@@ -355,12 +363,12 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(blank.status).toBe(403);
     expect(blank.body.error?.code).toBe(code(35));
     expect(blank.body.error?.message).toContain("21");
-    // Hình ảnh lỗi belongs to a Lỗi tooth only.
+    // A Hình ảnh lỗi must name a tooth checked in this round (Đạt teeth may carry pictures since R-1110).
     const passedTeeth = [
       { toothNumber: 11, result: ToothResult.Passed },
-      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}` },
+      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}`, faultSurfaces: ["M"] },
     ];
-    const wrongTooth = await check(page, order.id, { teeth: passedTeeth, conclusion: Conclusion.ReturnDefective, ...dates }, 0, [11]);
+    const wrongTooth = await check(page, order.id, { teeth: passedTeeth, conclusion: Conclusion.ReturnDefective, ...dates }, 0, [12]);
     expect(wrongTooth.status).toBe(403);
     expect(wrongTooth.body.error?.code).toBe(code(20));
     // Two Lỗi teeth, a Hình ảnh lỗi on R11 only: R21 is named (REQ-D6).
@@ -368,6 +376,14 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(onePictured.status).toBe(403);
     expect(onePictured.body.error?.code).toBe(code(25));
     expect(onePictured.body.error?.message).toContain("21");
+    // Mặt bị lỗi (R-1151): a Lỗi tooth names at least one face, and only faces it was ordered on.
+    const noFace = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`, []), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11, 21]);
+    expect(noFace.status).toBe(403);
+    expect(noFace.body.error?.code).toBe(code(40));
+    expect(noFace.body.error?.message).toContain("21");
+    const strayFace = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`, ["M", "O"]), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11, 21]);
+    expect(strayFace.status).toBe(403);
+    expect(strayFace.body.error?.code).toBe(code(41));
     // Ảnh kiểm tra may come from the Lỗi rows alone.
     const first = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11, 21]);
     expect(first.status, first.text).toBe(200);
@@ -385,10 +401,11 @@ test.describe("Labo workflow API (P2910_03)", () => {
       [11, 1],
       [21, 2],
     ]);
-    expect(reread.rounds[1].toothResults.map((t) => [t.toothNumber, t.result, t.note])).toEqual([
-      [11, ToothResult.Passed, null],
-      [21, ToothResult.Failed, `Hở bờ ${id}`],
+    expect(reread.rounds[1].toothResults.map((t) => [t.toothNumber, t.result, t.note, t.faultSurfaces])).toEqual([
+      [11, ToothResult.Passed, null, []],
+      [21, ToothResult.Failed, `Hở bờ ${id}`, ["M"]],
     ]);
+    expect(reread.rounds[0].toothResults.map((t) => t.faultSurfaces)).toEqual([["M"], ["M"]]);
   });
 
   test("Kích hoạt bảo hành carries each card's Mặt trước / Mặt sau photos (P3110 REQ-E1)", async ({ page }) => {
@@ -599,21 +616,30 @@ test.describe("Labo workflow API (P2910_03)", () => {
       [21, body.toothShade, catalog.finishLineId],
     ]);
 
-    // Thông số từng răng as the dialog posts it: each tooth its own row.
-    const specs = {
-      "toothSpecs[0].toothNumber": 11,
-      "toothSpecs[0].shade": "A1",
-      "toothSpecs[0].finishLineId": catalog.finishLineId,
-      "toothSpecs[0].labNote": `Mài sát nướu ${id}`,
-      "toothSpecs[1].toothNumber": 21,
-      "toothSpecs[1].shade": "A3",
-      "toothSpecs[1].finishLineId": catalog.finishLineId,
-    };
-    // Six on one tooth are one too many: five per set.
+    // Riêng từng răng as the dialog posts it (R-1150): R11 one Màu on two
+    // surfaces, no Đường hoàn tất; R21 split by surface, each its own Màu and
+    // line. Khớp cắn is the order's. Surfaces come back in the tooth's order.
+    const specs = orderForm({
+      ...body,
+      specMode: SpecMode.PerTooth,
+      biteId: catalog.biteId,
+      toothSpecs: [
+        { toothNumber: 11, shade: "A1", surfaces: [{ code: "I" }, { code: "M" }, { code: "M" }] },
+        {
+          toothNumber: 21,
+          shadeBySurface: true,
+          surfaces: [
+            { code: "L", shade: "B1" },
+            { code: "F", shade: "A3", finishLineId: catalog.finishLineId },
+          ],
+        },
+      ],
+    });
+    // Six on one tooth are one too many: five per set (an old draft's per-tooth pictures).
     const crowded = await call(page, LABO_ORDERS, {
       method: "POST",
       branchId: body.branchId,
-      form: { ...body, ...specs },
+      form: specs,
       toothPictures: [11, 11, 11, 11, 11, 11],
     });
     expect(crowded.status).toBe(403);
@@ -622,7 +648,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const made = await call<LaboOrderView>(page, LABO_ORDERS, {
       method: "POST",
       branchId: body.branchId,
-      form: { ...body, ...specs, submit: true },
+      form: { ...specs, submit: true },
       pictures: 1,
       toothPictures: [21, 21, 11],
     });
@@ -631,13 +657,69 @@ test.describe("Labo workflow API (P2910_03)", () => {
 
     // Read back with a separate request.
     const back = await read(page, made.body.id!);
-    expect(back.teeth.map((t) => [t.toothNumber, t.shade, t.finishLineId, t.labNote ?? null])).toEqual([
-      [11, "A1", catalog.finishLineId, `Mài sát nướu ${id}`],
-      [21, "A3", catalog.finishLineId, null],
+    expect(back.specMode).toBe(SpecMode.PerTooth);
+    expect(back.biteId).toBe(catalog.biteId);
+    expect(
+      back.teeth.map((t) => [t.toothNumber, t.shade ?? null, t.finishLineId ?? null, t.biteId, t.shadeBySurface, t.surfaces]),
+    ).toEqual([
+      [11, "A1", null, catalog.biteId, false, [expect.objectContaining({ code: "M" }), expect.objectContaining({ code: "I" })]],
+      [
+        21,
+        null,
+        null,
+        catalog.biteId,
+        true,
+        [
+          expect.objectContaining({ code: "F", shade: "A3", finishLineId: catalog.finishLineId }),
+          expect.objectContaining({ code: "L", shade: "B1", finishLineId: null }),
+        ],
+      ],
     ]);
     const perSet = (tooth: number | null) => back.images.filter((i) => (i.toothNumber ?? null) === tooth).length;
     expect([perSet(null), perSet(11), perSet(21)]).toEqual([1, 1, 2]);
     for (const image of back.images) expect((await call(page, image.url)).status).toBe(200);
+  });
+
+  test("Chung tất cả răng / Chung thông số · riêng màu take the first tooth's values (R-1150)", async ({ page }) => {
+    const id = runId();
+    const target = await findLaboPatient(page);
+    const catalog = await laboCatalog(page, target.branchId, id);
+    const spec = (toothNumber: number, shade: string, extra: object = {}) => ({
+      toothNumber,
+      shade,
+      finishLineId: toothNumber === 11 ? catalog.finishLineId : undefined,
+      surfaces: [{ code: "M" }, { code: "D" }],
+      ...extra,
+    });
+    const teethOf = async (specMode: number, toothSpecs: ReturnType<typeof spec>[]) => {
+      const made = await createOrder(page, orderBody(catalog, target, id, { specMode, toothSpecs }));
+      expect(made.status, made.text).toBe(200);
+      const back = await read(page, made.body.id!);
+      expect(back.specMode).toBe(specMode);
+      return back.teeth.map((t) => [t.toothNumber, t.shade ?? null, t.finishLineId ?? null, t.shadeBySurface]);
+    };
+
+    // Chung tất cả răng: one Màu and one line for every tooth; a split is dropped.
+    expect(
+      await teethOf(SpecMode.SharedAll, [
+        spec(11, "A1"),
+        spec(21, "C4", { shadeBySurface: true, surfaces: [{ code: "M", shade: "A2" }, { code: "D", shade: "A3" }] }),
+      ]),
+    ).toEqual([
+      [11, "A1", catalog.finishLineId, false],
+      [21, "A1", catalog.finishLineId, false],
+    ]);
+
+    // Chung thông số · riêng màu: the line is shared, each tooth keeps its Màu or its split.
+    expect(
+      await teethOf(SpecMode.SharedSpecOwnShade, [
+        spec(11, "A1"),
+        spec(21, "C4", { shadeBySurface: true, surfaces: [{ code: "M", shade: "A2" }, { code: "D", shade: "A3" }] }),
+      ]),
+    ).toEqual([
+      [11, "A1", catalog.finishLineId, false],
+      [21, "C4", catalog.finishLineId, true],
+    ]);
   });
 
   test("pictures dropped from a Nháp lose their row and their file", async ({ page }) => {
@@ -656,7 +738,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
     // Six pictures are one too many, even for a Nháp.
     const tooMany = await call(page, `${LABO_ORDERS}/${added.body.id}`, {
       method: "PUT",
-      form: { ...body, keepImageIds: [first.id, second.id] },
+      form: { ...orderForm(body), keepImageIds: [first.id, second.id] },
       pictures: 4,
     });
     expect(tooMany.status).toBe(403);
@@ -664,7 +746,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
 
     const trimmed = await call<LaboOrderView>(page, `${LABO_ORDERS}/${added.body.id}`, {
       method: "PUT",
-      form: { ...body, keepImageIds: [first.id] },
+      form: { ...orderForm(body), keepImageIds: [first.id] },
     });
     expect(trimmed.status, trimmed.text).toBe(200);
     expect(trimmed.body.images?.map((i) => i.id)).toEqual([first.id]);

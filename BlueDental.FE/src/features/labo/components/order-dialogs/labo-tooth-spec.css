@@ -1,0 +1,470 @@
+/* Thông số từng răng — Labo v2 mock (màn 15b), R-1150. Colours read off the mock. */
+.pd-lts {
+  --lts-line: #e5e7eb;
+  --lts-line-soft: #f0f1f4;
+  --lts-head: #f9fafb;
+  --lts-tooth-head: #eff6ff;
+  --lts-text: #4b5563;
+  --lts-muted: #6b7280;
+  --lts-indigo: #4338ca;
+  --lts-indigo-ink: #3730a3;
+  --lts-indigo-line: #c7d2fe;
+  --lts-indigo-row: #818cf8;
+  --lts-indigo-dot: #4f46e5;
+  --lts-indigo-pale: #f5f3ff;
+  --lts-error-line: #fca5a5;
+  --lts-error-ink: #b91c1c;
+  --lts-error-bg: #fee2e2;
+  --lts-error-text: #dc2626;
+  --lts-done-ink: #166534;
+  --lts-done-bg: #dcfce7;
+  --lts-prior-ink: #c2410c;
+  --lts-prior-dot: #ea580c;
+  --lts-fixed-bg: #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pd-lts-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.pd-lts-header h4 {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.pd-lts-header p {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+/* ── Thông số răng / Màu răng: Chung tất cả răng · Riêng từng răng ── */
+.pd-lts-modebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 24px;
+}
+.pd-lts-modegroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pd-lts-modelabel {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pd-lts-toggle {
+  display: inline-flex;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 3px;
+  background: var(--lts-line);
+}
+.pd-lts-toggle-item {
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--lts-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pd-lts-toggle--sm .pd-lts-toggle-item {
+  height: 26px;
+  padding: 0 10px;
+}
+.pd-lts-toggle-item--on {
+  background: var(--bd-card);
+  color: var(--lts-indigo);
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
+  cursor: default;
+}
+.pd-lts-toggle-item:disabled {
+  cursor: not-allowed;
+}
+.pd-lts-toggle-item:focus-visible {
+  outline: 2px solid var(--lts-indigo-row);
+  outline-offset: 1px;
+}
+
+.pd-lts-count {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--lts-muted);
+  font-size: 12px;
+}
+.pd-lts-foldall {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--lts-indigo);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-lts-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── A card: the header line, then its body ── */
+.pd-lts-card {
+  overflow: hidden;
+  border: 1px solid var(--lts-line);
+  border-radius: 12px;
+  background: var(--bd-card);
+}
+.pd-lts-card--error {
+  border-color: var(--lts-error-line);
+}
+.pd-lts-card--all {
+  border-color: var(--lts-indigo-line);
+}
+.pd-lts-card--all.pd-lts-card--error {
+  border-color: var(--lts-error-line);
+}
+.pd-lts-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 14px 8px 8px;
+  background: var(--bd-card);
+}
+.pd-lts-card:has(.pd-lts-body) > .pd-lts-head {
+  background: var(--lts-head);
+}
+/* A tooth's header line, shut or open: light blue (BA, R-1154). Tất cả keeps its own. */
+.pd-lts-card:not(.pd-lts-card--all) > .pd-lts-head {
+  background: var(--lts-tooth-head);
+}
+.pd-lts-card--all > .pd-lts-head {
+  background: var(--lts-indigo-pale);
+}
+.pd-lts-caret {
+  display: inline-flex;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--lts-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.pd-lts-caret:hover {
+  background: var(--lts-line);
+}
+.pd-lts-name {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+.pd-lts-title {
+  color: var(--bd-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+.pd-lts-title--prior {
+  color: var(--lts-prior-ink);
+}
+.pd-lts-card--all .pd-lts-title {
+  color: var(--lts-indigo-ink);
+}
+.pd-lts-prior {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lts-prior-dot);
+}
+.pd-lts-caption {
+  color: var(--lts-muted);
+  font-size: 12px;
+}
+.pd-lts-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--lts-text);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pd-lts-chip {
+  flex: none;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pd-lts-chip--error {
+  background: var(--lts-error-bg);
+  color: var(--lts-error-ink);
+}
+.pd-lts-chip--done {
+  background: var(--lts-done-bg);
+  color: var(--lts-done-ink);
+}
+.pd-lts-body {
+  border-top: 1px solid var(--lts-line-soft);
+  padding: 12px 14px 14px;
+}
+
+/* ── "Tất cả": Màu răng · Đường hoàn tất · Kiểu nhịp ── */
+.pd-lts-shared {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.pd-lts-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.pd-lts-label {
+  color: var(--lts-text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pd-lts-fixed {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--lts-fixed-bg);
+  color: var(--lts-muted);
+  font-size: 13px;
+}
+.pd-lts .ant-input.pd-lts-shade {
+  height: 36px;
+}
+.pd-lts-line .ant-input.pd-lts-shade {
+  width: 200px;
+}
+
+/* ── A tooth: the picture left, its values right ── */
+.pd-lts-tooth {
+  display: flex;
+  gap: 20px;
+}
+.pd-lts-picker {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 188px;
+}
+.pd-lts-nosurface {
+  margin: 0;
+  color: var(--lts-error-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-lts-hint {
+  margin: 0;
+  color: var(--lts-muted);
+  font-size: 11px;
+  text-align: center;
+}
+.pd-lts-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.pd-lts-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+/* Chung / Riêng theo mặt sits at the right end of the Mặt răng line, as on the mock. */
+.pd-lts-line > .pd-lts-toggle {
+  margin-left: auto;
+}
+.pd-lts-surfaces {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 400;
+}
+.pd-lts-note,
+.pd-lts-inherit {
+  margin: 0;
+  color: var(--lts-muted);
+  font-size: 12px;
+}
+.pd-lts-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pd-lts-rhythm {
+  width: 200px;
+}
+/* The mock's spec selects are plain boxes: no search glass before "Chọn". */
+.pd-lts .ss-trigger > .ss-icon--search {
+  display: none;
+}
+
+/* ── Màu theo mặt: one row per surface ── */
+.pd-lts-srows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pd-lts-srows--shade .pd-lts-srow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid var(--lts-line);
+  border-radius: 8px;
+  padding: 4px 6px 4px 10px;
+}
+.pd-lts-srows--shade .pd-lts-srow--active {
+  border-color: var(--lts-indigo-row);
+  background: var(--lts-indigo-pale);
+}
+/* The workflow modal sets every input to 36px; a shade row keeps the mock's 32px. */
+.ant-modal.pd-labo-workflow .pd-lts .pd-lts-srows--shade .ant-input.pd-lts-shade:not(textarea),
+.pd-lts-srows--shade .ant-input.pd-lts-shade {
+  width: 180px;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+/* Riêng thông số: the grid cells keep the mock 32px controls with a 6px corner. */
+.ant-modal.pd-labo-workflow .pd-lts .pd-lts-grid .ant-input.pd-lts-shade:not(textarea),
+.pd-lts-grid .ant-input.pd-lts-shade {
+  width: 100%;
+  height: 32px;
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 13px;
+}
+.ant-modal.pd-labo-workflow .pd-lts .pd-lts-grid .ss-trigger,
+.pd-lts-grid .ss-trigger {
+  height: 32px;
+  min-height: 32px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.pd-lts-sname {
+  display: inline-flex;
+  width: 96px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--bd-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.pd-lts-sdot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--lts-indigo-dot);
+}
+.pd-lts-remove {
+  display: inline-flex;
+  justify-self: end;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--lts-error-text);
+  font-size: 16px;
+  cursor: pointer;
+}
+.pd-lts-remove:hover {
+  background: var(--lts-error-bg);
+}
+
+/* ── Riêng thông số: Mặt · Màu · Đường hoàn tất · 🗑 on one grid ── */
+.pd-lts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pd-lts-grid-head,
+.pd-lts-grid .pd-lts-srow {
+  display: grid;
+  grid-template-columns: 110px 160px 200px minmax(28px, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.pd-lts-grid-head {
+  padding: 0 6px 0 10px;
+  color: var(--lts-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pd-lts-grid .pd-lts-srow {
+  border: 1.5px solid var(--lts-line);
+  border-radius: 8px;
+  padding: 4px 6px 4px 10px;
+}
+.pd-lts-grid .pd-lts-srow--every {
+  border-width: 1px;
+}
+.pd-lts-grid .pd-lts-srow--active {
+  border-color: var(--lts-indigo-row);
+  background: var(--lts-indigo-pale);
+}
+.pd-lts-grid .pd-lts-sname {
+  width: auto;
+}
+.pd-lts-every {
+  color: var(--lts-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .pd-lts-shared {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pd-lts-tooth {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pd-lts-picker {
+    align-self: center;
+  }
+}

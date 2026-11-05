@@ -12,9 +12,9 @@ import {
   type LaboServiceOption,
   type PickerOption,
 } from "@/hooks/useLaboPickers";
-import type { LaboOrderDto, LaboOrderImageDto } from "@/features/labo/api/laboApi";
+import type { LaboOrderDto, LaboOrderImageDto, LaboSpecMode } from "@/features/labo/api/laboApi";
 import type { LaboOrderFields } from "@/features/labo/api/laboMutations";
-import { savedSpecRows, specInputs, type LaboSpecRows } from "./laboToothSpecs";
+import { DEFAULT_SPEC_MODE, savedSpecRows, specInputs, type LaboSpecRows } from "./laboToothSpecs";
 import { useLaboPictureTiles, type LaboPictureTiles } from "./useLaboPictureTiles";
 
 /** The fields of the Đặt hàng tab. */
@@ -33,8 +33,10 @@ export interface LaboOrderValues {
   dueDate: Dayjs | null;
   /** The FDI numbers the order carries, picked on the chart (P3110 REQ-C6). */
   teeth: string[];
-  /** "Dùng chung 1 thông số cho tất cả răng". */
-  sharedSpec: boolean;
+  /** Khớp cắn, one for the whole order (R-1150). */
+  biteId?: string;
+  /** Thông số răng / Màu răng Chung or Riêng (R-1150); set by the switches, read with `preserve`. */
+  specMode: LaboSpecMode;
   /** Thông số từng răng, by FDI, and the shared row under "0". */
   specs: LaboSpecRows;
 }
@@ -75,7 +77,7 @@ export function fromSeed(seed: LaboOrderSeed): LaboOrderValues {
     notes: "",
     sentDate: dayjs(),
     dueDate: null,
-    sharedSpec: false,
+    specMode: DEFAULT_SPEC_MODE,
     specs: {},
     ...seed,
   };
@@ -88,7 +90,7 @@ export function fromSeed(seed: LaboOrderSeed): LaboOrderValues {
 export function orderSeed(order: LaboOrderDto, lineTeeth: string[] = []): LaboOrderSeed {
   const saved = order.teeth.map((tooth) => String(tooth.toothNumber));
   const teeth = saved.length > 0 ? saved : lineTeeth;
-  const sharedSpec = order.sharedSpec ?? false;
+  const firstTooth = order.teeth[0];
   return {
     dentistId: order.dentistId,
     supplierId: order.supplierId,
@@ -99,8 +101,10 @@ export function orderSeed(order: LaboOrderDto, lineTeeth: string[] = []): LaboOr
     sentDate: order.sentAt ? dayjs(order.sentAt) : dayjs(),
     dueDate: order.dueAt ? dayjs(order.dueAt) : null,
     teeth,
-    sharedSpec,
-    specs: savedSpecRows(order.teeth, sharedSpec),
+    // Orders before R-1150 kept a Khớp cắn per tooth: the first one stands for the order.
+    biteId: order.biteId ?? firstTooth?.biteId ?? undefined,
+    specMode: order.specMode,
+    specs: savedSpecRows(order.teeth),
   };
 }
 
@@ -169,7 +173,7 @@ export function laboOrderBody(
   "estimatedCost" | "treatmentServiceId" | "treatmentStageId" | "submit" | "pictures" | "toothPictures"
 > {
   const teeth = (values.teeth ?? []).map(Number).filter((fdi) => fdi > 0);
-  const sharedSpec = values.sharedSpec ?? false;
+  const specMode = values.specMode ?? DEFAULT_SPEC_MODE;
   return {
     dentistId: values.dentistId,
     supplierId: values.supplierId,
@@ -179,8 +183,9 @@ export function laboOrderBody(
     notes: values.notes?.trim() || undefined,
     sentAt: dayOf(values.sentDate),
     dueAt: dayOf(values.dueDate),
-    sharedSpec,
-    toothSpecs: specInputs(teeth, values.specs, sharedSpec),
+    biteId: values.biteId,
+    specMode,
+    toothSpecs: specInputs(teeth, specMode, values.specs),
   };
 }
 

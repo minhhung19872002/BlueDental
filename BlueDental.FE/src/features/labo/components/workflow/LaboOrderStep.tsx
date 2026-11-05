@@ -10,7 +10,6 @@ import { LaboOrderSpecs, LaboTeethField } from "../order-dialogs/LaboOrderFields
 import { LaboPrintButton } from "../order-dialogs/LaboPrintButton";
 import type { LaboOrderSource } from "../order-dialogs/laboOrderSource";
 import { LaboServiceMaterialRows } from "../order-dialogs/LaboServiceMaterialRows";
-import { gapMessageKey } from "../order-dialogs/laboToothSpecs";
 import { useLaboSendGap, type LaboSendGap } from "../order-dialogs/useLaboSendGap";
 import { LaboDetailDialog } from "../order-dialogs/LaboDetailDialog";
 import { LaboCancelOrderButton } from "./LaboCancelOrderButton";
@@ -99,7 +98,7 @@ export function LaboOrderStep({
           />
         </section>
         <section className="pd-labo-flow-pane pd-labo-flow-pane--main">
-          <LaboOrderSpecs form={form} busy={saving} />
+          <LaboOrderSpecs form={form} busy={saving} priors={step.priors} />
         </section>
       </Form>
       {/* Outside the form: its `disabled` locks the fields of a sent order, not Huỷ or In. */}
@@ -150,11 +149,22 @@ export function LaboOrderStep({
   );
 }
 
-/** The footer's left: the first row still lacking, in red, or that every tooth is ready. */
+/**
+ * The footer's left (Labo v2 mock): the case and each tooth's surfaces, then
+ * everything «Tạo phiếu Labo» still waits for, in red, or that all is ready.
+ */
 function LaboSendStatus({ send }: { send: LaboSendGap }) {
-  if (send.gap) {
-    return <span className="pd-labo-footer-hint pd-labo-footer-hint--gap">{t(gapMessageKey(send.gap), send.gap.label)}</span>;
-  }
   if (send.teeth === 0) return <span className="pd-labo-footer-hint">{t("Treatment:Tooth:ToothRequired")}</span>;
-  return <span className="pd-labo-footer-hint">{t("Labo:Spec:Complete", send.teeth)}</span>;
+  return (
+    <span className="pd-labo-footer-hint pd-labo-footer-status">
+      <span>{send.summary}</span>
+      {send.errors.length > 0 ? (
+        <span className="pd-labo-footer-hint--gap">
+          {t("Labo:Spec:Errors", send.errors.length, send.errors.map((error) => error.message).join(" · "))}
+        </span>
+      ) : (
+        <span className="pd-labo-footer-hint--done">{t("Labo:Spec:AllDone")}</span>
+      )}
+    </span>
+  );
 }

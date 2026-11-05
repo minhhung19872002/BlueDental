@@ -101,8 +101,8 @@ export function useLaboOrderStep({ branchId, patientId, order, source, plans, re
 
   const persist = async (submit: boolean) => {
     const values = antForm.getFieldsValue(true) as LaboOrderValues;
-    // Only the mode on screen goes: a tooth's own pictures in shared mode are dropped, and the other way round.
-    const pictures = form.upload(values.sharedSpec ? [0] : laboOrderBody(values).teeth);
+    // Per-tooth pictures are gone from the form (R-1150); ones an old draft saved stay while their tooth does.
+    const pictures = form.upload([0, ...laboOrderBody(values).teeth]);
     const picked = picksSource ? sourceFromPick(plans, values.planId, values.lineId, values.dentistId) : null;
     const fields = {
       ...laboOrderBody(values),

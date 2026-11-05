@@ -26,8 +26,8 @@ public record LaboOrderDetails
     /// </summary>
     public IReadOnlyList<LaboToothSpec>? ToothSpecs { get; init; }
 
-    /// <summary>"Dùng chung 1 thông số cho tất cả răng" — the rows are still stored per tooth.</summary>
-    public bool SharedSpec { get; init; }
+    /// <summary>Chung / Riêng of Thông số răng and Màu răng — the rows are still stored per tooth.</summary>
+    public LaboSpecMode SpecMode { get; init; } = LaboSpecMode.PerTooth;
     public string? ToothShade { get; init; }
     public int Quantity { get; init; } = 1;
     public string? WorkDescription { get; init; }
@@ -46,16 +46,17 @@ public record LaboOrderDetails
 }
 
 /// <summary>
-/// One row of "Thông số từng răng": Màu răng and Đường hoàn tất are required
-/// to send the order, the rest is optional.
+/// One tooth of "Thông số từng răng" (Labo v2, R-1150): its Mặt răng and
+/// Màu răng are required to send the order, the rest is optional. Khớp cắn
+/// is the order's, not the tooth's.
 /// </summary>
 public record LaboToothSpec(
     int ToothNumber,
     string? Shade,
     Guid? FinishLineId,
     Guid? RhythmId,
-    Guid? BiteId,
-    string? LabNote);
+    IReadOnlyList<LaboToothSurface> Surfaces,
+    bool ShadeBySurface = false);
 
 /// <summary>
 /// Kết luận of a check that sends teeth back. <see cref="PicturedTeeth"/>

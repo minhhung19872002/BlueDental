@@ -13792,3 +13792,97 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - **Sau khi sửa** (cùng bản build, 87 card): cờ hiện sau ~70ms khi đặt và khi gỡ, tức một lượt vẽ lại; request gửi sau ~3ms; không có lớp phủ; sau khi tải lại vẫn đúng trạng thái.
   - E2E (bản build production :8147): `reception-flag` 2, `reception-temporary` 3, `appointment-day-timeline` 8, `reception-arrival-call` 5. Lần chạy chung đầu tiên có 1 đỏ ở `reception-arrival-call` "a called-up Lịch tạm…", bước chờ toast "Đã tiếp nhận bệnh nhân" (luồng không đụng tới cờ). Chạy riêng 2/2 xanh, chạy lại cả file cùng `reception-flag` 7/7 xanh.
   - Chưa làm: bảng vẫn vẽ lại cả 87 card mỗi lần đổi cờ (~70ms), vì các handler trong `ReceptionPage` không ổn định nên `React.memo` trên card chưa có tác dụng. Tải lại hai lần (mutation + SignalR) vẫn còn.
+
+## R-1150 (2026-11-05, mức 2: Labo — Đặt hàng v2 theo mock BA, main — trùng số với R-1150 Tiếp nhận ở trên, hai session lấy cùng lúc; R-1151/R-1152 Labo nối tiếp)
+
+- **Yêu cầu** (BA AnTran, mock "Labo 1 · Đặt hàng v2 (màn 15b)"): Thông số từng răng đổi thành thẻ theo răng, mỗi răng chọn **Mặt răng** trên hình 1 răng ("lấy hình của 1 răng và chọn mặt tương ứng"), 2 công tắc Thông số răng Chung/Riêng + Màu răng Chung/Riêng, Khớp cắn theo phiếu. Phản hồi BA sau đó: dùng hình răng của sơ đồ răng + vòng tròn lớn cho dễ bấm, bỏ số "11" dưới hình (đã có R11 ở đầu thẻ), **bấm hình răng = chọn tất cả mặt**.
+- **Owner chốt**: theo UI mới, bỏ Ảnh + Ghi chú từng răng; giữ cảnh báo răng đã có phiếu như cũ; giữ Lưu nháp; nút gửi vẫn "Tạo phiếu Labo"; Đường hoàn tất không bắt buộc; nháp cũ phải chọn mặt răng trước khi gửi, phiếu đã gửi không có mặt hiện "—"; Khớp cắn theo phiếu (phiếu cũ lấy của răng đầu).
+- **BE**:
+  - `LaboSpecMode` (1 SharedAll · 2 SharedSpecOwnShade · 3 PerTooth) thay cờ `SharedSpec`; migration `20261105081920_LaboToothSurfacesR1150` đổi dữ liệu cũ (SharedSpec → 1, còn lại → 3), thêm `bd_labo_order_teeth.ShadeBySurface` + `Surfaces` (jsonb, cũ = `[]`).
+  - `LaboToothSurface` (mã M · D · I · O · F · B · L, màu/đường hoàn tất riêng khi "Riêng theo mặt"); `ToothSurfaces` biết răng cửa M/D/I/F/L, răng hàm M/D/O/B/L.
+  - Lỗi mới `Labo:0038` gửi khi răng chưa chọn mặt, `Labo:0039` mã mặt răng không có trên răng đó.
+- **FE**:
+  - Shared `components/ToothSurfacePicker/`: hình răng (`/img/teeth/*.png` của sơ đồ răng) + vòng tròn 164px 5 mặt, không số răng; hình răng là nút "Chọn tất cả mặt R12" / "Bỏ tất cả mặt R12" (đủ 5 mặt rồi bấm lại = bỏ hết; bỏ hết giữ lại màu / đường hoàn tất của mặt đầu cho răng).
+  - Thẻ theo răng (`LaboToothSpecCard`, `LaboSharedSpecCard`, `LaboPerToothSpec`, `LaboSurfaceRows`, `LaboSpecModeBar`…), chip "n lỗi" / "Đủ thông tin" trên thẻ, footer tóm tắt "Riêng thông số · riêng màu — R11 1 mặt · …" + "n lỗi: …" / "✓ Đã đủ thông tin bắt buộc". Đổi chế độ giữ giá trị đã nhập. Xoá `LaboToothSpecRow.tsx`.
+- **Kiểm thử** (bản build production `vite preview` :8090 build từ working tree, API :5000, DB thật, không chặn API):
+  - `e2e/labo-workflow.spec.ts` viết lại theo UI mới **7/7**; test mới "Đặt hàng per tooth…": răng mới thiếu Mặt răng + Màu → 2 lỗi, nút gửi khoá; bấm hình = 5 mặt, bấm lại = bỏ hết; Lưu nháp → reload giữ mặt / màu / Khớp cắn (API: biteId, specMode PerTooth, surfaces [I, M]); Chung ↔ Riêng giữ màu; gửi → API Sent đúng shades / surfaces; reload tab Đặt hàng chỉ đọc.
+  - `e2e/labo-api.spec.ts`: fixture `orderPayload` / `orderForm` gửi `toothSpecs` có Mặt gần (M) khi test không đưa (Gửi Labo cần mặt răng); test răng sai đổi sang `[12]`.
+  - Fixture `restrictedDentist.createDentist`: option Nhóm quyền mở dưới mép màn hình 1600×900 và không bao giờ "stable" → bấm bằng `dispatchEvent("click")`, kiểm bằng chữ hiển thị (AntD 6 không còn `.ant-select-selection-item[title]`).
+  - Liên quan: `e2e/labo*`, `plan-warranty*`, `stage-date-lock*`, `treatment-plan-detail`, `warranty-stage*` — 82/85 lần đầu; 3 đỏ: `labo-detail:34` xanh khi chạy lại một mình (chạy song song bị chậm), `stage-date-lock-api:287` do fixture `createDentist` khớp 2 chữ "dentist" (strict mode) → sửa kiểm bằng `.ant-select-content[title]`, chạy lại xanh; `labo-material-search:204` đỏ do dữ liệu: nhóm e2e có thêm 2 vật liệu "Tedd", "Tedd 2" tạo tay 2026-10-31 (6 thay vì 4), không liên quan R-1150, để nguyên dữ liệu.
+  - `e2e/patient.spec.ts` "Đặt hàng is built from the app's own fields" sửa theo thẻ mới (Tất cả: Màu răng*, Đường hoàn tất, Kiểu nhịp; thẻ răng: Mặt răng*, Màu răng*; 5 SearchSelect) và tiêu đề Nội dung / chỉ định đậm, không đổi màu khi focus → xanh.
+  - Bỏ 8 khoá i18n `Labo:Spec:*` cũ không còn dùng (Complete, Missing*, NotePlaceholder, Pictures, Shared, SharedCaption).
+- **Mức retest**: 2 (feature Labo; picker là component chung mới, chưa ai khác dùng).
+
+## R-1151 (2026-11-05, mức 2: Labo — Nhận hàng & kiểm tra v2 theo mock BA, main)
+
+- **Yêu cầu** (BA AnTran, mock "Labo 2 · Nhận hàng & kiểm tra v2"): kiểm tra từng răng trên thẻ có sơ đồ mặt răng, chọn **mặt bị lỗi** trên hình, dòng "Mặt bị lỗi: …", nút "Đạt tất cả", lịch sử dạng thẻ, footer có gợi ý + "Trả toàn bộ" + "Tiếp: Bảo hành ›".
+- **Owner chốt** (Q8–Q10): giữ các field Kiểm tra cũ trong layout mới — Lỗi luôn = trả Labo làm lại; bỏ select Xử lý, "Sửa tại phòng khám" và Hẹn giao lại từng răng; mục C giữ Ngày trả hàng + Hẹn Labo giao lại; giữ Hình ảnh lỗi 0/5, Mô tả gửi Labo, Đã trả n lần, BH Labo. Răng Lỗi phải chọn ít nhất 1 mặt lỗi; mặt lỗi lưu theo từng lần (round). Chỉnh sửa chỉ trên thẻ chưa kích hoạt (giữ logic R-1120).
+- **BE**:
+  - `LaboRoundToothResult.FaultSurfaces` (jsonb trong round, cũ = `[]`), migration `20261105101330_LaboFaultSurfacesR1151`.
+  - `LaboOrder.ValidateFaults`: răng Lỗi thiếu mặt → `Labo:0040` "R{tooth} chưa chọn mặt bị lỗi."; mặt không có trong đơn đặt → `Labo:0041` "R{tooth} không đặt làm mặt {surface}.". Domain tests 82/82.
+- **FE**:
+  - `ToothSurfacePicker` thêm `marks` (tô mặt lỗi); `check/LaboToothFaultPicker.tsx` + `laboToothFaces.ts`: chỉ các mặt đã đặt bấm được, nhãn tên mặt + màu; nút `aria-label` = tên mặt, `aria-pressed`.
+  - `LaboToothDefectGroup` có dòng "Mặt bị lỗi: chưa chọn — bấm trên sơ đồ" / "Mặt bị lỗi: Gần" và rule `faults` min 1; `LaboToothCheckList` có tally "Đạt n · Lỗi n · Chưa đánh giá n" + "Đạt tất cả".
+  - `LaboCheckFooter`: gợi ý trái (vàng khi còn thiếu: "Còn n răng chưa đánh giá", "Nhập mô tả lỗi gửi Labo cho n răng"; xong: "Phiếu → Trả hàng · chờ Labo giao lại" / "Tất cả răng đạt → chờ lắp"); khi chưa đánh giá hết hiện "Trả toàn bộ (n răng)" + "Xác nhận đạt (n răng)" đều khoá như mock. `LaboCheckDoneFooter` (tab 2 khi không còn gì kết luận): gợi ý + Đóng + "Tiếp: Bảo hành ›"; cờ `readOnly` ẩn Tiếp trong popup xem-chi-tiết R-1120.
+  - `LaboRoundHistoryTable`: thẻ lịch sử "Sai màu (mặt Gần, Xa) · hẹn 12/11/2026" (khoá mới `Labo:Check:History:Due`).
+- **Kiểm thử** (bản build production `vite preview` :8090 từ working tree, API :5000, DB thật, không chặn API):
+  - `e2e/labo-workflow.spec.ts` **7/7**: tally + footer từng trạng thái (chưa đánh giá: 2 nút khoá, không có "Trả hàng bị lỗi"); Lỗi chưa chọn mặt → lỗi "R21 chưa chọn mặt bị lỗi", mặt không đặt (Xa) không có nút; chọn Gần → aria-pressed + "Mặt bị lỗi: Gần"; API `faultSurfaces` = ["M"]; lịch sử "(mặt Gần)" + "hẹn <ngày>"; lần 2 dòng mặt lỗi trống lại, "Đạt tất cả" → "Xác nhận đạt (1 răng)"; tab 2 sau bảo hành "Tiếp: Bảo hành ›" sang tab Bảo hành.
+  - `e2e/plan-warranty-tab.spec.ts` **6/6** (sau khi thêm `readOnly` cho popup R-1120), `e2e/labo-api.spec.ts` **14/14**. Các spec Labo / bảo hành còn lại xanh trước lượt sửa footer cuối, lượt cuối không spec nào khác dùng các nút đã đổi.
+  - Đỏ có sẵn do dữ liệu (không liên quan): `labo-material-search:204` — nhóm "Dịch vụ tìm vật liệu e2e" có 2 vật liệu tạo tay "Tedd", "Tedd 2" (2026-10-31) → 6 thay vì 4; để nguyên dữ liệu.
+- **Mức retest**: 2 (feature Labo; `ToothSurfacePicker` chỉ thêm prop tuỳ chọn, Đặt hàng đã chạy lại trong labo-workflow).
+
+## R-1152 (2026-11-05, mức 2: Labo — Bảo hành v2 theo mock BA, main)
+
+- **Yêu cầu** (BA, mock "BaoHanhV2"): tab 3 Bảo hành gồm 2 tab "Kích hoạt bảo hành" / "Tổng quan thẻ bảo hành (n)". Kích hoạt chia 3 cột: chọn răng (Tất cả, trạng thái từng răng, khung "Đủ thông tin r/s răng" ở đáy cột) · thẻ bảo hành của răng đang mở (thông tin răng + sơ đồ mặt, form, "‹ Răng trước" "Răng tiếp theo ›" cạnh nhau bên phải) · xem trước thẻ (‹ i/n ›, chip răng). Footer: gợi ý + "Kích hoạt bảo hành (r/s răng)".
+- **Owner chốt** (Q10): giữ logic cũ. "Chỉnh sửa" chỉ trên thẻ chưa kích hoạt; thẻ đã kích hoạt bị khoá, chỉ Xem chi tiết (R-1120). FE-only, BE không đổi.
+- **FE** (`features/labo/components/warranty/` + `workflow/LaboWarrantyStep.tsx`):
+  - Mới: `LaboWarrantyOverview`, `LaboWarrantyToothPreview`, `LaboWarrantyReadyMeter`, `LaboWarrantyToothNav` (nav + pager), `LaboWarrantyToothInfo`, `laboWarrantyDraft.ts`, `useWarrantyActiveTooth.ts`, `labo-warranty-v2.css`.
+  - Chỉ form của răng đang mở được mount; `useWarrantySharing` đọc các răng khác bằng `useWatch(..., { preserve: true })`.
+  - Nút kích hoạt khoá cho tới khi mọi răng đã chọn đủ ngày bắt đầu + thời hạn. Footer: "Còn n răng thiếu ngày bắt đầu hoặc thời hạn." / "Tất cả răng đã chọn đều đủ thông tin. Sẵn sàng kích hoạt."
+  - Tổng quan: thẻ nháp đủ thông tin tô tím với nhãn "Sẵn sàng kích hoạt", thiếu thì "Chưa kích hoạt". "Chỉnh sửa" quay về form của răng đó (giữ giá trị đã nhập). Bảng có cột Thời hạn thay cho Còn lại (thời gian còn lại vẫn hiện trên thẻ); trạng thái "Sẵn sàng" / "Thiếu …" / "Không kích hoạt".
+  - 21 khoá i18n mới (vi/en).
+  - Responsive: dưới 1100px các cột xếp chồng, khung Đủ thông tin nằm ngay dưới danh sách răng. Từ 641 đến 1100px Tổng quan giữ 2 thẻ mỗi hàng. Trên điện thoại (≤640px) 1 thẻ mỗi hàng và 2 nút nav chia đều bề ngang. Bảng cuộn ngang (DataTable `scroll x`).
+- **Kiểm thử** (bản build production `vite preview` :8090 từ working tree → host riêng :5152, DB thật, không chặn API, `--workers=1`):
+  - labo-workflow, plan-warranty-tab, labo-api, labo-orders-actions, warranty-stage: **32/32** trước khi chỉnh CSS.
+  - Sau khi chỉnh CSS (đáy cột, nav, responsive): labo-workflow + plan-warranty-tab **12/13**. `plan-warranty-tab:171` (R-1138) đỏ một lần, chạy riêng thì xanh, và đã xanh trong lượt 32/32 → flaky, không do CSS.
+  - Chụp ảnh so với mock ở 1600 / 1024 / 390px.
+  - Đỏ có sẵn ở backend: chạy 2 worker song song thì `IX_bd_labo_orders_OrderCode` trùng → 500 (race sinh mã phiếu, có từ trước) → các spec Labo chạy 1 worker.
+- **Mức retest**: 2 (feature Labo, chỉ FE).
+
+## R-1153 (2026-11-05, mức 2: Labo Đặt hàng — hình răng hàm dưới nằm trên vòng mặt, Màu dài không tràn khỏi mặt, main)
+
+- **Yêu cầu** (owner, ảnh chụp R35/R16): ở thẻ từng răng của Đặt hàng, răng hàm dưới đang có hình răng nằm dưới vòng mặt; owner muốn hình luôn ở trên, **chỉ chỗ này**. Màu dài ("A4324343") tràn ra ngoài mặt Gần.
+- **Thiết kế**:
+  - `ToothSurfacePicker` thêm prop `picturePlacement` (`"jaw"` mặc định, giữ như sơ đồ răng; `"top"` luôn đặt hình trên vòng). Chỉ `LaboToothSpecCard` truyền `"top"`; Kiểm tra (`LaboToothFaultPicker`) và Bảo hành (`LaboWarrantyToothInfo`) không đổi. Hình răng hàm dưới vẫn xoay như cũ.
+  - `fitShade` (`toothShapes.ts`): mỗi mặt có bề rộng riêng (trên/dưới 60, giữa 46, Gần/Xa 27 đơn vị viewBox). Màu không vừa ở 10px thì xuống 8px (`.tsp-shade--small`); vẫn không vừa thì cắt kèm "…", và mặt đó có `<title>` "Mặt: màu đầy đủ". Ô Màu và tiêu đề thẻ vẫn hiện đủ.
+- **Kiểm thử**: build production :8090 → host :5152, DB thật. Spec chụp ảnh tạm (đã xoá) với R16 chọn Gần+Má, màu "A4324343", và R36 chọn Gần+Nhai, màu "A1/A2/A3": chữ màu nằm gọn trong mặt (Gần "A432…", Má đủ chữ), hình R36 ở trên vòng. `tsc -b` sạch. Push develop trước theo ý owner, chạy regression sau: `labo-workflow`, `plan-warranty-tab`, `labo-api`, `labo-orders-actions`, `warranty-stage` **32/32** (`--workers=1`, 6.8 phút).
+- **Mức retest**: 2 (component dùng chung chỉ có Labo dùng).
+
+
+## R-1154 (2026-11-05, mức 2: Bộ chọn mặt răng theo mock BA "Ba trạng thái tương tác", bỏ "?" trên mặt, tiêu đề thẻ răng nền xanh nhạt, main)
+
+- **Yêu cầu** (BA, 3 ảnh):
+  - Tiêu đề thẻ từng răng ở Thông số từng răng có nền xanh nhạt.
+  - Bỏ "?" dưới tên mặt khi mặt chưa có Màu.
+  - Vòng mặt theo 3 trạng thái:
+    - Chưa chọn: nền `#EEF2F7`, chữ `#1E293B`, các mặt cách nhau khe trắng 4px thay cho vạch kẻ.
+    - Hover: nền `#DCE7FD`, chữ `#1E3A8A`, phóng to 3,5% trong 120ms.
+    - Đã chọn: nền `#2563EB`, chữ trắng kèm ✓, chọn được nhiều mặt. Hover lên mặt đã chọn đổi sang `#1D4ED8`, bấm lần nữa để bỏ chọn.
+- **Owner chốt** theo đề xuất a–f:
+  - a. Nền xanh nhạt `#EFF6FF` cho tiêu đề mọi thẻ răng, cả khi đóng lẫn khi mở; thẻ Tất cả giữ nguyên.
+  - b. Bỏ viền đỏ trên vòng: thiếu màu báo bằng ô Màu và nhãn "n lỗi".
+  - c. ✓ nằm dưới tên mặt; khi mặt có Màu thì ✓ đứng cạnh tên, Màu ở dòng dưới.
+  - d. Mặt đang nhập màu (Riêng theo mặt) dùng `#1D4ED8` với viền trắng dày hơn.
+  - e. Áp cho cả Đặt hàng, Kiểm tra và Bảo hành. Kiểm tra vẫn tô đỏ mặt lỗi; mặt không đặt vẫn mờ, không có ✓.
+  - f. Không thêm nút "Bỏ chọn" và dòng "Đã chọn" của bản chạy thử.
+- **Thiết kế**:
+  - `ToothSurfacePicker` bỏ mark `missing`, bỏ fallback "?" và bỏ đường viền ngoài; thêm ✓ (`.tsp-tick`).
+  - `tooth-surface-picker.css` đổi sang token `--tsp-*` theo mock: `transform-box: fill-box` và scale 1.035 khi hover.
+  - `laboSpecRules.missingSurfaces` bị xoá.
+  - Thêm `--lts-tooth-head` vào `labo-tooth-spec.css`.
+- **Kiểm thử**:
+  - Build production :8090 trỏ host :5152, DB thật.
+  - Spec chụp ảnh tạm (đã xoá) trên R12: Gần+Cắn đã chọn, hover Xa, rồi Màu "A2". Ảnh khớp mock: mặt xám, khe trắng, hover xanh nhạt và phóng to, đã chọn xanh đặc có ✓, tiêu đề xanh nhạt.
+  - `tsc`/eslint sạch.
+  - Push develop trước, chạy regression sau: `labo-workflow`, `plan-warranty-tab`, `labo-api`, `labo-orders-actions`, `warranty-stage` **32/32** (`--workers=1`, 7.5 phút).
+- **Mức retest**: 2 (component dùng chung chỉ có Labo dùng).

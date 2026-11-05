@@ -27,6 +27,7 @@ import {
   type LaboCheckVerdict,
   type LaboToothPicks,
 } from "./laboCheckRules";
+import { orderedFaces } from "./laboToothFaces";
 
 export interface LaboCheckValues {
   receivedAt?: Dayjs;
@@ -60,6 +61,8 @@ export interface LaboCheckForm {
   /** The check on screen, for the history's "đang nhập" round. */
   live: LaboLiveCheck | null;
   start: () => Promise<void>;
+  /** «Đạt tất cả» (Labo 2 v2, R-1151): every due tooth Đạt at once. */
+  passAll: () => void;
   conclude: (conclusion: LaboCheckConclusion) => Promise<void>;
 }
 
@@ -141,13 +144,20 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void, readOn
     const returning = conclusion !== LABO_CHECK_CONCLUSION.Pass;
     const toothFields = numbers.map((tooth) => ["teeth", toothKey(tooth), "result"]);
     const noteFields = failed.map((tooth) => ["teeth", toothKey(tooth), "note"]);
-    if (!(await validate([...RECEIVE_FIELDS, ...toothFields, ...(returning ? [...noteFields, ...RETURN_FIELDS] : [])]))) return;
+    // A Lỗi tooth ordered on Mặt răng names the faulty ones (R-1151); an older order has none to pick.
+    const faultFields = teeth
+      .filter((tooth) => failed.includes(tooth.toothNumber) && orderedFaces(tooth).length > 0)
+      .map((tooth) => ["teeth", toothKey(tooth.toothNumber), "faults"]);
+    const returnFields = returning ? [...noteFields, ...faultFields, ...RETURN_FIELDS] : [];
+    if (!(await validate([...RECEIVE_FIELDS, ...toothFields, ...returnFields]))) return;
     const values: LaboCheckValues = form.getFieldsValue(true);
     // Every checked tooth sends its pictures, Đạt ones too (P0111_02, R-1110).
     const checked = numbers.filter((tooth) => values.teeth?.[toothKey(tooth)]?.result != null);
     const toothPictures = tiles.upload(checked).toothPictures;
     // P3110 REQ-D6: every Lỗi tooth carries its own Hình ảnh lỗi.
-    const unpictured = returning ? failed.find((tooth) => !toothPictures.some((picture) => picture.tooth === tooth)) : undefined;
+    const unpictured = returning
+      ? failed.find((tooth) => !toothPictures.some((picture) => picture.tooth === tooth))
+      : undefined;
     if (unpictured !== undefined) {
       setPicturesChecked(true);
       setCollapsed(new Set());
@@ -162,7 +172,13 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void, readOn
         teeth: numbers.map((tooth) => {
           const pick = values.teeth?.[toothKey(tooth)];
           const result = pick?.result ?? LABO_TOOTH_RESULT.Passed;
-          return { toothNumber: tooth, result, note: result === LABO_TOOTH_RESULT.Failed ? pick?.note?.trim() : undefined };
+          if (result !== LABO_TOOTH_RESULT.Failed) return { toothNumber: tooth, result };
+          return {
+            toothNumber: tooth,
+            result,
+            note: pick?.note?.trim(),
+            faultSurfaces: pick?.faults,
+          };
         }),
         // Days only (R-1092): the server's "after" check then compares days too.
         returnedAt: returning ? values.returnedAt?.startOf("day").toISOString() : undefined,
@@ -177,6 +193,15 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void, readOn
       // The global MutationCache toasts the server's message; the tab stays for the fix.
     }
   };
+
+  const passAll = () =>
+    form.setFields(
+      numbers.map((tooth) => ({
+        name: ["teeth", toothKey(tooth), "result"],
+        value: LABO_TOOTH_RESULT.Passed,
+        errors: [],
+      })),
+    );
 
   const toggleCollapsed = (tooth: number) =>
     setCollapsed((current) => {
@@ -202,6 +227,7 @@ export function useLaboCheckForm(order: LaboOrderDto, onDone: () => void, readOn
     toggleCollapsed,
     live: round ? { teeth: numbers, picks, redeliveryDueAt: redeliveryDueAt?.toISOString() } : null,
     start,
+    passAll,
     conclude,
   };
 }

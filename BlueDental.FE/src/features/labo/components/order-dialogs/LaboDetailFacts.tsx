@@ -27,6 +27,9 @@ function Block({ title, rows, children }: BlockProps) {
   );
 }
 
+/** Ghi chú cho Labo, shown only on an older order that carries one (R-1150 dropped it). */
+const noteRow = (note: string): [label: string, value: string][] => (note ? [[t("Labo:Spec:Note"), note]] : []);
+
 /** The status pill under the fourth block, in the same tone as the table's. */
 function StatusPill({ tone }: { tone: LaboPill }) {
   return (
@@ -85,8 +88,9 @@ export function LaboDetailFacts({ facts, pill }: Props) {
           [t("Patient:Plan:Service"), facts.treatmentService],
           [t("Patient:Labo:ProsthesisType"), facts.laboService],
           [t("Patient:DentalChart:Tooth"), facts.teeth],
+          [t("Labo:Spec:Surfaces"), facts.surfaces],
           [t("Patient:Viewer:DetailColor"), facts.shade],
-          [t("Labo:Spec:Note"), facts.labNote],
+          ...noteRow(facts.labNote),
           [t("Patient:Payment:Quantity"), facts.quantity],
         ]}
       >

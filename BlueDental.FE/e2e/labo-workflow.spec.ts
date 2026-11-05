@@ -13,6 +13,7 @@ import {
   passAll,
   receive,
   sentOrder,
+  SpecMode,
   STAGES,
   type LaboLine,
   type LaboOrderView,
@@ -71,23 +72,31 @@ async function read(page: Page, id: string): Promise<LaboOrderView> {
   return res.body as LaboOrderView;
 }
 
-/** Thông số từng răng and its row for one tooth (P3110 m139). */
-function specTable(dialog: Locator) {
-  const table = dialog.getByRole("region", { name: "Thông số từng răng" });
-  return { table, row: (tooth: number | string) => table.locator(`tr[data-tooth="${tooth}"]`) };
+/**
+ * Thông số từng răng (Labo v2, R-1150): the Chung / Riêng switches, then a
+ * card per tooth ("0" = the Tất cả card) with its drawn tooth to pick faces on.
+ */
+function specCards(dialog: Locator) {
+  const section = dialog.getByRole("region", { name: "Thông số từng răng" });
+  const card = (tooth: number | string) => section.locator(`article[data-tooth="${tooth}"]`);
+  return {
+    section,
+    cards: section.locator("article[data-tooth]"),
+    card,
+    face: (tooth: number, name: string) =>
+      card(tooth).getByRole("group", { name: `Sơ đồ mặt răng R${tooth}` }).getByRole("button", { name, exact: true }),
+    mode: (group: "Thông số răng" | "Màu răng", scope: "Chung tất cả răng" | "Riêng từng răng") =>
+      section.getByRole("group", { name: group, exact: true }).getByRole("button", { name: scope }),
+  };
 }
 
-/** Vertical middle of a box, to check cells of a row line up. */
-async function middleY(box: Locator): Promise<number> {
-  const rect = await box.boundingBox();
-  expect(rect).not.toBeNull();
-  return rect!.y + rect!.height / 2;
-}
-
-/** The first entry of a SearchSelect in that cell. */
-async function pickFirst(page: Page, cell: Locator) {
-  await cell.locator(".ss-trigger").click();
-  const option = page.locator("#ss-portal-dropdown .ss-option").first();
+/** The entry named `text` of the SearchSelect under a FloatingField label. */
+async function pickByLabel(page: Page, scope: Locator, label: string, text: string) {
+  const field = scope.locator(".floating-field").filter({
+    has: page.locator(".floating-field-label", { hasText: new RegExp(`^${label}\\*?$`) }),
+  });
+  await field.locator(".ss-trigger").click();
+  const option = page.locator("#ss-portal-dropdown .ss-option").filter({ hasText: text }).first();
   await expect(option).toBeVisible();
   await option.click();
 }
@@ -214,8 +223,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await chart.getByRole("button", { name: "Hủy" }).click();
       await expect(chart).toBeHidden();
       await expect(teethRow.locator(".pd-labo-toothchip")).toHaveText(["R11", "R21"]);
-      // The order-level spec the API took went to both teeth: nothing lacks.
-      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText("Đủ thông tin cho 2 răng.");
+      // Each tooth came with its Mặt gần, Màu and Đường hoàn tất: nothing lacks (R-1150).
+      await expect(dialog.locator(".pd-labo-footer-status")).toContainText("Riêng thông số · riêng màu — R11 1 mặt · R21 1 mặt");
+      await expect(dialog.locator(".pd-labo-footer-hint--done")).toHaveText("✓ Đã đủ thông tin bắt buộc");
       await dialog.getByRole("button", { name: "Lưu nháp" }).click();
       await expect(page.getByText("Đã lưu nháp phiếu Labo")).toBeVisible();
       await expect(dialog).toBeHidden();
@@ -284,12 +294,17 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(start).toContainText("Chưa bắt đầu kiểm tra · 2 răng chờ kiểm tra");
       await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Chờ bắt đầu kiểm tra");
       await expect(dialog.getByRole("group", { name: "Răng 11" })).toHaveCount(0);
-      await expect(dialog.getByRole("button", { name: /^Trả |^Xác nhận Labo đạt/ })).toHaveCount(0);
+      await expect(dialog.getByRole("button", { name: /^Trả |^Xác nhận đạt/ })).toHaveCount(0);
       await start.getByRole("button", { name: "Kiểm tra Labo" }).click();
       await expect(page.getByText("Đã nhận hàng · bắt đầu kiểm tra")).toBeVisible();
       await expect(dialog.locator(".pd-labo-workflow-head")).toContainText("Chờ kiểm tra");
       expect((await read(page, orderId)).status).toBe(LaboStatus.AwaitingCheck);
-      await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Đạt 0 · Lỗi 0");
+      // Labo 2 v2 (R-1151): the unpicked teeth are counted, and the footer says so.
+      await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Đạt 0 · Lỗi 0 · Chưa đánh giá 2");
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText("Còn 2 răng chưa đánh giá");
+      await expect(dialog.getByRole("button", { name: "Trả toàn bộ (2 răng)" })).toBeDisabled();
+      await expect(dialog.getByRole("button", { name: "Xác nhận đạt (0 răng)" })).toBeDisabled();
+      await expect(dialog.getByRole("button", { name: /^Trả hàng bị lỗi/ })).toHaveCount(0);
 
       const toothRow = (tooth: number) =>
         dialog.locator(".pd-labo-tooth-row").filter({ has: page.getByRole("group", { name: `Răng ${tooth}` }) });
@@ -298,6 +313,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await faulty.getByRole("button", { name: "Lỗi" }).click();
       await expect(faulty.getByRole("button", { name: "Lỗi" })).toHaveAttribute("aria-pressed", "true");
       await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Đạt 1 · Lỗi 1");
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText("Nhập mô tả lỗi gửi Labo cho 1 răng");
       // P3110 m342: Đã trả counts this return already; BH Labo waits for the fitting.
       await expect(toothRow(11)).toContainText("Đã trả: 0 lần");
       await expect(toothRow(11)).toContainText("BH Labo: chưa kích hoạt");
@@ -314,16 +330,27 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(row21).toContainText("Kết luận R21: KHÔNG ĐẠT → trả Labo lần 1");
       await expect(dialog.getByRole("region", { name: "Trả hàng cho Labo · lần 1" })).toBeVisible();
       await expect(dialog.getByRole("button", { name: "Trả toàn bộ (2 răng)" })).toBeEnabled();
-      await expect(dialog.getByRole("button", { name: "Xác nhận Labo đạt", exact: false })).toHaveCount(0);
+      await expect(dialog.getByRole("button", { name: /^Xác nhận đạt/ })).toHaveCount(0);
+      // Mặt bị lỗi (R-1151): only the faces the tooth was ordered on (Gần) can be marked.
+      const faces21 = row21.locator(".pd-labo-fault-picker");
+      await expect(row21.locator(".pd-labo-fault-line")).toHaveText("Mặt bị lỗi: chưa chọn — bấm trên sơ đồ");
+      await expect(faces21.getByRole("button", { name: "Xa", exact: true })).toHaveCount(0);
 
       // A folded Lỗi group is still checked: the error opens it again.
       await row21.getByRole("button", { name: "Thu gọn" }).click();
       await expect(row21.locator(".pd-labo-defect")).toBeHidden();
       await dialog.getByRole("button", { name: "Trả hàng bị lỗi (1 răng)" }).click();
       await expect(row21.getByText("Vui lòng nhập mô tả gửi Labo cho R21")).toBeVisible();
+      await expect(row21.getByText("R21 chưa chọn mặt bị lỗi")).toBeVisible();
       await expect(row21.getByRole("button", { name: "Thu gọn" })).toBeVisible();
+      const near21 = faces21.getByRole("button", { name: "Gần", exact: true });
+      await near21.click();
+      await expect(near21).toHaveAttribute("aria-pressed", "true");
+      await expect(row21.locator(".pd-labo-fault-line")).toHaveText("Mặt bị lỗi: Gần");
+      await expect(row21.getByText("R21 chưa chọn mặt bị lỗi")).toHaveCount(0);
 
       await row21.getByLabel("Mô tả gửi Labo · R21").fill(note);
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText("Phiếu → Trả hàng · chờ Labo giao lại");
       await typeDate(dialog.getByLabel("Hẹn Labo giao lại"), pickerStamp(5, 10).slice(0, 10));
       // REQ-D6 (R-1093): a Lỗi tooth without its own picture turns its group red.
       await dialog.getByRole("button", { name: "Trả hàng bị lỗi (1 răng)" }).click();
@@ -342,10 +369,10 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       const history = dialog.locator(".pd-labo-check-section").filter({ hasText: "Lịch sử nhận hàng & trả hàng · theo răng" });
       await expect(history).toContainText("Đạt 1 · Lỗi 1 · đang nhập");
       await expect(history.locator(".pd-labo-check-aside")).toHaveText("1 lần nhận · Đã trả: R21 1");
-      await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText(note);
+      await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText(`${note} (mặt Gần)`);
       await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText("Trả lần 1");
       // Hẹn giao lại reads as a day only (m294).
-      await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText(pickerStamp(5, 10).slice(0, 10));
+      await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText(`hẹn ${pickerStamp(5, 10).slice(0, 10)}`);
       await expect(history.locator("tbody tr").filter({ hasText: "R21" })).not.toContainText(/\d{2}:\d{2}/);
 
       await dialog.getByRole("button", { name: "Trả hàng bị lỗi (1 răng)" }).click();
@@ -356,7 +383,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
 
       const returned = await read(page, orderId);
       expect(returned.status).toBe(LaboStatus.Returned);
-      expect(returned.rounds?.[0].toothResults.find((tooth) => tooth.toothNumber === 21)?.note).toBe(note);
+      const saved21 = returned.rounds?.[0].toothResults.find((tooth) => tooth.toothNumber === 21);
+      expect(saved21?.note).toBe(note);
+      expect(saved21?.faultSurfaces).toEqual(["M"]);
       expect(returned.teeth?.find((tooth) => tooth.toothNumber === 11)?.passedAt).toBeTruthy();
       // Both teeth's pictures of round 1 were saved: R11 Đạt (R-1110), R21 Lỗi.
       const round1 = returned.images.filter((image) => image.roundNo === 1);
@@ -386,6 +415,8 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(history).toContainText("Đạt 1 · Lỗi 1");
       await expect(history.locator("tbody tr").filter({ hasText: "R11" })).toContainText("Chờ lắp");
       await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText("Trả lần 1");
+      // Q9 (R-1151): the faces stay with the round they were found on.
+      await expect(history.locator("tbody tr").filter({ hasText: "R21" })).toContainText(`${note} (mặt Gần)`);
 
       await dialog.locator(".pd-labo-start-card").getByRole("button", { name: "Kiểm tra Labo" }).click();
       await expect(dialog.getByRole("group", { name: "Răng 11" })).toHaveCount(0);
@@ -406,10 +437,14 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(dialog.getByRole("button", { name: "Trả toàn bộ (2 răng)" })).toBeEnabled();
       await expect(dialog.getByRole("button", { name: "Trả hàng bị lỗi (1 răng)" })).toBeEnabled();
 
-      await tooth21.getByRole("button", { name: "Đạt" }).click();
-      await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Đạt tất cả 1/1");
-      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText("Phiếu → QC đạt · mở khoá «Lắp»");
-      await dialog.getByRole("button", { name: "Xác nhận Labo đạt (1 răng)" }).click();
+      // A new round starts with no face marked: the faces belong to the round (Q9).
+      await expect(row21.locator(".pd-labo-fault-line")).toHaveText("Mặt bị lỗi: chưa chọn — bấm trên sơ đồ");
+      // «Đạt tất cả» (Labo 2 v2) sets every due tooth Đạt at once.
+      await dialog.getByRole("button", { name: "Đạt tất cả", exact: true }).click();
+      await expect(tooth21.getByRole("button", { name: "Đạt" })).toHaveAttribute("aria-pressed", "true");
+      await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Đạt 1 · Lỗi 0");
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText("Tất cả răng đạt → chờ lắp");
+      await dialog.getByRole("button", { name: "Xác nhận đạt (1 răng)" }).click();
       await expect(page.getByText("Đã xác nhận Labo đạt")).toBeVisible();
       await expect(dialog).toBeHidden();
       await expect(laboRow(page, orderCode)).toContainText("Hoàn thành");
@@ -444,9 +479,30 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(box.getByRole("article", { name: "Răng 21" })).toHaveCount(0);
       await expect(box.locator(".pd-labo-warranty-pick-all .ant-checkbox-indeterminate")).toHaveCount(1);
 
+      // R-1152 (BaoHanhV2): the button counts ready/picked and waits for every picked tooth.
+      const activate = dialog.getByRole("button", { name: "Kích hoạt bảo hành (0/1 răng)" });
+      await expect(activate).toBeDisabled();
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText("Còn 1 răng thiếu ngày bắt đầu hoặc thời hạn.");
       const card = box.getByRole("article", { name: "Răng 11" });
+      await expect(box.getByRole("heading", { level: 4 }).filter({ hasText: "Thẻ bảo hành · Răng 11" })).toBeVisible();
+      await expect(box.locator(".pd-labo-wtooth-nav").getByRole("button", { name: "Răng tiếp theo" })).toBeDisabled();
       await typeDate(card.getByLabel("Ngày bắt đầu bảo hành"), pickerStamp(0, 0).slice(0, 10));
       await card.locator(".pd-labo-warranty-duration").filter({ hasText: "6 tháng" }).click();
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText(
+        "Tất cả răng đã chọn đều đủ thông tin. Sẵn sàng kích hoạt.",
+      );
+
+      // Tổng quan: 11 as typed so far with Chỉnh sửa, 21 left out this time; Chỉnh sửa leads back to its form.
+      await dialog.getByRole("tab", { name: "Tổng quan thẻ bảo hành (2)" }).click();
+      const overview = dialog.locator(".pd-labo-woverview-cards");
+      await expect(overview.locator(".pd-labo-warranty-card--active")).toContainText("Sẵn sàng kích hoạt");
+      const draftRows = dialog.locator(".pd-labo-warranty-table tbody tr.ant-table-row");
+      await expect(draftRows.filter({ hasText: /^11/ })).toContainText("6 tháng");
+      await expect(draftRows.filter({ hasText: /^11/ })).toContainText("Sẵn sàng");
+      await expect(draftRows.filter({ hasText: /^21/ })).toContainText("Không kích hoạt");
+      await expect(dialog.locator(".pd-labo-warranty-table").getByRole("columnheader", { name: "Còn lại" })).toHaveCount(0);
+      await overview.locator(".pd-labo-warranty-card--active").getByRole("button", { name: "Chỉnh sửa" }).click();
+      await expect(card.getByLabel("Ngày bắt đầu bảo hành")).toHaveValue(pickerStamp(0, 0).slice(0, 10));
       // P3110 REQ-E1: Ảnh thẻ bảo hành — Mặt trước picked, Mặt sau left empty.
       await expect(card.getByRole("button", { name: "Tải ảnh Mặt sau" })).toBeVisible();
       await card
@@ -456,7 +512,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(card.getByRole("button", { name: "Tải ảnh Mặt trước" })).toHaveCount(0);
       await expect(card.getByRole("img", { name: "Mặt trước" })).toBeVisible();
       await expect(card.getByRole("button", { name: "Xóa ảnh Mặt trước" })).toBeEnabled();
-      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (1 răng)" }).click();
+      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (1/1 răng)" }).click();
       await expect(page.getByText("Đã kích hoạt bảo hành 1 răng")).toBeVisible();
 
       const warranted = await read(page, orderId);
@@ -476,11 +532,16 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
         `/patient/${line.patientId}?branchId=${line.branchId}&tab=labo&laboModal=order&laboRowId=${orderId}&laboStep=warranty`,
       );
       await expectStep(dialog, "Bảo hành", "Bảo hành");
-      await expect(dialog.locator(".pd-labo-warranty-card--active")).toContainText(`Thẻ bảo hành · ${code11}`);
-      await expect(dialog.locator(".pd-labo-warranty-card--inactive")).toContainText("Răng 21");
+      // Tooth 21 still lacks a card, so Kích hoạt opens on it; the activated 11 sits in Tổng quan, locked (Q10).
+      await expect(box.getByRole("article", { name: "Răng 21" })).toBeVisible();
+      await dialog.getByRole("tab", { name: "Tổng quan thẻ bảo hành (2)" }).click();
+      const activated = dialog.locator(".pd-labo-woverview-cards .pd-labo-warranty-card--active");
+      await expect(activated).toContainText(`Thẻ bảo hành · ${code11}`);
+      await expect(activated.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(0);
+      const draft21 = dialog.locator(".pd-labo-woverview-cards .pd-labo-warranty-card--inactive");
+      await expect(draft21).toContainText("Răng 21");
+      await expect(draft21.getByRole("button", { name: "Chỉnh sửa" })).toBeVisible();
       // REQ-E1/E2: the photo lands in Ảnh thẻ; the card no longer opens a Thông tin thẻ / Lịch sử panel.
-      // The table sits on its own view, as the Labo 3 mock lays it out.
-      await dialog.getByRole("tab", { name: /^Thẻ bảo hành theo từng răng/ }).click();
       const table = dialog.locator(".pd-labo-warranty-table");
       await expect(table.getByRole("columnheader", { name: "Ảnh thẻ" })).toBeVisible();
       const row11 = table.locator("tbody tr.ant-table-row").filter({ hasText: code11 });
@@ -492,7 +553,10 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       // REQ-D7/D8: back on tab 2, B. stays in sight, read-only — fitted and carded vs waiting.
       await dialog.getByRole("tab", { name: /Nhận hàng & kiểm tra/ }).click();
       const passedRows = dialog.locator(".pd-labo-tooth-row--locked");
-      await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Đạt tất cả 2/2");
+      await expect(dialog.locator(".pd-labo-check-tally")).toHaveText("Đạt 2 · Lỗi 0");
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText(
+        "Tất cả răng đã đạt, chờ lắp · có thể kích hoạt bảo hành",
+      );
       await expect(passedRows).toHaveCount(2);
       const fitted = passedRows.filter({ hasText: "Răng 11" });
       await expect(fitted).toContainText(`Đạt lần 1 · đã lắp ${clinicToday().slice(8, 10)}/${clinicToday().slice(5, 7)}`);
@@ -502,6 +566,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(waiting).toContainText("BH Labo: chưa kích hoạt");
       await expect(passedRows.filter({ hasText: "không có trong lần giao này" })).toHaveCount(0);
       await expect(dialog.getByRole("button", { name: "Đạt" })).toHaveCount(0);
+      // «Tiếp: Bảo hành ›» goes back to tab 3.
+      await dialog.getByRole("button", { name: "Tiếp: Bảo hành ›" }).click();
+      await expectStep(dialog, "Bảo hành", "Bảo hành");
     });
 
     await test.step("the slip's Phiếu Labo column empties once checked and Hoàn thành is offered", async () => {
@@ -553,7 +620,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       for (const tooth of [11, 21]) {
         await dialog.getByRole("group", { name: `Răng ${tooth}` }).getByRole("button", { name: "Đạt" }).click();
       }
-      await dialog.getByRole("button", { name: "Xác nhận Labo đạt (2 răng)" }).click();
+      await dialog.getByRole("button", { name: "Xác nhận đạt (2 răng)" }).click();
       await expect(page.getByText("Đã xác nhận Labo đạt")).toBeVisible();
       await expect(dialog).toBeHidden();
       expect((await read(page, a.id)).status).toBe(LaboStatus.Completed);
@@ -600,10 +667,18 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     await assertRealApiTraffic(page, LABO_ORDERS);
     await expectStep(dialog, "Bảo hành", "Hoàn thành");
 
-    await test.step("off by default: a full form per tooth and the hint to turn it on", async () => {
+    await test.step("off by default: one tooth's form at a time, walked with Răng tiếp theo (R-1152)", async () => {
       await expect(share).not.toBeChecked();
       await expect(box.locator(".pd-labo-warranty-share")).toContainText("Bật để nhập 1 lần cho tất cả răng đã chọn");
+      await expect(box.getByRole("article", { name: "Răng 11" }).getByLabel("Ngày bắt đầu bảo hành")).toBeVisible();
+      await expect(box.getByRole("article", { name: "Răng 22" })).toHaveCount(0);
+      const next = box.locator(".pd-labo-wtooth-nav").getByRole("button", { name: "Răng tiếp theo" });
+      await next.click();
+      await next.click();
       await expect(box.getByRole("article", { name: "Răng 22" }).getByLabel("Ngày bắt đầu bảo hành")).toBeVisible();
+      await expect(box.getByRole("article", { name: "Răng 11" })).toHaveCount(0);
+      await expect(dialog.locator(".pd-labo-wpreview-pager")).toHaveText("3/4");
+      await expect(dialog.getByRole("button", { name: "Kích hoạt bảo hành (0/4 răng)" })).toBeDisabled();
     });
 
     await test.step("on: one form for all, a serial per tooth, the preview's head shows three chips", async () => {
@@ -644,6 +719,8 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
 
     await test.step("off again keeps what was typed, on each tooth's own form", async () => {
       await share.uncheck();
+      // Still on tooth 22, opened before Dùng chung was ticked; one more step to 23.
+      await box.locator(".pd-labo-wtooth-nav").getByRole("button", { name: "Răng tiếp theo" }).click();
       const own = box.getByRole("article", { name: "Răng 23" });
       await expect(own.getByLabel("Ngày bắt đầu bảo hành")).toHaveValue(pickerStamp(0, 0).slice(0, 10));
       await expect(own.getByLabel("Điều kiện bảo hành")).toHaveValue(`Điều kiện chung ${id}`);
@@ -652,7 +729,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     });
 
     await test.step("Kích hoạt: a card per tooth with the shared validity and its own serial, kept after a reload", async () => {
-      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (4 răng)" }).click();
+      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (4/4 răng)" }).click();
       await expect(page.getByText("Đã kích hoạt bảo hành 4 răng")).toBeVisible({ timeout: 30_000 });
       const warranted = await read(page, order.id);
       expect(warranted.status).toBe(LaboStatus.Warranty);
@@ -712,7 +789,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     expect((await read(page, later.body.id!)).status).toBe(LaboStatus.Sent);
   });
 
-  test("Đặt hàng per tooth: pick teeth, fill each row, pictures per tooth, shared mode, sent without a picture (P3110)", async ({
+  test("Đặt hàng per tooth: a new tooth waits on its Mặt răng and Màu, the modes keep what was typed, Khớp cắn is the order's (R-1150)", async ({
     page,
   }) => {
     test.setTimeout(180_000);
@@ -724,12 +801,15 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     const orderId = draft.body.id!;
     const orderCode = draft.body.orderCode!;
     const dialog = workflowDialog(page);
-    const spec = specTable(dialog);
+    const spec = specCards(dialog);
     const teethRow = dialog.locator(".pd-labo-teeth");
-    const status = dialog.locator(".pd-labo-footer-hint");
+    const summary = dialog.locator(".pd-labo-footer-status > span").first();
+    const gap = dialog.locator(".pd-labo-footer-hint--gap");
+    const done = dialog.locator(".pd-labo-footer-hint--done");
     const send = dialog.getByRole("button", { name: "Tạo phiếu Labo" });
+    const shade12 = spec.card(12).getByRole("textbox", { name: "Màu răng R12" });
 
-    await test.step("a tooth added on the chart gets an empty row, and Gửi Labo waits on it", async () => {
+    await test.step("a tooth added on the chart gets an empty card, and Tạo phiếu Labo waits on it", async () => {
       await openLaboTab(page, line);
       await laboRow(page, orderCode).getByRole("button", { name: "Xem chi tiết" }).click();
       await expectStep(dialog, "Đặt hàng", "Nháp");
@@ -740,30 +820,53 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await chart.getByRole("button", { name: "Chọn răng" }).click();
       await expect(chart).toBeHidden();
       await expect(teethRow.locator(".pd-labo-toothchip")).toHaveText(["R11", "R12", "R21"]);
-      await expect(teethRow).toContainText("Số lượng: 3");
 
-      await expect(spec.table.locator("tbody tr")).toHaveCount(3);
-      await expect(spec.row(12)).toHaveClass(/pd-labo-spec-row--gap/);
-      // The Ảnh "+" sits on the row's middle line with Màu răng (m139), not pushed down.
-      const shade = await middleY(spec.row(12).getByRole("textbox", { name: "Màu răng R12" }));
-      expect(Math.abs((await middleY(spec.row(12).locator(".pd-labo-cellwell"))) - shade)).toBeLessThanOrEqual(2);
-      await expect(status).toHaveText("R12 chưa nhập màu răng và chưa chọn đường hoàn tất.");
+      // Riêng thông số: no Tất cả card, one per tooth.
+      await expect(spec.cards).toHaveCount(3);
+      await expect(spec.card(0)).toHaveCount(0);
+      await expect(spec.card(12)).toHaveClass(/pd-lts-card--error/);
+      await expect(spec.card(12).locator(".pd-lts-chip")).toHaveText("2 lỗi");
+      await expect(spec.card(11).locator(".pd-lts-chip")).toHaveText("Đủ thông tin");
+      await expect(spec.card(12)).toContainText("Chưa chọn mặt");
+      await expect(summary).toHaveText("Riêng thông số · riêng màu — R11 1 mặt · R12 0 mặt · R21 1 mặt");
+      await expect(gap).toHaveText("2 lỗi: R12 chưa chọn mặt răng · R12 chưa nhập màu răng");
       await expect(send).toBeDisabled();
 
-      await spec.row(12).getByRole("textbox", { name: "Màu răng R12" }).fill("A1/A2");
-      await expect(status).toHaveText("R12 chưa chọn đường hoàn tất.");
-      await pickFirst(page, spec.row(12).locator("td").nth(1));
-      await expect(spec.row(12)).not.toHaveClass(/pd-labo-spec-row--gap/);
-      await expect(status).toHaveText("Đủ thông tin cho 3 răng.");
+      // The tooth picture picks all five faces (BA), and pressed again takes them all off.
+      await spec.card(12).getByRole("button", { name: "Chọn tất cả mặt R12" }).click();
+      for (const name of ["Gần", "Xa", "Cắn", "Ngoài", "Trong"]) {
+        await expect(spec.face(12, name)).toHaveAttribute("aria-pressed", "true");
+      }
+      await expect(summary).toHaveText("Riêng thông số · riêng màu — R11 1 mặt · R12 5 mặt · R21 1 mặt");
+      await expect(gap).toHaveText("1 lỗi: R12 chưa nhập màu răng");
+      await spec.card(12).getByRole("button", { name: "Bỏ tất cả mặt R12" }).click();
+      await expect(spec.face(12, "Gần")).toHaveAttribute("aria-pressed", "false");
+      await expect(gap).toHaveText("2 lỗi: R12 chưa chọn mặt răng · R12 chưa nhập màu răng");
+
+      await spec.face(12, "Gần").click();
+      await spec.face(12, "Cắn").click();
+      await expect(spec.face(12, "Gần")).toHaveAttribute("aria-pressed", "true");
+      await expect(spec.face(12, "Cắn")).toHaveAttribute("aria-pressed", "true");
+      await expect(spec.face(12, "Xa")).toHaveAttribute("aria-pressed", "false");
+      await expect(gap).toHaveText("1 lỗi: R12 chưa nhập màu răng");
+      await shade12.fill("A1/A2");
+      await expect(gap).toHaveCount(0);
+      await expect(done).toHaveText("✓ Đã đủ thông tin bắt buộc");
+      await expect(summary).toHaveText("Riêng thông số · riêng màu — R11 1 mặt · R12 2 mặt · R21 1 mặt");
+      await expect(spec.card(12).locator(".pd-lts-chip")).toHaveText("Đủ thông tin");
       await expect(send).toBeEnabled();
-      await spec.row(12).getByRole("textbox", { name: "Ghi chú cho Labo R12" }).fill(`Mài sát ${id}`);
+
+      // A face clicked again comes off; clicked once more it is back.
+      await spec.face(12, "Cắn").click();
+      await expect(spec.face(12, "Cắn")).toHaveAttribute("aria-pressed", "false");
+      await spec.face(12, "Cắn").click();
+      await expect(spec.face(12, "Cắn")).toHaveAttribute("aria-pressed", "true");
+
+      // Khớp cắn sits in the order's header, once for every tooth.
+      await pickByLabel(page, dialog, "Khớp cắn", catalog.biteName);
     });
 
-    await test.step("a picture on R12's row, none in common; Lưu nháp keeps both after a reload", async () => {
-      await spec.row(12).locator("input[type=file]").setInputFiles([
-        { name: "rang-12.png", mimeType: "image/png", buffer: PNG },
-      ]);
-      await expect(spec.row(12).locator("img")).toHaveCount(1);
+    await test.step("Lưu nháp keeps the faces, the Màu and Khớp cắn after a reload", async () => {
       await dialog.getByRole("button", { name: "Lưu nháp" }).click();
       await expect(page.getByText("Đã lưu nháp phiếu Labo")).toBeVisible();
       await expect(dialog).toBeHidden();
@@ -772,58 +875,73 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await assertRealApiTraffic(page, LABO_ORDERS);
       await laboRow(page, orderCode).getByRole("button", { name: "Xem chi tiết" }).click();
       await expect(teethRow.locator(".pd-labo-toothchip")).toHaveText(["R11", "R12", "R21"]);
-      await expect(spec.row(12).getByRole("textbox", { name: "Màu răng R12" })).toHaveValue("A1/A2");
-      await expect(spec.row(12).getByRole("textbox", { name: "Ghi chú cho Labo R12" })).toHaveValue(`Mài sát ${id}`);
-      await expect(spec.row(12).locator("img")).toHaveCount(1);
-      await expect(dialog.locator(".pd-labo-row--common img")).toHaveCount(0);
+      await expect(shade12).toHaveValue("A1/A2");
+      await expect(spec.face(12, "Gần")).toHaveAttribute("aria-pressed", "true");
+      await expect(spec.face(12, "Cắn")).toHaveAttribute("aria-pressed", "true");
+      await expect(dialog.locator(".floating-field").filter({ hasText: catalog.biteName })).toHaveCount(1);
       const saved = await read(page, orderId);
       expect(saved.status).toBe(LaboStatus.Draft);
-      expect(saved.images.map((image) => image.toothNumber)).toEqual([12]);
+      expect(saved.biteId).toBe(catalog.biteId);
+      expect(saved.specMode).toBe(SpecMode.PerTooth);
+      const r12 = saved.teeth.find((tooth) => tooth.toothNumber === 12);
+      expect(r12?.shade).toBe("A1/A2");
+      expect((r12?.surfaces ?? []).map((surface) => surface.code).sort()).toEqual(["I", "M"]);
     });
 
-    await test.step("Dùng chung: one row for every tooth, with the caption; unticked, every row takes the shared values", async () => {
-      await dialog.getByRole("checkbox", { name: "Dùng chung 1 thông số cho tất cả răng" }).check();
-      await expect(spec.table.locator("tbody tr")).toHaveCount(1);
-      await expect(spec.table.locator("tbody th")).toHaveText("R11, R12, R21");
-      await expect(dialog.locator(".pd-labo-spec-caption")).toHaveText(
-        "Thông số trên áp dụng cho cả 3 răng. Bỏ chọn «Dùng chung» để chỉnh riêng từng răng – giá trị chung được điền sẵn vào mỗi dòng.",
-      );
-      await dialog.getByRole("checkbox", { name: "Dùng chung 1 thông số cho tất cả răng" }).uncheck();
-      await expect(spec.table.locator("tbody tr")).toHaveCount(3);
-      await expect(dialog.locator(".pd-labo-spec-caption")).toHaveCount(0);
-      await expect(status).toHaveText("Đủ thông tin cho 3 răng.");
-      // The shared row started from R11 (the first tooth) and now fills each row (m154).
-      const shade12 = spec.row(12).getByRole("textbox", { name: "Màu răng R12" });
-      const note12 = spec.row(12).getByRole("textbox", { name: "Ghi chú cho Labo R12" });
-      await expect(shade12).toHaveValue(`A2-${id}`);
-      await expect(note12).toHaveValue("");
-      await shade12.fill("A1/A2");
-      await note12.fill(`Mài sát ${id}`);
+    await test.step("Chung tất cả răng and back: the Tất cả card takes R11's values, each tooth keeps its own", async () => {
+      await spec.mode("Thông số răng", "Chung tất cả răng").click();
+      await expect(spec.mode("Thông số răng", "Chung tất cả răng")).toHaveAttribute("aria-pressed", "true");
+      await expect(spec.cards).toHaveCount(4);
+      await expect(spec.card(0)).toContainText("R11, R12, R21 · nhập 1 lần");
+      await expect(summary).toHaveText("Chung thông số · riêng màu — R11 1 mặt · R12 2 mặt · R21 1 mặt");
+      await expect(shade12).toHaveValue("A1/A2");
+
+      await spec.mode("Màu răng", "Chung tất cả răng").click();
+      await expect(summary).toHaveText("Chung thông số · chung màu — R11 1 mặt · R12 2 mặt · R21 1 mặt");
+      await expect(spec.card(0).getByRole("textbox", { name: "Màu răng Tất cả" })).toHaveValue(`A2-${id}`);
+      await expect(shade12).toHaveCount(0);
+      await expect(done).toBeVisible();
+
+      await spec.mode("Thông số răng", "Riêng từng răng").click();
+      await expect(spec.cards).toHaveCount(3);
+      await expect(spec.section.getByRole("group", { name: "Màu răng", exact: true })).toHaveCount(0);
+      await expect(summary).toHaveText("Riêng thông số · riêng màu — R11 1 mặt · R12 2 mặt · R21 1 mặt");
+      await expect(shade12).toHaveValue("A1/A2");
+      await expect(spec.card(11).getByRole("textbox", { name: "Màu răng R11" })).toHaveValue(`A2-${id}`);
     });
 
-    await test.step("Tạo phiếu Labo: sent with no common picture, each tooth's spec kept", async () => {
+    await test.step("Tạo phiếu Labo: sent with each tooth's Màu and faces, then read only", async () => {
       await send.click();
       await expect(page.getByText("Đã tạo phiếu Labo")).toBeVisible();
       await expect(dialog).toBeHidden();
       const sent = await read(page, orderId);
       expect(sent.status).toBe(LaboStatus.Sent);
+      expect(sent.specMode).toBe(SpecMode.PerTooth);
+      expect(sent.biteId).toBe(catalog.biteId);
       expect(sent.teeth.map((tooth) => [tooth.toothNumber, tooth.shade])).toEqual([
         [11, `A2-${id}`],
         [12, "A1/A2"],
         [21, `A2-${id}`],
       ]);
-      expect(sent.teeth.every((tooth) => Boolean(tooth.finishLineId))).toBe(true);
-      expect(sent.teeth.find((tooth) => tooth.toothNumber === 12)?.labNote).toBe(`Mài sát ${id}`);
+      expect(sent.teeth.map((tooth) => (tooth.surfaces ?? []).map((surface) => surface.code).sort())).toEqual([
+        ["M"],
+        ["I", "M"],
+        ["M"],
+      ]);
 
-      // Sent, it opens on Nhận hàng & kiểm tra; back on Đặt hàng the table
-      // reads only: no chart button, the chips stay.
+      // Sent, it opens on Nhận hàng & kiểm tra; back on Đặt hàng the cards
+      // read only: no chart button, the chips and faces stay.
       await page.reload();
       await laboRow(page, orderCode).getByRole("button", { name: "Xem chi tiết" }).click();
       await expectStep(dialog, "Nhận hàng & kiểm tra", "Đã gửi");
       await dialog.getByRole("tab", { name: /Đặt hàng/ }).click();
       await expect(teethRow.locator(".pd-labo-toothchip")).toHaveText(["R11", "R12", "R21"]);
       await expect(teethRow.getByRole("button", { name: "Chọn răng" })).toHaveCount(0);
-      await expect(spec.row(12).getByRole("textbox", { name: "Màu răng R12" })).toBeDisabled();
+      await expect(shade12).toBeDisabled();
+      // Read only, the faces only show the pick: no buttons, no pick-all picture.
+      await expect(spec.card(12).locator('g[data-surface="I"]')).toHaveClass(/tsp-face--on/);
+      await expect(spec.card(12).getByRole("button", { name: /tất cả mặt R12/ })).toHaveCount(0);
+      await expect(spec.card(12).locator(".pd-lts-hint")).toHaveCount(0);
     });
   });
 

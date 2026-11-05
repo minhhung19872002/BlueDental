@@ -1,0 +1,193 @@
+/* Bảo hành v2 (BA mock BaoHanhV2, R-1152): one tooth's card form at a time,
+   its preview with ‹ i/n ›, Đủ thông tin r/s răng, Tổng quan's "Chỉnh sửa".
+   Colours come from the Labo workflow theme (--lw-*). */
+
+/* Title · caption on one line as the mock has it, the readiness pill at the far end; a long caption wraps. */
+.pd-labo-wsection-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+  margin-bottom: 12px;
+}
+.pd-labo-wsection-head > .pd-labo-warranty-step-title {
+  margin: 0;
+}
+.pd-labo-wsection-head > .pd-labo-warranty-step-caption {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.pd-labo-wsection-head > .ant-tag {
+  align-self: center;
+  margin: 0 0 0 auto;
+}
+
+/* The tooth as made: its faces on a small picture, then three lines. */
+.pd-labo-wtooth-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--lw-line);
+  border-radius: 10px;
+  background: var(--lw-panel);
+}
+.pd-labo-wtooth-info-pic {
+  flex: none;
+  width: 112px;
+}
+.pd-labo-wtooth-info-pic .tsp {
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.pd-labo-wtooth-info-pic .tsp-tooth {
+  display: none;
+}
+.pd-labo-wtooth-info-pic .tsp-circle {
+  width: 96px;
+  height: 96px;
+}
+.pd-labo-wtooth-info-list {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+  margin: 0;
+}
+.pd-labo-wtooth-info-list > div {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13px;
+}
+.pd-labo-wtooth-info-list dt {
+  color: var(--lw-muted);
+}
+.pd-labo-wtooth-info-list dd {
+  margin: 0;
+  color: var(--lw-ink);
+  font-weight: 500;
+}
+
+/* Under Thẻ bảo hành · Răng n the form needs no box of its own. */
+.pd-labo-workflow .pd-labo-warranty-tooth--bare {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* ‹ Răng trước · Răng tiếp theo ›, side by side at the right of the form's foot as the mock has them. */
+.pd-labo-wtooth-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--lw-line);
+}
+
+/* Xem trước thẻ bảo hành with ‹ i/n › at its right. */
+.pd-labo-wpreview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pd-labo-wpreview-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--lw-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The picker fills the teeth column so Đủ thông tin can sit at its bottom. */
+.pd-labo-flow-pane--teeth > .pd-labo-warranty-step {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+/* A long list still keeps the meter 14px off it. */
+.pd-labo-flow-pane--teeth .pd-labo-wpick-list {
+  margin-bottom: 14px;
+}
+
+/* Đủ thông tin · r/s răng and its green bar, at the bottom of the teeth column (mock). */
+.pd-labo-wready {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--lw-line);
+  border-radius: 10px;
+  background: var(--lw-panel);
+}
+.pd-labo-wready-label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--lw-muted);
+  font-size: 12px;
+}
+.pd-labo-wready-label > strong {
+  color: var(--lw-ink);
+}
+.pd-labo-wready-bar {
+  position: relative;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--lw-line);
+}
+.pd-labo-wready-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--pd-ready-share, 0%);
+  border-radius: inherit;
+  background: var(--lw-pass-ink);
+}
+
+/* Tổng quan: "Chỉnh sửa" in the foot of a card still being typed, readable on slate and purple. */
+.pd-labo-woverview-edit.ant-btn {
+  height: auto;
+  padding: 0;
+  color: inherit;
+  text-decoration: underline;
+}
+.pd-labo-woverview-edit.ant-btn:not(:disabled):hover {
+  color: inherit;
+  opacity: 0.8;
+}
+
+/* Tablet: Tổng quan keeps two cards a row where the stacked steps drop to one; a phone gets one. */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .pd-labo-flow-pane--main > .pd-labo-warranty-cards.pd-labo-woverview-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  /* On a phone the two nav buttons share the width instead of huddling right. */
+  .pd-labo-wtooth-nav > .ant-btn {
+    flex: 1 1 0;
+  }
+  .pd-labo-wtooth-info {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pd-labo-wtooth-info-pic {
+    align-self: center;
+  }
+  .pd-labo-wtooth-info-list > div {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

@@ -2596,22 +2596,28 @@ test.describe("Bệnh nhân", () => {
       await chart.getByRole("button", { name: "Chọn răng" }).click();
       await expect(chart).toBeHidden();
     }
-    const specHeads = spec.locator("thead th");
-    await expect(specHeads.filter({ has: page.locator(".floating-field-required") })).toHaveText([
-      /Màu răng/,
-      /Đường hoàn tất/,
-    ]);
+    // Labo v2 (R-1150): a card per tooth, opening on Chung thông số · riêng
+    // màu — the Tất cả card carries the shared fields, each tooth its Mặt răng
+    // and Màu răng. Đường hoàn tất is no longer required.
+    const required = (scope: Locator) =>
+      scope.locator(".pd-lts-label").filter({ has: page.locator(".floating-field-required") });
+    const shared = spec.locator('article[data-tooth="0"]');
+    const teeth = spec.locator('article[data-tooth]:not([data-tooth="0"])');
+    await expect(required(shared)).toHaveText([/Màu răng/]);
+    await expect(shared.locator(".pd-lts-label")).toHaveText([/Màu răng/, /Đường hoàn tất/, /Kiểu nhịp/]);
+    expect(await teeth.count()).toBeGreaterThan(0);
+    await expect(required(teeth.first())).toHaveText([/Mặt răng/, /Màu răng/]);
     await expect(labo.locator(".floating-field-required").first()).toHaveCSS(
       "color",
       "rgb(229, 72, 77)",
     );
 
     // The pickers are the app's SearchSelect, the same widget the reference
-    // uses: Bác sĩ chỉ định and Nhà cung cấp above, then Đường hoàn tất, Kiểu
-    // nhịp and Khớp cắn on each tooth's row.
-    const specRows = await spec.locator("tbody tr").count();
-    expect(specRows).toBeGreaterThan(0);
-    await expect(labo.locator(".ss-wrapper")).toHaveCount(2 + 3 * specRows);
+    // uses: Bác sĩ chỉ định and Nhà cung cấp above, Khớp cắn on the order
+    // (R-1150), then Đường hoàn tất and Kiểu nhịp once on the Tất cả card.
+    await expect(shared.locator(".ss-wrapper")).toHaveCount(2);
+    await expect(teeth.locator(".ss-wrapper")).toHaveCount(0);
+    await expect(labo.locator(".ss-wrapper")).toHaveCount(5);
 
     // Dịch vụ and Vật liệu as chip rows (P3110 m134), then the teeth row.
     await expect(labo.locator(".pd-labo-choice-label")).toHaveText([/Dịch vụ/, /Vật liệu/]);
@@ -2627,19 +2633,16 @@ test.describe("Bệnh nhân", () => {
     await expect(common.locator(".floating-field-required")).toHaveCount(0);
     await expect(common.getByRole("button", { name: "Tải ảnh" })).toBeVisible();
 
-    // A floating label rests muted and only takes the accent while its field
-    // has focus, the way the reference draws it — not accented the moment it
-    // floats. The accent itself is the **app's** primary, not the reference's
-    // #2671D8: the project owner asked on 2026-09-07 that every accent inside
-    // these dialogs follow the clone's own brand, so a blue label beside an
-    // indigo Lưu button is the bug here.
+    // Nội dung / chỉ định cho Labo is a heading above its box since R-1150
+    // (owner: "in đậm cho biết tiêu đề"): dark semibold, and it stays so on
+    // focus instead of taking the accent like a floating label.
     const noteField = labo.locator(".pd-labo-notes .floating-field");
     const noteLabel = noteField.locator(".floating-field-label");
-    await labo.locator(".pd-labo-notes textarea").fill("x");
+    await expect(noteLabel).toHaveCSS("font-weight", "600");
     const resting = await noteLabel.evaluate((el) => getComputedStyle(el).color);
     await labo.locator(".pd-labo-notes textarea").focus();
-    await expect(noteLabel).toHaveCSS("color", APP_PRIMARY);
-    expect(resting, "a floating label rests muted, not accented").not.toBe(APP_PRIMARY);
+    await expect(noteLabel).toHaveCSS("color", resting);
+    expect(resting, "the title is not the accent").not.toBe(APP_PRIMARY);
 
     // Tải ảnh takes several pictures and holds them as drafts, each with its
     // own remove.

@@ -1,0 +1,215 @@
+/* Mặt răng on one tooth (R-1150): the chart's tooth picture over a
+   large surface circle, in a soft box. Face states from the BA's "Bộ chọn mặt
+   răng — Ba trạng thái tương tác" mock (R-1154): chưa chọn · hover · đã chọn. */
+.tsp {
+  --tsp-off: #eef2f7;
+  --tsp-off-ink: #1e293b;
+  --tsp-hover: #dce7fd;
+  --tsp-hover-ink: #1e3a8a;
+  --tsp-on: #2563eb;
+  --tsp-on-ink: #fff;
+  --tsp-on-hover: #1d4ed8;
+  --tsp-gap: #fff;
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 12px 10px;
+  user-select: none;
+}
+
+.tsp-tooth {
+  display: flex;
+  height: 72px;
+  align-items: center;
+  justify-content: center;
+}
+
+.tsp-tooth > img {
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* The picture picks every surface (R-1150). */
+.tsp-tooth--button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.tsp-tooth--button:hover {
+  border-color: var(--tsp-hover);
+  background: #fff;
+}
+
+.tsp-tooth--button:focus-visible {
+  outline: 2px solid var(--tsp-on);
+  outline-offset: 1px;
+}
+
+.tsp-tooth--lower > img {
+  transform: rotate(180deg);
+}
+
+
+.tsp-circle {
+  display: block;
+  width: 164px;
+  height: 164px;
+  flex: none;
+  overflow: visible;
+}
+
+/* White gaps of about 4px between the faces instead of drawn lines (3 units ≈ 4px at 164px). */
+.tsp-face polygon,
+.tsp-face path {
+  fill: var(--tsp-off);
+  stroke: var(--tsp-gap);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  transition: fill 0.12s ease;
+}
+
+.tsp-face {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.12s ease;
+}
+
+.tsp-face text {
+  fill: var(--tsp-off-ink);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+.tsp-name {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tsp-shade {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* A Màu too long for its face at 10px (fitShade). */
+.tsp-shade--small {
+  font-size: 8px;
+}
+
+.tsp-face--on polygon,
+.tsp-face--on path {
+  fill: var(--tsp-on);
+}
+
+.tsp-face--on text {
+  fill: var(--tsp-on-ink);
+}
+
+.tsp-tick {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* The face whose Màu is being typed (Riêng theo mặt): the darker blue, a wider white ring. */
+.tsp-face--active polygon,
+.tsp-face--active path {
+  fill: var(--tsp-on-hover);
+  stroke-width: 4.5;
+}
+
+.tsp-face--active text {
+  fill: var(--tsp-on-ink);
+}
+
+/* Fault mode (Labo 2 v2, R-1151): a face not ordered is grey and dead, a faulty one red. */
+.tsp--fault-mode {
+  --tsp-blank: #f3f4f6;
+  --tsp-blank-ink: #9ca3af;
+  --tsp-fault: #fee2e2;
+  --tsp-fault-ink: #b91c1c;
+  --tsp-fault-line: #dc2626;
+  border-color: #fecaca;
+  background: #fff;
+  padding: 8px;
+}
+
+.tsp--fault-mode .tsp-tooth {
+  height: 48px;
+}
+
+.tsp--fault-mode .tsp-circle {
+  width: 140px;
+  height: 140px;
+}
+
+.tsp-face--blank polygon,
+.tsp-face--blank path {
+  fill: var(--tsp-blank);
+}
+
+.tsp-face--blank text {
+  fill: var(--tsp-blank-ink);
+}
+
+.tsp-face--fault polygon,
+.tsp-face--fault path {
+  fill: var(--tsp-fault);
+  stroke: var(--tsp-fault-line);
+  stroke-width: 2.5;
+}
+
+.tsp-face--fault text {
+  fill: var(--tsp-fault-ink);
+}
+
+.tsp--interactive.tsp--faults .tsp-face--blank {
+  cursor: default;
+}
+
+.tsp--faults .tsp-face--on:hover polygon,
+.tsp--faults .tsp-face--on:hover path {
+  fill: #fecaca;
+}
+
+.tsp--faults .tsp-face--on:hover text {
+  fill: var(--tsp-fault-ink);
+}
+
+.tsp--interactive .tsp-face {
+  cursor: pointer;
+  outline: none;
+}
+
+/* Hover: 3.5% bigger in 120ms, light blue when off, darker blue when picked (click again unpicks). */
+.tsp--interactive .tsp-face:not(.tsp-face--blank):hover {
+  transform: scale(1.035);
+}
+
+.tsp--interactive .tsp-face--off:hover polygon,
+.tsp--interactive .tsp-face--off:hover path {
+  fill: var(--tsp-hover);
+}
+
+.tsp--interactive .tsp-face--off:hover text {
+  fill: var(--tsp-hover-ink);
+}
+
+.tsp--interactive:not(.tsp--faults) .tsp-face--on:hover polygon,
+.tsp--interactive:not(.tsp--faults) .tsp-face--on:hover path {
+  fill: var(--tsp-on-hover);
+}
+
+.tsp--interactive .tsp-face:focus-visible polygon,
+.tsp--interactive .tsp-face:focus-visible path {
+  stroke: var(--tsp-hover-ink);
+  stroke-width: 3;
+}
