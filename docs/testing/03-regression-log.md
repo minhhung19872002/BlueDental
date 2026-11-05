@@ -13684,3 +13684,21 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - File cho máy lễ tân: `deploy/clinic-pc/bat-am-thanh-duchanhpremium.reg` (HKLM Chrome + Edge `AutoplayAllowlist` "1" = https://duchanhpremium.vn) và file gỡ `go-am-thanh-duchanhpremium.reg`. Chạy bằng quyền admin, rồi đóng hẳn trình duyệt và mở lại.
   - E2E: init script đổi thành `noClickYet("blocked" | "allowed")`. `countChimes` bỏ qua lần phát volume 0. Thêm test "a browser that lets the site play sound shows no muted bell, and rings with no click": không 🔕, `hasBeenActive` vẫn false, Mời lên → đúng 1 lần phát thật, không nhấp nháy. Code cũ sẽ đỏ test này vì 🔕 chỉ mất sau click.
   - Kết quả: build production (preview :8155, host riêng :5145, DB thật, không chặn API) → `reception-arrival-call` **5/5 xanh**. `tsc` và `eslint` sạch.
+
+## R-1146 (2026-11-05, mức 1: Hồ sơ bệnh nhân trên điện thoại + mọi dialog trên điện thoại, main)
+
+- **Vấn đề** (owner, ảnh chụp Chrome Android trên duchanhpremium.vn):
+  1. Màn chi tiết hồ sơ, rộng ≤640px: cụm "Chi tiết hồ sơ / Bệnh án" nằm cùng hàng với 10 tab và bóp dãy tab chỉ còn thấy "Hồ sơ".
+  2. Tab Hình ảnh › "Chụp ảnh": trên điện thoại không thấy footer "Đã chụp n ảnh · Huỷ · Tải lên (n)" nên không tải ảnh lên được.
+- **Nguyên nhân (2)**: ở ≤640px, `index.css` đặt `.ant-modal-content/.ant-modal-container { min-height: 100vh }`. Block "Mobile full-screen modals" phía dưới (từ 024d5cf3) đã có `height: 100dvh !important`, nhưng min-height lớn hơn thì thắng height. Trên Chrome Android, `100vh` gồm cả phần màn hình nằm sau thanh địa chỉ/thanh điều hướng, nên dialog cao hơn phần nhìn thấy và footer nằm dưới thanh đó. `.ant-modal-wrap` có `overflow: hidden`, nên không cuộn tới được. Lỗi có ở mọi dialog full-screen trên điện thoại, không riêng "Chụp ảnh".
+- **Code** (chỉ CSS):
+  - `styles/index.css`: thêm `min-height: 100dvh` sau `min-height: 100vh` (vh giữ làm fallback).
+  - `patient-detail.css`: ở ≤640px, `.pd-tabrow` xếp dọc, `.pd-viewswitch` `order: -1` lên trên, dãy tab `flex: none; width: 100%`. Bắt buộc `flex: none`, vì item có basis 0 và tự cuộn trong flex dọc sẽ co về 0 chiều cao.
+  - `patient-image.css`: ở ≤640px, khung camera cao `clamp(200px, calc(100dvh - 420px), 420px)` (fallback `55vh`), để camera, "Chụp", dãy ảnh và footer vừa một màn hình.
+- **Kiểm thử** (Vite dev :5173, API Docker :5000, DB thật, không chặn API):
+  - Viewport 390×844, `/patient/<id>?tab=image`: switch nằm dòng trên, 10 tab nằm dòng dưới, rộng hết khung và cuộn ngang được.
+  - Mở "Chụp ảnh" với camera giả bằng canvas (chỉ đè `navigator.mediaDevices` trong trình duyệt local), chụp 1 ảnh: footer top 774 / bottom 843 trên `innerHeight` 844, body không cuộn, `min-height` tính ra 844px.
+  - 1440×900: hàng tab desktop không đổi.
+  - `oxlint` 0 lỗi (cảnh báo cũ), `npm run build` (tsc + vite) xanh, `vitest run` 3/3.
+  - **Chưa đo được**: Playwright headless không có thanh địa chỉ nên vh = dvh; tình huống footer bị che chỉ tái hiện được trên điện thoại thật. Cần owner thử lại trên Chrome Android sau deploy.
+- **Mức retest**: 1 (CSS, không đổi hành vi). Dialog ở ≤640px đều nhận thay đổi min-height, nhưng chiều cao đã bị `height: 100dvh !important` cố định, nên chỉ khác ở trình duyệt có vh ≠ dvh.

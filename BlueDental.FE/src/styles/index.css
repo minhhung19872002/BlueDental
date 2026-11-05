@@ -4686,11 +4686,18 @@ html:has(.ant-modal-wrap) {
     padding: 0;
   }
 
+  /* 100vh on a phone is the screen behind the browser's address and nav bars
+     too. The full-screen block further down sets `height: 100dvh`, but a
+     min-height beats a smaller height, so 100vh here kept the dialog taller
+     than the visible screen and its footer (Huỷ / Tải lên / Lưu) under the
+     browser's bar, out of reach — the wrap does not scroll. vh stays as the
+     fallback for browsers without dvh. */
   .ant-modal .ant-modal-content,
   .ant-modal .ant-modal-container {
     border-radius: 0;
     max-height: 100vh;
     min-height: 100vh;
+    min-height: 100dvh;
   }
 }
 
