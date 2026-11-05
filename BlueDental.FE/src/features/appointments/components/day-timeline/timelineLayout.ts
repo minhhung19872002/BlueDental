@@ -58,44 +58,95 @@ export interface PlacedBlock {
   appointment: AppointmentDto;
   top: number;
   height: number;
+  /** Lane inside its overlap group, counted from the left. */
   lane: number;
+  /** Lanes its overlap group splits the column into (1 = the whole width). */
+  lanes: number;
+  /** Lanes it covers: it widens into lanes to its right that stay free while it runs. */
+  span: number;
 }
 
 export interface PlacedColumn {
   blocks: PlacedBlock[];
+  /** Most lanes any overlap group needs: sets the column's width. */
   laneCount: number;
+}
+
+interface Interval {
+  appointment: AppointmentDto;
+  start: number;
+  end: number;
+}
+
+/** Each booking's start/end on the axis, earliest first; bookings outside the hours shown are left out. */
+function intervalsOf(appointments: AppointmentDto[], scale: TimeScale): Interval[] {
+  const intervals: Interval[] = [];
+  for (const appointment of appointments) {
+    const own = minuteOfDay(appointment.startTime);
+    const shown = placeOnAxis(scale, own, Math.max(endMinuteOf(appointment), own + 1));
+    if (shown) intervals.push({ appointment, start: shown.offset, end: shown.offset + shown.length });
+  }
+  return intervals.sort((a, b) => a.start - b.start || b.end - a.end);
+}
+
+/** Bookings chained by overlap, directly or through another one: each group shares its own lanes. */
+function overlapGroups(intervals: Interval[]): Interval[][] {
+  const groups: Interval[][] = [];
+  let groupEnd = -1;
+  for (const interval of intervals) {
+    if (interval.start < groupEnd) {
+      groups[groups.length - 1].push(interval);
+      groupEnd = Math.max(groupEnd, interval.end);
+    } else {
+      groups.push([interval]);
+      groupEnd = interval.end;
+    }
+  }
+  return groups;
+}
+
+function overlaps(a: Interval, b: Interval): boolean {
+  return a.start < b.end && b.start < a.end;
+}
+
+/** First free lane for each booking, then how far right each one may widen. */
+function placeGroup(group: Interval[], pxPerMinute: number): PlacedBlock[] {
+  const laneEnds: number[] = [];
+  const laneOf = group.map((interval) => {
+    const free = laneEnds.findIndex((laneEnd) => laneEnd <= interval.start);
+    if (free === -1) return laneEnds.push(interval.end) - 1;
+    laneEnds[free] = interval.end;
+    return free;
+  });
+  const lanes = laneEnds.length;
+
+  return group.map((interval, i) => {
+    let span = 1;
+    while (
+      laneOf[i] + span < lanes &&
+      !group.some((other, j) => laneOf[j] === laneOf[i] + span && overlaps(interval, other))
+    ) {
+      span++;
+    }
+    return {
+      appointment: interval.appointment,
+      top: interval.start * pxPerMinute,
+      height: (interval.end - interval.start) * pxPerMinute,
+      lane: laneOf[i],
+      lanes,
+      span,
+    };
+  });
 }
 
 /**
  * Lays one doctor's bookings down the axis, cut to the hours shown and folded
  * past the breaks. Bookings overlapping on screen go to side-by-side lanes
- * (first lane that is free again), so none hides another.
+ * (first lane that is free again), so none hides another. Lanes are counted
+ * per overlap group (R-1147): a booking nobody overlaps takes the whole
+ * column, and one with lanes free to its right widens into them.
  */
 export function placeBlocks(appointments: AppointmentDto[], scale: TimeScale): PlacedColumn {
-  const sorted = [...appointments].sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
-  const laneEnds: number[] = [];
-  const blocks: PlacedBlock[] = [];
-
-  for (const appointment of sorted) {
-    const own = minuteOfDay(appointment.startTime);
-    const shown = placeOnAxis(scale, own, Math.max(endMinuteOf(appointment), own + 1));
-    if (!shown) continue;
-    const start = shown.offset;
-    const end = shown.offset + shown.length;
-    let lane = laneEnds.findIndex((laneEnd) => laneEnd <= start);
-    if (lane === -1) {
-      lane = laneEnds.length;
-      laneEnds.push(end);
-    } else {
-      laneEnds[lane] = end;
-    }
-    blocks.push({
-      appointment,
-      lane,
-      top: start * scale.pxPerMinute,
-      height: shown.length * scale.pxPerMinute,
-    });
-  }
-
-  return { blocks, laneCount: Math.max(1, laneEnds.length) };
+  const blocks = overlapGroups(intervalsOf(appointments, scale)).flatMap((group) => placeGroup(group, scale.pxPerMinute));
+  return { blocks, laneCount: Math.max(1, ...blocks.map((block) => block.lanes)) };
 }

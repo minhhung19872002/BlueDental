@@ -81,6 +81,8 @@ export const TimelineBlock = React.memo(function TimelineBlock({ placed, state, 
           "--dtl-block-top": `${placed.top}px`,
           "--dtl-block-height": `${placed.height}px`,
           "--dtl-block-lane": placed.lane,
+          "--dtl-block-lanes": placed.lanes,
+          "--dtl-block-span": placed.span,
           "--dtl-note-lines": noteLines,
         } as React.CSSProperties}
         onClick={handleOpen}
