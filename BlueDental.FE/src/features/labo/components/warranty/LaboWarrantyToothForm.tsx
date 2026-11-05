@@ -13,8 +13,8 @@ import type { WarrantySharing } from "./useWarrantySharing";
 
 interface Props {
   tooth: LaboOrderToothDto;
-  /** "Sứ Zirconia · LABO-202610291". */
-  caption: string;
+  /** "Sứ Zirconia · LABO-202610291"; none when the section's head already names the tooth (R-1152). */
+  caption: string | null;
   /** The Ảnh thẻ bảo hành picked so far, keyed by tooth. */
   photos: WarrantyCardDrafts;
   /** Dùng chung on: only the serial is the tooth's own. */
@@ -22,6 +22,13 @@ interface Props {
   busy: boolean;
   /** Jumped to from its row in 1. Chọn răng kích hoạt. */
   focused: boolean;
+}
+
+/** "Sứ Zirconia · LABO-… · Đạt 01/11/2026 09:30". */
+export function toothCaption(caption: string, tooth: LaboOrderToothDto): string {
+  return [caption, tooth.passedAt && t("Labo:Warranty:PassedOn", formatDateTime(tooth.passedAt))]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /**
@@ -35,6 +42,7 @@ export function LaboWarrantyToothForm({ tooth, caption, photos, sharing, busy, f
   const className = [
     "pd-labo-warranty-tooth",
     sharing.on && "pd-labo-warranty-tooth--serial",
+    caption == null && "pd-labo-warranty-tooth--bare",
     focused && "pd-labo-warranty-tooth--focus",
   ]
     .filter(Boolean)
@@ -42,15 +50,13 @@ export function LaboWarrantyToothForm({ tooth, caption, photos, sharing, busy, f
 
   return (
     <article id={warrantyToothFormId(tooth.toothNumber)} className={className} aria-label={label}>
-      <header className="pd-labo-warranty-tooth-head">
-        <strong>{label}</strong>
-        <span className="pd-labo-warranty-tooth-caption">
-          {[caption, tooth.passedAt && t("Labo:Warranty:PassedOn", formatDateTime(tooth.passedAt))]
-            .filter(Boolean)
-            .join(" · ")}
-        </span>
-        <LaboWarrantyReadiness card={sharing.cardOf(tooth.toothNumber)} />
-      </header>
+      {caption != null && (
+        <header className="pd-labo-warranty-tooth-head">
+          <strong>{label}</strong>
+          <span className="pd-labo-warranty-tooth-caption">{toothCaption(caption, tooth)}</span>
+          <LaboWarrantyReadiness card={sharing.cardOf(tooth.toothNumber)} />
+        </header>
+      )}
       {sharing.on ? (
         <FloatingField name={["cards", key, "manufacturerSerial"]} label={t("Labo:Warranty:Serial")}>
           <Input maxLength={100} />

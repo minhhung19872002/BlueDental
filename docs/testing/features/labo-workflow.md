@@ -360,7 +360,32 @@ Tests (round 2): `e2e/stage-backfill-log-api.spec.ts` (6, real HTTP),
 - Tests: `e2e/labo-workflow.spec.ts` (7), `plan-warranty-tab` (6),
   `labo-api` (14).
 
-Open for Phase 3 (Bảo hành v2, R-1152): BA mock `BaoHanhV2`.
+## Labo v2 — Bảo hành (BA mock "BaoHanhV2", R-1152, 2026-11-05)
+
+- Two tabs: "Kích hoạt bảo hành" (only while a Đạt tooth still lacks a card
+  and the order may activate) and "Tổng quan thẻ bảo hành (n)".
+- Kích hoạt has 3 columns:
+  - The teeth list, each with Đủ thông tin / Thiếu … and "Đủ thông tin r/s
+    răng" at the bottom of the column.
+  - The open tooth's card: tooth info with its faces, the form, and
+    "‹ Răng trước" "Răng tiếp theo ›" side by side at the right.
+  - The card preview with ‹ i/n › and the tooth chips.
+- Only the open tooth's form is mounted. Dùng chung still keeps one serial per
+  tooth.
+- "Kích hoạt bảo hành (r/s răng)" stays disabled until every picked tooth has
+  a start date and a duration. The footer hint says how many are missing.
+- Tổng quan:
+  - A ready draft card is purple, with "Sẵn sàng kích hoạt"; an incomplete
+    one reads "Chưa kích hoạt".
+  - "Chỉnh sửa" appears only on cards not activated yet (owner Q10, R-1120
+    kept). It returns to that tooth's form with the values kept.
+  - The table has Thời hạn instead of Còn lại.
+- Responsive:
+  - Below 1100px the columns stack.
+  - From 641 to 1100px Tổng quan shows 2 cards per row.
+  - At 640px and below it shows 1 card per row and the nav buttons share the
+    width.
+- Tests: `e2e/labo-workflow.spec.ts` (Bảo hành + Dùng chung), `plan-warranty-tab`.
 
 ## Not built / open
 

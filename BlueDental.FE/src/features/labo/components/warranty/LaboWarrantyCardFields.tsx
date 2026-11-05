@@ -73,7 +73,11 @@ export function LaboWarrantyCardFields({ path, minDay, serial, photos, photoKey,
         </FloatingField>
         <SerialField path={path} serial={serial} />
         <FloatingField label={t("Labo:Warranty:EndDate")} alwaysFloat>
-          <Input value={end ? end.format("DD/MM/YYYY") : ""} placeholder={t("Labo:Warranty:EndDatePlaceholder")} disabled />
+          <Input
+            value={end ? end.format("DD/MM/YYYY") : ""}
+            placeholder={t("Labo:Warranty:EndDatePlaceholder")}
+            disabled
+          />
         </FloatingField>
       </div>
       <div className="pd-labo-warranty-duration-row">
@@ -85,7 +89,7 @@ export function LaboWarrantyCardFields({ path, minDay, serial, photos, photoKey,
         </Form.Item>
       </div>
       <FloatingField name={[...path, "conditions"]} label={t("Labo:Warranty:Conditions")}>
-        <Input maxLength={1000} />
+        <Input.TextArea rows={2} maxLength={1000} />
       </FloatingField>
       <div className="pd-labo-warranty-duration-row">
         <span className="pd-labo-warranty-duration-label">{t("Labo:Warranty:CardPhotos")}</span>

@@ -479,9 +479,30 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(box.getByRole("article", { name: "Răng 21" })).toHaveCount(0);
       await expect(box.locator(".pd-labo-warranty-pick-all .ant-checkbox-indeterminate")).toHaveCount(1);
 
+      // R-1152 (BaoHanhV2): the button counts ready/picked and waits for every picked tooth.
+      const activate = dialog.getByRole("button", { name: "Kích hoạt bảo hành (0/1 răng)" });
+      await expect(activate).toBeDisabled();
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText("Còn 1 răng thiếu ngày bắt đầu hoặc thời hạn.");
       const card = box.getByRole("article", { name: "Răng 11" });
+      await expect(box.getByRole("heading", { level: 4 }).filter({ hasText: "Thẻ bảo hành · Răng 11" })).toBeVisible();
+      await expect(box.locator(".pd-labo-wtooth-nav").getByRole("button", { name: "Răng tiếp theo" })).toBeDisabled();
       await typeDate(card.getByLabel("Ngày bắt đầu bảo hành"), pickerStamp(0, 0).slice(0, 10));
       await card.locator(".pd-labo-warranty-duration").filter({ hasText: "6 tháng" }).click();
+      await expect(dialog.locator(".pd-labo-footer-hint")).toHaveText(
+        "Tất cả răng đã chọn đều đủ thông tin. Sẵn sàng kích hoạt.",
+      );
+
+      // Tổng quan: 11 as typed so far with Chỉnh sửa, 21 left out this time; Chỉnh sửa leads back to its form.
+      await dialog.getByRole("tab", { name: "Tổng quan thẻ bảo hành (2)" }).click();
+      const overview = dialog.locator(".pd-labo-woverview-cards");
+      await expect(overview.locator(".pd-labo-warranty-card--active")).toContainText("Sẵn sàng kích hoạt");
+      const draftRows = dialog.locator(".pd-labo-warranty-table tbody tr.ant-table-row");
+      await expect(draftRows.filter({ hasText: /^11/ })).toContainText("6 tháng");
+      await expect(draftRows.filter({ hasText: /^11/ })).toContainText("Sẵn sàng");
+      await expect(draftRows.filter({ hasText: /^21/ })).toContainText("Không kích hoạt");
+      await expect(dialog.locator(".pd-labo-warranty-table").getByRole("columnheader", { name: "Còn lại" })).toHaveCount(0);
+      await overview.locator(".pd-labo-warranty-card--active").getByRole("button", { name: "Chỉnh sửa" }).click();
+      await expect(card.getByLabel("Ngày bắt đầu bảo hành")).toHaveValue(pickerStamp(0, 0).slice(0, 10));
       // P3110 REQ-E1: Ảnh thẻ bảo hành — Mặt trước picked, Mặt sau left empty.
       await expect(card.getByRole("button", { name: "Tải ảnh Mặt sau" })).toBeVisible();
       await card
@@ -491,7 +512,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(card.getByRole("button", { name: "Tải ảnh Mặt trước" })).toHaveCount(0);
       await expect(card.getByRole("img", { name: "Mặt trước" })).toBeVisible();
       await expect(card.getByRole("button", { name: "Xóa ảnh Mặt trước" })).toBeEnabled();
-      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (1 răng)" }).click();
+      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (1/1 răng)" }).click();
       await expect(page.getByText("Đã kích hoạt bảo hành 1 răng")).toBeVisible();
 
       const warranted = await read(page, orderId);
@@ -511,11 +532,16 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
         `/patient/${line.patientId}?branchId=${line.branchId}&tab=labo&laboModal=order&laboRowId=${orderId}&laboStep=warranty`,
       );
       await expectStep(dialog, "Bảo hành", "Bảo hành");
-      await expect(dialog.locator(".pd-labo-warranty-card--active")).toContainText(`Thẻ bảo hành · ${code11}`);
-      await expect(dialog.locator(".pd-labo-warranty-card--inactive")).toContainText("Răng 21");
+      // Tooth 21 still lacks a card, so Kích hoạt opens on it; the activated 11 sits in Tổng quan, locked (Q10).
+      await expect(box.getByRole("article", { name: "Răng 21" })).toBeVisible();
+      await dialog.getByRole("tab", { name: "Tổng quan thẻ bảo hành (2)" }).click();
+      const activated = dialog.locator(".pd-labo-woverview-cards .pd-labo-warranty-card--active");
+      await expect(activated).toContainText(`Thẻ bảo hành · ${code11}`);
+      await expect(activated.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(0);
+      const draft21 = dialog.locator(".pd-labo-woverview-cards .pd-labo-warranty-card--inactive");
+      await expect(draft21).toContainText("Răng 21");
+      await expect(draft21.getByRole("button", { name: "Chỉnh sửa" })).toBeVisible();
       // REQ-E1/E2: the photo lands in Ảnh thẻ; the card no longer opens a Thông tin thẻ / Lịch sử panel.
-      // The table sits on its own view, as the Labo 3 mock lays it out.
-      await dialog.getByRole("tab", { name: /^Thẻ bảo hành theo từng răng/ }).click();
       const table = dialog.locator(".pd-labo-warranty-table");
       await expect(table.getByRole("columnheader", { name: "Ảnh thẻ" })).toBeVisible();
       const row11 = table.locator("tbody tr.ant-table-row").filter({ hasText: code11 });
@@ -641,10 +667,18 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     await assertRealApiTraffic(page, LABO_ORDERS);
     await expectStep(dialog, "Bảo hành", "Hoàn thành");
 
-    await test.step("off by default: a full form per tooth and the hint to turn it on", async () => {
+    await test.step("off by default: one tooth's form at a time, walked with Răng tiếp theo (R-1152)", async () => {
       await expect(share).not.toBeChecked();
       await expect(box.locator(".pd-labo-warranty-share")).toContainText("Bật để nhập 1 lần cho tất cả răng đã chọn");
+      await expect(box.getByRole("article", { name: "Răng 11" }).getByLabel("Ngày bắt đầu bảo hành")).toBeVisible();
+      await expect(box.getByRole("article", { name: "Răng 22" })).toHaveCount(0);
+      const next = box.locator(".pd-labo-wtooth-nav").getByRole("button", { name: "Răng tiếp theo" });
+      await next.click();
+      await next.click();
       await expect(box.getByRole("article", { name: "Răng 22" }).getByLabel("Ngày bắt đầu bảo hành")).toBeVisible();
+      await expect(box.getByRole("article", { name: "Răng 11" })).toHaveCount(0);
+      await expect(dialog.locator(".pd-labo-wpreview-pager")).toHaveText("3/4");
+      await expect(dialog.getByRole("button", { name: "Kích hoạt bảo hành (0/4 răng)" })).toBeDisabled();
     });
 
     await test.step("on: one form for all, a serial per tooth, the preview's head shows three chips", async () => {
@@ -685,6 +719,8 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
 
     await test.step("off again keeps what was typed, on each tooth's own form", async () => {
       await share.uncheck();
+      // Still on tooth 22, opened before Dùng chung was ticked; one more step to 23.
+      await box.locator(".pd-labo-wtooth-nav").getByRole("button", { name: "Răng tiếp theo" }).click();
       const own = box.getByRole("article", { name: "Răng 23" });
       await expect(own.getByLabel("Ngày bắt đầu bảo hành")).toHaveValue(pickerStamp(0, 0).slice(0, 10));
       await expect(own.getByLabel("Điều kiện bảo hành")).toHaveValue(`Điều kiện chung ${id}`);
@@ -693,7 +729,7 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     });
 
     await test.step("Kích hoạt: a card per tooth with the shared validity and its own serial, kept after a reload", async () => {
-      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (4 răng)" }).click();
+      await dialog.getByRole("button", { name: "Kích hoạt bảo hành (4/4 răng)" }).click();
       await expect(page.getByText("Đã kích hoạt bảo hành 4 răng")).toBeVisible({ timeout: 30_000 });
       const warranted = await read(page, order.id);
       expect(warranted.status).toBe(LaboStatus.Warranty);

@@ -13780,3 +13780,21 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `e2e/plan-warranty-tab.spec.ts` **6/6** (sau khi thêm `readOnly` cho popup R-1120), `e2e/labo-api.spec.ts` **14/14**. Các spec Labo / bảo hành còn lại xanh trước lượt sửa footer cuối, lượt cuối không spec nào khác dùng các nút đã đổi.
   - Đỏ có sẵn do dữ liệu (không liên quan): `labo-material-search:204` — nhóm "Dịch vụ tìm vật liệu e2e" có 2 vật liệu tạo tay "Tedd", "Tedd 2" (2026-10-31) → 6 thay vì 4; để nguyên dữ liệu.
 - **Mức retest**: 2 (feature Labo; `ToothSurfacePicker` chỉ thêm prop tuỳ chọn, Đặt hàng đã chạy lại trong labo-workflow).
+
+## R-1152 (2026-11-05, mức 2: Labo — Bảo hành v2 theo mock BA, main)
+
+- **Yêu cầu** (BA, mock "BaoHanhV2"): tab 3 Bảo hành gồm 2 tab "Kích hoạt bảo hành" / "Tổng quan thẻ bảo hành (n)". Kích hoạt chia 3 cột: chọn răng (Tất cả, trạng thái từng răng, khung "Đủ thông tin r/s răng" ở đáy cột) · thẻ bảo hành của răng đang mở (thông tin răng + sơ đồ mặt, form, "‹ Răng trước" "Răng tiếp theo ›" cạnh nhau bên phải) · xem trước thẻ (‹ i/n ›, chip răng). Footer: gợi ý + "Kích hoạt bảo hành (r/s răng)".
+- **Owner chốt** (Q10): giữ logic cũ. "Chỉnh sửa" chỉ trên thẻ chưa kích hoạt; thẻ đã kích hoạt bị khoá, chỉ Xem chi tiết (R-1120). FE-only, BE không đổi.
+- **FE** (`features/labo/components/warranty/` + `workflow/LaboWarrantyStep.tsx`):
+  - Mới: `LaboWarrantyOverview`, `LaboWarrantyToothPreview`, `LaboWarrantyReadyMeter`, `LaboWarrantyToothNav` (nav + pager), `LaboWarrantyToothInfo`, `laboWarrantyDraft.ts`, `useWarrantyActiveTooth.ts`, `labo-warranty-v2.css`.
+  - Chỉ form của răng đang mở được mount; `useWarrantySharing` đọc các răng khác bằng `useWatch(..., { preserve: true })`.
+  - Nút kích hoạt khoá cho tới khi mọi răng đã chọn đủ ngày bắt đầu + thời hạn. Footer: "Còn n răng thiếu ngày bắt đầu hoặc thời hạn." / "Tất cả răng đã chọn đều đủ thông tin. Sẵn sàng kích hoạt."
+  - Tổng quan: thẻ nháp đủ thông tin tô tím với nhãn "Sẵn sàng kích hoạt", thiếu thì "Chưa kích hoạt". "Chỉnh sửa" quay về form của răng đó (giữ giá trị đã nhập). Bảng có cột Thời hạn thay cho Còn lại (thời gian còn lại vẫn hiện trên thẻ); trạng thái "Sẵn sàng" / "Thiếu …" / "Không kích hoạt".
+  - 21 khoá i18n mới (vi/en).
+  - Responsive: dưới 1100px các cột xếp chồng, khung Đủ thông tin nằm ngay dưới danh sách răng. Từ 641 đến 1100px Tổng quan giữ 2 thẻ mỗi hàng. Trên điện thoại (≤640px) 1 thẻ mỗi hàng và 2 nút nav chia đều bề ngang. Bảng cuộn ngang (DataTable `scroll x`).
+- **Kiểm thử** (bản build production `vite preview` :8090 từ working tree → host riêng :5152, DB thật, không chặn API, `--workers=1`):
+  - labo-workflow, plan-warranty-tab, labo-api, labo-orders-actions, warranty-stage: **32/32** trước khi chỉnh CSS.
+  - Sau khi chỉnh CSS (đáy cột, nav, responsive): labo-workflow + plan-warranty-tab **12/13**. `plan-warranty-tab:171` (R-1138) đỏ một lần, chạy riêng thì xanh, và đã xanh trong lượt 32/32 → flaky, không do CSS.
+  - Chụp ảnh so với mock ở 1600 / 1024 / 390px.
+  - Đỏ có sẵn ở backend: chạy 2 worker song song thì `IX_bd_labo_orders_OrderCode` trùng → 500 (race sinh mã phiếu, có từ trước) → các spec Labo chạy 1 worker.
+- **Mức retest**: 2 (feature Labo, chỉ FE).

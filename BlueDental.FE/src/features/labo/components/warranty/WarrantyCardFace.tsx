@@ -28,13 +28,15 @@ interface Props {
   logoUrl: string;
   /** The card "Xem chi tiết" was pressed on (R-1120). */
   focused?: boolean;
+  /** A control in the foot's right, over the note — Tổng quan's "Chỉnh sửa" (R-1152). */
+  footAction?: ReactNode;
 }
 
 /**
  * One warranty card: purple once activated, grey before, red-edged once run
  * out, with its code, validity and time left.
  */
-export function WarrantyCardFace({ face, logoUrl, focused }: Props) {
+export function WarrantyCardFace({ face, logoUrl, focused, footAction }: Props) {
   const pill = LABO_WARRANTY_STATE_PILL[face.state];
   const elapsed = { "--pd-warranty-elapsed": `${Math.round(face.elapsed * 100)}%` } as CSSProperties;
   const className = [
@@ -46,7 +48,11 @@ export function WarrantyCardFace({ face, logoUrl, focused }: Props) {
     .join(" ");
 
   return (
-    <article className={className} aria-label={t("Labo:Warranty:CardCode", face.code)} aria-current={focused || undefined}>
+    <article
+      className={className}
+      aria-label={t("Labo:Warranty:CardCode", face.code)}
+      aria-current={focused || undefined}
+    >
       <span className="pd-labo-warranty-card-head">
         <img src={logoUrl} alt="" className="pd-labo-warranty-logo" />
         <strong>{face.heading}</strong>
@@ -59,7 +65,7 @@ export function WarrantyCardFace({ face, logoUrl, focused }: Props) {
       <span className="pd-labo-warranty-card-bar" style={elapsed} />
       <span className="pd-labo-warranty-card-foot">
         <span>{face.left}</span>
-        <span>{face.note}</span>
+        {footAction ?? <span>{face.note}</span>}
       </span>
     </article>
   );
