@@ -3,6 +3,7 @@ import { login, runId } from "./fixtures/auth";
 import { DAY_OFF, setOwnDay } from "./fixtures/ownDayOff";
 import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/timekeepingStaff";
 import { openShiftCovering } from "./fixtures/workShift";
+import { openBlockEditor } from "./fixtures/calendarBlock";
 
 /**
  * Feature: Lịch hẹn khách hàng — view Ngày as a doctor timeline (BA
@@ -169,8 +170,8 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     await page.reload();
     await expect(page.locator(".dtl-col").filter({ hasText: workingName }).locator(".dtl-block")).toHaveCount(1);
 
-    // A block opens its booking.
-    await page.locator(".dtl-col").filter({ hasText: workingName }).locator(".dtl-block").click();
+    // ⋮ → Cập nhật opens its booking (a click on the block opens the patient, R-1149).
+    await openBlockEditor(page, page.locator(".dtl-col").filter({ hasText: workingName }).locator(".dtl-block"));
     await expect(page.getByRole("dialog", { name: "Cập nhật lịch hẹn" })).toBeVisible();
   });
 
@@ -213,7 +214,7 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     await expect(block.locator(".dtl-block-note")).toContainText(firstLine);
 
     // An edit in Cập nhật lịch hẹn shows on the board once saved.
-    await block.click();
+    await openBlockEditor(page, block);
     const edit = page.getByRole("dialog", { name: "Cập nhật lịch hẹn" });
     // The form is reset once the booking arrives; type only after that.
     await expect(edit.getByPlaceholder("Nội dung đặt lịch")).toHaveValue(content);
@@ -327,8 +328,8 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     await column.locator('.dtl-cell[data-time="15:00"]').click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
-    // A block still opens its booking, to put a doctor on it.
-    await column.locator(".dtl-block").first().click();
+    // ⋮ → Cập nhật still opens its booking, to put a doctor on it.
+    await openBlockEditor(page, column.locator(".dtl-block").first());
     await expect(page.getByRole("dialog")).toBeVisible();
   });
 

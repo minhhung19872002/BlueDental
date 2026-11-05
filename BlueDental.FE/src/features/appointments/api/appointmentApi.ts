@@ -65,6 +65,10 @@ export const appointmentApi = {
       .put<ServerAppointmentDto>(`${BASE}/${id}/notes`, { notes })
       .then((r) => adaptAppointment(r.data)),
 
+  /** A "Lịch tạm" handed to the record just made for it: it stops being temporary. */
+  attachPatient: (id: string, patientId: string): Promise<void> =>
+    api.post(`${BASE}/${id}/attach-patient`, { patientId }).then(() => undefined),
+
   cancel: (id: string, reason: CancellationReason, note?: string): Promise<void> =>
     api.post(`${BASE}/${id}/cancel`, { reason, note }).then(() => undefined),
 

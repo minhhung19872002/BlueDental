@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/timekeepingStaff";
+import { openBlockEditor } from "./fixtures/calendarBlock";
 
 /**
  * R-1001 (BA 2026-10-20): moving "Lịch đã hẹn" to another day with its own
@@ -213,7 +214,7 @@ test.describe("Lịch đã hẹn — chuyển ngày thì Ngày hẹn nhảy theo
     const loaded = page.waitForResponse((r) => r.url().includes(APPOINTMENTS) && r.url().includes(`date=${day}`) && r.ok());
     await page.goto(`/calendar?date=${day}`);
     await loaded;
-    await page.locator(".dtl-col").filter({ hasText: dentist.fullName }).locator(".dtl-block").click();
+    await openBlockEditor(page, page.locator(".dtl-col").filter({ hasText: dentist.fullName }).locator(".dtl-block"));
     const dialog = page.getByRole("dialog", { name: "Cập nhật lịch hẹn" });
     const date = dateField(dialog);
     const nav = diary(dialog);

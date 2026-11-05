@@ -13711,3 +13711,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử** (bản build production `vite preview` :8098 build từ working tree, API :5000, DB thật, không chặn API):
   - `treatment-stage-chain`, `stage-treatment-date`, `warranty-stage`, `stage-staff-pickers`: **15/17**. 2 đỏ đều có từ trước, không do thay đổi này: `stage-staff-pickers:136` (bước tạo dữ liệu qua API trả 403 "Catalog entry not found", như đã ghi ở mục kiểm thử ô chọn trước đây) và `stage-staff-pickers:163` (đỏ từ R-956, nút "Thanh toán" trong khối Chi tiết phiếu).
 - **Mức retest**: 1 (CSS, không đổi hành vi).
+
+## R-1149 (2026-11-05, mức 2: Lịch hẹn — bấm vào lịch mở hồ sơ như Tiếp nhận, main)
+
+- **Yêu cầu** (BA Huỳnh Văn Định, ảnh view Ngày): "Giống bên tab tiếp nhận, click cho mở luôn vào hồ sơ nha, lịch tạm thì mở tạo hồ sơ". Owner chốt: áp dụng view **Ngày** và **Tuần** (không đụng Tháng); Lịch tạm đã huỷ làm như Tiếp nhận (vẫn mở Tạo hồ sơ); làm trên main.
+- **Trước đây**: view Ngày bấm khối lịch mở hộp "Cập nhật lịch hẹn" / "Chỉnh sửa lịch tạm"; view Tuần bấm tên mở hồ sơ, riêng Lịch tạm tên là chữ tĩnh.
+- **Code** (chỉ FE, endpoint `POST /appointments/{id}/attach-patient` đã có, quyền Appointment.Update):
+  - `hooks/useOpenAppointmentRecord.ts`: lịch có hồ sơ → `/patient/{id}?tab=` theo `usePatientLinkTab` (bác sĩ/phụ tá/y sĩ → Chẩn đoán & Tư vấn, còn lại → Hồ sơ, như Tiếp nhận); Lịch tạm → mở `TemporaryRecordDialog`.
+  - `components/TemporaryRecordDialog.tsx`: `PatientEditorDialog` điền sẵn tên + SĐT (+ `sourceAppointmentId` cho SĐT bị ẩn), lưu xong gọi `useAttachTemporaryPatient` → lịch hết là lịch tạm. Bản riêng của feature Lịch hẹn (không import chéo `reception`).
+  - `AppointmentCalendarPage`: thêm action `"open"` trong `handleCardAction`. `TimelineBlock` (click/Enter) và `EventCard` (tên, cả Lịch tạm) gọi `"open"`. Sửa lịch vẫn qua ⋮ → "Cập nhật".
+- **Kiểm thử** (bản build production `vite preview` :8191 build từ working tree, API :5000, DB thật, không chặn API):
+  - Mới `e2e/appointment-open-record.spec.ts` **3/3**: view Ngày bấm khối → URL hồ sơ, không mở dialog; view Ngày Lịch tạm → Tạo hồ sơ điền sẵn → Lưu → `attach-patient` 200, server `isTemporary=false`, reload bấm lại → hồ sơ mới; view Tuần tên Lịch tạm → Tạo hồ sơ điền sẵn, đóng không lưu thì vẫn là Lịch tạm.
+  - Spec cũ đổi đường mở hộp sửa sang ⋮ → Cập nhật (fixture mới `e2e/fixtures/calendarBlock.ts`): `appointment-day-timeline`, `appointment-mini-cal-date`, `temp-booking-content`; cùng `appointment-patient-link`, `appointment-slot-pick`, `appointment-shown-hours`: **20/20**.
+- **Mức retest**: 2 (hành vi trong feature Lịch hẹn).
