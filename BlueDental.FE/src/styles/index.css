@@ -112,6 +112,8 @@
      border and "Bắt buộc" pill on a near-white amber fill. */
   --bd-amber-bright: #f6b23e;
   --bd-amber-field: #fffbeb;
+  /* One tone above --bd-amber-field, same yellow hue (R-1148: the picked stage card). */
+  --bd-amber-soft: #fef3c7;
   /* The highlight behind a reception card's Nội dung line. */
   --bd-note-highlight: beige;
   --bd-red-pale: #fdeced;
