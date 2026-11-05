@@ -27,7 +27,7 @@ import type {
 import { useWaitState } from "../hooks/useWaitState";
 import { isCancelledVisit } from "../utils/receptionFlow";
 import type { WaitLevel } from "../utils/waitTime";
-import { ReceptionCardFlag } from "./ReceptionCardFlag";
+import { ReceptionCardFlagMenu, ReceptionCardPennant } from "./ReceptionCardFlag";
 import { ReceptionCardSteps } from "./ReceptionCardSteps";
 
 interface ReceptionCardProps {
@@ -212,10 +212,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
           <Loader2 size={28} className="rc-busy-spinner" />
         </div>
       )}
-      <ReceptionCardFlag
-        flagged={item.isFlagged}
-        onChange={onFlagChange ? (flagged) => onFlagChange(item.id, flagged) : undefined}
-      />
+      {item.isFlagged && <ReceptionCardPennant />}
       {showCancel && (
         <button
           type="button"
@@ -233,6 +230,9 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
             {/* Col 1: patient info */}
             <div className="rc-col-info">
               <div className="rc-header-row">
+                {onFlagChange && (
+                  <ReceptionCardFlagMenu flagged={item.isFlagged} onChange={(flagged) => onFlagChange(item.id, flagged)} />
+                )}
                 <div className="rc-ticket">
                   <Folder size={20} aria-hidden />
                   <span>{item.voucherCode}</span>

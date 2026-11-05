@@ -26,9 +26,9 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
 
   return (
     <li className={["arrival-row", item.isFlagged && "bd-rgb-ring"].filter(Boolean).join(" ")}>
+      {item.isFlagged && <img className="arrival-row-flag" src={FLAG_PENNANT_SRC} alt={t("Reception:Flagged")} />}
       <div className="arrival-row-info">
         <div className="arrival-row-line arrival-row-name">
-          {item.isFlagged && <img className="arrival-row-flag" src={FLAG_PENNANT_SRC} alt={t("Reception:Flagged")} />}
           <UserRound size={16} aria-hidden />
           <span>
             {item.patientName}

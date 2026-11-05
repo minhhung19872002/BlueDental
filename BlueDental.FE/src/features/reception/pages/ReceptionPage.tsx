@@ -184,14 +184,12 @@ export const ReceptionPage: React.FC = () => {
     runCommand(id, planStepClick(item, action), () => toast.success(labels[action]));
   };
 
+  // No busy overlay: the flag shows on the click (optimistic), so a spinner
+  // over the card would only add a re-render of the whole board.
   const handleFlagChange = (id: string, flagged: boolean) => {
-    markBusy(id);
     setFlagMutation.mutate(
       { id, flagged },
-      {
-        onSuccess: () => toast.success(t(flagged ? "Reception:FlagSetSuccess" : "Reception:FlagClearSuccess")),
-        onSettled: () => clearBusy(id),
-      },
+      { onSuccess: () => toast.success(t(flagged ? "Reception:FlagSetSuccess" : "Reception:FlagClearSuccess")) },
     );
   };
 

@@ -14,11 +14,11 @@ import { call as adminCall, RUN_STAFF_PASSWORD } from "./fixtures/timekeepingSta
 /**
  * Feature: Tiếp nhận — "Đặt cờ" / "Gỡ cờ" (R-1150).
  *
- * ⋮ in a card's top-left corner flags the visit: the card runs a rainbow
- * border with the waving pennant in that chip, and so does the visit's
- * booking on Lịch hẹn; its row on the floating "Đã đến" panel glows and
- * starts with the pennant. The panel's round button stays plain. "Gỡ cờ"
- * from the pennant clears all of it.
+ * ⋮ beside the ticket's folder icon flags the visit: the card runs a rainbow
+ * border with the waving pennant in its top-left corner (a marker, not a
+ * button), and so does the visit's booking on Lịch hẹn; its row on the
+ * floating "Đã đến" panel glows with the pennant on its corner. The panel's
+ * round button stays plain. "Gỡ cờ" from the same ⋮ clears all of it.
  *
  * Each test books its own visit for today through the real API and drives it
  * in the browser. Nothing is intercepted; every state is re-read from the server.
@@ -55,7 +55,10 @@ test.describe("Tiếp nhận — đặt cờ", () => {
     await expect(ring).not.toHaveClass(RING);
     await flagFromMenu(page, card, "Đặt cờ");
     await expect(ring).toHaveClass(RING);
-    await expect(card.locator("img.rc-flag-img")).toBeVisible();
+    await expect(card.getByRole("img", { name: "Đã đặt cờ" })).toBeVisible();
+    // The pennant is a marker: clearing stays on ⋮, which is still there.
+    await expect(card.getByRole("button", { name: "Tuỳ chọn cờ" })).toBeVisible();
+    await expect(card.locator(".rc-pennant")).toHaveCSS("pointer-events", "none");
 
     let stored = (await getAppointment(page, branchId, visit.id)) as FlaggedAppointment;
     expect(stored.isFlagged).toBe(true);
@@ -90,7 +93,7 @@ test.describe("Tiếp nhận — đặt cờ", () => {
     const back = await cardOf(page, visit);
     await flagFromMenu(page, back, "Gỡ cờ");
     await expect(back.locator(".rc-card")).not.toHaveClass(RING);
-    await expect(back.locator("img.rc-flag-img")).toHaveCount(0);
+    await expect(back.getByRole("img", { name: "Đã đặt cờ" })).toHaveCount(0);
     await page.locator(".arrival-dock-button").click();
     const plainRow = page.locator(".arrival-row", { hasText: visit.patientName });
     await expect(plainRow).not.toHaveClass(RING);
