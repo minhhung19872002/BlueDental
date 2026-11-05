@@ -93,6 +93,11 @@
   font-weight: 700;
 }
 
+/* A Màu too long for its face at 10px (fitShade). */
+.tsp-shade--small {
+  font-size: 8px;
+}
+
 .tsp-face--on polygon,
 .tsp-face--on path {
   fill: var(--tsp-on);
