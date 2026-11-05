@@ -29,7 +29,7 @@ interface Props {
 /**
  * The top grid of the Đặt hàng tab: Tên KH, Kế hoạch điều trị, Dịch vụ điều
  * trị, Bác sĩ chỉ định, then Số phiếu, Ngày gửi, the supplier and Ngày nhận
- * dự kiến — two columns, as m142 lays them out. From a công đoạn the plan
+ * dự kiến, then Khớp cắn — two columns, as m142 lays them out. From a công đoạn the plan
  * and line are known and locked; from
  * the tab they are picked here. Bác sĩ chỉ định stays open either way.
  */
@@ -56,6 +56,10 @@ export function LaboNewOrderHeader({ patient, source, plans, dentists, code, for
 
       <LaboLockedField label={t("Patient:Labo:SlipNumber")} value={code} />
       <LaboDeliveryFields suppliers={form.options.suppliers} />
+      {/* Labo v2: one Khớp cắn for the whole order, no longer per tooth (R-1150). */}
+      <FloatingField name="biteId" label={t("Patient:DentalChart:Occlusion")}>
+        <SearchSelect allowClear options={form.options.bites} />
+      </FloatingField>
     </div>
   );
 }

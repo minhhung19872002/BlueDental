@@ -6,7 +6,7 @@ import { LaboPictureGallery } from "../order-dialogs/LaboPictureGallery";
 import { LaboToothDefectGroup } from "./LaboToothDefectGroup";
 import { LaboToothPictureButton } from "./LaboToothPictureButton";
 import { LaboToothResultToggle } from "./LaboToothResultToggle";
-import { LaboReturnCount, LaboToothShade, LaboToothWarranty } from "./LaboToothCells";
+import { LaboReturnCount, LaboToothSurfaces, LaboToothWarranty } from "./LaboToothCells";
 import { pickOf, returnNotes, shownReturnCount, toothKey } from "./laboCheckRules";
 import type { LaboCheckForm } from "./useLaboCheckForm";
 
@@ -30,13 +30,15 @@ export function LaboToothCheckRow({ tooth, order, check }: Props) {
   const busy = check.busy || !check.editable;
   const count = shownReturnCount(tooth, failing);
   const folded = check.collapsed.has(no);
-  const rowClass = ["pd-labo-tooth-row", failing && "pd-labo-tooth-row--fail"].filter(Boolean).join(" ");
+  const rowClass = ["pd-labo-tooth-row", failing && "pd-labo-tooth-row--fail", passed && "pd-labo-tooth-row--pass"]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <li className={rowClass}>
       <div className="pd-labo-tooth-line">
         <span className="pd-labo-tooth-no">{t("Labo:Check:ToothLabel", no)}</span>
-        <LaboToothShade shade={tooth.shade} />
+        <LaboToothSurfaces tooth={tooth} />
         <Form.Item
           name={["teeth", toothKey(no), "result"]}
           rules={[{ required: true, message: t("Labo:Check:ResultRequired") }]}
@@ -68,7 +70,7 @@ export function LaboToothCheckRow({ tooth, order, check }: Props) {
       )}
       {failing && (
         <LaboToothDefectGroup
-          tooth={no}
+          tooth={tooth}
           roundNo={check.roundNo}
           returns={{ no: count, pastNotes: returnNotes(order, no) }}
           tiles={check.tiles}

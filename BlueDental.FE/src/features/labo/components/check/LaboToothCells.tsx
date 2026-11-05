@@ -1,11 +1,13 @@
 import { t } from "@/lib/i18n";
 import type { LaboOrderToothDto } from "@/features/labo/api/laboApi";
+import { surfaceLine } from "./laboToothFaces";
 
-/** The shade the tooth was ordered in, as text — the swatch went (P0111_02, R-1109). */
-export function LaboToothShade({ shade }: { shade?: string | null }) {
+/** What the tooth was ordered as, in text: "Gần A2 · Xa A2" (Labo 2 v2, R-1151; the swatch went in R-1109). */
+export function LaboToothSurfaces({ tooth }: { tooth: LaboOrderToothDto }) {
+  const line = surfaceLine(tooth);
   return (
-    <span className="pd-labo-tooth-shade">
-      {shade || "—"}
+    <span className="pd-labo-tooth-shade" title={line}>
+      {line}
     </span>
   );
 }

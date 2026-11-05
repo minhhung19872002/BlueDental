@@ -1,0 +1,191 @@
+/* Mặt răng on one tooth (R-1150): the chart's tooth picture over a
+   large surface circle, in a soft box. Face colours from the Labo 1 v2 mock. */
+.tsp {
+  --tsp-off: #fff;
+  --tsp-off-ink: #6b7280;
+  --tsp-on: #c7d2fe;
+  --tsp-on-ink: #1e1b4b;
+  --tsp-active: #4f46e5;
+  --tsp-active-ink: #fff;
+  --tsp-missing: #dc2626;
+  --tsp-line: #94a3b8;
+  --tsp-ring: #8a94a6;
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  padding: 12px 10px;
+  user-select: none;
+}
+
+.tsp-tooth {
+  display: flex;
+  height: 72px;
+  align-items: center;
+  justify-content: center;
+}
+
+.tsp-tooth > img {
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* The picture picks every surface (R-1150). */
+.tsp-tooth--button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.tsp-tooth--button:hover {
+  border-color: var(--tsp-on);
+  background: #fff;
+}
+
+.tsp-tooth--button:focus-visible {
+  outline: 2px solid var(--tsp-active);
+  outline-offset: 1px;
+}
+
+.tsp-tooth--lower > img {
+  transform: rotate(180deg);
+}
+
+
+.tsp-circle {
+  display: block;
+  width: 164px;
+  height: 164px;
+  flex: none;
+  overflow: visible;
+}
+
+.tsp-face polygon,
+.tsp-face path {
+  fill: var(--tsp-off);
+  stroke: var(--tsp-line);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  transition: fill 0.12s ease;
+}
+
+.tsp-face text {
+  fill: var(--tsp-off-ink);
+  text-anchor: middle;
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+
+.tsp-name {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tsp-shade {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.tsp-face--on polygon,
+.tsp-face--on path {
+  fill: var(--tsp-on);
+}
+
+.tsp-face--on text {
+  fill: var(--tsp-on-ink);
+}
+
+.tsp-face--active polygon,
+.tsp-face--active path {
+  fill: var(--tsp-active);
+}
+
+.tsp-face--active text {
+  fill: var(--tsp-active-ink);
+}
+
+.tsp-face--missing polygon,
+.tsp-face--missing path {
+  stroke: var(--tsp-missing);
+  stroke-width: 2.5;
+}
+
+/* Fault mode (Labo 2 v2, R-1151): a face not ordered is grey and dead, a faulty one red. */
+.tsp--fault-mode {
+  --tsp-blank: #f3f4f6;
+  --tsp-blank-ink: #9ca3af;
+  --tsp-fault: #fee2e2;
+  --tsp-fault-ink: #b91c1c;
+  --tsp-fault-line: #dc2626;
+  border-color: #fecaca;
+  background: #fff;
+  padding: 8px;
+}
+
+.tsp--fault-mode .tsp-tooth {
+  height: 48px;
+}
+
+.tsp--fault-mode .tsp-circle {
+  width: 140px;
+  height: 140px;
+}
+
+.tsp-face--blank polygon,
+.tsp-face--blank path {
+  fill: var(--tsp-blank);
+}
+
+.tsp-face--blank text {
+  fill: var(--tsp-blank-ink);
+}
+
+.tsp-face--fault polygon,
+.tsp-face--fault path {
+  fill: var(--tsp-fault);
+  stroke: var(--tsp-fault-line);
+  stroke-width: 2.5;
+}
+
+.tsp-face--fault text {
+  fill: var(--tsp-fault-ink);
+}
+
+.tsp--interactive.tsp--faults .tsp-face--blank {
+  cursor: default;
+}
+
+.tsp--faults .tsp-face--on:hover polygon,
+.tsp--faults .tsp-face--on:hover path {
+  fill: #fecaca;
+}
+
+.tsp--interactive .tsp-face {
+  cursor: pointer;
+  outline: none;
+}
+
+.tsp--interactive .tsp-face--off:hover polygon,
+.tsp--interactive .tsp-face--off:hover path {
+  fill: #e0e7ff;
+}
+
+.tsp--interactive .tsp-face:focus-visible polygon,
+.tsp--interactive .tsp-face:focus-visible path {
+  stroke: var(--tsp-active);
+  stroke-width: 3;
+}
+
+.tsp-outline {
+  fill: none;
+  stroke: var(--tsp-ring);
+  stroke-width: 1.4;
+  pointer-events: none;
+}

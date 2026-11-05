@@ -129,6 +129,32 @@
   color: var(--bd-amber);
 }
 
+.pd-labo-check-tally--muted {
+  color: var(--bd-muted);
+}
+
+/* «Đạt tất cả» right of the tally (Labo 2 v2 mock, R-1151). */
+.pd-labo-pass-all {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--bd-green) 45%, var(--bd-card));
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bd-green);
+  background: var(--bd-green-pale);
+  cursor: pointer;
+}
+
+.pd-labo-pass-all:hover:not(:disabled) {
+  border-color: var(--bd-green);
+}
+
+.pd-labo-pass-all:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .pd-labo-check-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -209,20 +235,26 @@
   background: color-mix(in srgb, var(--bd-red) 3%, var(--bd-card));
 }
 
+/* Labo 2 v2 mock: a Đạt tooth turns pale green. */
+.pd-labo-tooth-row--pass {
+  border-color: color-mix(in srgb, var(--bd-green) 35%, transparent);
+  background: color-mix(in srgb, var(--bd-green) 3%, var(--bd-card));
+}
+
 .pd-labo-tooth-row--locked {
   background: var(--bd-bg-soft);
 }
 
-/* Răng N · shade · Đạt/Lỗi · Đã trả · BH Labo · Thu gọn (m342). */
+/* Răng N · Mặt răng + Màu · Đạt/Lỗi · Đã trả · BH Labo · Thu gọn (Labo 2 v2 mock). */
 .pd-labo-tooth-line {
   display: grid;
-  grid-template-columns: 64px 80px auto 120px minmax(0, 1fr) auto;
+  grid-template-columns: 72px minmax(0, 1fr) auto 110px 150px auto;
   align-items: center;
   gap: 12px;
 }
 
 .pd-labo-tooth-row--locked .pd-labo-tooth-line {
-  grid-template-columns: 64px 80px minmax(0, 1fr) 120px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr) minmax(0, 1fr) 110px 150px;
 }
 
 .pd-labo-tooth-no {
@@ -235,10 +267,10 @@
 }
 
 .pd-labo-tooth-shade {
-  display: inline-flex;
+  display: block;
   overflow: hidden;
   white-space: nowrap;
-  align-items: center;
+  text-overflow: ellipsis;
   font-size: 13px;
   color: var(--bd-sub);
 }
@@ -381,8 +413,54 @@
 /* Room for the floating label under the pictures. The margin goes on the
    wrapper the label is placed against, not on the Form.Item inside it, or the
    box slides down and leaves its label behind (P0111_02, R-1113). */
-.pd-labo-defect > .floating-field {
+.pd-labo-defect-main > .floating-field {
   margin-top: 16px;
+}
+
+/* Bấm mặt bị lỗi on the left, Mặt bị lỗi · pictures · Mô tả on the right (Labo 2 v2 mock). */
+.pd-labo-defect-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.pd-labo-defect-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pd-labo-fault-field.ant-form-item {
+  flex: none;
+  width: 156px;
+  margin-bottom: 0;
+}
+
+.pd-labo-fault-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.pd-labo-fault-hint {
+  font-size: 11px;
+  color: var(--bd-muted);
+}
+
+.pd-labo-fault-line {
+  font-size: 12px;
+  color: var(--bd-sub);
+}
+
+.pd-labo-fault-line strong {
+  color: var(--bd-red-dark);
+}
+
+.pd-labo-footer-hint.pd-labo-footer-hint--warn {
+  color: var(--bd-orange-hover);
 }
 
 .pd-labo-pictures.pd-labo-pictures--defect {
@@ -548,5 +626,10 @@
   .pd-labo-tooth-line,
   .pd-labo-tooth-row--locked .pd-labo-tooth-line {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .pd-labo-defect-body {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

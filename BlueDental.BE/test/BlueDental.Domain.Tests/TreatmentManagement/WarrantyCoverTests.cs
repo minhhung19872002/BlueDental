@@ -48,6 +48,7 @@ public class WarrantyCoverTests
             SupplierId = Guid.NewGuid(),
             MaterialId = Guid.NewGuid(),
             Teeth = teeth,
+            ToothSpecs = LaboTestSpecs.For(teeth),
             ToothShade = "A2",
             FinishLineId = Guid.NewGuid(),
             Quantity = 1,

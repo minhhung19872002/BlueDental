@@ -313,6 +313,80 @@ Tests (round 2): `e2e/stage-backfill-log-api.spec.ts` (6, real HTTP),
 `treatment-stage-chain` updated to the new rule; related run 26/26; Domain
 `TreatmentStageBackfillTests`.
 
+## Labo v2 — Đặt hàng (BA mock "màn 15b", R-1150, 2026-11-05)
+
+- Thông số từng răng is one card per tooth. Each card has a Mặt răng picker:
+  the chart's tooth picture plus a big five-face circle (no tooth number, the
+  card head already says R11). Clicking the picture picks every surface;
+  clicking it again when all five are on takes them all off.
+- Surfaces: incisors/canines M · D · I · F · L, premolars/molars
+  M · D · O · B · L (`ToothSurfaces`). "Riêng theo mặt" splits Màu răng /
+  Đường hoàn tất per surface.
+- Two switches: Thông số răng Chung / Riêng, and while Chung, Màu răng
+  Chung / Riêng → `LaboSpecMode` 1 SharedAll · 2 SharedSpecOwnShade ·
+  3 PerTooth. Values stay on every tooth; switching modes keeps what was typed.
+- Khớp cắn belongs to the order (old orders: the first tooth's value).
+- Required to send: Mặt răng and Màu răng on every tooth (`Labo:0038`,
+  `Labo:0034`); Đường hoàn tất is not required. Each card shows "n lỗi" /
+  "Đủ thông tin"; the footer gives the summary and the list of gaps.
+- Per-tooth Ảnh and Ghi chú are gone (owner, following the mock). Lưu nháp,
+  "Tạo phiếu Labo" and the old prior-tooth warning stay.
+- Old drafts must pick surfaces before sending. Sent orders without surfaces
+  show "—".
+- Tests: `e2e/labo-workflow.spec.ts` rewritten (7). `labo-api` fixtures send
+  `toothSpecs` with surface M by default.
+
+## Labo v2 — Nhận hàng & kiểm tra (BA mock "Labo 2 v2", R-1151, 2026-11-05)
+
+- Owner: keep the old Kiểm tra fields inside the new layout. Lỗi always means
+  the Labo remakes it; the Xử lý select, "Sửa tại phòng khám" and per-tooth
+  Hẹn giao lại are gone. Section C keeps Ngày trả hàng and Hẹn Labo giao lại.
+  Hình ảnh lỗi 0/5, Mô tả gửi Labo, Đã trả n lần and BH Labo stay.
+- Each Lỗi tooth picks its faulty faces on the tooth picture: only the ordered
+  faces can be clicked (name + shade shown). At least one is required
+  (`Labo:0040`); a face not ordered is refused (`Labo:0041`). The line reads
+  "Mặt bị lỗi: chưa chọn — bấm trên sơ đồ" / "Mặt bị lỗi: Gần".
+- Faults are stored per round (`LaboRoundToothResult.FaultSurfaces`); a new
+  round starts with no faces picked.
+- Tally "Đạt n · Lỗi n · Chưa đánh giá n" and "Đạt tất cả" above the teeth.
+- Footer: an amber hint while something is missing ("Còn n răng chưa đánh
+  giá", "Nhập mô tả lỗi gửi Labo cho n răng"), else where the order goes.
+  While teeth are unpicked, "Trả toàn bộ (n răng)" and "Xác nhận đạt (n răng)"
+  both show greyed. Once nothing is left to conclude: hint + Đóng +
+  "Tiếp: Bảo hành ›" (hidden in the R-1120 view-only popup).
+- History cards: "Sai màu (mặt Gần, Xa) · hẹn 12/11/2026".
+- Chỉnh sửa stays on cards not yet activated; activated cards are locked and
+  show Xem chi tiết (R-1120, unchanged).
+- Tests: `e2e/labo-workflow.spec.ts` (7), `plan-warranty-tab` (6),
+  `labo-api` (14).
+
+## Labo v2 — Bảo hành (BA mock "BaoHanhV2", R-1152, 2026-11-05)
+
+- Two tabs: "Kích hoạt bảo hành" (only while a Đạt tooth still lacks a card
+  and the order may activate) and "Tổng quan thẻ bảo hành (n)".
+- Kích hoạt has 3 columns:
+  - The teeth list, each with Đủ thông tin / Thiếu … and "Đủ thông tin r/s
+    răng" at the bottom of the column.
+  - The open tooth's card: tooth info with its faces, the form, and
+    "‹ Răng trước" "Răng tiếp theo ›" side by side at the right.
+  - The card preview with ‹ i/n › and the tooth chips.
+- Only the open tooth's form is mounted. Dùng chung still keeps one serial per
+  tooth.
+- "Kích hoạt bảo hành (r/s răng)" stays disabled until every picked tooth has
+  a start date and a duration. The footer hint says how many are missing.
+- Tổng quan:
+  - A ready draft card is purple, with "Sẵn sàng kích hoạt"; an incomplete
+    one reads "Chưa kích hoạt".
+  - "Chỉnh sửa" appears only on cards not activated yet (owner Q10, R-1120
+    kept). It returns to that tooth's form with the values kept.
+  - The table has Thời hạn instead of Còn lại.
+- Responsive:
+  - Below 1100px the columns stack.
+  - From 641 to 1100px Tổng quan shows 2 cards per row.
+  - At 640px and below it shows 1 card per row and the nav buttons share the
+    width.
+- Tests: `e2e/labo-workflow.spec.ts` (Bảo hành + Dùng chung), `plan-warranty-tab`.
+
 ## Not built / open
 
 - Tiếp nhận bảo hành (Lần BH, phiếu BH1) — later round.

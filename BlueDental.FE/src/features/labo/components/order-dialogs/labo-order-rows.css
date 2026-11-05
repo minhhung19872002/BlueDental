@@ -110,162 +110,17 @@
   margin-left: 4px;
 }
 
-/* ── Thông số từng răng ─────────────────────────────────────────────────── */
-.pd-labo-spec {
-  margin-top: 20px;
-  border-top: 1px solid var(--bd-line);
-  padding-top: 20px;
-}
-.pd-labo-spec-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.pd-labo-spec-head > div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
-}
-.pd-labo-spec-head h4 {
-  margin: 0;
-  color: var(--bd-ink);
-  font-size: 15px;
-  font-weight: 700;
-}
-.pd-labo-spec-head p {
-  margin: 0;
-  color: var(--bd-muted);
-  font-size: 12px;
-}
-.pd-labo-spec-shared.ant-checkbox-wrapper {
-  border: 1px solid var(--bd-border);
-  border-radius: 10px;
-  padding: 7px 14px;
-  color: var(--bd-ink);
-  transition:
-    border-color 0.15s,
-    background-color 0.15s;
-}
-.pd-labo-spec-shared--on.ant-checkbox-wrapper {
-  border-color: var(--bd-primary);
-  background: var(--bd-blue-pale);
-}
-.pd-labo-spec-scroll {
-  overflow-x: auto;
-  border: 1px solid var(--bd-line);
-  border-radius: 12px;
-}
-.pd-labo-spec-table {
-  width: 100%;
-  min-width: 860px;
-  border-collapse: collapse;
-}
-.pd-labo-spec-table thead th {
-  padding: 10px 8px;
-  background: var(--bd-table-head);
-  color: var(--bd-table-head-ink);
-  font-size: 12px;
-  font-weight: 600;
-  text-align: left;
-  white-space: nowrap;
-}
-.pd-labo-spec-table thead th:first-child,
-.pd-labo-spec-table tbody th {
-  width: 64px;
-  padding-left: 12px;
-}
-.pd-labo-spec-table tbody th {
-  color: var(--bd-ink);
-  font-size: 14px;
-  font-weight: 700;
-  text-align: left;
-}
-.pd-labo-spec-table td {
-  padding: 8px;
-  vertical-align: middle;
-}
-.pd-labo-spec-table tbody tr + tr > * {
-  border-top: 1px solid var(--bd-line);
-}
-/* m139: the row lacking a cell is only faintly pink. */
-.pd-labo-spec-row--gap {
-  background: color-mix(in srgb, var(--bd-red-pale) 45%, var(--bd-card));
-}
-.pd-labo-spec-table .ant-input,
-.pd-labo-spec-table .ant-select {
-  width: 100%;
-  min-width: 120px;
-}
-/* The shared row names every tooth, so it reads smaller. */
-.pd-labo-spec-row[data-tooth="0"] > th {
-  color: var(--bd-muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-.pd-labo-spec-caption {
-  margin: 10px 0 0;
-  color: var(--bd-muted);
-  font-size: 12px;
-}
-
-/* Ảnh in a row: 28px thumbnails and a small dashed "+". Two classes, so the
-   detail well's margin-top (labo-order-dialog.css) never pushes it down. */
-.pd-labo-pictures.pd-labo-pictures--cell {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-}
-.pd-labo-pictures--cell .pd-labo-gallery {
-  gap: 6px;
-  margin: 0;
-}
-.pd-labo-pictures--cell .pd-labo-gallery-tile {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-}
-.pd-labo-pictures--cell .pd-labo-gallery-remove {
-  top: 0;
-  right: 0;
-  width: 14px;
-  height: 14px;
-  border-radius: 0 0 0 4px;
-  font-size: 8px;
-}
-/* First in its cell, the tooth's pictures after it — the strip grows rightwards. */
-.pd-labo-cellwell {
-  display: inline-flex;
-  width: 32px;
-  height: 32px;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed var(--bd-blue-light);
-  border-radius: 6px;
-  padding: 0;
-  background: transparent;
-  color: var(--bd-primary);
-  font-size: 11px;
-  cursor: pointer;
-}
-.pd-labo-cellwell:hover:not(:disabled) {
-  background: var(--pd-upload-hover);
-}
-.pd-labo-cellwell:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
 /* ── Ảnh đính kèm chung: the "+ Tải ảnh" well pinned left, 88px tiles after it ── */
 .pd-labo-row--common {
   margin-top: 20px;
   border-top: 1px solid var(--bd-line);
   padding-top: 20px;
+}
+.pd-labo-row--common .pd-labo-row-hint {
+  display: block;
+  color: var(--bd-muted);
+  font-size: 12px;
+  font-weight: 400;
 }
 .pd-labo-row--common .pd-labo-gallery-tile,
 .pd-labo-row--common .pd-labo-well {
@@ -291,6 +146,15 @@
   height: 24px;
 }
 
+.pd-labo-footer-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pd-labo-footer-hint--done {
+  color: var(--bd-green);
+  font-weight: 600;
+}
 .pd-labo-footer-hint--gap {
   color: var(--bd-red);
 }

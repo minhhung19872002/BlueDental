@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
 import { cardEndDate, typedDurationText } from "./laboWarrantyRules";
 import { isWarrantyCardReady, type LaboWarrantyCardValues } from "./useLaboWarrantyForm";
@@ -18,6 +19,35 @@ interface Props {
   logoUrl: string;
   /** A dental card's Danh mục days, for "Theo danh mục" (P3110 REQ-B5). */
   catalogDays?: number;
+  /** The code line and the head's pill, when not the defaults — Labo v2's "3 thẻ · serial riêng từng răng", "1/3 sẵn sàng". */
+  wording?: { code: string; pill: string };
+}
+
+/** Răng trong thẻ bảo hành (n), each picked tooth as a chip. */
+export function LaboWarrantyTeethInCard({ teeth }: { teeth: number[] }) {
+  return (
+    <div className="pd-labo-warranty-preview-teeth">
+      <span>{t("Labo:Warranty:TeethInCard", teeth.length)}</span>
+      <ul>
+        {teeth.map((tooth) => (
+          <li key={tooth}>{t("Labo:Check:ToothLabel", tooth)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function headChips(teeth: number[]): ReactNode {
+  if (teeth.length > HEAD_CHIPS) return null;
+  return (
+    <span className="pd-labo-warranty-card-teeth">
+      {teeth.map((tooth) => (
+        <span key={tooth} className="pd-labo-warranty-card-tooth">
+          {t("Labo:Warranty:ToothShort", tooth)}
+        </span>
+      ))}
+    </span>
+  );
 }
 
 /**
@@ -27,20 +57,11 @@ interface Props {
  * the list below names them all. Each tooth still gets its own code on
  * activation, so the card names none.
  */
-export function LaboWarrantySharedPreview({ teeth, card, what, logoUrl, catalogDays }: Props) {
+export function LaboWarrantySharedPreview({ teeth, card, what, logoUrl, catalogDays, wording }: Props) {
   const ready = isWarrantyCardReady(card);
   const face: WarrantyFace = {
-    heading:
-      teeth.length <= HEAD_CHIPS ? (
-        <span className="pd-labo-warranty-card-teeth">
-          {teeth.map((tooth) => (
-            <span key={tooth} className="pd-labo-warranty-card-tooth">
-              {t("Labo:Warranty:ToothShort", tooth)}
-            </span>
-          ))}
-        </span>
-      ) : null,
-    code: t("Labo:Warranty:SharedCode"),
+    heading: headChips(teeth),
+    code: wording?.code ?? t("Labo:Warranty:SharedCode"),
     what,
     startDate: card?.startDate?.format("YYYY-MM-DD"),
     endDate: cardEndDate(card, catalogDays)?.format("YYYY-MM-DD"),
@@ -48,7 +69,7 @@ export function LaboWarrantySharedPreview({ teeth, card, what, logoUrl, catalogD
     elapsed: 0,
     left: typedDurationText(card?.months, catalogDays),
     note: t("Labo:Warranty:NoClaimsYet"),
-    pill: ready ? t("Labo:Warranty:ReadyTeeth", teeth.length) : undefined,
+    pill: wording?.pill ?? (ready ? t("Labo:Warranty:ReadyTeeth", teeth.length) : undefined),
   };
 
   return (
@@ -58,14 +79,7 @@ export function LaboWarrantySharedPreview({ teeth, card, what, logoUrl, catalogD
       <div className={`pd-labo-warranty-stack pd-labo-warranty-stack--${Math.min(teeth.length - 1, MAX_SHEETS)}`}>
         <WarrantyCardFace face={face} logoUrl={logoUrl} />
       </div>
-      <div className="pd-labo-warranty-preview-teeth">
-        <span>{t("Labo:Warranty:TeethInCard", teeth.length)}</span>
-        <ul>
-          {teeth.map((tooth) => (
-            <li key={tooth}>{t("Labo:Check:ToothLabel", tooth)}</li>
-          ))}
-        </ul>
-      </div>
+      <LaboWarrantyTeethInCard teeth={teeth} />
     </div>
   );
 }

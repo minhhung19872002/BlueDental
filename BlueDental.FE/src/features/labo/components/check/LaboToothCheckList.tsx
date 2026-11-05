@@ -3,7 +3,7 @@ import { t } from "@/lib/i18n";
 import type { LaboOrderDto, LaboOrderToothDto } from "@/features/labo/api/laboApi";
 import { LaboTeethHead } from "./LaboTeethHead";
 import { LaboToothCheckRow } from "./LaboToothCheckRow";
-import { LaboReturnCount, LaboToothShade, LaboToothWarranty } from "./LaboToothCells";
+import { LaboReturnCount, LaboToothSurfaces, LaboToothWarranty } from "./LaboToothCells";
 import { passedRoundNo, passedTeeth, teethTally } from "./laboCheckRules";
 import type { LaboCheckForm } from "./useLaboCheckForm";
 
@@ -16,12 +16,20 @@ function passedLabel(order: LaboOrderDto, tooth: LaboOrderToothDto): string {
 }
 
 /** A tooth that passed on an earlier delivery: greyed, nothing to pick (m342 Răng 13). */
-function PassedToothRow({ order, tooth, inCheck }: { order: LaboOrderDto; tooth: LaboOrderToothDto; inCheck: boolean }) {
+function PassedToothRow({
+  order,
+  tooth,
+  inCheck,
+}: {
+  order: LaboOrderDto;
+  tooth: LaboOrderToothDto;
+  inCheck: boolean;
+}) {
   return (
     <li className="pd-labo-tooth-row pd-labo-tooth-row--locked">
       <div className="pd-labo-tooth-line">
         <span className="pd-labo-tooth-no">{t("Labo:Check:ToothLabel", tooth.toothNumber)}</span>
-        <LaboToothShade shade={tooth.shade} />
+        <LaboToothSurfaces tooth={tooth} />
         <span className="pd-labo-tooth-passed">
           <b>{passedLabel(order, tooth)}</b>
           {inCheck && <small>{t("Labo:Check:NotInDelivery")}</small>}
@@ -38,11 +46,16 @@ export function LaboToothCheckList({ order, check }: { order: LaboOrderDto; chec
   const tally = teethTally(
     check.teeth.map((tooth) => tooth.toothNumber),
     check.picks,
-    order.teeth.length,
   );
   return (
     <section className="pd-labo-check-section">
-      <LaboTeethHead status={tally.label} tone={tally.tone} />
+      <LaboTeethHead status={tally.label} tone={tally.tone}>
+        {check.editable && (
+          <button type="button" className="pd-labo-pass-all" disabled={check.busy} onClick={check.passAll}>
+            {t("Labo:Check:PassAll")}
+          </button>
+        )}
+      </LaboTeethHead>
       <ul className="pd-labo-tooth-list">
         {check.teeth.map((tooth) => (
           <LaboToothCheckRow key={tooth.toothNumber} tooth={tooth} order={order} check={check} />
@@ -64,7 +77,7 @@ export function LaboPassedTeethList({ order }: { order: LaboOrderDto }) {
   if (teeth.length === 0 || teeth.length < order.teeth.length) return null;
   return (
     <section className="pd-labo-check-section">
-      <LaboTeethHead status={t("Labo:Check:TallyAllPassed", teeth.length, teeth.length)} tone="pass" />
+      <LaboTeethHead status={t("Labo:Check:Tally", teeth.length, 0)} tone="pass" />
       <ul className="pd-labo-tooth-list">
         {teeth.map((tooth) => (
           <PassedToothRow key={tooth.toothNumber} order={order} tooth={tooth} inCheck={false} />
