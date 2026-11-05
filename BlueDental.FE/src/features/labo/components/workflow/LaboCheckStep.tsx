@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { Button, Form } from "antd";
+import { Form } from "antd";
 import { t } from "@/lib/i18n";
 import type { LaboOrderDto } from "@/features/labo/api/laboApi";
-import { LaboCheckFooter } from "../check/LaboCheckFooter";
+import { LaboCheckDoneFooter, LaboCheckFooter } from "../check/LaboCheckFooter";
 import { LaboCheckStartCard } from "../check/LaboCheckStartCard";
 import { LaboConclusionBox } from "../check/LaboConclusionBox";
 import { LaboReceiveSection } from "../check/LaboReceiveSection";
@@ -20,6 +20,8 @@ interface Props {
   order: LaboOrderDto;
   readOnly: boolean;
   onShowOrder: () => void;
+  /** «Tiếp: Bảo hành ›»; unset while that tab is locked. */
+  onShowWarranty?: () => void;
   onClose: () => void;
 }
 
@@ -90,7 +92,7 @@ function CheckColumns({ history, children }: { history: ReactNode; children: Rea
  * right, or once the order has left the check, only the summary and the
  * history remain — with B. read-only once every tooth has passed.
  */
-export function LaboCheckStep({ patient, order, readOnly, onShowOrder, onClose }: Props) {
+export function LaboCheckStep({ patient, order, readOnly, onShowOrder, onShowWarranty, onClose }: Props) {
   const check = useLaboCheckForm(order, onClose, readOnly);
   const summary = <LaboOrderSummaryCard order={order} patient={patient} onShowOrder={onShowOrder} />;
 
@@ -102,11 +104,7 @@ export function LaboCheckStep({ patient, order, readOnly, onShowOrder, onClose }
           <LaboPassedTeethList order={order} />
           <SavedCheckPictureSets order={order} />
         </CheckColumns>
-        <div className="pd-labo-footer pd-labo-step-footer">
-          <div className="pd-labo-footer-actions">
-            <Button onClick={onClose}>{t("Labo:Workflow:Dismiss")}</Button>
-          </div>
-        </div>
+        <LaboCheckDoneFooter order={order} readOnly={readOnly} onShowWarranty={onShowWarranty} onClose={onClose} />
       </>
     );
   }

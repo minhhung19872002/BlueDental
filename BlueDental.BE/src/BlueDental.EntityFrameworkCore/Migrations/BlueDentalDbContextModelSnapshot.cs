@@ -11609,6 +11609,10 @@ namespace BlueDental.Migrations
                                 .ValueGeneratedOnAdd()
                                 .HasColumnType("integer");
 
+                            b1.Property<string>("FaultSurfaces")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
                             b1.Property<string>("Note")
                                 .HasMaxLength(1000)
                                 .HasColumnType("character varying(1000)");

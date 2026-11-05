@@ -875,6 +875,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 r.ToJson();
                 r.Property(x => x.Result).HasConversion<short>();
                 r.Property(x => x.Note).HasMaxLength(1000);
+                r.Property(x => x.FaultSurfaces).HasMaxLength(20);
+                r.Ignore(x => x.Faults);
             });
             entity.Navigation(x => x.ToothResults).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.LaboOrderId, x.RoundNo }).IsUnique();

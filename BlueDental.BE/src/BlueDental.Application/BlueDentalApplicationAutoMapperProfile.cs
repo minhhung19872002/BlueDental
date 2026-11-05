@@ -121,7 +121,8 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
             .ForMember(d => d.FinishLineName, opt => opt.Ignore());
         CreateMap<LaboOrderRound, LaboOrderRoundDto>()
             .ForMember(d => d.ReceiverName, opt => opt.Ignore());
-        CreateMap<LaboRoundToothResult, LaboRoundToothResultDto>();
+        CreateMap<LaboRoundToothResult, LaboRoundToothResultDto>()
+            .ForMember(d => d.FaultSurfaces, o => o.MapFrom(s => s.Faults.ToList()));
 
         /* Customer Care */
         CreateMap<CareRecord, CareRecordDto>()

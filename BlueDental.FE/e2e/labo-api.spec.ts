@@ -205,7 +205,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(missing.body.error?.code).toBe(code(19));
     const mixed = [
       { toothNumber: 11, result: ToothResult.Passed },
-      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}` },
+      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}`, faultSurfaces: ["M"] },
     ];
     const notAll = await check(page, orderId, { teeth: mixed, conclusion: Conclusion.Pass });
     expect(notAll.status).toBe(403);
@@ -326,7 +326,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
       {
         teeth: [
           { toothNumber: 11, result: ToothResult.Passed },
-          { toothNumber: 21, result: ToothResult.Failed, note: `Sai khớp cắn ${id}` },
+          { toothNumber: 21, result: ToothResult.Failed, note: `Sai khớp cắn ${id}`, faultSurfaces: ["M"] },
         ],
         conclusion: Conclusion.ReturnAll,
         description: `Làm lại cả hàm ${id}`,
@@ -351,9 +351,10 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const catalog = await laboCatalog(page, line.branchId, id);
     const order = await sentOrder(page, orderBody(catalog, line, id, { treatmentServiceId: line.lineId }));
     const dates = { returnedAt: new Date().toISOString(), redeliveryDueAt: daysFromNow(3) };
-    const failBoth = (note21: string) => [
-      { toothNumber: 11, result: ToothResult.Failed, note: `Lệch màu ${id}` },
-      { toothNumber: 21, result: ToothResult.Failed, note: note21 },
+    // The fixture orders each tooth on Gần (M) alone, so that is the face a Lỗi names (R-1151).
+    const failBoth = (note21: string, faults21 = ["M"]) => [
+      { toothNumber: 11, result: ToothResult.Failed, note: `Lệch màu ${id}`, faultSurfaces: ["M"] },
+      { toothNumber: 21, result: ToothResult.Failed, note: note21, faultSurfaces: faults21 },
     ];
 
     expect((await receive(page, order.id, 2)).status).toBe(200);
@@ -365,7 +366,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
     // A Hình ảnh lỗi must name a tooth checked in this round (Đạt teeth may carry pictures since R-1110).
     const passedTeeth = [
       { toothNumber: 11, result: ToothResult.Passed },
-      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}` },
+      { toothNumber: 21, result: ToothResult.Failed, note: `Hở bờ ${id}`, faultSurfaces: ["M"] },
     ];
     const wrongTooth = await check(page, order.id, { teeth: passedTeeth, conclusion: Conclusion.ReturnDefective, ...dates }, 0, [12]);
     expect(wrongTooth.status).toBe(403);
@@ -375,6 +376,14 @@ test.describe("Labo workflow API (P2910_03)", () => {
     expect(onePictured.status).toBe(403);
     expect(onePictured.body.error?.code).toBe(code(25));
     expect(onePictured.body.error?.message).toContain("21");
+    // Mặt bị lỗi (R-1151): a Lỗi tooth names at least one face, and only faces it was ordered on.
+    const noFace = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`, []), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11, 21]);
+    expect(noFace.status).toBe(403);
+    expect(noFace.body.error?.code).toBe(code(40));
+    expect(noFace.body.error?.message).toContain("21");
+    const strayFace = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`, ["M", "O"]), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11, 21]);
+    expect(strayFace.status).toBe(403);
+    expect(strayFace.body.error?.code).toBe(code(41));
     // Ảnh kiểm tra may come from the Lỗi rows alone.
     const first = await check(page, order.id, { teeth: failBoth(`Hở bờ ${id}`), conclusion: Conclusion.ReturnAll, ...dates }, 0, [11, 21]);
     expect(first.status, first.text).toBe(200);
@@ -392,10 +401,11 @@ test.describe("Labo workflow API (P2910_03)", () => {
       [11, 1],
       [21, 2],
     ]);
-    expect(reread.rounds[1].toothResults.map((t) => [t.toothNumber, t.result, t.note])).toEqual([
-      [11, ToothResult.Passed, null],
-      [21, ToothResult.Failed, `Hở bờ ${id}`],
+    expect(reread.rounds[1].toothResults.map((t) => [t.toothNumber, t.result, t.note, t.faultSurfaces])).toEqual([
+      [11, ToothResult.Passed, null, []],
+      [21, ToothResult.Failed, `Hở bờ ${id}`, ["M"]],
     ]);
+    expect(reread.rounds[0].toothResults.map((t) => t.faultSurfaces)).toEqual([["M"], ["M"]]);
   });
 
   test("Kích hoạt bảo hành carries each card's Mặt trước / Mặt sau photos (P3110 REQ-E1)", async ({ page }) => {

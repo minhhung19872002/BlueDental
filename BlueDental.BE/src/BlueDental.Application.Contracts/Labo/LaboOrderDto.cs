@@ -175,6 +175,9 @@ public class LaboRoundToothResultDto
 
     /// <summary>Mô tả gửi Labo of this tooth (P3110 REQ-D6); only on a Lỗi tooth.</summary>
     public string? Note { get; set; }
+
+    /// <summary>Mặt bị lỗi codes (Labo v2, R-1151); empty on a Đạt tooth and on rounds checked before.</summary>
+    public List<string> FaultSurfaces { get; set; } = [];
 }
 
 /// <summary>The filter chips above the Mẫu Labo table.</summary>
@@ -363,6 +366,9 @@ public class LaboToothCheckDto
 
     /// <summary>Mô tả gửi Labo of this tooth (P3110 REQ-D6); required on a Lỗi tooth when returning.</summary>
     public string? Note { get; set; }
+
+    /// <summary>Mặt bị lỗi (R-1151): codes among the tooth's ordered surfaces; at least one on a Lỗi tooth that has any.</summary>
+    public List<string> FaultSurfaces { get; set; } = [];
 }
 
 /// <summary>

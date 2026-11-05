@@ -141,6 +141,8 @@ export interface LaboRoundToothResultDto {
   result: LaboToothResult;
   /** Ghi chú lỗi. */
   note?: string | null;
+  /** Mặt bị lỗi of a Lỗi tooth, in the tooth's order (R-1151); empty before Labo v2. */
+  faultSurfaces?: string[];
 }
 
 /** One row of Lịch sử nhận hàng & trả hàng. */

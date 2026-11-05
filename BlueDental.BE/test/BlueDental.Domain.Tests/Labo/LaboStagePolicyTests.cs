@@ -138,7 +138,7 @@ public class LaboStagePolicyTests
         var eleventh = new DateTimeOffset(2026, 10, 11, 10, 0, 0, Clinic);
 
         order.Receive(Guid.NewGuid(), tenth, 1, null).ReturnToLab(
-            [new(11, LaboToothCheckResult.Passed), new(21, LaboToothCheckResult.Failed, "Hở bờ")],
+            [new(11, LaboToothCheckResult.Passed), new(21, LaboToothCheckResult.Failed, "Hở bờ", ["I"])],
             new LaboReturnRequest(false, "Làm lại 21", tenth, tenth.AddHours(20), [21]),
             tenth);
         _policy.LocksCompletion(day10, stages, [order]).ShouldBeTrue();

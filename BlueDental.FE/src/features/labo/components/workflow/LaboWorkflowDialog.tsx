@@ -55,6 +55,8 @@ interface StepProps {
   focusTooth: number | null;
   /** "Xem chi tiết >" on the summary card of tabs 2 and 3. */
   onShowOrder: () => void;
+  /** «Tiếp: Bảo hành ›» on tab 2; unset while that tab is locked. */
+  onShowWarranty?: () => void;
   onClose: () => void;
 }
 
@@ -157,6 +159,7 @@ function LaboWorkflowBody({ target, branchId, patient, onClose, onStepChange }: 
         readOnly: target.kind === "open" && Boolean(target.readOnly),
         focusTooth: target.kind === "open" ? (target.focusTooth ?? null) : null,
         onShowOrder: () => pick("order"),
+        onShowWarranty: isStepOpen("warranty", order) ? () => pick("warranty") : undefined,
         onClose,
       })}
     </>

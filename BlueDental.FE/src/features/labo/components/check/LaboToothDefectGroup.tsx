@@ -1,12 +1,15 @@
-import { Input } from "antd";
+import { Form, Input } from "antd";
 import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
+import type { LaboOrderToothDto } from "@/features/labo/api/laboApi";
 import { LaboPictureWell } from "../order-dialogs/LaboPictureWell";
 import { LABO_MAX_PICTURES, type LaboPictureTiles } from "../order-dialogs/useLaboPictureTiles";
+import { LaboToothFaultPicker } from "./LaboToothFaultPicker";
 import { toothKey } from "./laboCheckRules";
+import { faultLine, orderedFaces } from "./laboToothFaces";
 
 interface Props {
-  tooth: number;
+  tooth: LaboOrderToothDto;
   roundNo: number;
   /** "trả Labo lần k" — this tooth's own return number — and the notes it went back with before. */
   returns: { no: number; pastNotes: string[] };
@@ -15,12 +18,26 @@ interface Props {
   state: { busy: boolean; hidden: boolean; picturesMissing: boolean };
 }
 
+/** "Mặt bị lỗi: Gần, Xa", or the nudge to pick one on the picture (Labo 2 v2 mock). */
+function FaultLine({ tooth }: { tooth: number }) {
+  const faults = Form.useWatch<string[] | undefined>(["teeth", toothKey(tooth), "faults"], Form.useFormInstance());
+  const line = faultLine(tooth, faults);
+  return (
+    <span className="pd-labo-fault-line">
+      {t("Labo:Check:FaultLabel")} <strong>{line || t("Labo:Check:FaultNone")}</strong>
+    </span>
+  );
+}
+
 /**
- * A Lỗi tooth's own conclusion (P3110 m278, m342): Hình ảnh lỗi and Mô tả gửi
- * Labo, saved per tooth. Folded by «Thu gọn» it stays mounted, so its note
- * is still validated.
+ * A Lỗi tooth's own conclusion (P3110 m278, m342; Labo 2 v2, R-1151): the
+ * faulty faces picked on its picture, Hình ảnh lỗi and Mô tả gửi Labo, saved
+ * per tooth. A tooth ordered before Labo v2 has no faces, so no picture.
+ * Folded by «Thu gọn» it stays mounted, so its fields are still validated.
  */
-export function LaboToothDefectGroup({ tooth, roundNo, returns, tiles, state }: Props) {
+export function LaboToothDefectGroup({ tooth: order, roundNo, returns, tiles, state }: Props) {
+  const tooth = order.toothNumber;
+  const faced = orderedFaces(order).length > 0;
   const set = tiles.tilesOf(tooth);
   const { no: returnNo, pastNotes } = returns;
   const { busy, hidden, picturesMissing } = state;
@@ -33,29 +50,61 @@ export function LaboToothDefectGroup({ tooth, roundNo, returns, tiles, state }: 
           <span>{pastNotes.map((note, index) => t("Labo:Check:PastNote", index + 1, note)).join(" · ")}</span>
         )}
       </div>
-      <span className="pd-labo-defect-label">{t("Labo:Check:DefectPictures")}</span>
-      <LaboPictureWell
-        variant="defect"
-        label={t("Labo:Check:PictureCount", set.length, LABO_MAX_PICTURES)}
-        addLabel={t("Labo:Check:DefectPicturesAdd", tooth)}
-        tiles={set}
-        busy={busy}
-        onAdd={(files) => tiles.addPictures(tooth, files)}
-        onRemove={tiles.removeTile}
-      />
-      {picturesMissing && (
-        <span className="pd-labo-defect-error" role="alert">
-          {t("Labo:Check:PicturesRequired", tooth)}
-        </span>
-      )}
-      <FloatingField
-        name={["teeth", toothKey(tooth), "note"]}
-        label={t("Labo:Check:DefectNoteLabel", tooth, roundNo)}
-        required
-        rules={[{ required: true, whitespace: true, message: t("Labo:Check:DefectNoteRequired", tooth) }]}
-      >
-        <Input.TextArea autoSize={{ minRows: 3, maxRows: 6 }} maxLength={500} />
-      </FloatingField>
+      <div className="pd-labo-defect-body">
+        {faced && (
+          <Form.Item
+            name={["teeth", toothKey(tooth), "faults"]}
+            rules={[
+              {
+                required: true,
+                type: "array",
+                min: 1,
+                message: t("Labo:Check:FaultRequired", tooth),
+              },
+            ]}
+            className="pd-labo-fault-field"
+          >
+            <LaboToothFaultPicker tooth={order} disabled={busy} />
+          </Form.Item>
+        )}
+        <div className="pd-labo-defect-main">
+          {faced && <FaultLine tooth={tooth} />}
+          <span className="pd-labo-defect-label">{t("Labo:Check:DefectPictures")}</span>
+          <LaboPictureWell
+            variant="defect"
+            label={t("Labo:Check:PictureCount", set.length, LABO_MAX_PICTURES)}
+            addLabel={t("Labo:Check:DefectPicturesAdd", tooth)}
+            tiles={set}
+            busy={busy}
+            onAdd={(files) => tiles.addPictures(tooth, files)}
+            onRemove={tiles.removeTile}
+          />
+          {picturesMissing && (
+            <span className="pd-labo-defect-error" role="alert">
+              {t("Labo:Check:PicturesRequired", tooth)}
+            </span>
+          )}
+          <FloatingField
+            name={["teeth", toothKey(tooth), "note"]}
+            label={t("Labo:Check:DefectNoteLabel", tooth, roundNo)}
+            required
+            alwaysFloat
+            rules={[
+              {
+                required: true,
+                whitespace: true,
+                message: t("Labo:Check:DefectNoteRequired", tooth),
+              },
+            ]}
+          >
+            <Input.TextArea
+              autoSize={{ minRows: 3, maxRows: 6 }}
+              maxLength={500}
+              placeholder={t("Labo:Check:DefectNotePlaceholder")}
+            />
+          </FloatingField>
+        </div>
+      </div>
     </div>
   );
 }

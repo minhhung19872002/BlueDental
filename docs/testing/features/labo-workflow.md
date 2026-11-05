@@ -336,9 +336,31 @@ Tests (round 2): `e2e/stage-backfill-log-api.spec.ts` (6, real HTTP),
 - Tests: `e2e/labo-workflow.spec.ts` rewritten (7). `labo-api` fixtures send
   `toothSpecs` with surface M by default.
 
-Open for Phase 2 (Nhận hàng & kiểm tra) and Phase 3 (Bảo hành), to ask the
-owner first: is "Sửa tại phòng khám" = Đạt + flag + note with no return? Are
-fault surfaces stored per round? Is "Chỉnh sửa" only on cards not activated?
+## Labo v2 — Nhận hàng & kiểm tra (BA mock "Labo 2 v2", R-1151, 2026-11-05)
+
+- Owner: keep the old Kiểm tra fields inside the new layout. Lỗi always means
+  the Labo remakes it; the Xử lý select, "Sửa tại phòng khám" and per-tooth
+  Hẹn giao lại are gone. Section C keeps Ngày trả hàng and Hẹn Labo giao lại.
+  Hình ảnh lỗi 0/5, Mô tả gửi Labo, Đã trả n lần and BH Labo stay.
+- Each Lỗi tooth picks its faulty faces on the tooth picture: only the ordered
+  faces can be clicked (name + shade shown). At least one is required
+  (`Labo:0040`); a face not ordered is refused (`Labo:0041`). The line reads
+  "Mặt bị lỗi: chưa chọn — bấm trên sơ đồ" / "Mặt bị lỗi: Gần".
+- Faults are stored per round (`LaboRoundToothResult.FaultSurfaces`); a new
+  round starts with no faces picked.
+- Tally "Đạt n · Lỗi n · Chưa đánh giá n" and "Đạt tất cả" above the teeth.
+- Footer: an amber hint while something is missing ("Còn n răng chưa đánh
+  giá", "Nhập mô tả lỗi gửi Labo cho n răng"), else where the order goes.
+  While teeth are unpicked, "Trả toàn bộ (n răng)" and "Xác nhận đạt (n răng)"
+  both show greyed. Once nothing is left to conclude: hint + Đóng +
+  "Tiếp: Bảo hành ›" (hidden in the R-1120 view-only popup).
+- History cards: "Sai màu (mặt Gần, Xa) · hẹn 12/11/2026".
+- Chỉnh sửa stays on cards not yet activated; activated cards are locked and
+  show Xem chi tiết (R-1120, unchanged).
+- Tests: `e2e/labo-workflow.spec.ts` (7), `plan-warranty-tab` (6),
+  `labo-api` (14).
+
+Open for Phase 3 (Bảo hành v2, R-1152): BA mock `BaoHanhV2`.
 
 ## Not built / open
 

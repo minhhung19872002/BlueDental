@@ -843,7 +843,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     {
         var order = await GetInBranchAsync(id);
         var results = input.Teeth
-            .Select(t => new LaboRoundToothResult(t.ToothNumber, t.Result, t.Note))
+            .Select(t => new LaboRoundToothResult(t.ToothNumber, t.Result, t.Note, t.FaultSurfaces))
             .ToList();
         var pictures = CheckPicturesOf(input, results);
         var roundNo = order.LatestRound?.RoundNo;

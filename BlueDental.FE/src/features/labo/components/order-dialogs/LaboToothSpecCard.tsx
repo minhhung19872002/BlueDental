@@ -58,9 +58,8 @@ export function LaboToothSpecCard({ fdi, context, prior, open, onToggle }: Props
             <ToothSurfacePicker
               tooth={Number(fdi)}
               picked={picked}
-              active={split ? active : undefined}
               shades={pickerShades(fdi, mode, rows)}
-              missing={missingSurfaces(errors, picked)}
+              marks={{ active: split ? active : undefined, missing: missingSurfaces(errors, picked) }}
               onPick={form.readOnly ? undefined : handlePick}
               onPickAll={form.readOnly ? undefined : handlePickAll}
             />

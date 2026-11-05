@@ -606,6 +606,10 @@ public static class BlueDentalDomainErrorCodes
         public const string WarrantyCardPhotoInvalid = "BlueDental:Labo:0036";
         /// <summary>Kích hoạt bảo hành on an order with no service line: its card number has none to count on (P3110 R-1090).</summary>
         public const string WarrantyNeedsServiceLine = "BlueDental:Labo:0037";
+        /// <summary>Trả hàng while a Lỗi tooth with ordered Mặt răng has no Mặt bị lỗi picked (R-1151); data "tooth".</summary>
+        public const string FaultSurfaceMissing = "BlueDental:Labo:0040";
+        /// <summary>A Mặt bị lỗi the tooth was not ordered on (R-1151); data "tooth", "surface".</summary>
+        public const string FaultSurfaceInvalid = "BlueDental:Labo:0041";
     }
 
     public static class Promotions

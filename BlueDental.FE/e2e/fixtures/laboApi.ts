@@ -71,7 +71,7 @@ export interface LaboRoundView {
   returnDescription: string | null;
   returnedAt: string | null;
   redeliveryDueAt: string | null;
-  toothResults: { toothNumber: number; result: number; note: string | null }[];
+  toothResults: { toothNumber: number; result: number; note: string | null; faultSurfaces: string[] }[];
 }
 
 export interface LaboOrderView {
@@ -596,7 +596,7 @@ export async function receive(
 }
 
 export interface CheckInput {
-  teeth: { toothNumber: number; result: number; note?: string }[];
+  teeth: { toothNumber: number; result: number; note?: string; faultSurfaces?: string[] }[];
   conclusion: number;
   description?: string;
   returnedAt?: string;
@@ -624,6 +624,9 @@ export async function check(
     form[`teeth[${i}].toothNumber`] = tooth.toothNumber;
     form[`teeth[${i}].result`] = tooth.result;
     form[`teeth[${i}].note`] = tooth.note;
+    (tooth.faultSurfaces ?? []).forEach((code, j) => {
+      form[`teeth[${i}].faultSurfaces[${j}]`] = code;
+    });
   });
   return call<LaboOrderView>(page, `${LABO_ORDERS}/${id}/check`, { method: "POST", form, pictures, toothPictures });
 }

@@ -117,6 +117,56 @@
   stroke-width: 2.5;
 }
 
+/* Fault mode (Labo 2 v2, R-1151): a face not ordered is grey and dead, a faulty one red. */
+.tsp--fault-mode {
+  --tsp-blank: #f3f4f6;
+  --tsp-blank-ink: #9ca3af;
+  --tsp-fault: #fee2e2;
+  --tsp-fault-ink: #b91c1c;
+  --tsp-fault-line: #dc2626;
+  border-color: #fecaca;
+  background: #fff;
+  padding: 8px;
+}
+
+.tsp--fault-mode .tsp-tooth {
+  height: 48px;
+}
+
+.tsp--fault-mode .tsp-circle {
+  width: 140px;
+  height: 140px;
+}
+
+.tsp-face--blank polygon,
+.tsp-face--blank path {
+  fill: var(--tsp-blank);
+}
+
+.tsp-face--blank text {
+  fill: var(--tsp-blank-ink);
+}
+
+.tsp-face--fault polygon,
+.tsp-face--fault path {
+  fill: var(--tsp-fault);
+  stroke: var(--tsp-fault-line);
+  stroke-width: 2.5;
+}
+
+.tsp-face--fault text {
+  fill: var(--tsp-fault-ink);
+}
+
+.tsp--interactive.tsp--faults .tsp-face--blank {
+  cursor: default;
+}
+
+.tsp--faults .tsp-face--on:hover polygon,
+.tsp--faults .tsp-face--on:hover path {
+  fill: #fecaca;
+}
+
 .tsp--interactive .tsp-face {
   cursor: pointer;
   outline: none;

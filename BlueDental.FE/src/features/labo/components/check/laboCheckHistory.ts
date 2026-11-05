@@ -21,6 +21,8 @@ export interface LaboToothHistoryRow {
   tooth: number;
   result: LaboToothResult;
   note?: string | null;
+  /** Mặt bị lỗi of a Lỗi tooth (R-1151). */
+  faults?: string[] | null;
   action: { label: string; tone: LaboTone };
   redeliveryDueAt?: string | null;
 }
@@ -36,6 +38,7 @@ interface ToothLine {
   tooth: number;
   result: LaboToothResult;
   note?: string | null;
+  faults?: string[] | null;
 }
 
 function roundTally(lines: ToothLine[], live: boolean): { label: string; tone: LaboTone } {
@@ -68,8 +71,8 @@ export function toothHistoryRows(order: LaboOrderDto, live: LaboLiveCheck | null
   return order.rounds.flatMap((round) => {
     const isLive = live !== null && round.outcome === LABO_ROUND_OUTCOME.Pending;
     const lines: ToothLine[] = isLive
-      ? live.teeth.map((tooth) => ({ tooth, result: pickOf(live.picks, tooth) ?? LABO_TOOTH_RESULT.None, note: live.picks?.[toothKey(tooth)]?.note }))
-      : round.toothResults.map(({ toothNumber, result, note }) => ({ tooth: toothNumber, result, note }));
+      ? live.teeth.map((tooth) => ({ tooth, result: pickOf(live.picks, tooth) ?? LABO_TOOTH_RESULT.None, note: live.picks?.[toothKey(tooth)]?.note, faults: live.picks?.[toothKey(tooth)]?.faults }))
+      : round.toothResults.map(({ toothNumber, result, note, faultSurfaces }) => ({ tooth: toothNumber, result, note, faults: faultSurfaces }));
     const tally = roundTally(lines, isLive);
     const countsAsReturn = isLive || isReturnRound(round);
     return lines.map((line, index) => {
@@ -86,6 +89,7 @@ export function toothHistoryRows(order: LaboOrderDto, live: LaboLiveCheck | null
         tooth: line.tooth,
         result: line.result,
         note: line.result === LABO_TOOTH_RESULT.Failed ? line.note : null,
+        faults: line.result === LABO_TOOTH_RESULT.Failed ? line.faults : null,
         action: lineAction(order, isLive ? undefined : round, line, returnNo),
         redeliveryDueAt: failed ? (isLive ? live.redeliveryDueAt : round.redeliveryDueAt) : null,
       };

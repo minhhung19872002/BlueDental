@@ -298,6 +298,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         if (undescribed is not null)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.DefectDescriptionRequired)
                 .WithData("tooth", undescribed.ToothNumber);
+        ValidateFaults(checks);
         if (request.ReturnedAt is not { } returnedAt || request.RedeliveryDueAt is not { } redeliveryDueAt)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ReturnDetailsRequired);
         if (redeliveryDueAt <= returnedAt)
@@ -494,6 +495,26 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         if (checks.Count != due.Count || checks.Any(c => c.Result == LaboToothCheckResult.None))
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothResultsIncomplete);
         return (round, checks);
+    }
+
+    /// <summary>
+    /// Mặt bị lỗi (R-1151): a Lỗi tooth ordered on Mặt răng names at least one
+    /// of them as faulty, and only those. A tooth ordered before Labo v2 has
+    /// no surfaces, so it has nothing to pick and none may be named.
+    /// </summary>
+    private void ValidateFaults(IEnumerable<LaboRoundToothResult> checks)
+    {
+        foreach (var check in checks.Where(c => c.Result == LaboToothCheckResult.Failed))
+        {
+            var ordered = ToothOf(check.ToothNumber).Surfaces.Select(s => s.Code).ToHashSet();
+            var stray = check.Faults.FirstOrDefault(f => !ordered.Contains(f));
+            if (stray is not null)
+                throw new BusinessException(BlueDentalDomainErrorCodes.Labo.FaultSurfaceInvalid)
+                    .WithData("tooth", check.ToothNumber).WithData("surface", stray);
+            if (ordered.Count > 0 && check.Faults.Count == 0)
+                throw new BusinessException(BlueDentalDomainErrorCodes.Labo.FaultSurfaceMissing)
+                    .WithData("tooth", check.ToothNumber);
+        }
     }
 
     private LaboOrderTooth ToothOf(int toothNumber) =>

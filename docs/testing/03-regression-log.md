@@ -13762,3 +13762,21 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `e2e/patient.spec.ts` "Đặt hàng is built from the app's own fields" sửa theo thẻ mới (Tất cả: Màu răng*, Đường hoàn tất, Kiểu nhịp; thẻ răng: Mặt răng*, Màu răng*; 5 SearchSelect) và tiêu đề Nội dung / chỉ định đậm, không đổi màu khi focus → xanh.
   - Bỏ 8 khoá i18n `Labo:Spec:*` cũ không còn dùng (Complete, Missing*, NotePlaceholder, Pictures, Shared, SharedCaption).
 - **Mức retest**: 2 (feature Labo; picker là component chung mới, chưa ai khác dùng).
+
+## R-1151 (2026-11-05, mức 2: Labo — Nhận hàng & kiểm tra v2 theo mock BA, main)
+
+- **Yêu cầu** (BA AnTran, mock "Labo 2 · Nhận hàng & kiểm tra v2"): kiểm tra từng răng trên thẻ có sơ đồ mặt răng, chọn **mặt bị lỗi** trên hình, dòng "Mặt bị lỗi: …", nút "Đạt tất cả", lịch sử dạng thẻ, footer có gợi ý + "Trả toàn bộ" + "Tiếp: Bảo hành ›".
+- **Owner chốt** (Q8–Q10): giữ các field Kiểm tra cũ trong layout mới — Lỗi luôn = trả Labo làm lại; bỏ select Xử lý, "Sửa tại phòng khám" và Hẹn giao lại từng răng; mục C giữ Ngày trả hàng + Hẹn Labo giao lại; giữ Hình ảnh lỗi 0/5, Mô tả gửi Labo, Đã trả n lần, BH Labo. Răng Lỗi phải chọn ít nhất 1 mặt lỗi; mặt lỗi lưu theo từng lần (round). Chỉnh sửa chỉ trên thẻ chưa kích hoạt (giữ logic R-1120).
+- **BE**:
+  - `LaboRoundToothResult.FaultSurfaces` (jsonb trong round, cũ = `[]`), migration `20261105101330_LaboFaultSurfacesR1151`.
+  - `LaboOrder.ValidateFaults`: răng Lỗi thiếu mặt → `Labo:0040` "R{tooth} chưa chọn mặt bị lỗi."; mặt không có trong đơn đặt → `Labo:0041` "R{tooth} không đặt làm mặt {surface}.". Domain tests 82/82.
+- **FE**:
+  - `ToothSurfacePicker` thêm `marks` (tô mặt lỗi); `check/LaboToothFaultPicker.tsx` + `laboToothFaces.ts`: chỉ các mặt đã đặt bấm được, nhãn tên mặt + màu; nút `aria-label` = tên mặt, `aria-pressed`.
+  - `LaboToothDefectGroup` có dòng "Mặt bị lỗi: chưa chọn — bấm trên sơ đồ" / "Mặt bị lỗi: Gần" và rule `faults` min 1; `LaboToothCheckList` có tally "Đạt n · Lỗi n · Chưa đánh giá n" + "Đạt tất cả".
+  - `LaboCheckFooter`: gợi ý trái (vàng khi còn thiếu: "Còn n răng chưa đánh giá", "Nhập mô tả lỗi gửi Labo cho n răng"; xong: "Phiếu → Trả hàng · chờ Labo giao lại" / "Tất cả răng đạt → chờ lắp"); khi chưa đánh giá hết hiện "Trả toàn bộ (n răng)" + "Xác nhận đạt (n răng)" đều khoá như mock. `LaboCheckDoneFooter` (tab 2 khi không còn gì kết luận): gợi ý + Đóng + "Tiếp: Bảo hành ›"; cờ `readOnly` ẩn Tiếp trong popup xem-chi-tiết R-1120.
+  - `LaboRoundHistoryTable`: thẻ lịch sử "Sai màu (mặt Gần, Xa) · hẹn 12/11/2026" (khoá mới `Labo:Check:History:Due`).
+- **Kiểm thử** (bản build production `vite preview` :8090 từ working tree, API :5000, DB thật, không chặn API):
+  - `e2e/labo-workflow.spec.ts` **7/7**: tally + footer từng trạng thái (chưa đánh giá: 2 nút khoá, không có "Trả hàng bị lỗi"); Lỗi chưa chọn mặt → lỗi "R21 chưa chọn mặt bị lỗi", mặt không đặt (Xa) không có nút; chọn Gần → aria-pressed + "Mặt bị lỗi: Gần"; API `faultSurfaces` = ["M"]; lịch sử "(mặt Gần)" + "hẹn <ngày>"; lần 2 dòng mặt lỗi trống lại, "Đạt tất cả" → "Xác nhận đạt (1 răng)"; tab 2 sau bảo hành "Tiếp: Bảo hành ›" sang tab Bảo hành.
+  - `e2e/plan-warranty-tab.spec.ts` **6/6** (sau khi thêm `readOnly` cho popup R-1120), `e2e/labo-api.spec.ts` **14/14**. Các spec Labo / bảo hành còn lại xanh trước lượt sửa footer cuối, lượt cuối không spec nào khác dùng các nút đã đổi.
+  - Đỏ có sẵn do dữ liệu (không liên quan): `labo-material-search:204` — nhóm "Dịch vụ tìm vật liệu e2e" có 2 vật liệu tạo tay "Tedd", "Tedd 2" (2026-10-31) → 6 thay vì 4; để nguyên dữ liệu.
+- **Mức retest**: 2 (feature Labo; `ToothSurfacePicker` chỉ thêm prop tuỳ chọn, Đặt hàng đã chạy lại trong labo-workflow).

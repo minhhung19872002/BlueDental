@@ -42,7 +42,11 @@ public class LaboOrderWorkflowTests
 
     private static LaboRoundToothResult Pass(int tooth) => new(tooth, LaboToothCheckResult.Passed);
 
-    private static LaboRoundToothResult Fail(int tooth) => new(tooth, LaboToothCheckResult.Failed, "Hở bờ");
+    private static LaboRoundToothResult Fail(int tooth) => Fail(tooth, "Hở bờ");
+
+    /// <summary>A Lỗi tooth, faulty on the first of its ordered surfaces (R-1151).</summary>
+    private static LaboRoundToothResult Fail(int tooth, string note) =>
+        new(tooth, LaboToothCheckResult.Failed, note, [LaboTestSpecs.MainSurfaces(tooth)[0].Code]);
 
     private static LaboReturnRequest Return(bool all) => new(
         all, "Làm lại sứ", CheckedAt, new DateTimeOffset(2026, 10, 15, 9, 0, 0, Clinic), [11, 21]);
@@ -439,7 +443,7 @@ public class LaboOrderWorkflowTests
     public void Return_Should_Need_Each_Defective_Tooth_Described_And_Both_Dates()
     {
         var undescribed = Should.Throw<BusinessException>(() => Received(11, 21).ReturnToLab(
-            [Fail(11), new(21, LaboToothCheckResult.Failed, " ")], Return(all: false), CheckedAt));
+            [Fail(11), Fail(21, " ")], Return(all: false), CheckedAt));
         undescribed.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.DefectDescriptionRequired);
         undescribed.Data["tooth"].ShouldBe(21);
         ShouldFail(() => Received(11).ReturnToLab([Fail(11)], Return(all: false) with { RedeliveryDueAt = null }, CheckedAt),
@@ -447,11 +451,51 @@ public class LaboOrderWorkflowTests
     }
 
     [Fact]
+    public void Return_Should_Need_A_Fault_Surface_Among_The_Ordered_Ones()
+    {
+        var missing = Should.Throw<BusinessException>(() => Received(11).ReturnToLab(
+            [new(11, LaboToothCheckResult.Failed, "Hở bờ")], Return(all: false), CheckedAt));
+        missing.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.FaultSurfaceMissing);
+        missing.Data["tooth"].ShouldBe(11);
+
+        // R11 was ordered on Cắn + Ngoài only: Gần is not one of its faces.
+        var stray = Should.Throw<BusinessException>(() => Received(11).ReturnToLab(
+            [new(11, LaboToothCheckResult.Failed, "Hở bờ", ["I", "M"])], Return(all: false), CheckedAt));
+        stray.Code.ShouldBe(BlueDentalDomainErrorCodes.Labo.FaultSurfaceInvalid);
+        stray.Data["surface"].ShouldBe("M");
+    }
+
+    [Fact]
+    public void Each_Round_Should_Keep_Its_Own_Fault_Surfaces_In_Form_Order()
+    {
+        var order = Received(11, 21);
+        order.ReturnToLab(
+            [new(11, LaboToothCheckResult.Failed, "Lệch màu", ["f", "I", "F"]), Pass(21)],
+            Return(all: false), CheckedAt);
+        order.Receive(Guid.NewGuid(), ReceivedAt.AddDays(7), 1, null);
+        order.ReturnToLab([new(11, LaboToothCheckResult.Failed, "Vỡ sứ", ["I"])], Return(all: false) with
+        {
+            ReturnedAt = CheckedAt.AddDays(7),
+            RedeliveryDueAt = CheckedAt.AddDays(14)
+        }, CheckedAt.AddDays(7));
+
+        order.Rounds.First().ToothResults.Single(r => r.ToothNumber == 11).Faults.ShouldBe(["I", "F"]);
+        order.Rounds.First().ToothResults.Single(r => r.ToothNumber == 21).Faults.ShouldBeEmpty();
+        order.LatestRound!.ToothResults.Single().Faults.ShouldBe(["I"]);
+    }
+
+    [Fact]
+    public void A_Passed_Tooth_Should_Keep_No_Fault_Surface()
+    {
+        new LaboRoundToothResult(11, LaboToothCheckResult.Passed, "x", ["I"]).Faults.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Return_Without_A_Description_Should_Keep_The_Teeth_Descriptions_Joined()
     {
         var order = Received(11, 21);
         order.ReturnToLab(
-            [new(11, LaboToothCheckResult.Failed, "Lệch màu"), new(21, LaboToothCheckResult.Failed, "Hở bờ")],
+            [Fail(11, "Lệch màu"), Fail(21, "Hở bờ")],
             Return(all: true) with { Description = null }, CheckedAt);
 
         order.LatestRound!.ReturnDescription.ShouldBe("R11: Lệch màu; R21: Hở bờ");

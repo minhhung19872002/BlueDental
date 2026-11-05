@@ -166,7 +166,8 @@ export function useReceiveLaboOrder() {
 /** B. Kiểm tra từng răng + C. Kết luận. Mirrors BlueDental.Labo.CheckLaboOrderDto. */
 export interface CheckLaboOrderInput {
   id: string;
-  teeth: { toothNumber: number; result: LaboToothResult; note?: string }[];
+  /** `faultSurfaces`: Mặt bị lỗi of a Lỗi tooth (R-1151), at least one when the tooth has Mặt răng. */
+  teeth: { toothNumber: number; result: LaboToothResult; note?: string; faultSurfaces?: string[] }[];
   conclusion: LaboCheckConclusion;
   returnedAt?: string;
   redeliveryDueAt?: string;
@@ -181,6 +182,9 @@ function checkForm(input: CheckLaboOrderInput): FormData {
     values[`teeth[${i}].toothNumber`] = tooth.toothNumber;
     values[`teeth[${i}].result`] = tooth.result;
     values[`teeth[${i}].note`] = tooth.note;
+    (tooth.faultSurfaces ?? []).forEach((code, j) => {
+      values[`teeth[${i}].faultSurfaces[${j}]`] = code;
+    });
   });
   return appendToothPictures(toForm(values, []), toothPictures);
 }

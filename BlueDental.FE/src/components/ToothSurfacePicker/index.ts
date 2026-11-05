@@ -1,4 +1,4 @@
-export { ToothSurfacePicker, type ToothSurfacePickerProps } from "./ToothSurfacePicker";
+export { ToothSurfacePicker, type ToothSurfaceMarks, type ToothSurfacePickerProps } from "./ToothSurfacePicker";
 export {
   isAnteriorTooth,
   orderedSurfaces,

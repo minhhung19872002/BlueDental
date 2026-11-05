@@ -36,7 +36,8 @@ export function receiveRoundNo(order: LaboOrderDto): number {
 export function isPassedToothPicture(order: LaboOrderDto, image: LaboOrderImageDto): boolean {
   const round = order.rounds.find((r) => r.roundNo === image.roundNo);
   return (
-    round?.toothResults.some((r) => r.toothNumber === image.toothNumber && r.result === LABO_TOOTH_RESULT.Passed) ?? false
+    round?.toothResults.some((r) => r.toothNumber === image.toothNumber && r.result === LABO_TOOTH_RESULT.Passed) ??
+    false
   );
 }
 
@@ -61,6 +62,8 @@ export function passedTeeth(order: LaboOrderDto): LaboOrderToothDto[] {
 export interface LaboToothPick {
   result?: LaboToothResult;
   note?: string;
+  /** Mặt bị lỗi picked on the tooth's picture (R-1151): codes among its Mặt răng. */
+  faults?: string[];
 }
 
 export type LaboToothPicks = Record<string, LaboToothPick | undefined>;
@@ -87,21 +90,22 @@ export function failedTeeth(teeth: number[], picks: LaboToothPicks | undefined):
 export type LaboTone = "pass" | "fail" | "warn" | "muted" | "ink";
 
 /**
- * Right of the B. title: "Đạt tất cả 3/3", "Đạt 1 · Lỗi 1" or "Không đạt 3/3 →
- * trả toàn bộ" (m238, m342, m278). The last only when every tooth of the
- * order is Lỗi — with a tooth passed before, Trả hàng bị lỗi stays offered.
+ * Right of the B. title (Labo 2 v2 mock, R-1151): "Đạt 1 · Lỗi 1", with
+ * "· Chưa đánh giá n" while a tooth has no result — amber once any is Lỗi,
+ * green when all are Đạt.
  */
-export function teethTally(
-  teeth: number[],
-  picks: LaboToothPicks | undefined,
-  orderToothCount: number,
-): { label: string; tone: LaboTone } {
+export function teethTally(teeth: number[], picks: LaboToothPicks | undefined): { label: string; tone: LaboTone } {
   const passed = teeth.filter((tooth) => pickOf(picks, tooth) === LABO_TOOTH_RESULT.Passed).length;
   const failed = failedTeeth(teeth, picks).length;
-  const allFailed = teeth.length > 0 && failed === teeth.length;
-  if (teeth.length > 0 && passed === teeth.length) return { label: t("Labo:Check:TallyAllPassed", passed, teeth.length), tone: "pass" };
-  if (allFailed && teeth.length === orderToothCount) return { label: t("Labo:Check:TallyAllFailed", failed, teeth.length), tone: "fail" };
-  return { label: t("Labo:Check:Tally", passed, failed), tone: allFailed ? "fail" : "warn" };
+  const pending = teeth.length - passed - failed;
+  const label = t("Labo:Check:Tally", passed, failed) + (pending > 0 ? t("Labo:Check:TallyPending", pending) : "");
+  if (failed > 0) return { label, tone: "warn" };
+  return { label, tone: teeth.length > 0 && passed === teeth.length ? "pass" : "muted" };
+}
+
+/** A Lỗi tooth whose Mô tả gửi Labo is still blank: the footer counts them (Labo 2 v2 mock). */
+export function undescribedTeeth(teeth: number[], picks: LaboToothPicks | undefined): number[] {
+  return failedTeeth(teeth, picks).filter((tooth) => !picks?.[toothKey(tooth)]?.note?.trim());
 }
 
 /** The Lỗi notes this tooth went back with, oldest first: "Lần 1: sai khớp cắn · Lần 2: hở bờ" (m342). */
@@ -134,6 +138,12 @@ export const shownReturnCount = (tooth: LaboOrderToothDto, failingNow: boolean) 
 export const LABO_ROUND_OUTCOME_PILL: Record<LaboRoundOutcome, LaboPill> = {
   [LABO_ROUND_OUTCOME.Pending]: { label: "Labo:Check:Outcome:Pending", ...LABO_PILL_TONE.warning },
   [LABO_ROUND_OUTCOME.Passed]: { label: "Labo:Check:Outcome:Passed", ...LABO_PILL_TONE.success },
-  [LABO_ROUND_OUTCOME.ReturnedAll]: { label: "Labo:Check:Outcome:ReturnedAll", ...LABO_PILL_TONE.danger },
-  [LABO_ROUND_OUTCOME.ReturnedDefective]: { label: "Labo:Check:Outcome:ReturnedDefective", ...LABO_PILL_TONE.danger },
+  [LABO_ROUND_OUTCOME.ReturnedAll]: {
+    label: "Labo:Check:Outcome:ReturnedAll",
+    ...LABO_PILL_TONE.danger,
+  },
+  [LABO_ROUND_OUTCOME.ReturnedDefective]: {
+    label: "Labo:Check:Outcome:ReturnedDefective",
+    ...LABO_PILL_TONE.danger,
+  },
 };
