@@ -4231,9 +4231,10 @@
   text-align: left;
   cursor: pointer;
 }
-/* The picked card keeps the amber fill; a 2px primary ring tells it apart. */
+/* The picked card: one amber tone deeper (BA 2026-11-05) and a 2px primary ring. */
 .pd-stage-picks button.active {
   border-color: var(--bd-primary);
+  background: color-mix(in srgb, var(--bd-amber-bright) 25%, #fff);
   box-shadow: 0 0 0 1px var(--bd-primary);
 }
 .pd-stage-picks strong {
