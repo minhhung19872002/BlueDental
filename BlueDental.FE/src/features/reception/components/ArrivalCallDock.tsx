@@ -36,8 +36,6 @@ export const ArrivalCallDock: React.FC = () => {
 
   if (!visible) return null;
 
-  const flagged = sections.some((section) => section.items.some((item) => item.isFlagged));
-
   const handleToggle = () => {
     setOpen((v) => !v);
     acknowledgeChime();
@@ -51,7 +49,6 @@ export const ArrivalCallDock: React.FC = () => {
         badgeCount={calls.badgeCount}
         soundOff={calls.soundOff}
         missedChime={calls.missedChime}
-        flagged={flagged}
         onToggle={handleToggle}
       />
       {recordTarget && (

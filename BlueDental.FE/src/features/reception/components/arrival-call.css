@@ -269,7 +269,10 @@ body:has(.arrival-panel) .scroll-top-button {
   }
 }
 
-/* A listed patient is flagged on Tiếp nhận (R-1150): a thicker ring on the round button. */
-.arrival-dock-button.bd-rgb-ring {
-  --bd-rgb-width: 3px;
+/* A patient flagged on Tiếp nhận (R-1150): the row runs the rainbow ring and its
+   name line starts with the pennant. The round button stays plain (owner 2026-11-05). */
+.arrival-row-flag {
+  flex-shrink: 0;
+  width: auto;
+  height: 18px;
 }

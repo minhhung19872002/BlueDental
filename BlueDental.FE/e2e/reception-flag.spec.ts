@@ -15,9 +15,10 @@ import { call as adminCall, RUN_STAFF_PASSWORD } from "./fixtures/timekeepingSta
  * Feature: Tiếp nhận — "Đặt cờ" / "Gỡ cờ" (R-1150).
  *
  * ⋮ in a card's top-left corner flags the visit: the card runs a rainbow
- * border with the waving pennant on its corner, and so does the visit's
- * booking on Lịch hẹn, its row on the floating "Đã đến" panel and the panel's
- * round button. "Gỡ cờ" from the pennant clears all of it.
+ * border with the waving pennant in that chip, and so does the visit's
+ * booking on Lịch hẹn; its row on the floating "Đã đến" panel glows and
+ * starts with the pennant. The panel's round button stays plain. "Gỡ cờ"
+ * from the pennant clears all of it.
  *
  * Each test books its own visit for today through the real API and drives it
  * in the browser. Nothing is intercepted; every state is re-read from the server.
@@ -67,20 +68,22 @@ test.describe("Tiếp nhận — đặt cờ", () => {
     const reloaded = await cardOf(page, visit);
     await expect(reloaded.locator(".rc-card")).toHaveClass(RING);
 
-    // Arrived: the panel lists the visit — its row and the round button glow.
+    // Arrived: the panel lists the visit — its row glows and carries the
+    // pennant; the round button stays plain.
     await reloaded.getByRole("button", { name: /Đã đến/ }).click();
     const dockButton = page.locator(".arrival-dock-button");
-    await expect(dockButton).toHaveClass(RING, { timeout: 15_000 });
     await dockButton.click();
     const row = page.locator(".arrival-row", { hasText: visit.patientName });
-    await expect(row).toHaveCount(1);
+    await expect(row).toHaveCount(1, { timeout: 15_000 });
     await expect(row).toHaveClass(RING);
+    await expect(row.getByRole("img", { name: "Đã đặt cờ" })).toBeVisible();
+    await expect(dockButton).not.toHaveClass(RING);
 
-    // Lịch hẹn, day view: the visit's block glows.
+    // Lịch hẹn, day view: the visit's block glows. The patient may also hold
+    // a cancelled booking today, so only the glowing one is counted.
     await page.goto("/calendar");
-    const block = page.locator(`.dtl-block[aria-label^="[${visit.patientCode}]"]`);
-    await expect(block).toHaveCount(1, { timeout: 15_000 });
-    await expect(block).toHaveClass(RING);
+    const glowing = page.locator(`.dtl-block.bd-rgb-ring[aria-label^="[${visit.patientCode}]"]`);
+    await expect(glowing).toHaveCount(1, { timeout: 15_000 });
 
     // Gỡ cờ from the pennant clears every screen.
     await page.goto("/reception");
@@ -88,16 +91,18 @@ test.describe("Tiếp nhận — đặt cờ", () => {
     await flagFromMenu(page, back, "Gỡ cờ");
     await expect(back.locator(".rc-card")).not.toHaveClass(RING);
     await expect(back.locator("img.rc-flag-img")).toHaveCount(0);
-    await expect(page.locator(".arrival-dock-button")).not.toHaveClass(RING);
+    await page.locator(".arrival-dock-button").click();
+    const plainRow = page.locator(".arrival-row", { hasText: visit.patientName });
+    await expect(plainRow).not.toHaveClass(RING);
+    await expect(plainRow.getByRole("img", { name: "Đã đặt cờ" })).toHaveCount(0);
 
     stored = (await getAppointment(page, branchId, visit.id)) as FlaggedAppointment;
     expect(stored.isFlagged).toBe(false);
     expect(stored.flaggedAt).toBeNull();
 
     await page.goto("/calendar");
-    const cleared = page.locator(`.dtl-block[aria-label^="[${visit.patientCode}]"]`);
-    await expect(cleared).toHaveCount(1, { timeout: 15_000 });
-    await expect(cleared).not.toHaveClass(RING);
+    await expect(page.locator(`.dtl-block[aria-label^="[${visit.patientCode}]"]`).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(`.dtl-block.bd-rgb-ring[aria-label^="[${visit.patientCode}]"]`)).toHaveCount(0);
   });
 
   test("a viewer without update sees the pennant but no ⋮, and the server refuses them", async ({

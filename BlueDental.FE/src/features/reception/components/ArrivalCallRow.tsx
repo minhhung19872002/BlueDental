@@ -3,6 +3,7 @@ import { Button } from "antd";
 import { Clock3, FileText, Stethoscope, UserRound } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { ArrivalCall, ArrivalCallAction } from "../types/arrivalCall";
+import { FLAG_PENNANT_SRC } from "../utils/flagPennant";
 
 interface ArrivalCallRowProps {
   item: ArrivalCall;
@@ -27,6 +28,7 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
     <li className={["arrival-row", item.isFlagged && "bd-rgb-ring"].filter(Boolean).join(" ")}>
       <div className="arrival-row-info">
         <div className="arrival-row-line arrival-row-name">
+          {item.isFlagged && <img className="arrival-row-flag" src={FLAG_PENNANT_SRC} alt={t("Reception:Flagged")} />}
           <UserRound size={16} aria-hidden />
           <span>
             {item.patientName}

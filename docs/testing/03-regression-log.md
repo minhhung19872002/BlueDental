@@ -13770,3 +13770,9 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc -b`, `oxlint` (0 lỗi, chỉ cảnh báo cũ), `vitest` 3/3.
   - Ngoài ra đã thử tay trên Vite dev, xem đủ card tiếp nhận, view Ngày, view Tuần, panel và nút nổi. Lượt khám dùng để thử đã được huỷ check-in, trả về trạng thái cũ.
 - **Mức retest**: 2, cộng hồi quy các màn hình phụ thuộc như trên, vì đổi `AppointmentDto` và thêm utility vào `index.css` (chỉ là class mới, không sửa rule cũ).
+- **Bổ sung (cùng ngày, owner góp ý sau khi deploy)**:
+  - Nút ⋮ ở mép trên đè lên nhãn "Lịch tạm". Bản thử chip ở góc trái dưới bị owner bác; owner chọn **trong card, góc trái trên**. Chip đặt ở `top: 16px`, nằm dưới nhãn "Lịch tạm" (nhãn lấn vào card 12px), cách nhãn 4px. Padding trên của `.rc-card` tăng từ 16px lên 36px nên hàng mã phiếu cách chip 9px (đã đo); card cao thêm 20px.
+  - Khi đã có cờ, lá cờ (cao 20px) nằm trong cùng chip đó, không còn lá cờ 40px đứng trên góc. Người chỉ có quyền xem thấy chip lá cờ (`role="img"`, nhãn "Đã đặt cờ").
+  - Nút tròn nổi bỏ viền RGB. Dòng trong panel giữ viền và có thêm lá cờ (18px) ở đầu dòng tên. Lá cờ đặt ngay trong dòng chứ không thò ra góc, để dòng đầu của vùng cuộn không bị cắt mất. Đường dẫn ảnh dùng chung `reception/utils/flagPennant.ts`.
+  - Sửa e2e: nút tròn không có viền; dòng trong panel có lá cờ, sau "Gỡ cờ" thì mất cả viền lẫn lá cờ. Trên lịch chỉ đếm block có viền, vì bệnh nhân fixture chọn có thể còn một lịch đã huỷ trong ngày: lần chạy trước đỏ ở đây với "Expected 1, Received 2".
+  - Kiểm thử (bản build production :8147, API :5000, DB thật, không chặn API): `reception-flag` 2/2, `reception-arrival-call` 5/5, `reception-temporary` 3/3, `reception-temp-cancel` 2/2. Sau khi chuyển chip lên góc trái trên, chạy lại: `reception-flag` 2, `reception-temporary` 3, `reception-temp-cancel` 2, `reception-board-order` 2, `reception-patient-tags` 6, `reception-wait-time` 1 → 16/16 xanh. `tsc`, `oxlint` sạch.

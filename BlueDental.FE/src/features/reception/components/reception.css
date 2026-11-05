@@ -240,7 +240,9 @@
   border: 1px solid #e7eaf6;
   border-radius: 16px;
   height: 100%;
-  padding: 16px 0;
+  /* 36px on top, not 16: the "Đặt cờ" chip sits in the top-left corner and
+     the ticket row starts under it (owner 2026-11-05, R-1150). */
+  padding: 36px 0 16px;
   transition: border-color 0.15s;
   overflow: hidden;
 }
@@ -1746,13 +1748,15 @@
   }
 }
 
-/* ── "Đặt cờ" (R-1150): ⋮ in the top-left corner, as "Hủy lịch" sits top-right.
-   Once flagged the waving pennant stands on that corner instead, its pole on
-   the card's edge, and the card runs the shared rainbow ring. ─────────────── */
+/* ── "Đặt cờ" (R-1150): a chip inside the card, top-left (owner 2026-11-05).
+   16px down: the "Lịch tạm" tab reaches 12px into the card above it, and the
+   card's 36px top padding keeps the ticket row 8px below it. ⋮ until flagged,
+   then the waving pennant in the same chip, and the card runs the shared
+   rainbow ring. ─────────────────────────────────────────────────────────────── */
 .rc-flag {
   position: absolute;
-  top: 3px;
-  left: 10px;
+  top: 16px;
+  left: 12px;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -1766,31 +1770,29 @@
   outline: 2px solid var(--bd-blue);
   outline-offset: 2px;
 }
-/* Sits on the card's top edge, clear of the ticket row under it (owner
-   2026-11-05: inside the card it touched "BD…"). */
-.rc-flag--menu {
-  top: -8px;
-  width: 24px;
+.rc-flag--menu,
+.rc-flag--on {
   height: 24px;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
   border: 1px solid var(--bd-border);
   border-radius: 8px;
   background: var(--bd-card);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 8%);
+}
+.rc-flag--menu {
+  width: 24px;
   color: var(--bd-muted);
+}
+.rc-flag--on {
+  padding: 0 4px;
 }
 .rc-flag--menu:hover {
   background: var(--bd-bg-soft);
   color: var(--bd-ink);
 }
-.rc-flag--on {
-  top: -20px;
-  left: 4px;
-}
 .rc-flag-img {
   display: block;
   width: auto;
-  height: 40px;
-  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 25%));
+  height: 20px;
 }
 .rc-card.bd-rgb-ring {
   --bd-rgb-width: 3px;

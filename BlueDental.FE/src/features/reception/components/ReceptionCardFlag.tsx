@@ -2,9 +2,7 @@ import React from "react";
 import { Dropdown, type MenuProps } from "antd";
 import { EllipsisVertical, Flag, FlagOff } from "lucide-react";
 import { t } from "@/lib/i18n";
-
-/** The waving red pennant (owner's GIF, checkerboard keyed out to an APNG). */
-const FLAG_SRC = "/img/flags/red-pennant.png";
+import { FLAG_PENNANT_SRC } from "../utils/flagPennant";
 
 interface ReceptionCardFlagProps {
   flagged: boolean;
@@ -13,13 +11,18 @@ interface ReceptionCardFlagProps {
 }
 
 /**
- * The top-left corner of a reception card: "⋮" offers "Đặt cờ"; once flagged
- * the waving pennant takes its place and offers "Gỡ cờ" (owner 2026-11-05).
+ * A chip in the top-left corner of a reception card: "⋮" offers "Đặt cờ";
+ * once flagged the waving pennant takes its place and offers "Gỡ cờ"
+ * (owner 2026-11-05).
  */
 export const ReceptionCardFlag: React.FC<ReceptionCardFlagProps> = ({ flagged, onChange }) => {
   if (!onChange) {
     if (!flagged) return null;
-    return <img className="rc-flag rc-flag--on rc-flag-img" src={FLAG_SRC} alt={t("Reception:Flagged")} />;
+    return (
+      <span className="rc-flag rc-flag--on" role="img" aria-label={t("Reception:Flagged")}>
+        <img className="rc-flag-img" src={FLAG_PENNANT_SRC} alt="" />
+      </span>
+    );
   }
 
   const items: MenuProps["items"] = [
@@ -39,7 +42,7 @@ export const ReceptionCardFlag: React.FC<ReceptionCardFlagProps> = ({ flagged, o
         title={flagged ? t("Reception:Flagged") : undefined}
       >
         {flagged ? (
-          <img className="rc-flag-img" src={FLAG_SRC} alt="" />
+          <img className="rc-flag-img" src={FLAG_PENNANT_SRC} alt="" />
         ) : (
           <EllipsisVertical size={16} aria-hidden />
         )}
