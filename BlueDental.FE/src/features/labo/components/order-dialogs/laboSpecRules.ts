@@ -112,8 +112,3 @@ export function orderSummary(teeth: string[], mode: LaboSpecMode, rows: LaboSpec
   return `${t(CASE_LABEL[mode])} — ${counts.join(" · ")}`;
 }
 
-/** The picked surfaces a tooth card rings red: each one lacking its Màu, or all of them when the tooth lacks one. */
-export function missingSurfaces(errors: LaboSpecError[], picked: readonly ToothSurfaceCode[]): ToothSurfaceCode[] {
-  if (errors.some((error) => error.kind === "shade" && !error.surface)) return [...picked];
-  return errors.flatMap((error) => (error.surface ? [error.surface] : []));
-}

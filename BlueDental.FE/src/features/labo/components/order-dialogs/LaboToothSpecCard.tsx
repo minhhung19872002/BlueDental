@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ToothSurfacePicker, type ToothSurfaceCode } from "@/components/ToothSurfacePicker";
 import { t } from "@/lib/i18n";
 import { pickedAllSurfaces, pickedSurface } from "./laboSpecEdits";
-import { missingSurfaces, toothSummary } from "./laboSpecRules";
+import { toothSummary } from "./laboSpecRules";
 import { isSplit, pickerShades, toothLabel, type LaboSpecValue } from "./laboToothSpecs";
 import { setSpecRow, type LaboSpecContext } from "./laboSpecContext";
 import { LaboSpecCardHead } from "./LaboSpecCardHead";
@@ -59,7 +59,7 @@ export function LaboToothSpecCard({ fdi, context, prior, open, onToggle }: Props
               tooth={Number(fdi)}
               picked={picked}
               shades={pickerShades(fdi, mode, rows)}
-              marks={{ active: split ? active : undefined, missing: missingSurfaces(errors, picked) }}
+              marks={{ active: split ? active : undefined }}
               onPick={form.readOnly ? undefined : handlePick}
               onPickAll={form.readOnly ? undefined : handlePickAll}
               picturePlacement="top"
