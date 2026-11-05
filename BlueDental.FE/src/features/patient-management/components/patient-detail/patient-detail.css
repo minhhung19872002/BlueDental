@@ -4243,17 +4243,19 @@
 }
 .pd-stage-picks button {
   display: block;
-  border: 1px solid var(--bd-border);
+  /* BA 2026-11-05 (R-1148): the same amber as the "Chọn bác sĩ" field (R-1140). */
+  border: 1px solid var(--bd-amber-bright);
   border-radius: 12px;
   padding: 12px 16px;
-  background: #fff;
+  background: var(--bd-amber-field);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
+/* The picked card keeps the amber fill; a 2px primary ring tells it apart. */
 .pd-stage-picks button.active {
   border-color: var(--bd-primary);
-  background: color-mix(in srgb, var(--bd-primary) 6%, #fff);
+  box-shadow: 0 0 0 1px var(--bd-primary);
 }
 .pd-stage-picks strong {
   display: block;

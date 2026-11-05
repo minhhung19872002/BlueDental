@@ -13718,3 +13718,14 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc -b` và eslint sạch.
   - Chưa chạy test mới trên bản build HEAD cũ để thấy nó đỏ. Về logic thì code cũ cho lịch 11:00 rộng 1/3 cột, nên test sẽ đỏ.
 - **Mức retest**: 2 (layout trong một feature, không đổi API).
+
+## R-1148 (2026-11-05, mức 1: Chi tiết phiếu — khối công đoạn, thẻ dịch vụ ở cột "Chi tiết", main)
+
+- **Yêu cầu** (BA Huỳnh Văn Định, ảnh chụp thẻ dịch vụ khoanh đỏ cạnh ô "Chọn bác sĩ" Bắt buộc): "cho nền màu vàng giống này nha". Về chữ: "nó nổi bật thì giữ nguyên, bị chìm thì đổi màu cho phù hợp". Owner chốt: thẻ đang chọn giữ nền vàng, viền tím đậm (primary); áp dụng cả 3 tab THÊM CÔNG ĐOẠN / TIẾP TỤC CÔNG ĐOẠN / TIẾP TỤC BẢO HÀNH (cùng dùng `StagePicks`).
+- **Code** (chỉ CSS, `patient-detail.css`):
+  - `.pd-stage-picks button`: viền `var(--bd-amber-bright)`, nền `var(--bd-amber-field)` — cùng cặp token với ô "Chọn bác sĩ" Bắt buộc (R-1140).
+  - `.pd-stage-picks button.active`: giữ nền vàng, viền `var(--bd-primary)` + `box-shadow: 0 0 0 1px var(--bd-primary)` (vòng tím 2px).
+  - Màu chữ giữ nguyên: tên dịch vụ tím, "Răng:" xám, chip răng tím nhạt vẫn đọc rõ trên nền vàng nhạt (ảnh trước/sau trong `.playwright-mcp/r1148-picks-*.png`, không commit).
+- **Kiểm thử** (bản build production `vite preview` :8098 build từ working tree, API :5000, DB thật, không chặn API):
+  - `treatment-stage-chain`, `stage-treatment-date`, `warranty-stage`, `stage-staff-pickers`: **15/17**. 2 đỏ đều có từ trước, không do thay đổi này: `stage-staff-pickers:136` (bước tạo dữ liệu qua API trả 403 "Catalog entry not found", như đã ghi ở mục kiểm thử ô chọn trước đây) và `stage-staff-pickers:163` (đỏ từ R-956, nút "Thanh toán" trong khối Chi tiết phiếu).
+- **Mức retest**: 1 (CSS, không đổi hành vi).
