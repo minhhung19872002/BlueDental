@@ -18,6 +18,7 @@ import { WeekViewCalendar } from "../components/WeekViewCalendar";
 import { MonthViewCalendar } from "../components/MonthViewCalendar";
 import { AppointmentEditorModal } from "../components/AppointmentEditorModal";
 import { TempAppointmentEditorModal } from "../components/TempAppointmentEditorModal";
+import { TemporaryRecordDialog } from "../components/TemporaryRecordDialog";
 import { CalendarFabs } from "../components/CalendarFabs";
 import { CalendarControlPanel } from "../components/CalendarControlPanel";
 import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
@@ -27,6 +28,7 @@ import { useAbility } from "@/hooks/useAbility";
 import { useCalendarState } from "../hooks/useCalendarState";
 import { useCalendarFilters } from "../hooks/useCalendarFilters";
 import { useStatusCounts } from "../hooks/useStatusCounts";
+import { useOpenAppointmentRecord } from "../hooks/useOpenAppointmentRecord";
 import { useDentistList } from "@/features/staff/api/staffQueries";
 import { useAppointmentList } from "../api/appointmentQueries";
 import { useDeleteAppointment, useDeleteManyAppointments } from "../api/appointmentMutations";
@@ -96,6 +98,8 @@ export function AppointmentCalendarPage() {
     return () => document.body.classList.remove("cal-fullscreen");
   }, [fullscreen]);
 
+  const record = useOpenAppointmentRecord();
+  const { openRecord } = record;
   const deleteMutation = useDeleteAppointment();
   const deleteManyMutation = useDeleteManyAppointments();
 
@@ -168,6 +172,11 @@ export function AppointmentCalendarPage() {
 
   const handleCardAction = useCallback((action: string, id: string) => {
     switch (action) {
+      case "open": {
+        const appt = viewAppointments?.items?.find((a) => a.id === id);
+        if (appt) openRecord(appt);
+        break;
+      }
       case "edit": {
         const appt = viewAppointments?.items?.find((a) => a.id === id);
         if (appt?.isTemporary) {
@@ -197,7 +206,7 @@ export function AppointmentCalendarPage() {
         handleDeleteSingle(id);
         break;
     }
-  }, [handleDeleteSingle, viewAppointments]);
+  }, [handleDeleteSingle, viewAppointments, openRecord]);
 
   const handleClearSelection = useCallback(() => {
     setSelectedIds(new Set());
@@ -375,6 +384,10 @@ export function AppointmentCalendarPage() {
         onClose={() => { setTempOpen(false); setEditTempId(null); }}
         onSuccess={() => { setTempOpen(false); setEditTempId(null); }}
       />
+
+      {record.temporaryTarget && (
+        <TemporaryRecordDialog appointment={record.temporaryTarget} onClose={record.closeTemporary} />
+      )}
 
       <ConfirmDeleteDialog
         open={deleteTarget !== null}

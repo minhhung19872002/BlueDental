@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { call, clinicToday } from "./fixtures/timekeepingStaff";
+import { openBlockEditor } from "./fixtures/calendarBlock";
 
 /**
  * R-1046 (owner 2026-10-27): Tạo / Chỉnh sửa lịch tạm has "Nội dung đặt lịch"
@@ -154,7 +155,7 @@ test.describe("Lịch tạm — Nội dung đặt lịch", () => {
 
     await openDay(page, day);
     const block = page.locator(".dtl-col--unassigned .dtl-block").filter({ hasText: name });
-    await block.click();
+    await openBlockEditor(page, block);
     const edit = page.getByRole("dialog", { name: "Chỉnh sửa lịch tạm" });
     const field = edit.getByPlaceholder("Nội dung đặt lịch");
     // The form is reset once the booking arrives; type only after that.
@@ -173,7 +174,7 @@ test.describe("Lịch tạm — Nội dung đặt lịch", () => {
 
     // Changed: saved, shown on the board, and still there after a reload.
     const updated = `Đã sửa ${runId()}`;
-    await block.click();
+    await openBlockEditor(page, block);
     await expect(field).toHaveValue(content);
     await field.fill(updated);
     put = page.waitForResponse((r) => r.url().includes(APPOINTMENTS) && r.request().method() === "PUT");

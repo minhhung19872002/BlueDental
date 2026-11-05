@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo } from "react";
 import { Dropdown } from "antd";
 import type { MenuProps } from "antd";
-import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import { usePatientLinkTab } from "@/hooks/usePatientLinkTab";
 import { t } from "@/lib/i18n";
 import { buildAppointmentCardMenu, isFinishedSeriesSession } from "./appointmentCardMenu";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
+
+const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
 interface StatusLook {
   border: string;
@@ -103,7 +103,6 @@ export const EventCard = React.memo(function EventCard({
   selected,
   onAction,
 }: EventCardProps) {
-  const navigate = useNavigate();
   const baseLook = STATUS_LOOK[appointment.status];
   const customColor = appointment.color;
   const look = customColor
@@ -126,18 +125,14 @@ export const EventCard = React.memo(function EventCard({
     onAction?.(info.key, appointment.id);
   }, [onAction, appointment.id]);
 
-  const patientTab = usePatientLinkTab();
-  const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
-  const canNavigateToPatient = !appointment.isTemporary
-    && appointment.patientId
-    && appointment.patientId !== EMPTY_GUID;
+  // BA 2026-11-05: a Lịch tạm's name opens "Tạo hồ sơ" too, as on Tiếp nhận.
+  const canOpenPatient = appointment.isTemporary
+    || (!!appointment.patientId && appointment.patientId !== EMPTY_GUID);
 
-  const handlePatientClick = useCallback((e: React.MouseEvent) => {
+  const handlePatientClick = useCallback((e: React.SyntheticEvent) => {
     e.stopPropagation();
-    if (canNavigateToPatient) {
-      navigate(`/patient/${appointment.patientId}?tab=${patientTab}`);
-    }
-  }, [navigate, appointment.patientId, canNavigateToPatient, patientTab]);
+    onAction?.("open", appointment.id);
+  }, [onAction, appointment.id]);
 
   return (
     <div
@@ -150,7 +145,7 @@ export const EventCard = React.memo(function EventCard({
     >
       {/* Row 1: [CODE] - Patient name + ⋮ menu */}
       <div className="evt-card-row1">
-        {canNavigateToPatient ? (
+        {canOpenPatient ? (
           <a
             className="evt-card-title"
             onClick={handlePatientClick}
@@ -159,7 +154,7 @@ export const EventCard = React.memo(function EventCard({
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                handlePatientClick(e as unknown as React.MouseEvent);
+                handlePatientClick(e);
               }
             }}
           >

@@ -47,7 +47,7 @@ function BlockTooltip({ placed, state }: Pick<Props, "placed" | "state">) {
   );
 }
 
-/** One booking on a doctor's row: click opens it, ⋮ offers the card menu. */
+/** One booking on a doctor's row: click opens its patient, ⋮ offers the card menu. */
 export const TimelineBlock = React.memo(function TimelineBlock({ placed, state, selected, onAction }: Props) {
   const id = placed.appointment.id;
   const note = placed.appointment.reason?.trim();
@@ -55,11 +55,12 @@ export const TimelineBlock = React.memo(function TimelineBlock({ placed, state, 
   const undeletable = isFinishedSeriesSession(placed.appointment);
   const menuItems = useMemo(() => buildAppointmentCardMenu(selected, undeletable), [selected, undeletable]);
 
-  const handleOpen = useCallback(() => onAction?.("edit", id), [onAction, id]);
+  // BA 2026-11-05: a click opens the patient, like a Tiếp nhận card; ⋮ → Cập nhật edits the booking.
+  const handleOpen = useCallback(() => onAction?.("open", id), [onAction, id]);
   const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key !== "Enter") return;
     event.preventDefault();
-    onAction?.("edit", id);
+    onAction?.("open", id);
   }, [onAction, id]);
   const handleMenuClick = useCallback<NonNullable<MenuProps["onClick"]>>((info) => {
     info.domEvent.stopPropagation();

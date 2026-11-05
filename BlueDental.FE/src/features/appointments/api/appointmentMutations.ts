@@ -55,6 +55,15 @@ export function useUpdateAppointmentNotes() {
   });
 }
 
+export function useAttachTemporaryPatient() {
+  return useMutation({
+    mutationKey: ["appointments", "attachPatient"],
+    mutationFn: ({ id, patientId }: { id: string; patientId: string }) =>
+      appointmentApi.attachPatient(id, patientId),
+    meta: INVALIDATES_APPOINTMENTS,
+  });
+}
+
 export function useDeleteAppointment() {
   return useMutation({
     mutationKey: ["appointments", "delete"],
