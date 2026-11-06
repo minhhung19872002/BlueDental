@@ -14189,3 +14189,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - lễ tân không có 👁.
   - Kiểm tra bằng ảnh chụp panel có danh sách mở.
 - **Mức retest**: 2 (chỉ trong Tiếp nhận / panel Đã đến).
+
+## R-1165 (2026-11-06, mức 2: Chat nội bộ — thông báo tin mới 5 s, F-89, main)
+
+- **Yêu cầu (BA 2026-11-06)**: "Thêm cho chat phần thông báo để xem nhanh nha (5s)" — khung góc phải ngay dưới thanh menu.
+- **Owner chốt**: (1) hiện nội dung tin; (2) có tiếng; (3) có thông báo Windows khi app ở phía sau. Làm trên main.
+- **Đã làm — FE** (không đổi BE, chỉ thêm 3 key i18n `Chat:NewMessages`, `Chat:DismissAlert`, `Chat:UnreadInConversation`):
+  - `useChatLive` nhận thêm callback `ChatChanged(conversationId)`; `useNewMessageAlerts` lấy `GET conversations/{id}` (push vẫn không mang nội dung).
+  - Toast khi tin của người khác, chưa thu hồi / sửa, gửi trong 10 phút, còn chưa đọc, đúng chi nhánh trên header, và cuộc trò chuyện không đang mở. Mỗi tin báo một lần; đọc ở nơi khác thì toast tự mất.
+  - `ChatToastStack`: tên người gửi (nhóm: "người gửi · nhóm"), 2 dòng nội dung, "N tin chưa đọc"; bấm mở cuộc trò chuyện, × đóng; thanh 5 s dưới chân, trỏ chuột / focus thì dừng; một toast mỗi cuộc trò chuyện, tối đa 3; panel mở thì nằm bên trái panel; điện thoại full ngang.
+  - `ChatDock` giữ `activeId` (`ChatPanel` thành controlled) để toast / thông báo Windows mở được cuộc trò chuyện; đóng rồi mở lại vẫn về danh sách như cũ.
+  - Tiếng ting Web Audio (2 sóng sin 1318/1976 Hz, 0,7 s), tối đa 1 lần / 1,5 s; bị trình duyệt chặn khi chưa có cú bấm thì bỏ qua.
+  - Thông báo Windows: xin quyền khi bấm mở chat / bấm toast; chỉ khi tab ẩn hoặc cửa sổ không focus; `tag` = id cuộc trò chuyện; nội dung cắt 140 ký tự.
+- **Bảo mật**: checklist H3.3 ("toast / Notification không hiện nội dung") đổi thành ⚠ theo quyết định owner — xem `features/chat-security-checklist.md`.
+- **Kiểm thử** (host riêng :5157 trên DB `BlueDental_chat` + bản build production :8157, không chặn request):
+  - `chat-r1165-toast.spec.ts` **8/8**: vị trí dưới header + tự đóng ~5 s; ting; giữ khi trỏ chuột + ×; tin mới thay toast + "2 tin chưa đọc"; bấm toast mở cuộc trò chuyện, cuộc đang mở không có toast, mở lại về danh sách; tin của mình không toast; toast nhóm; thông báo Windows (thay `Notification` / `hasFocus` của trình duyệt) bấm vào mở cuộc trò chuyện.
+  - Toàn bộ `e2e/chat*` **69/69**. Kiểm bằng ảnh chụp desktop + điện thoại 390 px.
+- **Mức retest**: 2 (chỉ chat; `useChatLive` chỉ thêm callback).

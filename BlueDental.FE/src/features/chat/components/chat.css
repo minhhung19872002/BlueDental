@@ -1414,3 +1414,160 @@ body:has(.chat-dock) .scroll-top-button {
   font-size: 13px;
   font-weight: 600;
 }
+
+/* ── R-1165 — new-message toasts, top right under the header (BA 2026-11-06:
+   "thông báo để xem nhanh, 5s"). The bar along the foot runs 5 s and its end
+   removes the toast; pointing at it or tabbing into it pauses the bar. While
+   the panel is open the stack sits to its left. */
+.chat-toasts {
+  position: fixed;
+  top: calc(var(--bd-topbar-height) + 12px);
+  right: 16px;
+  z-index: 960;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+body:has(.chat-panel) .chat-toasts {
+  right: 412px;
+}
+
+.chat-toast {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-pop);
+  pointer-events: auto;
+  animation: chat-toast-in 0.18s ease-out;
+}
+
+.chat-toast-body {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 4px 14px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-toast-body:hover {
+  background: var(--bd-bg-soft);
+}
+
+.chat-toast-body:focus-visible {
+  outline: 2px solid var(--bd-accent);
+  outline-offset: -2px;
+}
+
+.chat-toast-avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+.chat-toast-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.chat-toast-title {
+  overflow: hidden;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-toast-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--bd-ink);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.chat-toast-more {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.chat-toast-close {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 8px 8px 0 0;
+}
+
+.chat-toast-timer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--bd-primary);
+  transform-origin: left center;
+  animation: chat-toast-timer 5s linear forwards;
+}
+
+.chat-toast:hover .chat-toast-timer,
+.chat-toast:focus-within .chat-toast-timer {
+  animation-play-state: paused;
+}
+
+@keyframes chat-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chat-toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .chat-toasts,
+  body:has(.chat-panel) .chat-toasts {
+    top: calc(var(--bd-header-height) + 8px);
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-toast {
+    animation: none;
+  }
+}
