@@ -14188,6 +14188,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - UI tìm và tích, lưu sau khi tải lại, bỏ hết tích, "Tất cả bác sĩ", 👁 đóng danh sách;
     - lễ tân không có 👁.
   - Kiểm tra bằng ảnh chụp panel có danh sách mở.
+- **Sửa tiếp (owner 2026-11-06: "làm popover đi nhưng cho k bị break ui")**:
+  - Danh sách bác sĩ chuyển thành popover nổi bên trái panel (`ArrivalDoctorPickPopover`), có tiêu đề "Chọn bác sĩ hiển thị".
+  - Vị trí đặt bằng CSS, không dùng Popover AntD (bản AntD trượt đè lên 👁 khi tìm kiếm và tràn khỏi mép trên khi danh sách dài):
+    - cao cố định 360px nên tìm kiếm không làm popover xê dịch;
+    - `top: min(0px, 100% - 360px)`: panel cao thì canh mép trên, ngang 👁; panel thấp thì canh mép dưới panel, không bao giờ ra ngoài màn hình;
+    - màn hình ≤ 1100px thì nằm đè lên các dòng khách, dưới thanh tiêu đề.
+  - Panel được bọc trong `.arrival-panel-anchor`, nên `.arrival-panel` không còn `position: absolute`.
+  - Bấm ra ngoài popover, bấm 👁 lần nữa hoặc nhấn Escape thì popover đóng.
+  - Test R-1164 thêm kiểm tra: popover nằm hẳn bên trái panel, trong màn hình, vị trí không đổi khi tìm kiếm, Escape và 👁 đóng được. `reception-arrival-call` **7/7** trên bản build production; đã kiểm tra bằng ảnh chụp.
 - **Mức retest**: 2 (chỉ trong Tiếp nhận / panel Đã đến).
 
 ## R-1165 (2026-11-06, mức 2: Chat nội bộ — thông báo tin mới 5 s, F-89, main)
