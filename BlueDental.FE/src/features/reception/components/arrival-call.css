@@ -114,7 +114,9 @@ body:has(.arrival-panel) .scroll-top-button {
   position: absolute;
   right: 0;
   bottom: 72px;
-  width: 420px;
+  /* 440, not 420: room for the time and a full doctor badge on one line beside
+     the button / "Đang chờ" column (R-1156). */
+  width: 440px;
   max-width: calc(100vw - 32px);
   max-height: min(70vh, 640px);
   overflow-y: auto;
@@ -173,8 +175,7 @@ body:has(.arrival-panel) .scroll-top-button {
 .arrival-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   padding: 10px 12px;
   border: 1px solid var(--bd-border);
   border-radius: var(--bd-radius-sm);
@@ -183,6 +184,7 @@ body:has(.arrival-panel) .scroll-top-button {
 
 .arrival-row-info {
   display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   gap: 4px;
   min-width: 0;
@@ -208,13 +210,15 @@ body:has(.arrival-panel) .scroll-top-button {
 
 .arrival-row-meta {
   flex-wrap: wrap;
-  column-gap: 16px;
+  column-gap: 12px;
 }
 
 .arrival-row-meta > span {
   display: inline-flex;
   align-items: flex-start;
   gap: 8px;
+  /* A name longer than the whole line, even on its own, ends in "…". */
+  min-width: 0;
 }
 
 .arrival-row-doctor {
@@ -246,6 +250,18 @@ body:has(.arrival-panel) .scroll-top-button {
 
 .arrival-row-action {
   flex-shrink: 0;
+}
+
+/* The button (or "Đã mời" tag) on top, the "Đang chờ" chip under it (R-1156).
+   As wide as "Chờ quá lâu mm:ss" from the start: the doctor line beside it
+   then wraps the same way whichever button, tag or level the row shows. */
+.arrival-row-side {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 132px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 .arrival-row-tag {

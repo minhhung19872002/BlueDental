@@ -6,6 +6,7 @@ using BlueDental.Data;
 using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
+using BlueDental.Staff;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Authorization;
 using Volo.Abp.Domain.Entities;
@@ -149,8 +150,9 @@ public class ArrivalCallAppService(
             .ToDictionary(p => p.Id);
 
         var dentistIds = appointments.Select(a => a.DentistId).Where(id => id != Guid.Empty).Distinct().ToList();
-        var dentists = (await userRepository.GetListByIdsAsync(dentistIds))
-            .ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var dentistUsers = await userRepository.GetListByIdsAsync(dentistIds);
+        var dentists = dentistUsers.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var dentistColors = dentistUsers.ToDictionary(u => u.Id, StaffLabelColor.Read);
 
         return appointments.Select(a =>
         {
@@ -167,6 +169,7 @@ public class ArrivalCallAppService(
                 PatientPhone = a.IsTemporary ? a.PatientPhone : null,
                 DentistId = a.DentistId,
                 DentistName = dentists.GetValueOrDefault(a.DentistId),
+                DentistLabelColor = dentistColors.GetValueOrDefault(a.DentistId),
                 SlotStart = a.Slot.Start,
                 Content = string.IsNullOrWhiteSpace(a.ChiefComplaint) ? a.Notes : a.ChiefComplaint,
                 CheckedInAt = a.CheckedInAt,

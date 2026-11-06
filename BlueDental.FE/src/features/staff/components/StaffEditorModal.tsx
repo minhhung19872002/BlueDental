@@ -21,6 +21,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { getAllProvinces, getWardsByProvince, type LocationOption } from "@/utils/vietnamLocations";
 import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import { FloatingField } from "@/components/FloatingField";
+import { LabelColorPicker, STAFF_LABEL_COLOR_DEFAULT } from "@/components/LabelColor";
 import { StaffDiscountLimitFields } from "./StaffDiscountLimitFields";
 import { StaffEmploymentFields } from "./StaffEmploymentFields";
 import { StaffPriorityField } from "./StaffPriorityField";
@@ -44,6 +45,7 @@ export interface StaffFormValues {
   isAssistant: boolean;
   isHygienist: boolean;
   priority: number;
+  labelColor: string | null;
   allowLoginOutsideOffice: boolean;
   allowLoginOutsideHours: boolean;
   maxDiscountPercent?: number | null;
@@ -92,6 +94,7 @@ export function StaffEditorModal({
   const [form] = Form.useForm();
   const isEditing = Boolean(staff);
   const selectedProvinceId = Form.useWatch("provinceId", form);
+  const typedName: string | undefined = Form.useWatch("name", form);
 
   const [provinces, setProvinces] = useState<LocationOption[]>([]);
   const [wards, setWards] = useState<LocationOption[]>([]);
@@ -128,6 +131,7 @@ export function StaffEditorModal({
           isAssistant: staff.isAssistant,
           isHygienist: staff.isHygienist,
           priority: staff.priority,
+          labelColor: staff.labelColor ?? null,
           allowLoginOutsideOffice: staff.allowLoginOutsideOffice,
           allowLoginOutsideHours: staff.allowLoginOutsideHours,
           maxDiscountPercent: staff.maxDiscountPercent ?? undefined,
@@ -176,6 +180,7 @@ export function StaffEditorModal({
         isHygienist: values.isHygienist ?? false,
         // A cleared field comes back undefined: the default, 0.
         priority: values.priority ?? 0,
+        labelColor: values.labelColor ?? null,
         allowLoginOutsideOffice: values.allowLoginOutsideOffice ?? false,
         allowLoginOutsideHours: values.allowLoginOutsideHours ?? false,
         // A cleared field comes back undefined: no limit.
@@ -287,6 +292,7 @@ export function StaffEditorModal({
           isAssistant: false,
           isHygienist: false,
           priority: 0,
+          labelColor: null,
           allowLoginOutsideOffice: false,
           allowLoginOutsideHours: false,
           branchIds: [],
@@ -501,6 +507,16 @@ export function StaffEditorModal({
               <Checkbox>{t("Staff:RoleMedic")}</Checkbox>
             </Form.Item>
         </div>
+
+        {/* Màu nhãn (R-1155) — the name's badge on Tiếp nhận, Khách đã đến, Lịch hẹn Ngày and this list */}
+        <Form.Item name="labelColor" noStyle>
+          <LabelColorPicker
+            title={t("Staff:LabelColor")}
+            previewText={typedName ?? ""}
+            defaultColor={STAFF_LABEL_COLOR_DEFAULT}
+            defaultLabel={t("Staff:LabelColorDefault")}
+          />
+        </Form.Item>
 
         <StaffPriorityField />
 

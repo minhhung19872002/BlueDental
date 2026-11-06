@@ -32,6 +32,8 @@ export interface AppointmentDto {
   patientPhone: string;
   doctorId: string;
   doctorName: string;
+  /** The doctor's "Màu nhãn"; null = the staff default (R-1155). */
+  doctorLabelColor?: string | null;
   startTime: string;
   endTime: string;
   status: AppointmentStatus;

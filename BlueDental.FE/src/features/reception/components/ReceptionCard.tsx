@@ -13,6 +13,7 @@ import {
   CircleCheck,
   Loader2,
 } from "lucide-react";
+import { StaffLabelBadge } from "@/components/LabelColor";
 import { PatientTagPicker, PatientTagStrip } from "@/components/PatientTagPicker";
 import { SearchSelect } from "@/components/SearchSelect";
 import type { PatientLinkTab } from "@/hooks/usePatientLinkTab";
@@ -277,7 +278,13 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
               <div className="rc-details">
                 <div className="rc-detail-row">
                   <Stethoscope size={18} className="rc-icon-top" aria-hidden />
-                  <span className="rc-detail-text rc-detail-bold">{item.doctorName}</span>
+                  <span className="rc-detail-text rc-detail-bold">
+                    {item.doctorId ? (
+                      <StaffLabelBadge color={item.doctorLabelColor}>{item.doctorName}</StaffLabelBadge>
+                    ) : (
+                      item.doctorName
+                    )}
+                  </span>
                 </div>
                 <div className="rc-detail-row">
                   <Tag size={18} className="rc-icon-top" aria-hidden />

@@ -42,6 +42,9 @@ public class ArrivalCallDto
 
     public Guid DentistId { get; set; }
     public string? DentistName { get; set; }
+
+    /// <summary>The dentist's "Màu nhãn" "#RRGGBB"; null = the default colour (R-1155).</summary>
+    public string? DentistLabelColor { get; set; }
     public DateTimeOffset SlotStart { get; set; }
 
     /// <summary>Nội dung đặt lịch, or the Ghi chú of a visit booked without one.</summary>

@@ -34,6 +34,10 @@ public class StaffDto : EntityDto<Guid>, IStaffEmploymentFields
     /// <summary>"Mức độ ưu tiên", as on a catalogue row: 0 by default, a lower number comes first.</summary>
     public int Priority { get; set; }
 
+    /// <summary>"Màu nhãn" "#RRGGBB"; blank or null = the default colour (R-1155).</summary>
+    [RegularExpression("^(#[0-9a-fA-F]{6})?$")]
+    public string? LabelColor { get; set; }
+
     /// <summary>
     /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside
     /// its branches' IP ranges (Cụm 11 mục 11).
@@ -162,6 +166,10 @@ public class CreateStaffDto : IStaffEmploymentFields
     /// <summary>"Mức độ ưu tiên", as on a catalogue row: 0 by default, a lower number comes first.</summary>
     public int Priority { get; set; }
 
+    /// <summary>"Màu nhãn" "#RRGGBB"; blank or null = the default colour (R-1155).</summary>
+    [RegularExpression("^(#[0-9a-fA-F]{6})?$")]
+    public string? LabelColor { get; set; }
+
     /// <summary>
     /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside
     /// its branches' IP ranges (Cụm 11 mục 11).
@@ -240,6 +248,10 @@ public class UpdateStaffDto : IStaffEmploymentFields
 
     /// <summary>"Mức độ ưu tiên", as on a catalogue row: 0 by default, a lower number comes first.</summary>
     public int Priority { get; set; }
+
+    /// <summary>"Màu nhãn" "#RRGGBB"; blank or null = the default colour (R-1155).</summary>
+    [RegularExpression("^(#[0-9a-fA-F]{6})?$")]
+    public string? LabelColor { get; set; }
 
     /// <summary>
     /// "Cho phép đăng nhập ngoài công ty": the account may sign in from outside

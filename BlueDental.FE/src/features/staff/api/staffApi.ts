@@ -28,6 +28,8 @@ export interface StaffDto {
   isHygienist: boolean;
   /** "Mức độ ưu tiên", as on a catalogue row: 0 by default, a lower number comes first. */
   priority: number;
+  /** "Màu nhãn" "#RRGGBB"; null = the staff default colour (R-1155). */
+  labelColor: string | null;
   /** "Cho phép đăng nhập ngoài công ty" — skips the branch IP check. */
   allowLoginOutsideOffice: boolean;
   /** "Cho phép dùng ngoài giờ" — skips the branch's allowed hours. */
@@ -88,6 +90,7 @@ export interface CreateStaffInput {
   isAssistant?: boolean;
   isHygienist?: boolean;
   priority?: number;
+  labelColor?: string | null;
   allowLoginOutsideOffice?: boolean;
   allowLoginOutsideHours?: boolean;
   maxDiscountPercent?: number | null;
@@ -125,6 +128,7 @@ export interface UpdateStaffInput {
   isAssistant?: boolean;
   isHygienist?: boolean;
   priority?: number;
+  labelColor?: string | null;
   allowLoginOutsideOffice?: boolean;
   allowLoginOutsideHours?: boolean;
   maxDiscountPercent?: number | null;

@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { StaffLabelBadge } from "@/components/LabelColor";
 import { t } from "@/lib/i18n";
 import type { AppointmentDto } from "../../types/appointment";
 import { blockStateOf } from "./blockState";
@@ -10,6 +11,7 @@ import { TimelineSlots } from "./TimelineSlots";
 interface Props {
   doctorId: string;
   doctorName: string;
+  doctorLabelColor?: string | null;
   appointments: AppointmentDto[];
   scale: TimeScale;
   slots: number[];
@@ -27,6 +29,7 @@ interface Props {
 export const TimelineColumn = React.memo(function TimelineColumn({
   doctorId,
   doctorName,
+  doctorLabelColor,
   appointments,
   scale,
   slots,
@@ -48,7 +51,9 @@ export const TimelineColumn = React.memo(function TimelineColumn({
       style={{ "--dtl-lanes": column.laneCount } as React.CSSProperties}
     >
       <div className="dtl-doc" title={title}>
-        <span className="dtl-name">{name}</span>
+        <span className="dtl-name">
+          {unassigned ? name : <StaffLabelBadge color={doctorLabelColor}>{name}</StaffLabelBadge>}
+        </span>
         {patients > 0 && <span className="dtl-count">{patients}</span>}
       </div>
       <div className="dtl-track">

@@ -36,6 +36,8 @@ What to retest when a shared piece changes. Levels are defined in
 | `components/` shared UI (tables, modals, selects) | 2 per consumer | Specs of the screens using them |
 | `vite.config.ts` build plugins (Tailwind, React) | 3 | Every acceptance spec — the plugin list decides whether utility classes are compiled at all |
 | `styles/index.css` `@theme` tokens and overlay z-index | 3 | Every spec that opens a dialog, sheet, popover or dropdown |
+| `components/LabelColor/*` (`LabelBadge`, `StaffLabelBadge`, `LabelColorPicker`) | 2 | `staff-label-color` + the Labo supplier specs (`labo-*`) — one picker, two owners: Labo supplier (R-1072) and staff (R-1155, default `#FF007F`) |
+| `features/reception/components/WaitTimerChip.tsx`, `wait-timer-chip.css`, `hooks/useWaitState.ts` | 2 | `reception-wait-time` + `reception-arrival-call` — the chip runs on the Tiếp nhận card and on every row of the floating Khách đã đến panel, which is mounted on every page, so its CSS stays in its own file (R-1156) |
 
 ## Feature-local dependencies
 

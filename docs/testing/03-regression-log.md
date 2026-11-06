@@ -13886,3 +13886,41 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc`/eslint sạch.
   - Push develop trước, chạy regression sau: `labo-workflow`, `plan-warranty-tab`, `labo-api`, `labo-orders-actions`, `warranty-stage` **32/32** (`--workers=1`, 7.5 phút).
 - **Mức retest**: 2 (component dùng chung chỉ có Labo dùng).
+
+## R-1155 (2026-11-06, mức 2: Nhân viên — Màu nhãn như nhà cung cấp Labo, badge bác sĩ ở 4 chỗ, main)
+
+- **Yêu cầu** (BA): thêm ô chọn Màu nhãn vào dialog nhân viên, giống ô của nhà cung cấp Labo. Tên bác sĩ hiện thành badge màu ở thẻ Tiếp nhận, ở nút nổi Khách đã đến / Bác sĩ mời lên và ở tiêu đề cột bác sĩ của Lịch hẹn view Ngày.
+- **Owner chốt**:
+  - Màu mặc định là RGB(255, 0, 127) = `#FF007F`.
+  - Mọi nhân viên đều chọn được màu, nhưng badge chỉ hiện ở 3 chỗ trên và ở danh sách /staff. Chỗ khác thêm sau khi cần.
+- **Thiết kế**:
+  - BE: màu lưu trong ExtraProperties của IdentityUser qua `StaffLabelColor` (không cần migration). Giá trị lưu ở dạng in hoa; null nghĩa là dùng màu mặc định khi hiển thị.
+  - BE: `StaffDto.LabelColor` dùng regex `^(#[0-9a-fA-F]{6})?$`, guard `BlueDental:Staff:0013`. `DentistLabelColor` có trong AppointmentDto và trong ArrivalCall.
+  - FE: `components/LabelColor` thêm `StaffLabelBadge`; `LabelColorPicker` nhận `defaultColor`/`defaultLabel`.
+- **Kiểm thử**:
+  - `StaffLabelColorTests` (Domain).
+  - `e2e/staff-label-color.spec.ts`: chọn màu, reload vẫn giữ, badge hiện ở 4 chỗ.
+  - Regression 62 pass. `staff.spec` đỏ do dữ liệu tích luỹ, đã sửa spec: Nhóm quyền chọn bằng phím vì "admin" nằm ngoài cửa sổ của virtual list; Chi nhánh tìm theo tên vì từ R-1051 ô chọn so theo label, không theo id. `reception-doctor-roles` chạy riêng thì pass, là flake do thứ tự chạy.
+  - Commit `2b4bb06a` gộp chung với R-1156.
+- **Mức retest**: 2 (thêm `components/LabelColor` dùng chung với Labo, nên chạy lại cả spec Labo nhà cung cấp nếu đổi file này).
+
+## R-1156 (2026-11-06, mức 2: Khách đã đến — đồng hồ "Đang chờ mm:ss" trên từng dòng, bác sĩ không xuống dòng khi còn chỗ, main)
+
+- **Yêu cầu** (BA): "Thêm thời gian chờ nha". Mỗi dòng ở nút nổi Khách đã đến / Bác sĩ mời lên có chip đồng hồ chờ giống thẻ Tiếp nhận.
+- **Owner**: dòng bác sĩ lúc xuống dòng, lúc không ("nhảy UI"). Chỉ được xuống dòng khi thật sự hết chỗ.
+- **Thiết kế**:
+  - Chip đồng hồ:
+    - `useWaitClock` + `WaitTimerChip` dùng lại cho dòng của panel; CSS chip chuyển sang `wait-timer-chip.css` vì panel gắn ở mọi trang.
+    - Đồng hồ chạy cho tới khi khách vào ghế.
+  - Vì sao nhảy (đo được): panel 420px, cột phải 123px hoặc 129,5px khi quá giờ, còn ~241px trong khi "giờ + BS. Mai Anh Phương" cần ~247px. Chênh dưới 1px hoặc đổi trạng thái là lật wrap.
+  - Cách sửa:
+    - Panel rộng 440px.
+    - Cột phải luôn rộng tối thiểu 132px (đủ cho "Chờ quá lâu mm:ss"), nên chiều rộng không đổi theo nút / tag / mức.
+    - Phần thông tin `flex: 1 1 0`, khoảng cách các cột 8px / 12px.
+    - Thêm `min-width: 0` cho từng mục meta để tên quá dài cắt "…".
+- **Kiểm thử**:
+  - Build production, host :5155, DB thật `BlueDental_r1155`.
+  - Đo bằng spec tạm (đã xoá) ở các trạng thái đang chờ, tag Đã mời, dòng Tiếp nhận, quá giờ: cột phải luôn 132px, phần thông tin luôn 256px. "BS. Mai Anh Phương" (168,7px) nằm một dòng; tên 277px xuống dòng và cắt "…" ở 232px.
+  - `reception-arrival-call` (có test mới "every row runs the card's wait clock…"), `reception-wait-time`, `reception-restore-arrived`, `reception-temp-cancel`, `staff-label-color`, `staff`: **15/15** (`--workers=1`, 5,7 phút).
+  - Commit `2b4bb06a` (gộp với R-1155) lỡ mang theo test đo tạm và `vite.r1155.config.ts`. Commit tiếp theo gỡ cả hai và thêm bản sửa wrap.
+- **Mức retest**: 2.

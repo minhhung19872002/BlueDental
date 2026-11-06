@@ -36,6 +36,7 @@ import { useTablePagination } from "@/hooks/useTablePagination";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PageHeader } from "@/components/PageHeader";
 import { DataTable } from "@/components/DataTable";
+import { StaffLabelBadge } from "@/components/LabelColor";
 import { MobileFilterDrawer } from "@/components/MobileFilterDrawer";
 import { t } from "@/lib/i18n";
 
@@ -126,6 +127,7 @@ export function StaffPage() {
       isAssistant: values.isAssistant,
       isHygienist: values.isHygienist,
       priority: values.priority,
+      labelColor: values.labelColor,
       allowLoginOutsideOffice: values.allowLoginOutsideOffice,
       allowLoginOutsideHours: values.allowLoginOutsideHours,
       maxDiscountPercent: values.maxDiscountPercent ?? null,
@@ -200,7 +202,10 @@ export function StaffPage() {
       key: "fullName",
       title: t("Staff:ColName"),
       width: 170,
-      render: (_, record) => record.fullName || record.userName,
+      render: (_, record) => {
+        const name = record.fullName || record.userName;
+        return <StaffLabelBadge color={record.labelColor} title={name}>{name}</StaffLabelBadge>;
+      },
     },
     {
       key: "phoneNumber",

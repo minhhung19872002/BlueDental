@@ -45,7 +45,7 @@ export function AppointmentCalendarPage() {
     state.viewMode === "day" ? state.currentDate.format("YYYY-MM-DD") : undefined,
   );
   const doctors: TimelineDoctor[] = useMemo(
-    () => (dentistData ?? []).map((d) => ({ id: d.id, name: d.name })),
+    () => (dentistData ?? []).map((d) => ({ id: d.id, name: d.name, labelColor: d.labelColor })),
     [dentistData],
   );
 
