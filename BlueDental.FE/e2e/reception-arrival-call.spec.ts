@@ -423,6 +423,24 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(picker).toHaveCount(0);
       await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
 
+      // A phone has no room left of the panel: the panel spans the screen and
+      // the popover stands over its rows, under the title bar and its 👁.
+      await desk.setViewportSize({ width: 390, height: 844 });
+      await eyeAgain.click();
+      await expect(picker).toHaveClass(/arrival-doctor-pick--over/);
+      const phonePanel = await panel(desk).boundingBox();
+      const phonePick = await box();
+      const eyeBox = await eyeAgain.boundingBox();
+      expect(phonePanel && phonePanel.x >= 0 && phonePanel.x + phonePanel.width <= 390, "the panel on the screen").toBe(true);
+      expect(
+        phonePanel && phonePick.y + phonePick.height <= phonePanel.y + phonePanel.height && phonePick.x >= phonePanel.x,
+        "the popover inside the panel",
+      ).toBe(true);
+      expect(eyeBox && eyeBox.y + eyeBox.height <= phonePick.y, "the 👁 above it, in sight").toBe(true);
+      await eyeAgain.click();
+      await expect(picker).toHaveCount(0);
+      await desk.setViewportSize({ width: 1280, height: 720 });
+
       // Reception's "Bác sĩ mời lên" has no 👁 and is not filtered.
       await dockButton(receptionist.page).click();
       await expect(panel(receptionist.page)).toContainText("Bác sĩ mời lên");

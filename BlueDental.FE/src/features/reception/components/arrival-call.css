@@ -286,6 +286,14 @@ body:has(.arrival-panel) .scroll-top-button {
     right: 16px;
     bottom: 16px;
   }
+  /* Full width above the buttons: anchored to the dock, which the chat button
+     pushes 88px in, the panel ran off the screen's left edge. */
+  .arrival-panel-anchor {
+    position: fixed;
+    right: 16px;
+    bottom: 88px;
+    left: 16px;
+  }
   body:has(.arrival-dock) .scroll-top-button {
     inset-inline-end: 23px;
     inset-block-end: 92px;
@@ -346,10 +354,14 @@ body:has(.arrival-panel) .scroll-top-button {
    - a fixed height, so searching never moves it;
    - top: its top on the panel's top, beside the 👁; on a panel shorter than
      it, its bottom on the panel's bottom instead, so it never leaves the
-     screen above the round button. */
+     screen above the round button;
+   - a screen too short for 360px (a phone on its side, a zoomed laptop): as
+     tall as the room above the panel's bottom, 96px over the screen's bottom,
+     leaving 16px at the top. */
 .arrival-doctor-pick {
+  --arrival-pick-height: min(360px, calc(100dvh - 112px));
   position: absolute;
-  top: min(0px, calc(100% - 360px));
+  top: min(0px, calc(100% - var(--arrival-pick-height)));
   right: calc(100% + 10px);
   z-index: 1;
   display: flex;
@@ -357,7 +369,8 @@ body:has(.arrival-panel) .scroll-top-button {
   gap: 8px;
   box-sizing: border-box;
   width: 272px;
-  height: 360px;
+  max-width: calc(100vw - 48px);
+  height: var(--arrival-pick-height);
   padding: 12px;
   border: 1px solid var(--bd-primary);
   border-radius: var(--bd-radius-card);
@@ -365,12 +378,18 @@ body:has(.arrival-panel) .scroll-top-button {
   box-shadow: var(--bd-shadow-modal);
 }
 
-/* No room left of the panel: over its rows, under its title bar. */
-@media (max-width: 1100px) {
-  .arrival-doctor-pick {
-    top: min(48px, calc(100% - 360px));
-    right: 8px;
-  }
+/* No room left of the panel, as measured (narrow screen, phone, open chat):
+   over its rows, under the title bar so the 👁 stays in sight. The panel
+   grows up for it, so it never runs past the panel or the screen. */
+.arrival-doctor-pick--over {
+  top: 48px;
+  right: 8px;
+  bottom: 8px;
+  height: auto;
+}
+
+.arrival-panel-anchor:has(.arrival-doctor-pick--over) .arrival-panel {
+  min-height: min(416px, 70vh);
 }
 
 .arrival-doctor-pick-title {
