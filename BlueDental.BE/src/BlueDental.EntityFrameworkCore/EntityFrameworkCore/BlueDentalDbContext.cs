@@ -210,6 +210,10 @@ public class BlueDentalDbContext :
     public DbSet<AccountantSignature> AccountantSignatures { get; set; }
     public DbSet<AccountantSignatureChange> AccountantSignatureChanges { get; set; }
     public DbSet<PaymentReceiptLog> PaymentReceiptLogs { get; set; }
+    public DbSet<Chat.ChatConversation> ChatConversations { get; set; }
+    public DbSet<Chat.ChatMember> ChatMembers { get; set; }
+    public DbSet<Chat.ChatMessage> ChatMessages { get; set; }
+    public DbSet<Chat.ChatAttachment> ChatAttachments { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

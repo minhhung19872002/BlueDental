@@ -15,6 +15,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { authApi } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { ChatDock } from "@/features/chat/components/ChatDock";
 import { useClinicBranches } from "@/features/organizations/api";
 import { ArrivalCallDock } from "@/features/reception/components/ArrivalCallDock";
 import { StaffNotesLauncher } from "@/features/staff-notes/components/StaffNotesLauncher";
@@ -468,6 +469,7 @@ export function AppLayout() {
       </div>
 
       {!branchPending && <ArrivalCallDock />}
+      {!branchPending && <ChatDock />}
 
       <MobileNavDrawer
         open={drawerOpen}

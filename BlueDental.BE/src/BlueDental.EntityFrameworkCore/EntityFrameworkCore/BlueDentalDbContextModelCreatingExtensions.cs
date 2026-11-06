@@ -3,6 +3,7 @@ using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
 using BlueDental.Catalogs;
+using BlueDental.Chat;
 using BlueDental.ClinicIntegration;
 using BlueDental.CustomerCare;
 using BlueDental.FileManagement;
@@ -59,6 +60,58 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureEInvoicing(builder);
         ConfigureMarketing(builder);
         ConfigureTextSearch(builder);
+        ConfigureChat(builder);
+    }
+
+    /// <summary>
+    /// Chat nội bộ (F-89). Message text and file names hold ciphertext
+    /// (<see cref="IChatCipher"/>), so those columns are unbounded text: the
+    /// length rules are checked on the plain text before it is sealed.
+    /// </summary>
+    private static void ConfigureChat(ModelBuilder builder)
+    {
+        builder.Entity<ChatConversation>(entity =>
+        {
+            entity.ToTable("bd_chat_conversations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Property(x => x.Name).HasMaxLength(ChatConsts.MaxGroupNameLength);
+            entity.Property(x => x.DirectKey).HasMaxLength(80);
+            // One direct conversation per pair of people in a branch.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.DirectKey })
+                .IsUnique()
+                .HasFilter("\"DirectKey\" IS NOT NULL AND \"IsDeleted\" = FALSE");
+        });
+
+        builder.Entity<ChatMember>(entity =>
+        {
+            entity.ToTable("bd_chat_members");
+            entity.ConfigureByConvention();
+            entity.HasIndex(x => new { x.ConversationId, x.UserId }).IsUnique();
+            entity.HasIndex(x => x.UserId);
+            entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ChatMessage>(entity =>
+        {
+            entity.ToTable("bd_chat_messages");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.ContentCipher).HasColumnType("text");
+            entity.HasIndex(x => new { x.ConversationId, x.SentAt });
+            entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ChatAttachment>(entity =>
+        {
+            entity.ToTable("bd_chat_attachments");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.BlobName).HasMaxLength(256).IsRequired();
+            entity.Property(x => x.FileNameCipher).HasColumnType("text").IsRequired();
+            entity.Property(x => x.ContentType).HasMaxLength(128).IsRequired();
+            entity.HasIndex(x => x.MessageId);
+            entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<ChatMessage>().WithMany().HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     /// <summary>Searching without Vietnamese marks: see <see cref="DbText.Unaccent"/>.</summary>

@@ -990,4 +990,26 @@ public static class BlueDentalDomainErrorCodes
         public const string NoPatientPhone = "BlueDental:ZaloInbox:0012";
         public const string TransferToSelf = "BlueDental:ZaloInbox:0013";
     }
+
+    /// <summary>Chat nội bộ (F-89).</summary>
+    public static class Chat
+    {
+        public const string ContentRequired = "BlueDental:Chat:0001";
+        public const string ContentTooLong = "BlueDental:Chat:0002";
+        public const string NotMember = "BlueDental:Chat:0003";
+        public const string NotSender = "BlueDental:Chat:0004";
+        public const string MessageRecalled = "BlueDental:Chat:0005";
+        public const string GroupNameRequired = "BlueDental:Chat:0006";
+        public const string GroupNameTooLong = "BlueDental:Chat:0007";
+        public const string MemberNotInBranch = "BlueDental:Chat:0008";
+        public const string DirectWithSelf = "BlueDental:Chat:0009";
+        public const string GroupOnly = "BlueDental:Chat:0010";
+        public const string InvalidAttachment = "BlueDental:Chat:0011";
+        public const string TooManyAttachments = "BlueDental:Chat:0012";
+        public const string AttachmentUnavailable = "BlueDental:Chat:0013";
+        public const string BranchRequired = "BlueDental:Chat:0014";
+        public const string GroupNeedsMembers = "BlueDental:Chat:0015";
+        public const string TooManyMembers = "BlueDental:Chat:0016";
+        public const string AttachmentTooLarge = "BlueDental:Chat:0017";
+    }
 }

@@ -13924,3 +13924,45 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `reception-arrival-call` (có test mới "every row runs the card's wait clock…"), `reception-wait-time`, `reception-restore-arrived`, `reception-temp-cancel`, `staff-label-color`, `staff`: **15/15** (`--workers=1`, 5,7 phút).
   - Commit `2b4bb06a` (gộp với R-1155) lỡ mang theo test đo tạm và `vite.r1155.config.ts`. Commit tiếp theo gỡ cả hai và thêm bản sửa wrap.
 - **Mức retest**: 2.
+
+## R-1157 (2026-11-06, mức 2: Chat nội bộ có đính kèm file — F-89 mới, develop)
+
+- **Yêu cầu**:
+  - Owner: "Chat nội bộ, có đính kèm file".
+    - Trong một chi nhánh (sau này mở rộng được).
+    - Ai cũng tạo được nhóm, không có nhóm tự động.
+    - Chưa gắn hồ sơ bệnh nhân.
+    - Giữ tin vĩnh viễn.
+    - Tin thu hồi vẫn hiện "Tin nhắn đã được thu hồi".
+    - "data tin nhắn phải được mã hoá đúng chuẩn".
+  - BA: bấm icon chat thì mở khung chat bên cạnh, nằm trên layout hiện tại, cùng hàng với icon "mời lên" và đẩy nó sang trái. Chat cơ bản.
+- **Thiết kế** (chi tiết ở `features/chat.md`):
+  - 4 bảng `bd_chat_*`, migration `ChatR1157`.
+  - `ChatParticipantPolicy` là chỗ duy nhất quyết định ai chat được với ai (hiện là cùng chi nhánh).
+  - Mã hoá AES-256-GCM từng dòng, AAD là id của dòng. Khoá con lấy bằng HKDF-SHA256 từ `RECEIPT_VAULT_KEY` (info `bluedental/chat/v1`).
+  - File lưu thành blob `.enc` trong MinIO.
+  - SignalR chỉ gửi id cuộc trò chuyện; nội dung luôn lấy lại qua API có kiểm quyền.
+- **Lỗi tìm thấy khi test và đã sửa**:
+  1. Tải file của tin đã thu hồi trả **500** thay vì 404.
+     - Nguyên nhân: action trả `File()` không phải object result, nên filter của ABP chỉ đổi `EntityNotFoundException` thành 404 khi request xin JSON. Thẻ `<a>`/`<img>` không xin JSON nên nhận 500.
+     - Cách sửa: `ChatController.GetAttachmentAsync` tự bắt lỗi và trả `NotFound()`.
+  2. Audit log của ABP lưu **nguyên văn** nội dung tin (Send/Edit) và tên file (Upload, kể cả header multipart). Đã thấy trực tiếp trong `AbpAuditLogActions.Parameters`.
+     - Cách sửa:
+       - `[DisableAuditing]` trên `Content` của `SendChatMessageInput`/`EditChatMessageInput`. Hành động vẫn được ghi audit, kèm id.
+       - `[DisableAuditing]` trên action Upload (controller + app service). Ai tải lên lúc nào vẫn còn ở `CreatorId`/`CreationTime` của dòng attachment.
+- **Kiểm thử** (host :5157, DB thật `BlueDental_chat`, MinIO thật, bản build production :8157, không chặn request):
+  - `chat-api.spec` **7/7**:
+    - danh bạ theo chi nhánh, lỗi 0008/0009
+    - chat 1-1 + DB chỉ có `v1:` ciphertext
+    - tài khoản chi nhánh 2 nhận 404
+    - sửa/thu hồi chỉ người gửi + tải file sau khi thu hồi = 404
+    - file khớp từng byte, DB + MinIO chỉ có ciphertext, chặn file giả đuôi/đuôi lạ (0011) và dùng lại upload (0013)
+    - **audit không có canary** của nội dung / tên file
+    - nhóm
+  - `chat.spec` **3/3**:
+    - vị trí nút chat / Mời lên / panel
+    - gửi tin + file, người nhận thấy badge, tải file đúng nội dung, badge mất sau khi đọc
+    - sửa + thu hồi còn nguyên sau reload ở cả hai phía
+- **Mức retest**: 2 cho tính năng mới.
+  - Đụng `NotificationHub` (thêm nhóm `user:{id}`) và CSS vị trí `.arrival-dock`, nên khi sửa các chỗ này chạy thêm `reception-arrival-call`.
+  - Xem dòng chat trong `02-impact-map.md`.

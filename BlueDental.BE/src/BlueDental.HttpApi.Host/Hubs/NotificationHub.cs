@@ -1,3 +1,5 @@
+using System;
+using System.Security.Principal;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -8,14 +10,22 @@ namespace BlueDental.Hubs;
 [Authorize]
 public class NotificationHub(ILogger<NotificationHub> logger) : Hub
 {
-    public override Task OnConnectedAsync()
+    /// <summary>Every connection of one account, so a push can reach just that person (Chat nội bộ, F-89).</summary>
+    public static string UserGroupOf(Guid userId) => $"user:{userId}";
+
+    public override async Task OnConnectedAsync()
     {
         logger.LogInformation(
             "SignalR client connected: {ConnectionId}, User: {UserId}",
             Context.ConnectionId,
             Context.UserIdentifier);
 
-        return base.OnConnectedAsync();
+        if (Context.User?.FindUserId() is { } userId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, UserGroupOf(userId));
+        }
+
+        await base.OnConnectedAsync();
     }
 
     public override Task OnDisconnectedAsync(Exception? exception)
