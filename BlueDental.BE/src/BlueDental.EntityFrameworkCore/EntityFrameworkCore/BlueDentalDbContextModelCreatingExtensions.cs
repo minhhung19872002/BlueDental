@@ -3,6 +3,7 @@ using BlueDental.Appointments.Values;
 using BlueDental.Billing;
 using BlueDental.Billing.Values;
 using BlueDental.Catalogs;
+using BlueDental.Chat;
 using BlueDental.ClinicIntegration;
 using BlueDental.CustomerCare;
 using BlueDental.FileManagement;
@@ -59,6 +60,79 @@ public static class BlueDentalDbContextModelCreatingExtensions
         ConfigureEInvoicing(builder);
         ConfigureMarketing(builder);
         ConfigureTextSearch(builder);
+        ConfigureChat(builder);
+    }
+
+    /// <summary>
+    /// Chat nội bộ (F-89). Message text and file names hold ciphertext
+    /// (<see cref="IChatCipher"/>), so those columns are unbounded text: the
+    /// length rules are checked on the plain text before it is sealed.
+    /// </summary>
+    private static void ConfigureChat(ModelBuilder builder)
+    {
+        builder.Entity<ChatConversation>(entity =>
+        {
+            entity.ToTable("bd_chat_conversations");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Kind).HasConversion<short>();
+            entity.Property(x => x.Name).HasMaxLength(ChatConsts.MaxGroupNameLength);
+            entity.Property(x => x.DirectKey).HasMaxLength(80);
+            // One direct conversation per pair of people in a branch.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.DirectKey })
+                .IsUnique()
+                .HasFilter("\"DirectKey\" IS NOT NULL AND \"IsDeleted\" = FALSE");
+        });
+
+        builder.Entity<ChatMember>(entity =>
+        {
+            entity.ToTable("bd_chat_members");
+            entity.ConfigureByConvention();
+            entity.HasIndex(x => new { x.ConversationId, x.UserId }).IsUnique();
+            entity.HasIndex(x => x.UserId);
+            entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ChatMessage>(entity =>
+        {
+            entity.ToTable("bd_chat_messages");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.ContentCipher).HasColumnType("text");
+            // # tagged patients (R-1161): ids only, in the order tagged.
+            entity.Property(x => x.PatientIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'::uuid[]").IsRequired();
+            entity.HasIndex(x => new { x.ConversationId, x.SentAt });
+            // A retried send is stored once (R-1162).
+            entity.HasIndex(x => new { x.ConversationId, x.SenderId, x.ClientMessageId })
+                .IsUnique()
+                .HasFilter("\"ClientMessageId\" IS NOT NULL");
+            entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Earlier wordings of edited messages (R-1159), kept forever like the messages.
+        builder.Entity<ChatMessageRevision>(entity =>
+        {
+            entity.ToTable("bd_chat_message_revisions");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.ContentCipher).HasColumnType("text");
+            entity.Property(x => x.PatientIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'::uuid[]").IsRequired();
+            entity.HasIndex(x => new { x.MessageId, x.EditedAt });
+            entity.HasOne<ChatMessage>().WithMany().HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ChatAttachment>(entity =>
+        {
+            entity.ToTable("bd_chat_attachments");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.BlobName).HasMaxLength(256).IsRequired();
+            entity.Property(x => x.FileNameCipher).HasColumnType("text").IsRequired();
+            entity.Property(x => x.ContentType).HasMaxLength(128).IsRequired();
+            entity.HasIndex(x => x.MessageId);
+            // The orphan sweep (R-1158) only ever looks at files never sent.
+            entity.HasIndex(x => x.CreationTime)
+                .HasDatabaseName("IX_bd_chat_attachments_Unsent_CreationTime")
+                .HasFilter("\"MessageId\" IS NULL");
+            entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<ChatMessage>().WithMany().HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     /// <summary>Searching without Vietnamese marks: see <see cref="DbText.Unaccent"/>.</summary>

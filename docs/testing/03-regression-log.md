@@ -13924,3 +13924,238 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `reception-arrival-call` (có test mới "every row runs the card's wait clock…"), `reception-wait-time`, `reception-restore-arrived`, `reception-temp-cancel`, `staff-label-color`, `staff`: **15/15** (`--workers=1`, 5,7 phút).
   - Commit `2b4bb06a` (gộp với R-1155) lỡ mang theo test đo tạm và `vite.r1155.config.ts`. Commit tiếp theo gỡ cả hai và thêm bản sửa wrap.
 - **Mức retest**: 2.
+
+## R-1157 (2026-11-06, mức 2: Chat nội bộ có đính kèm file — F-89 mới, develop)
+
+- **Yêu cầu**:
+  - Owner: "Chat nội bộ, có đính kèm file".
+    - Trong một chi nhánh (sau này mở rộng được).
+    - Ai cũng tạo được nhóm, không có nhóm tự động.
+    - Chưa gắn hồ sơ bệnh nhân.
+    - Giữ tin vĩnh viễn.
+    - Tin thu hồi vẫn hiện "Tin nhắn đã được thu hồi".
+    - "data tin nhắn phải được mã hoá đúng chuẩn".
+  - BA: bấm icon chat thì mở khung chat bên cạnh, nằm trên layout hiện tại, cùng hàng với icon "mời lên" và đẩy nó sang trái. Chat cơ bản.
+- **Thiết kế** (chi tiết ở `features/chat.md`):
+  - 4 bảng `bd_chat_*`, migration `ChatR1157`.
+  - `ChatParticipantPolicy` là chỗ duy nhất quyết định ai chat được với ai (hiện là cùng chi nhánh).
+  - Mã hoá AES-256-GCM từng dòng, AAD là id của dòng. Khoá con lấy bằng HKDF-SHA256 từ `RECEIPT_VAULT_KEY` (info `bluedental/chat/v1`).
+  - File lưu thành blob `.enc` trong MinIO.
+  - SignalR chỉ gửi id cuộc trò chuyện; nội dung luôn lấy lại qua API có kiểm quyền.
+- **Lỗi tìm thấy khi test và đã sửa**:
+  1. Tải file của tin đã thu hồi trả **500** thay vì 404.
+     - Nguyên nhân: action trả `File()` không phải object result, nên filter của ABP chỉ đổi `EntityNotFoundException` thành 404 khi request xin JSON. Thẻ `<a>`/`<img>` không xin JSON nên nhận 500.
+     - Cách sửa: `ChatController.GetAttachmentAsync` tự bắt lỗi và trả `NotFound()`.
+  2. Audit log của ABP lưu **nguyên văn** nội dung tin (Send/Edit) và tên file (Upload, kể cả header multipart). Đã thấy trực tiếp trong `AbpAuditLogActions.Parameters`.
+     - Cách sửa:
+       - `[DisableAuditing]` trên `Content` của `SendChatMessageInput`/`EditChatMessageInput`. Hành động vẫn được ghi audit, kèm id.
+       - `[DisableAuditing]` trên action Upload (controller + app service). Ai tải lên lúc nào vẫn còn ở `CreatorId`/`CreationTime` của dòng attachment.
+- **Kiểm thử** (host :5157, DB thật `BlueDental_chat`, MinIO thật, bản build production :8157, không chặn request):
+  - `chat-api.spec` **7/7**:
+    - danh bạ theo chi nhánh, lỗi 0008/0009
+    - chat 1-1 + DB chỉ có `v1:` ciphertext
+    - tài khoản chi nhánh 2 nhận 404
+    - sửa/thu hồi chỉ người gửi + tải file sau khi thu hồi = 404
+    - file khớp từng byte, DB + MinIO chỉ có ciphertext, chặn file giả đuôi/đuôi lạ (0011) và dùng lại upload (0013)
+    - **audit không có canary** của nội dung / tên file
+    - nhóm
+  - `chat.spec` **3/3**:
+    - vị trí nút chat / Mời lên / panel
+    - gửi tin + file, người nhận thấy badge, tải file đúng nội dung, badge mất sau khi đọc
+    - sửa + thu hồi còn nguyên sau reload ở cả hai phía
+- **Mức retest**: 2 cho tính năng mới.
+  - Đụng `NotificationHub` (thêm nhóm `user:{id}`) và CSS vị trí `.arrival-dock`, nên khi sửa các chỗ này chạy thêm `reception-arrival-call`.
+  - Xem dòng chat trong `02-impact-map.md`.
+
+## R-1158 (2026-11-06, mức 3: Chat nội bộ — hardening, F-89, develop)
+
+- **Yêu cầu**:
+  - Owner chỉ vào danh sách "Chưa làm" của chat: "commit r làm mấy chỗ này được k".
+  - Thêm: "tăng dung lượng file lên 50MB … khi upload hiện progress bn %".
+  - Sau đó: "Tìm kiếm tin nhắn loading xấu" và "lỗi UI này" (chip upload có tên file Nhật dài làm hàng file tràn ngang).
+- **Đã làm**:
+  1. **Quét ClamAV** (`IMalwareScanner` / `ClamAvMalwareScanner`, lệnh INSTREAM) trước khi mã hoá + lưu.
+     - Có virus → `Chat:0018`.
+     - Không quét được → `Chat:0019` (fail-closed).
+     - Không cấu hình `MalwareScan:Host` thì không quét (máy dev).
+     - Compose đặt `CLAMD_CONF_StreamMaxLength: 60M`.
+  2. **Rate limit** (ASP.NET `UseRateLimiter` sau `UseAuthorization`), theo user, cửa sổ 30 giây: gửi + sửa 30, upload 30, tìm 20. Vượt → 429 `Chat:0020` + `Retry-After`.
+  3. **Dọn file mồ côi**: `ChatOrphanAttachmentWorker` xoá blob + dòng attachment chưa gắn quá 24 h. Cấu hình `Chat:OrphanAttachmentHours` / `Chat:OrphanSweepSeconds`.
+  4. **Xoá thành viên**:
+     - Cột `OwnerId`, migration `ChatOwnerR1158`.
+     - Chỉ chủ nhóm được xoá (`0021`), không tự xoá mình (`0022`).
+     - Chủ nhóm rời thì quyền chuyển cho người vào sớm nhất.
+     - FE: người bị xoá thấy "Bạn không còn ở trong cuộc trò chuyện này".
+  5. **Tên file**: BE bỏ ký tự Unicode Format (Cf, gồm U+202E) + Control; FE lọc lại khi hiển thị.
+  6. **Tìm theo nội dung tin**:
+     - Server giải mã từng lô, tối đa 5.000 tin mới nhất, trả ≤ 50 kết quả.
+     - Không phân biệt dấu, bỏ tin đã thu hồi.
+     - Bấm kết quả thì nhảy tới tin đó.
+     - Lúc đang tải dùng `ChatSpinner` chung.
+  7. **File 50 MB**: AppService 50 MB, Kestrel 51 MB, nginx location chat 55m.
+  8. **Tiến trình upload**:
+     - Chip hiện % (`progressbar`); tới 100% thì hiện "Đang xử lý" trong lúc quét + mã hoá.
+     - Sửa tràn ngang: Spin làm con của Tag, không dùng prop `icon`. Với `icon`, AntD bọc children trong một span nên tên file mất ellipsis.
+     - Hàng file `overflow-x: hidden`, tên tối đa 180px.
+- **Kiểm thử** (host :5157 + ClamAV thật, DB `BlueDental_chat`, MinIO, bản build production :8157, không chặn request):
+  - `chat-r1158-r1159-api` **15/15**:
+    - EICAR, U+202E, orphan 23 h/25 h;
+    - xoá thành viên + chuyển quyền chủ nhóm;
+    - tìm kiếm (không phân biệt dấu, bỏ tin thu hồi, chi nhánh 2 → 404, canary không vào audit);
+    - 429.
+  - `chat-edit` ca "tên file dài" (6 MB, đo `scrollWidth ≤ clientWidth` lúc đang tải và sau khi xong, không có raw key).
+  - `chat-api` 7/7, `chat` 3/3.
+- **Ghi chú**: chip hiện raw key "Chat:Processing" trên máy owner vì host :5000 chạy bản build cũ. Key có trong vi/en; chạy lại BE (build → DbMigrator → xoá Redis quyền → host) là hết.
+- **Mức retest**: 3, vì pipeline host có thêm `UseRateLimiter` (chỉ policy chat dùng, không có limiter global). Đã chạy lại toàn bộ chat spec.
+
+## R-1159 (2026-11-06, mức 2: Chat nội bộ — sửa tin F5, F-89, develop)
+
+- **Yêu cầu** (owner chốt F5):
+  - Chỉ người gửi sửa, trong 15 phút, chỉ sửa chữ.
+  - Giữ bản cũ đã mã hoá, thành viên xem được.
+  - Lỗi 0023 EditWindowExpired, 0024 EditConflict.
+  - `GET messages/{id}/revisions`; DTO có `canEdit` + `editableUntil`.
+  - Ô soạn: Enter lưu, Shift+Enter xuống dòng, Esc huỷ, ↑ sửa tin cuối của mình.
+  - Nhãn "đã chỉnh sửa" bấm được để xem bản cũ.
+- **Thiết kế**:
+  - Bảng `bd_chat_message_revisions` (migration `ChatRevisionsR1159`), `ContentCipher` mã hoá với AAD là id bản cũ.
+  - `ChatMessage.Edit` chặn: hết hạn → 0023; `expectedEditedAt` lệch → 0024; đã thu hồi → 0005; không phải người gửi → 0004.
+  - Trùng nội dung thì không làm gì.
+  - Tin có file được để trống chữ; tin chỉ có chữ mà sửa thành trống → 0001.
+  - PUT dùng chung rate limit với gửi.
+- **Kiểm thử**:
+  - `chat-r1158-r1159-api`:
+    - bản cũ chỉ là `v1:` ciphertext; `editableUntil` không đổi; xem bản cũ mới nhất trước;
+    - 0024 / 0023 (lùi `SentAt` 16 phút) / 0004 / 0005;
+    - revisions 404 với chi nhánh 2 và với người ngoài nhóm;
+    - canary không vào audit; chép ciphertext giữa hai bản cũ thì không đọc được.
+  - `chat-edit` **4/4** (2 trình duyệt):
+    - sửa qua menu → người kia thấy ngay qua SignalR + popover "Các bản trước khi sửa";
+    - ↑ / Esc / Hủy sửa giữ bản nháp;
+    - quá 15 phút thì mất "Sửa";
+    - chip tên dài.
+  - `chat.spec` đổi nhãn sang "đã chỉnh sửa".
+- **Mức retest**: 2.
+
+## R-1160 (2026-11-06, mức 2: Chat nội bộ — Kho lưu trữ, F-89, develop)
+
+- **Yêu cầu**: owner: "cho thêm chức năng t thấy chat app khác có là mở xem các file, ảnh, hay link trong cuộc hội thoại đó". Ảnh chụp BA gồm:
+  - tab Ảnh/Video, File, Link;
+  - lọc Người gửi, Ngày gửi;
+  - nhóm theo ngày "Ngày 06 Tháng 11";
+  - nút "Chọn".
+- **Đã làm**:
+  - BE:
+    - `ChatSharedLibrary` + 2 endpoint `shared/files` (phân trang, `hasMore`) và `shared/links` (giải mã ≤ 5.000 tin, ≤ 200 link, `isComplete`, rate limit Search).
+    - `ChatLinks.Find` chỉ giữ http/https, regex có timeout 200 ms.
+    - Không có migration.
+  - FE:
+    - `SharedLibrary` + các component `Shared*`; `ChatThread` có 3 view: thread / search / library.
+    - Ảnh chỉ tải khi cuộn tới (`useInView`).
+    - "Chọn" tải lần lượt hoặc chép link.
+  - Tab ghi "Ảnh" chứ không "Ảnh/Video" vì chat không nhận video.
+- **Lỗi bắt được khi test**: "Xem tin nhắn" cuộn tới tin nhưng tin không nằm trong khung nhìn.
+  - Nguyên nhân: list vừa mount lại vẫn "ghim đáy", và ảnh tải muộn làm ResizeObserver kéo về đáy trước khi sự kiện scroll kịp bỏ ghim.
+  - Sửa: `useStickToBottom` trả `unpin`, `useJumpToMessage` gọi `onShown` ngay sau `scrollIntoView`. Tìm kiếm tin cũng đi qua đường này.
+- **Sửa spec cũ**:
+  - `chat.spec`: nút "Lưu" phải `exact: true`, vì "Kho lưu trữ" cũng chứa "lưu".
+  - `chat-r1158-r1159-api` ca 16 phút dùng nhóm riêng, vì trong cuộc 1-1 dùng chung, tin lùi 16 phút rơi khỏi trang đầu sau nhiều lần chạy.
+  - `patiently` (đợi qua 429) chuyển vào `fixtures/chatApi.ts`.
+  - Các spec mới cho manager đánh dấu đã đọc nhóm của mình, để badge chưa đọc của `chat.spec` bắt đầu sạch.
+- **Kiểm thử** (host :5157 + ClamAV, DB `BlueDental_chat`, bản build production :8157, không chặn request):
+  - `chat-r1160-library-api` **6/6**:
+    - tách ảnh / file;
+    - tin thu hồi bị loại;
+    - lọc link (`javascript:`, `ftp:`, localhost bị bỏ; dấu câu; `www.`; trùng lặp);
+    - người gửi + ngày gửi (lùi `SentAt` 3 ngày);
+    - phân trang + 400 khi `maxResultCount` là 0 hoặc 101;
+    - chi nhánh 2 và người đã rời nhóm nhận 404.
+  - `chat-r1160-library` **4/4**:
+    - 3 tab, tiêu đề ngày, link có `rel`/`target`;
+    - lọc người gửi;
+    - Chọn → tải về đúng tên file, sao chép → đọc lại clipboard;
+    - Xem tin nhắn → tin trong khung nhìn + nháy.
+  - Toàn bộ chat **39/39**.
+- **Mức retest**: 2.
+
+## R-1161 (2026-11-06, mức 2: Chat nội bộ — gắn khách bằng `#`, F-89, develop)
+
+- **Yêu cầu**: BA: "thêm tag để hiển thị thông tin khách trong ngày luôn nha — ví dụ #DanhPham thì hiển thị thông tin khách và gửi đi". Owner chốt theo đề xuất: `docs/testing/features/chat-patient-tag.md`.
+- **Đã làm**:
+  - BE:
+    - Cột `PatientIds uuid[]` trên `bd_chat_messages` + `bd_chat_message_revisions` (migration `ChatPatientTagsR1161`).
+    - Nội dung đã mã hoá giữ token `#[Tên](patient:{id})`. `ChatPatientTokens.Normalize` hạ token có id lạ thành chữ `#Tên`. `ToDisplay` dùng cho tìm tin và Kho link.
+    - `ChatPatientTagger`: tối đa 5 khách (0025); khách phải thuộc chi nhánh của cuộc (0026).
+    - `ChatPatientCards`: dựng thẻ lúc đọc, theo lô cho cả trang, theo quyền `Patients.View` của người xem. Khách đã xoá → `missing`.
+    - `POST conversations/{id}/patient-suggestions`: khách hôm nay trước, không dấu, ≤ 10, rate limit Search.
+  - FE:
+    - `usePatientMentions` + `PatientSuggestions` (listbox, ↑↓ Enter Tab Esc).
+    - `ComposerTextBox`: textarea có lớp nền tô chip; Backspace xoá cả tag.
+    - `MessageText` (chip trong tin), `PatientCard(s)` (link `/patient/{id}?tab=profile`, hoặc thẻ rút gọn không phải link).
+    - Sửa tin đọc lại token thành bản nháp.
+- **Kiểm thử** (host :5157 + ClamAV, DB `BlueDental_chat`, bản build production :8157, không chặn request):
+  - `chat-r1161-patient-tag-api` **11/11**;
+  - `chat-r1161-patient-tag` **3/3**;
+  - toàn bộ chat **53/53**.
+  - Chi tiết: `chat-patient-tag.md` § 7.
+- **Lưu ý khi chạy lại**: tin gửi tay vào nhóm có manager mà manager chưa đọc sẽ làm đỏ ca badge của `chat.spec`. Ca đó cần manager không còn tin chưa đọc.
+- **Còn mở**: K1 đã chốt ở R-1163. R-1162 (I6.6, I1.6, I4.5, D1 + mục FE) chưa làm.
+- **Mức retest**: 2.
+
+## R-1163 (2026-11-06, mức 2: Chat nội bộ — K1 gắn khách khi không có quyền xem khách, F-89, develop)
+
+- **Yêu cầu**: K1 của R-1161. Người không có `Patients.View` vẫn gõ `#a`, `#b`… để lấy tên + Mã KH của mọi khách chi nhánh. Owner chọn phương án B: "làm đi".
+- **Đã làm** (chỉ BE):
+  - `ChatPatientCards.SuggestAsync(…, todayOnly)`: không có quyền → chỉ khách có lịch hẹn hoặc đã tiếp nhận hôm nay (giờ UTC+7, như thẻ), vẫn chỉ Tên + Mã KH.
+  - `ChatAppService.SendAsync` / `EditMessageAsync`: không có quyền mà gắn khách không phải khách hôm nay → 403 `BlueDental:Chat:0027` (vi/en). Khi sửa, khách đã có trên tin được giữ, chỉ khách thêm mới bị kiểm.
+- **Kiểm thử** (host :5157, DB `BlueDental_chat`, bản build production :8157, không chặn request):
+  - ca J4/J5 + K1 của `chat-r1161-patient-tag-api`: gợi ý rỗng; gửi → 0027 và số tin không đổi; khách hẹn hôm nay → gợi ý + gửi được; sửa giữ khách cũ → 200, thêm khách khác → 0027 và danh sách khách không đổi; cấp quyền → gợi ý lại khách khác.
+  - `chat-r1161` **14/14**; toàn bộ chat **53/53**.
+- **Mức retest**: 2.
+
+## R-1162 (2026-11-06, mức 3: Chat nội bộ — chặn trước staging + CSP toàn app, F-89, develop)
+
+- **Yêu cầu**: các mục còn mở của `chat-security-checklist.md`: I6.6, I1.6, I4.5, D1, ClamAV bắt buộc, cùng các mục FE I1.9, I1.7, I1.1, I5.3, H4.5, H6.6, H6.5, I6.1 và H5.1 (CSP). Owner: "làm đi", rồi "làm xong commit và push lên develop cho t".
+- **Đã làm — BE**:
+  - I6.6: con trỏ trang tin `SentAt < p || (SentAt == p && Id < pivotId)`, khớp với thứ tự sắp xếp (SentAt, Id).
+  - I1.6: `ChatMessage.ClientMessageId` + unique index lọc `(SenderId, ClientMessageId)`. Gửi lại cùng id → trả tin đã lưu. Gửi đồng thời đụng index → `IUniqueViolationDetector` bắt, rồi đọc lại tin. Migration `ChatClientMessageIdR1162`.
+  - I4.5: `OpenDirectAsync` tạo cuộc 1-1 trong UoW riêng (`requiresNew`). Đụng unique `(ClinicBranchId, DirectKey)` → đọc lại cuộc đã có, không còn 500.
+  - D1: policy `Manage` 20 / 30 s cho tạo nhóm, mở 1-1, đổi tên, thêm/xoá thành viên, rời nhóm. Thu hồi đi chung policy Send.
+  - ClamAV: `MalwareScan:Required`. Khi `Required` hoặc Production mà thiếu `Host` → 0019 + log lỗi, thay vì cho qua. `docker-compose.yml` đặt `MalwareScan__Required: "true"`.
+- **Đã làm — FE**:
+  - `usePendingUploads`: mỗi file có `AbortController`.
+    - × trên chip đang tải → huỷ (I1.9).
+    - Upload lỗi → chip đỏ + Tải lên lại / Bỏ tệp; Gửi bị khoá (I1.1).
+    - Rời thread → abort.
+  - `clientMessageId` theo nội dung nháp; gửi tự thử lại tối đa 2 lần khi lỗi mạng (I1.6).
+  - `beforeunload` khi đang tải hoặc đang gửi (I1.7).
+  - `useChatLive`: hub dừng → thử lại 5 s, gấp đôi tới 60 s, rồi tải lại (I5.3).
+  - `useMarkReadWhenUnread` theo `visibilityState` (H4.5).
+  - `src/components/ErrorBoundary.tsx` + `ChatDockFallback`: lỗi render chat chỉ làm hỏng nút chat (H6.6).
+  - `CharCount` hiện khi còn ≤ 400 ký tự, đỏ ở 4.000 (I6.1).
+- **Đã làm — CSP (toàn app, H5.1)**:
+  - `docker/security-headers.conf` thêm `Content-Security-Policy`:
+    - `script-src 'self' 'wasm-unsafe-eval'`;
+    - Google Fonts;
+    - `img-src https:` cho ảnh Zalo;
+    - `connect-src https://fastly.jsdelivr.net` cho wasm đọc QR;
+    - `object-src 'none'`, `frame-ancestors 'self'`.
+  - `main.tsx`: `z.config({ jitless: true })`. Zod v4 dò `new Function` một lần, và lần dò đó là một vi phạm CSP. Kết quả parse không đổi.
+- **Không làm (H6.5 ảo hoá)**: ảo hoá đụng với dính-đáy, nhảy tới tin và chèn trang cũ lên đầu. `content-visibility` thì cắt viền nháy. Mỗi trang 30 tin và tin cũ chỉ tải khi bấm. Để mở, ghi ở checklist.
+- **Kiểm thử** (host :5157 + ClamAV thật, DB `BlueDental_chat`, bản build production :8157 gửi header CSP, không chặn request):
+  - `chat-r1162-api` **5/5** (I6.6, I1.6, I4.5, D1 ×2).
+  - `chat-r1162` **3/3** UI (huỷ upload 45 MB, file EICAR → chip lỗi + thử lại thật + bỏ, bộ đếm).
+  - Toàn bộ `e2e/chat*` **61/61**.
+  - ClamAV chạy tay:
+    - `Required` + thiếu `Host` → 403 0019;
+    - `docker stop bluedental-clamav-1` → 0019;
+    - cấu hình đúng → 200.
+  - CSP: 22 route + hồ sơ bệnh nhân dưới header thật → 0 vi phạm, sau khi bật `jitless`. Trước đó Lịch hẹn và Dashboard báo `script-src eval` từ zod.
+- **Sửa test cũ**:
+  - Thu hồi gọi thẳng API → bọc `patiently` (thu hồi giờ tính vào giới hạn gửi).
+  - `chat-r1158-r1159-api` bỏ bản `patiently` khai báo trùng.
+  - `chat.spec` đặt `LastReadAt = now()` cho manager ở `beforeAll`: badge đếm mọi tin chưa đọc, và các spec chat khác để lại nhóm chưa đọc.
+- **Triển khai**:
+  - Chạy DbMigrator (`ChatClientMessageIdR1162`).
+  - Smoke staging với CSP mới: đăng nhập, Lịch hẹn, Dashboard, đọc QR, ảnh Zalo.
+- **Mức retest**: 3, vì CSP, `ErrorBoundary` trong `AppLayout` và zod `jitless` đều ảnh hưởng toàn app.

@@ -12,9 +12,12 @@ import {
 } from "@ant-design/icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { authApi } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { ChatDock } from "@/features/chat/components/ChatDock";
+import { ChatDockFallback } from "@/features/chat/components/ChatDockFallback";
 import { useClinicBranches } from "@/features/organizations/api";
 import { ArrivalCallDock } from "@/features/reception/components/ArrivalCallDock";
 import { StaffNotesLauncher } from "@/features/staff-notes/components/StaffNotesLauncher";
@@ -468,6 +471,11 @@ export function AppLayout() {
       </div>
 
       {!branchPending && <ArrivalCallDock />}
+      {!branchPending && (
+        <ErrorBoundary name="chat" fallback={(reset) => <ChatDockFallback onRetry={reset} />}>
+          <ChatDock />
+        </ErrorBoundary>
+      )}
 
       <MobileNavDrawer
         open={drawerOpen}

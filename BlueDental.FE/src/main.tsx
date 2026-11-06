@@ -6,6 +6,7 @@ import { ConfigProvider, App as AntdApp } from "antd";
 import { Toaster } from "sonner";
 import viVN from "antd/locale/vi_VN";
 import enUS from "antd/locale/en_US";
+import { z } from "zod";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import { queryClient } from "./lib/queryClient";
@@ -20,6 +21,11 @@ import "flag-icons/css/flag-icons.min.css";
 import "./styles/index.css";
 
 dayjs.locale("vi");
+
+// The nginx CSP forbids eval (R-1162 H5.1). Zod would otherwise probe
+// `new Function` once to decide whether to compile parsers, and every probe
+// is a CSP violation report; the interpreted path gives the same results.
+z.config({ jitless: true });
 
 // The branch switcher's ?branch= goes through the router, so screens that
 // set their own search params build on the current branch, not a stale one.
