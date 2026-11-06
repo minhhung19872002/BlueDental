@@ -9061,7 +9061,8 @@ html:has(.ant-modal-wrap) {
    sample (2026-11-05): a neon conic gradient spinning every 2s, cut into
    dashes, blinking, with a glow.
 
-   Kept from the sample: palette, dashes every 14°, 2s spin, 1.4s blink.
+   Kept from the sample: palette, dashes every 14°. Slowed for the BA
+   (2026-11-06, "nhanh quá chóng mặt"): 6s spin (sample 2s), 3s blink (1.4s).
    Changed for a light UI, our layouts and speed:
    - the gaps between dashes are real holes (a third mask layer), not black
      dashes painted over the ring — black reads as gaps only on a dark page;
@@ -9122,8 +9123,8 @@ html:has(.ant-modal-wrap) {
   mask-composite: intersect, exclude;
   will-change: opacity;
   animation:
-    bd-rgb-spin 2s linear infinite,
-    bd-rgb-blink 1.4s ease-in-out infinite;
+    bd-rgb-spin 6s linear infinite,
+    bd-rgb-blink 3s ease-in-out infinite;
   pointer-events: none;
 }
 

@@ -235,9 +235,11 @@
   color: #cf3c41;
 }
 
+/* A still-white card (not yet arrived) gets a darker edge so it stands off the
+   page (BA 2026-11-06); coloured states set their own borderColor inline. */
 .rc-card {
   background: #fff;
-  border: 1px solid #e7eaf6;
+  border: 1px solid #aab1d6;
   border-radius: 16px;
   height: 100%;
   padding: 16px 0;
