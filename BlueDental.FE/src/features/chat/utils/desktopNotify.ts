@@ -23,8 +23,17 @@ export function isPageInBackground(): boolean {
   return document.visibilityState === "hidden" || !document.hasFocus();
 }
 
+/**
+ * `renotify` is Chromium-only and not in TypeScript's DOM types. Without it a
+ * newer message with the same tag silently swaps the text in the notification
+ * centre and no banner pops up (R-1166).
+ */
+interface ChromeNotificationOptions extends NotificationOptions {
+  renotify?: boolean;
+}
+
 interface DesktopNotice {
-  /** One notice per conversation: a newer message replaces it. */
+  /** One notice per conversation: a newer message replaces it and pops up again. */
   tag: string;
   title: string;
   body: string;
@@ -35,7 +44,8 @@ export function showDesktopNotice({ tag, title, body, onClick }: DesktopNotice):
   if (!supported() || Notification.permission !== "granted") return;
   const text = body.length > BODY_MAX ? `${body.slice(0, BODY_MAX - 1)}…` : body;
   try {
-    const notice = new Notification(title, { body: text, tag, icon: ICON_URL });
+    const options: ChromeNotificationOptions = { body: text, tag, icon: ICON_URL, renotify: true };
+    const notice = new Notification(title, options);
     notice.onclick = () => {
       window.focus();
       onClick();

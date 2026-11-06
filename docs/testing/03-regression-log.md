@@ -14227,3 +14227,11 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `chat-r1165-toast.spec.ts` **8/8**: vị trí dưới header + tự đóng ~5 s; ting; giữ khi trỏ chuột + ×; tin mới thay toast + "2 tin chưa đọc"; bấm toast mở cuộc trò chuyện, cuộc đang mở không có toast, mở lại về danh sách; tin của mình không toast; toast nhóm; thông báo Windows (thay `Notification` / `hasFocus` của trình duyệt) bấm vào mở cuộc trò chuyện.
   - Toàn bộ `e2e/chat*` **69/69**. Kiểm bằng ảnh chụp desktop + điện thoại 390 px.
 - **Mức retest**: 2 (chỉ chat; `useChatLive` chỉ thêm callback).
+
+## R-1166 (2026-11-06, mức 2: Chat nội bộ — thông báo Windows tin thứ 2 không bật lên, F-89, main)
+
+- **Báo lỗi (owner, staging)**: app ở phía sau, tin đầu có thông báo Windows; gửi tiếp tin trong cùng cuộc trò chuyện thì không hiện banner, chỉ thấy chữ trong Trung tâm thông báo đổi sang tin mới.
+- **Nguyên nhân**: R-1165 dùng `tag` = id cuộc trò chuyện để mỗi cuộc chỉ giữ một thông báo. Chrome thay thông báo cùng `tag` **im lặng** nếu không có `renotify: true`.
+- **Sửa**: `utils/desktopNotify.ts` thêm `renotify: true` (kiểu `ChromeNotificationOptions` vì DOM types của TypeScript chưa có thuộc tính này). Vẫn một thông báo cho mỗi cuộc, nhưng mỗi tin mới bật banner lại.
+- **Kiểm thử** (host riêng :5157 trên DB `BlueDental_chat` + bản build production :8157, không chặn request): `chat-r1165-toast.spec.ts` **8/8**; ca thông báo Windows giờ gửi 2 tin khi app ở phía sau, kỳ vọng 2 lần tạo `Notification` cùng `tag`, đều `renotify: true`, bấm thông báo sau mở đúng cuộc trò chuyện.
+- **Mức retest**: 2 (chỉ chat, một file util).

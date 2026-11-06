@@ -119,7 +119,7 @@ BA 2026-11-06: "Thêm cho chat phần thông báo để xem nhanh nha (5s)", khu
 - Hiện toast khi: tin của người khác, chưa thu hồi, chưa sửa, gửi trong 10 phút, còn chưa đọc, đúng chi nhánh đang chọn trên header (giống badge), và cuộc trò chuyện đó **không** đang mở trên màn hình. Mỗi tin chỉ báo một lần.
 - Toast: chữ tắt tên, tên người gửi (nhóm: "người gửi · tên nhóm"), 2 dòng nội dung, "N tin chưa đọc" khi > 1. Bấm → mở đúng cuộc trò chuyện trong panel; × đóng. Thanh dưới chân chạy 5 s rồi toast tự đóng; trỏ chuột / tab vào thì dừng. Một toast cho mỗi cuộc trò chuyện (tin mới thay toast cũ, chạy lại 5 s), tối đa 3. Panel đang mở thì chồng toast nằm bên trái panel.
 - Tiếng "ting" tạo bằng Web Audio (không có file âm thanh, khác chuông "Mời lên" R-1144), tối đa một lần mỗi 1,5 s. Trình duyệt chặn âm thanh tới khi trang có một cú bấm → khi đó chỉ có toast.
-- Thông báo Windows: trình duyệt hỏi quyền một lần, khi bấm mở chat hoặc bấm toast. Chỉ hiện khi tab bị ẩn hoặc cửa sổ khác đang ở trên; bấm vào → đưa app lên và mở cuộc trò chuyện. Nội dung cắt ở 140 ký tự. Xem rủi ro ở checklist H3.3.
+- Thông báo Windows: trình duyệt hỏi quyền một lần, khi bấm mở chat hoặc bấm toast. Chỉ hiện khi tab bị ẩn hoặc cửa sổ khác đang ở trên; bấm vào → đưa app lên và mở cuộc trò chuyện. Nội dung cắt ở 140 ký tự. Xem rủi ro ở checklist H3.3. *(R-1166)* Tin sau của cùng cuộc trò chuyện thay thông báo cũ (cùng `tag`) **và bật lên lại** (`renotify: true`); trước đó Chrome chỉ âm thầm đổi chữ trong Trung tâm thông báo, không có banner.
 - Code: `hooks/useNewMessageAlerts.ts`, `components/ChatToastStack.tsx`, `utils/chatSound.ts`, `utils/desktopNotify.ts`; `ChatDock` giữ cuộc trò chuyện đang mở (`ChatPanel` thành controlled) để toast mở được nó.
 
 ## Triển khai
@@ -180,4 +180,4 @@ E2E_BASE_URL=<preview> E2E_DB_NAME=<db của host> npx playwright test e2e/chat-
 - `chat-r1162-api.spec.ts` (5): phân trang cùng `SentAt`, gửi lại cùng `clientMessageId`, 4 request mở 1-1 cùng lúc, giới hạn quản lý + thu hồi.
 - `chat-r1162.spec.ts` (3, giao diện): huỷ file 45 MB đang tải, file EICAR → chip lỗi + thử lại + bỏ, bộ đếm ký tự.
 - `chat-r1165-toast.spec.ts` (8, giao diện, hai trình duyệt): toast dưới header góc phải và tự đóng sau ~5 s; có ting (đếm oscillator Web Audio); trỏ chuột giữ lại, × đóng; tin mới thay toast cũ + "2 tin chưa đọc"; bấm toast mở cuộc trò chuyện, cuộc đang mở không có toast; tin của chính mình không có toast; toast nhóm "người gửi · nhóm"; app ở phía sau → thông báo Windows (thay `window.Notification` + `document.hasFocus` của trình duyệt, không chặn request nào) và bấm vào mở cuộc trò chuyện.
-- Toàn bộ chat: **61/61** (R-1162); **69/69** (R-1165). `chat.spec` xoá tin chưa đọc của manager ở `beforeAll`, vì badge đếm mọi tin chưa đọc.
+- Toàn bộ chat: **61/61** (R-1162); **69/69** (R-1165); R-1166 chạy lại `chat-r1165-toast` **8/8**. `chat.spec` xoá tin chưa đọc của manager ở `beforeAll`, vì badge đếm mọi tin chưa đọc.
