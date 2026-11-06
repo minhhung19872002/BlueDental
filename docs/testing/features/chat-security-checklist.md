@@ -138,7 +138,7 @@ sửa/thu hồi chỉ người gửi, file tải về đúng từng byte + bị 
 |---|---|---|---|---|
 | H3.1 | Tin hiện bằng text React (`white-space: pre-wrap`), không `dangerouslySetInnerHTML`, không thư viện markdown chưa sanitize | `grep dangerouslySetInnerHTML src/features/chat` | 0 kết quả | ✅ |
 | H3.2 | Tự nhận link chỉ cho `http:`/`https:`; chặn `javascript:`, `data:`, `vbscript:` | Gửi `javascript:alert(1)` | Hiện dạng chữ, không thành link | ⚪ không có linkify |
-| H3.3 | Tiêu đề tab / badge / toast / Notification của trình duyệt chỉ hiện số hoặc tên người gửi, không hiện nội dung | Nhận tin khi ở trang khác / tab khác | Không lộ nội dung | ✅ |
+| H3.3 | Tiêu đề tab / badge / toast / Notification của trình duyệt chỉ hiện số hoặc tên người gửi, không hiện nội dung | Nhận tin khi ở trang khác / tab khác | Không lộ nội dung | ⚠ **Owner chốt khác (R-1165, 2026-11-06)**: toast trong app **và** thông báo Windows hiện nội dung tin (BA muốn "xem nhanh"). Giới hạn: thông báo Windows chỉ khi người dùng bấm Cho phép, chỉ khi app không ở phía trước, nội dung cắt ở 140 ký tự, một thông báo cho mỗi cuộc trò chuyện (`tag`). Rủi ro còn lại: máy dùng chung trong phòng khám có thể lộ nội dung tin (kể cả thông tin khách) trên góc màn hình; tắt bằng cách chặn thông báo của trang trong trình duyệt. Tiêu đề tab và badge vẫn chỉ hiện số |
 | H3.4 | Không `console.log` nội dung tin, tên file, response API | `grep console src/features/chat` + xem console khi chat | Chỉ log lỗi kỹ thuật | ✅ chỉ có `console.warn` lỗi kết nối |
 | H3.5 | Tin đã thu hồi: biến mất ở mọi máy đang mở (qua push), không còn trong cache | A thu hồi khi B đang mở | B thấy "Tin nhắn đã thu hồi", không tải được file | ✅ push + server chặn tải |
 
