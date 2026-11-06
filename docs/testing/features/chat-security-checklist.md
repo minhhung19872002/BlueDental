@@ -6,6 +6,13 @@ Dùng để rà lại khi session đang làm chat báo xong. Mỗi mục: **ki�
 Chỉ đọc code, **chưa chạy runtime** — mọi ✅ ở đây là "code đúng", vẫn phải chạy thật mới tính là đạt.
 Có `e2e/chat-api.spec.ts` (6 test, gọi API thật, không `page.route`) — chưa chạy trong lần rà này.
 
+**Cập nhật 2026-11-06 — R-1158 (hardening) + R-1159 (sửa tin, F5), đã chạy thật** trên host + PostgreSQL + MinIO + ClamAV thật:
+- `chat-api` 7/7, `chat` 3/3;
+- `chat-r1158-r1159-api` 15/15;
+- `chat-edit` 4/4 (UI, 2 trình duyệt).
+
+Các ô ghi *(R-1158)* / *(R-1159)* là kết quả sau lần này.
+
 Ký hiệu: ✅ code đạt · ❌ chưa có / sai · ⚠ đạt một phần / có rủi ro · ❓ phải chạy thật mới biết · ⚪ đã chốt / không áp dụng
 
 ---
@@ -19,9 +26,9 @@ Ký hiệu: ✅ code đạt · ❌ chưa có / sai · ⚠ đạt một phần / 
 | A3 | Người không phải thành viên KHÔNG đọc / gửi / sửa / thu hồi / tải file được | User C gọi bằng id cuộc trò chuyện, id tin, id file của A–B | 404 (không lộ là có tồn tại) | ✅ `GetVisibleAsync` → 404; có test e2e |
 | A4 | Giới hạn chi nhánh ở server | User chỉ thuộc CN2 gửi `X-Clinic-Branch-Id` = CN1 rồi list/đọc/tạo | Không thấy dữ liệu CN1, không tạo được ở CN1 | ✅ theo code (`BranchAccessChecker` theo phân công chi nhánh) + có test e2e — ❓ chưa chạy |
 | A5 | Chỉ mời được người đủ điều kiện (đang hoạt động, thuộc chi nhánh) | Tạo nhóm/thêm người với user CN khác hoặc user bị khoá | Lỗi `Chat:MemberNotInBranch` | ✅ `ChatParticipantPolicy` |
-| A6 | Bị xoá khỏi nhóm / bị khoá tài khoản → mất quyền NGAY | Xoá B khỏi nhóm → B đọc lại tin cũ, tải file cũ | 404 | ⚠ **Không có chức năng xoá thành viên**, chỉ có Rời nhóm (rời → 404, có test). Tài khoản bị khoá: `GetVisibleAsync` không kiểm `IsActive`, phụ thuộc việc phiên cookie bị thu hồi |
+| A6 | Bị xoá khỏi nhóm / bị khoá tài khoản → mất quyền NGAY | Xoá B khỏi nhóm → B đọc lại tin cũ, tải file cũ | 404 | ⚠ *(R-1158)* Có xoá thành viên: chỉ chủ nhóm (0021), không tự xoá mình (0022). Người bị xoá nhận 404 khi đọc và khi gửi; có test `chat-r1158-r1159-api`. Còn mở: tài khoản bị khoá — `GetVisibleAsync` không kiểm `IsActive`, phụ thuộc việc phiên cookie bị thu hồi |
 | A7 | File chỉ gắn được vào tin của chính người upload, cùng cuộc trò chuyện, 1 lần | Gửi tin kèm `attachmentId` của người khác / cuộc trò chuyện khác / đã gắn rồi | Lỗi `Chat:AttachmentUnavailable` | ✅ `ChatAttachment.AttachTo` |
-| A8 | Chỉ người gửi được sửa / thu hồi tin của mình | B sửa/thu hồi tin của A | Bị từ chối | ✅ `NotSender` trong domain; có test e2e |
+| A8 | Chỉ người gửi được sửa / thu hồi tin của mình | B sửa/thu hồi tin của A | Bị từ chối | ✅ `NotSender` trong domain; có test e2e. *(R-1159)* Sửa chỉ được trong 15 phút (0023); có test |
 | A9 | SignalR chỉ đẩy tới đúng thành viên, không mang nội dung | Bắt frame websocket của người ngoài nhóm khi có tin mới | Người ngoài không nhận gì; thành viên chỉ nhận `conversationId` | ✅ chỉ đẩy `conversationId` vào group `user:{id}` |
 
 ## B. Mã hoá & bảo vệ dữ liệu
@@ -31,7 +38,7 @@ Ký hiệu: ✅ code đạt · ❌ chưa có / sai · ⚠ đạt một phần / 
 | B1 | Nội dung tin mã hoá khi lưu | `SELECT` bảng tin nhắn trong PostgreSQL | Chỉ thấy `v1:<base64>` | ✅ AES-256-GCM; test e2e có kiểm |
 | B2 | Tên file mã hoá khi lưu | `SELECT` bảng attachment | Không thấy tên file gốc | ✅ |
 | B3 | File trong MinIO đã mã hoá, tên blob không lộ tên gốc | Tải blob `chat/...` trực tiếp từ MinIO, mở thử | Không mở được; tên dạng `<guid>.enc` | ✅ `chat/{branch}/{conv}/{id}.enc` |
-| B4 | **Audit log ABP KHÔNG chứa nội dung tin** | Gửi / sửa tin có chuỗi dễ nhận ("CANARY-xyz") → `SELECT * FROM "AbpAuditLogActions" WHERE "Parameters" LIKE '%CANARY%'` | 0 dòng | ✅ (R-1157) — đã thấy rò thật trong `Parameters` (cả nội dung lẫn tên file qua Upload). Sửa: `[DisableAuditing]` trên `Content` của Send/Edit + trên action Upload; test canary trong `chat-api.spec` (audit log + `AbpEntityPropertyChanges` = 0 dòng) |
+| B4 | **Audit log ABP KHÔNG chứa nội dung tin** | Gửi / sửa tin có chuỗi dễ nhận ("CANARY-xyz") → `SELECT * FROM "AbpAuditLogActions" WHERE "Parameters" LIKE '%CANARY%'` | 0 dòng | ✅ (R-1157) — đã thấy rò thật trong `Parameters` (cả nội dung lẫn tên file qua Upload). Sửa: `[DisableAuditing]` trên `Content` của Send/Edit + trên action Upload; test canary trong `chat-api.spec` (audit log + `AbpEntityPropertyChanges` = 0 dòng). *(R-1159, đã chạy thật)* Bản cũ khi sửa nằm ở `bd_chat_message_revisions`, mã hoá `v1:`, AAD = id bản cũ. Canary của nội dung cũ lẫn mới không có trong audit log hay `AbpEntityPropertyChanges`. Chép ciphertext sang bản cũ khác thì không đọc ra. *(R-1158)* Từ khoá tìm kiếm cũng không vào audit log. Test: `chat-r1158-r1159-api` |
 | B5 | Application log (Serilog) không ghi nội dung tin / tên file (PHI) | grep log sau khi gửi tin "CANARY" | Không thấy | ✅ code chat không ghi log; hub chỉ log connection id + user id |
 | B6 | Ciphertext gắn với id dòng (copy sang dòng khác không mở được) | Copy cột nội dung tin X sang tin Y trong DB → đọc Y | Lỗi giải mã, không hiện nội dung X | ✅ AAD = row id |
 | B7 | Thiếu / sai key thì báo lỗi rõ, không lưu plaintext dự phòng | Bỏ `RECEIPT_VAULT_KEY` → gửi tin | Lỗi `ReceiptVaultKeyMissing`, không có dòng plaintext nào được ghi | ✅ |
@@ -44,22 +51,22 @@ Ký hiệu: ✅ code đạt · ❌ chưa có / sai · ⚠ đạt một phần / 
 |---|---|---|---|---|
 | C1 | Allowlist đuôi file (không phải blocklist) | Upload `.exe`, `.html`, `.svg`, `.js` | Từ chối | ✅ 14 đuôi |
 | C2 | Kiểm magic bytes — file đổi đuôi bị từ chối | Đổi `x.exe` → `x.pdf`, `x.html` → `x.png` rồi upload | Từ chối | ✅ — `.txt/.csv` chỉ kiểm "không có byte NUL" (chấp nhận được vì luôn tải về, không hiển thị) |
-| C3 | Giới hạn dung lượng ở cả Kestrel lẫn AppService | Upload 21 MB | Từ chối, server không bị đọc hết vào RAM | ✅ Kestrel 21 MB, nginx 25m, AppService đọc tối đa 20 MB |
+| C3 | Giới hạn dung lượng ở cả Kestrel lẫn AppService | Upload 21 MB | Từ chối, server không bị đọc hết vào RAM | ✅ *(R-1158)* Giới hạn 50 MB: Kestrel 51 MB, nginx 55m, AppService đọc tối đa 50 MB; ClamAV `StreamMaxLength` 60M |
 | C4 | Giới hạn số file mỗi tin | Gửi 11 file | Từ chối | ✅ 10 |
-| C5 | **Quét virus bằng ClamAV trước khi lưu** | Upload file EICAR (đổi đuôi `.txt`/`.pdf`/`.docx`) | Từ chối, không có blob nào được ghi | ❌ **không có code ClamAV nào** |
-| C6 | ClamAV hỏng / timeout thì chặn upload (fail-closed), không cho qua | Tắt container ClamAV → upload | Lỗi rõ, không lưu file | ❌ |
+| C5 | **Quét virus bằng ClamAV trước khi lưu** | Upload file EICAR (đổi đuôi `.txt`/`.pdf`/`.docx`) | Từ chối, không có blob nào được ghi | ✅ *(R-1158)* quét ClamAV trước khi mã hoá + lưu. EICAR `.txt` → `Chat:0018`, không có blob; có test |
+| C6 | ClamAV hỏng / timeout thì chặn upload (fail-closed), không cho qua | Tắt container ClamAV → upload | Lỗi rõ, không lưu file | ✅ *(R-1158)* không quét được → `Chat:0019`, không lưu (fail-closed theo code) — ❓ chưa chạy kịch bản stop container. Lưu ý: không đặt `MalwareScan:Host` (máy dev) thì không quét, chỉ log cảnh báo; compose đặt `clamav` |
 | C7 | Tên file bị làm sạch (bỏ đường dẫn, ký tự điều khiển) | Upload tên `../../a.pdf`, tên có `\r\n` | Lưu thành `a.pdf`; header tải về không bị chèn | ✅ `Path.GetFileName`; `File()` của ASP.NET tự mã hoá header nên không chèn header được — nhưng ký tự điều khiển vẫn giữ trong tên (xem H2.6) |
 | C8 | Tải về luôn `Content-Disposition: attachment` + `X-Content-Type-Options: nosniff` | Xem response header khi tải file trên staging (qua Caddy) | Có đủ 2 header | ⚠ `attachment` ✅; nosniff: location `/api/v1/app/chat/` không có `add_header` riêng nên kế thừa snippet cấp server — cần `curl -I` xác nhận |
 | C9 | Không render file người dùng như HTML; ảnh preview chỉ qua `<img>` | Review FE | Không có `iframe`/`object`/`innerHTML` với file chat | ✅ ảnh qua `<img>`, file khác chỉ tải về |
 | C10 | File thu hồi / tin bị thu hồi thì không tải được nữa | Thu hồi tin → gọi lại URL tải | 404 | ✅ |
-| C11 | Dọn file upload nhưng không gửi (orphan) | Upload rồi không gửi; chạy job | Blob + dòng DB bị xoá sau thời hạn đã chốt | ❌ không có job dọn |
+| C11 | Dọn file upload nhưng không gửi (orphan) | Upload rồi không gửi; chạy job | Blob + dòng DB bị xoá sau thời hạn đã chốt | ✅ *(R-1158)* `ChatOrphanAttachmentWorker`: chưa gắn vào tin quá 24 h thì xoá blob + dòng (quét mỗi giờ). Test: file 23 h còn, 25 h mất |
 | C12 | Chốt có cho `.doc/.xls/.ppt` (định dạng cũ, hay chứa macro) không | Hỏi chủ dự án | Có quyết định ghi lại | ❓ code đang cho phép — chờ chủ dự án |
 
 ## D. Chống lạm dụng
 
 | # | Yêu cầu | Kiểm thế nào | Đạt khi | Theo code 2026-11-06 |
 |---|---|---|---|---|
-| D1 | Rate limit gửi tin / upload / tạo nhóm theo user | Bắn 100 request/giây | 429 sau ngưỡng | ❌ không có rate limiter |
+| D1 | Rate limit gửi tin / upload / tạo nhóm theo user | Bắn 100 request/giây | 429 sau ngưỡng | ✅ *(R-1158)* ASP.NET rate limiter theo user, cửa sổ 30 giây: gửi + sửa 30, upload 30, tìm 20. Vượt → 429 `Chat:0020` + `Retry-After`; có test. Tạo nhóm chưa giới hạn. Bộ đếm nằm trong bộ nhớ của từng host |
 | D2 | Giới hạn độ dài tin, tên nhóm, số thành viên, page size | Gửi vượt từng giới hạn | 400 với lỗi rõ | ✅ 4000 / 100 / 100 / 100 |
 | D3 | Hub SignalR không cho client gọi method tuỳ ý; giới hạn kích thước message | Review hub | Chỉ server đẩy xuống | ✅ |
 
@@ -80,7 +87,7 @@ Ký hiệu: ✅ code đạt · ❌ chưa có / sai · ⚠ đạt một phần / 
 | F2 | Nhân viên nghỉ việc: tin cũ giữ / ẩn tên / xoá? | Tin giữ nguyên; user bị xoá hiện tên "—" | |
 | F3 | Có ai (admin) được đọc chat của người khác không? Nếu có thì mỗi lần đọc phải có audit | Không có đường nào cho admin đọc | |
 | F4 | Thu hồi tin: chỉ ẩn hay xoá luôn blob file? | Chỉ ẩn; blob vẫn nằm trong MinIO nhưng API chặn tải | |
-| F5 | Sửa tin có giữ lịch sử bản cũ không? | Không — ghi đè | |
+| F5 | Sửa tin có giữ lịch sử bản cũ không? | ✅ *(R-1159, đã chạy thật)* Giữ mọi bản cũ, mã hoá. Server chặn: 0023 quá hạn, 0024 xung đột, 0004 không phải người gửi, 0005 đã thu hồi. `GET messages/{id}/revisions`: 404 với người ngoài nhóm / khác chi nhánh, `[]` khi đã thu hồi. DTO có `canEdit` + `editableUntil`; nhãn "đã chỉnh sửa" bấm được để xem bản cũ. Test: `chat-r1158-r1159-api`, `chat-edit` | **Chốt 2026-11-06:** giữ mọi bản cũ (mã hoá), thành viên xem được qua "đã chỉnh sửa"; chỉ sửa trong 15 phút sau khi gửi; chỉ sửa chữ, không sửa file |
 | F6 | Mất `RECEIPT_VAULT_KEY` = mất toàn bộ chat + chứng từ — đã có bản backup key ngoài VM chưa? | — | |
 
 ## G. Test bắt buộc (theo chuẩn dự án: API thật + PostgreSQL thật, không mock)
@@ -109,7 +116,7 @@ sửa/thu hồi chỉ người gửi, file tải về đúng từng byte + bị 
 | H1.2 | Đăng xuất → xoá cache tin nhắn đã giải mã + ngắt kết nối hub chat | Mở chat → đăng xuất → đăng nhập user khác cùng tab | User mới không thấy tin của user cũ, kể cả thoáng qua | ✅ `queryClient.clear()`; `ChatDock` unmount thì dừng hub |
 | H1.3 | Không lưu nội dung tin / bản nháp xuống localStorage, IndexedDB hay service worker cache | DevTools → Application sau khi chat | Không thấy nội dung tin | ✅ không persist; bản nháp chỉ ở state |
 | H1.4 | Đổi chi nhánh → danh sách chat làm mới, không còn cuộc trò chuyện của chi nhánh cũ | Đổi branch picker khi đang mở chat | Danh sách đúng chi nhánh mới | ✅ `ChatPanel key={branchId}`, query key có chi nhánh |
-| H1.5 | Bị xoá khỏi nhóm khi đang mở cuộc trò chuyện → UI đóng / báo "không còn quyền", không treo | A xoá B khi B đang mở | B thấy thông báo rõ, khung chat đóng | ⚠ 404 chỉ hiện lỗi chung `Chat:LoadError` |
+| H1.5 | Bị xoá khỏi nhóm khi đang mở cuộc trò chuyện → UI đóng / báo "không còn quyền", không treo | A xoá B khi B đang mở | B thấy thông báo rõ, khung chat đóng | ✅ *(R-1158)* 404 → "Bạn không còn ở trong cuộc trò chuyện này" (`Chat:NoLongerMember`) — ❓ chưa có test UI |
 | H1.6 | Ẩn lối vào chat khi không có quyền (A2) — chỉ cho UX, server vẫn là chốt chặn | Tắt quyền → reload | Không thấy icon/menu chat | ⚪ theo A2 |
 
 ### H2. File đính kèm phía trình duyệt
@@ -121,8 +128,8 @@ sửa/thu hồi chỉ người gửi, file tải về đúng từng byte + bị 
 | H2.3 | **Không mở blob file ở tab mới / iframe với kiểu do người dùng quyết định** — blob URL cùng origin với app, nếu là HTML thì chạy được script | Review code mở/xem file | Ảnh: chỉ `<img src=blob:>`. File khác: chỉ tải về (`download`) | ✅ |
 | H2.4 | Tạo `Blob` với kiểu lấy từ allowlist phía FE, không tin header `Content-Type` một cách mù quáng | Review | Kiểu không nằm trong allowlist → ép `application/octet-stream` | ⚠ dùng Content-Type server trả về — rủi ro thấp vì chỉ ảnh mới hiển thị, và chỉ qua `<img>` |
 | H2.5 | `URL.revokeObjectURL` sau khi dùng; không giữ blob mãi trong bộ nhớ | Mở 50 ảnh, xem Memory | Bộ nhớ không tăng mãi | ✅ revoke ở cleanup; cache blob `gcTime` 5 phút |
-| H2.6 | Tên file hiển thị an toàn: cắt ngắn, bỏ ký tự điều khiển, **bỏ ký tự đảo chiều U+202E** (`hoadon‮fdp.exe` hiện thành `hoadonexe.pdf`) | Upload file tên chứa U+202E | Hiện đúng tên thật, không bị đảo | ❌ cả FE lẫn BE đều không lọc |
-| H2.7 | Có tiến trình upload, huỷ được; nút Gửi bị khoá khi file chưa upload xong | Upload file 20 MB qua mạng chậm (DevTools throttle) | Không gửi được tin thiếu file | ⚠ Gửi bị khoá khi đang upload ✅; **không có tiến trình, không huỷ được** |
+| H2.6 | Tên file hiển thị an toàn: cắt ngắn, bỏ ký tự điều khiển, **bỏ ký tự đảo chiều U+202E** (`hoadon‮fdp.exe` hiện thành `hoadonexe.pdf`) | Upload file tên chứa U+202E | Hiện đúng tên thật, không bị đảo | ✅ *(R-1158)* BE `CleanFileName` bỏ mọi ký tự Unicode Format (Cf, gồm U+202A–E, U+2066–9) và Control trước khi lưu; FE `displayFileName` lọc lại cho tên cũ. Có test |
+| H2.7 | Có tiến trình upload, huỷ được; nút Gửi bị khoá khi file chưa upload xong | Upload file 20 MB qua mạng chậm (DevTools throttle) | Không gửi được tin thiếu file | ⚠ Gửi bị khoá khi đang upload ✅. *(R-1158)* Chip hiện % (role `progressbar`); tới 100% thì hiện "Đang xử lý" trong lúc quét + mã hoá; tên dài không tràn khung (test `chat-edit`). Còn thiếu: chưa huỷ được (I1.9) |
 | H2.8 | Ảnh lớn hiện thumbnail giới hạn kích thước, không vỡ layout | Gửi ảnh 8000×8000 | Ảnh co trong khung | ✅ rộng 200 |
 
 ### H3. Hiển thị nội dung (bổ sung cho mục E)
@@ -166,8 +173,8 @@ sửa/thu hồi chỉ người gửi, file tải về đúng từng byte + bị 
 | H6.7 | CSS riêng `features/chat/components/chat.css`, dùng token `--bd-*`, không inline style, không hex trong tsx | Review | ✅ grep `style=` = 0 |
 | H6.8 | Mọi chữ qua i18n vi/en, đổi ngôn ngữ không reload | Đổi ngôn ngữ khi đang mở chat | ✅ key đủ — ❓ chạy thật |
 | H6.9 | Nút Gửi / Tải lên / Tạo nhóm / Rời nhóm / Thu hồi: khoá + spinner khi đang gọi API, toast chỉ hiện sau khi có kết quả (§16.18) | Mạng chậm, bấm từng nút | ❓ Gửi / Tải lên đã khoá; các nút còn lại chưa kiểm |
-| H6.10 | Bàn phím: Enter gửi, Shift+Enter xuống dòng, Esc đóng, Tab đúng thứ tự; tin mới đọc được bằng screen reader (`aria-live`) | Thao tác không dùng chuột | ⚠ Enter / Shift+Enter / gõ IME ✅; không có `aria-live` |
-| H6.11 | Lỗi phân biệt rõ: "Bạn không còn quyền xem cuộc trò chuyện này" (404/403) và "Lỗi hệ thống" | Giả lập từng loại | ❌ 404 và lỗi hệ thống dùng chung một thông báo |
+| H6.10 | Bàn phím: Enter gửi, Shift+Enter xuống dòng, Esc đóng, Tab đúng thứ tự; tin mới đọc được bằng screen reader (`aria-live`) | Thao tác không dùng chuột | ⚠ Enter / Shift+Enter / gõ IME ✅. *(R-1159)* Khi sửa: Enter lưu, Esc huỷ, ↑ ở ô trống sửa tin mới nhất (có test). Không có `aria-live` |
+| H6.11 | Lỗi phân biệt rõ: "Bạn không còn quyền xem cuộc trò chuyện này" (404/403) và "Lỗi hệ thống" | Giả lập từng loại | ✅ *(R-1158)* 404 → `Chat:NoLongerMember`; lỗi khác → `Chat:LoadError` + Thử lại |
 | H6.12 | Giao diện theo khung chung của hệ thống (memory *match system style*), có trạng thái trống / đang tải / lỗi | So với màn Labo / Danh mục | ❓ cần so trên màn hình |
 
 ### H7. Test FE bắt buộc (Playwright thật — không `page.route`, đăng nhập qua màn login)
@@ -202,7 +209,7 @@ Playwright `context.setOffline(true)`; tắt container (`docker compose stop api
 | I1.7 | Đang upload thì **đóng tab / reload / chuyển trang** | Upload 15 MB rồi F5 | Có cảnh báo `beforeunload`; nếu rời thì upload huỷ, không gắn vào đâu | ❌ không có `beforeunload` |
 | I1.8 | Đang upload thì **chuyển sang cuộc trò chuyện khác** | Upload ở cuộc A, bấm sang cuộc B | File không bị gửi nhầm sang B | ✅ ô soạn reset theo cuộc trò chuyện (`key={activeId}`); file dở thành orphan (C11) |
 | I1.9 | Đang upload thì **bấm Huỷ** | Bấm ✕ trên file đang tải | Request bị abort (`AbortController`), không gắn vào tin | ❌ chip chỉ đóng được khi đã upload xong; không có AbortController |
-| I1.10 | Upload file vừa đúng giới hạn 20 MB | File đúng 20.971.520 byte, đi qua nginx | Không bị nginx trả 413 HTML | ✅ đã có location `/api/v1/app/chat/` riêng, `client_max_body_size 25m` |
+| I1.10 | Upload file vừa đúng giới hạn 20 MB | File đúng 20.971.520 byte, đi qua nginx | Không bị nginx trả 413 HTML | ✅ *(R-1158)* giới hạn mới 50 MB: location `/api/v1/app/chat/` `client_max_body_size 55m`, Kestrel 51 MB — ❓ chưa chạy qua nginx thật với file 50 MB |
 | I1.11 | Upload chậm quá lâu | Throttle 50 KB/s, file 20 MB (~7 phút) | Không bị timeout âm thầm; nếu có timeout thì báo rõ | ❓ nginx `proxy_read_timeout 120s` — cần chạy thật |
 | I1.12 | File bị đổi / xoá trên ổ đĩa sau khi chọn, trước khi upload | Chọn file trên USB rồi rút USB | Báo lỗi đọc file, không crash | ❓ |
 | I1.13 | File 0 byte | Chọn file rỗng | FE chặn trước; BE cũng từ chối | ⚠ BE từ chối ✅; FE không chặn trước |
@@ -214,10 +221,10 @@ Playwright `context.setOffline(true)`; tắt container (`docker compose stop api
 |---|---|---|---|---|
 | I2.1 | **MinIO tắt** khi upload | `docker compose stop minio` → upload | Báo lỗi rõ; **không có dòng attachment mồ côi** | ✅ lưu blob trước, ghi dòng DB sau |
 | I2.2 | MinIO tắt khi tải file cũ | Stop minio → bấm tải | Báo "Không tải được tệp, thử lại sau", không màn trắng | ⚠ toast lỗi chung — ❓ chạy thật |
-| I2.3 | **ClamAV tắt / timeout** | Stop clamav → upload | Chặn upload (fail-closed) | ❌ chưa có ClamAV (C5, C6) |
+| I2.3 | **ClamAV tắt / timeout** | Stop clamav → upload | Chặn upload (fail-closed) | ✅ *(R-1158)* `Chat:0019` (C6) — ❓ chưa chạy kịch bản stop |
 | I2.4 | BE restart giữa chừng (deploy) | Restart container `api` khi đang upload / đang mở chat | Upload báo lỗi + Thử lại; hub tự kết nối lại; tự lấy tin bị lỡ | ⚠ hub tự kết nối lại nếu BE lên trong ~47 giây; lâu hơn → I5.3. Upload lỗi không có Thử lại (I1.1) |
 | I2.5 | Redis tắt | Stop redis | Chat vẫn đọc/gửi được hoặc báo lỗi rõ — không treo | ❓ |
-| I2.6 | DB lỗi khi lưu tin sau khi file đã lên MinIO | Giả lập lỗi DB lúc Send / lúc ghi attachment | Không có tin nửa vời; file chưa gắn được job dọn | ❌ ghi DB lỗi sau khi lưu blob → blob mồ côi, không có job dọn (C11) |
+| I2.6 | DB lỗi khi lưu tin sau khi file đã lên MinIO | Giả lập lỗi DB lúc Send / lúc ghi attachment | Không có tin nửa vời; file chưa gắn được job dọn | ⚠ ghi DB lỗi sau khi lưu blob thì blob vẫn mồ côi (không có dòng DB nên worker C11 không thấy) — rủi ro thấp. Dòng attachment chưa gắn thì đã được dọn *(R-1158)* |
 | I2.7 | Thiếu / sai `RECEIPT_VAULT_KEY` sau khi deploy | Deploy với key sai | Không gửi được + lỗi rõ; tin cũ không bị ghi đè; admin biết ngay | ✅ lỗi `ReceiptVaultKeyMissing`, không đụng dòng cũ — ❓ cảnh báo cho admin |
 
 ### I3. Phiên đăng nhập & quyền thay đổi giữa chừng
@@ -226,7 +233,7 @@ Playwright `context.setOffline(true)`; tắt container (`docker compose stop api
 |---|---|---|---|---|
 | I3.1 | **Phiên hết hạn khi đang upload** | Rút ngắn thời gian sống của cookie → upload file lớn | 401 → về màn đăng nhập, không báo lỗi khó hiểu; chữ đã gõ nên được giữ | ⚠ interceptor 401 chung đưa về `/login` ✅; chữ đang gõ bị mất |
 | I3.2 | Phiên hết hạn khi đang mở chat lâu | Mở chat, chờ quá hạn phiên, gửi tin | Về đăng nhập; hub không kết nối lại vô hạn bằng phiên chết | ✅ request kế tiếp 401 → `/login`; hub tự dừng sau 5 lần thử |
-| I3.3 | **Bị xoá khỏi nhóm khi đang upload / đang soạn** | B rời nhóm ở tab khác khi đang upload ở tab này | Nhận 404 → thấy "Bạn không còn trong cuộc trò chuyện này" | ⚠ chưa có xoá thành viên (A6); 404 hiện lỗi chung (H6.11) |
+| I3.3 | **Bị xoá khỏi nhóm khi đang upload / đang soạn** | B rời nhóm ở tab khác khi đang upload ở tab này | Nhận 404 → thấy "Bạn không còn trong cuộc trò chuyện này" | ✅ *(R-1158)* có xoá thành viên; 404 → "Bạn không còn ở trong cuộc trò chuyện này"; gửi sau khi bị xoá → 404 (test API) |
 | I3.4 | Tài khoản bị khoá khi đang dùng chat | Admin khoá B | Request kế tiếp của B bị từ chối, hub ngắt | ❓ phụ thuộc phiên cookie bị thu hồi — chat không tự kiểm `IsActive` |
 | I3.5 | Bị chuyển sang chi nhánh khác khi đang chat | Đổi phân công chi nhánh của B | Không còn thấy chat chi nhánh cũ | ✅ kiểm chi nhánh ở mỗi request — ❓ cache quyền Redis |
 | I3.6 | Đăng xuất ở tab khác | 2 tab, đăng xuất ở tab 1 | Tab 2 không còn hiện / gửi được tin | ⚠ tab 2 vẫn hiện tin đã tải cho tới request kế tiếp (401 → `/login`) |
@@ -236,7 +243,7 @@ Playwright `context.setOffline(true)`; tắt container (`docker compose stop api
 | # | Tình huống | Cách tạo | Kỳ vọng | Theo code 2026-11-06 |
 |---|---|---|---|---|
 | I4.1 | A **thu hồi** tin trong khi B đang **tải file** của tin đó | B bấm tải file 20 MB, A thu hồi ngay | Lần tải sau của B bị 404; giao diện B cập nhật "đã thu hồi" | ✅ |
-| I4.2 | A sửa tin trong khi tin vừa bị thu hồi (2 tab của A) | Tab 1 thu hồi, tab 2 bấm Lưu bản sửa | Bản sửa bị từ chối với lỗi rõ | ✅ `MessageRecalled` |
+| I4.2 | A sửa tin trong khi tin vừa bị thu hồi (2 tab của A) | Tab 1 thu hồi, tab 2 bấm Lưu bản sửa | Bản sửa bị từ chối với lỗi rõ | ✅ `MessageRecalled` (0005), *(R-1159)* đã chạy thật. Thêm: 2 tab cùng sửa → tab sau nhận `Chat:0024` EditConflict (`expectedEditedAt`); có test |
 | I4.3 | 2 người gửi cùng lúc | A và B bấm Gửi cùng giây | Cả 2 tin hiện, thứ tự giống nhau trên mọi máy | ✅ sắp theo giờ server + id — nhưng xem lỗi phân trang I6.6 |
 | I4.4 | Cùng 1 người mở 2 tab / 2 máy | A mở chat ở 2 nơi, gửi ở tab 1 | Tab 2 hiện tin ngay; số chưa đọc đúng ở cả 2 | ✅ đẩy tới group `user:{id}` (mọi kết nối) |
 | I4.5 | 2 người cùng thêm thành viên / đổi tên nhóm | A và B đổi tên nhóm cùng lúc | Kết quả cuối nhất quán, không lỗi 500 | ⚠ đổi tên: người sau ghi đè. 2 người cùng mở chat 1-1 với nhau một lúc → đụng unique index, nhiều khả năng **500** |
@@ -268,6 +275,11 @@ Playwright `context.setOffline(true)`; tắt container (`docker compose stop api
 ---
 
 ## Tổng hợp lần rà 2026-11-06
+
+> **Sau R-1158 / R-1159 (2026-11-06):**
+> - Đã xong: B4, C5, C6 (theo code), C11, D1, H2.6, A6 (phần xoá thành viên), H1.5, H6.11, I2.3, I3.3, F5, I4.2.
+> - H2.7 mới có tiến trình, chưa huỷ được.
+> - Còn chặn trước staging: I1.1, I1.6, I6.6.
 
 **Chặn trước staging — còn thiếu:** B4 (audit log rò nội dung), C5/C6 (ClamAV), D1 (rate limit), I1.1 (upload lỗi mất file, không Thử lại),
 I1.6 (gửi lại ra tin trùng), I6.6 (mất tin ở ranh giới trang), H2.6 (U+202E trong tên file).

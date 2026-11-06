@@ -1,29 +1,43 @@
 import React, { useRef } from "react";
-import { Button, Input, Spin, Tag } from "antd";
+import { Button, Input } from "antd";
 import { Paperclip, SendHorizontal, X } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { useChatComposer } from "../hooks/useChatComposer";
 import { CHAT_LIMITS, type ChatMessageDto } from "../types";
 import { CHAT_FILE_ACCEPT } from "../utils/chatFormat";
+import { PendingFileChip } from "./PendingFileChip";
 
 interface ChatComposerProps {
   conversationId: string;
   editing: ChatMessageDto | null;
-  onEditDone: () => void;
+  /** A message to edit, a fresh copy of it, or null when editing ends. */
+  onEditingChange: (message: ChatMessageDto | null) => void;
+  /** ↑ in an empty box: edit the caller's newest message still in its window. */
+  onEditLast: () => void;
 }
 
 /**
- * Text box, files and "Gửi". Enter sends, Shift+Enter breaks the line; files
- * can be picked or pasted and upload before the message is sent.
+ * Text box, files and "Gửi". Enter sends (or saves an edit), Shift+Enter
+ * breaks the line, Esc drops an edit. Files can be picked or pasted and
+ * upload before sending; an edit is text only, so both are locked while
+ * editing and the draft's files wait out of sight.
  */
-export const ChatComposer: React.FC<ChatComposerProps> = ({ conversationId, editing, onEditDone }) => {
-  const composer = useChatComposer(conversationId, editing, onEditDone);
+export const ChatComposer: React.FC<ChatComposerProps> = ({ conversationId, editing, onEditingChange, onEditLast }) => {
+  const composer = useChatComposer(conversationId, editing, onEditingChange);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
-    event.preventDefault();
-    composer.submit();
+    if (event.nativeEvent.isComposing) return;
+    if (event.key === "Escape" && editing) {
+      event.preventDefault();
+      composer.cancelEdit();
+    } else if (event.key === "ArrowUp" && !editing && composer.text.length === 0) {
+      event.preventDefault();
+      onEditLast();
+    } else if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      composer.submit();
+    }
   };
 
   const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -42,23 +56,21 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({ conversationId, edit
       {editing && (
         <div className="chat-composer-editing">
           <span>{t("Chat:Editing")}</span>
-          <button type="button" className="chat-icon-button" aria-label={t("Chat:CancelEdit")} onClick={onEditDone}>
+          <button
+            type="button"
+            className="chat-icon-button"
+            aria-label={t("Chat:CancelEdit")}
+            title={t("Chat:CancelEdit")}
+            onClick={composer.cancelEdit}
+          >
             <X size={16} aria-hidden />
           </button>
         </div>
       )}
-      {composer.files.length > 0 && (
+      {!editing && composer.files.length > 0 && (
         <div className="chat-composer-files">
           {composer.files.map((file) => (
-            <Tag
-              key={file.key}
-              closable={!!file.attachmentId}
-              closeIcon={<X size={12} aria-label={t("Chat:RemoveAttachment", file.name)} />}
-              onClose={() => composer.removeFile(file.key)}
-              icon={file.attachmentId ? undefined : <Spin size="small" />}
-            >
-              {file.name}
-            </Tag>
+            <PendingFileChip key={file.key} file={file} onRemove={composer.removeFile} />
           ))}
         </div>
       )}

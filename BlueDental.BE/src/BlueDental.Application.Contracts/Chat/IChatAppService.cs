@@ -26,9 +26,15 @@ public interface IChatAppService : IApplicationService
 
     Task LeaveAsync(Guid id);
 
+    /// <summary>The group owner takes someone out; they stop seeing the group at once.</summary>
+    Task RemoveMemberAsync(Guid id, Guid userId);
+
     Task MarkReadAsync(Guid id);
 
     Task<ChatMessagePageDto> GetMessagesAsync(Guid id, GetChatMessagesInput input);
+
+    /// <summary>Messages of the thread whose text holds every word, accents ignored.</summary>
+    Task<ChatMessageSearchResultDto> SearchMessagesAsync(Guid id, SearchChatMessagesInput input);
 
     Task<ChatAttachmentDto> UploadAttachmentAsync(Guid id, IRemoteStreamContent file);
 
@@ -37,6 +43,9 @@ public interface IChatAppService : IApplicationService
     Task<ChatMessageDto> EditMessageAsync(Guid messageId, EditChatMessageInput input);
 
     Task<ChatMessageDto> RecallMessageAsync(Guid messageId);
+
+    /// <summary>Earlier wordings of a message, newest first; none once it is recalled (R-1159).</summary>
+    Task<List<ChatMessageRevisionDto>> GetMessageRevisionsAsync(Guid messageId);
 
     Task<IRemoteStreamContent> GetAttachmentAsync(Guid messageId, Guid attachmentId);
 

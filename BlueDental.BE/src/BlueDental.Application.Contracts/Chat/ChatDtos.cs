@@ -59,6 +59,15 @@ public class ChatMessageDto
 
     public bool IsRecalled { get; set; }
 
+    /// <summary>
+    /// The caller sent it, it is not recalled and the edit window is still open
+    /// by the server clock (R-1159).
+    /// </summary>
+    public bool CanEdit { get; set; }
+
+    /// <summary>When the edit window closes; null when the caller may never edit it.</summary>
+    public DateTime? EditableUntil { get; set; }
+
     public List<ChatAttachmentDto> Attachments { get; set; } = [];
 }
 
@@ -74,6 +83,12 @@ public class ChatConversationDto
     public string Title { get; set; } = default!;
 
     public string? Name { get; set; }
+
+    /// <summary>The group member who may remove others; null for a two-person chat.</summary>
+    public Guid? OwnerId { get; set; }
+
+    /// <summary>The caller owns this group, so the members list offers removing people.</summary>
+    public bool IsOwnedByMe { get; set; }
 
     public List<ChatMemberDto> Members { get; set; } = [];
 
@@ -160,9 +175,51 @@ public class SendChatMessageInput
 
 public class EditChatMessageInput
 {
-    /// <summary>Encrypted at rest, so it must never reach the audit log in clear.</summary>
+    /// <summary>
+    /// Encrypted at rest, so it must never reach the audit log in clear. Empty
+    /// is allowed on a message that carries files; the domain decides.
+    /// </summary>
+    [DisableAuditing]
+    [StringLength(ChatConsts.MaxMessageLength)]
+    public string? Content { get; set; }
+
+    /// <summary>
+    /// The message's <c>editedAt</c> when the editor opened (null if never edited);
+    /// a different value now means it was edited elsewhere meanwhile (R-1159).
+    /// </summary>
+    public DateTime? ExpectedEditedAt { get; set; }
+}
+
+public class SearchChatMessagesInput
+{
+    /// <summary>
+    /// What to look for in the thread. Sent in a POST body and kept out of the
+    /// audit log, because the words people search for are message content too.
+    /// </summary>
     [DisableAuditing]
     [Required]
-    [StringLength(ChatConsts.MaxMessageLength)]
-    public string Content { get; set; } = default!;
+    [StringLength(ChatConsts.MaxSearchTextLength)]
+    public string Text { get; set; } = default!;
+}
+
+public class ChatMessageSearchResultDto
+{
+    /// <summary>Newest first, at most <see cref="ChatConsts.MaxSearchResults"/>.</summary>
+    public List<ChatMessageDto> Items { get; set; } = [];
+
+    /// <summary>
+    /// False when the thread is longer than <see cref="ChatConsts.MaxSearchScan"/>
+    /// messages and older ones were not looked at, or when more matched than were returned.
+    /// </summary>
+    public bool IsComplete { get; set; }
+}
+
+/// <summary>An earlier wording of a message (R-1159).</summary>
+public class ChatMessageRevisionDto
+{
+    /// <summary>Null when the message carried only files at that point.</summary>
+    public string? Content { get; set; }
+
+    /// <summary>When this wording was replaced.</summary>
+    public DateTime EditedAt { get; set; }
 }

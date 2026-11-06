@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Input, Spin } from "antd";
+import { Input } from "antd";
 import { Search, SquarePen } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { t } from "@/lib/i18n";
 import { useChatConversations } from "../api/chatQueries";
 import type { ChatConversationDto } from "../types";
 import { ChatPanelHeader } from "./ChatPanelHeader";
+import { ChatSpinner } from "./ChatSpinner";
 import { ChatStatus } from "./ChatStatus";
 import { ConversationRow } from "./ConversationRow";
 import { NewChatDialog } from "./NewChatDialog";
@@ -78,7 +79,7 @@ interface ConversationItemsProps {
 }
 
 function ConversationItems({ loading, error, onRetry, emptyText, items, onOpen }: ConversationItemsProps) {
-  if (loading) return <Spin className="chat-spin" />;
+  if (loading) return <ChatSpinner />;
   if (error) return <ChatStatus text={t("Chat:LoadError")} onRetry={onRetry} />;
   if (items.length === 0) return <ChatStatus text={emptyText} />;
   return (

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { Input, Spin } from "antd";
+import { Input } from "antd";
 import { Check, Search } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { t } from "@/lib/i18n";
 import { useChatContacts } from "../api/chatQueries";
 import type { ChatContactDto } from "../types";
 import { initialsOf } from "../utils/chatFormat";
+import { ChatSpinner } from "./ChatSpinner";
 import { ChatStatus } from "./ChatStatus";
 
 interface ContactPickerProps {
@@ -37,7 +38,7 @@ export const ContactPicker: React.FC<ContactPickerProps> = ({ branchId, selected
         aria-label={t("Chat:SearchContacts")}
       />
       <div className="chat-contact-list">
-        {isLoading && <Spin className="chat-spin" />}
+        {isLoading && <ChatSpinner />}
         {isError && <ChatStatus text={t("Chat:LoadError")} onRetry={() => void refetch()} />}
         {!isLoading && !isError && contacts.length === 0 && <ChatStatus text={t("Chat:NoContacts")} />}
         {contacts.map((contact) => {

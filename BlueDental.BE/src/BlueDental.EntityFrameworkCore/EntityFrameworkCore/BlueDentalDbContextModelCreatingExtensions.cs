@@ -101,6 +101,16 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Earlier wordings of edited messages (R-1159), kept forever like the messages.
+        builder.Entity<ChatMessageRevision>(entity =>
+        {
+            entity.ToTable("bd_chat_message_revisions");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.ContentCipher).HasColumnType("text");
+            entity.HasIndex(x => new { x.MessageId, x.EditedAt });
+            entity.HasOne<ChatMessage>().WithMany().HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Restrict);
+        });
+
         builder.Entity<ChatAttachment>(entity =>
         {
             entity.ToTable("bd_chat_attachments");
@@ -109,6 +119,10 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.FileNameCipher).HasColumnType("text").IsRequired();
             entity.Property(x => x.ContentType).HasMaxLength(128).IsRequired();
             entity.HasIndex(x => x.MessageId);
+            // The orphan sweep (R-1158) only ever looks at files never sent.
+            entity.HasIndex(x => x.CreationTime)
+                .HasDatabaseName("IX_bd_chat_attachments_Unsent_CreationTime")
+                .HasFilter("\"MessageId\" IS NULL");
             entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<ChatMessage>().WithMany().HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Restrict);
         });

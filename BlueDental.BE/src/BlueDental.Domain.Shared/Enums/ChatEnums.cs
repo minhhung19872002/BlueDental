@@ -20,8 +20,8 @@ public static class ChatConsts
 
     public const int MaxAttachmentsPerMessage = 10;
 
-    /// <summary>20 MB, the same cap as Hình ảnh bệnh nhân (R-1065).</summary>
-    public const long MaxAttachmentBytes = 20L * 1024 * 1024;
+    /// <summary>50 MB (owner 2026-11-06, R-1158); Hình ảnh bệnh nhân stays at 20 MB (R-1065).</summary>
+    public const long MaxAttachmentBytes = 50L * 1024 * 1024;
 
     public const int MaxFileNameLength = 255;
 
@@ -30,4 +30,14 @@ public static class ChatConsts
     public const int DefaultMessagePageSize = 30;
 
     public const int MaxMessagePageSize = 100;
+
+    /// <summary>A search reads at most this many of the newest messages (they are encrypted, R-1158).</summary>
+    public const int MaxSearchScan = 5000;
+
+    public const int MaxSearchResults = 50;
+
+    public const int MaxSearchTextLength = 100;
+
+    /// <summary>Only the sender may edit, and only this long after sending (owner 2026-11-06, R-1159).</summary>
+    public const int EditWindowMinutes = 15;
 }

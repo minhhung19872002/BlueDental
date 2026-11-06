@@ -468,6 +468,8 @@ body:has(.chat-dock) .scroll-top-button {
 
 .chat-file-name {
   overflow: hidden;
+  /* A name never turns the text around it (R-1158). */
+  unicode-bidi: isolate;
   font-size: 13px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -507,6 +509,7 @@ body:has(.chat-dock) .scroll-top-button {
   flex-wrap: wrap;
   gap: 6px;
   max-height: 96px;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -516,6 +519,31 @@ body:has(.chat-dock) .scroll-top-button {
   gap: 4px;
   max-width: 100%;
   margin: 0;
+}
+
+.chat-composer-files .chat-file-name {
+  min-width: 0;
+  max-width: 180px;
+  font-weight: 400;
+}
+
+.chat-composer-files .ant-tag > :not(.chat-file-name) {
+  flex: none;
+}
+
+/* Uploading: the chip fills left to right as the file goes up. */
+.chat-upload-chip {
+  background: linear-gradient(
+    to right,
+    var(--bd-table-head) var(--chat-upload-progress, 0%),
+    var(--bd-bg-soft) var(--chat-upload-progress, 0%)
+  );
+}
+
+.chat-upload-percent {
+  min-width: 3ch;
+  color: var(--bd-hint);
+  font-variant-numeric: tabular-nums;
 }
 
 .chat-composer-row {
@@ -655,4 +683,197 @@ body:has(.chat-dock) .scroll-top-button {
   .chat-dock-button {
     transition: none;
   }
+}
+
+/* R-1158 — header toggle that is on (message search open) */
+.chat-icon-button--active {
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+
+.chat-icon-button--danger:hover {
+  background: var(--bd-red-pale);
+  color: var(--bd-red);
+}
+
+/* R-1158 — group members dialog */
+.chat-member-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 360px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-sm);
+}
+
+.chat-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  color: var(--bd-ink);
+}
+
+.chat-member + .chat-member {
+  border-top: 1px solid var(--bd-line);
+}
+
+.chat-member-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* R-1158 — search inside one conversation */
+.chat-message-search {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-search-results {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.chat-search-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-search-list li + li {
+  border-top: 1px solid var(--bd-line);
+}
+
+.chat-search-hit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--bd-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.chat-search-hit:hover {
+  background: var(--bd-blue-pale);
+}
+
+.chat-search-hit:focus-visible {
+  outline: 2px solid var(--bd-accent);
+  outline-offset: -2px;
+}
+
+.chat-search-hit-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.chat-search-hit-sender {
+  font-weight: 600;
+}
+
+.chat-search-hit-time {
+  flex: none;
+  color: var(--bd-hint);
+}
+
+.chat-search-hit-text {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.chat-search-hit-text mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: var(--bd-table-head);
+  color: inherit;
+  font-weight: 600;
+}
+
+.chat-search-note {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--bd-hint);
+  font-size: 12px;
+  text-align: center;
+}
+
+/* R-1158 — a message picked from search flashes once */
+@keyframes chat-message-flash {
+  0%,
+  60% {
+    box-shadow: 0 0 0 3px var(--bd-accent);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+
+.chat-message--flash .chat-bubble {
+  animation: chat-message-flash 2s ease-out;
+}
+
+/* "đã chỉnh sửa" opens the earlier wordings (R-1159). */
+.chat-edited-mark {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.chat-edited-mark:hover,
+.chat-edited-mark:focus-visible {
+  color: var(--bd-primary);
+}
+
+.chat-edit-history {
+  width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.chat-edit-history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-edit-history-item + .chat-edit-history-item {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bd-line);
+}
+
+.chat-edit-history-time {
+  color: var(--bd-muted);
+  font-size: 11px;
+}
+
+.chat-edit-history-text {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }

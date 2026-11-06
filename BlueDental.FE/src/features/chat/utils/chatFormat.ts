@@ -38,16 +38,28 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * A file name without the invisible characters that can disguise it: a
+ * right-to-left override (U+202E) makes "hoadon<RLO>fdp.exe" read as
+ * "hoadonexe.pdf". The server strips the same ones before it checks the
+ * extension (R-1158); names stored before that are cleaned here for display.
+ */
+export function displayFileName(name: string): string {
+  return name.replace(/[\p{Cf}\p{Cc}\p{Zl}\p{Zp}]/gu, "").trim();
+}
+
 const ALLOWED = new Set<string>(CHAT_FILE_EXTENSIONS);
 export const CHAT_FILE_ACCEPT = CHAT_FILE_EXTENSIONS.join(",");
 
 /** Why a picked file cannot be sent, or null when it can. The server checks again. */
 export function rejectChatFile(file: File): string | null {
-  const dot = file.name.lastIndexOf(".");
-  const extension = dot >= 0 ? file.name.slice(dot).toLowerCase() : "";
-  if (!ALLOWED.has(extension)) return t("Chat:FileTypeNotAllowed", file.name);
+  // Windows drops trailing dots and spaces, so "a.exe." would open as "a.exe".
+  const name = displayFileName(file.name).replace(/[. ]+$/, "");
+  const dot = name.lastIndexOf(".");
+  const extension = dot >= 0 ? name.slice(dot).toLowerCase() : "";
+  if (!ALLOWED.has(extension)) return t("Chat:FileTypeNotAllowed", name);
   if (file.size > CHAT_LIMITS.maxAttachmentBytes) {
-    return t("Chat:FileTooLarge", file.name, CHAT_LIMITS.maxAttachmentBytes / (1024 * 1024));
+    return t("Chat:FileTooLarge", name, CHAT_LIMITS.maxAttachmentBytes / (1024 * 1024));
   }
   return null;
 }

@@ -81,6 +81,10 @@ public class BlueDentalApplicationModule : AbpModule
             client => client.Timeout = TimeSpan.FromSeconds(
                 configuration.GetValue<int?>($"{Printing.PaymentReceiptOptions.SectionName}:TimeoutSeconds") ?? 60));
 
+        // Uploads are scanned by clamd when MalwareScan:Host is set (R-1158).
+        Configure<FileManagement.MalwareScanOptions>(configuration.GetSection(FileManagement.MalwareScanOptions.SectionName));
+        Configure<Chat.ChatOptions>(configuration.GetSection(Chat.ChatOptions.SectionName));
+
         // Legacy module permissions are satisfied by the ability leaves the
         // Phân quyền screen grants. Registered last so it only decides names
         // the user/role/client providers left undefined.
@@ -98,5 +102,6 @@ public class BlueDentalApplicationModule : AbpModule
         await context.AddBackgroundWorkerAsync<NoServiceCareWorker>();
         await context.AddBackgroundWorkerAsync<ZaloTokenRefreshWorker>();
         await context.AddBackgroundWorkerAsync<MissedAppointmentWorker>();
+        await context.AddBackgroundWorkerAsync<Chat.ChatOrphanAttachmentWorker>();
     }
 }

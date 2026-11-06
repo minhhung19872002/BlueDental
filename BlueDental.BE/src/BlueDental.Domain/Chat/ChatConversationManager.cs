@@ -59,7 +59,7 @@ public class ChatConversationManager : DomainService
         }
 
         EnsureRoom(0, others.Count + 1);
-        var conversation = ChatConversation.CreateGroup(GuidGenerator.Create(), clinicBranchId, name);
+        var conversation = ChatConversation.CreateGroup(GuidGenerator.Create(), clinicBranchId, name, creatorId);
         List<Guid> everyone = [creatorId, .. others];
         await _policy.EnsureEligibleAsync(clinicBranchId, everyone);
         await _conversations.InsertAsync(conversation, autoSave: true);
@@ -89,9 +89,39 @@ public class ChatConversationManager : DomainService
         return added;
     }
 
+    /// <summary>When the owner leaves, whoever has been in the group longest takes over.</summary>
     public async Task LeaveAsync(ChatConversation conversation, Guid userId)
     {
         conversation.EnsureGroup();
+        var member = await GetMemberAsync(conversation.Id, userId);
+        await _members.DeleteAsync(member, autoSave: true);
+
+        if (conversation.IsOwnedBy(userId))
+        {
+            var query = (await _members.GetQueryableAsync())
+                .Where(m => m.ConversationId == conversation.Id)
+                .OrderBy(m => m.JoinedAt)
+                .ThenBy(m => m.Id)
+                .Select(m => (Guid?)m.UserId);
+            conversation.HandOverOwnership(await AsyncExecuter.FirstOrDefaultAsync(query));
+            await _conversations.UpdateAsync(conversation, autoSave: true);
+        }
+    }
+
+    /// <summary>Only the owner removes people, and not themself: leaving is how they go.</summary>
+    public async Task RemoveMemberAsync(ChatConversation conversation, Guid actorId, Guid userId)
+    {
+        conversation.EnsureGroup();
+        if (!conversation.IsOwnedBy(actorId))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Chat.NotGroupOwner);
+        }
+
+        if (userId == actorId)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Chat.CannotRemoveSelf);
+        }
+
         var member = await GetMemberAsync(conversation.Id, userId);
         await _members.DeleteAsync(member, autoSave: true);
     }

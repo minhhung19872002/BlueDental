@@ -36,6 +36,36 @@ public static class ChatAttachmentFiles
     public static string BlobName(Guid clinicBranchId, Guid conversationId, Guid attachmentId) =>
         $"chat/{clinicBranchId}/{conversationId}/{attachmentId}.enc";
 
+    /// <summary>
+    /// The name as it will be kept and shown: no folder part, and none of the
+    /// invisible characters that can disguise it. A right-to-left override
+    /// (U+202E) makes "hoadon‮fdp.exe" read as "hoadonexe.pdf"; with it gone
+    /// the real extension is the one checked (R-1158).
+    /// </summary>
+    public static string CleanFileName(string? raw)
+    {
+        var name = (raw ?? string.Empty).Replace('\\', '/');
+        name = name[(name.LastIndexOf('/') + 1)..];
+
+        var kept = new System.Text.StringBuilder(name.Length);
+        foreach (var c in name)
+        {
+            var category = char.GetUnicodeCategory(c);
+            if (category is System.Globalization.UnicodeCategory.Format
+                or System.Globalization.UnicodeCategory.Control
+                or System.Globalization.UnicodeCategory.LineSeparator
+                or System.Globalization.UnicodeCategory.ParagraphSeparator)
+            {
+                continue;
+            }
+
+            kept.Append(c);
+        }
+
+        // Windows drops trailing dots and spaces, so "a.exe." would open as "a.exe".
+        return kept.ToString().Trim().TrimEnd('.', ' ');
+    }
+
     /// <summary>Null when the extension is not one chat accepts.</summary>
     public static string? ContentTypeOf(string fileName) =>
         ContentTypes.TryGetValue(Path.GetExtension(fileName), out var contentType) ? contentType : null;

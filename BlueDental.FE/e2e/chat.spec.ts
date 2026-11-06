@@ -133,7 +133,7 @@ test("the sender edits a message and recalls the file; both survive a reload on 
   await expect(composer(page)).toHaveValue(original);
   await composer(page).fill(edited);
   await panel(page).getByRole("button", { name: "Lưu" }).click();
-  await expect(message(page, edited)).toContainText("đã sửa");
+  await expect(message(page, edited)).toContainText("đã chỉnh sửa");
 
   await panel(page).locator('input[type="file"]').setInputFiles({
     name: fileName,
@@ -156,7 +156,7 @@ test("the sender edits a message and recalls the file; both survive a reload on 
 
   for (const viewer of [page, manager.page]) {
     await openThreadWith(viewer, viewer === page ? MANAGER_NAME : ADMIN_NAME);
-    await expect(message(viewer, edited)).toContainText("đã sửa");
+    await expect(message(viewer, edited)).toContainText("đã chỉnh sửa");
     await expect(panel(viewer).getByText(original, { exact: true })).toHaveCount(0);
     await expect(panel(viewer).getByRole("button", { name: `Tải xuống ${fileName}` })).toHaveCount(0);
     await expect(panel(viewer).locator(".chat-message--recalled").last()).toHaveText(/Tin nhắn đã được thu hồi/);

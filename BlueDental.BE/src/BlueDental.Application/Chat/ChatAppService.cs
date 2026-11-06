@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.FileManagement;
 using BlueDental.Organizations;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.BlobStoring;
@@ -33,6 +35,7 @@ public class ChatAppService(
     IRepository<ChatMember, Guid> members,
     IRepository<ChatMessage, Guid> messages,
     IRepository<ChatAttachment, Guid> attachments,
+    IRepository<ChatMessageRevision, Guid> revisions,
     IIdentityUserRepository userRepository,
     ChatConversationManager conversationManager,
     ChatParticipantPolicy participantPolicy,
@@ -40,7 +43,9 @@ public class ChatAppService(
     BranchAccessChecker branchAccess,
     IBlobContainer blobContainer,
     IChatCipher cipher,
-    IChatNotifier notifier) : BlueDentalAppService, IChatAppService
+    IChatNotifier notifier,
+    IMalwareScanner malwareScanner,
+    ChatMessageSearch messageSearch) : BlueDentalAppService, IChatAppService
 {
     private const int MaxContacts = 50;
     private const int MaxConversations = 300;
@@ -123,6 +128,15 @@ public class ChatAppService(
         await notifier.NotifyAsync(id, everyone);
     }
 
+    public async Task RemoveMemberAsync(Guid id, Guid userId)
+    {
+        var conversation = await GetVisibleAsync(id);
+        // Told before the row goes, so the removed person's screen drops the group too.
+        var everyone = await conversationManager.GetMemberIdsAsync(id);
+        await conversationManager.RemoveMemberAsync(conversation, CurrentUser.GetId(), userId);
+        await notifier.NotifyAsync(id, everyone);
+    }
+
     public async Task MarkReadAsync(Guid id)
     {
         var userId = CurrentUser.GetId();
@@ -161,6 +175,17 @@ public class ChatAppService(
         };
     }
 
+    public async Task<ChatMessageSearchResultDto> SearchMessagesAsync(Guid id, SearchChatMessagesInput input)
+    {
+        await GetVisibleAsync(id);
+        var result = await messageSearch.FindAsync(id, input.Text);
+        return new ChatMessageSearchResultDto
+        {
+            Items = await MapMessagesAsync(result.Found, CurrentUser.GetId()),
+            IsComplete = result.IsComplete,
+        };
+    }
+
     /// <remarks>
     /// Not audited: the audit log would keep the file name in clear. Who uploaded
     /// what and when stays on the attachment row (CreatorId / CreationTime).
@@ -169,9 +194,10 @@ public class ChatAppService(
     public async Task<ChatAttachmentDto> UploadAttachmentAsync(Guid id, IRemoteStreamContent file)
     {
         var conversation = await GetVisibleAsync(id);
-        var fileName = Path.GetFileName(file.FileName ?? string.Empty);
+        var fileName = ChatAttachmentFiles.CleanFileName(file.FileName);
         var contentType = ChatAttachmentFiles.ContentTypeOf(fileName);
-        if (contentType is null || fileName.Length > ChatConsts.MaxFileNameLength)
+        if (contentType is null || fileName.Length > ChatConsts.MaxFileNameLength
+            || Path.GetFileNameWithoutExtension(fileName).Length == 0)
         {
             throw InvalidAttachment();
         }
@@ -182,6 +208,8 @@ public class ChatAppService(
         {
             throw InvalidAttachment();
         }
+
+        await EnsureNoMalwareAsync(buffer.GetBuffer().AsMemory(0, (int)buffer.Length));
 
         var attachmentId = GuidGenerator.Create();
         var blobName = ChatAttachmentFiles.BlobName(conversation.ClinicBranchId, conversation.Id, attachmentId);
@@ -229,16 +257,39 @@ public class ChatAppService(
 
     public async Task<ChatMessageDto> EditMessageAsync(Guid messageId, EditChatMessageInput input)
     {
-        var message = await GetVisibleMessageAsync(messageId);
-        message.Edit(CurrentUser.GetId(), input.Content, Clock.Now, cipher);
-        await messages.UpdateAsync(message, autoSave: true);
-        await NotifyMembersAsync(message.ConversationId);
+        var (message, conversation) = await GetVisibleMessageAsync(messageId);
+        var replaced = message.Edit(
+            CurrentUser.GetId(), input.Content, input.ExpectedEditedAt, Clock.Now, cipher,
+            GuidGenerator.Create(), conversation.ClinicBranchId);
+        if (replaced is not null)
+        {
+            await revisions.InsertAsync(replaced);
+            await messages.UpdateAsync(message, autoSave: true);
+            await NotifyMembersAsync(message.ConversationId);
+        }
+
         return (await MapMessagesAsync([message], CurrentUser.GetId()))[0];
+    }
+
+    public async Task<List<ChatMessageRevisionDto>> GetMessageRevisionsAsync(Guid messageId)
+    {
+        var (message, _) = await GetVisibleMessageAsync(messageId);
+        if (message.IsRecalled)
+        {
+            // A recall takes the history with it.
+            return [];
+        }
+
+        var found = await AsyncExecuter.ToListAsync(
+            (await revisions.GetQueryableAsync())
+                .Where(r => r.MessageId == messageId)
+                .OrderByDescending(r => r.EditedAt));
+        return found.Select(r => new ChatMessageRevisionDto { Content = r.ReadContent(cipher), EditedAt = r.EditedAt }).ToList();
     }
 
     public async Task<ChatMessageDto> RecallMessageAsync(Guid messageId)
     {
-        var message = await GetVisibleMessageAsync(messageId);
+        var (message, _) = await GetVisibleMessageAsync(messageId);
         message.Recall(CurrentUser.GetId(), Clock.Now);
         await messages.UpdateAsync(message, autoSave: true);
         await NotifyMembersAsync(message.ConversationId);
@@ -247,7 +298,7 @@ public class ChatAppService(
 
     public async Task<IRemoteStreamContent> GetAttachmentAsync(Guid messageId, Guid attachmentId)
     {
-        var message = await GetVisibleMessageAsync(messageId);
+        var (message, _) = await GetVisibleMessageAsync(messageId);
         var attachment = message.IsRecalled
             ? null
             : await attachments.FirstOrDefaultAsync(a => a.Id == attachmentId && a.MessageId == messageId);
@@ -318,12 +369,11 @@ public class ChatAppService(
         return conversation;
     }
 
-    private async Task<ChatMessage> GetVisibleMessageAsync(Guid messageId)
+    private async Task<(ChatMessage Message, ChatConversation Conversation)> GetVisibleMessageAsync(Guid messageId)
     {
         var message = await messages.FindAsync(messageId)
             ?? throw new EntityNotFoundException(typeof(ChatMessage), messageId);
-        await GetVisibleAsync(message.ConversationId);
-        return message;
+        return (message, await GetVisibleAsync(message.ConversationId));
     }
 
     private async Task NotifyMembersAsync(Guid conversationId) =>
@@ -371,6 +421,8 @@ public class ChatAppService(
                 ClinicBranchId = c.ClinicBranchId,
                 Kind = c.Kind,
                 Name = c.Name,
+                OwnerId = c.OwnerId,
+                IsOwnedByMe = c.IsOwnedBy(userId),
                 Title = c.IsGroup
                     ? c.Name!
                     : people.FirstOrDefault(p => p.UserId != userId)?.FullName ?? NameOf(names, userId),
@@ -395,6 +447,7 @@ public class ChatAppService(
             ? []
             : await attachments.GetListAsync(a => a.MessageId != null && withFiles.Contains(a.MessageId.Value));
         var names = await NamesAsync(page.Select(m => m.SenderId));
+        var now = Clock.Now;
 
         return page.Select(m => new ChatMessageDto
         {
@@ -403,6 +456,8 @@ public class ChatAppService(
             SenderId = m.SenderId,
             SenderName = NameOf(names, m.SenderId),
             IsMine = m.SenderId == userId,
+            CanEdit = m.CanBeEditedBy(userId, now),
+            EditableUntil = m.SenderId == userId && !m.IsRecalled ? m.EditableUntil : null,
             Content = m.ReadContent(cipher),
             SentAt = m.SentAt,
             EditedAt = m.IsRecalled ? null : m.EditedAt,
@@ -459,6 +514,24 @@ public class ChatAppService(
         }
 
         return buffer;
+    }
+
+    /// <summary>
+    /// Fails closed: when clamd is configured but does not answer, nothing is
+    /// stored. Only a machine with no scanner configured lets files through.
+    /// The log names the account and signature, never the file name.
+    /// </summary>
+    private async Task EnsureNoMalwareAsync(ReadOnlyMemory<byte> content)
+    {
+        var result = await malwareScanner.ScanAsync(content);
+        switch (result.Verdict)
+        {
+            case MalwareScanVerdict.Infected:
+                Logger.LogWarning("Chat: upload by {UserId} refused, malware {Signature}.", CurrentUser.Id, result.Signature);
+                throw new BusinessException(BlueDentalDomainErrorCodes.Chat.AttachmentInfected);
+            case MalwareScanVerdict.Unavailable:
+                throw new BusinessException(BlueDentalDomainErrorCodes.Chat.MalwareScanUnavailable);
+        }
     }
 
     private static BusinessException InvalidAttachment() =>

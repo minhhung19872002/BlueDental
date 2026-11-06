@@ -5,8 +5,11 @@ import type {
   ChatConversationDto,
   ChatMessageDto,
   ChatMessagePageDto,
+  ChatMessageRevisionDto,
+  ChatMessageSearchResultDto,
   ChatUnreadCountDto,
   CreateGroupChatInput,
+  EditChatMessageInput,
   SendChatMessageInput,
 } from "../types";
 
@@ -34,21 +37,35 @@ export const chatApi = {
     api.put<ChatConversationDto>(`${BASE}/conversations/${id}/name`, { name }).then((r) => r.data),
   addMembers: (id: string, userIds: string[]) =>
     api.post<ChatConversationDto>(`${BASE}/conversations/${id}/members`, { userIds }).then((r) => r.data),
+  removeMember: (id: string, userId: string) =>
+    api.delete(`${BASE}/conversations/${id}/members/${userId}`).then(() => undefined),
+  /** POST so the words searched never reach a proxy log as a query string. */
+  searchMessages: (id: string, text: string) =>
+    api
+      .post<ChatMessageSearchResultDto>(`${BASE}/conversations/${id}/messages/search`, { text })
+      .then((r) => r.data),
   leave: (id: string) => api.post(`${BASE}/conversations/${id}/leave`).then(() => undefined),
   markRead: (id: string) => api.post(`${BASE}/conversations/${id}/read`).then(() => undefined),
-  upload: (conversationId: string, file: File) => {
+  /** @param onProgress whole percent of the file sent so far, 0–100. */
+  upload: (conversationId: string, file: File, onProgress?: (percent: number) => void) => {
     const form = new FormData();
     form.append("file", file);
     return api
-      .post<ChatAttachmentDto>(`${BASE}/conversations/${conversationId}/attachments`, form)
+      .post<ChatAttachmentDto>(`${BASE}/conversations/${conversationId}/attachments`, form, {
+        onUploadProgress: (event) => {
+          if (onProgress && event.total) onProgress(Math.min(100, Math.floor((event.loaded / event.total) * 100)));
+        },
+      })
       .then((r) => r.data);
   },
   send: ({ conversationId, content, attachmentIds }: SendChatMessageInput) =>
     api
       .post<ChatMessageDto>(`${BASE}/conversations/${conversationId}/messages`, { content, attachmentIds })
       .then((r) => r.data),
-  edit: (messageId: string, content: string) =>
-    api.put<ChatMessageDto>(`${BASE}/messages/${messageId}`, { content }).then((r) => r.data),
+  edit: ({ messageId, content, expectedEditedAt }: EditChatMessageInput) =>
+    api.put<ChatMessageDto>(`${BASE}/messages/${messageId}`, { content, expectedEditedAt }).then((r) => r.data),
+  revisions: (messageId: string) =>
+    api.get<ChatMessageRevisionDto[]>(`${BASE}/messages/${messageId}/revisions`).then((r) => r.data),
   recall: (messageId: string) =>
     api.post<ChatMessageDto>(`${BASE}/messages/${messageId}/recall`).then((r) => r.data),
   /** The server decrypts the file; the bytes arrive over the authenticated session. */

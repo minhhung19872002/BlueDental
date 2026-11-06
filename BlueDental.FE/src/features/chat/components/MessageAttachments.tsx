@@ -6,7 +6,7 @@ import { downloadBlob } from "@/utils/download";
 import { useDownloadChatAttachment } from "../api/chatMutations";
 import { useChatAttachmentBlob } from "../api/chatQueries";
 import type { ChatAttachmentDto } from "../types";
-import { formatFileSize } from "../utils/chatFormat";
+import { displayFileName, formatFileSize } from "../utils/chatFormat";
 
 interface MessageAttachmentsProps {
   messageId: string;
@@ -46,7 +46,7 @@ function ChatImage({ messageId, attachment }: AttachmentProps) {
       </span>
     );
   }
-  return <Image className="chat-image" src={url} alt={attachment.fileName} width={200} />;
+  return <Image className="chat-image" src={url} alt={displayFileName(attachment.fileName)} width={200} />;
 }
 
 function ChatFile({ messageId, attachment }: AttachmentProps) {
@@ -55,7 +55,7 @@ function ChatFile({ messageId, attachment }: AttachmentProps) {
   const handleDownload = () => {
     download.mutate(
       { messageId, attachmentId: attachment.id },
-      { onSuccess: (blob) => downloadBlob(blob, attachment.fileName) },
+      { onSuccess: (blob) => downloadBlob(blob, displayFileName(attachment.fileName)) },
     );
   };
 
@@ -63,13 +63,13 @@ function ChatFile({ messageId, attachment }: AttachmentProps) {
     <button
       type="button"
       className="chat-file"
-      aria-label={t("Chat:Download", attachment.fileName)}
+      aria-label={t("Chat:Download", displayFileName(attachment.fileName))}
       disabled={download.isPending}
       onClick={handleDownload}
     >
       <FileText size={20} className="chat-file-icon" aria-hidden />
       <span className="chat-file-text">
-        <span className="chat-file-name">{attachment.fileName}</span>
+        <span className="chat-file-name">{displayFileName(attachment.fileName)}</span>
         <span className="chat-file-size">{formatFileSize(attachment.sizeInBytes)}</span>
       </span>
       {download.isPending ? <Spin size="small" /> : <Download size={16} aria-hidden />}

@@ -31,6 +31,13 @@ public class ChatConversation : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public string? DirectKey { get; private set; }
 
+    /// <summary>
+    /// Who may remove people from a group: its creator, then whoever has been
+    /// in it longest once the owner leaves (R-1158). Null for a two-person
+    /// conversation and for a group everyone has left.
+    /// </summary>
+    public Guid? OwnerId { get; private set; }
+
     protected ChatConversation() { }
 
     public bool IsGroup => Kind == ChatConversationKind.Group;
@@ -58,16 +65,27 @@ public class ChatConversation : FullAuditedAggregateRoot<Guid>
         };
     }
 
-    public static ChatConversation CreateGroup(Guid id, Guid clinicBranchId, string name)
+    public static ChatConversation CreateGroup(Guid id, Guid clinicBranchId, string name, Guid ownerId)
     {
         RequireBranch(clinicBranchId);
+        Check.NotDefaultOrNull<Guid>(ownerId, nameof(ownerId));
         return new ChatConversation
         {
             Id = id,
             ClinicBranchId = clinicBranchId,
             Kind = ChatConversationKind.Group,
             Name = NormalizeName(name),
+            OwnerId = ownerId,
         };
+    }
+
+    public bool IsOwnedBy(Guid userId) => OwnerId == userId;
+
+    /// <summary>The owner left: <paramref name="nextOwnerId"/> (null when nobody is left) takes over.</summary>
+    public void HandOverOwnership(Guid? nextOwnerId)
+    {
+        EnsureGroup();
+        OwnerId = nextOwnerId;
     }
 
     public void Rename(string name)

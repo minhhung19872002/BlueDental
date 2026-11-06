@@ -214,6 +214,7 @@ public class BlueDentalDbContext :
     public DbSet<Chat.ChatMember> ChatMembers { get; set; }
     public DbSet<Chat.ChatMessage> ChatMessages { get; set; }
     public DbSet<Chat.ChatAttachment> ChatAttachments { get; set; }
+    public DbSet<Chat.ChatMessageRevision> ChatMessageRevisions { get; set; }
 
     public BlueDentalDbContext(DbContextOptions<BlueDentalDbContext> options)
         : base(options)

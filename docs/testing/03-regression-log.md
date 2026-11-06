@@ -13966,3 +13966,73 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Mức retest**: 2 cho tính năng mới.
   - Đụng `NotificationHub` (thêm nhóm `user:{id}`) và CSS vị trí `.arrival-dock`, nên khi sửa các chỗ này chạy thêm `reception-arrival-call`.
   - Xem dòng chat trong `02-impact-map.md`.
+
+## R-1158 (2026-11-06, mức 3: Chat nội bộ — hardening, F-89, develop)
+
+- **Yêu cầu**:
+  - Owner chỉ vào danh sách "Chưa làm" của chat: "commit r làm mấy chỗ này được k".
+  - Thêm: "tăng dung lượng file lên 50MB … khi upload hiện progress bn %".
+  - Sau đó: "Tìm kiếm tin nhắn loading xấu" và "lỗi UI này" (chip upload có tên file Nhật dài làm hàng file tràn ngang).
+- **Đã làm**:
+  1. **Quét ClamAV** (`IMalwareScanner` / `ClamAvMalwareScanner`, lệnh INSTREAM) trước khi mã hoá + lưu.
+     - Có virus → `Chat:0018`.
+     - Không quét được → `Chat:0019` (fail-closed).
+     - Không cấu hình `MalwareScan:Host` thì không quét (máy dev).
+     - Compose đặt `CLAMD_CONF_StreamMaxLength: 60M`.
+  2. **Rate limit** (ASP.NET `UseRateLimiter` sau `UseAuthorization`), theo user, cửa sổ 30 giây: gửi + sửa 30, upload 30, tìm 20. Vượt → 429 `Chat:0020` + `Retry-After`.
+  3. **Dọn file mồ côi**: `ChatOrphanAttachmentWorker` xoá blob + dòng attachment chưa gắn quá 24 h. Cấu hình `Chat:OrphanAttachmentHours` / `Chat:OrphanSweepSeconds`.
+  4. **Xoá thành viên**:
+     - Cột `OwnerId`, migration `ChatOwnerR1158`.
+     - Chỉ chủ nhóm được xoá (`0021`), không tự xoá mình (`0022`).
+     - Chủ nhóm rời thì quyền chuyển cho người vào sớm nhất.
+     - FE: người bị xoá thấy "Bạn không còn ở trong cuộc trò chuyện này".
+  5. **Tên file**: BE bỏ ký tự Unicode Format (Cf, gồm U+202E) + Control; FE lọc lại khi hiển thị.
+  6. **Tìm theo nội dung tin**:
+     - Server giải mã từng lô, tối đa 5.000 tin mới nhất, trả ≤ 50 kết quả.
+     - Không phân biệt dấu, bỏ tin đã thu hồi.
+     - Bấm kết quả thì nhảy tới tin đó.
+     - Lúc đang tải dùng `ChatSpinner` chung.
+  7. **File 50 MB**: AppService 50 MB, Kestrel 51 MB, nginx location chat 55m.
+  8. **Tiến trình upload**:
+     - Chip hiện % (`progressbar`); tới 100% thì hiện "Đang xử lý" trong lúc quét + mã hoá.
+     - Sửa tràn ngang: Spin làm con của Tag, không dùng prop `icon`. Với `icon`, AntD bọc children trong một span nên tên file mất ellipsis.
+     - Hàng file `overflow-x: hidden`, tên tối đa 180px.
+- **Kiểm thử** (host :5157 + ClamAV thật, DB `BlueDental_chat`, MinIO, bản build production :8157, không chặn request):
+  - `chat-r1158-r1159-api` **15/15**:
+    - EICAR, U+202E, orphan 23 h/25 h;
+    - xoá thành viên + chuyển quyền chủ nhóm;
+    - tìm kiếm (không phân biệt dấu, bỏ tin thu hồi, chi nhánh 2 → 404, canary không vào audit);
+    - 429.
+  - `chat-edit` ca "tên file dài" (6 MB, đo `scrollWidth ≤ clientWidth` lúc đang tải và sau khi xong, không có raw key).
+  - `chat-api` 7/7, `chat` 3/3.
+- **Ghi chú**: chip hiện raw key "Chat:Processing" trên máy owner vì host :5000 chạy bản build cũ. Key có trong vi/en; chạy lại BE (build → DbMigrator → xoá Redis quyền → host) là hết.
+- **Mức retest**: 3, vì pipeline host có thêm `UseRateLimiter` (chỉ policy chat dùng, không có limiter global). Đã chạy lại toàn bộ chat spec.
+
+## R-1159 (2026-11-06, mức 2: Chat nội bộ — sửa tin F5, F-89, develop)
+
+- **Yêu cầu** (owner chốt F5):
+  - Chỉ người gửi sửa, trong 15 phút, chỉ sửa chữ.
+  - Giữ bản cũ đã mã hoá, thành viên xem được.
+  - Lỗi 0023 EditWindowExpired, 0024 EditConflict.
+  - `GET messages/{id}/revisions`; DTO có `canEdit` + `editableUntil`.
+  - Ô soạn: Enter lưu, Shift+Enter xuống dòng, Esc huỷ, ↑ sửa tin cuối của mình.
+  - Nhãn "đã chỉnh sửa" bấm được để xem bản cũ.
+- **Thiết kế**:
+  - Bảng `bd_chat_message_revisions` (migration `ChatRevisionsR1159`), `ContentCipher` mã hoá với AAD là id bản cũ.
+  - `ChatMessage.Edit` chặn: hết hạn → 0023; `expectedEditedAt` lệch → 0024; đã thu hồi → 0005; không phải người gửi → 0004.
+  - Trùng nội dung thì không làm gì.
+  - Tin có file được để trống chữ; tin chỉ có chữ mà sửa thành trống → 0001.
+  - PUT dùng chung rate limit với gửi.
+- **Kiểm thử**:
+  - `chat-r1158-r1159-api`:
+    - bản cũ chỉ là `v1:` ciphertext; `editableUntil` không đổi; xem bản cũ mới nhất trước;
+    - 0024 / 0023 (lùi `SentAt` 16 phút) / 0004 / 0005;
+    - revisions 404 với chi nhánh 2 và với người ngoài nhóm;
+    - canary không vào audit; chép ciphertext giữa hai bản cũ thì không đọc được.
+  - `chat-edit` **4/4** (2 trình duyệt):
+    - sửa qua menu → người kia thấy ngay qua SignalR + popover "Các bản trước khi sửa";
+    - ↑ / Esc / Hủy sửa giữ bản nháp;
+    - quá 15 phút thì mất "Sửa";
+    - chip tên dài.
+  - `chat.spec` đổi nhãn sang "đã chỉnh sửa".
+- **Mức retest**: 2.

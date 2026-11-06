@@ -1011,5 +1011,12 @@ public static class BlueDentalDomainErrorCodes
         public const string GroupNeedsMembers = "BlueDental:Chat:0015";
         public const string TooManyMembers = "BlueDental:Chat:0016";
         public const string AttachmentTooLarge = "BlueDental:Chat:0017";
+        public const string AttachmentInfected = "BlueDental:Chat:0018";
+        public const string MalwareScanUnavailable = "BlueDental:Chat:0019";
+        public const string SendingTooFast = "BlueDental:Chat:0020";
+        public const string NotGroupOwner = "BlueDental:Chat:0021";
+        public const string CannotRemoveSelf = "BlueDental:Chat:0022";
+        public const string EditWindowExpired = "BlueDental:Chat:0023";
+        public const string EditConflict = "BlueDental:Chat:0024";
     }
 }

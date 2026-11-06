@@ -1,4 +1,5 @@
 using System.Net;
+using BlueDental.Chat;
 using BlueDental.EntityFrameworkCore;
 using BlueDental.Hubs;
 using BlueDental.Security;
@@ -91,6 +92,7 @@ public class BlueDentalHttpApiHostModule : AbpModule
         ConfigureAntiForgery();
         ConfigureExceptionStatusCodes();
         ConfigureUnitOfWork();
+        context.Services.AddChatRateLimiting(configuration);
 
         // wwwroot only holds print templates (PHIẾU THU.docx); this host serves
         // no client-side libs, so ABP's wwwroot/libs startup check is noise.
@@ -366,6 +368,8 @@ public class BlueDentalHttpApiHostModule : AbpModule
         app.UseDynamicClaims();
         app.UseMiddleware<SignInRestrictionMiddleware>();
         app.UseAuthorization();
+        // After authorization, so the per-account limits see who is calling.
+        app.UseRateLimiter();
 
         if (env.IsDevelopment())
         {

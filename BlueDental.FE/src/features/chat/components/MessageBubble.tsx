@@ -3,6 +3,7 @@ import { t } from "@/lib/i18n";
 import type { ChatMessageDto } from "../types";
 import { formatMessageTime } from "../utils/chatFormat";
 import { MessageActions } from "./MessageActions";
+import { EditHistory } from "./EditHistory";
 import { MessageAttachments } from "./MessageAttachments";
 
 interface MessageBubbleProps {
@@ -44,7 +45,12 @@ export const MessageBubble = React.memo(function MessageBubble({ message, showSe
       </div>
       <span className="chat-message-meta">
         {formatMessageTime(message.sentAt)}
-        {message.editedAt && !message.isRecalled && ` · ${t("Chat:Edited")}`}
+        {message.editedAt && !message.isRecalled && (
+          <>
+            {" · "}
+            <EditHistory messageId={message.id} editedAt={message.editedAt} />
+          </>
+        )}
       </span>
     </div>
   );

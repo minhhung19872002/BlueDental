@@ -4,6 +4,7 @@ import { MoreVertical } from "lucide-react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { t } from "@/lib/i18n";
 import { useRecallChatMessage } from "../api/chatMutations";
+import { useEditWindow } from "../hooks/useEditWindow";
 import type { ChatMessageDto } from "../types";
 
 interface MessageActionsProps {
@@ -11,13 +12,17 @@ interface MessageActionsProps {
   onEdit: (message: ChatMessageDto) => void;
 }
 
-/** "Sửa" / "Thu hồi" on the caller's own message; recalling asks first. */
+/**
+ * "Sửa" / "Thu hồi" on the caller's own message; recalling asks first. "Sửa"
+ * is there only within the edit window and goes when it closes (R-1159).
+ */
 export const MessageActions: React.FC<MessageActionsProps> = ({ message, onEdit }) => {
   const [confirming, setConfirming] = useState(false);
   const recall = useRecallChatMessage();
+  const editable = useEditWindow(message);
 
   const items: MenuProps["items"] = [
-    ...(message.content ? [{ key: "edit", label: t("Chat:Edit") }] : []),
+    ...(editable ? [{ key: "edit", label: t("Chat:Edit") }] : []),
     { key: "recall", label: t("Chat:Recall"), danger: true },
   ];
 

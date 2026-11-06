@@ -5,6 +5,7 @@ using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Volo.Abp;
 using Volo.Abp.Auditing;
 using Volo.Abp.Content;
@@ -54,6 +55,9 @@ public sealed class ChatController(IChatAppService service) : BlueDentalControll
     [HttpPost("conversations/{id:guid}/leave")]
     public Task LeaveAsync(Guid id) => service.LeaveAsync(id);
 
+    [HttpDelete("conversations/{id:guid}/members/{userId:guid}")]
+    public Task RemoveMemberAsync(Guid id, Guid userId) => service.RemoveMemberAsync(id, userId);
+
     [HttpPost("conversations/{id:guid}/read")]
     public Task MarkReadAsync(Guid id) => service.MarkReadAsync(id);
 
@@ -61,7 +65,14 @@ public sealed class ChatController(IChatAppService service) : BlueDentalControll
     public Task<ChatMessagePageDto> GetMessagesAsync(Guid id, [FromQuery] GetChatMessagesInput input) =>
         service.GetMessagesAsync(id, input);
 
+    /// <remarks>POST, so the words looked for stay out of the URL and the proxy's access log.</remarks>
+    [HttpPost("conversations/{id:guid}/messages/search")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Search)]
+    public Task<ChatMessageSearchResultDto> SearchMessagesAsync(Guid id, [FromBody] SearchChatMessagesInput input) =>
+        service.SearchMessagesAsync(id, input);
+
     [HttpPost("conversations/{id:guid}/attachments")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Upload)]
     [DisableAuditing] // the multipart headers carry the file name in clear
     [RequestSizeLimit(UploadRequestLimit)]
     [RequestFormLimits(MultipartBodyLengthLimit = UploadRequestLimit)]
@@ -69,15 +80,21 @@ public sealed class ChatController(IChatAppService service) : BlueDentalControll
         service.UploadAttachmentAsync(id, new RemoteStreamContent(file.OpenReadStream(), file.FileName, file.ContentType));
 
     [HttpPost("conversations/{id:guid}/messages")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Send)]
     public Task<ChatMessageDto> SendAsync(Guid id, [FromBody] SendChatMessageInput input) =>
         service.SendAsync(id, input);
 
     [HttpPut("messages/{messageId:guid}")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Send)]
     public Task<ChatMessageDto> EditMessageAsync(Guid messageId, [FromBody] EditChatMessageInput input) =>
         service.EditMessageAsync(messageId, input);
 
     [HttpPost("messages/{messageId:guid}/recall")]
     public Task<ChatMessageDto> RecallMessageAsync(Guid messageId) => service.RecallMessageAsync(messageId);
+
+    [HttpGet("messages/{messageId:guid}/revisions")]
+    public Task<List<ChatMessageRevisionDto>> GetMessageRevisionsAsync(Guid messageId) =>
+        service.GetMessageRevisionsAsync(messageId);
 
     [HttpGet("messages/{messageId:guid}/attachments/{attachmentId:guid}")]
     public async Task<IActionResult> GetAttachmentAsync(Guid messageId, Guid attachmentId)

@@ -6,9 +6,10 @@ import { t } from "@/lib/i18n";
 import { useLeaveChat } from "../api/chatMutations";
 import type { ChatConversationDto } from "../types";
 import { AddMembersDialog } from "./AddMembersDialog";
+import { MembersDialog } from "./MembersDialog";
 import { RenameGroupDialog } from "./RenameGroupDialog";
 
-type ThreadAction = "rename" | "add" | "leave";
+type ThreadAction = "members" | "rename" | "add" | "leave";
 
 interface ThreadMenuProps {
   conversation: ChatConversationDto;
@@ -16,13 +17,14 @@ interface ThreadMenuProps {
   onLeft: () => void;
 }
 
-/** A group's "…" menu: rename, add people, leave. */
+/** A group's "…" menu: members (the owner removes people there), rename, add people, leave. */
 export const ThreadMenu: React.FC<ThreadMenuProps> = ({ conversation, onLeft }) => {
   const [action, setAction] = useState<ThreadAction | null>(null);
   const leave = useLeaveChat();
   const close = () => setAction(null);
 
   const items: MenuProps["items"] = [
+    { key: "members", label: t("Chat:MemberList") },
     { key: "rename", label: t("Chat:Rename") },
     { key: "add", label: t("Chat:AddMembers") },
     { type: "divider" },
@@ -49,6 +51,7 @@ export const ThreadMenu: React.FC<ThreadMenuProps> = ({ conversation, onLeft }) 
           <MoreHorizontal size={18} aria-hidden />
         </button>
       </Dropdown>
+      {action === "members" && <MembersDialog conversation={conversation} onClose={close} />}
       {action === "rename" && <RenameGroupDialog conversation={conversation} onClose={close} />}
       {action === "add" && <AddMembersDialog conversation={conversation} onClose={close} />}
       <ConfirmDialog

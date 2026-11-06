@@ -2418,6 +2418,10 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("ConversationId");
 
+                    b.HasIndex("CreationTime")
+                        .HasDatabaseName("IX_bd_chat_attachments_Unsent_CreationTime")
+                        .HasFilter("\"MessageId\" IS NULL");
+
                     b.HasIndex("MessageId");
 
                     b.ToTable("bd_chat_attachments", (string)null);
@@ -2483,6 +2487,9 @@ namespace BlueDental.Migrations
                     b.Property<string>("Name")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -2571,6 +2578,30 @@ namespace BlueDental.Migrations
                     b.HasIndex("ConversationId", "SentAt");
 
                     b.ToTable("bd_chat_messages", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.Chat.ChatMessageRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentCipher")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MessageId", "EditedAt");
+
+                    b.ToTable("bd_chat_message_revisions", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.ClinicIntegration.ClinicConnection", b =>
@@ -11813,6 +11844,15 @@ namespace BlueDental.Migrations
                     b.HasOne("BlueDental.Chat.ChatConversation", null)
                         .WithMany()
                         .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("BlueDental.Chat.ChatMessageRevision", b =>
+                {
+                    b.HasOne("BlueDental.Chat.ChatMessage", null)
+                        .WithMany()
+                        .HasForeignKey("MessageId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

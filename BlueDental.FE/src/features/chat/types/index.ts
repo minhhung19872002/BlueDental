@@ -33,6 +33,10 @@ export interface ChatMessageDto {
   sentAt: string;
   editedAt: string | null;
   isRecalled: boolean;
+  /** Server says the caller may still edit it (sender, not recalled, inside the window). */
+  canEdit: boolean;
+  /** When the edit window closes; null when the caller may never edit it (R-1159). */
+  editableUntil: string | null;
   attachments: ChatAttachmentDto[];
 }
 
@@ -43,6 +47,9 @@ export interface ChatConversationDto {
   /** The group name, or the other person's name in a two-person chat. */
   title: string;
   name: string | null;
+  /** The group member who may remove others; null for a two-person chat. */
+  ownerId: string | null;
+  isOwnedByMe: boolean;
   members: ChatMemberDto[];
   lastMessage: ChatMessageDto | null;
   lastActivityAt: string;
@@ -53,6 +60,13 @@ export interface ChatMessagePageDto {
   /** Newest first. */
   items: ChatMessageDto[];
   hasMore: boolean;
+}
+
+/** Newest first; at most 50, from the 5,000 newest messages (R-1158). */
+export interface ChatMessageSearchResultDto {
+  items: ChatMessageDto[];
+  /** False when there may be more matches than were returned. */
+  isComplete: boolean;
 }
 
 export interface ChatUnreadCountDto {
@@ -74,8 +88,9 @@ export interface SendChatMessageInput {
 export const CHAT_LIMITS = {
   maxMessageLength: 4000,
   maxAttachmentsPerMessage: 10,
-  maxAttachmentBytes: 20 * 1024 * 1024,
+  maxAttachmentBytes: 50 * 1024 * 1024,
   maxGroupNameLength: 100,
+  maxSearchTextLength: 100,
   messagePageSize: 30,
 } as const;
 
@@ -84,3 +99,24 @@ export const CHAT_FILE_EXTENSIONS = [
   ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf",
   ".docx", ".xlsx", ".pptx", ".doc", ".xls", ".ppt", ".txt", ".csv",
 ] as const;
+
+/** An earlier wording of an edited message (R-1159). */
+export interface ChatMessageRevisionDto {
+  /** Null when the message carried only files at that point. */
+  content: string | null;
+  /** When this wording was replaced. */
+  editedAt: string;
+}
+
+export interface EditChatMessageInput {
+  messageId: string;
+  content: string;
+  /** The message's editedAt when editing began; another edit since then is refused. */
+  expectedEditedAt: string | null;
+}
+
+/** Server error codes the chat reacts to beyond the toast. */
+export const CHAT_ERROR_CODES = {
+  editWindowExpired: "BlueDental:Chat:0023",
+  editConflict: "BlueDental:Chat:0024",
+} as const;

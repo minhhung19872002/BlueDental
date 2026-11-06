@@ -1,5 +1,5 @@
-import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { CHAT_LIMITS } from "../types";
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
+import { CHAT_LIMITS, type ChatMessageDto, type ChatMessagePageDto } from "../types";
 import { chatApi } from "./chatApi";
 
 /**
@@ -14,8 +14,11 @@ export const chatKeys = {
     [...chatKeys.all, "conversations", branchId ?? "all", filter] as const,
   conversation: (id: string) => [...chatKeys.all, "conversation", id] as const,
   messages: (id: string) => [...chatKeys.all, "messages", id] as const,
+  revisions: (messageId: string) => [...chatKeys.all, "revisions", messageId] as const,
   contacts: (branchId: string | undefined, filter: string) =>
     [...chatKeys.all, "contacts", branchId ?? "all", filter] as const,
+  /** Its own root too: a push that refetches the chat must not rerun every search. */
+  search: (id: string, text: string) => ["chat-search", id, text] as const,
   /** Its own root: a file never changes, so chat refetches leave it alone. */
   attachment: (attachmentId: string) => ["chat-file", attachmentId] as const,
 };
@@ -66,6 +69,17 @@ export function useChatContacts(branchId: string | undefined, filter: string, en
   });
 }
 
+/** Searched on the server, which decrypts the messages; empty text searches nothing. */
+export function useChatMessageSearch(id: string, text: string) {
+  return useQuery({
+    queryKey: chatKeys.search(id, text),
+    queryFn: () => chatApi.searchMessages(id, text),
+    enabled: text.length > 0,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
+}
+
 /**
  * An attachment's bytes as a blob, for an image shown inline. Kept while the
  * message is on screen; the object URL is made and released by the caller.
@@ -78,4 +92,28 @@ export function useChatAttachmentBlob(messageId: string, attachmentId: string, e
     staleTime: Infinity,
     gcTime: 5 * 60_000,
   });
+}
+
+/** Earlier wordings of one message (R-1159); fetched only while the history is open. */
+export function useChatMessageRevisions(messageId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: chatKeys.revisions(messageId),
+    queryFn: () => chatApi.revisions(messageId),
+    enabled,
+  });
+}
+
+/**
+ * Reloads a thread and hands back one message as the server now has it —
+ * for an edit that lost to an edit made elsewhere (R-1159). Undefined when
+ * it is no longer on the loaded pages.
+ */
+export function useReloadChatMessage(conversationId: string) {
+  const queryClient = useQueryClient();
+  return async (messageId: string): Promise<ChatMessageDto | undefined> => {
+    const key = chatKeys.messages(conversationId);
+    await queryClient.refetchQueries({ queryKey: key, exact: true });
+    const data = queryClient.getQueryData<InfiniteData<ChatMessagePageDto>>(key);
+    return data?.pages.flatMap((page) => page.items).find((message) => message.id === messageId);
+  };
 }

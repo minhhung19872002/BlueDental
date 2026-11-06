@@ -1,7 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { CreateGroupChatInput, SendChatMessageInput } from "../types";
+import type { CreateGroupChatInput, EditChatMessageInput, SendChatMessageInput } from "../types";
 import { chatApi } from "./chatApi";
 import { chatKeys } from "./chatQueries";
+
+interface UploadChatAttachmentInput {
+  conversationId: string;
+  file: File;
+  onProgress?: (percent: number) => void;
+}
 
 /** Every chat write can move the list order, a thread and the unread badge. */
 function useInvalidateChat() {
@@ -43,6 +49,16 @@ export function useLeaveChat() {
   return useMutation({ mutationFn: chatApi.leave, onSuccess: invalidate });
 }
 
+/** Owner only; the server says no to anyone else (R-1158). */
+export function useRemoveChatMember() {
+  const invalidate = useInvalidateChat();
+  return useMutation({
+    mutationFn: ({ conversationId, userId }: { conversationId: string; userId: string }) =>
+      chatApi.removeMember(conversationId, userId),
+    onSuccess: invalidate,
+  });
+}
+
 /** Read marks fire on their own; a failed one is retried by the next open, not toasted. */
 export function useMarkChatRead() {
   const invalidate = useInvalidateChat();
@@ -55,8 +71,8 @@ export function useMarkChatRead() {
 
 export function useUploadChatAttachment() {
   return useMutation({
-    mutationFn: ({ conversationId, file }: { conversationId: string; file: File }) =>
-      chatApi.upload(conversationId, file),
+    mutationFn: ({ conversationId, file, onProgress }: UploadChatAttachmentInput) =>
+      chatApi.upload(conversationId, file, onProgress),
   });
 }
 
@@ -71,7 +87,7 @@ export function useSendChatMessage() {
 export function useEditChatMessage() {
   const invalidate = useInvalidateChat();
   return useMutation({
-    mutationFn: ({ messageId, content }: { messageId: string; content: string }) => chatApi.edit(messageId, content),
+    mutationFn: (input: EditChatMessageInput) => chatApi.edit(input),
     onSuccess: invalidate,
   });
 }
