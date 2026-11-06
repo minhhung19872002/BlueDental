@@ -75,7 +75,7 @@ Ký hiệu: ✅ code đạt · ❌ chưa có / sai · ⚠ đạt một phần / 
 | # | Yêu cầu | Kiểm thế nào | Đạt khi | Theo code 2026-11-06 |
 |---|---|---|---|---|
 | E1 | Nội dung tin hiện dạng text, không `dangerouslySetInnerHTML` | Gửi `<img src=x onerror=alert(1)>` | Hiện nguyên chuỗi, không chạy script | ✅ text React; grep `dangerouslySetInnerHTML` = 0 |
-| E2 | Link trong tin có `rel="noopener noreferrer"`; server không tự fetch preview link (SSRF) | Gửi link, xem DOM + log server | Đạt | ⚪ không tự nhận link, server không fetch preview |
+| E2 | Link trong tin có `rel="noopener noreferrer"`; server không tự fetch preview link (SSRF) | Gửi link, xem DOM + log server | Đạt | ✅ R-1160: chỉ Kho lưu trữ tab Link render link (`<a target="_blank" rel="noopener noreferrer">`, http/https, không HTML thô); trong luồng tin vẫn là text; server không fetch preview — e2e `chat-r1160-library` kiểm `rel`/`target` |
 | E3 | Thông báo / toast / badge không hiện nội dung tin (màn quầy lễ tân) | Nhận tin khi đang ở trang khác | Chỉ hiện "Tin nhắn mới từ …" hoặc số chưa đọc | ✅ badge chỉ hiện số |
 | E4 | Mọi chữ hiển thị qua i18n (vi/en) | Đổi ngôn ngữ | Không còn chuỗi cứng | ✅ 47 key `Chat:*` có đủ ở vi lẫn en — ❓ đổi ngôn ngữ khi chạy |
 
@@ -287,6 +287,41 @@ I1.6 (gửi lại ra tin trùng), I6.6 (mất tin ở ranh giới trang), H2.6 (
 **Nên có trước production:** A6 (xoá thành viên / tài khoản bị khoá), C8 + H5.2 (`curl -I`), C11 + I2.6 (dọn orphan), H5.1 (CSP),
 H4.3, H4.5, H6.5, H6.6, H6.11, I1.7, I1.9, I4.5 (500 khi mở chat 1-1 đồng thời), I5.3; chủ dự án chốt mục F và C12.
 **Test:** chưa có test BE nào; `chat-api.spec.ts` (6 test API) chưa chạy; chưa có spec UI.
+
+### Rà lại theo code — 2026-11-06, sau commit `695fed1a` (R-1158 + R-1159)
+
+Đọc code, chưa chạy. R-1160 (Kho lưu trữ) rà xong khi làm FE — xem dòng H3.2.
+
+| Mục | Kết quả | Bằng chứng |
+|---|---|---|
+| B4 nội dung không vào audit log | ✅ code | `[DisableAuditing]` trên `Content` (gửi, sửa), `Text` (tìm); upload `[DisableAuditing]`. Còn test canary |
+| C5/C6 ClamAV, fail-closed | ✅ | `deploy.sh` bật `clamav`; VM dùng `docker-compose.yml` + `.prod.yml`, có `MalwareScan__Host: clamav`. Lỗi socket / quá giờ → 0019. ⚠ Thiếu `Host` thì **cho qua không quét** (chỉ log cảnh báo) — nên đổi thành chặn khi `ASPNETCORE_ENVIRONMENT=Production` |
+| C11 / I2.6 dọn file mồ côi | ✅ | `ChatOrphanAttachmentWorker`: `MessageId == null` + quá 24 h; xoá dòng trước (khoá đồng thời), rồi xoá blob. Blob lưu xong mà insert DB lỗi thì **không** dọn được (không còn dòng để tìm) — hiếm, ghi nhận |
+| C 50 MB đi qua nginx / Kestrel | ✅ | nginx `/api/v1/app/chat/` 55m, timeout 300s; controller `RequestSizeLimit` 51 MB; clamd `StreamMaxLength 60M` |
+| D1 giới hạn tần suất | ⚠ một phần | Có cho gửi + sửa (30/30s), upload (30/30s), tìm (20/30s), trả 429 + `Retry-After`. **Chưa có** cho tạo nhóm, thêm thành viên, mở chat 1-1, đổi tên, thu hồi |
+| A6 tài khoản bị khoá / xoá thành viên | ✅ | Chủ nhóm xoá được (0021/0022); chọn người chỉ trong `IsActive`. Người đã khoá vẫn là thành viên cũ nhưng không đăng nhập được |
+| H2.6 ký tự đảo chiều trong tên file | ✅ | BE `CleanFileName` + FE `displayFileName` bỏ `\p{Cf}\p{Cc}` trước khi xét đuôi; FE còn bỏ dấu chấm/cách cuối tên |
+| H6.11 bị xoá khỏi nhóm | ✅ | 404 → "Chat:NoLongerMember", không có nút thử lại; lỗi khác → nút Thử lại |
+| F5 sửa tin | ✅ | 15 phút, chỉ người gửi, giữ bản cũ mã hoá, `ExpectedEditedAt` → 0024, không đổi thì bỏ qua |
+| **I6.6** mất tin ở ranh giới trang | ❌ **chưa sửa** | `ChatAppService.cs:163` vẫn `SentAt < pivot.SentAt` |
+| **I1.6** gửi lại ra tin trùng | ❌ chưa có | Không có `ClientMessageId`; mất mạng sau khi server đã lưu → bấm gửi lại ra 2 tin |
+| **I4.5** mở chat 1-1 cùng lúc | ❌ | Có unique index `(ClinicBranchId, DirectKey)` nên **không** ra 2 cuộc, nhưng request thua bị 500 thay vì trả cuộc đã có — cần bắt lỗi trùng rồi đọc lại |
+| I1.1 upload lỗi | ⚠ | Chip biến mất + toast; không có nút Thử lại (phải chọn lại file) |
+| I1.9 huỷ upload đang chạy | ❌ | Không có `AbortController`; bấm × chỉ ẩn chip, request vẫn chạy và file thành mồ côi (worker dọn sau 24 h) |
+| I1.7 rời trang khi đang upload / có nháp | ❌ | Không có `beforeunload` |
+| I5.3 mất kết nối hub hẳn | ⚠ | Có `onreconnected` → tải lại; không có `onclose` (hết lần thử lại thì im lặng, không báo, không tự nối lại) |
+| H4.5 / I5.5 | ❌ | Không dùng `visibilityState`: tab ẩn vẫn đánh dấu đã đọc |
+| H6.6 lỗi render trong chat | ⚠ | `ChatDock` nằm trong `AppLayout`, chỉ có `RouteErrorBoundary` → lỗi trong chat làm sập **cả trang**, không chỉ khung chat |
+| H6.5 danh sách dài | ❌ | Không ảo hoá (dự án yêu cầu > 50 dòng phải dùng `@tanstack/react-virtual`); có phân trang nên chưa gấp |
+| H5.1 CSP | ❌ | `security-headers.conf` chưa có `Content-Security-Policy` (cả app, không riêng chat) |
+| I6.1 bộ đếm ký tự | ⚠ | Có `maxLength` 4000 nhưng không hiện số còn lại |
+| H3.2 link | ✅ R-1160 | `ChatLinks.Find` (BE) chỉ giữ http/https có tên miền; `SharedLinkRow` render `<a target="_blank" rel="noopener noreferrer">`, không `dangerouslySetInnerHTML`; e2e `chat-r1160-library-api` (javascript:/ftp:/localhost bị bỏ) + `chat-r1160-library` (rel/target) |
+
+**Chặn trước staging còn lại:** I6.6, I1.6, I4.5 (500), D1 phần còn thiếu.
+**Tính năng mới đã chốt:** gắn khách bằng `#` (đề xuất R-1161) — yêu cầu + mục bảo mật J1–J9 ở
+[chat-patient-tag.md](chat-patient-tag.md).
+
+**Còn chờ chạy thật:** canary B4, upload EICAR → 0018, tắt clamav → 0019, 429 sau 30 tin, 2 tab mở 1-1 cùng lúc.
 
 Danh sách gốc khi viết checklist:
 **Phải đạt trước staging (chặn):** B4, C5, C6, A4, D1, H2.3, H3.1, H3.2, H1.2, I1.1, I1.5, I1.6, I1.10, I2.1, I3.1, I3.3.

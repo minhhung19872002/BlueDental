@@ -132,7 +132,7 @@ test("the sender edits a message and recalls the file; both survive a reload on 
   await expect(panel(page).getByText("Đang sửa tin nhắn")).toBeVisible();
   await expect(composer(page)).toHaveValue(original);
   await composer(page).fill(edited);
-  await panel(page).getByRole("button", { name: "Lưu" }).click();
+  await panel(page).getByRole("button", { name: "Lưu", exact: true }).click();
   await expect(message(page, edited)).toContainText("đã chỉnh sửa");
 
   await panel(page).locator('input[type="file"]').setInputFiles({

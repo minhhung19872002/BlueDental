@@ -14036,3 +14036,44 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - chip tên dài.
   - `chat.spec` đổi nhãn sang "đã chỉnh sửa".
 - **Mức retest**: 2.
+
+## R-1160 (2026-11-06, mức 2: Chat nội bộ — Kho lưu trữ, F-89, develop)
+
+- **Yêu cầu**: owner: "cho thêm chức năng t thấy chat app khác có là mở xem các file, ảnh, hay link trong cuộc hội thoại đó". Ảnh chụp BA gồm:
+  - tab Ảnh/Video, File, Link;
+  - lọc Người gửi, Ngày gửi;
+  - nhóm theo ngày "Ngày 06 Tháng 11";
+  - nút "Chọn".
+- **Đã làm**:
+  - BE:
+    - `ChatSharedLibrary` + 2 endpoint `shared/files` (phân trang, `hasMore`) và `shared/links` (giải mã ≤ 5.000 tin, ≤ 200 link, `isComplete`, rate limit Search).
+    - `ChatLinks.Find` chỉ giữ http/https, regex có timeout 200 ms.
+    - Không có migration.
+  - FE:
+    - `SharedLibrary` + các component `Shared*`; `ChatThread` có 3 view: thread / search / library.
+    - Ảnh chỉ tải khi cuộn tới (`useInView`).
+    - "Chọn" tải lần lượt hoặc chép link.
+  - Tab ghi "Ảnh" chứ không "Ảnh/Video" vì chat không nhận video.
+- **Lỗi bắt được khi test**: "Xem tin nhắn" cuộn tới tin nhưng tin không nằm trong khung nhìn.
+  - Nguyên nhân: list vừa mount lại vẫn "ghim đáy", và ảnh tải muộn làm ResizeObserver kéo về đáy trước khi sự kiện scroll kịp bỏ ghim.
+  - Sửa: `useStickToBottom` trả `unpin`, `useJumpToMessage` gọi `onShown` ngay sau `scrollIntoView`. Tìm kiếm tin cũng đi qua đường này.
+- **Sửa spec cũ**:
+  - `chat.spec`: nút "Lưu" phải `exact: true`, vì "Kho lưu trữ" cũng chứa "lưu".
+  - `chat-r1158-r1159-api` ca 16 phút dùng nhóm riêng, vì trong cuộc 1-1 dùng chung, tin lùi 16 phút rơi khỏi trang đầu sau nhiều lần chạy.
+  - `patiently` (đợi qua 429) chuyển vào `fixtures/chatApi.ts`.
+  - Các spec mới cho manager đánh dấu đã đọc nhóm của mình, để badge chưa đọc của `chat.spec` bắt đầu sạch.
+- **Kiểm thử** (host :5157 + ClamAV, DB `BlueDental_chat`, bản build production :8157, không chặn request):
+  - `chat-r1160-library-api` **6/6**:
+    - tách ảnh / file;
+    - tin thu hồi bị loại;
+    - lọc link (`javascript:`, `ftp:`, localhost bị bỏ; dấu câu; `www.`; trùng lặp);
+    - người gửi + ngày gửi (lùi `SentAt` 3 ngày);
+    - phân trang + 400 khi `maxResultCount` là 0 hoặc 101;
+    - chi nhánh 2 và người đã rời nhóm nhận 404.
+  - `chat-r1160-library` **4/4**:
+    - 3 tab, tiêu đề ngày, link có `rel`/`target`;
+    - lọc người gửi;
+    - Chọn → tải về đúng tên file, sao chép → đọc lại clipboard;
+    - Xem tin nhắn → tin trong khung nhìn + nháy.
+  - Toàn bộ chat **39/39**.
+- **Mức retest**: 2.

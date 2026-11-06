@@ -7,6 +7,10 @@ import type {
   ChatMessagePageDto,
   ChatMessageRevisionDto,
   ChatMessageSearchResultDto,
+  ChatSharedFilePageDto,
+  ChatSharedFilter,
+  ChatSharedKind,
+  ChatSharedLinkResultDto,
   ChatUnreadCountDto,
   CreateGroupChatInput,
   EditChatMessageInput,
@@ -44,6 +48,15 @@ export const chatApi = {
     api
       .post<ChatMessageSearchResultDto>(`${BASE}/conversations/${id}/messages/search`, { text })
       .then((r) => r.data),
+  /** Kho lưu trữ (R-1160): pictures or other files sent in the conversation, newest first. */
+  sharedFiles: (id: string, kind: ChatSharedKind, filter: ChatSharedFilter, skipCount: number, maxResultCount: number) =>
+    api
+      .get<ChatSharedFilePageDto>(`${BASE}/conversations/${id}/shared/files`, {
+        params: { kind, ...filter, skipCount, maxResultCount },
+      })
+      .then((r) => r.data),
+  sharedLinks: (id: string, filter: ChatSharedFilter) =>
+    api.get<ChatSharedLinkResultDto>(`${BASE}/conversations/${id}/shared/links`, { params: filter }).then((r) => r.data),
   leave: (id: string) => api.post(`${BASE}/conversations/${id}/leave`).then(() => undefined),
   markRead: (id: string) => api.post(`${BASE}/conversations/${id}/read`).then(() => undefined),
   /** @param onProgress whole percent of the file sent so far, 0–100. */

@@ -71,6 +71,16 @@ public sealed class ChatController(IChatAppService service) : BlueDentalControll
     public Task<ChatMessageSearchResultDto> SearchMessagesAsync(Guid id, [FromBody] SearchChatMessagesInput input) =>
         service.SearchMessagesAsync(id, input);
 
+    [HttpGet("conversations/{id:guid}/shared/files")]
+    public Task<ChatSharedFilePageDto> GetSharedFilesAsync(Guid id, [FromQuery] GetChatSharedFilesInput input) =>
+        service.GetSharedFilesAsync(id, input);
+
+    /// <remarks>Opens up to 5,000 sealed messages like a search, so it counts as one.</remarks>
+    [HttpGet("conversations/{id:guid}/shared/links")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Search)]
+    public Task<ChatSharedLinkResultDto> GetSharedLinksAsync(Guid id, [FromQuery] GetChatSharedLinksInput input) =>
+        service.GetSharedLinksAsync(id, input);
+
     [HttpPost("conversations/{id:guid}/attachments")]
     [EnableRateLimiting(ChatRateLimitPolicies.Upload)]
     [DisableAuditing] // the multipart headers carry the file name in clear

@@ -1,6 +1,6 @@
 # F-89 — Chat nội bộ có đính kèm file (R-1157)
 
-Trạng thái: `VERIFIED` 2026-11-06 trên develop: R-1157 e1566669, R-1158 hardening, R-1159 sửa tin. Rà bảo mật chi tiết: `chat-security-checklist.md`.
+Trạng thái: `VERIFIED` 2026-11-06 trên develop: R-1157 e1566669, R-1158 hardening, R-1159 sửa tin, R-1160 Kho lưu trữ. Rà bảo mật chi tiết: `chat-security-checklist.md`.
 
 ## Quyết định của owner (2026-11-06)
 
@@ -66,6 +66,34 @@ Yêu cầu BA về bố cục:
   - Gửi lại đúng nội dung cũ thì không tạo bản cũ.
   - Ô soạn: Enter lưu, Shift+Enter xuống dòng, Esc huỷ, ↑ khi ô trống thì sửa tin mới nhất của mình. Bấm nhãn "đã chỉnh sửa" để xem các bản cũ.
 
+## Kho lưu trữ (R-1160)
+
+Nút 📂 "Kho lưu trữ" trên đầu cuộc trò chuyện, cạnh nút tìm. Nó thay khung tin bằng ba tab:
+- **Ảnh**: lưới ô vuông 3 cột, bấm vào để phóng to. BA ghi "Ảnh/Video", nhưng chat không cho tải video lên nên tab chỉ ghi "Ảnh".
+- **File**: các file không phải ảnh. Bấm vào thì tải xuống.
+- **Link**: các link trong chữ của tin, mở ở tab mới.
+
+Chung cho cả ba tab:
+- Lọc **Người gửi** (thành viên hiện tại) và **Ngày gửi**. Ngày tính theo lịch phòng khám (UTC+7) và không chọn được ngày tương lai.
+- Mục được nhóm theo ngày, ví dụ "Ngày 06 Tháng 11". Năm khác thì thêm năm.
+- Mỗi mục có nút "Xem tin nhắn": đóng kho và cuộn tới tin đó, có nháy sáng.
+- "Chọn" bật chế độ tích nhiều mục:
+  - Tab Ảnh / File có nút **Tải về**. File tải lần lượt, nên trình duyệt có thể hỏi một lần "cho phép tải nhiều file".
+  - Tab Link có nút **Sao chép link**: chép các link vào clipboard, mỗi link một dòng.
+- Tin đã thu hồi thì ảnh, file và link của nó cũng rời khỏi kho.
+
+API:
+- `GET conversations/{id}/shared/files?kind=1|2&senderId&sentFrom&sentTo&skipCount&maxResultCount`
+  - `kind` 1 = ảnh (`image/*`), 2 = còn lại.
+  - Trang 60 mục (tối đa 100), mới nhất trước, trả `hasMore`.
+- `GET conversations/{id}/shared/links?senderId&sentFrom&sentTo`
+  - Link nằm trong nội dung đã mã hoá, nên server giải mã tối đa 5.000 tin mới nhất (giống tìm kiếm) và trả tối đa 200 link, kèm `isComplete`.
+  - Chung rate limit với tìm kiếm: 20 lần / 30 giây.
+  - Chỉ lấy http/https có tên miền chứa dấu chấm, dài ≤ 2.000 ký tự. `www.` được đọc thành `https://`. Bỏ dấu câu cuối câu và ngoặc đóng thừa. Mỗi link chỉ lấy một lần trong một tin.
+  - `javascript:`, `file:`, `ftp:` không bao giờ thành link.
+  - FE chỉ render `<a target="_blank" rel="noopener noreferrer">` cho http/https và không dùng HTML thô.
+- Cả hai endpoint kiểm tư cách thành viên như mọi API chat: không phải thành viên thì nhận 404.
+
 ## Triển khai
 
 - Chạy DbMigrator để áp 3 migration: `ChatR1157`, `ChatOwnerR1158` (cột `OwnerId`) và `ChatRevisionsR1159` (bảng bản cũ).
@@ -81,7 +109,6 @@ Yêu cầu BA về bố cục:
 Xem mục ❌/⚠ trong `chat-security-checklist.md`:
 - Owner chưa quyết có giữ `.doc/.xls/.ppt` (định dạng cũ, có thể chứa macro) hay không.
 - Rate limit đếm trong bộ nhớ của một container API. Nếu chạy nhiều host thì mỗi host đếm riêng.
-- R-1160 "Kho lưu trữ" (Ảnh/Video, File, Link của cuộc trò chuyện): đang làm.
 
 Đã làm trong R-1158:
 - quét ClamAV, rate limit, dọn file mồ côi, xoá thành viên;

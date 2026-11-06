@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Search } from "lucide-react";
+import { FolderOpen, Search } from "lucide-react";
 import { describeApiError } from "@/lib/apiError";
 import { t } from "@/lib/i18n";
 import { useChatConversation, useChatMessages } from "../api/chatQueries";
@@ -11,6 +11,7 @@ import { ChatPanelHeader } from "./ChatPanelHeader";
 import { ChatStatus } from "./ChatStatus";
 import { MessageList } from "./MessageList";
 import { MessageSearch } from "./MessageSearch";
+import { SharedLibrary } from "./SharedLibrary";
 import { ThreadMenu } from "./ThreadMenu";
 
 interface ChatThreadProps {
@@ -21,14 +22,17 @@ interface ChatThreadProps {
 
 /**
  * One conversation: its messages, newest at the bottom, and the composer.
- * The magnifier swaps them for a search of the thread; a picked result
- * brings the thread back scrolled to it.
+ * The magnifier swaps them for a search of the thread, the folder for its
+ * Kho lưu trữ (R-1160); a picked result or item brings the thread back
+ * scrolled to its message.
  */
+type ThreadView = "thread" | "search" | "library";
+
 export const ChatThread: React.FC<ChatThreadProps> = ({ conversationId, onBack, onClose }) => {
   const { data: conversation, error, refetch } = useChatConversation(conversationId);
   const { data: messagePages } = useChatMessages(conversationId);
   const [editing, setEditing] = useState<ChatMessageDto | null>(null);
-  const [searching, setSearching] = useState(false);
+  const [view, setView] = useState<ThreadView>("thread");
   const [focusMessageId, setFocusMessageId] = useState<string | null>(null);
   const handleFocused = useCallback(() => setFocusMessageId(null), []);
   useMarkReadWhenUnread(conversationId, conversation?.unreadCount ?? 0);
@@ -59,23 +63,21 @@ export const ChatThread: React.FC<ChatThreadProps> = ({ conversationId, onBack, 
     if (last) setEditing(last);
   };
 
-  const handlePick = (message: ChatMessageDto) => {
-    setSearching(false);
-    setFocusMessageId(message.id);
+  const handleJump = (messageId: string) => {
+    setView("thread");
+    setFocusMessageId(messageId);
   };
+
+  const toggleView = (next: ThreadView) => setView((current) => (current === next ? "thread" : next));
 
   const actions = (
     <>
-      <button
-        type="button"
-        className={["chat-icon-button", searching && "chat-icon-button--active"].filter(Boolean).join(" ")}
-        aria-label={t("Chat:SearchMessages")}
-        aria-pressed={searching}
-        title={t("Chat:SearchMessages")}
-        onClick={() => setSearching((current) => !current)}
-      >
+      <ViewButton label={t("Chat:SearchMessages")} pressed={view === "search"} onClick={() => toggleView("search")}>
         <Search size={18} aria-hidden />
-      </button>
+      </ViewButton>
+      <ViewButton label={t("Chat:Library")} pressed={view === "library"} onClick={() => toggleView("library")}>
+        <FolderOpen size={18} aria-hidden />
+      </ViewButton>
       {isGroup && <ThreadMenu conversation={conversation} onLeft={onBack} />}
     </>
   );
@@ -89,9 +91,15 @@ export const ChatThread: React.FC<ChatThreadProps> = ({ conversationId, onBack, 
         onClose={onClose}
         actions={actions}
       />
-      {searching ? (
-        <MessageSearch conversationId={conversationId} onPick={handlePick} onClose={() => setSearching(false)} />
-      ) : (
+      {view === "search" && (
+        <MessageSearch
+          conversationId={conversationId}
+          onPick={(message) => handleJump(message.id)}
+          onClose={() => setView("thread")}
+        />
+      )}
+      {view === "library" && conversation && <SharedLibrary conversation={conversation} onJump={handleJump} />}
+      {view === "thread" && (
         <>
           <MessageList
             conversationId={conversationId}
@@ -111,3 +119,26 @@ export const ChatThread: React.FC<ChatThreadProps> = ({ conversationId, onBack, 
     </>
   );
 };
+
+interface ViewButtonProps {
+  label: string;
+  pressed: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}
+
+/** A header toggle that swaps the thread for another view of it. */
+function ViewButton({ label, pressed, onClick, children }: ViewButtonProps) {
+  return (
+    <button
+      type="button"
+      className={["chat-icon-button", pressed && "chat-icon-button--active"].filter(Boolean).join(" ")}
+      aria-label={label}
+      aria-pressed={pressed}
+      title={label}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}

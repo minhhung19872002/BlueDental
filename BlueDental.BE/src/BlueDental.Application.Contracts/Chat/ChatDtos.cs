@@ -223,3 +223,68 @@ public class ChatMessageRevisionDto
     /// <summary>When this wording was replaced.</summary>
     public DateTime EditedAt { get; set; }
 }
+
+/// <summary>Narrows Kho lưu trữ (R-1160) to one person and/or a span of clinic days.</summary>
+public abstract class ChatSharedFilterInput
+{
+    public Guid? SenderId { get; set; }
+
+    /// <summary>First clinic-local day, inclusive.</summary>
+    public DateOnly? SentFrom { get; set; }
+
+    /// <summary>Last clinic-local day, inclusive.</summary>
+    public DateOnly? SentTo { get; set; }
+}
+
+public class GetChatSharedFilesInput : ChatSharedFilterInput
+{
+    public ChatSharedFileKind Kind { get; set; } = ChatSharedFileKind.Media;
+
+    [Range(0, int.MaxValue)]
+    public int SkipCount { get; set; }
+
+    [Range(1, ChatConsts.MaxSharedFilePageSize)]
+    public int MaxResultCount { get; set; } = ChatConsts.DefaultSharedFilePageSize;
+}
+
+public class GetChatSharedLinksInput : ChatSharedFilterInput;
+
+/// <summary>Who sent a shared item and when; the item opens the message it came in.</summary>
+public abstract class ChatSharedItemDto
+{
+    public Guid MessageId { get; set; }
+
+    public Guid SenderId { get; set; }
+
+    public string SenderName { get; set; } = default!;
+
+    public DateTime SentAt { get; set; }
+}
+
+public class ChatSharedFileDto : ChatSharedItemDto
+{
+    public ChatAttachmentDto Attachment { get; set; } = default!;
+}
+
+public class ChatSharedFilePageDto
+{
+    /// <summary>Newest message first.</summary>
+    public List<ChatSharedFileDto> Items { get; set; } = [];
+
+    public bool HasMore { get; set; }
+}
+
+public class ChatSharedLinkDto : ChatSharedItemDto
+{
+    /// <summary>Always http(s); a bare "www." link gets "https://" in front.</summary>
+    public string Url { get; set; } = default!;
+}
+
+public class ChatSharedLinkResultDto
+{
+    /// <summary>Newest first, at most <see cref="ChatConsts.MaxSharedLinks"/>.</summary>
+    public List<ChatSharedLinkDto> Items { get; set; } = [];
+
+    /// <summary>False when older messages were not read or more links were found than returned.</summary>
+    public bool IsComplete { get; set; }
+}

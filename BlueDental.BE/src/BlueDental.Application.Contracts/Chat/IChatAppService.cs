@@ -36,6 +36,12 @@ public interface IChatAppService : IApplicationService
     /// <summary>Messages of the thread whose text holds every word, accents ignored.</summary>
     Task<ChatMessageSearchResultDto> SearchMessagesAsync(Guid id, SearchChatMessagesInput input);
 
+    /// <summary>Kho lưu trữ (R-1160): pictures or other files sent in the thread, newest first.</summary>
+    Task<ChatSharedFilePageDto> GetSharedFilesAsync(Guid id, GetChatSharedFilesInput input);
+
+    /// <summary>Kho lưu trữ (R-1160): web links written in the thread, newest first.</summary>
+    Task<ChatSharedLinkResultDto> GetSharedLinksAsync(Guid id, GetChatSharedLinksInput input);
+
     Task<ChatAttachmentDto> UploadAttachmentAsync(Guid id, IRemoteStreamContent file);
 
     Task<ChatMessageDto> SendAsync(Guid id, SendChatMessageInput input);

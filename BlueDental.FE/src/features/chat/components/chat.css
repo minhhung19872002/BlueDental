@@ -877,3 +877,283 @@ body:has(.chat-dock) .scroll-top-button {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
+
+/* R-1160 — Kho lưu trữ: pictures, files and links of one conversation */
+.chat-shared {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.chat-shared-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 0;
+}
+
+.chat-shared-tabs {
+  flex: 1;
+}
+
+.chat-shared-filters {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bd-line);
+}
+
+.chat-shared-sender {
+  flex: 1 1 110px;
+  min-width: 0;
+}
+
+.chat-shared-period {
+  flex: 1 1 210px;
+  min-width: 0;
+}
+
+.chat-shared-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.chat-shared-day + .chat-shared-day {
+  border-top: 1px solid var(--bd-line);
+}
+
+.chat-shared-day-heading {
+  margin: 0;
+  padding: 10px 12px 6px;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.chat-shared-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 0 12px 12px;
+}
+
+.chat-shared-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  aspect-ratio: 1;
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg-soft);
+}
+
+.chat-shared-tile img,
+.chat-shared-tile .chat-shared-tile-image,
+.chat-shared-tile .chat-shared-tile-image .ant-image-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.chat-shared-tile-pick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-shared-tile-pick:focus-visible {
+  outline: 2px solid var(--bd-accent);
+  outline-offset: -2px;
+}
+
+.chat-shared-tile-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--bd-card);
+  border-radius: 50%;
+  background: rgb(0 0 0 / 25%);
+  color: var(--bd-card);
+}
+
+.chat-shared-tile--selected {
+  box-shadow: inset 0 0 0 3px var(--bd-primary);
+}
+
+.chat-shared-tile--selected .chat-shared-tile-check {
+  background: var(--bd-primary);
+}
+
+.chat-shared-tile--selected img {
+  opacity: 0.8;
+}
+
+.chat-shared-jump {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--bd-radius-sm);
+  background: transparent;
+  color: var(--bd-muted);
+  cursor: pointer;
+}
+
+.chat-shared-jump:hover {
+  background: var(--bd-blue-pale);
+  color: var(--bd-primary);
+}
+
+.chat-shared-jump:focus-visible {
+  outline: 2px solid var(--bd-accent);
+  outline-offset: 1px;
+}
+
+/* On a picture the button floats in a corner, shown on hover or focus. */
+.chat-shared-tile .chat-shared-jump {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  z-index: 1;
+  background: var(--bd-card);
+  opacity: 0;
+}
+
+.chat-shared-tile:hover .chat-shared-jump,
+.chat-shared-tile .chat-shared-jump:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .chat-shared-tile .chat-shared-jump {
+    opacity: 1;
+  }
+}
+
+.chat-shared-rows {
+  margin: 0;
+  padding: 0 0 6px;
+  list-style: none;
+}
+
+.chat-shared-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 0 0;
+}
+
+.chat-shared-row:hover,
+.chat-shared-row--selected {
+  background: var(--bd-blue-pale);
+}
+
+.chat-shared-row-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 4px 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--bd-ink);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.chat-shared-row-main:hover {
+  color: var(--bd-ink);
+}
+
+.chat-shared-row-main:focus-visible {
+  outline: 2px solid var(--bd-accent);
+  outline-offset: -2px;
+}
+
+/* AntD Checkbox puts the text in its own span; that span must shrink too. */
+.chat-shared-row-main.ant-checkbox-wrapper > span:last-child {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.chat-shared-row-icon {
+  flex: none;
+  color: var(--bd-primary);
+}
+
+.chat-shared-row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chat-shared-row-title,
+.chat-shared-row-url,
+.chat-shared-row-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-shared-row-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chat-shared-row-url {
+  color: var(--bd-primary);
+  font-size: 12px;
+}
+
+.chat-shared-row-meta {
+  color: var(--bd-hint);
+  font-size: 12px;
+}
+
+.chat-shared-sentinel {
+  height: 1px;
+}
+
+.chat-shared-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--bd-line);
+  background: var(--bd-card);
+}
+
+.chat-shared-bar-count {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}

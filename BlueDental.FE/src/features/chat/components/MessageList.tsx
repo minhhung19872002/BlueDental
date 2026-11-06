@@ -34,7 +34,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const newest = messages.at(-1);
-  useStickToBottom(scrollRef, contentRef, newest?.id, newest?.isMine ?? false);
+  const { unpin } = useStickToBottom(scrollRef, contentRef, newest?.id, newest?.isMine ?? false);
   const loadedIds = useMemo(() => messages.map((message) => message.id), [messages]);
   const loadOlder = useCallback(() => void fetchNextPage(), [fetchNextPage]);
   useJumpToMessage(scrollRef, {
@@ -43,6 +43,7 @@ export const MessageList: React.FC<MessageListProps> = ({
     hasOlder: hasNextPage,
     loadingOlder: isLoading || isFetchingNextPage,
     loadOlder,
+    onShown: unpin,
     onDone: onFocused,
   });
 

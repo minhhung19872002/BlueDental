@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo } from "react";
+import React from "react";
 import { Image, Spin } from "antd";
 import { Download, FileText } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { downloadBlob } from "@/utils/download";
 import { useDownloadChatAttachment } from "../api/chatMutations";
 import { useChatAttachmentBlob } from "../api/chatQueries";
+import { useObjectUrl } from "../hooks/useObjectUrl";
 import type { ChatAttachmentDto } from "../types";
 import { displayFileName, formatFileSize } from "../utils/chatFormat";
 
@@ -34,10 +35,7 @@ interface AttachmentProps {
 /** The file is stored encrypted; the API hands back the opened bytes, shown from a blob URL. */
 function ChatImage({ messageId, attachment }: AttachmentProps) {
   const { data } = useChatAttachmentBlob(messageId, attachment.id, true);
-  const url = useMemo(() => (data ? URL.createObjectURL(data) : undefined), [data]);
-  useEffect(() => () => {
-    if (url) URL.revokeObjectURL(url);
-  }, [url]);
+  const url = useObjectUrl(data);
 
   if (!url) {
     return (

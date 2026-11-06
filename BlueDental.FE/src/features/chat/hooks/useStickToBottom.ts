@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
 /** Within this many pixels of the end the reader counts as "at the bottom". */
 const NEAR_BOTTOM_PX = 80;
@@ -14,7 +14,7 @@ export function useStickToBottom(
   contentRef: RefObject<HTMLElement | null>,
   newestId: string | undefined,
   newestIsMine: boolean,
-): void {
+): { unpin: () => void } {
   const pinnedRef = useRef(true);
 
   useEffect(() => {
@@ -43,4 +43,11 @@ export function useStickToBottom(
     if (newestIsMine) pinnedRef.current = true;
     if (pinnedRef.current) scroller.scrollTop = scroller.scrollHeight;
   }, [scrollRef, newestId, newestIsMine]);
+
+  // A jump to an older message lets go of the bottom at once: waiting for the
+  // scroll event would let a late image pull the list back down first.
+  const unpin = useCallback(() => {
+    pinnedRef.current = false;
+  }, []);
+  return { unpin };
 }

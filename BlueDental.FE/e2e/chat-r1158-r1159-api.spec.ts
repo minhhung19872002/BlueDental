@@ -151,7 +151,13 @@ test("F5: a stale expectedEditedAt is refused as a conflict (0024) and changes n
 });
 
 test("F5: 16 minutes after sending the window is closed (0023) and canEdit says so", async () => {
-  const conversation = await openDirect();
+  // Its own group: in the shared 1-1 thread a message moved 16 minutes back
+  // can fall off the first page once earlier runs have filled it.
+  const group = await call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
+    name: `Quá hạn e2e ${runId()}`,
+    memberIds: [manager.userId],
+  });
+  const conversation = group.body;
   const sent = await send(admin, conversation.id, `Quá hạn e2e-${runId()}`);
   sqlScalar(`update bd_chat_messages set "SentAt" = "SentAt" - interval '16 minutes' where "Id"='${sent.body.id}'`);
 
@@ -162,6 +168,8 @@ test("F5: 16 minutes after sending the window is closed (0023) and canEdit says 
   expect(stored.canEdit).toBe(false);
   expect(stored.content).toBe(sent.body.content);
   expect(revisionCount(sent.body.id)).toBe(0);
+  // Nothing left unread for chat.spec's badge check.
+  await call(manager.page, "POST", `${CHAT}/conversations/${conversation.id}/read`);
 });
 
 test("F5: only the sender edits (0004); a recalled message cannot be edited (0005) and shows no history", async () => {

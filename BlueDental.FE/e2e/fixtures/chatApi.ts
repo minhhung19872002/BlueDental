@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import type { Browser, BrowserContext, Page } from "@playwright/test";
 import { login } from "./auth";
-import { BRANCH_ONE, call } from "./marketingTicket";
+import { BRANCH_ONE, call, type Reply } from "./marketingTicket";
 
 /** Chat nội bộ (F-89) helpers shared by the API and UI specs. */
 
@@ -106,4 +106,16 @@ export function minioObject(blobName: string): Buffer {
     ["exec", MINIO_CONTAINER, "cat", `/data/${MINIO_BUCKET}/host/${blobName}/xl.meta`],
     { env: { ...process.env, MSYS_NO_PATHCONV: "1" } },
   );
+}
+
+/**
+ * Sends and edits share a per-account limit (30 / 30 s) that a full chat run
+ * crosses, so a 429 is waited out instead of failing whichever test hit it.
+ */
+export async function patiently<T>(request: () => Promise<Reply<T>>): Promise<Reply<T>> {
+  for (let attempt = 0; ; attempt++) {
+    const reply = await request();
+    if (reply.status !== 429 || attempt === 20) return reply;
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
 }

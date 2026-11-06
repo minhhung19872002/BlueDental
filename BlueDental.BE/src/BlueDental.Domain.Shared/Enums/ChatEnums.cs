@@ -12,6 +12,16 @@ public enum ChatConversationKind : short
     Group = 2,
 }
 
+/// <summary>Which shelf of Kho lưu trữ (R-1160) a file sits on.</summary>
+public enum ChatSharedFileKind : short
+{
+    /// <summary>Pictures (chat takes no video yet).</summary>
+    Media = 1,
+
+    /// <summary>Every other file.</summary>
+    File = 2,
+}
+
 public static class ChatConsts
 {
     public const int MaxGroupNameLength = 100;
@@ -40,4 +50,14 @@ public static class ChatConsts
 
     /// <summary>Only the sender may edit, and only this long after sending (owner 2026-11-06, R-1159).</summary>
     public const int EditWindowMinutes = 15;
+
+    /// <summary>Kho lưu trữ (R-1160): files per page.</summary>
+    public const int DefaultSharedFilePageSize = 60;
+
+    public const int MaxSharedFilePageSize = 100;
+
+    /// <summary>Kho lưu trữ links: at most this many, newest first, from the newest <see cref="MaxSearchScan"/> messages.</summary>
+    public const int MaxSharedLinks = 200;
+
+    public const int MaxLinkLength = 2000;
 }

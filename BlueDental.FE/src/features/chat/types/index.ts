@@ -92,6 +92,7 @@ export const CHAT_LIMITS = {
   maxGroupNameLength: 100,
   maxSearchTextLength: 100,
   messagePageSize: 30,
+  sharedFilePageSize: 60,
 } as const;
 
 /** Mirrors ChatAttachmentFiles on the server. */
@@ -120,3 +121,43 @@ export const CHAT_ERROR_CODES = {
   editWindowExpired: "BlueDental:Chat:0023",
   editConflict: "BlueDental:Chat:0024",
 } as const;
+
+/** Kho lưu trữ (R-1160): which files a tab lists. Mirrors ChatSharedFileKind. */
+export const CHAT_SHARED_KIND = { Media: 1, File: 2 } as const;
+export type ChatSharedKind = (typeof CHAT_SHARED_KIND)[keyof typeof CHAT_SHARED_KIND];
+
+/** Clinic days as YYYY-MM-DD, both ends included; an absent field does not filter. */
+export interface ChatSharedFilter {
+  senderId?: string;
+  sentFrom?: string;
+  sentTo?: string;
+}
+
+interface ChatSharedItemDto {
+  messageId: string;
+  senderId: string;
+  senderName: string;
+  sentAt: string;
+}
+
+export interface ChatSharedFileDto extends ChatSharedItemDto {
+  attachment: ChatAttachmentDto;
+}
+
+/** Newest message first. */
+export interface ChatSharedFilePageDto {
+  items: ChatSharedFileDto[];
+  hasMore: boolean;
+}
+
+export interface ChatSharedLinkDto extends ChatSharedItemDto {
+  /** Always http or https. */
+  url: string;
+}
+
+/** Newest first; at most 200, from the 5,000 newest messages. */
+export interface ChatSharedLinkResultDto {
+  items: ChatSharedLinkDto[];
+  /** False when older messages were not looked through. */
+  isComplete: boolean;
+}

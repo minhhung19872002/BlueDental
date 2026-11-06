@@ -45,7 +45,8 @@ public class ChatAppService(
     IChatCipher cipher,
     IChatNotifier notifier,
     IMalwareScanner malwareScanner,
-    ChatMessageSearch messageSearch) : BlueDentalAppService, IChatAppService
+    ChatMessageSearch messageSearch,
+    ChatSharedLibrary sharedLibrary) : BlueDentalAppService, IChatAppService
 {
     private const int MaxContacts = 50;
     private const int MaxConversations = 300;
@@ -182,6 +183,44 @@ public class ChatAppService(
         return new ChatMessageSearchResultDto
         {
             Items = await MapMessagesAsync(result.Found, CurrentUser.GetId()),
+            IsComplete = result.IsComplete,
+        };
+    }
+
+    public async Task<ChatSharedFilePageDto> GetSharedFilesAsync(Guid id, GetChatSharedFilesInput input)
+    {
+        await GetVisibleAsync(id);
+        var page = await sharedLibrary.FilesAsync(id, input);
+        var names = await NamesAsync(page.Items.Select(i => i.Message.SenderId));
+        return new ChatSharedFilePageDto
+        {
+            Items = page.Items.Select(i => new ChatSharedFileDto
+            {
+                MessageId = i.Message.Id,
+                SenderId = i.Message.SenderId,
+                SenderName = NameOf(names, i.Message.SenderId),
+                SentAt = i.Message.SentAt,
+                Attachment = MapAttachment(i.File),
+            }).ToList(),
+            HasMore = page.HasMore,
+        };
+    }
+
+    public async Task<ChatSharedLinkResultDto> GetSharedLinksAsync(Guid id, GetChatSharedLinksInput input)
+    {
+        await GetVisibleAsync(id);
+        var result = await sharedLibrary.LinksAsync(id, input);
+        var names = await NamesAsync(result.Items.Select(i => i.Message.SenderId));
+        return new ChatSharedLinkResultDto
+        {
+            Items = result.Items.Select(i => new ChatSharedLinkDto
+            {
+                MessageId = i.Message.Id,
+                SenderId = i.Message.SenderId,
+                SenderName = NameOf(names, i.Message.SenderId),
+                SentAt = i.Message.SentAt,
+                Url = i.Url,
+            }).ToList(),
             IsComplete = result.IsComplete,
         };
     }

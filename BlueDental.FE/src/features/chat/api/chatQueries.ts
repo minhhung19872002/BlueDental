@@ -1,5 +1,11 @@
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
-import { CHAT_LIMITS, type ChatMessageDto, type ChatMessagePageDto } from "../types";
+import {
+  CHAT_LIMITS,
+  type ChatMessageDto,
+  type ChatMessagePageDto,
+  type ChatSharedFilter,
+  type ChatSharedKind,
+} from "../types";
 import { chatApi } from "./chatApi";
 
 /**
@@ -19,6 +25,13 @@ export const chatKeys = {
     [...chatKeys.all, "contacts", branchId ?? "all", filter] as const,
   /** Its own root too: a push that refetches the chat must not rerun every search. */
   search: (id: string, text: string) => ["chat-search", id, text] as const,
+  /**
+   * Kho lưu trữ (R-1160) has its own root: a push for every new message must
+   * not rescan the links. The panel refetches each time it is opened.
+   */
+  sharedFiles: (id: string, kind: ChatSharedKind, filter: ChatSharedFilter) =>
+    ["chat-shared", id, "files", kind, filter] as const,
+  sharedLinks: (id: string, filter: ChatSharedFilter) => ["chat-shared", id, "links", filter] as const,
   /** Its own root: a file never changes, so chat refetches leave it alone. */
   attachment: (attachmentId: string) => ["chat-file", attachmentId] as const,
 };
@@ -77,6 +90,26 @@ export function useChatMessageSearch(id: string, text: string) {
     enabled: text.length > 0,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
+  });
+}
+
+/** Pictures or other files of one conversation, a page at a time, newest first (R-1160). */
+export function useChatSharedFiles(id: string, kind: ChatSharedKind, filter: ChatSharedFilter) {
+  const pageSize = CHAT_LIMITS.sharedFilePageSize;
+  return useInfiniteQuery({
+    queryKey: chatKeys.sharedFiles(id, kind, filter),
+    queryFn: ({ pageParam }) => chatApi.sharedFiles(id, kind, filter, pageParam, pageSize),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) => (lastPage.hasMore ? pages.length * pageSize : undefined),
+  });
+}
+
+/** The links written in one conversation, found by the server in the decrypted text (R-1160). */
+export function useChatSharedLinks(id: string, filter: ChatSharedFilter) {
+  return useQuery({
+    queryKey: chatKeys.sharedLinks(id, filter),
+    queryFn: () => chatApi.sharedLinks(id, filter),
+    staleTime: 30_000,
   });
 }
 
