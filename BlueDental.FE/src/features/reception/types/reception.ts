@@ -45,6 +45,8 @@ export interface ReceptionItem {
   patientType: PatientType;
   doctorId: string;
   doctorName: string;
+  /** The doctor's "Màu nhãn"; null = the staff default (R-1155). */
+  doctorLabelColor?: string | null;
   adviseDoctorName?: string;
   /** The visit's branch — also the patient's, so its Thẻ hồ sơ catalog. */
   branchId: string;

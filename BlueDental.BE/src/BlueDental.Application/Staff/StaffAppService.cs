@@ -252,6 +252,7 @@ public class StaffAppService(
             input.MorningStartTime, input.MorningEndTime,
             input.AfternoonStartTime, input.AfternoonEndTime);
         StaffPriority.Write(user, input.Priority);
+        StaffLabelColor.Write(user, input.LabelColor);
         SetEmployment(user, input);
 
         (await userManager.CreateAsync(user, input.Password)).CheckErrors();
@@ -285,6 +286,7 @@ public class StaffAppService(
             input.MorningStartTime, input.MorningEndTime,
             input.AfternoonStartTime, input.AfternoonEndTime);
         StaffPriority.Write(user, input.Priority);
+        StaffLabelColor.Write(user, input.LabelColor);
         SetEmployment(user, input);
 
         // Roles are replaced wholesale: the form shows the full set, not a delta.
@@ -573,6 +575,7 @@ public class StaffAppService(
             IsAssistant        = user.ExtraProperties.GetOrDefault("IsAssistant") is true,
             IsHygienist        = user.ExtraProperties.GetOrDefault("IsHygienist") is true,
             Priority           = StaffPriority.Read(user),
+            LabelColor         = StaffLabelColor.Read(user),
             AllowLoginOutsideOffice = user.ExtraProperties
                 .GetOrDefault(BlueDentalConsts.UserAllowLoginOutsideOfficePropertyName) is true,
             AllowLoginOutsideHours = user.ExtraProperties

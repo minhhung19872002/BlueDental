@@ -709,6 +709,9 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A negative "Mức độ ưu tiên".</summary>
         public const string InvalidPriority = "BlueDental:Staff:0012";
+
+        /// <summary>A "Màu nhãn" that is not "#RRGGBB" (R-1155).</summary>
+        public const string InvalidLabelColor = "BlueDental:Staff:0013";
     }
 
     public static class StaffPenalty

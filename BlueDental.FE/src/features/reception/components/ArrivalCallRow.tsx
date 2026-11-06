@@ -1,9 +1,12 @@
 import React from "react";
 import { Button } from "antd";
 import { Clock3, FileText, Stethoscope, UserRound } from "lucide-react";
+import { StaffLabelBadge } from "@/components/LabelColor";
 import { t } from "@/lib/i18n";
+import { useWaitClock } from "../hooks/useWaitState";
 import type { ArrivalCall, ArrivalCallAction } from "../types/arrivalCall";
 import { FLAG_PENNANT_SRC } from "../utils/flagPennant";
+import { WaitTimerChip } from "./WaitTimerChip";
 
 interface ArrivalCallRowProps {
   item: ArrivalCall;
@@ -23,6 +26,8 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
   // A "Lịch tạm" is seated against a real record, so reception makes it first.
   const needsRecord = action === "admit" && item.isTemporary;
   const actionLabelKey = needsRecord ? "Reception:ArrivalCallCreateRecord" : ACTION_LABEL_KEY[action];
+  // Every row is arrived and not yet in the chair: the same clock as the card's (R-1156).
+  const wait = useWaitClock({ checkedInAt: item.checkedInAt, cancelled: false });
 
   return (
     <li className={["arrival-row", item.isFlagged && "bd-rgb-ring"].filter(Boolean).join(" ")}>
@@ -46,7 +51,7 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
           {item.doctorName && (
             <span className="arrival-row-doctor">
               <Stethoscope size={16} aria-hidden />
-              {item.doctorName}
+              <StaffLabelBadge color={item.doctorLabelColor}>{item.doctorName}</StaffLabelBadge>
             </span>
           )}
         </div>
@@ -57,19 +62,22 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
           </div>
         )}
       </div>
-      {calledUp && <span className="arrival-row-tag">{t("Reception:ArrivalCallInvitedTag")}</span>}
-      {!calledUp && canAct && (
-        <Button
-          type="primary"
-          ghost
-          className="arrival-row-action"
-          loading={pending}
-          disabled={pending}
-          onClick={() => onAction(item.id, action)}
-        >
-          {t(actionLabelKey)}
-        </Button>
-      )}
+      <div className="arrival-row-side">
+        {calledUp && <span className="arrival-row-tag">{t("Reception:ArrivalCallInvitedTag")}</span>}
+        {!calledUp && canAct && (
+          <Button
+            type="primary"
+            ghost
+            className="arrival-row-action"
+            loading={pending}
+            disabled={pending}
+            onClick={() => onAction(item.id, action)}
+          >
+            {t(actionLabelKey)}
+          </Button>
+        )}
+        {wait.kind === "waiting" && <WaitTimerChip level={wait.level} elapsedSeconds={wait.elapsedSeconds} />}
+      </div>
     </li>
   );
 };

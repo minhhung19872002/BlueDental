@@ -13,16 +13,27 @@ interface LabelColorPickerProps {
   title: string;
   /** What the preview badge reads — the name being typed. */
   previewText: string;
+  /** What "Mặc định" (null) draws; grey unless the record has its own default (staff, R-1155). */
+  defaultColor?: string;
+  /** The name of the "Mặc định" swatch, which says its colour; "Mặc định (xám)" unless given. */
+  defaultLabel?: string;
 }
 
 const swatchColor = (color: string) => ({ "--bd-label-color": color }) as CSSProperties;
 
 /**
- * Mặc định (grey), eight presets and a custom picker, with a preview badge
- * under them. A controlled Form.Item child, so the colour travels with the
- * rest of the form (R-1072).
+ * Mặc định, eight presets and a custom picker, with a preview badge under
+ * them. A controlled Form.Item child, so the colour travels with the rest of
+ * the form (R-1072).
  */
-export function LabelColorPicker({ value = null, onChange, title, previewText }: LabelColorPickerProps) {
+export function LabelColorPicker({
+  value = null,
+  onChange,
+  title,
+  previewText,
+  defaultColor = LABEL_COLOR_DEFAULT,
+  defaultLabel = t("Common:LabelColor:Default"),
+}: LabelColorPickerProps) {
   const picked = value?.toUpperCase() ?? null;
   const isCustom = picked !== null && !LABEL_COLOR_PRESETS.some((preset) => preset === picked);
 
@@ -34,9 +45,10 @@ export function LabelColorPicker({ value = null, onChange, title, previewText }:
           type="button"
           role="radio"
           aria-checked={picked === null}
-          aria-label={t("Common:LabelColor:Default")}
-          title={t("Common:LabelColor:Default")}
+          aria-label={defaultLabel}
+          title={defaultLabel}
           onClick={() => onChange?.(null)}
+          style={swatchColor(defaultColor)}
           className={cn("bd-label-swatch", picked === null && "bd-label-swatch--picked")}
         />
         {LABEL_COLOR_PRESETS.map((preset) => (
@@ -59,7 +71,7 @@ export function LabelColorPicker({ value = null, onChange, title, previewText }:
           <input
             type="color"
             aria-label={t("Common:LabelColor:Custom")}
-            value={picked ?? LABEL_COLOR_DEFAULT}
+            value={picked ?? defaultColor}
             onChange={(event) => onChange?.(event.target.value.toUpperCase())}
             className="bd-color-input"
           />
@@ -68,7 +80,7 @@ export function LabelColorPicker({ value = null, onChange, title, previewText }:
 
       <div className="bd-label-preview">
         <span className="bd-cat-hint">{t("Common:LabelColor:Preview")}</span>
-        <LabelBadge color={picked}>{previewText.trim() || title}</LabelBadge>
+        <LabelBadge color={picked ?? defaultColor}>{previewText.trim() || title}</LabelBadge>
       </div>
     </div>
   );

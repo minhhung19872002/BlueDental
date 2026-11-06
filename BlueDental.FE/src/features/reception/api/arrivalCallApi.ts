@@ -12,8 +12,10 @@ interface ServerArrivalCallDto {
   isTemporary: boolean;
   patientPhone: string | null;
   dentistName: string | null;
+  dentistLabelColor: string | null;
   slotStart: string;
   content: string | null;
+  checkedInAt: string | null;
   invitedAt: string | null;
   isFlagged: boolean;
 }
@@ -27,6 +29,8 @@ function adaptArrivalCall(dto: ServerArrivalCallDto): ArrivalCall {
     isTemporary: dto.isTemporary,
     patientPhone: dto.patientPhone ?? undefined,
     doctorName: dto.dentistName ?? "",
+    doctorLabelColor: dto.dentistLabelColor ?? null,
+    checkedInAt: dto.checkedInAt ?? undefined,
     time: dayjs(dto.slotStart).format("HH:mm"),
     content: dto.content ?? "",
     invited: !!dto.invitedAt,

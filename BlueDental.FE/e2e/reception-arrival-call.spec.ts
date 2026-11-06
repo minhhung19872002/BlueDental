@@ -530,4 +530,100 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await plainCall(page, `${APPOINTMENTS}/${visit.id}`, { method: "DELETE", branchId });
     }
   });
+
+  /**
+   * R-1156 (BA 2026-11-06): each row runs the card's "Đang chờ" clock, from the
+   * server's check-in stamp, in both lists, on any page. Only the browser's
+   * clock is moved forward, as in `reception-wait-time`.
+   */
+  test("every row runs the card's wait clock, on any page, until the chair takes them", async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.clock.install();
+    await login(page);
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 170, "e2e-cho-noi");
+
+    try {
+      expect((await call(page, branchId, `${APPOINTMENTS}/${visit.id}/check-in`, { method: "POST" })).status).toBe(200);
+
+      // Not Tiếp nhận: the chip carries its own styles wherever the panel opens.
+      await page.goto("/calendar/list");
+      await dockButton(page).click();
+      const waitingRow = section(page, "Khách đã đến").locator(".arrival-row").filter({ hasText: visit.searchKey });
+      const timer = waitingRow.getByRole("timer");
+      await expect(timer).toHaveText(/^Đang chờ 00:\d\d$/);
+      await expect(timer).toHaveClass(/rc-wait-chip--normal/);
+      await expect(timer).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(timer).toHaveCSS("border-radius", /px/);
+
+      const shown = (await timer.textContent()) ?? "";
+      await page.clock.fastForward(3_000);
+      await expect(timer).not.toHaveText(shown);
+
+      await page.clock.fastForward("05:00");
+      await expect(timer).toHaveText(/^Đang chờ 05:\d\d$/);
+      await expect(timer).toHaveClass(/rc-wait-chip--warning/);
+
+      // Called up, the patient still waits: the clock follows them into "Bác sĩ mời lên".
+      await waitingRow.getByRole("button", { name: "Mời lên" }).click();
+      await expect(page.getByText("Đã mời bệnh nhân lên")).toBeVisible();
+      const seatRow = section(page, "Bác sĩ mời lên").locator(".arrival-row").filter({ hasText: visit.searchKey });
+      await expect(seatRow.getByRole("timer")).toHaveText(/^Đang chờ 05:\d\d$/);
+
+      await page.clock.fastForward("05:00");
+      await expect(seatRow.getByRole("timer")).toHaveText(/^Chờ quá lâu 10:\d\d$/);
+      await expect(seatRow.getByRole("timer")).toHaveClass(/rc-wait-chip--overdue/);
+
+      // Counted from the stored check-in, not from when the panel opened.
+      await page.reload();
+      await dockButton(page).click();
+      const reloadedRow = section(page, "Bác sĩ mời lên").locator(".arrival-row").filter({ hasText: visit.searchKey });
+      await expect(reloadedRow.getByRole("timer")).toHaveText(/^Chờ quá lâu 10:\d\d$/);
+
+      // Seated: the row, and its clock, leave the panel.
+      await reloadedRow.getByRole("button", { name: "Tiếp nhận" }).click();
+      await expect(page.getByText("Đã tiếp nhận bệnh nhân")).toBeVisible();
+      await expect(reloadedRow).toHaveCount(0);
+      expect((await getAppointment(page, branchId, visit.id)).status, "Đang khám").toBe(4);
+    } finally {
+      await plainCall(page, `${APPOINTMENTS}/${visit.id}`, { method: "DELETE", branchId });
+    }
+  });
+  test("TMPMEASURE", async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.clock.install();
+    await login(page);
+    const branchId = await openBoard(page);
+    const visit = await bookVisitToday(page, branchId, 170, "e2e-do-rong");
+    const shot = "C:/Users/ADMIN/AppData/Local/Temp/claude/c--Users-ADMIN-workspace-Free-BlueDental/5c59970b-e3eb-4e3d-a267-15e6c0b6749e/scratchpad/";
+    const measure = (row: import("@playwright/test").Locator) => row.evaluate((li) => {
+      const w = (el: Element | null) => (el ? Math.round(el.getBoundingClientRect().width * 10) / 10 : -1);
+      const meta = li.querySelector(".arrival-row-meta") as HTMLElement;
+      const tops = [...meta.children].map((c) => Math.round(c.getBoundingClientRect().top));
+      return {
+        row: w(li), info: w(li.querySelector(".arrival-row-info")), side: w(li.querySelector(".arrival-row-side")),
+        meta: w(meta), metaKids: [...meta.children].map((c) => w(c)), wrapped: new Set(tops).size > 1,
+      };
+    });
+    try {
+      expect((await call(page, branchId, `${APPOINTMENTS}/${visit.id}/check-in`, { method: "POST" })).status).toBe(200);
+      await page.goto("/calendar/list");
+      await dockButton(page).click();
+      const waitingRow = section(page, "Khách đã đến").locator(".arrival-row").filter({ hasText: visit.searchKey });
+      await expect(waitingRow.getByRole("timer")).toBeVisible();
+      console.log("WAITING", JSON.stringify(await measure(waitingRow)));
+      await waitingRow.screenshot({ path: shot + "m-waiting.png" });
+      await waitingRow.getByRole("button", { name: "Mời lên" }).click();
+      const seatRow = section(page, "Bác sĩ mời lên").locator(".arrival-row").filter({ hasText: visit.searchKey });
+      await expect(seatRow.getByRole("timer")).toBeVisible();
+      console.log("INVITED-TAG", JSON.stringify(await measure(waitingRow)));
+      console.log("SEAT", JSON.stringify(await measure(seatRow)));
+      await page.clock.fastForward("11:00");
+      await expect(seatRow.getByRole("timer")).toHaveText(/Chờ quá lâu/);
+      console.log("SEAT-OVERDUE", JSON.stringify(await measure(seatRow)));
+      await page.locator(".arrival-panel").screenshot({ path: shot + "m-panel.png" });
+    } finally {
+      await plainCall(page, `${APPOINTMENTS}/${visit.id}`, { method: "DELETE", branchId });
+    }
+  });
 });

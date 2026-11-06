@@ -125,6 +125,7 @@ interface ServerAppointmentDto {
   patientPhone: string | null;
   dentistId: string;
   dentistName: string;
+  dentistLabelColor?: string | null;
   branchId: string;
   procedureId: string | null;
   procedureName: string | null;
@@ -185,6 +186,7 @@ function mapAppointmentDto(dto: ServerAppointmentDto): ReceptionItem {
     patientType: "New",
     doctorId: dto.dentistId ?? "",
     doctorName: dto.dentistName || t("Reception:Doctor"),
+    doctorLabelColor: dto.dentistLabelColor ?? null,
     branchId: dto.branchId,
     refType: "Medical",
     status: mapStatusFromBe(dto.status),

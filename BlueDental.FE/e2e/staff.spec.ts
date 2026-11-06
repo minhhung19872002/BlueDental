@@ -36,14 +36,22 @@ test.describe("Nhân viên", () => {
     // Required selects: open by clicking the labelled inner input, then pick
     // the option by its title — a closed dropdown can linger in the DOM, so
     // "first option of the open dropdown" is ambiguous while this is not.
-    await dialog.getByLabel(/Nhóm quyền/).click();
-    await page.locator('.ant-select-item-option[title="admin"]').click();
+    // Picked by keyboard: once test runs pile up more roles than the dropdown
+    // shows, "admin" sits outside the virtual list's scroll window and a mouse
+    // click on it lands on a re-rendering row.
+    const roleSelect = dialog.getByLabel(/Nhóm quyền/);
+    await roleSelect.click();
+    const adminActive = page.locator('.ant-select-item-option-active[title="admin"]');
+    for (let step = 0; step < 30 && !(await adminActive.count()); step++) {
+      await roleSelect.press("ArrowDown");
+    }
+    await roleSelect.press("Enter");
 
     // The main branch, so the new row shows up in admin's default branch list.
-    // Searched by its seeded id first (the select searches option values):
-    // test runs pile up branches and push it out of the virtual list.
+    // Searched by its name first (since R-1051 the select matches the label, not
+    // the id): test runs pile up branches and push it out of the virtual list.
     await dialog.getByLabel(/Chi nhánh/).click();
-    await dialog.getByLabel(/Chi nhánh/).fill("11111111-1111-1111-1111-111111111111");
+    await dialog.getByLabel(/Chi nhánh/).fill("Nha Khoa Đức Hạnh Premium");
     await page.locator('.ant-select-item-option[title="Nha Khoa Đức Hạnh Premium"]').click();
     // A multi-select keeps its dropdown open; clicking another field closes it.
     await dialog.getByLabel(/Họ và tên/).click();

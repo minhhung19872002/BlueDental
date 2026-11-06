@@ -562,35 +562,6 @@
   }
 }
 
-.rc-wait-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 22px;
-  padding: 0 8px;
-  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
-  border-radius: var(--bd-radius-pill);
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.rc-wait-chip--normal {
-  background: var(--bd-green-pale);
-  color: var(--bd-green);
-}
-
-.rc-wait-chip--warning {
-  background: var(--bd-amber-pale);
-  color: var(--bd-amber);
-}
-
-.rc-wait-chip--overdue {
-  background: var(--bd-red-pale);
-  color: var(--bd-red);
-}
-
 .rc-step-line {
   height: 2px;
   flex: 1;

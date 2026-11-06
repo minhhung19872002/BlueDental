@@ -15,6 +15,9 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public string? PatientPhone { get; set; }
     public Guid DentistId { get; set; }
     public string DentistName { get; set; } = default!;
+
+    /// <summary>The dentist's "Màu nhãn" "#RRGGBB"; null = the default colour (R-1155).</summary>
+    public string? DentistLabelColor { get; set; }
     public Guid BranchId { get; set; }
     public Guid? ProcedureId { get; set; }
     public string? ProcedureName { get; set; }

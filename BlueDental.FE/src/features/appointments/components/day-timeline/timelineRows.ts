@@ -11,6 +11,8 @@ export const NO_ID = "00000000-0000-0000-0000-000000000000";
 export interface TimelineDoctor {
   id: string;
   name: string;
+  /** "Màu nhãn" of the header badge; null = the staff default (R-1155). */
+  labelColor?: string | null;
 }
 
 export interface BookingFilter {
@@ -68,7 +70,7 @@ export function buildDoctorRows(
     }
     if (listed.has(booking.doctorId)) continue;
     listed.add(booking.doctorId);
-    rows.push({ id: booking.doctorId, name: booking.doctorName });
+    rows.push({ id: booking.doctorId, name: booking.doctorName, labelColor: booking.doctorLabelColor });
   }
 
   if (!doctorIds || doctorIds.length === 0) return unassigned ? [...rows, { id: NO_ID, name: "" }] : rows;

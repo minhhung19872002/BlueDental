@@ -9,6 +9,10 @@ export interface ArrivalCall {
   /** The "Lịch tạm"'s own phone, prefilled into "Tạo hồ sơ". */
   patientPhone?: string;
   doctorName: string;
+  /** The doctor's "Màu nhãn"; null = the staff default (R-1155). */
+  doctorLabelColor: string | null;
+  /** When "Đã đến" was pressed (ISO); the row's "Đang chờ" clock runs from it. */
+  checkedInAt?: string;
   /** The booked time, HH:mm. */
   time: string;
   /** Nội dung đặt lịch, or the Ghi chú of a visit booked without one. */

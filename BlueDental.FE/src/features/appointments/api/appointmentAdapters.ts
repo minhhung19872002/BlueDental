@@ -21,6 +21,7 @@ export interface ServerAppointmentDto {
   patientPhone: string | null;
   dentistId: string;
   dentistName: string;
+  dentistLabelColor?: string | null;
   branchId: string;
   procedureId: string | null;
   procedureName: string | null;
@@ -150,6 +151,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     patientPhone: dto.patientPhone ?? "",
     doctorId: dto.dentistId,
     doctorName: dto.dentistName,
+    doctorLabelColor: dto.dentistLabelColor ?? null,
     startTime: dto.slotStart,
     endTime: dto.slotEnd,
     status,

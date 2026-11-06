@@ -101,6 +101,7 @@ export function DayTimeline({
                 key={doctor.id}
                 doctorId={doctor.id}
                 doctorName={doctor.name}
+                doctorLabelColor={doctor.labelColor}
                 appointments={bookingsByDoctor.get(doctor.id) ?? NO_BOOKINGS}
                 scale={scale}
                 slots={slots}

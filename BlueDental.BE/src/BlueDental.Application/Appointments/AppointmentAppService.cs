@@ -357,6 +357,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
 
         var users = await _userRepository.GetListByIdsAsync(dentistIds);
         var dentists = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var dentistColors = users.ToDictionary(u => u.Id, StaffLabelColor.Read);
 
         var procedures = new Dictionary<Guid, string>();
         if (procedureIds.Count > 0)
@@ -406,6 +407,7 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             dto.DentistName = entity.DentistId != Guid.Empty
                 ? dentists.GetValueOrDefault(entity.DentistId)
                 : null;
+            dto.DentistLabelColor = dentistColors.GetValueOrDefault(entity.DentistId);
             dto.ProcedureName = entity.ProcedureId.HasValue
                 ? procedures.GetValueOrDefault(entity.ProcedureId.Value)
                 : null;

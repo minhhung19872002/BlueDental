@@ -1,6 +1,7 @@
 import { Hourglass, TriangleAlert } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { formatElapsed, type WaitLevel } from "../utils/waitTime";
+import "./wait-timer-chip.css";
 
 interface WaitTimerChipProps {
   level: WaitLevel;

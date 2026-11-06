@@ -27,3 +27,9 @@ export function isLightColor(hex: string): boolean {
   const [r, g, b] = match.slice(1).map((part) => parseInt(part, 16));
   return (r * 299 + g * 587 + b * 114) / 1000 >= 186;
 }
+
+/**
+ * A staff member's badge before a colour is chosen: RGB(255, 0, 127), the
+ * owner's pick (R-1155). Kept apart from the grey every other label uses.
+ */
+export const STAFF_LABEL_COLOR_DEFAULT = "#FF007F";
