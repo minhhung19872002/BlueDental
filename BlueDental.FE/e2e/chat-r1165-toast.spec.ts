@@ -187,7 +187,9 @@ test("while the app is in the background the message is also a Windows notificat
   await freshManager();
   const page = manager.page;
   await page.evaluate(() => {
-    const store = window as unknown as { __notices: { title: string; body?: string; tag?: string; onclick: (() => void) | null }[] };
+    const store = window as unknown as {
+      __notices: { title: string; body?: string; tag?: string; renotify?: boolean; onclick: (() => void) | null }[];
+    };
     store.__notices = [];
     class FakeNotification {
       static permission = "granted";
@@ -195,7 +197,7 @@ test("while the app is in the background the message is also a Windows notificat
       onclick: (() => void) | null = null;
       constructor(
         public title: string,
-        options: { body?: string; tag?: string },
+        options: { body?: string; tag?: string; renotify?: boolean },
       ) {
         store.__notices.push(Object.assign(this, options));
       }
@@ -208,13 +210,27 @@ test("while the app is in the background the message is also a Windows notificat
 
   await send(admin, directId, text);
   await expect(toast(page, text)).toBeVisible();
-  const notice = await page.evaluate(() => {
-    const [first] = (window as unknown as { __notices: { title: string; body?: string; tag?: string }[] }).__notices;
-    return first && { title: first.title, body: first.body, tag: first.tag };
-  });
-  expect(notice).toEqual({ title: ADMIN_NAME, body: text, tag: directId });
+  const notices = () =>
+    page.evaluate(() =>
+      (window as unknown as { __notices: { title: string; body?: string; tag?: string; renotify?: boolean }[] }).__notices.map(
+        (n) => ({ title: n.title, body: n.body, tag: n.tag, renotify: n.renotify }),
+      ),
+    );
+  await expect.poll(notices).toEqual([{ title: ADMIN_NAME, body: text, tag: directId, renotify: true }]);
 
-  await page.evaluate(() => (window as unknown as { __notices: { onclick: () => void }[] }).__notices[0].onclick());
+  // R-1166: the next message pops up again (same tag + renotify), not a silent swap.
+  const next = `Nền tiếp e2e-${runId()}`;
+  await send(admin, directId, next);
+  await expect(toast(page, next)).toBeVisible();
+  await expect.poll(notices).toEqual([
+    { title: ADMIN_NAME, body: text, tag: directId, renotify: true },
+    { title: ADMIN_NAME, body: next, tag: directId, renotify: true },
+  ]);
+
+  await page.evaluate(() => {
+    const all = (window as unknown as { __notices: { onclick: () => void }[] }).__notices;
+    all[all.length - 1].onclick();
+  });
   await expect(composer(page)).toBeVisible();
-  await expect(panel(page).locator(".chat-message").filter({ hasText: text })).toBeVisible();
+  await expect(panel(page).locator(".chat-message").filter({ hasText: next })).toBeVisible();
 });
