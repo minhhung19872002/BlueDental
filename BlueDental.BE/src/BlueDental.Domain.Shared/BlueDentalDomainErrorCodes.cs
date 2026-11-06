@@ -1021,5 +1021,7 @@ public static class BlueDentalDomainErrorCodes
         public const string TooManyPatients = "BlueDental:Chat:0025";
         /// <summary>Unknown, deleted or of another branch: one answer, so the reply tells nothing about other branches.</summary>
         public const string PatientUnavailable = "BlueDental:Chat:0026";
+        /// <summary>Without Patients.View only patients booked or checked in today can be tagged (K1).</summary>
+        public const string PatientNotToday = "BlueDental:Chat:0027";
     }
 }

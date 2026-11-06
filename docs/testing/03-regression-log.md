@@ -14099,5 +14099,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - toàn bộ chat **53/53**.
   - Chi tiết: `chat-patient-tag.md` § 7.
 - **Lưu ý khi chạy lại**: tin gửi tay vào nhóm có manager mà manager chưa đọc sẽ làm đỏ ca badge của `chat.spec`. Ca đó cần manager không còn tin chưa đọc.
-- **Còn mở**: K1 (gợi ý khi không có quyền) chờ owner. R-1162 (I6.6, I1.6, I4.5, D1 + mục FE) chưa làm.
+- **Còn mở**: K1 đã chốt ở R-1163. R-1162 (I6.6, I1.6, I4.5, D1 + mục FE) chưa làm.
+- **Mức retest**: 2.
+
+## R-1163 (2026-11-06, mức 2: Chat nội bộ — K1 gắn khách khi không có quyền xem khách, F-89, develop)
+
+- **Yêu cầu**: K1 của R-1161. Người không có `Patients.View` vẫn gõ `#a`, `#b`… để lấy tên + Mã KH của mọi khách chi nhánh. Owner chọn phương án B: "làm đi".
+- **Đã làm** (chỉ BE):
+  - `ChatPatientCards.SuggestAsync(…, todayOnly)`: không có quyền → chỉ khách có lịch hẹn hoặc đã tiếp nhận hôm nay (giờ UTC+7, như thẻ), vẫn chỉ Tên + Mã KH.
+  - `ChatAppService.SendAsync` / `EditMessageAsync`: không có quyền mà gắn khách không phải khách hôm nay → 403 `BlueDental:Chat:0027` (vi/en). Khi sửa, khách đã có trên tin được giữ, chỉ khách thêm mới bị kiểm.
+- **Kiểm thử** (host :5157, DB `BlueDental_chat`, bản build production :8157, không chặn request):
+  - ca J4/J5 + K1 của `chat-r1161-patient-tag-api`: gợi ý rỗng; gửi → 0027 và số tin không đổi; khách hẹn hôm nay → gợi ý + gửi được; sửa giữ khách cũ → 200, thêm khách khác → 0027 và danh sách khách không đổi; cấp quyền → gợi ý lại khách khác.
+  - `chat-r1161` **14/14**; toàn bộ chat **53/53**.
 - **Mức retest**: 2.

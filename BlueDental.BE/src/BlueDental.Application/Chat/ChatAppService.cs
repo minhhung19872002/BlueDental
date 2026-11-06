@@ -270,6 +270,7 @@ public class ChatAppService(
         var userId = CurrentUser.GetId();
         var conversation = await GetVisibleAsync(id);
         var tagged = await patientTagger.ResolveAsync(conversation.ClinicBranchId, input.PatientIds);
+        await EnsureMayTagAsync(conversation.ClinicBranchId, tagged.Select(p => p.Id).ToList());
 
         var attachmentIds = input.AttachmentIds.Distinct().ToList();
         var files = attachmentIds.Count == 0
@@ -302,6 +303,8 @@ public class ChatAppService(
     {
         var (message, conversation) = await GetVisibleMessageAsync(messageId);
         var tagged = await patientTagger.ResolveAsync(conversation.ClinicBranchId, input.PatientIds);
+        // Tags the message already carries stay; only the ones added now must be today's.
+        await EnsureMayTagAsync(conversation.ClinicBranchId, tagged.Select(p => p.Id).Except(message.PatientIds).ToList());
         var replaced = message.Edit(
             CurrentUser.GetId(), input.Content, tagged, input.ExpectedEditedAt, Clock.Now, cipher,
             GuidGenerator.Create(), conversation.ClinicBranchId);
@@ -338,11 +341,26 @@ public class ChatAppService(
         }).ToList();
     }
 
+    /// <summary>
+    /// K1: without Patients.View a member may tag only patients booked or
+    /// checked in today, so # cannot be used to look up who is a patient here.
+    /// </summary>
+    private async Task EnsureMayTagAsync(Guid branchId, IReadOnlyCollection<Guid> patientIds)
+    {
+        if (patientIds.Count == 0 || await CanViewPatientsAsync()) return;
+        var today = await patientCards.TodayPatientIdsAsync(branchId, patientIds);
+        if (patientIds.Any(id => !today.Contains(id)))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Chat.PatientNotToday);
+        }
+    }
+
     public async Task<List<ChatPatientSuggestionDto>> SuggestPatientsAsync(Guid id, SuggestChatPatientsInput input)
     {
         var conversation = await GetVisibleAsync(id);
-        var found = await patientCards.SuggestAsync(conversation.ClinicBranchId, input.Text);
-        if (!await CanViewPatientsAsync())
+        var canView = await CanViewPatientsAsync();
+        var found = await patientCards.SuggestAsync(conversation.ClinicBranchId, input.Text, todayOnly: !canView);
+        if (!canView)
         {
             // Name and Mã KH are enough to tag; the rest follows Patients.View like the cards.
             foreach (var suggestion in found)

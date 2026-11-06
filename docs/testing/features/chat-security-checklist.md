@@ -351,7 +351,7 @@ Danh sách gốc khi viết checklist:
 | J6 dò danh sách | ✅ chạy thật | 429 / `Chat:0020` |
 | J7 / J8 | ✅ đọc code | Hub chỉ đẩy `conversationId`; không có log mới |
 | J9 hiển thị | ✅ đọc code | `MessageText` / `PatientCard` render text; `features/chat` không có `dangerouslySetInnerHTML` |
-| K1 | ⚠ chờ chủ dự án | Tạm thời: không có quyền vẫn được gợi ý, nhưng chỉ Tên + Mã KH |
+| K1 | ✅ chạy thật (R-1163) | Chốt B. Không có quyền: gợi ý khách không hẹn hôm nay → `[]` (theo tên và theo Mã KH); gửi → 403 `Chat:0027`, số tin không đổi; khách hẹn hôm nay → gợi ý (chỉ Tên + Mã KH) và gửi được; sửa giữ khách cũ được, thêm khách khác → 0027. Cấp quyền lại → gợi ý cả khách khác |
 | K2 | ✅ | 0026 hiện qua toast, ô sửa vẫn mở |
 
 Còn mở như trước (làm trong R-1162): I6.6, I1.6, I4.5, D1 và các mục FE I1.9, I1.7, I1.1, I5.3, H4.5, H6.6, H6.5, I6.1, H5.1.

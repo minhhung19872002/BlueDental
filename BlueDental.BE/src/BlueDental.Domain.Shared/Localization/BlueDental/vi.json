@@ -235,6 +235,7 @@
     "BlueDental:Chat:0024": "Tin nhắn đã được sửa ở nơi khác.",
     "BlueDental:Chat:0025": "Mỗi tin nhắn gắn tối đa {max} khách.",
     "BlueDental:Chat:0026": "Khách không còn tồn tại hoặc không thuộc chi nhánh của cuộc trò chuyện.",
+    "BlueDental:Chat:0027": "Bạn chỉ gắn được khách có lịch hẹn hoặc đã tiếp nhận hôm nay.",
     "BlueDental:Labo:0015": "Vui lòng nhập đủ các trường bắt buộc trước khi tạo phiếu Labo.",
     "BlueDental:Labo:0016": "Hình ảnh gửi Labo: tối đa 5 ảnh.",
     "BlueDental:Labo:0017": "Số lượng nhận phải từ 1 đến số lượng đặt.",

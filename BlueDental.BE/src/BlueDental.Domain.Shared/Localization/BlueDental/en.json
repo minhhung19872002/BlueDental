@@ -284,6 +284,7 @@
     "BlueDental:Chat:0024": "This message was edited somewhere else.",
     "BlueDental:Chat:0025": "A message can tag at most {max} patients.",
     "BlueDental:Chat:0026": "The patient no longer exists or is not in this conversation's branch.",
+    "BlueDental:Chat:0027": "You can only tag patients booked or checked in today.",
     "BlueDental:Labo:0015": "Please fill in every required field before creating the labo order.",
     "BlueDental:Labo:0016": "Pictures for the lab: at most 5.",
     "BlueDental:Labo:0017": "The received quantity must be between 1 and the ordered quantity.",

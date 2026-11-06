@@ -341,7 +341,7 @@ test("R-1161 J1: a tagged name reaches neither the audit log nor the stored mess
   ).toBe("0");
 });
 
-test("R-1161 J4/J5: without Patients.View a viewer sees only Tên + Mã KH, and a revoke takes effect", async ({ browser }) => {
+test("R-1161 J4/J5 + K1: without Patients.View a viewer sees only Tên + Mã KH, tags only today's patients, and a revoke takes effect", async ({ browser }) => {
   const roleName = `Chat no patient ${run}`;
   const role = await staffCall<{ id: string }>(admin.page, "/api/identity/roles", {
     method: "POST",
@@ -383,12 +383,38 @@ test("R-1161 J4/J5: without Patients.View a viewer sees only Tên + Mã KH, and 
       id: patient.id, missing: false, name: patient.name, patientCode: patient.patientCode,
       canOpen: false, yearOfBirth: null, appointmentAt: null, dentistName: null, visitStatus: null, bookingContent: null,
     });
-    const offered = await suggest(limited, group, `han che ${run}`);
-    expect(offered.body).toEqual([expect.objectContaining({ id: patient.id, yearOfBirth: null, todayAt: null })]);
+    // K1: no visit today, so # does not offer them and the server refuses the tag.
+    expect((await suggest(limited, group, `han che ${run}`)).body).toEqual([]);
+    expect((await suggest(limited, group, patient.patientCode)).body).toEqual([]);
+    const before = messageCount(group);
+    const refused = await send(limited, group, `Hỏi ${token(patient)}`, [patient.id]);
+    expect(refused.status).toBe(403);
+    expect(refused.body.error?.code).toBe("BlueDental:Chat:0027");
+    expect(messageCount(group)).toBe(before);
+
+    const visiting = await makePatient("Hạn", `Hôm nay ${run}`);
+    if (await bookToday(admin.page, visiting.id, `Khám K1 ${run}`)) {
+      const offered = await suggest(limited, group, `han hom nay ${run}`);
+      expect(offered.body).toEqual([
+        expect.objectContaining({ id: visiting.id, isToday: true, yearOfBirth: null, todayAt: null }),
+      ]);
+      const own = await send(limited, group, `Mời ${token(visiting)}`, [visiting.id]);
+      expect(own.status, JSON.stringify(own.body)).toBe(200);
+      // The tag already there stays on an edit; one added now must be today's.
+      const kept = await edit(limited, own.body, `Mời ${token(visiting)} nhé`, [visiting.id]);
+      expect(kept.status, JSON.stringify(kept.body)).toBe(200);
+      const added = await edit(limited, kept.body, `Mời ${token(visiting)} ${token(patient)}`, [visiting.id, patient.id]);
+      expect(added.status).toBe(403);
+      expect(added.body.error?.code).toBe("BlueDental:Chat:0027");
+      expect((await readMessage(limited, group, own.body.id)).patients.map((p) => p.id)).toEqual([visiting.id]);
+    } else {
+      test.info().annotations.push({ type: "skipped-part", description: "no dentist slot left today for the K1 allowed path" });
+    }
 
     // Granted: the full card. Revoked again: back to the reduced one.
     expect((await grant(true)).status).toBe(204);
     expect((await readMessage(limited, group, sent.body.id)).patients[0]).toMatchObject({ canOpen: true, yearOfBirth: 1990 });
+    expect((await suggest(limited, group, `han che ${run}`)).body).toEqual([expect.objectContaining({ id: patient.id })]);
     expect((await grant(false)).status).toBe(204);
     expect((await readMessage(limited, group, sent.body.id)).patients[0]).toMatchObject({ canOpen: false, yearOfBirth: null });
     await context.close();

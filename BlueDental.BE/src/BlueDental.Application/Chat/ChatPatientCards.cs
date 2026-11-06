@@ -95,7 +95,8 @@ public class ChatPatientCards(
     /// Today's patients first (by their time), then the rest of the branch by
     /// name; empty text lists today's patients only. Name or Mã KH, accent-blind.
     /// </summary>
-    public async Task<List<ChatPatientSuggestionDto>> SuggestAsync(Guid branchId, string? text)
+    /// <param name="todayOnly">Only patients booked or checked in today: all a viewer without Patients.View may tag (K1).</param>
+    public async Task<List<ChatPatientSuggestionDto>> SuggestAsync(Guid branchId, string? text, bool todayOnly)
     {
         var filter = Regex.Replace(text?.Trim() ?? "", @"\s+", " ").ToLowerInvariant();
         var (dayStart, dayEnd) = Today();
@@ -121,7 +122,7 @@ public class ChatPatientCards(
             .ToList();
 
         var room = ChatConsts.MaxPatientSuggestions - result.Count;
-        if (filter.Length > 0 && room > 0)
+        if (!todayOnly && filter.Length > 0 && room > 0)
         {
             var taken = result.Select(r => r.Id).ToList();
             var others = await PatientsAsync(branchId, q => matching(q.Where(p => !taken.Contains(p.Id)))
@@ -176,6 +177,18 @@ public class ChatPatientCards(
     }
 
     /// <summary>Booked for today, or checked in today (clinic day).</summary>
+    /// <summary>Which of <paramref name="patientIds"/> are booked or checked in today at the branch.</summary>
+    public async Task<HashSet<Guid>> TodayPatientIdsAsync(Guid branchId, IReadOnlyCollection<Guid> patientIds)
+    {
+        if (patientIds.Count == 0) return [];
+        var (dayStart, dayEnd) = Today();
+        var ids = await asyncExecuter.ToListAsync(TodayQuery(await appointments.GetQueryableAsync(), branchId, dayStart, dayEnd)
+            .Where(a => patientIds.Contains(a.PatientId))
+            .Select(a => a.PatientId)
+            .Distinct());
+        return [.. ids];
+    }
+
     private static IQueryable<Appointment> TodayQuery(
         IQueryable<Appointment> query, Guid branchId, DateTimeOffset dayStart, DateTimeOffset dayEnd) =>
         query.Where(a => a.BranchId == branchId && !a.IsTemporary

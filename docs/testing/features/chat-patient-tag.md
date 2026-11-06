@@ -97,7 +97,7 @@ thì đọc mới.
 | Hành vi 6 | ✅ | Sửa tin nhận `PatientIds`, bản cũ giữ danh sách cũ + có thẻ |
 | Chống giả token | ✅ | `Normalize` ghi lại token theo tên thật; token có id không nằm trong `PatientIds` thành chữ `#tên` |
 | Dựng theo lô | ✅ | Mỗi trang: 1 truy vấn khách + 1 lịch hẹn + 1 tên bác sĩ |
-| ⚠ K1 dò danh bạ khi không có quyền | cần chủ dự án chốt | Người **không** có `Patients.View` vẫn gõ `#a`, `#b`… để lấy tên + mã của mọi khách chi nhánh (≈ 400 tên/phút), và `IsToday` cho biết khách có lịch hôm nay. Đề xuất: không có quyền → chỉ gợi ý khách hôm nay, hoặc không cho gắn |
+| K1 dò danh bạ khi không có quyền | ✅ chốt B (R-1163) | Trước: người **không** có `Patients.View` gõ `#a`, `#b`… lấy được tên + mã của mọi khách chi nhánh. Nay: Không có `Patients.View` → `#` chỉ gợi ý khách có lịch hẹn hoặc đã tiếp nhận hôm nay (Tên + Mã KH). Gửi / sửa tin gắn khách khác → 403 `Chat:0027`; sửa tin thì khách đã có sẵn trên tin được giữ, chỉ khách thêm mới phải là khách hôm nay |
 | ⚠ K2 sửa tin có khách đã bị xoá | nhỏ | Sửa tin cũ mà một khách đã xoá / chuyển chi nhánh → 0026, phải bỏ khách đó mới lưu được. FE cần báo rõ |
 | J9 | ⏳ FE chưa làm | |
 | FE (gõ `#`, chip, thẻ, bấm mở hồ sơ) | ❌ chưa làm | Không có thay đổi trong `features/chat` |
@@ -132,7 +132,7 @@ Khác với đề xuất ở § 3 (đã chọn khi làm):
 | Mục | Đề xuất | Đã làm | Lý do |
 |---|---|---|---|
 | Gợi ý | `GET …/patient-suggestions?text=` | `POST` với body `{ text }` | Chữ gõ có thể là tên khách; giữ ngoài URL, ngoài log truy cập và lịch sử proxy |
-| K1 (chờ chủ dự án) | — | Tạm thời: không có `Patients.View` vẫn được gợi ý, nhưng chỉ Tên + Mã KH (không năm sinh, không giờ hẹn hôm nay) | Chờ owner chốt "chỉ khách hôm nay" hay "không cho gắn" |
+| K1 (R-1163) | Chỉ khách hôm nay, hoặc không cho gắn | Chốt B: Không có `Patients.View` → `#` chỉ gợi ý khách có lịch hẹn hoặc đã tiếp nhận hôm nay (Tên + Mã KH). Gửi / sửa tin gắn khách khác → 403 `Chat:0027`; sửa tin thì khách đã có sẵn trên tin được giữ, chỉ khách thêm mới phải là khách hôm nay | Owner chọn B 2026-11-06. Lễ tân / phụ tá vẫn gắn được khách đang ở phòng khám, nhưng không dò được danh bạ. Kiểm ở server, không chỉ ở gợi ý |
 | K2 | FE báo rõ | 0026 hiện qua toast lỗi chung, ô sửa vẫn mở để bỏ khách rồi lưu lại | Thông báo 0026 đã nói rõ khách không còn |
 | Chip trong ô soạn | chip | Chữ `#Tên` được tô nền như chip (lớp nền nằm sau textarea, màu theo token AntD), Backspace xoá cả khối | Giữ textarea thường: gõ tiếng Việt (IME), dán, Shift+Enter vẫn như cũ |
 | Dòng gợi ý | 1 dòng | 2 dòng: Tên (năm sinh) / Mã KH · "Hôm nay HH:mm" | Panel chat hẹp, một dòng bị cắt tên |
