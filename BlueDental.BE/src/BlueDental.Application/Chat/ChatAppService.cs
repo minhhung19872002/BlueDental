@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Data;
 using BlueDental.FileManagement;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
@@ -15,6 +16,7 @@ using Volo.Abp.Content;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
+using Volo.Abp.Uow;
 using Volo.Abp.Users;
 
 namespace BlueDental.Chat;
@@ -49,7 +51,8 @@ public class ChatAppService(
     ChatMessageSearch messageSearch,
     ChatSharedLibrary sharedLibrary,
     ChatPatientTagger patientTagger,
-    ChatPatientCards patientCards) : BlueDentalAppService, IChatAppService
+    ChatPatientCards patientCards,
+    IUniqueViolationDetector uniqueViolation) : BlueDentalAppService, IChatAppService
 {
     private const int MaxContacts = 50;
     private const int MaxConversations = 300;
@@ -94,7 +97,22 @@ public class ChatAppService(
     {
         var userId = CurrentUser.GetId();
         var branchId = await GetWriteBranchAsync();
-        var conversation = await conversationManager.OpenDirectAsync(branchId, userId, input.UserId);
+        ChatConversation conversation;
+        try
+        {
+            // Its own transaction, so a lost race leaves this request able to read on.
+            using var uow = UnitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
+            conversation = await conversationManager.OpenDirectAsync(branchId, userId, input.UserId);
+            await uow.CompleteAsync();
+        }
+        catch (Exception e) when (uniqueViolation.IsUniqueViolation(e))
+        {
+            // Both people (or two tabs) opened the pair at once: the other request made it (I4.5).
+            var opened = await conversationManager.FindDirectAsync(branchId, userId, input.UserId);
+            if (opened is null) throw;
+            conversation = opened;
+        }
+
         await NotifyMembersAsync(conversation.Id);
         return await SummarizeOneAsync(conversation);
     }
@@ -163,7 +181,8 @@ public class ChatAppService(
         {
             var pivot = await messages.FirstOrDefaultAsync(m => m.Id == beforeId && m.ConversationId == id)
                 ?? throw new EntityNotFoundException(typeof(ChatMessage), beforeId);
-            query = query.Where(m => m.SentAt < pivot.SentAt);
+            // Same order as the page (SentAt, then Id), so messages sharing a SentAt are not skipped (I6.6).
+            query = query.Where(m => m.SentAt < pivot.SentAt || (m.SentAt == pivot.SentAt && m.Id.CompareTo(pivot.Id) < 0));
         }
 
         var page = await AsyncExecuter.ToListAsync(query
@@ -269,6 +288,38 @@ public class ChatAppService(
     {
         var userId = CurrentUser.GetId();
         var conversation = await GetVisibleAsync(id);
+        // A retry of a message that already arrived (lost reply, double click) gets that message back (I1.6).
+        var message = await FindRetriedAsync(id, userId, input.ClientMessageId);
+        if (message is null)
+        {
+            try
+            {
+                // Its own transaction, so a lost race leaves this request able to read the winner.
+                using var uow = UnitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
+                message = await StoreMessageAsync(conversation, userId, input);
+                await uow.CompleteAsync();
+            }
+            catch (Exception e) when (input.ClientMessageId is not null && uniqueViolation.IsUniqueViolation(e))
+            {
+                message = await FindRetriedAsync(id, userId, input.ClientMessageId);
+                if (message is null) throw;
+            }
+
+            await NotifyMembersAsync(id);
+        }
+
+        return (await MapMessagesAsync([message], userId, conversation.ClinicBranchId))[0];
+    }
+
+    private async Task<ChatMessage?> FindRetriedAsync(Guid conversationId, Guid senderId, Guid? clientMessageId) =>
+        clientMessageId is { } clientId
+            ? await messages.FirstOrDefaultAsync(m =>
+                m.ConversationId == conversationId && m.SenderId == senderId && m.ClientMessageId == clientId)
+            : null;
+
+    private async Task<ChatMessage> StoreMessageAsync(ChatConversation conversation, Guid userId, SendChatMessageInput input)
+    {
+        var id = conversation.Id;
         var tagged = await patientTagger.ResolveAsync(conversation.ClinicBranchId, input.PatientIds);
         await EnsureMayTagAsync(conversation.ClinicBranchId, tagged.Select(p => p.Id).ToList());
 
@@ -281,7 +332,8 @@ public class ChatAppService(
             throw new BusinessException(BlueDentalDomainErrorCodes.Chat.AttachmentUnavailable);
         }
 
-        var message = ChatMessage.Send(GuidGenerator.Create(), id, userId, input.Content, tagged, files.Count, Clock.Now, cipher);
+        var message = ChatMessage.Send(
+            GuidGenerator.Create(), id, userId, input.Content, tagged, files.Count, Clock.Now, cipher, input.ClientMessageId);
         foreach (var file in files)
         {
             file.AttachTo(message.Id, id, userId);
@@ -294,9 +346,7 @@ public class ChatAppService(
         var member = await conversationManager.GetMemberAsync(id, userId);
         member.MarkRead(message.SentAt);
         await members.UpdateAsync(member, autoSave: true);
-
-        await NotifyMembersAsync(id);
-        return (await MapMessagesAsync([message], userId, conversation.ClinicBranchId))[0];
+        return message;
     }
 
     public async Task<ChatMessageDto> EditMessageAsync(Guid messageId, EditChatMessageInput input)

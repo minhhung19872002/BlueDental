@@ -131,6 +131,8 @@ export interface SendChatMessageInput {
   attachmentIds: string[];
   /** The patients the text tags, at most CHAT_LIMITS.maxPatientsPerMessage. */
   patientIds: string[];
+  /** Same on every retry of one message, so the server stores it once (R-1162). */
+  clientMessageId?: string;
 }
 
 /** Mirrors ChatConsts on the server; the server checks again. */

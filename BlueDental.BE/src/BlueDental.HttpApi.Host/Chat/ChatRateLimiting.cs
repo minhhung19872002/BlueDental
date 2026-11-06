@@ -32,6 +32,7 @@ public static class ChatRateLimiting
             options.AddPolicy(ChatRateLimitPolicies.Send, http => PerAccount(http, limits.SendPermits, window));
             options.AddPolicy(ChatRateLimitPolicies.Upload, http => PerAccount(http, limits.UploadPermits, window));
             options.AddPolicy(ChatRateLimitPolicies.Search, http => PerAccount(http, limits.SearchPermits, window));
+            options.AddPolicy(ChatRateLimitPolicies.Manage, http => PerAccount(http, limits.ManagePermits, window));
             options.OnRejected = async (context, cancellationToken) =>
             {
                 var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var wait) ? wait : window;

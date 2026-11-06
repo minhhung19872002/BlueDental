@@ -238,6 +238,13 @@ public class SendChatMessageInput
     public List<Guid> AttachmentIds { get; set; } = [];
 
     /// <summary>
+    /// Made once by the sender's screen and sent again on every retry (R-1162):
+    /// a retry of a message that already arrived returns that message instead
+    /// of storing it twice.
+    /// </summary>
+    public Guid? ClientMessageId { get; set; }
+
+    /// <summary>
     /// The patients tagged with # (R-1161), in the order tagged: at most
     /// <see cref="ChatConsts.MaxPatientsPerMessage"/>, all of the conversation's branch.
     /// </summary>

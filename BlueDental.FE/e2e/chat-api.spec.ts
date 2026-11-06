@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { BRANCH2_USER, MANAGER_USER, TEST_USER, runId } from "./fixtures/auth";
-import { CHAT, PNG_1PX_BASE64, downloadFile, minioObject, signIn, sqlScalar, uploadFile, type Session } from "./fixtures/chatApi";
+import { CHAT, PNG_1PX_BASE64, downloadFile, minioObject, signIn, sqlScalar, uploadFile, type Session, patiently } from "./fixtures/chatApi";
 import { BRANCH_ONE, BRANCH_TWO, call } from "./fixtures/marketingTicket";
 
 /**
@@ -41,7 +41,7 @@ test.afterAll(async () => {
 });
 
 async function openDirect(): Promise<Conversation> {
-  const reply = await call<Conversation>(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: manager.userId });
+  const reply = await patiently(() => call<Conversation>(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: manager.userId }));
   expect(reply.status).toBe(200);
   return reply.body;
 }
@@ -62,9 +62,9 @@ test("contacts are the branch's own staff, never yourself or another branch's", 
   expect(await idsFor("admin")).not.toContain(admin.userId);
   expect(await idsFor("branch2")).not.toContain(branch2.userId);
 
-  const crossBranch = await call(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: branch2.userId });
+  const crossBranch = await patiently(() => call(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: branch2.userId }));
   expect(crossBranch.body.error?.code).toBe("BlueDental:Chat:0008");
-  const withSelf = await call(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: admin.userId });
+  const withSelf = await patiently(() => call(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: admin.userId }));
   expect(withSelf.body.error?.code).toBe("BlueDental:Chat:0009");
 });
 
@@ -128,9 +128,9 @@ test("edit and recall are the sender's only; a recalled message keeps its place 
   const upload = await uploadFile(admin.page, conversation.id, "phim.png", PNG_1PX_BASE64, "image/png");
   const withFile = await send(admin, conversation.id, "", [upload.body.id!]);
   expect(withFile.status).toBe(200);
-  const recallOther = await call(manager.page, "POST", `${CHAT}/messages/${withFile.body.id}/recall`);
+  const recallOther = await patiently(() => call(manager.page, "POST", `${CHAT}/messages/${withFile.body.id}/recall`));
   expect(recallOther.body.error?.code).toBe("BlueDental:Chat:0004");
-  const recalled = await call<Message>(admin.page, "POST", `${CHAT}/messages/${withFile.body.id}/recall`);
+  const recalled = await patiently(() => call<Message>(admin.page, "POST", `${CHAT}/messages/${withFile.body.id}/recall`));
   expect(recalled.body).toMatchObject({ isRecalled: true, content: null, attachments: [] });
 
   const seen = await call<{ items: Message[] }>(manager.page, "GET", `${CHAT}/conversations/${conversation.id}/messages`);
@@ -201,20 +201,20 @@ test("the audit log keeps who did what, never the message or file name in clear"
 
 test("groups: anyone creates, members rename and add, a leaver loses access", async () => {
   const name = `Nhóm lễ tân ${runId()}`;
-  const created = await call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
+  const created = await patiently(() => call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
     name,
     memberIds: [manager.userId],
-  });
+  }));
   expect(created.status).toBe(200);
   expect(created.body).toMatchObject({ kind: 2, title: name });
   expect(created.body.members.map((m) => m.userId).sort()).toEqual([admin.userId, manager.userId].sort());
 
-  const outsider = await call(admin.page, "POST", `${CHAT}/conversations/${created.body.id}/members`, { userIds: [branch2.userId] });
+  const outsider = await patiently(() => call(admin.page, "POST", `${CHAT}/conversations/${created.body.id}/members`, { userIds: [branch2.userId] }));
   expect(outsider.body.error?.code).toBe("BlueDental:Chat:0008");
-  const renamed = await call<Conversation>(manager.page, "PUT", `${CHAT}/conversations/${created.body.id}/name`, { name: `${name} (mới)` });
+  const renamed = await patiently(() => call<Conversation>(manager.page, "PUT", `${CHAT}/conversations/${created.body.id}/name`, { name: `${name} (mới)` }));
   expect(renamed.body.title).toBe(`${name} (mới)`);
   const direct = await openDirect();
-  const renameDirect = await call(admin.page, "PUT", `${CHAT}/conversations/${direct.id}/name`, { name: "x" });
+  const renameDirect = await patiently(() => call(admin.page, "PUT", `${CHAT}/conversations/${direct.id}/name`, { name: "x" }));
   expect(renameDirect.body.error?.code).toBe("BlueDental:Chat:0010");
 
   await send(manager, created.body.id, "Chào cả nhóm");

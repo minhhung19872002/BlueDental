@@ -2536,6 +2536,9 @@ namespace BlueDental.Migrations
                     b.Property<int>("AttachmentCount")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("ClientMessageId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -2583,6 +2586,10 @@ namespace BlueDental.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ConversationId", "SentAt");
+
+                    b.HasIndex("ConversationId", "SenderId", "ClientMessageId")
+                        .IsUnique()
+                        .HasFilter("\"ClientMessageId\" IS NOT NULL");
 
                     b.ToTable("bd_chat_messages", (string)null);
                 });

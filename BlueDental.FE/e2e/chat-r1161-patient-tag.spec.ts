@@ -25,10 +25,10 @@ test.describe.configure({ mode: "serial" });
 test.beforeAll(async ({ browser }) => {
   admin = await signIn(browser, TEST_USER);
   manager = await signIn(browser, MANAGER_USER);
-  const group = await call<{ id: string }>(admin.page, "POST", `${CHAT}/conversations/group`, {
+  const group = await patiently(() => call<{ id: string }>(admin.page, "POST", `${CHAT}/conversations/group`, {
     name: groupName,
     memberIds: [manager.userId],
-  });
+  }));
   expect(group.status).toBe(200);
   groupId = group.body.id;
   for (const [index, firstName] of ["An", "Bình"].entries()) {
@@ -155,9 +155,9 @@ test("without Patients.View the card shows only Tên + Mã KH and does not open"
     const page = await context.newPage();
     await login(page, { userName, password: PASSWORD });
     const me = await call<{ currentUser: { id: string } }>(page, "GET", "/api/abp/application-configuration");
-    const added = await call(admin.page, "POST", `${CHAT}/conversations/${groupId}/members`, {
+    const added = await patiently(() => call(admin.page, "POST", `${CHAT}/conversations/${groupId}/members`, {
       userIds: [me.body.currentUser.id],
-    });
+    }));
     expect(added.status, JSON.stringify(added.body)).toBe(200);
     const text = `Chỉ tên ${run}`;
     const sent = await patiently(() =>

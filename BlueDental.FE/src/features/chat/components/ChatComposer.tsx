@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { useChatComposer } from "../hooks/useChatComposer";
 import type { ChatMessageDto } from "../types";
 import { CHAT_FILE_ACCEPT } from "../utils/chatFormat";
+import { CharCount } from "./CharCount";
 import { ComposerTextBox } from "./ComposerTextBox";
 import { PendingFileChip } from "./PendingFileChip";
 
@@ -43,11 +44,11 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({ conversationId, edit
   const handlePaste = (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
     if (editing || event.clipboardData.files.length === 0) return;
     event.preventDefault();
-    composer.addFiles(Array.from(event.clipboardData.files));
+    composer.uploads.add(Array.from(event.clipboardData.files));
   };
 
   const handleFilesPicked = (event: React.ChangeEvent<HTMLInputElement>) => {
-    composer.addFiles(Array.from(event.target.files ?? []));
+    composer.uploads.add(Array.from(event.target.files ?? []));
     event.target.value = "";
   };
 
@@ -67,10 +68,15 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({ conversationId, edit
           </button>
         </div>
       )}
-      {!editing && composer.files.length > 0 && (
+      {!editing && composer.uploads.files.length > 0 && (
         <div className="chat-composer-files">
-          {composer.files.map((file) => (
-            <PendingFileChip key={file.key} file={file} onRemove={composer.removeFile} />
+          {composer.uploads.files.map((file) => (
+            <PendingFileChip
+              key={file.key}
+              file={file}
+              onRemove={composer.uploads.remove}
+              onRetry={composer.uploads.retry}
+            />
           ))}
         </div>
       )}
@@ -98,6 +104,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({ conversationId, edit
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
         />
+        <CharCount length={composer.text.length} />
         <Button
           type="primary"
           icon={<SendHorizontal size={16} aria-hidden />}

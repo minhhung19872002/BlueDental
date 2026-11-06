@@ -75,10 +75,10 @@ test.afterAll(async () => {
 });
 
 async function openGroup(memberIds: string[]): Promise<string> {
-  const reply = await call<{ id: string }>(admin.page, "POST", `${CHAT}/conversations/group`, {
+  const reply = await patiently(() => call<{ id: string }>(admin.page, "POST", `${CHAT}/conversations/group`, {
     name: `Gắn khách e2e ${runId()}`,
     memberIds,
-  });
+  }));
   expect(reply.status).toBe(200);
   opened.push(reply.body.id);
   return reply.body.id;
@@ -253,7 +253,7 @@ test("R-1161: an edit may change the patients; the earlier wording keeps its own
 test("R-1161: recalling a message takes its cards with it", async () => {
   const patient = await makePatient("Thu", `Hồi ${run}`);
   const sent = await send(admin, conversationId, token(patient), [patient.id]);
-  const recalled = await call<Message>(admin.page, "POST", `${CHAT}/messages/${sent.body.id}/recall`);
+  const recalled = await patiently(() => call<Message>(admin.page, "POST", `${CHAT}/messages/${sent.body.id}/recall`));
   expect(recalled.status).toBe(200);
   expect(recalled.body.isRecalled).toBe(true);
   expect(recalled.body.patients).toEqual([]);

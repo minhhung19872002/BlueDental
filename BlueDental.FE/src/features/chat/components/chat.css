@@ -54,6 +54,11 @@ body:has(.chat-dock) .scroll-top-button {
   box-shadow: var(--bd-shadow-glow), var(--bd-shadow-pop);
 }
 
+/* After a render error (R-1162 H6.6): grey, a click brings chat back. */
+.chat-dock-button--failed {
+  background: var(--bd-muted);
+}
+
 .chat-dock-button:focus-visible {
   outline: 3px solid var(--bd-accent);
   outline-offset: 3px;
@@ -538,6 +543,59 @@ body:has(.chat-dock) .scroll-top-button {
     var(--bd-table-head) var(--chat-upload-progress, 0%),
     var(--bd-bg-soft) var(--chat-upload-progress, 0%)
   );
+}
+
+/* Name, spinner and percent shrink together; × and ⟳ stay whole (R-1162). */
+.chat-composer-files .ant-tag > .chat-upload-status {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.chat-upload-status > :not(.chat-file-name) {
+  flex: none;
+}
+
+.chat-upload-chip--failed {
+  border-color: var(--bd-red);
+  background: var(--bd-red-pale);
+}
+
+.chat-upload-chip--failed .chat-upload-percent {
+  color: var(--bd-red-dark);
+}
+
+.chat-chip-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bd-radius-sm);
+  background: transparent;
+  color: var(--bd-muted);
+  cursor: pointer;
+}
+
+.chat-chip-button:hover,
+.chat-chip-button:focus-visible {
+  background: var(--bd-bg-soft);
+  color: var(--bd-ink);
+}
+
+.chat-char-count {
+  align-self: flex-end;
+  color: var(--bd-hint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chat-char-count--full {
+  color: var(--bd-red-dark);
 }
 
 .chat-upload-percent {

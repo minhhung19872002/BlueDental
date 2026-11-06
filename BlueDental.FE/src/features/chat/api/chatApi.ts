@@ -61,20 +61,26 @@ export const chatApi = {
   leave: (id: string) => api.post(`${BASE}/conversations/${id}/leave`).then(() => undefined),
   markRead: (id: string) => api.post(`${BASE}/conversations/${id}/read`).then(() => undefined),
   /** @param onProgress whole percent of the file sent so far, 0–100. */
-  upload: (conversationId: string, file: File, onProgress?: (percent: number) => void) => {
+  upload: (conversationId: string, file: File, onProgress?: (percent: number) => void, signal?: AbortSignal) => {
     const form = new FormData();
     form.append("file", file);
     return api
       .post<ChatAttachmentDto>(`${BASE}/conversations/${conversationId}/attachments`, form, {
+        signal,
         onUploadProgress: (event) => {
           if (onProgress && event.total) onProgress(Math.min(100, Math.floor((event.loaded / event.total) * 100)));
         },
       })
       .then((r) => r.data);
   },
-  send: ({ conversationId, content, attachmentIds, patientIds }: SendChatMessageInput) =>
+  send: ({ conversationId, content, attachmentIds, patientIds, clientMessageId }: SendChatMessageInput) =>
     api
-      .post<ChatMessageDto>(`${BASE}/conversations/${conversationId}/messages`, { content, attachmentIds, patientIds })
+      .post<ChatMessageDto>(`${BASE}/conversations/${conversationId}/messages`, {
+        content,
+        attachmentIds,
+        patientIds,
+        clientMessageId,
+      })
       .then((r) => r.data),
   edit: ({ messageId, content, patientIds, expectedEditedAt }: EditChatMessageInput) =>
     api

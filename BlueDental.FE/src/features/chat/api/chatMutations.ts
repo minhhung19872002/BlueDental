@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { describeApiError } from "@/lib/apiError";
 import type { CreateGroupChatInput, EditChatMessageInput, SendChatMessageInput } from "../types";
 import { chatApi } from "./chatApi";
 import { chatKeys } from "./chatQueries";
@@ -7,6 +8,8 @@ interface UploadChatAttachmentInput {
   conversationId: string;
   file: File;
   onProgress?: (percent: number) => void;
+  /** Aborting it stops the upload (× on the chip, leaving the thread). */
+  signal?: AbortSignal;
 }
 
 /** Every chat write can move the list order, a thread and the unread badge. */
@@ -71,8 +74,8 @@ export function useMarkChatRead() {
 
 export function useUploadChatAttachment() {
   return useMutation({
-    mutationFn: ({ conversationId, file, onProgress }: UploadChatAttachmentInput) =>
-      chatApi.upload(conversationId, file, onProgress),
+    mutationFn: ({ conversationId, file, onProgress, signal }: UploadChatAttachmentInput) =>
+      chatApi.upload(conversationId, file, onProgress, signal),
   });
 }
 
@@ -80,6 +83,9 @@ export function useSendChatMessage() {
   const invalidate = useInvalidateChat();
   return useMutation({
     mutationFn: (input: SendChatMessageInput) => chatApi.send(input),
+    // The request carries a clientMessageId, so a send whose reply was lost
+    // can go again without storing the message twice (R-1162 I1.6).
+    retry: (failures, error) => failures < 2 && describeApiError(error).kind === "network",
     onSuccess: invalidate,
   });
 }

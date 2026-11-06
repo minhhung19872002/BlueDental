@@ -31,6 +31,12 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
     /// </summary>
     public List<Guid> PatientIds { get; private set; } = [];
 
+    /// <summary>
+    /// The id the sender's screen gave this message before sending (R-1162).
+    /// A resend after a lost reply carries the same id, so it is stored once.
+    /// </summary>
+    public Guid? ClientMessageId { get; private set; }
+
     public DateTime SentAt { get; private set; }
 
     public DateTime? EditedAt { get; private set; }
@@ -49,7 +55,8 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
         IReadOnlyList<ChatTaggedPatient> patients,
         int attachmentCount,
         DateTime now,
-        IChatCipher cipher)
+        IChatCipher cipher,
+        Guid? clientMessageId = null)
     {
         if (attachmentCount > ChatConsts.MaxAttachmentsPerMessage)
         {
@@ -67,6 +74,7 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
             ContentCipher = plain is null ? null : cipher.EncryptText(plain, id),
             AttachmentCount = attachmentCount,
             PatientIds = patients.Select(p => p.Id).ToList(),
+            ClientMessageId = clientMessageId,
             SentAt = now,
         };
     }

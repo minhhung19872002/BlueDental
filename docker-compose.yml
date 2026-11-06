@@ -13,6 +13,8 @@ x-backend-environment: &backend-environment
   BlobStorage__BucketName: bluedental-files
   BlobStorage__WithSsl: "false"
   MalwareScan__Host: clamav
+  # No host on a server = uploads refused (0019), never stored unscanned (R-1162).
+  MalwareScan__Required: "true"
   MalwareScan__Port: "3310"
   EasyInvoice__Password: ${EASYINVOICE_PASSWORD:-}
   PaymentReceipt__GotenbergUrl: http://gotenberg:3000

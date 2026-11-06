@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { BRANCH2_USER, MANAGER_USER, TEST_USER, runId } from "./fixtures/auth";
-import { CHAT, PNG_1PX_BASE64, signIn, sqlScalar, uploadFile, type Session } from "./fixtures/chatApi";
-import { BRANCH_TWO, call, type Reply } from "./fixtures/marketingTicket";
+import { CHAT, PNG_1PX_BASE64, signIn, sqlScalar, uploadFile, type Session, patiently } from "./fixtures/chatApi";
+import { BRANCH_TWO, call } from "./fixtures/marketingTicket";
 
 /**
  * Chat nội bộ hardening (R-1158) and message editing (R-1159 / F5) through the
@@ -52,22 +52,9 @@ test.afterAll(async () => {
 });
 
 async function openDirect(): Promise<Conversation> {
-  const reply = await call<Conversation>(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: manager.userId });
+  const reply = await patiently(() => call<Conversation>(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: manager.userId }));
   expect(reply.status).toBe(200);
   return reply.body;
-}
-
-/**
- * Sends and edits share the per-account limit (30 / 30 s) and this file makes
- * more than that in a row, so a 429 here is waited out instead of failing the
- * test that happened to cross it. The limit itself is proven by the last test.
- */
-async function patiently<T>(request: () => Promise<Reply<T>>): Promise<Reply<T>> {
-  for (let attempt = 0; ; attempt++) {
-    const reply = await request();
-    if (reply.status !== 429 || attempt === 20) return reply;
-    await new Promise((resolve) => setTimeout(resolve, 2_000));
-  }
 }
 
 const send = (session: Session, conversationId: string, content: string, attachmentIds: string[] = []) =>
@@ -153,10 +140,10 @@ test("F5: a stale expectedEditedAt is refused as a conflict (0024) and changes n
 test("F5: 16 minutes after sending the window is closed (0023) and canEdit says so", async () => {
   // Its own group: in the shared 1-1 thread a message moved 16 minutes back
   // can fall off the first page once earlier runs have filled it.
-  const group = await call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
+  const group = await patiently(() => call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
     name: `Quá hạn e2e ${runId()}`,
     memberIds: [manager.userId],
-  });
+  }));
   const conversation = group.body;
   const sent = await send(admin, conversation.id, `Quá hạn e2e-${runId()}`);
   sqlScalar(`update bd_chat_messages set "SentAt" = "SentAt" - interval '16 minutes' where "Id"='${sent.body.id}'`);
@@ -180,7 +167,7 @@ test("F5: only the sender edits (0004); a recalled message cannot be edited (000
 
   const edited = await edit(admin, sent.body, `Đã sửa e2e-${runId()}`);
   expect(edited.status).toBe(200);
-  expect((await call(admin.page, "POST", `${CHAT}/messages/${sent.body.id}/recall`)).status).toBe(200);
+  expect((await patiently(() => call(admin.page, "POST", `${CHAT}/messages/${sent.body.id}/recall`))).status).toBe(200);
 
   const afterRecall = await edit(admin, edited.body, "sau thu hồi");
   expect(code(afterRecall.body)).toBe("BlueDental:Chat:0005");
@@ -195,10 +182,10 @@ test("F5: someone outside the conversation gets 404 for the history", async () =
   await edit(admin, sent.body, `Riêng tư 2 e2e-${runId()}`);
   expect((await revisions(branch2, sent.body.id, BRANCH_TWO)).status).toBe(404);
   // Same branch, not a member: a group without manager.
-  const group = await call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
+  const group = await patiently(() => call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
     name: `Nhóm riêng ${runId()}`,
     memberIds: [],
-  });
+  }));
   const inGroup = await send(admin, group.body.id, `Trong nhóm e2e-${runId()}`);
   await edit(admin, inGroup.body, `Trong nhóm 2 e2e-${runId()}`);
   expect((await revisions(manager, inGroup.body.id)).status).toBe(404);
@@ -301,13 +288,13 @@ test("R-1158: only the group owner removes members; the removed lose access; own
   const third = contacts.body.find((c) => c.id !== manager.userId);
   expect(third).toBeDefined();
 
-  const group = await call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
+  const group = await patiently(() => call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
     name: `Nhóm xoá ${runId()}`,
     memberIds: [manager.userId, third!.id],
-  });
+  }));
   expect(group.body.ownerId).toBe(admin.userId);
   const remove = (session: Session, userId: string) =>
-    call(session.page, "DELETE", `${CHAT}/conversations/${group.body.id}/members/${userId}`);
+    patiently(() => call(session.page, "DELETE", `${CHAT}/conversations/${group.body.id}/members/${userId}`));
 
   expect(code((await remove(manager, third!.id)).body)).toBe("BlueDental:Chat:0021");
   expect(code((await remove(admin, admin.userId)).body)).toBe("BlueDental:Chat:0022");
@@ -324,7 +311,7 @@ test("R-1158: search is accent-blind, skips recalled messages, is members-only a
   const id = runId();
   const hit = await send(admin, conversation.id, `Nhớ gọi Hà My ${id} chiều nay`);
   const gone = await send(admin, conversation.id, `Hà My ${id} đã huỷ`);
-  await call(admin.page, "POST", `${CHAT}/messages/${gone.body.id}/recall`);
+  expect((await patiently(() => call(admin.page, "POST", `${CHAT}/messages/${gone.body.id}/recall`))).status).toBe(200);
 
   const search = (session: Session, text: string, branch?: string) =>
     call<{ items: Message[]; isComplete: boolean }>(

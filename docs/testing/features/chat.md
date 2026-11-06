@@ -113,19 +113,29 @@ Yêu cầu, quyết định và kết quả test: [chat-patient-tag.md](chat-pat
 
 ## Triển khai
 
-- Chạy DbMigrator để áp 3 migration: `ChatR1157`, `ChatOwnerR1158` (cột `OwnerId`) và `ChatRevisionsR1159` (bảng bản cũ), `ChatPatientTagsR1161` (cột `PatientIds`). DbMigrator chạy cả 4.
+- Chạy DbMigrator để áp 5 migration: `ChatR1157`, `ChatOwnerR1158` (cột `OwnerId`), `ChatRevisionsR1159` (bảng bản cũ), `ChatPatientTagsR1161` (cột `PatientIds`), `ChatClientMessageIdR1162` (cột `ClientMessageId` + unique index lọc).
 - `RECEIPT_VAULT_KEY` đã có trên cả 2 VM.
 - Rebuild FE: nginx có location `/api/v1/app/chat/` với `client_max_body_size 55m`.
 - ClamAV: `docker-compose.yml` đặt `CLAMD_CONF_StreamMaxLength: 60M`. Phải recreate container `clamav`, nếu không clamd từ chối file > 25 MB.
   - Upload chat **fail closed**: ClamAV không chạy thì upload nhận `Chat:0019`; có virus thì nhận `Chat:0018`.
   - Ngoại lệ: nếu không đặt `MalwareScan:Host` thì upload **không được quét**, chỉ ghi cảnh báo vào log. Đây là trường hợp máy dev không có ClamAV.
   - `docker-compose.yml` đã đặt `MalwareScan__Host: clamav`, nên staging và production luôn quét.
+  - *(R-1162)* `docker-compose.yml` đặt thêm `MalwareScan__Required: "true"`; môi trường Production cũng tự coi là bắt buộc. Khi bắt buộc mà thiếu `Host` thì upload bị chặn (0019) và log lỗi, không còn "cho qua không quét".
+- *(R-1162)* nginx gửi `Content-Security-Policy` cho **toàn app** (`docker/security-headers.conf`). Sau deploy cần smoke staging: đăng nhập, Lịch hẹn, Dashboard, đọc QR, ảnh đại diện Zalo. Nếu thêm nguồn ngoài mới (font, script, API) thì phải thêm vào CSP.
 
 ## Chưa làm / còn mở
 
 Xem mục ❌/⚠ trong `chat-security-checklist.md`:
 - Owner chưa quyết có giữ `.doc/.xls/.ppt` (định dạng cũ, có thể chứa macro) hay không.
 - Rate limit đếm trong bộ nhớ của một container API. Nếu chạy nhiều host thì mỗi host đếm riêng.
+- H6.5 (ảo hoá danh sách tin) để mở có chủ ý — lý do ở checklist.
+
+Đã làm trong R-1162:
+- phân trang tin không mất tin trùng `SentAt` (I6.6); gửi lại cùng `clientMessageId` chỉ lưu một tin (I1.6); mở 1-1 đồng thời không còn 500 (I4.5);
+- giới hạn 20 / 30 s cho tạo nhóm, mở 1-1, đổi tên, thêm/xoá thành viên, rời nhóm; thu hồi tính vào giới hạn gửi (D1);
+- ClamAV bắt buộc (`MalwareScan:Required`);
+- FE: huỷ upload đang chạy, chip lỗi có Tải lên lại / Bỏ, cảnh báo khi rời trang lúc đang tải, hub tự nối lại sau khi dừng hẳn, tab ẩn không đánh dấu đã đọc, `ErrorBoundary` riêng cho chat, bộ đếm ký tự;
+- CSP toàn app + zod `jitless`.
 
 Đã làm trong R-1158:
 - quét ClamAV, rate limit, dọn file mồ côi, xoá thành viên;
@@ -156,3 +166,6 @@ E2E_BASE_URL=<preview> E2E_DB_NAME=<db của host> npx playwright test e2e/chat-
   - quá 15 phút thì mất nút Sửa;
   - tên file dài không tràn khung chip upload.
 - `chat-r1161-patient-tag-api.spec.ts` (11) và `chat-r1161-patient-tag.spec.ts` (3): gắn khách bằng `#`, xem `chat-patient-tag.md` § 7.
+- `chat-r1162-api.spec.ts` (5): phân trang cùng `SentAt`, gửi lại cùng `clientMessageId`, 4 request mở 1-1 cùng lúc, giới hạn quản lý + thu hồi.
+- `chat-r1162.spec.ts` (3, giao diện): huỷ file 45 MB đang tải, file EICAR → chip lỗi + thử lại + bỏ, bộ đếm ký tự.
+- Toàn bộ chat: **61/61** (R-1162). `chat.spec` xoá tin chưa đọc của manager ở `beforeAll`, vì badge đếm mọi tin chưa đọc.

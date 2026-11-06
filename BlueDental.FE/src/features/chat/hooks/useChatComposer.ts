@@ -1,22 +1,12 @@
-import { useRef, useState } from "react";
-import { notifyError } from "@/lib/notify";
-import { t } from "@/lib/i18n";
-import { useSendChatMessage, useUploadChatAttachment } from "../api/chatMutations";
-import { CHAT_LIMITS, type ChatMessageDto } from "../types";
-import { rejectChatFile } from "../utils/chatFormat";
+import { useEffect, useRef, useState } from "react";
+import { useSendChatMessage } from "../api/chatMutations";
+import type { ChatMessageDto } from "../types";
+import { createClientIdKeeper } from "../utils/clientMessageId";
 import { buildContent, parseDraft, type ChatMention } from "../utils/chatPatientTokens";
 import { useEditSubmit } from "./useEditSubmit";
+import { usePendingUploads } from "./usePendingUploads";
 
-export interface PendingChatFile {
-  key: string;
-  name: string;
-  /** Set once the upload is stored; the message sends these ids. */
-  attachmentId?: string;
-  /** Whole percent sent so far; at 100 the server is still scanning and sealing it. */
-  progress: number;
-}
-
-let nextFileKey = 0;
+export type { PendingChatFile } from "./usePendingUploads";
 
 /**
  * The composer's draft: text, the patients it tags with # (R-1161), files
@@ -31,10 +21,10 @@ export function useChatComposer(
 ) {
   const [text, setText] = useState("");
   const [mentions, setMentions] = useState<ChatMention[]>([]);
-  const [files, setFiles] = useState<PendingChatFile[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const parkedDraftRef = useRef<{ text: string; mentions: ChatMention[] }>({ text: "", mentions: [] });
-  const upload = useUploadChatAttachment();
+  const [clientIds] = useState(createClientIdKeeper);
+  const uploads = usePendingUploads(conversationId);
   const send = useSendChatMessage();
   const edit = useEditSubmit(conversationId, onEditingChange);
 
@@ -47,38 +37,20 @@ export function useChatComposer(
     setEditingId(editing?.id ?? null);
   }
 
-  const uploading = files.some((file) => !file.attachmentId);
-  const ready = files.flatMap((file) => (file.attachmentId ? [file.attachmentId] : []));
   const busy = send.isPending || edit.saving;
   const hasText = text.trim().length > 0;
   // An edit keeps the files as sent, so a message with files may lose its words.
-  const hasBody = editing ? hasText || editing.attachments.length > 0 : hasText || ready.length > 0;
-  const canSubmit = !busy && !uploading && hasBody;
+  const hasBody = editing ? hasText || editing.attachments.length > 0 : hasText || uploads.ready.length > 0;
+  const canSubmit = !busy && (editing !== null || (!uploads.uploading && !uploads.failed)) && hasBody;
 
-  const addFiles = (picked: File[]) => {
-    const room = CHAT_LIMITS.maxAttachmentsPerMessage - files.length;
-    if (picked.length > room) notifyError(t("Chat:TooManyFiles", CHAT_LIMITS.maxAttachmentsPerMessage));
-    for (const file of picked.slice(0, Math.max(room, 0))) {
-      const reason = rejectChatFile(file);
-      if (reason) {
-        notifyError(reason);
-        continue;
-      }
-      const key = `f${++nextFileKey}`;
-      setFiles((current) => [...current, { key, name: file.name, progress: 0 }]);
-      const handleProgress = (progress: number) =>
-        setFiles((current) => current.map((f) => (f.key === key ? { ...f, progress } : f)));
-      // A failed upload is toasted by the global mutation handler; the chip just goes.
-      upload
-        .mutateAsync({ conversationId, file, onProgress: handleProgress })
-        .then((stored) =>
-          setFiles((current) => current.map((f) => (f.key === key ? { ...f, attachmentId: stored.id } : f))),
-        )
-        .catch(() => setFiles((current) => current.filter((f) => f.key !== key)));
-    }
-  };
-
-  const removeFile = (key: string) => setFiles((current) => current.filter((file) => file.key !== key));
+  // A reload or tab close while a file or the message is on its way asks first (I1.7).
+  const inFlight = uploads.uploading || send.isPending;
+  useEffect(() => {
+    if (!inFlight) return;
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [inFlight]);
 
   const submit = () => {
     if (!canSubmit) return;
@@ -87,13 +59,17 @@ export function useChatComposer(
       edit.save(editing, content, patientIds);
       return;
     }
+    const attachmentIds = uploads.ready;
+    // Same draft sent again (after an error) keeps its id, so it is stored once.
+    const clientMessageId = clientIds.idFor(JSON.stringify([content, attachmentIds, patientIds]));
     send.mutate(
-      { conversationId, content, attachmentIds: ready, patientIds },
+      { conversationId, content, attachmentIds, patientIds, clientMessageId },
       {
         onSuccess: () => {
+          clientIds.reset();
           setText("");
           setMentions([]);
-          setFiles([]);
+          uploads.clear();
         },
       },
     );
@@ -101,5 +77,15 @@ export function useChatComposer(
 
   const cancelEdit = () => onEditingChange(null);
 
-  return { text, setText, mentions, setMentions, files, addFiles, removeFile, submit, cancelEdit, canSubmit, busy, uploading };
+  return {
+    text,
+    setText,
+    mentions,
+    setMentions,
+    uploads,
+    submit,
+    cancelEdit,
+    canSubmit,
+    busy,
+  };
 }

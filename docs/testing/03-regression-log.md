@@ -14112,3 +14112,50 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - ca J4/J5 + K1 của `chat-r1161-patient-tag-api`: gợi ý rỗng; gửi → 0027 và số tin không đổi; khách hẹn hôm nay → gợi ý + gửi được; sửa giữ khách cũ → 200, thêm khách khác → 0027 và danh sách khách không đổi; cấp quyền → gợi ý lại khách khác.
   - `chat-r1161` **14/14**; toàn bộ chat **53/53**.
 - **Mức retest**: 2.
+
+## R-1162 (2026-11-06, mức 3: Chat nội bộ — chặn trước staging + CSP toàn app, F-89, develop)
+
+- **Yêu cầu**: các mục còn mở của `chat-security-checklist.md`: I6.6, I1.6, I4.5, D1, ClamAV bắt buộc, cùng các mục FE I1.9, I1.7, I1.1, I5.3, H4.5, H6.6, H6.5, I6.1 và H5.1 (CSP). Owner: "làm đi", rồi "làm xong commit và push lên develop cho t".
+- **Đã làm — BE**:
+  - I6.6: con trỏ trang tin `SentAt < p || (SentAt == p && Id < pivotId)`, khớp với thứ tự sắp xếp (SentAt, Id).
+  - I1.6: `ChatMessage.ClientMessageId` + unique index lọc `(SenderId, ClientMessageId)`. Gửi lại cùng id → trả tin đã lưu. Gửi đồng thời đụng index → `IUniqueViolationDetector` bắt, rồi đọc lại tin. Migration `ChatClientMessageIdR1162`.
+  - I4.5: `OpenDirectAsync` tạo cuộc 1-1 trong UoW riêng (`requiresNew`). Đụng unique `(ClinicBranchId, DirectKey)` → đọc lại cuộc đã có, không còn 500.
+  - D1: policy `Manage` 20 / 30 s cho tạo nhóm, mở 1-1, đổi tên, thêm/xoá thành viên, rời nhóm. Thu hồi đi chung policy Send.
+  - ClamAV: `MalwareScan:Required`. Khi `Required` hoặc Production mà thiếu `Host` → 0019 + log lỗi, thay vì cho qua. `docker-compose.yml` đặt `MalwareScan__Required: "true"`.
+- **Đã làm — FE**:
+  - `usePendingUploads`: mỗi file có `AbortController`.
+    - × trên chip đang tải → huỷ (I1.9).
+    - Upload lỗi → chip đỏ + Tải lên lại / Bỏ tệp; Gửi bị khoá (I1.1).
+    - Rời thread → abort.
+  - `clientMessageId` theo nội dung nháp; gửi tự thử lại tối đa 2 lần khi lỗi mạng (I1.6).
+  - `beforeunload` khi đang tải hoặc đang gửi (I1.7).
+  - `useChatLive`: hub dừng → thử lại 5 s, gấp đôi tới 60 s, rồi tải lại (I5.3).
+  - `useMarkReadWhenUnread` theo `visibilityState` (H4.5).
+  - `src/components/ErrorBoundary.tsx` + `ChatDockFallback`: lỗi render chat chỉ làm hỏng nút chat (H6.6).
+  - `CharCount` hiện khi còn ≤ 400 ký tự, đỏ ở 4.000 (I6.1).
+- **Đã làm — CSP (toàn app, H5.1)**:
+  - `docker/security-headers.conf` thêm `Content-Security-Policy`:
+    - `script-src 'self' 'wasm-unsafe-eval'`;
+    - Google Fonts;
+    - `img-src https:` cho ảnh Zalo;
+    - `connect-src https://fastly.jsdelivr.net` cho wasm đọc QR;
+    - `object-src 'none'`, `frame-ancestors 'self'`.
+  - `main.tsx`: `z.config({ jitless: true })`. Zod v4 dò `new Function` một lần, và lần dò đó là một vi phạm CSP. Kết quả parse không đổi.
+- **Không làm (H6.5 ảo hoá)**: ảo hoá đụng với dính-đáy, nhảy tới tin và chèn trang cũ lên đầu. `content-visibility` thì cắt viền nháy. Mỗi trang 30 tin và tin cũ chỉ tải khi bấm. Để mở, ghi ở checklist.
+- **Kiểm thử** (host :5157 + ClamAV thật, DB `BlueDental_chat`, bản build production :8157 gửi header CSP, không chặn request):
+  - `chat-r1162-api` **5/5** (I6.6, I1.6, I4.5, D1 ×2).
+  - `chat-r1162` **3/3** UI (huỷ upload 45 MB, file EICAR → chip lỗi + thử lại thật + bỏ, bộ đếm).
+  - Toàn bộ `e2e/chat*` **61/61**.
+  - ClamAV chạy tay:
+    - `Required` + thiếu `Host` → 403 0019;
+    - `docker stop bluedental-clamav-1` → 0019;
+    - cấu hình đúng → 200.
+  - CSP: 22 route + hồ sơ bệnh nhân dưới header thật → 0 vi phạm, sau khi bật `jitless`. Trước đó Lịch hẹn và Dashboard báo `script-src eval` từ zod.
+- **Sửa test cũ**:
+  - Thu hồi gọi thẳng API → bọc `patiently` (thu hồi giờ tính vào giới hạn gửi).
+  - `chat-r1158-r1159-api` bỏ bản `patiently` khai báo trùng.
+  - `chat.spec` đặt `LastReadAt = now()` cho manager ở `beforeAll`: badge đếm mọi tin chưa đọc, và các spec chat khác để lại nhóm chưa đọc.
+- **Triển khai**:
+  - Chạy DbMigrator (`ChatClientMessageIdR1162`).
+  - Smoke staging với CSP mới: đăng nhập, Lịch hẹn, Dashboard, đọc QR, ảnh Zalo.
+- **Mức retest**: 3, vì CSP, `ErrorBoundary` trong `AppLayout` và zod `jitless` đều ảnh hưởng toàn app.

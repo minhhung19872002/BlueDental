@@ -26,10 +26,10 @@ test.beforeAll(async ({ browser }) => {
   await admin.context.grantPermissions(["clipboard-read", "clipboard-write"]);
 
   groupName = `Kho UI ${runId()}`;
-  const group = await call<{ id: string }>(admin.page, "POST", `${CHAT}/conversations/group`, {
+  const group = await patiently(() => call<{ id: string }>(admin.page, "POST", `${CHAT}/conversations/group`, {
     name: groupName,
     memberIds: [manager.userId],
-  });
+  }));
   expect(group.status).toBe(200);
   const id = group.body.id;
   groupId = id;

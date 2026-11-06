@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { MANAGER_USER, TEST_USER, runId } from "./fixtures/auth";
-import { signIn, type Session } from "./fixtures/chatApi";
+import { signIn, sqlScalar, type Session } from "./fixtures/chatApi";
 
 /**
  * Chat nội bộ (F-89 / R-1157) in the real browser against the real host and
@@ -19,6 +19,9 @@ test.describe.configure({ mode: "serial" });
 test.beforeAll(async ({ browser }) => {
   admin = await signIn(browser, TEST_USER);
   manager = await signIn(browser, MANAGER_USER);
+  // The badge counts every unread message, and the other chat specs leave
+  // manager unread groups; start from none so this file sees only its own.
+  sqlScalar(`update bd_chat_members set "LastReadAt" = now() where "UserId" = '${manager.userId}'`);
 });
 
 test.afterAll(async () => {

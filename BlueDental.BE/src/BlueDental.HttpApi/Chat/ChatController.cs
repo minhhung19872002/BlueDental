@@ -37,18 +37,22 @@ public sealed class ChatController(IChatAppService service) : BlueDentalControll
     public Task<ChatConversationDto> GetConversationAsync(Guid id) => service.GetConversationAsync(id);
 
     [HttpPost("conversations/direct")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Manage)]
     public Task<ChatConversationDto> OpenDirectAsync([FromBody] CreateDirectChatInput input) =>
         service.OpenDirectAsync(input);
 
     [HttpPost("conversations/group")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Manage)]
     public Task<ChatConversationDto> CreateGroupAsync([FromBody] CreateGroupChatInput input) =>
         service.CreateGroupAsync(input);
 
     [HttpPut("conversations/{id:guid}/name")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Manage)]
     public Task<ChatConversationDto> RenameAsync(Guid id, [FromBody] RenameChatInput input) =>
         service.RenameAsync(id, input);
 
     [HttpPost("conversations/{id:guid}/members")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Manage)]
     public Task<ChatConversationDto> AddMembersAsync(Guid id, [FromBody] AddChatMembersInput input) =>
         service.AddMembersAsync(id, input);
 
@@ -56,6 +60,7 @@ public sealed class ChatController(IChatAppService service) : BlueDentalControll
     public Task LeaveAsync(Guid id) => service.LeaveAsync(id);
 
     [HttpDelete("conversations/{id:guid}/members/{userId:guid}")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Manage)]
     public Task RemoveMemberAsync(Guid id, Guid userId) => service.RemoveMemberAsync(id, userId);
 
     [HttpPost("conversations/{id:guid}/read")]
@@ -109,6 +114,7 @@ public sealed class ChatController(IChatAppService service) : BlueDentalControll
         service.EditMessageAsync(messageId, input);
 
     [HttpPost("messages/{messageId:guid}/recall")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Send)]
     public Task<ChatMessageDto> RecallMessageAsync(Guid messageId) => service.RecallMessageAsync(messageId);
 
     [HttpGet("messages/{messageId:guid}/revisions")]

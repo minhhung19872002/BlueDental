@@ -58,10 +58,10 @@ test.afterAll(async () => {
 });
 
 async function openGroup(): Promise<string> {
-  const reply = await call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
+  const reply = await patiently(() => call<Conversation>(admin.page, "POST", `${CHAT}/conversations/group`, {
     name: `Kho e2e ${runId()}`,
     memberIds: [manager.userId],
-  });
+  }));
   expect(reply.status).toBe(200);
   opened.push(reply.body.id);
   return reply.body.id;
@@ -132,7 +132,7 @@ test("a recalled message takes its files and links out of the library", async ()
   const png = await attach(admin, id, "se-thu-hoi.png", PNG_1PX_BASE64, "image/png");
   const gone = await send(admin, id, "Xem https://thu-hoi.example.com/a", [png]);
   const kept = await send(admin, id, "Còn https://con-lai.example.com/b");
-  expect((await call(admin.page, "POST", `${CHAT}/messages/${gone.id}/recall`)).status).toBe(200);
+  expect((await patiently(() => call(admin.page, "POST", `${CHAT}/messages/${gone.id}/recall`))).status).toBe(200);
 
   expect((await files(manager, id, { kind: MEDIA })).body.items).toEqual([]);
   const found = await links(manager, id);

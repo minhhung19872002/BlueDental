@@ -28,4 +28,6 @@ public class ChatRateLimitOptions
     public int UploadPermits { get; set; } = 30;
 
     public int SearchPermits { get; set; } = 20;
+
+    public int ManagePermits { get; set; } = 20;
 }

@@ -35,8 +35,7 @@ public class ChatConversationManager : DomainService
     /// <summary>The pair's thread in the branch, started when there is none yet.</summary>
     public async Task<ChatConversation> OpenDirectAsync(Guid clinicBranchId, Guid starterId, Guid otherId)
     {
-        var key = ChatConversation.DirectKeyOf(starterId, otherId);
-        var existing = await _conversations.FirstOrDefaultAsync(c => c.ClinicBranchId == clinicBranchId && c.DirectKey == key);
+        var existing = await FindDirectAsync(clinicBranchId, starterId, otherId);
         if (existing is not null)
         {
             return existing;
@@ -47,6 +46,13 @@ public class ChatConversationManager : DomainService
         await _conversations.InsertAsync(conversation, autoSave: true);
         await InsertMembersAsync(conversation.Id, [starterId, otherId]);
         return conversation;
+    }
+
+    /// <summary>The pair's thread in the branch, if there is one.</summary>
+    public async Task<ChatConversation?> FindDirectAsync(Guid clinicBranchId, Guid oneId, Guid otherId)
+    {
+        var key = ChatConversation.DirectKeyOf(oneId, otherId);
+        return await _conversations.FirstOrDefaultAsync(c => c.ClinicBranchId == clinicBranchId && c.DirectKey == key);
     }
 
     public async Task<ChatConversation> CreateGroupAsync(

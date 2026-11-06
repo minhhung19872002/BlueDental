@@ -100,6 +100,10 @@ public static class BlueDentalDbContextModelCreatingExtensions
             // # tagged patients (R-1161): ids only, in the order tagged.
             entity.Property(x => x.PatientIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'::uuid[]").IsRequired();
             entity.HasIndex(x => new { x.ConversationId, x.SentAt });
+            // A retried send is stored once (R-1162).
+            entity.HasIndex(x => new { x.ConversationId, x.SenderId, x.ClientMessageId })
+                .IsUnique()
+                .HasFilter("\"ClientMessageId\" IS NOT NULL");
             entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Restrict);
         });
 

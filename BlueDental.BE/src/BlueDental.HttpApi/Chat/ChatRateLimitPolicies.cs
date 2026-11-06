@@ -12,4 +12,10 @@ public static class ChatRateLimitPolicies
 
     /// <summary>A search opens up to 5,000 sealed messages, so it is counted too.</summary>
     public const string Search = "chat-search";
+
+    /// <summary>
+    /// Starting threads and changing who is in them or what a group is called
+    /// (R-1162 D1): each one notifies every member, so a loop would flood them.
+    /// </summary>
+    public const string Manage = "chat-manage";
 }

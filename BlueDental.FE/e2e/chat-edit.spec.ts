@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { MANAGER_USER, TEST_USER, runId } from "./fixtures/auth";
-import { CHAT, signIn, sqlScalar, type Session } from "./fixtures/chatApi";
+import { CHAT, signIn, sqlScalar, type Session, patiently } from "./fixtures/chatApi";
 import { call } from "./fixtures/marketingTicket";
 
 /**
@@ -20,7 +20,7 @@ test.describe.configure({ mode: "serial" });
 test.beforeAll(async ({ browser }) => {
   admin = await signIn(browser, TEST_USER);
   manager = await signIn(browser, MANAGER_USER);
-  await call(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: manager.userId });
+  await patiently(() => call(admin.page, "POST", `${CHAT}/conversations/direct`, { userId: manager.userId }));
 });
 
 test.afterAll(async () => {
@@ -104,10 +104,10 @@ test("once the 15 minutes are over, Sửa is gone from the menu (Thu hồi stays
   const text = `Sắp hết hạn sửa e2e-${runId()}`;
   // A thread of its own: moved 16 minutes back, the message must still be on the first page.
   const groupName = `Nhóm hết hạn ${runId()}`;
-  const group = await call<{ id: string }>(page, "POST", `${CHAT}/conversations/group`, {
+  const group = await patiently(() => call<{ id: string }>(page, "POST", `${CHAT}/conversations/group`, {
     name: groupName,
     memberIds: [manager.userId],
-  });
+  }));
   await openThreadWith(page, groupName);
   await sendFromComposer(page, text);
   const id = sqlScalar(
