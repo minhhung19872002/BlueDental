@@ -21,24 +21,59 @@ public class ArrivalCallAppService(
     IRepository<Appointment, Guid> repository,
     IRepository<Patient, Guid> patientRepository,
     IIdentityUserRepository userRepository,
+    IRepository<StaffBranchAssignment, Guid> assignmentRepository,
     ICurrentClinicBranchResolver branchResolver,
     AppointmentChangeRecorder changeRecorder,
     ArrivalBroadcast broadcast) : BlueDentalAppService, IArrivalCallAppService
 {
+    /// <summary>More doctors than any branch has: a longer pick is cut, not refused.</summary>
+    private const int MaxPickedDentists = 200;
+
     /// <summary>
-    /// An account ticked "Bác sĩ" on the staff form gets its own patients; an
-    /// admin gets every doctor's, ticked or not (owner 2026-11-02). Anyone
+    /// An account ticked "Bác sĩ" on the staff form, or an admin, gets the
+    /// doctors it picked with the 👁 (R-1164, BA 2026-11-06: "chọn hiển thị
+    /// ai thì họ chọn") — another doctor's patients too, to look at: "Mời lên"
+    /// stays the visit's own doctor's. With nothing picked a doctor gets its
+    /// own patients and an admin every doctor's (owner 2026-11-02). Anyone
     /// else gets none.
     /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
-    public async Task<List<ArrivalCallDto>> GetWaitingAsync()
+    public async Task<List<ArrivalCallDto>> GetWaitingAsync(GetWaitingArrivalsInput input)
     {
         var userId = CurrentUser.GetId();
         if (!IsAdmin() && !await IsDentistAsync(userId)) return [];
 
         var query = await TodaysArrivalsAsync();
+        if (input.All) return await ToDtosAsync(query);
+
+        var picked = input.DentistIds.Distinct().Take(MaxPickedDentists).ToList();
+        if (picked.Count > 0) return await ToDtosAsync(query.Where(a => picked.Contains(a.DentistId)));
+
         if (!IsAdmin()) query = query.Where(a => a.DentistId == userId);
         return await ToDtosAsync(query);
+    }
+
+    [Authorize(BlueDentalAbilityPermissions.Reception.Read)]
+    public async Task<List<ArrivalDoctorDto>> GetDoctorsAsync()
+    {
+        if (!IsAdmin() && !await IsDentistAsync(CurrentUser.GetId())) return [];
+
+        var branchId = branchResolver.GetRequiredClinicBranchId();
+        var assignmentQuery = await assignmentRepository.GetQueryableAsync();
+        var staffIds = await AsyncExecuter.ToListAsync(assignmentQuery
+            .Where(a => a.ClinicBranchId == branchId)
+            .Select(a => a.StaffId)
+            .Distinct());
+        var users = await userRepository.GetListByIdsAsync(staffIds);
+
+        return StaffPriority.Order(users.Where(u => u.IsActive && u.ExtraProperties.GetOrDefault("IsDentist") is true))
+            .Select(u => new ArrivalDoctorDto
+            {
+                Id = u.Id,
+                Name = u.Name ?? u.UserName,
+                LabelColor = StaffLabelColor.Read(u),
+            })
+            .ToList();
     }
 
     [Authorize(BlueDentalAbilityPermissions.Reception.Read)]

@@ -306,6 +306,112 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
     }
   });
 
+  /**
+   * R-1164 (BA 2026-11-06, owner: anyone who sees the list, several doctors,
+   * kept per device): the 👁 on "Khách đã đến" picks whose arrived patients it
+   * shows. Another doctor's patient is only looked at — "Mời lên" stays theirs.
+   */
+  test("the 👁 picks whose arrived patients a doctor sees, kept on this device (R-1164)", async ({ page, browser }) => {
+    test.setTimeout(240_000);
+    await login(page);
+    const branchId = await openBoard(page);
+    const fixture = await setUp(page, branchId);
+    const sessions: Awaited<ReturnType<typeof openAs>>[] = [];
+    const id = `${runId()}${test.info().workerIndex}`;
+    const peerRole = `Bác sĩ xem ${id}`;
+    fixture.roleIds.push(await createRole(page, peerRole, [...BOARD_GRANTS, EDIT_GRANT]));
+    const peer = await createUser(page, branchId, `mlbx${id}`, peerRole, true);
+
+    try {
+      // The other arrived visit belongs to a second run doctor.
+      const handed = await call(page, branchId, `${APPOINTMENTS}/${fixture.otherVisit.id}/assign-dentist`, {
+        method: "POST",
+        json: { dentistId: peer.id },
+      });
+      expect(handed.status, "hand the other visit to the peer doctor").toBe(200);
+
+      const doctor = await openAs(browser, fixture.doctor.userName, "/reception");
+      const receptionist = await openAs(browser, fixture.receptionist.userName, "/calendar/list");
+      sessions.push(doctor, receptionist);
+
+      // The API: a doctor gets the branch's doctors and any doctor's arrivals; reception gets neither.
+      const doctors = await call<{ id: string; name: string }[]>(doctor.page, branchId, `${ARRIVAL_CALLS}/doctors`);
+      expect(doctors.status).toBe(200);
+      expect(doctors.body.map((d) => d.id)).toEqual(expect.arrayContaining([fixture.doctor.id, peer.id]));
+      expect(doctors.body.find((d) => d.id === peer.id)?.name).toBe(peer.userName);
+      const doctorsForDesk = await call<unknown[]>(receptionist.page, branchId, `${ARRIVAL_CALLS}/doctors`);
+      expect(doctorsForDesk.status).toBe(200);
+      expect(doctorsForDesk.body, "reception picks no doctors").toEqual([]);
+      const peerArrivals = await call<{ id: string }[]>(doctor.page, branchId, `${ARRIVAL_CALLS}/waiting?dentistIds=${peer.id}`);
+      expect(peerArrivals.body.map((a) => a.id)).toEqual([fixture.otherVisit.id]);
+      const ownArrivals = await call<{ id: string }[]>(doctor.page, branchId, `${ARRIVAL_CALLS}/waiting`);
+      expect(ownArrivals.body.map((a) => a.id), "nothing picked: own patients").toEqual([fixture.ownVisit.id]);
+      // Looking is not calling up: "Mời lên" on the peer's patient is still refused.
+      const inviteOther = await call(doctor.page, branchId, `${ARRIVAL_CALLS}/${fixture.otherVisit.id}/invite`, { method: "POST" });
+      expect(inviteOther.status, "a doctor cannot call up another doctor's patient").toBe(403);
+
+      // Never picked: the doctor sees their own patient, ticked in the 👁.
+      const desk = doctor.page;
+      await dockButton(desk).click();
+      await expect(rowOf(desk, fixture.ownVisit)).toBeVisible();
+      await expect(rowOf(desk, fixture.otherVisit)).toHaveCount(0);
+      const eye = section(desk, "Khách đã đến").getByRole("button", { name: "Chọn bác sĩ hiển thị" });
+      await eye.click();
+      const picker = desk.locator(".arrival-doctor-pick");
+      await expect(picker).toBeVisible();
+      await expect(picker.getByRole("checkbox", { name: fixture.doctor.userName })).toBeChecked();
+      await expect(picker.getByRole("checkbox", { name: peer.userName })).not.toBeChecked();
+
+      // Search, tick the peer: both patients, only the own one with "Mời lên".
+      await picker.getByPlaceholder("Tìm bác sĩ...").fill(peer.userName);
+      await expect(picker.getByRole("checkbox", { name: fixture.doctor.userName })).toHaveCount(0);
+      await picker.getByRole("checkbox", { name: peer.userName }).check();
+      await expect(panel(desk), "ticking keeps the panel open").toBeVisible();
+      await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
+      await expect(rowOf(desk, fixture.otherVisit).locator(".arrival-row-doctor")).toContainText(peer.userName);
+      await expect(rowOf(desk, fixture.otherVisit).getByRole("button", { name: "Mời lên" })).toHaveCount(0);
+      await expect(rowOf(desk, fixture.ownVisit).getByRole("button", { name: "Mời lên" })).toBeVisible();
+      // The badge still counts only what waits for this doctor's click.
+      await expect(dockButton(desk).locator(".arrival-dock-badge")).toHaveText("1");
+
+      // Kept on this device: after a reload the pick stands.
+      await desk.reload();
+      await dockButton(desk).click();
+      await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
+      await expect(rowOf(desk, fixture.ownVisit)).toBeVisible();
+
+      // Nothing ticked: the list says so.
+      await section(desk, "Khách đã đến").getByRole("button", { name: "Chọn bác sĩ hiển thị" }).click();
+      const all = picker.getByRole("checkbox", { name: "Tất cả bác sĩ" });
+      for (const name of [fixture.doctor.userName, peer.userName]) {
+        await picker.getByRole("checkbox", { name }).uncheck();
+      }
+      await expect(all).not.toBeChecked();
+      await expect(section(desk, "Khách đã đến")).toContainText("Chưa chọn bác sĩ nào");
+      await expect(section(desk, "Khách đã đến").locator(".arrival-row")).toHaveCount(0);
+      await expect(dockButton(desk).locator(".arrival-dock-badge")).toHaveCount(0);
+
+      // "Tất cả bác sĩ": every doctor's.
+      await all.check();
+      await expect(picker.getByRole("checkbox", { name: peer.userName })).toBeChecked();
+      await expect(rowOf(desk, fixture.ownVisit)).toBeVisible();
+      await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
+      // The 👁 again folds the list away; the rows stay as picked.
+      await section(desk, "Khách đã đến").getByRole("button", { name: "Chọn bác sĩ hiển thị" }).click();
+      await expect(picker).toHaveCount(0);
+      await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
+
+      // Reception's "Bác sĩ mời lên" has no 👁 and is not filtered.
+      await dockButton(receptionist.page).click();
+      await expect(panel(receptionist.page)).toContainText("Bác sĩ mời lên");
+      await expect(panel(receptionist.page).getByRole("button", { name: "Chọn bác sĩ hiển thị" })).toHaveCount(0);
+    } finally {
+      for (const session of sessions) await session.context.close();
+      await plainCall(page, `${STAFF}/${peer.id}`, { method: "DELETE" });
+      await tearDown(page, branchId, fixture);
+    }
+  });
+
   test("before the first click the dock says sound is off, and a chime the browser refused blinks it (R-1145)", async ({
     page,
     browser,

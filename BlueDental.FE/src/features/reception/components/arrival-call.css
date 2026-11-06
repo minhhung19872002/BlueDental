@@ -303,3 +303,67 @@ body:has(.arrival-panel) .scroll-top-button {
   height: 18px;
   pointer-events: none;
 }
+
+/* The 👁 on "Khách đã đến": whose arrived patients the list shows (R-1164). */
+.arrival-panel-title-extra {
+  display: inline-flex;
+  margin-left: auto;
+}
+
+.arrival-doctor-pick-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px -4px 0;
+  border: 0;
+  border-radius: var(--bd-radius-pill);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+}
+
+.arrival-doctor-pick-button:hover,
+.arrival-doctor-pick-button[aria-expanded="true"] {
+  background: rgb(255 255 255 / 0.2);
+}
+
+.arrival-doctor-pick-button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+/* Opened under the "Khách đã đến" title, above its rows (R-1164). */
+.arrival-doctor-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 8px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+}
+
+.arrival-doctor-pick-all {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--bd-border);
+  font-weight: 600;
+}
+
+.arrival-doctor-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.arrival-doctor-pick-empty {
+  color: var(--bd-muted);
+  font-size: 13px;
+}

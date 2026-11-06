@@ -14159,3 +14159,33 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chạy DbMigrator (`ChatClientMessageIdR1162`).
   - Smoke staging với CSP mới: đăng nhập, Lịch hẹn, Dashboard, đọc QR, ảnh Zalo.
 - **Mức retest**: 3, vì CSP, `ErrorBoundary` trong `AppLayout` và zod `jitless` đều ảnh hưởng toàn app.
+
+## R-1164 (2026-11-06, mức 2: Khách đã đến — 👁 chọn bác sĩ hiển thị, main)
+
+- **Yêu cầu (BA 2026-11-06)**: thêm biểu tượng 👁 trên thanh "Khách đã đến" của panel nổi. Bấm vào hiện danh sách bác sĩ, tích để chọn xem khách đã đến của bác sĩ nào.
+- **Owner chốt**:
+  1. Ai thấy danh sách thì chọn được, kể cả bác sĩ. Bác sĩ xem được khách của bác sĩ khác, nhưng "Mời lên" vẫn chỉ cho bác sĩ của lượt khám hoặc admin.
+  2. Chọn nhiều.
+  3. Không lọc "Bác sĩ mời lên".
+  4. Lưu theo máy.
+- **Đã làm — BE**:
+  - `GET arrival-calls/waiting` nhận `all` / `dentistIds`. Không chọn gì: bác sĩ không phải admin chỉ thấy khách của mình, như cũ. Tối đa 200 id.
+  - `GET arrival-calls/doctors`: nhân viên đánh dấu "Bác sĩ", đang hoạt động, thuộc chi nhánh, sắp theo thứ tự ưu tiên. Cần `Reception.Read`, không cần quyền Nhân viên.
+  - `InviteAsync` vẫn trả 403 khi mời khách của bác sĩ khác.
+  - DTO dòng thêm `dentistId`.
+- **Đã làm — FE**:
+  - `ArrivalDoctorPickToggle` (👁 trên thanh tiêu đề) và `ArrivalDoctorPickList` mở ngay dưới tiêu đề, trong panel: tìm bác sĩ, "Tất cả bác sĩ" (có trạng thái chọn một phần), danh sách checkbox kèm badge Màu nhãn.
+  - Không dùng Popover: bản Popover lệch vị trí và tràn khỏi màn hình khi danh sách dài.
+  - Lựa chọn lưu ở `localStorage` `bd_arrival_doctor_pick.<userId>.<branchId>`. Mặc định: admin xem tất cả, bác sĩ xem của mình.
+  - Không chọn bác sĩ nào: không gọi API, panel ghi "Chưa chọn bác sĩ nào".
+  - Badge chỉ đếm khách đang chờ chính người xem bấm "Mời lên".
+  - Dòng của bác sĩ khác không có nút "Mời lên".
+- **Kiểm thử** (host riêng :5164 + bản build production :4264, không chặn request):
+  - `reception-arrival-call` **7/7**, gồm case mới R-1164:
+    - API `/doctors` (bác sĩ thấy 2 bác sĩ, lễ tân nhận `[]`);
+    - lọc `dentistIds`;
+    - 403 khi mời khách của bác sĩ khác;
+    - UI tìm và tích, lưu sau khi tải lại, bỏ hết tích, "Tất cả bác sĩ", 👁 đóng danh sách;
+    - lễ tân không có 👁.
+  - Kiểm tra bằng ảnh chụp panel có danh sách mở.
+- **Mức retest**: 2 (chỉ trong Tiếp nhận / panel Đã đến).

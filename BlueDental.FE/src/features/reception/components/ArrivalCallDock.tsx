@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useArrivalCalls } from "../hooks/useArrivalCalls";
 import { ArrivalCallDockButton } from "./ArrivalCallDockButton";
 import { ArrivalCallPanel } from "./ArrivalCallPanel";
+import { ArrivalDoctorPickList, ArrivalDoctorPickToggle } from "./ArrivalDoctorPicker";
 import "./arrival-call.css";
 
 // Loaded on demand: the app shell mounts the dock, and a static import would
@@ -19,8 +20,10 @@ const TemporaryPatientDialog = lazy(() =>
  */
 export const ArrivalCallDock: React.FC = () => {
   const calls = useArrivalCalls();
-  const { visible, sections, pendingId, runAction, recordTarget, closeRecord, acknowledgeChime } = calls;
+  const { visible, sections, pendingId, runAction, recordTarget, closeRecord, acknowledgeChime, doctorPicker } = calls;
   const [open, setOpen] = useState(false);
+  // The 👁's doctor list (R-1164): folded again whenever the panel closes.
+  const [pickOpen, setPickOpen] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
 
   // While "Tạo hồ sơ" is up its clicks land outside the dock; the panel stays.
@@ -29,6 +32,7 @@ export const ArrivalCallDock: React.FC = () => {
     const handlePointerDown = (event: PointerEvent) => {
       if (event.target instanceof Node && dockRef.current?.contains(event.target)) return;
       setOpen(false);
+      setPickOpen(false);
     };
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
@@ -38,12 +42,31 @@ export const ArrivalCallDock: React.FC = () => {
 
   const handleToggle = () => {
     setOpen((v) => !v);
+    setPickOpen(false);
     acknowledgeChime();
   };
 
+  const handlePickToggle = () => setPickOpen((v) => !v);
+
+  const addons = doctorPicker
+    ? {
+        invite: {
+          titleExtra: <ArrivalDoctorPickToggle open={pickOpen} onToggle={handlePickToggle} />,
+          top: pickOpen ? <ArrivalDoctorPickList {...doctorPicker} /> : undefined,
+        },
+      }
+    : undefined;
+
   return (
     <div className="arrival-dock" ref={dockRef}>
-      {open && <ArrivalCallPanel sections={sections} pendingId={pendingId} onAction={runAction} />}
+      {open && (
+        <ArrivalCallPanel
+          sections={sections}
+          pendingId={pendingId}
+          onAction={runAction}
+          addons={addons}
+        />
+      )}
       <ArrivalCallDockButton
         open={open}
         badgeCount={calls.badgeCount}

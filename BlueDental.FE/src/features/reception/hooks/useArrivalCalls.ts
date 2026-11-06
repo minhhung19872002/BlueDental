@@ -5,10 +5,11 @@ import { useAbility } from "@/hooks/useAbility";
 import { useSoundUnlocked } from "@/hooks/useSoundUnlocked";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import { useInvitedArrivals, useWaitingArrivals } from "../api/arrivalCallQueries";
+import { useArrivalDoctors, useInvitedArrivals, useWaitingArrivals } from "../api/arrivalCallQueries";
 import { useAdmitArrival, useInviteArrival } from "../api/arrivalCallMutations";
 import type { ArrivalCallAction, ArrivalCallSection } from "../types/arrivalCall";
 import type { TemporaryPatientTarget } from "../types/temporaryPatient";
+import { useArrivalDoctorPick } from "./useArrivalDoctorPick";
 import { useInviteChime } from "./useInviteChime";
 
 /** The seeded admin role (`BlueDentalAbilitySeedContributor.AdminRoleName`). */
@@ -18,14 +19,15 @@ const ADMIN_ROLE = "admin";
  * The floating "Đã đến" panel (owner 2026-11-02). Who sees which list is the
  * "Bác sĩ" tick on the staff form, not a role's name; the role's Tiếp nhận
  * permissions still apply on top:
- * - ticked "Bác sĩ": only their own waiting patients, seen with Xem, called
- *   up with "Mời lên" given Sửa;
+ * - ticked "Bác sĩ": their own waiting patients, seen with Xem, called up
+ *   with "Mời lên" given Sửa — and, picked with the 👁, other doctors' too,
+ *   only to look at (R-1164, BA 2026-11-06);
  * - not ticked: only the called-up patients, with Xem and Sửa, seated with
  *   "Tiếp nhận";
  * - an admin: both lists, for every doctor, ticked or not (owner 2026-11-02).
- * So two doctors never see each other's called-up patients. The server applies
+ * So two doctors never see each other's called-up list. The server applies
  * the same rules; this only decides what to offer. The badge counts what still
- * waits for the viewer's click.
+ * waits for the viewer's click: another doctor's patient does not.
  *
  * A called-up "Lịch tạm" is not seated straight away: its button opens "Tạo
  * hồ sơ" first, and once the record is attached the row offers "Tiếp nhận"
@@ -37,13 +39,17 @@ const ADMIN_ROLE = "admin";
  */
 export function useArrivalCalls() {
   const branchId = useBranchFilter();
+  const userId = useAuthStore((s) => s.user?.id);
   const isDentist = useAuthStore((s) => !!s.user?.isDentist);
   const isAdmin = useAuthStore((s) => !!s.user?.roles.includes(ADMIN_ROLE));
   const reception = useAbility("reception");
   const canCall = (isDentist || isAdmin) && reception.canRead;
   const canAdmit = (!isDentist || isAdmin) && reception.canRead && reception.canUpdate;
 
-  const waiting = useWaitingArrivals(branchId, canCall);
+  const doctorPick = useArrivalDoctorPick({ userId, branchId, isAdmin });
+  const pickedNone = !doctorPick.pick.all && doctorPick.pick.doctorIds.length === 0;
+  const doctors = useArrivalDoctors(branchId, canCall);
+  const waiting = useWaitingArrivals(branchId, doctorPick.pick, canCall && !pickedNone);
   const invited = useInvitedArrivals(branchId, canAdmit);
   const inviteMutation = useInviteArrival();
   const admitMutation = useAdmitArrival();
@@ -53,16 +59,21 @@ export function useArrivalCalls() {
   const chime = useInviteChime(canAdmit ? invited.data : undefined, branchId, selfInvited);
   const soundUnlocked = useSoundUnlocked();
 
+  const waitingItems = useMemo(() => (pickedNone ? [] : (waiting.data ?? [])), [pickedNone, waiting.data]);
+
   const sections = useMemo(() => {
+    // "Mời lên" stays the visit's own doctor's, or an admin's (the server agrees).
+    const canInvite = reception.canUpdate;
     const list: ArrivalCallSection[] = [];
     if (canCall) {
       list.push({
         action: "invite",
         title: t("Reception:ArrivalCallWaiting"),
-        items: waiting.data ?? [],
-        loading: waiting.isLoading,
+        items: waitingItems,
+        loading: !pickedNone && waiting.isLoading,
+        emptyText: pickedNone ? t("Reception:ArrivalDoctorPickNone") : undefined,
         // Xem shows the list; "Mời lên" writes, so it takes Sửa.
-        canAct: reception.canUpdate,
+        canAct: (item) => canInvite && (isAdmin || item.doctorId === userId),
       });
     }
     if (canAdmit) {
@@ -71,14 +82,25 @@ export function useArrivalCalls() {
         title: t("Reception:ArrivalCallInvitedList"),
         items: invited.data ?? [],
         loading: invited.isLoading,
-        canAct: true,
+        canAct: () => true,
       });
     }
     return list;
-  }, [canCall, canAdmit, reception.canUpdate, waiting.data, waiting.isLoading, invited.data, invited.isLoading]);
+  }, [
+    canCall,
+    canAdmit,
+    reception.canUpdate,
+    isAdmin,
+    userId,
+    pickedNone,
+    waitingItems,
+    waiting.isLoading,
+    invited.data,
+    invited.isLoading,
+  ]);
 
   const badgeCount =
-    (canCall ? (waiting.data ?? []).filter((i) => !i.invited).length : 0) +
+    (canCall ? waitingItems.filter((i) => !i.invited && (isAdmin || i.doctorId === userId)).length : 0) +
     (canAdmit ? (invited.data ?? []).length : 0);
 
   const pendingId =
@@ -117,5 +139,14 @@ export function useArrivalCalls() {
     soundOff: canAdmit && !soundUnlocked,
     missedChime: chime.missed,
     acknowledgeChime: chime.acknowledge,
+    // The 👁 on "Khách đã đến" (R-1164).
+    doctorPicker: canCall
+      ? {
+          doctors: doctors.data ?? [],
+          loading: doctors.isLoading,
+          pick: doctorPick.pick,
+          onPickChange: doctorPick.setPick,
+        }
+      : null,
   };
 }

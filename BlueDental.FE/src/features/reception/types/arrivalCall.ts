@@ -8,6 +8,8 @@ export interface ArrivalCall {
   isTemporary: boolean;
   /** The "Lịch tạm"'s own phone, prefilled into "Tạo hồ sơ". */
   patientPhone?: string;
+  /** The visit's doctor: only they, or an admin, press "Mời lên" (R-1164). */
+  doctorId: string;
   doctorName: string;
   /** The doctor's "Màu nhãn"; null = the staff default (R-1155). */
   doctorLabelColor: string | null;
@@ -32,6 +34,25 @@ export interface ArrivalCallSection {
   title: string;
   items: ArrivalCall[];
   loading: boolean;
-  /** Whether the rows carry their button — the role may only view. */
-  canAct: boolean;
+  /** What an empty list says, when not "no patient waiting" — e.g. no doctor picked (R-1164). */
+  emptyText?: string;
+  /**
+   * Whether a row carries its button: the role may only view, and a doctor
+   * looking at another doctor's patients only looks (R-1164).
+   */
+  canAct: (item: ArrivalCall) => boolean;
 }
+
+/** A doctor the 👁 on "Khách đã đến" offers (R-1164). */
+export interface ArrivalDoctor {
+  id: string;
+  name: string;
+  /** "Màu nhãn"; null = the staff default (R-1155). */
+  labelColor: string | null;
+}
+
+/**
+ * Whose arrived patients "Khách đã đến" shows, as picked with the 👁 on this
+ * device (R-1164): every doctor's, or the ones ticked — possibly none.
+ */
+export type ArrivalDoctorPick = { all: true } | { all: false; doctorIds: string[] };

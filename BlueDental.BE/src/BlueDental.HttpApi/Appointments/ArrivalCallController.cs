@@ -14,7 +14,11 @@ namespace BlueDental.Appointments;
 public sealed class ArrivalCallController(IArrivalCallAppService service) : BlueDentalController
 {
     [HttpGet("waiting")]
-    public Task<List<ArrivalCallDto>> GetWaitingAsync() => service.GetWaitingAsync();
+    public Task<List<ArrivalCallDto>> GetWaitingAsync([FromQuery] GetWaitingArrivalsInput input) =>
+        service.GetWaitingAsync(input);
+
+    [HttpGet("doctors")]
+    public Task<List<ArrivalDoctorDto>> GetDoctorsAsync() => service.GetDoctorsAsync();
 
     [HttpGet("invited")]
     public Task<List<ArrivalCallDto>> GetInvitedAsync() => service.GetInvitedAsync();
