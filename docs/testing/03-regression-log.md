@@ -14197,6 +14197,18 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Panel được bọc trong `.arrival-panel-anchor`, nên `.arrival-panel` không còn `position: absolute`.
   - Bấm ra ngoài popover, bấm 👁 lần nữa hoặc nhấn Escape thì popover đóng.
   - Test R-1164 thêm kiểm tra: popover nằm hẳn bên trái panel, trong màn hình, vị trí không đổi khi tìm kiếm, Escape và 👁 đóng được. `reception-arrival-call` **7/7** trên bản build production; đã kiểm tra bằng ảnh chụp.
+- **Sửa tiếp 2 (owner hỏi "đã handle ở các màn hình chưa")**: đo 12 kích thước, từ 1920×1080 xuống 360×640, có cả điện thoại xoay ngang 844×390. Đo với panel ngắn (1 khách) và panel dài (Tất cả bác sĩ), thêm trường hợp đang mở Chat. Lần đo đầu tìm ra 3 lỗi:
+  - màn ≤ 1100px: popover đè lên các dòng và che mất 👁;
+  - điện thoại: panel "Khách đã đến" tràn khỏi mép trái. Lỗi này có từ F-89, vì nút Chat đẩy dock vào trong 88–100px;
+  - màn thấp: popover cao 360px nên tràn khỏi mép trên.
+- **Cách sửa**:
+  - Hook `useDoctorPickPopover` đo chỗ trống bên trái panel, không đoán theo bề rộng màn hình. Đủ chỗ thì đặt popover bên cạnh panel (`--side`). Không đủ (màn hẹp, điện thoại, đang mở Chat) thì đặt `--over`: nằm trên các dòng, ngay dưới thanh tiêu đề, 👁 vẫn thấy; panel cao lên `min(416px, 70vh)` để chứa vừa.
+  - Popover bên cạnh cao `min(360px, 100dvh − 112px)`.
+  - ≤ 640px: panel `position: fixed`, cách hai mép 16px.
+- **Kiểm thử**:
+  - Cả 24 lần đo cộng 2 trường hợp đang mở Chat đều nằm trọn trong màn hình và không che 👁. Đã xem ảnh chụp điện thoại, điện thoại xoay ngang và lúc mở Chat.
+  - Test R-1164 thêm bước đo ở 390×844. `reception-arrival-call` **7/7**; `staff-label-color` xanh; `chat` "the chat button sits bottom-right…" xanh.
+  - `reception-flag` có 1 test đỏ ở bước Lịch hẹn (`.dtl-block.bd-rgb-ring`, dòng 89), sau bước panel. Bản build HEAD (chưa có thay đổi này) cũng đỏ đúng dòng đó, nên lỗi có từ trước, không do R-1164.
 - **Mức retest**: 2 (chỉ trong Tiếp nhận / panel Đã đến).
 
 ## R-1165 (2026-11-06, mức 2: Chat nội bộ — thông báo tin mới 5 s, F-89, main)
