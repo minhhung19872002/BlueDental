@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { api } from "@/lib/axios";
-import type { ArrivalCall } from "../types/arrivalCall";
+import type { ArrivalCall, ArrivalDoctor, ArrivalDoctorPick } from "../types/arrivalCall";
 
 const BASE = "/v1/app/arrival-calls";
 
@@ -11,6 +11,7 @@ interface ServerArrivalCallDto {
   patientYearOfBirth: number | null;
   isTemporary: boolean;
   patientPhone: string | null;
+  dentistId: string;
   dentistName: string | null;
   dentistLabelColor: string | null;
   slotStart: string;
@@ -18,6 +19,12 @@ interface ServerArrivalCallDto {
   checkedInAt: string | null;
   invitedAt: string | null;
   isFlagged: boolean;
+}
+
+interface ServerArrivalDoctorDto {
+  id: string;
+  name: string;
+  labelColor: string | null;
 }
 
 function adaptArrivalCall(dto: ServerArrivalCallDto): ArrivalCall {
@@ -28,6 +35,7 @@ function adaptArrivalCall(dto: ServerArrivalCallDto): ArrivalCall {
     patientYearOfBirth: dto.patientYearOfBirth ?? undefined,
     isTemporary: dto.isTemporary,
     patientPhone: dto.patientPhone ?? undefined,
+    doctorId: dto.dentistId,
     doctorName: dto.dentistName ?? "",
     doctorLabelColor: dto.dentistLabelColor ?? null,
     checkedInAt: dto.checkedInAt ?? undefined,
@@ -39,9 +47,16 @@ function adaptArrivalCall(dto: ServerArrivalCallDto): ArrivalCall {
 }
 
 export const arrivalCallApi = {
-  async getWaiting(): Promise<ArrivalCall[]> {
-    const res = await api.get<ServerArrivalCallDto[]>(`${BASE}/waiting`);
+  /** An empty pick never gets here: the panel shows "Chưa chọn bác sĩ nào" instead. */
+  async getWaiting(pick: ArrivalDoctorPick): Promise<ArrivalCall[]> {
+    const params = pick.all ? { all: true } : { dentistIds: pick.doctorIds };
+    const res = await api.get<ServerArrivalCallDto[]>(`${BASE}/waiting`, { params });
     return res.data.map(adaptArrivalCall);
+  },
+
+  async getDoctors(): Promise<ArrivalDoctor[]> {
+    const res = await api.get<ServerArrivalDoctorDto[]>(`${BASE}/doctors`);
+    return res.data.map((dto) => ({ id: dto.id, name: dto.name, labelColor: dto.labelColor ?? null }));
   },
 
   async getInvited(): Promise<ArrivalCall[]> {
