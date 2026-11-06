@@ -69,6 +69,70 @@ public class ChatMessageDto
     public DateTime? EditableUntil { get; set; }
 
     public List<ChatAttachmentDto> Attachments { get; set; } = [];
+
+    /// <summary>
+    /// The patients tagged with # (R-1161), in the order tagged, built for this
+    /// viewer when read. Empty on a recalled message.
+    /// </summary>
+    public List<ChatPatientCardDto> Patients { get; set; } = [];
+}
+
+/// <summary>
+/// A patient card under a message (R-1161). Never carries the phone number,
+/// medical history, allergies or diagnosis. Without Patients.View only the
+/// name and Mã KH are filled and <see cref="CanOpen"/> is false.
+/// </summary>
+public class ChatPatientCardDto
+{
+    public Guid Id { get; set; }
+
+    /// <summary>The patient was deleted or is no longer in the conversation's branch; nothing else is filled.</summary>
+    public bool Missing { get; set; }
+
+    public string? Name { get; set; }
+
+    public string? PatientCode { get; set; }
+
+    public int? YearOfBirth { get; set; }
+
+    /// <summary>The viewer may open the patient record.</summary>
+    public bool CanOpen { get; set; }
+
+    /// <summary>Today's appointment (clinic day), the earliest one still standing.</summary>
+    public DateTimeOffset? AppointmentAt { get; set; }
+
+    public string? DentistName { get; set; }
+
+    public ChatPatientVisitStatus? VisitStatus { get; set; }
+
+    /// <summary>Nội dung đặt lịch of today's appointment.</summary>
+    public string? BookingContent { get; set; }
+}
+
+/// <summary>What # suggests while typing (R-1161).</summary>
+public class SuggestChatPatientsInput
+{
+    /// <summary>Name or Mã KH, accent-blind; empty lists today's patients only.</summary>
+    [DisableAuditing]
+    [StringLength(ChatConsts.MaxPatientSuggestionTextLength)]
+    public string? Text { get; set; }
+}
+
+public class ChatPatientSuggestionDto
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = default!;
+
+    public string PatientCode { get; set; } = default!;
+
+    public int? YearOfBirth { get; set; }
+
+    /// <summary>Today's appointment time, when there is one.</summary>
+    public DateTimeOffset? TodayAt { get; set; }
+
+    /// <summary>Received today (has an appointment today or was checked in today).</summary>
+    public bool IsToday { get; set; }
 }
 
 public class ChatConversationDto
@@ -166,11 +230,18 @@ public class SendChatMessageInput
 {
     /// <summary>Encrypted at rest, so it must never reach the audit log in clear.</summary>
     [DisableAuditing]
-    [StringLength(ChatConsts.MaxMessageLength)]
+    // Room for the # tags' ids; the domain checks the length the reader sees.
+    [StringLength(ChatConsts.MaxMessageInputLength)]
     public string? Content { get; set; }
 
     /// <summary>Files uploaded beforehand by the sender, in the order to show them.</summary>
     public List<Guid> AttachmentIds { get; set; } = [];
+
+    /// <summary>
+    /// The patients tagged with # (R-1161), in the order tagged: at most
+    /// <see cref="ChatConsts.MaxPatientsPerMessage"/>, all of the conversation's branch.
+    /// </summary>
+    public List<Guid> PatientIds { get; set; } = [];
 }
 
 public class EditChatMessageInput
@@ -180,7 +251,8 @@ public class EditChatMessageInput
     /// is allowed on a message that carries files; the domain decides.
     /// </summary>
     [DisableAuditing]
-    [StringLength(ChatConsts.MaxMessageLength)]
+    // Room for the # tags' ids; the domain checks the length the reader sees.
+    [StringLength(ChatConsts.MaxMessageInputLength)]
     public string? Content { get; set; }
 
     /// <summary>
@@ -188,6 +260,12 @@ public class EditChatMessageInput
     /// a different value now means it was edited elsewhere meanwhile (R-1159).
     /// </summary>
     public DateTime? ExpectedEditedAt { get; set; }
+
+    /// <summary>
+    /// The patients tagged with # (R-1161), in the order tagged: at most
+    /// <see cref="ChatConsts.MaxPatientsPerMessage"/>, all of the conversation's branch.
+    /// </summary>
+    public List<Guid> PatientIds { get; set; } = [];
 }
 
 public class SearchChatMessagesInput
@@ -222,6 +300,9 @@ public class ChatMessageRevisionDto
 
     /// <summary>When this wording was replaced.</summary>
     public DateTime EditedAt { get; set; }
+
+    /// <summary>The patients tagged in this wording (R-1161), as cards for the viewer.</summary>
+    public List<ChatPatientCardDto> Patients { get; set; } = [];
 }
 
 /// <summary>Narrows Kho lưu trữ (R-1160) to one person and/or a span of clinic days.</summary>

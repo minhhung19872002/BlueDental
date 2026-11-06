@@ -53,6 +53,9 @@ public interface IChatAppService : IApplicationService
     /// <summary>Earlier wordings of a message, newest first; none once it is recalled (R-1159).</summary>
     Task<List<ChatMessageRevisionDto>> GetMessageRevisionsAsync(Guid messageId);
 
+    /// <summary>Who # suggests while typing (R-1161): today's patients first, then the branch.</summary>
+    Task<List<ChatPatientSuggestionDto>> SuggestPatientsAsync(Guid id, SuggestChatPatientsInput input);
+
     Task<IRemoteStreamContent> GetAttachmentAsync(Guid messageId, Guid attachmentId);
 
     Task<ChatUnreadCountDto> GetUnreadCountAsync();

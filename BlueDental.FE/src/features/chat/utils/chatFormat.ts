@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
+import { toDisplayText } from "./chatPatientTokens";
 import { CHAT_FILE_EXTENSIONS, CHAT_LIMITS, type ChatMessageDto } from "../types";
 
 /** Today → "14:05", this year → "05/11", older → "05/11/2025". */
@@ -21,7 +22,7 @@ export function previewMessage(message: ChatMessageDto | null): string {
   if (!message) return "";
   const body = message.isRecalled
     ? t("Chat:Recalled")
-    : message.content?.trim() || t("Chat:FilesOnly", message.attachments.length);
+    : toDisplayText(message.content?.trim() ?? "") || t("Chat:FilesOnly", message.attachments.length);
   return message.isMine ? `${t("Chat:You")}: ${body}` : body;
 }
 

@@ -64,7 +64,7 @@ public class ChatSharedLibrary(
                 var batch = await asyncExecuter.ToListAsync(query.Skip(scanned).Take(BatchSize));
                 foreach (var message in batch)
                 {
-                    foreach (var url in ChatLinks.Find(message.ReadContent(cipher)))
+                    foreach (var url in ChatLinks.Find(ChatPatientTokens.ToDisplay(message.ReadContent(cipher))))
                     {
                         found.Add((message, url));
                         if (found.Count > ChatConsts.MaxSharedLinks)

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
@@ -23,6 +25,12 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
 
     public int AttachmentCount { get; private set; }
 
+    /// <summary>
+    /// The patients tagged with # (R-1161), in the order tagged. Ids only, so
+    /// not encrypted: the card under the message is built when it is read.
+    /// </summary>
+    public List<Guid> PatientIds { get; private set; } = [];
+
     public DateTime SentAt { get; private set; }
 
     public DateTime? EditedAt { get; private set; }
@@ -34,7 +42,14 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
     protected ChatMessage() { }
 
     public static ChatMessage Send(
-        Guid id, Guid conversationId, Guid senderId, string? content, int attachmentCount, DateTime now, IChatCipher cipher)
+        Guid id,
+        Guid conversationId,
+        Guid senderId,
+        string? content,
+        IReadOnlyList<ChatTaggedPatient> patients,
+        int attachmentCount,
+        DateTime now,
+        IChatCipher cipher)
     {
         if (attachmentCount > ChatConsts.MaxAttachmentsPerMessage)
         {
@@ -42,7 +57,8 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
                 .WithData("max", ChatConsts.MaxAttachmentsPerMessage);
         }
 
-        var plain = NormalizeContent(content, attachmentCount);
+        EnsurePatientCount(patients);
+        var plain = NormalizeContent(ChatPatientTokens.Normalize(content, patients), attachmentCount);
         return new ChatMessage
         {
             Id = id,
@@ -50,6 +66,7 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
             SenderId = senderId,
             ContentCipher = plain is null ? null : cipher.EncryptText(plain, id),
             AttachmentCount = attachmentCount,
+            PatientIds = patients.Select(p => p.Id).ToList(),
             SentAt = now,
         };
     }
@@ -69,17 +86,18 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
     /// <summary>
     /// Rewords the message (R-1159, owner 2026-11-06): the sender only, within
     /// <see cref="ChatConsts.EditWindowMinutes"/> minutes of sending, text only —
-    /// the files stay as sent. <paramref name="expectedEditedAt"/> is the
+    /// the files stay as sent; the # tagged patients may change (R-1161). <paramref name="expectedEditedAt"/> is the
     /// <see cref="EditedAt"/> the editor started from; another edit since then
     /// (another tab or machine) is refused rather than silently overwritten.
     /// </summary>
     /// <returns>
     /// The wording this edit replaced, for the caller to store; null when the
-    /// text is unchanged, in which case nothing changes at all.
+    /// text and the tagged patients are unchanged, in which case nothing changes at all.
     /// </returns>
     public ChatMessageRevision? Edit(
         Guid actorId,
         string? content,
+        IReadOnlyList<ChatTaggedPatient> patients,
         DateTime? expectedEditedAt,
         DateTime now,
         IChatCipher cipher,
@@ -100,15 +118,18 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
             throw new BusinessException(BlueDentalDomainErrorCodes.Chat.EditConflict);
         }
 
-        var plain = NormalizeContent(content, AttachmentCount);
+        EnsurePatientCount(patients);
+        var plain = NormalizeContent(ChatPatientTokens.Normalize(content, patients), AttachmentCount);
+        var patientIds = patients.Select(p => p.Id).ToList();
         var current = ReadContent(cipher);
-        if (plain == current)
+        if (plain == current && patientIds.SequenceEqual(PatientIds))
         {
             return null;
         }
 
-        var replaced = new ChatMessageRevision(revisionId, Id, clinicBranchId, current, now, cipher);
+        var replaced = new ChatMessageRevision(revisionId, Id, clinicBranchId, current, PatientIds, now, cipher);
         ContentCipher = plain is null ? null : cipher.EncryptText(plain, Id);
+        PatientIds = patientIds;
         EditedAt = now;
         return replaced;
     }
@@ -145,7 +166,19 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
             ? expected is null && actual is null
             : Math.Abs((expected.Value - actual.Value).TotalMilliseconds) < 1;
 
-    /// <summary>Text may be left out only when files carry the message.</summary>
+    private static void EnsurePatientCount(IReadOnlyList<ChatTaggedPatient> patients)
+    {
+        if (patients.Count > ChatConsts.MaxPatientsPerMessage)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Chat.TooManyPatients)
+                .WithData("max", ChatConsts.MaxPatientsPerMessage);
+        }
+    }
+
+    /// <summary>
+    /// Text may be left out only when files carry the message. The length that
+    /// counts is what the reader sees, # tags as "#Tên".
+    /// </summary>
     private static string? NormalizeContent(string? content, int attachmentCount)
     {
         var trimmed = content?.Trim();
@@ -156,7 +189,7 @@ public class ChatMessage : CreationAuditedAggregateRoot<Guid>
                 : throw new BusinessException(BlueDentalDomainErrorCodes.Chat.ContentRequired);
         }
 
-        if (trimmed.Length > ChatConsts.MaxMessageLength)
+        if (ChatPatientTokens.ToDisplay(trimmed)!.Length > ChatConsts.MaxMessageLength)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Chat.ContentTooLong)
                 .WithData("max", ChatConsts.MaxMessageLength);

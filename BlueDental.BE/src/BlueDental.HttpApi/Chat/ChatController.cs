@@ -71,6 +71,15 @@ public sealed class ChatController(IChatAppService service) : BlueDentalControll
     public Task<ChatMessageSearchResultDto> SearchMessagesAsync(Guid id, [FromBody] SearchChatMessagesInput input) =>
         service.SearchMessagesAsync(id, input);
 
+    /// <remarks>
+    /// Who # suggests (R-1161). POST, so the name being typed stays out of the
+    /// URL, the proxy's access log and the audit log; rate-limited like a search.
+    /// </remarks>
+    [HttpPost("conversations/{id:guid}/patient-suggestions")]
+    [EnableRateLimiting(ChatRateLimitPolicies.Search)]
+    public Task<List<ChatPatientSuggestionDto>> SuggestPatientsAsync(Guid id, [FromBody] SuggestChatPatientsInput input) =>
+        service.SuggestPatientsAsync(id, input);
+
     [HttpGet("conversations/{id:guid}/shared/files")]
     public Task<ChatSharedFilePageDto> GetSharedFilesAsync(Guid id, [FromQuery] GetChatSharedFilesInput input) =>
         service.GetSharedFilesAsync(id, input);

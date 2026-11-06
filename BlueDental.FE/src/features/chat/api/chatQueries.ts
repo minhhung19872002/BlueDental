@@ -25,6 +25,8 @@ export const chatKeys = {
     [...chatKeys.all, "contacts", branchId ?? "all", filter] as const,
   /** Its own root too: a push that refetches the chat must not rerun every search. */
   search: (id: string, text: string) => ["chat-search", id, text] as const,
+  /** # suggestions (R-1161): their own root, so chat pushes do not rerun them. */
+  patientSuggestions: (id: string, text: string) => ["chat-patients", id, text] as const,
   /**
    * Kho lưu trữ (R-1160) has its own root: a push for every new message must
    * not rescan the links. The panel refetches each time it is opened.
@@ -88,6 +90,20 @@ export function useChatMessageSearch(id: string, text: string) {
     queryKey: chatKeys.search(id, text),
     queryFn: () => chatApi.searchMessages(id, text),
     enabled: text.length > 0,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * The # list while typing (R-1161); empty text lists today's patients. Kept
+ * a short while, so going back over a name does not ask again.
+ */
+export function useChatPatientSuggestions(id: string, text: string, enabled: boolean) {
+  return useQuery({
+    queryKey: chatKeys.patientSuggestions(id, text),
+    queryFn: () => chatApi.patientSuggestions(id, text),
+    enabled,
     staleTime: 30_000,
     placeholderData: keepPreviousData,
   });

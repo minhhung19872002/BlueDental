@@ -28,9 +28,9 @@ export function useEditSubmit(conversationId: string, onEditingChange: (message:
     onEditingChange(fresh && isStillEditable(fresh) ? fresh : null);
   };
 
-  const save = (editing: ChatMessageDto, content: string) =>
+  const save = (editing: ChatMessageDto, content: string, patientIds: string[]) =>
     edit.mutate(
-      { messageId: editing.id, content, expectedEditedAt: editing.editedAt },
+      { messageId: editing.id, content, patientIds, expectedEditedAt: editing.editedAt },
       {
         onSuccess: () => onEditingChange(null),
         onError: (error) => void handleError(error, editing),

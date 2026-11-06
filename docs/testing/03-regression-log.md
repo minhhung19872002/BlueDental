@@ -14077,3 +14077,27 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - Xem tin nhắn → tin trong khung nhìn + nháy.
   - Toàn bộ chat **39/39**.
 - **Mức retest**: 2.
+
+## R-1161 (2026-11-06, mức 2: Chat nội bộ — gắn khách bằng `#`, F-89, develop)
+
+- **Yêu cầu**: BA: "thêm tag để hiển thị thông tin khách trong ngày luôn nha — ví dụ #DanhPham thì hiển thị thông tin khách và gửi đi". Owner chốt theo đề xuất: `docs/testing/features/chat-patient-tag.md`.
+- **Đã làm**:
+  - BE:
+    - Cột `PatientIds uuid[]` trên `bd_chat_messages` + `bd_chat_message_revisions` (migration `ChatPatientTagsR1161`).
+    - Nội dung đã mã hoá giữ token `#[Tên](patient:{id})`. `ChatPatientTokens.Normalize` hạ token có id lạ thành chữ `#Tên`. `ToDisplay` dùng cho tìm tin và Kho link.
+    - `ChatPatientTagger`: tối đa 5 khách (0025); khách phải thuộc chi nhánh của cuộc (0026).
+    - `ChatPatientCards`: dựng thẻ lúc đọc, theo lô cho cả trang, theo quyền `Patients.View` của người xem. Khách đã xoá → `missing`.
+    - `POST conversations/{id}/patient-suggestions`: khách hôm nay trước, không dấu, ≤ 10, rate limit Search.
+  - FE:
+    - `usePatientMentions` + `PatientSuggestions` (listbox, ↑↓ Enter Tab Esc).
+    - `ComposerTextBox`: textarea có lớp nền tô chip; Backspace xoá cả tag.
+    - `MessageText` (chip trong tin), `PatientCard(s)` (link `/patient/{id}?tab=profile`, hoặc thẻ rút gọn không phải link).
+    - Sửa tin đọc lại token thành bản nháp.
+- **Kiểm thử** (host :5157 + ClamAV, DB `BlueDental_chat`, bản build production :8157, không chặn request):
+  - `chat-r1161-patient-tag-api` **11/11**;
+  - `chat-r1161-patient-tag` **3/3**;
+  - toàn bộ chat **53/53**.
+  - Chi tiết: `chat-patient-tag.md` § 7.
+- **Lưu ý khi chạy lại**: tin gửi tay vào nhóm có manager mà manager chưa đọc sẽ làm đỏ ca badge của `chat.spec`. Ca đó cần manager không còn tin chưa đọc.
+- **Còn mở**: K1 (gợi ý khi không có quyền) chờ owner. R-1162 (I6.6, I1.6, I4.5, D1 + mục FE) chưa làm.
+- **Mức retest**: 2.

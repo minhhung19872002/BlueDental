@@ -60,4 +60,43 @@ public static class ChatConsts
     public const int MaxSharedLinks = 200;
 
     public const int MaxLinkLength = 2000;
+
+    /// <summary>Patients one message may tag with # (owner 2026-11-06, R-1161).</summary>
+    public const int MaxPatientsPerMessage = 5;
+
+    /// <summary>Rows the # list offers at once (R-1161).</summary>
+    public const int MaxPatientSuggestions = 10;
+
+    public const int MaxPatientSuggestionTextLength = 50;
+
+    /// <summary>
+    /// What a send or an edit may carry: the text the reader sees plus the
+    /// "[…](patient:{id})" part of each # tag around it (R-1161).
+    /// </summary>
+    public const int MaxMessageInputLength = MaxMessageLength + MaxPatientsPerMessage * 64;
+}
+
+/// <summary>
+/// Where a tagged patient's day stands (R-1161), read from their appointment
+/// at the conversation's branch today. Same wording as the Tiếp nhận board.
+/// </summary>
+public enum ChatPatientVisitStatus : short
+{
+    /// <summary>Đã hẹn: booked, not here yet, time not passed.</summary>
+    Scheduled = 1,
+
+    /// <summary>Trễ hẹn: booked time passed without check-in, or marked no-show.</summary>
+    Late = 2,
+
+    /// <summary>Đã đến: checked in, waiting.</summary>
+    Arrived = 3,
+
+    /// <summary>Đang khám.</summary>
+    InTreatment = 4,
+
+    /// <summary>Hoàn tất.</summary>
+    Completed = 5,
+
+    /// <summary>Hủy hẹn.</summary>
+    Cancelled = 6,
 }

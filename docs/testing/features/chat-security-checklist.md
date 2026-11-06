@@ -323,6 +323,35 @@ H4.3, H4.5, H6.5, H6.6, H6.11, I1.7, I1.9, I4.5 (500 khi mở chat 1-1 đồng t
 
 **Còn chờ chạy thật:** canary B4, upload EICAR → 0018, tắt clamav → 0019, 429 sau 30 tin, 2 tab mở 1-1 cùng lúc.
 
+### Rà lại theo code — 2026-11-06, HEAD `db5be128` + phần chưa commit (R-1161 BE, R-1162 mới bắt đầu)
+
+Đọc code; BE build 0 lỗi; chưa chạy test.
+
+| Mục | Kết quả | Bằng chứng |
+|---|---|---|
+| I6.6 | ❌ vẫn chưa sửa | `ChatAppService.cs:163` vẫn `SentAt < pivot.SentAt` |
+| I1.6 | ❌ vẫn chưa có | Không có `ClientMessageId` ở DTO / entity / FE |
+| I4.5 | ❌ mới làm nửa | Đã thêm `IUniqueViolationDetector` + `PostgresUniqueViolationDetector`, nhưng **chưa nơi nào gọi** — `OpenDirectAsync` vẫn 500 khi thua |
+| D1 | ⚠ không đổi | Chỉ thêm giới hạn cho `patient-suggestions` (Search). Vẫn thiếu: tạo nhóm, thêm thành viên, mở 1-1, đổi tên, thu hồi |
+| Mục FE (I1.9, I1.7, I1.1, I5.3, H4.5, H6.6, H6.5, I6.1, H5.1) | không đổi | Chưa có thay đổi FE nào sau `db5be128` |
+| R-1161 gắn khách | xem [chat-patient-tag.md § 6](chat-patient-tag.md) | BE gần đủ; FE và test chưa có |
+
 Danh sách gốc khi viết checklist:
 **Phải đạt trước staging (chặn):** B4, C5, C6, A4, D1, H2.3, H3.1, H3.2, H1.2, I1.1, I1.5, I1.6, I1.10, I2.1, I3.1, I3.3.
 **Nên đạt trước production:** A2, A6, C8, C11, E3, H5.1, H4.3, H6.5, I1.7, I2.4, I4.1, I5.1, I5.3 và đã chốt mục F.
+
+### R-1161 gắn khách bằng `#` — sau khi làm FE + test (2026-11-06)
+
+| Mục | Kết quả | Bằng chứng |
+|---|---|---|
+| J1 không lưu PHI | ✅ chạy thật | `chat-r1161-patient-tag-api` ca J1: canary không có trong audit log của chat, cũng không có trong `ContentCipher` của tin / bản cũ |
+| J2 khách chi nhánh khác | ✅ chạy thật | 0026, đếm tin trong DB không đổi |
+| J3 gợi ý | ✅ chạy thật | Người ngoài nhóm → 404; gợi ý không ra khách chi nhánh 2 |
+| J4 / J5 quyền người xem | ✅ chạy thật | Vai trò tạm không có `patient.read` → thẻ + gợi ý rút gọn; cấp → đủ; rút → rút gọn ngay. E2E: thẻ không phải link |
+| J6 dò danh sách | ✅ chạy thật | 429 / `Chat:0020` |
+| J7 / J8 | ✅ đọc code | Hub chỉ đẩy `conversationId`; không có log mới |
+| J9 hiển thị | ✅ đọc code | `MessageText` / `PatientCard` render text; `features/chat` không có `dangerouslySetInnerHTML` |
+| K1 | ⚠ chờ chủ dự án | Tạm thời: không có quyền vẫn được gợi ý, nhưng chỉ Tên + Mã KH |
+| K2 | ✅ | 0026 hiện qua toast, ô sửa vẫn mở |
+
+Còn mở như trước (làm trong R-1162): I6.6, I1.6, I4.5, D1 và các mục FE I1.9, I1.7, I1.1, I5.3, H4.5, H6.6, H6.5, I6.1, H5.1.

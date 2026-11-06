@@ -97,6 +97,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_chat_messages");
             entity.ConfigureByConvention();
             entity.Property(x => x.ContentCipher).HasColumnType("text");
+            // # tagged patients (R-1161): ids only, in the order tagged.
+            entity.Property(x => x.PatientIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'::uuid[]").IsRequired();
             entity.HasIndex(x => new { x.ConversationId, x.SentAt });
             entity.HasOne<ChatConversation>().WithMany().HasForeignKey(x => x.ConversationId).OnDelete(DeleteBehavior.Restrict);
         });
@@ -107,6 +109,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_chat_message_revisions");
             entity.ConfigureByConvention();
             entity.Property(x => x.ContentCipher).HasColumnType("text");
+            entity.Property(x => x.PatientIds).HasColumnType("uuid[]").HasDefaultValueSql("'{}'::uuid[]").IsRequired();
             entity.HasIndex(x => new { x.MessageId, x.EditedAt });
             entity.HasOne<ChatMessage>().WithMany().HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Restrict);
         });

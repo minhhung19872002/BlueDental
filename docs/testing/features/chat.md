@@ -1,6 +1,6 @@
 # F-89 — Chat nội bộ có đính kèm file (R-1157)
 
-Trạng thái: `VERIFIED` 2026-11-06 trên develop: R-1157 e1566669, R-1158 hardening, R-1159 sửa tin, R-1160 Kho lưu trữ. Rà bảo mật chi tiết: `chat-security-checklist.md`.
+Trạng thái: `VERIFIED` 2026-11-06 trên develop: R-1157 e1566669, R-1158 hardening, R-1159 sửa tin, R-1160 Kho lưu trữ, R-1161 gắn khách bằng `#`. Rà bảo mật chi tiết: `chat-security-checklist.md`.
 
 ## Quyết định của owner (2026-11-06)
 
@@ -94,9 +94,26 @@ API:
   - FE chỉ render `<a target="_blank" rel="noopener noreferrer">` cho http/https và không dùng HTML thô.
 - Cả hai endpoint kiểm tư cách thành viên như mọi API chat: không phải thành viên thì nhận 404.
 
+## Gắn khách bằng `#` (R-1161)
+
+Yêu cầu, quyết định và kết quả test: [chat-patient-tag.md](chat-patient-tag.md).
+- Gõ `#` ở đầu tin hoặc sau khoảng trắng để mở gợi ý. Khách hôm nay lên trước, tìm không dấu theo tên hoặc mã, tối đa 10. ↑↓ chọn, Enter/Tab chèn, Esc đóng.
+- Khách được chọn hiện như chip `#Tên`. Backspace xoá cả chip.
+- Tin gửi đi có tối đa 5 thẻ khách dưới nội dung, theo thứ tự gắn. Thẻ dựng lúc đọc, theo quyền người xem:
+  - có `Patients.View`: Tên, Mã KH, năm sinh, lịch hôm nay (giờ, bác sĩ, trạng thái, nội dung đặt lịch); bấm vào mở `/patient/{id}?tab=profile`;
+  - không có quyền: chỉ Tên + Mã KH, không bấm được;
+  - khách đã xoá: "Khách không còn tồn tại".
+- Không bao giờ hiện SĐT, tiền sử, dị ứng hay chẩn đoán.
+- Sửa tin đổi được khách; bản cũ giữ danh sách cũ. Thu hồi thì mất thẻ. Tìm tin tìm theo chữ `#Tên`.
+- API:
+  - `POST conversations/{id}/patient-suggestions` `{ text }` (≤ 50 ký tự, rate limit như tìm tin);
+  - `patientIds` trên gửi / sửa tin;
+  - `patients[]` trên `ChatMessageDto` và bản cũ.
+- Lỗi: `Chat:0025` (quá 5 khách), `Chat:0026` (khách không còn hoặc khác chi nhánh). Cả hai trả 403.
+
 ## Triển khai
 
-- Chạy DbMigrator để áp 3 migration: `ChatR1157`, `ChatOwnerR1158` (cột `OwnerId`) và `ChatRevisionsR1159` (bảng bản cũ).
+- Chạy DbMigrator để áp 3 migration: `ChatR1157`, `ChatOwnerR1158` (cột `OwnerId`) và `ChatRevisionsR1159` (bảng bản cũ), `ChatPatientTagsR1161` (cột `PatientIds`). DbMigrator chạy cả 4.
 - `RECEIPT_VAULT_KEY` đã có trên cả 2 VM.
 - Rebuild FE: nginx có location `/api/v1/app/chat/` với `client_max_body_size 55m`.
 - ClamAV: `docker-compose.yml` đặt `CLAMD_CONF_StreamMaxLength: 60M`. Phải recreate container `clamav`, nếu không clamd từ chối file > 25 MB.
@@ -138,3 +155,4 @@ E2E_BASE_URL=<preview> E2E_DB_NAME=<db của host> npx playwright test e2e/chat-
   - ↑ / Esc / Hủy sửa giữ bản nháp;
   - quá 15 phút thì mất nút Sửa;
   - tên file dài không tràn khung chip upload.
+- `chat-r1161-patient-tag-api.spec.ts` (11) và `chat-r1161-patient-tag.spec.ts` (3): gắn khách bằng `#`, xem `chat-patient-tag.md` § 7.

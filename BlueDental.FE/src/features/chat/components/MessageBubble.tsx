@@ -5,6 +5,8 @@ import { formatMessageTime } from "../utils/chatFormat";
 import { MessageActions } from "./MessageActions";
 import { EditHistory } from "./EditHistory";
 import { MessageAttachments } from "./MessageAttachments";
+import { MessageText } from "./MessageText";
+import { PatientCards } from "./PatientCard";
 
 interface MessageBubbleProps {
   message: ChatMessageDto;
@@ -35,10 +37,11 @@ export const MessageBubble = React.memo(function MessageBubble({ message, showSe
             <p className="chat-bubble-text">{t("Chat:Recalled")}</p>
           ) : (
             <>
-              {message.content && <p className="chat-bubble-text">{message.content}</p>}
+              {message.content && <MessageText className="chat-bubble-text" text={message.content} />}
               {message.attachments.length > 0 && (
                 <MessageAttachments messageId={message.id} attachments={message.attachments} />
               )}
+              {message.patients.length > 0 && <PatientCards patients={message.patients} />}
             </>
           )}
         </div>

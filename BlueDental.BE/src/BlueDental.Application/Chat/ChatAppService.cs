@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.FileManagement;
 using BlueDental.Organizations;
+using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Volo.Abp;
@@ -46,7 +47,9 @@ public class ChatAppService(
     IChatNotifier notifier,
     IMalwareScanner malwareScanner,
     ChatMessageSearch messageSearch,
-    ChatSharedLibrary sharedLibrary) : BlueDentalAppService, IChatAppService
+    ChatSharedLibrary sharedLibrary,
+    ChatPatientTagger patientTagger,
+    ChatPatientCards patientCards) : BlueDentalAppService, IChatAppService
 {
     private const int MaxContacts = 50;
     private const int MaxConversations = 300;
@@ -153,7 +156,7 @@ public class ChatAppService(
 
     public async Task<ChatMessagePageDto> GetMessagesAsync(Guid id, GetChatMessagesInput input)
     {
-        await GetVisibleAsync(id);
+        var conversation = await GetVisibleAsync(id);
         var query = (await messages.GetQueryableAsync()).Where(m => m.ConversationId == id);
 
         if (input.BeforeId is { } beforeId)
@@ -171,18 +174,18 @@ public class ChatAppService(
         var hasMore = page.Count > input.MaxResultCount;
         return new ChatMessagePageDto
         {
-            Items = await MapMessagesAsync(page.Take(input.MaxResultCount).ToList(), CurrentUser.GetId()),
+            Items = await MapMessagesAsync(page.Take(input.MaxResultCount).ToList(), CurrentUser.GetId(), conversation.ClinicBranchId),
             HasMore = hasMore,
         };
     }
 
     public async Task<ChatMessageSearchResultDto> SearchMessagesAsync(Guid id, SearchChatMessagesInput input)
     {
-        await GetVisibleAsync(id);
+        var conversation = await GetVisibleAsync(id);
         var result = await messageSearch.FindAsync(id, input.Text);
         return new ChatMessageSearchResultDto
         {
-            Items = await MapMessagesAsync(result.Found, CurrentUser.GetId()),
+            Items = await MapMessagesAsync(result.Found, CurrentUser.GetId(), conversation.ClinicBranchId),
             IsComplete = result.IsComplete,
         };
     }
@@ -265,7 +268,8 @@ public class ChatAppService(
     public async Task<ChatMessageDto> SendAsync(Guid id, SendChatMessageInput input)
     {
         var userId = CurrentUser.GetId();
-        await GetVisibleAsync(id);
+        var conversation = await GetVisibleAsync(id);
+        var tagged = await patientTagger.ResolveAsync(conversation.ClinicBranchId, input.PatientIds);
 
         var attachmentIds = input.AttachmentIds.Distinct().ToList();
         var files = attachmentIds.Count == 0
@@ -276,7 +280,7 @@ public class ChatAppService(
             throw new BusinessException(BlueDentalDomainErrorCodes.Chat.AttachmentUnavailable);
         }
 
-        var message = ChatMessage.Send(GuidGenerator.Create(), id, userId, input.Content, files.Count, Clock.Now, cipher);
+        var message = ChatMessage.Send(GuidGenerator.Create(), id, userId, input.Content, tagged, files.Count, Clock.Now, cipher);
         foreach (var file in files)
         {
             file.AttachTo(message.Id, id, userId);
@@ -291,14 +295,15 @@ public class ChatAppService(
         await members.UpdateAsync(member, autoSave: true);
 
         await NotifyMembersAsync(id);
-        return (await MapMessagesAsync([message], userId))[0];
+        return (await MapMessagesAsync([message], userId, conversation.ClinicBranchId))[0];
     }
 
     public async Task<ChatMessageDto> EditMessageAsync(Guid messageId, EditChatMessageInput input)
     {
         var (message, conversation) = await GetVisibleMessageAsync(messageId);
+        var tagged = await patientTagger.ResolveAsync(conversation.ClinicBranchId, input.PatientIds);
         var replaced = message.Edit(
-            CurrentUser.GetId(), input.Content, input.ExpectedEditedAt, Clock.Now, cipher,
+            CurrentUser.GetId(), input.Content, tagged, input.ExpectedEditedAt, Clock.Now, cipher,
             GuidGenerator.Create(), conversation.ClinicBranchId);
         if (replaced is not null)
         {
@@ -307,12 +312,12 @@ public class ChatAppService(
             await NotifyMembersAsync(message.ConversationId);
         }
 
-        return (await MapMessagesAsync([message], CurrentUser.GetId()))[0];
+        return (await MapMessagesAsync([message], CurrentUser.GetId(), conversation.ClinicBranchId))[0];
     }
 
     public async Task<List<ChatMessageRevisionDto>> GetMessageRevisionsAsync(Guid messageId)
     {
-        var (message, _) = await GetVisibleMessageAsync(messageId);
+        var (message, conversation) = await GetVisibleMessageAsync(messageId);
         if (message.IsRecalled)
         {
             // A recall takes the history with it.
@@ -323,16 +328,40 @@ public class ChatAppService(
             (await revisions.GetQueryableAsync())
                 .Where(r => r.MessageId == messageId)
                 .OrderByDescending(r => r.EditedAt));
-        return found.Select(r => new ChatMessageRevisionDto { Content = r.ReadContent(cipher), EditedAt = r.EditedAt }).ToList();
+        var cards = await patientCards.BuildAsync(
+            conversation.ClinicBranchId, found.Select(r => (IReadOnlyList<Guid>)r.PatientIds).ToList(), await CanViewPatientsAsync());
+        return found.Select((r, i) => new ChatMessageRevisionDto
+        {
+            Content = r.ReadContent(cipher),
+            EditedAt = r.EditedAt,
+            Patients = cards[i],
+        }).ToList();
+    }
+
+    public async Task<List<ChatPatientSuggestionDto>> SuggestPatientsAsync(Guid id, SuggestChatPatientsInput input)
+    {
+        var conversation = await GetVisibleAsync(id);
+        var found = await patientCards.SuggestAsync(conversation.ClinicBranchId, input.Text);
+        if (!await CanViewPatientsAsync())
+        {
+            // Name and Mã KH are enough to tag; the rest follows Patients.View like the cards.
+            foreach (var suggestion in found)
+            {
+                suggestion.YearOfBirth = null;
+                suggestion.TodayAt = null;
+            }
+        }
+
+        return found;
     }
 
     public async Task<ChatMessageDto> RecallMessageAsync(Guid messageId)
     {
-        var (message, _) = await GetVisibleMessageAsync(messageId);
+        var (message, conversation) = await GetVisibleMessageAsync(messageId);
         message.Recall(CurrentUser.GetId(), Clock.Now);
         await messages.UpdateAsync(message, autoSave: true);
         await NotifyMembersAsync(message.ConversationId);
-        return (await MapMessagesAsync([message], CurrentUser.GetId()))[0];
+        return (await MapMessagesAsync([message], CurrentUser.GetId(), conversation.ClinicBranchId))[0];
     }
 
     public async Task<IRemoteStreamContent> GetAttachmentAsync(Guid messageId, Guid attachmentId)
@@ -436,7 +465,8 @@ public class ChatAppService(
             .Where(m => ids.Contains(m.ConversationId))
             .GroupBy(m => m.ConversationId)
             .Select(g => g.OrderByDescending(m => m.SentAt).ThenByDescending(m => m.Id).First()));
-        var latestMapped = (await MapMessagesAsync(latest, userId)).ToDictionary(m => m.ConversationId);
+        // The list shows the last message's text only, so no patient cards here.
+        var latestMapped = (await MapMessagesAsync(latest, userId, patientBranchId: null)).ToDictionary(m => m.ConversationId);
 
         var unread = await AsyncExecuter.ToListAsync((await UnreadQueryAsync(userId))
             .Where(m => ids.Contains(m.ConversationId))
@@ -473,7 +503,10 @@ public class ChatAppService(
         }).ToList();
     }
 
-    private async Task<List<ChatMessageDto>> MapMessagesAsync(List<ChatMessage> page, Guid userId)
+    /// <param name="patientBranchId">
+    /// The conversation's branch, to build the # patient cards (R-1161); null leaves them out.
+    /// </param>
+    private async Task<List<ChatMessageDto>> MapMessagesAsync(List<ChatMessage> page, Guid userId, Guid? patientBranchId)
     {
         if (page.Count == 0)
         {
@@ -487,8 +520,15 @@ public class ChatAppService(
             : await attachments.GetListAsync(a => a.MessageId != null && withFiles.Contains(a.MessageId.Value));
         var names = await NamesAsync(page.Select(m => m.SenderId));
         var now = Clock.Now;
+        // A recall takes the cards with it.
+        var cards = patientBranchId is { } branchId && page.Any(m => !m.IsRecalled && m.PatientIds.Count > 0)
+            ? await patientCards.BuildAsync(
+                branchId,
+                page.Select(m => (IReadOnlyList<Guid>)(m.IsRecalled ? [] : m.PatientIds)).ToList(),
+                await CanViewPatientsAsync())
+            : null;
 
-        return page.Select(m => new ChatMessageDto
+        return page.Select((m, i) => new ChatMessageDto
         {
             Id = m.Id,
             ConversationId = m.ConversationId,
@@ -506,8 +546,12 @@ public class ChatAppService(
                 .OrderBy(f => f.CreationTime)
                 .Select(MapAttachment)
                 .ToList(),
+            Patients = cards?[i] ?? [],
         }).ToList();
     }
+
+    private Task<bool> CanViewPatientsAsync() =>
+        AuthorizationService.IsGrantedAsync(BlueDentalPermissions.PatientManagement.Patients.View);
 
     private async Task<Dictionary<Guid, string>> NamesAsync(IEnumerable<Guid> userIds)
     {

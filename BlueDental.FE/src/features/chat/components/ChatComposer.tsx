@@ -1,10 +1,11 @@
 import React, { useRef } from "react";
-import { Button, Input } from "antd";
+import { Button } from "antd";
 import { Paperclip, SendHorizontal, X } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { useChatComposer } from "../hooks/useChatComposer";
-import { CHAT_LIMITS, type ChatMessageDto } from "../types";
+import type { ChatMessageDto } from "../types";
 import { CHAT_FILE_ACCEPT } from "../utils/chatFormat";
+import { ComposerTextBox } from "./ComposerTextBox";
 import { PendingFileChip } from "./PendingFileChip";
 
 interface ChatComposerProps {
@@ -18,7 +19,7 @@ interface ChatComposerProps {
 
 /**
  * Text box, files and "Gửi". Enter sends (or saves an edit), Shift+Enter
- * breaks the line, Esc drops an edit. Files can be picked or pasted and
+ * breaks the line, Esc drops an edit, # tags a patient (R-1161). Files can be picked or pasted and
  * upload before sending; an edit is text only, so both are locked while
  * editing and the draft's files wait out of sight.
  */
@@ -27,7 +28,6 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({ conversationId, edit
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.nativeEvent.isComposing) return;
     if (event.key === "Escape" && editing) {
       event.preventDefault();
       composer.cancelEdit();
@@ -89,17 +89,14 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({ conversationId, edit
             <input ref={fileInputRef} type="file" multiple hidden accept={CHAT_FILE_ACCEPT} onChange={handleFilesPicked} />
           </>
         )}
-        <Input.TextArea
-          className="chat-composer-input"
-          value={composer.text}
-          onChange={(event) => composer.setText(event.target.value)}
+        <ComposerTextBox
+          conversationId={conversationId}
+          text={composer.text}
+          onTextChange={composer.setText}
+          mentions={composer.mentions}
+          onMentionsChange={composer.setMentions}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={t("Chat:Placeholder")}
-          aria-label={t("Chat:Placeholder")}
-          autoSize={{ minRows: 1, maxRows: 5 }}
-          maxLength={CHAT_LIMITS.maxMessageLength}
-          autoFocus
         />
         <Button
           type="primary"

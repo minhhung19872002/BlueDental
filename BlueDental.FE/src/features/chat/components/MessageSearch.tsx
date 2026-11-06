@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { useChatMessageSearch } from "../api/chatQueries";
 import { CHAT_LIMITS, type ChatMessageDto } from "../types";
 import { formatMessageTime } from "../utils/chatFormat";
+import { toDisplayText } from "../utils/chatPatientTokens";
 import { highlightMatches } from "../utils/chatSearch";
 import { ChatSpinner } from "./ChatSpinner";
 import { ChatStatus } from "./ChatStatus";
@@ -67,7 +68,7 @@ export const MessageSearch: React.FC<MessageSearchProps> = ({ conversationId, on
                     <span className="chat-search-hit-time">{formatMessageTime(message.sentAt)}</span>
                   </span>
                   <span className="chat-search-hit-text">
-                    {highlightMatches(message.content ?? "", query).map((segment, index) =>
+                    {highlightMatches(toDisplayText(message.content ?? ""), query).map((segment, index) =>
                       segment.hit ? <mark key={index}>{segment.text}</mark> : <span key={index}>{segment.text}</span>,
                     )}
                   </span>

@@ -556,6 +556,205 @@ body:has(.chat-dock) .scroll-top-button {
   flex: 1;
 }
 
+/* ── # tags (R-1161) ──
+   The text box is transparent over a layer that repeats its text and shades
+   each picked #Tên, so a tag looks like a chip in a plain text area. The
+   layer must keep the AntD text area metrics exactly, so it reads them from
+   the theme variables (font, line height, control height) instead of fixed
+   numbers, and neither shows a scrollbar so long text wraps the same
+   (the box still scrolls with the wheel and the caret). */
+.chat-composer-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--ant-border-radius, 10px);
+  background: var(--bd-card);
+}
+
+.chat-composer-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  padding-block: calc(
+    (var(--ant-control-height, 40px) - var(--ant-font-size, 13px) * var(--ant-line-height, 1.6154)) / 2 - 1px
+  );
+  padding-inline: 11px;
+  border: 1px solid transparent;
+  color: transparent;
+  font-size: var(--ant-font-size, 13px);
+  line-height: var(--ant-line-height, 1.6154);
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  pointer-events: none;
+}
+
+.chat-composer-box .chat-composer-input {
+  position: relative;
+  background: transparent;
+  scrollbar-width: none;
+}
+
+.chat-composer-box .chat-composer-input::-webkit-scrollbar {
+  display: none;
+}
+
+.chat-composer-tag {
+  padding: 0;
+  border-radius: 4px;
+  background: var(--bd-blue-pale-hover);
+  color: transparent;
+}
+
+.chat-patient-suggest {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  bottom: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  padding: 6px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius-control);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-pop);
+}
+
+.chat-patient-suggest-title {
+  padding: 2px 6px 6px;
+  color: var(--bd-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.chat-patient-suggest-list {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* The list is as narrow as the text box: the name gets its own line. */
+.chat-patient-suggest-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--bd-radius-sm);
+  cursor: pointer;
+}
+
+.chat-patient-suggest-item--active {
+  background: var(--bd-blue-pale);
+}
+
+.chat-patient-suggest-name {
+  flex: 1 0 100%;
+  color: var(--bd-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.chat-patient-suggest-code {
+  flex: none;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.chat-patient-suggest-today {
+  flex: none;
+  color: var(--bd-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chat-tag {
+  padding: 0 3px;
+  border-radius: 4px;
+  background: var(--bd-blue-pale-hover);
+  color: var(--bd-primary-strong);
+  font-weight: 600;
+}
+
+.chat-patient-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-patient-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+  padding: 8px 10px;
+  border: 1px solid var(--bd-line);
+  border-left: 3px solid var(--bd-primary);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.chat-patient-card--link:hover,
+.chat-patient-card--link:focus-visible {
+  border-color: var(--bd-primary);
+  color: var(--bd-ink);
+  box-shadow: var(--bd-shadow-lift);
+}
+
+.chat-patient-card--missing {
+  border-left-color: var(--bd-line);
+  color: var(--bd-muted);
+  font-style: italic;
+}
+
+.chat-patient-card-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bd-primary);
+}
+
+.chat-patient-card-name {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.chat-patient-card-line {
+  color: var(--bd-muted);
+  overflow-wrap: anywhere;
+}
+
+.chat-patient-card-booking {
+  color: var(--bd-hint);
+}
+
+.chat-visit {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.chat-visit--scheduled { background: var(--bd-blue-pale); color: var(--bd-primary); }
+.chat-visit--late { background: var(--bd-amber-pale); color: var(--bd-orange); }
+.chat-visit--arrived { background: var(--bd-green-pale); color: var(--bd-green); }
+.chat-visit--treating { background: var(--bd-orange-pale); color: var(--bd-orange); }
+.chat-visit--done { background: var(--bd-green-pale); color: var(--bd-green); }
+.chat-visit--cancelled { background: var(--bd-red-pale); color: var(--bd-red-dark); }
+
 /* ── Dialogs ── */
 .chat-new {
   display: flex;

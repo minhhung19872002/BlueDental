@@ -38,7 +38,54 @@ export interface ChatMessageDto {
   /** When the edit window closes; null when the caller may never edit it (R-1159). */
   editableUntil: string | null;
   attachments: ChatAttachmentDto[];
+  /** The patients the message tags with #, in order (R-1161); none once recalled. */
+  patients: ChatPatientCardDto[];
 }
+
+/** Mirrors ChatPatientVisitStatus: today's visit in the Tiếp nhận wording. */
+export const CHAT_VISIT_STATUS = {
+  Scheduled: 1,
+  Late: 2,
+  Arrived: 3,
+  InTreatment: 4,
+  Completed: 5,
+  Cancelled: 6,
+} as const;
+export type ChatVisitStatus = (typeof CHAT_VISIT_STATUS)[keyof typeof CHAT_VISIT_STATUS];
+
+/**
+ * A tagged patient under a message (R-1161), built by the server when read.
+ * Never a phone number, history, allergy or diagnosis. Without Patients.View
+ * only the name and Mã KH come, and the card does not open the record.
+ */
+export interface ChatPatientCardDto {
+  id: string;
+  /** Deleted, or no longer in the conversation's branch: nothing else is filled. */
+  missing: boolean;
+  name: string | null;
+  patientCode: string | null;
+  yearOfBirth: number | null;
+  canOpen: boolean;
+  /** Today's appointment, when there is one. */
+  appointmentAt: string | null;
+  dentistName: string | null;
+  visitStatus: ChatVisitStatus | null;
+  /** Nội dung đặt lịch of today's appointment. */
+  bookingContent: string | null;
+}
+
+/** One row of the # list: today's patients first, then the rest of the branch. */
+export interface ChatPatientSuggestionDto {
+  id: string;
+  name: string;
+  patientCode: string;
+  yearOfBirth: number | null;
+  todayAt: string | null;
+  isToday: boolean;
+}
+
+/** What the # list shows besides its rows. */
+export type PatientSuggestStatus = "ready" | "loading" | "error" | "limit";
 
 export interface ChatConversationDto {
   id: string;
@@ -82,6 +129,8 @@ export interface SendChatMessageInput {
   conversationId: string;
   content: string;
   attachmentIds: string[];
+  /** The patients the text tags, at most CHAT_LIMITS.maxPatientsPerMessage. */
+  patientIds: string[];
 }
 
 /** Mirrors ChatConsts on the server; the server checks again. */
@@ -93,6 +142,8 @@ export const CHAT_LIMITS = {
   maxSearchTextLength: 100,
   messagePageSize: 30,
   sharedFilePageSize: 60,
+  maxPatientsPerMessage: 5,
+  maxPatientSearchLength: 50,
 } as const;
 
 /** Mirrors ChatAttachmentFiles on the server. */
@@ -107,11 +158,14 @@ export interface ChatMessageRevisionDto {
   content: string | null;
   /** When this wording was replaced. */
   editedAt: string;
+  /** The patients that wording tagged. */
+  patients: ChatPatientCardDto[];
 }
 
 export interface EditChatMessageInput {
   messageId: string;
   content: string;
+  patientIds: string[];
   /** The message's editedAt when editing began; another edit since then is refused. */
   expectedEditedAt: string | null;
 }

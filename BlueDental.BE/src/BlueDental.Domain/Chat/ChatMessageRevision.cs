@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Volo.Abp.Domain.Entities;
 
 namespace BlueDental.Chat;
@@ -20,18 +22,28 @@ public class ChatMessageRevision : Entity<Guid>
     /// <summary>The encrypted text that was replaced; null when the message had only files then.</summary>
     public string? ContentCipher { get; private set; }
 
+    /// <summary>The patients tagged in this wording (R-1161), in order.</summary>
+    public List<Guid> PatientIds { get; private set; } = [];
+
     /// <summary>When this wording was replaced by the next one.</summary>
     public DateTime EditedAt { get; private set; }
 
     protected ChatMessageRevision() { }
 
     internal ChatMessageRevision(
-        Guid id, Guid messageId, Guid clinicBranchId, string? replacedText, DateTime editedAt, IChatCipher cipher)
+        Guid id,
+        Guid messageId,
+        Guid clinicBranchId,
+        string? replacedText,
+        IEnumerable<Guid> patientIds,
+        DateTime editedAt,
+        IChatCipher cipher)
         : base(id)
     {
         MessageId = messageId;
         ClinicBranchId = clinicBranchId;
         ContentCipher = replacedText is null ? null : cipher.EncryptText(replacedText, id);
+        PatientIds = patientIds.ToList();
         EditedAt = editedAt;
     }
 

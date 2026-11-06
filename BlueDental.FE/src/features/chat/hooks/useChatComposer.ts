@@ -4,6 +4,7 @@ import { t } from "@/lib/i18n";
 import { useSendChatMessage, useUploadChatAttachment } from "../api/chatMutations";
 import { CHAT_LIMITS, type ChatMessageDto } from "../types";
 import { rejectChatFile } from "../utils/chatFormat";
+import { buildContent, parseDraft, type ChatMention } from "../utils/chatPatientTokens";
 import { useEditSubmit } from "./useEditSubmit";
 
 export interface PendingChatFile {
@@ -18,9 +19,9 @@ export interface PendingChatFile {
 let nextFileKey = 0;
 
 /**
- * The composer's draft: text, files uploaded ahead of sending, and the
- * message being edited. Starting an edit parks the draft; ending it brings
- * the draft back. A fresh copy of the same message (after a clash with an
+ * The composer's draft: text, the patients it tags with # (R-1161), files
+ * uploaded ahead of sending, and the message being edited. Starting an edit
+ * parks the draft; ending it brings the draft back. A fresh copy of the same message (after a clash with an
  * edit made elsewhere) keeps what is being typed.
  */
 export function useChatComposer(
@@ -29,17 +30,20 @@ export function useChatComposer(
   onEditingChange: (message: ChatMessageDto | null) => void,
 ) {
   const [text, setText] = useState("");
+  const [mentions, setMentions] = useState<ChatMention[]>([]);
   const [files, setFiles] = useState<PendingChatFile[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const parkedDraftRef = useRef("");
+  const parkedDraftRef = useRef<{ text: string; mentions: ChatMention[] }>({ text: "", mentions: [] });
   const upload = useUploadChatAttachment();
   const send = useSendChatMessage();
   const edit = useEditSubmit(conversationId, onEditingChange);
 
   // Adjusting state while rendering, React's pattern for "props changed".
   if ((editing?.id ?? null) !== editingId) {
-    if (editing && editingId === null) parkedDraftRef.current = text;
-    setText(editing ? (editing.content ?? "") : parkedDraftRef.current);
+    if (editing && editingId === null) parkedDraftRef.current = { text, mentions };
+    const draft = editing ? parseDraft(editing.content ?? "") : parkedDraftRef.current;
+    setText(draft.text);
+    setMentions(draft.mentions);
     setEditingId(editing?.id ?? null);
   }
 
@@ -78,16 +82,17 @@ export function useChatComposer(
 
   const submit = () => {
     if (!canSubmit) return;
-    const content = text.trim();
+    const { content, patientIds } = buildContent(text.trim(), mentions);
     if (editing) {
-      edit.save(editing, content);
+      edit.save(editing, content, patientIds);
       return;
     }
     send.mutate(
-      { conversationId, content, attachmentIds: ready },
+      { conversationId, content, attachmentIds: ready, patientIds },
       {
         onSuccess: () => {
           setText("");
+          setMentions([]);
           setFiles([]);
         },
       },
@@ -96,5 +101,5 @@ export function useChatComposer(
 
   const cancelEdit = () => onEditingChange(null);
 
-  return { text, setText, files, addFiles, removeFile, submit, cancelEdit, canSubmit, busy, uploading };
+  return { text, setText, mentions, setMentions, files, addFiles, removeFile, submit, cancelEdit, canSubmit, busy, uploading };
 }

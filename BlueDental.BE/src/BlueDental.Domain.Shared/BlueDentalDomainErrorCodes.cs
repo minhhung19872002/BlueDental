@@ -1018,5 +1018,8 @@ public static class BlueDentalDomainErrorCodes
         public const string CannotRemoveSelf = "BlueDental:Chat:0022";
         public const string EditWindowExpired = "BlueDental:Chat:0023";
         public const string EditConflict = "BlueDental:Chat:0024";
+        public const string TooManyPatients = "BlueDental:Chat:0025";
+        /// <summary>Unknown, deleted or of another branch: one answer, so the reply tells nothing about other branches.</summary>
+        public const string PatientUnavailable = "BlueDental:Chat:0026";
     }
 }

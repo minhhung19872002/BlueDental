@@ -49,7 +49,7 @@ public class ChatMessageSearch(
                 var batch = await asyncExecuter.ToListAsync(query.Skip(scanned).Take(BatchSize));
                 foreach (var message in batch)
                 {
-                    var content = SearchTerms.Fold(message.ReadContent(cipher));
+                    var content = SearchTerms.Fold(ChatPatientTokens.ToDisplay(message.ReadContent(cipher)));
                     if (content.Length > 0 && terms.All(content.Contains))
                     {
                         found.Add(message);

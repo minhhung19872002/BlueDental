@@ -7,6 +7,7 @@ import type {
   ChatMessagePageDto,
   ChatMessageRevisionDto,
   ChatMessageSearchResultDto,
+  ChatPatientSuggestionDto,
   ChatSharedFilePageDto,
   ChatSharedFilter,
   ChatSharedKind,
@@ -71,12 +72,19 @@ export const chatApi = {
       })
       .then((r) => r.data);
   },
-  send: ({ conversationId, content, attachmentIds }: SendChatMessageInput) =>
+  send: ({ conversationId, content, attachmentIds, patientIds }: SendChatMessageInput) =>
     api
-      .post<ChatMessageDto>(`${BASE}/conversations/${conversationId}/messages`, { content, attachmentIds })
+      .post<ChatMessageDto>(`${BASE}/conversations/${conversationId}/messages`, { content, attachmentIds, patientIds })
       .then((r) => r.data),
-  edit: ({ messageId, content, expectedEditedAt }: EditChatMessageInput) =>
-    api.put<ChatMessageDto>(`${BASE}/messages/${messageId}`, { content, expectedEditedAt }).then((r) => r.data),
+  edit: ({ messageId, content, patientIds, expectedEditedAt }: EditChatMessageInput) =>
+    api
+      .put<ChatMessageDto>(`${BASE}/messages/${messageId}`, { content, patientIds, expectedEditedAt })
+      .then((r) => r.data),
+  /** Who # suggests (R-1161). POST, so the name being typed never reaches a URL or a proxy log. */
+  patientSuggestions: (id: string, text: string) =>
+    api
+      .post<ChatPatientSuggestionDto[]>(`${BASE}/conversations/${id}/patient-suggestions`, { text })
+      .then((r) => r.data),
   revisions: (messageId: string) =>
     api.get<ChatMessageRevisionDto[]>(`${BASE}/messages/${messageId}/revisions`).then((r) => r.data),
   recall: (messageId: string) =>

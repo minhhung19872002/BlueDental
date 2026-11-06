@@ -5,6 +5,8 @@ import { useChatMessageRevisions } from "../api/chatQueries";
 import { formatMessageTime } from "../utils/chatFormat";
 import { ChatSpinner } from "./ChatSpinner";
 import { ChatStatus } from "./ChatStatus";
+import { MessageText } from "./MessageText";
+import { PatientCards } from "./PatientCard";
 
 interface EditHistoryProps {
   messageId: string;
@@ -33,7 +35,12 @@ export const EditHistory: React.FC<EditHistoryProps> = ({ messageId, editedAt })
                 {t("Chat:ReplacedAt", formatMessageTime(revision.editedAt))}
               </span>
               {/* Text, never HTML: React escapes it. */}
-              <p className="chat-edit-history-text">{revision.content ?? t("Chat:NoText")}</p>
+              {revision.content ? (
+                <MessageText className="chat-edit-history-text" text={revision.content} />
+              ) : (
+                <p className="chat-edit-history-text">{t("Chat:NoText")}</p>
+              )}
+              {revision.patients.length > 0 && <PatientCards patients={revision.patients} />}
             </li>
           ))}
         </ol>
