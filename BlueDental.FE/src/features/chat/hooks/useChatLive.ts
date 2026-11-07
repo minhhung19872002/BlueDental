@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { HubConnectionState } from "@microsoft/signalr";
 import { useQueryClient } from "@tanstack/react-query";
 import { createNotificationConnection } from "@/lib/signalr";
@@ -18,8 +18,13 @@ const MAX_RETRY_MS = 60_000;
  * this keeps trying after that (and after a failed first start) with a
  * growing wait, and refetches once it is back (R-1162 I5.3).
  */
-export function useChatLive(enabled: boolean): void {
+export function useChatLive(enabled: boolean, onChanged?: (conversationId: string) => void): void {
   const queryClient = useQueryClient();
+  // The latest callback, without reconnecting the hub when it changes.
+  const onChangedRef = useRef(onChanged);
+  useEffect(() => {
+    onChangedRef.current = onChanged;
+  });
 
   useEffect(() => {
     if (!enabled) return;
@@ -50,7 +55,10 @@ export function useChatLive(enabled: boolean): void {
       }
     };
 
-    connection.on("ChatChanged", refresh);
+    connection.on("ChatChanged", (conversationId: unknown) => {
+      refresh();
+      if (typeof conversationId === "string") onChangedRef.current?.(conversationId);
+    });
     connection.onreconnected(refresh);
     connection.onclose(() => scheduleStart());
     void start(false);

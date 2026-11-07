@@ -396,10 +396,50 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(picker.getByRole("checkbox", { name: peer.userName })).toBeChecked();
       await expect(rowOf(desk, fixture.ownVisit)).toBeVisible();
       await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
-      // The 👁 again folds the list away; the rows stay as picked.
-      await section(desk, "Khách đã đến").getByRole("button", { name: "Chọn bác sĩ hiển thị" }).click();
+
+      // A popover left of the panel, wholly on screen; a search never moves it.
+      const box = async () => {
+        const b = await picker.boundingBox();
+        if (!b) throw new Error("the doctor popover has no box");
+        return b;
+      };
+      const panelBox = await panel(desk).boundingBox();
+      const viewport = desk.viewportSize();
+      const before = await box();
+      expect(panelBox && before.x + before.width <= panelBox.x, "beside the panel, not over its rows").toBe(true);
+      expect(before.y >= 0 && viewport && before.y + before.height <= viewport.height, "inside the screen").toBe(true);
+      await picker.getByPlaceholder("Tìm bác sĩ...").fill(peer.userName);
+      expect(await box()).toEqual(before);
+      await picker.getByPlaceholder("Tìm bác sĩ...").fill("");
+
+      // Escape, or the 👁 again, folds it away; the rows stay as picked.
+      await desk.keyboard.press("Escape");
+      await expect(picker).toHaveCount(0);
+      await expect(panel(desk)).toBeVisible();
+      const eyeAgain = section(desk, "Khách đã đến").getByRole("button", { name: "Chọn bác sĩ hiển thị" });
+      await eyeAgain.click();
+      await expect(picker).toBeVisible();
+      await eyeAgain.click();
       await expect(picker).toHaveCount(0);
       await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
+
+      // A phone has no room left of the panel: the panel spans the screen and
+      // the popover stands over its rows, under the title bar and its 👁.
+      await desk.setViewportSize({ width: 390, height: 844 });
+      await eyeAgain.click();
+      await expect(picker).toHaveClass(/arrival-doctor-pick--over/);
+      const phonePanel = await panel(desk).boundingBox();
+      const phonePick = await box();
+      const eyeBox = await eyeAgain.boundingBox();
+      expect(phonePanel && phonePanel.x >= 0 && phonePanel.x + phonePanel.width <= 390, "the panel on the screen").toBe(true);
+      expect(
+        phonePanel && phonePick.y + phonePick.height <= phonePanel.y + phonePanel.height && phonePick.x >= phonePanel.x,
+        "the popover inside the panel",
+      ).toBe(true);
+      expect(eyeBox && eyeBox.y + eyeBox.height <= phonePick.y, "the 👁 above it, in sight").toBe(true);
+      await eyeAgain.click();
+      await expect(picker).toHaveCount(0);
+      await desk.setViewportSize({ width: 1280, height: 720 });
 
       // Reception's "Bác sĩ mời lên" has no 👁 and is not filtered.
       await dockButton(receptionist.page).click();

@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient, type InfiniteData } from "@tanstack/react-query";
 import {
   CHAT_LIMITS,
@@ -165,4 +166,18 @@ export function useReloadChatMessage(conversationId: string) {
     const data = queryClient.getQueryData<InfiniteData<ChatMessagePageDto>>(key);
     return data?.pages.flatMap((page) => page.items).find((message) => message.id === messageId);
   };
+}
+
+/**
+ * Reads one conversation fresh, for the new-message toast (R-1165): the push
+ * names only the conversation, so its newest message is fetched through the
+ * API like everything else the chat shows.
+ */
+export function useConversationFetcher() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (id: string) =>
+      queryClient.fetchQuery({ queryKey: chatKeys.conversation(id), queryFn: () => chatApi.conversation(id), staleTime: 0 }),
+    [queryClient],
+  );
 }

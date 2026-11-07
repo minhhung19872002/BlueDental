@@ -14188,4 +14188,50 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - UI tìm và tích, lưu sau khi tải lại, bỏ hết tích, "Tất cả bác sĩ", 👁 đóng danh sách;
     - lễ tân không có 👁.
   - Kiểm tra bằng ảnh chụp panel có danh sách mở.
+- **Sửa tiếp (owner 2026-11-06: "làm popover đi nhưng cho k bị break ui")**:
+  - Danh sách bác sĩ chuyển thành popover nổi bên trái panel (`ArrivalDoctorPickPopover`), có tiêu đề "Chọn bác sĩ hiển thị".
+  - Vị trí đặt bằng CSS, không dùng Popover AntD (bản AntD trượt đè lên 👁 khi tìm kiếm và tràn khỏi mép trên khi danh sách dài):
+    - cao cố định 360px nên tìm kiếm không làm popover xê dịch;
+    - `top: min(0px, 100% - 360px)`: panel cao thì canh mép trên, ngang 👁; panel thấp thì canh mép dưới panel, không bao giờ ra ngoài màn hình;
+    - màn hình ≤ 1100px thì nằm đè lên các dòng khách, dưới thanh tiêu đề.
+  - Panel được bọc trong `.arrival-panel-anchor`, nên `.arrival-panel` không còn `position: absolute`.
+  - Bấm ra ngoài popover, bấm 👁 lần nữa hoặc nhấn Escape thì popover đóng.
+  - Test R-1164 thêm kiểm tra: popover nằm hẳn bên trái panel, trong màn hình, vị trí không đổi khi tìm kiếm, Escape và 👁 đóng được. `reception-arrival-call` **7/7** trên bản build production; đã kiểm tra bằng ảnh chụp.
+- **Sửa tiếp 2 (owner hỏi "đã handle ở các màn hình chưa")**: đo 12 kích thước, từ 1920×1080 xuống 360×640, có cả điện thoại xoay ngang 844×390. Đo với panel ngắn (1 khách) và panel dài (Tất cả bác sĩ), thêm trường hợp đang mở Chat. Lần đo đầu tìm ra 3 lỗi:
+  - màn ≤ 1100px: popover đè lên các dòng và che mất 👁;
+  - điện thoại: panel "Khách đã đến" tràn khỏi mép trái. Lỗi này có từ F-89, vì nút Chat đẩy dock vào trong 88–100px;
+  - màn thấp: popover cao 360px nên tràn khỏi mép trên.
+- **Cách sửa**:
+  - Hook `useDoctorPickPopover` đo chỗ trống bên trái panel, không đoán theo bề rộng màn hình. Đủ chỗ thì đặt popover bên cạnh panel (`--side`). Không đủ (màn hẹp, điện thoại, đang mở Chat) thì đặt `--over`: nằm trên các dòng, ngay dưới thanh tiêu đề, 👁 vẫn thấy; panel cao lên `min(416px, 70vh)` để chứa vừa.
+  - Popover bên cạnh cao `min(360px, 100dvh − 112px)`.
+  - ≤ 640px: panel `position: fixed`, cách hai mép 16px.
+- **Kiểm thử**:
+  - Cả 24 lần đo cộng 2 trường hợp đang mở Chat đều nằm trọn trong màn hình và không che 👁. Đã xem ảnh chụp điện thoại, điện thoại xoay ngang và lúc mở Chat.
+  - Test R-1164 thêm bước đo ở 390×844. `reception-arrival-call` **7/7**; `staff-label-color` xanh; `chat` "the chat button sits bottom-right…" xanh.
+  - `reception-flag` có 1 test đỏ ở bước Lịch hẹn (`.dtl-block.bd-rgb-ring`, dòng 89), sau bước panel. Bản build HEAD (chưa có thay đổi này) cũng đỏ đúng dòng đó, nên lỗi có từ trước, không do R-1164.
 - **Mức retest**: 2 (chỉ trong Tiếp nhận / panel Đã đến).
+
+## R-1165 (2026-11-06, mức 2: Chat nội bộ — thông báo tin mới 5 s, F-89, main)
+
+- **Yêu cầu (BA 2026-11-06)**: "Thêm cho chat phần thông báo để xem nhanh nha (5s)" — khung góc phải ngay dưới thanh menu.
+- **Owner chốt**: (1) hiện nội dung tin; (2) có tiếng; (3) có thông báo Windows khi app ở phía sau. Làm trên main.
+- **Đã làm — FE** (không đổi BE, chỉ thêm 3 key i18n `Chat:NewMessages`, `Chat:DismissAlert`, `Chat:UnreadInConversation`):
+  - `useChatLive` nhận thêm callback `ChatChanged(conversationId)`; `useNewMessageAlerts` lấy `GET conversations/{id}` (push vẫn không mang nội dung).
+  - Toast khi tin của người khác, chưa thu hồi / sửa, gửi trong 10 phút, còn chưa đọc, đúng chi nhánh trên header, và cuộc trò chuyện không đang mở. Mỗi tin báo một lần; đọc ở nơi khác thì toast tự mất.
+  - `ChatToastStack`: tên người gửi (nhóm: "người gửi · nhóm"), 2 dòng nội dung, "N tin chưa đọc"; bấm mở cuộc trò chuyện, × đóng; thanh 5 s dưới chân, trỏ chuột / focus thì dừng; một toast mỗi cuộc trò chuyện, tối đa 3; panel mở thì nằm bên trái panel; điện thoại full ngang.
+  - `ChatDock` giữ `activeId` (`ChatPanel` thành controlled) để toast / thông báo Windows mở được cuộc trò chuyện; đóng rồi mở lại vẫn về danh sách như cũ.
+  - Tiếng ting Web Audio (2 sóng sin 1318/1976 Hz, 0,7 s), tối đa 1 lần / 1,5 s; bị trình duyệt chặn khi chưa có cú bấm thì bỏ qua.
+  - Thông báo Windows: xin quyền khi bấm mở chat / bấm toast; chỉ khi tab ẩn hoặc cửa sổ không focus; `tag` = id cuộc trò chuyện; nội dung cắt 140 ký tự.
+- **Bảo mật**: checklist H3.3 ("toast / Notification không hiện nội dung") đổi thành ⚠ theo quyết định owner — xem `features/chat-security-checklist.md`.
+- **Kiểm thử** (host riêng :5157 trên DB `BlueDental_chat` + bản build production :8157, không chặn request):
+  - `chat-r1165-toast.spec.ts` **8/8**: vị trí dưới header + tự đóng ~5 s; ting; giữ khi trỏ chuột + ×; tin mới thay toast + "2 tin chưa đọc"; bấm toast mở cuộc trò chuyện, cuộc đang mở không có toast, mở lại về danh sách; tin của mình không toast; toast nhóm; thông báo Windows (thay `Notification` / `hasFocus` của trình duyệt) bấm vào mở cuộc trò chuyện.
+  - Toàn bộ `e2e/chat*` **69/69**. Kiểm bằng ảnh chụp desktop + điện thoại 390 px.
+- **Mức retest**: 2 (chỉ chat; `useChatLive` chỉ thêm callback).
+
+## R-1166 (2026-11-06, mức 2: Chat nội bộ — thông báo Windows tin thứ 2 không bật lên, F-89, main)
+
+- **Báo lỗi (owner, staging)**: app ở phía sau, tin đầu có thông báo Windows; gửi tiếp tin trong cùng cuộc trò chuyện thì không hiện banner, chỉ thấy chữ trong Trung tâm thông báo đổi sang tin mới.
+- **Nguyên nhân**: R-1165 dùng `tag` = id cuộc trò chuyện để mỗi cuộc chỉ giữ một thông báo. Chrome thay thông báo cùng `tag` **im lặng** nếu không có `renotify: true`.
+- **Sửa**: `utils/desktopNotify.ts` thêm `renotify: true` (kiểu `ChromeNotificationOptions` vì DOM types của TypeScript chưa có thuộc tính này). Vẫn một thông báo cho mỗi cuộc, nhưng mỗi tin mới bật banner lại.
+- **Kiểm thử** (host riêng :5157 trên DB `BlueDental_chat` + bản build production :8157, không chặn request): `chat-r1165-toast.spec.ts` **8/8**; ca thông báo Windows giờ gửi 2 tin khi app ở phía sau, kỳ vọng 2 lần tạo `Notification` cùng `tag`, đều `renotify: true`, bấm thông báo sau mở đúng cuộc trò chuyện.
+- **Mức retest**: 2 (chỉ chat, một file util).

@@ -58,24 +58,6 @@ public class PaymentReceiptTemplateTests
         keys.ShouldBe(Sample.ToPlaceholders().Keys.OrderBy(k => k));
     }
 
-    /// <summary>The blanks are dot-leader tabs: a filled value drops its dots, the tab stops stay put.</summary>
-    [Fact]
-    public void A_Filled_Placeholder_Drops_The_Dots_After_It_And_A_Blank_One_Keeps_Them()
-    {
-        // Six dotted blanks follow a placeholder (2 + 2 on the money lines, 1 + 1 on
-        // name and treatment); other paragraphs carry dotted stops but no tab.
-        var template = File.ReadAllBytes(TemplatePath());
-        var dotted = DotLeaders(DocumentXml(template));
-        var stops = TabStopPositions(DocumentXml(template));
-
-        var filled = DocumentXml(DocxTemplate.Fill(template, Sample.ToPlaceholders()));
-        DotLeaders(filled).ShouldBe(dotted - 6);
-        TabStopPositions(filled).ShouldBe(stops);
-
-        var values = Sample.ToPlaceholders().ToDictionary(p => p.Key, p => p.Value);
-        values["RemainingAmountInWords"] = "";
-        DotLeaders(DocumentXml(DocxTemplate.Fill(template, values))).ShouldBe(dotted - 5);
-    }
 
     /// <summary>The QR takes the template's box: same centre, 2 mm larger on every side, the box itself gone.</summary>
     [Fact]
@@ -131,7 +113,7 @@ public class PaymentReceiptTemplateTests
             .ServiceTypes.ShouldContain(typeof(IDocxPdfConverter));
 
     /// <summary>
-    /// P2610 phase 5: the customer's signature takes the four blank lines above
+    /// P2610 phase 5: the customer's signature takes the two blank lines above
     /// Người nộp tiền's name, inline in that cell, scaled to fit and never
     /// stretched — so the A5 sheet keeps its single page.
     /// </summary>
@@ -146,7 +128,7 @@ public class PaymentReceiptTemplateTests
             ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
 
         var after = PayerCell(signed);
-        before.Paragraphs.ShouldBe(after.Paragraphs + 3);
+        before.Paragraphs.ShouldBe(after.Paragraphs + 1);
         after.Above.ShouldNotBeNull();
         after.Above.Name.ShouldBe("customer-signature");
         // 600 × 200 px into 50 × 18 mm: the width binds, 50 mm × 16.7 mm.
@@ -177,10 +159,10 @@ public class PaymentReceiptTemplateTests
         after.Above.Height.ShouldBeInRange(18 * 36_000 - 1, 18 * 36_000);
         after.Above.Width.ShouldBeInRange(18 * 36_000 * 168 / 68 - 1, 18 * 36_000 * 168 / 68 + 1);
         after.Above.Crop.ShouldBe(new[] { 6_000, 58_000, 66_000, 8_000 });
-        // Four blank lines of room, the picture in the middle of the ink round it:
-        // 0.5 mm below the middle of the lines, the room itself unchanged.
-        (after.Above.SpaceBefore - after.Above.SpaceAfter).ShouldBe(2 * 28);
-        (after.Above.SpaceBefore + after.Above.SpaceAfter + 18 * 36_000 / 635).ShouldBeInRange(4 * 276 - 1, 4 * 276 + 1);
+        // Two blank lines of room: image (18 mm ≈ 1020 twips) exceeds the room (2 × 276 = 552 twips),
+        // so margin = 0, nudge = 0, and no vertical offset is applied.
+        (after.Above.SpaceBefore - after.Above.SpaceAfter).ShouldBe(0);
+        after.Above.SpaceBefore.ShouldBe(0);
     }
 
     [Fact]

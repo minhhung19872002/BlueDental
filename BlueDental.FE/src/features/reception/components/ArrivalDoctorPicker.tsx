@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Checkbox, Input, Spin, Tooltip } from "antd";
 import { Eye, Search } from "lucide-react";
 import { StaffLabelBadge } from "@/components/LabelColor";
 import { t } from "@/lib/i18n";
 import { matchesSearch } from "@/utils/foldForSearch";
+import { useDoctorPickPopover } from "../hooks/useDoctorPickPopover";
 import type { ArrivalDoctor, ArrivalDoctorPick } from "../types/arrivalCall";
+
+const TOGGLE_CLASS = "arrival-doctor-pick-button";
 
 const isPicked = (pick: ArrivalDoctorPick, id: string) => pick.all || pick.doctorIds.includes(id);
 
@@ -24,12 +27,12 @@ interface ArrivalDoctorPickToggleProps {
   onToggle: () => void;
 }
 
-/** The 👁 on the "Khách đã đến" title bar: shows or hides the doctor list (R-1164). */
+/** The 👁 on the "Khách đã đến" title bar: opens or closes the doctor popover (R-1164). */
 export const ArrivalDoctorPickToggle: React.FC<ArrivalDoctorPickToggleProps> = ({ open, onToggle }) => (
-  <Tooltip title={t("Reception:ArrivalDoctorPick")} getPopupContainer={tooltipInDock}>
+  <Tooltip title={t("Reception:ArrivalDoctorPick")} getPopupContainer={tooltipInDock} open={open ? false : undefined}>
     <button
       type="button"
-      className={["arrival-doctor-pick-button", open && "arrival-doctor-pick-button--open"].filter(Boolean).join(" ")}
+      className={[TOGGLE_CLASS, open && `${TOGGLE_CLASS}--open`].filter(Boolean).join(" ")}
       aria-label={t("Reception:ArrivalDoctorPick")}
       aria-expanded={open}
       onClick={onToggle}
@@ -39,20 +42,35 @@ export const ArrivalDoctorPickToggle: React.FC<ArrivalDoctorPickToggleProps> = (
   </Tooltip>
 );
 
-interface ArrivalDoctorPickListProps {
+interface ArrivalDoctorPickPopoverProps {
   doctors: ArrivalDoctor[];
   loading: boolean;
   pick: ArrivalDoctorPick;
   onPickChange: (pick: ArrivalDoctorPick) => void;
+  onClose: () => void;
 }
 
 /**
- * Under the "Khách đã đến" title, opened with the 👁 (R-1164, BA 2026-11-06):
- * ticks whose arrived patients the list shows — several doctors, every
- * doctor, or none. In the panel, not floating: the rows below follow each tick.
+ * Opened with the 👁 (R-1164, BA 2026-11-06): ticks whose arrived patients
+ * "Khách đã đến" shows — several doctors, every doctor, or none.
+ *
+ * A popover placed by CSS rather than AntD's Popover: a fixed height, so
+ * searching never moves it. Beside the panel, pinned to its top or, on a short
+ * panel, its bottom, the rows stay in sight and follow each tick; with no room
+ * left of the panel (narrow screen, phone, open chat) it stands over the rows
+ * under the title bar instead, the 👁 still in sight.
  */
-export const ArrivalDoctorPickList: React.FC<ArrivalDoctorPickListProps> = ({ doctors, loading, pick, onPickChange }) => {
+export const ArrivalDoctorPickPopover: React.FC<ArrivalDoctorPickPopoverProps> = ({
+  doctors,
+  loading,
+  pick,
+  onPickChange,
+  onClose,
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
+  const { placement } = useDoctorPickPopover(ref, `.${TOGGLE_CLASS}`, onClose);
+
   const shown = doctors.filter((d) => matchesSearch(d.name, query));
   const pickedCount = doctors.filter((d) => isPicked(pick, d.id)).length;
   const allPicked = pick.all || (doctors.length > 0 && pickedCount === doctors.length);
@@ -60,7 +78,13 @@ export const ArrivalDoctorPickList: React.FC<ArrivalDoctorPickListProps> = ({ do
   const handleAllChange = () => onPickChange(allPicked ? { all: false, doctorIds: [] } : { all: true });
 
   return (
-    <div className="arrival-doctor-pick" role="group" aria-label={t("Reception:ArrivalDoctorPick")}>
+    <div
+      ref={ref}
+      className={`arrival-doctor-pick arrival-doctor-pick--${placement}`}
+      role="dialog"
+      aria-label={t("Reception:ArrivalDoctorPick")}
+    >
+      <div className="arrival-doctor-pick-title">{t("Reception:ArrivalDoctorPick")}</div>
       <Input
         size="small"
         allowClear
@@ -77,11 +101,15 @@ export const ArrivalDoctorPickList: React.FC<ArrivalDoctorPickListProps> = ({ do
       >
         {t("Reception:ArrivalDoctorPickAll")}
       </Checkbox>
-      {loading && <Spin size="small" />}
-      {!loading && shown.length === 0 && (
-        <div className="arrival-doctor-pick-empty">{t("Reception:ArrivalDoctorPickNoDoctors")}</div>
-      )}
       <ul className="arrival-doctor-pick-list">
+        {loading && (
+          <li className="arrival-doctor-pick-empty">
+            <Spin size="small" />
+          </li>
+        )}
+        {!loading && shown.length === 0 && (
+          <li className="arrival-doctor-pick-empty">{t("Reception:ArrivalDoctorPickNoDoctors")}</li>
+        )}
         {shown.map((doctor) => (
           <li key={doctor.id}>
             <Checkbox
