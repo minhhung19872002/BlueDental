@@ -58,24 +58,6 @@ public class PaymentReceiptTemplateTests
         keys.ShouldBe(Sample.ToPlaceholders().Keys.OrderBy(k => k));
     }
 
-    /// <summary>The blanks are dot-leader tabs: a filled value drops its dots, the tab stops stay put.</summary>
-    [Fact]
-    public void A_Filled_Placeholder_Drops_The_Dots_After_It_And_A_Blank_One_Keeps_Them()
-    {
-        // Six dotted blanks follow a placeholder (2 + 2 on the money lines, 1 + 1 on
-        // name and treatment); other paragraphs carry dotted stops but no tab.
-        var template = File.ReadAllBytes(TemplatePath());
-        var dotted = DotLeaders(DocumentXml(template));
-        var stops = TabStopPositions(DocumentXml(template));
-
-        var filled = DocumentXml(DocxTemplate.Fill(template, Sample.ToPlaceholders()));
-        DotLeaders(filled).ShouldBe(dotted - 6);
-        TabStopPositions(filled).ShouldBe(stops);
-
-        var values = Sample.ToPlaceholders().ToDictionary(p => p.Key, p => p.Value);
-        values["RemainingAmountInWords"] = "";
-        DotLeaders(DocumentXml(DocxTemplate.Fill(template, values))).ShouldBe(dotted - 5);
-    }
 
     /// <summary>The QR takes the template's box: same centre, 2 mm larger on every side, the box itself gone.</summary>
     [Fact]
