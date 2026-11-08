@@ -14247,3 +14247,14 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: `PaymentReceiptTemplateTests` + Printing/Receipt **23/23** (có ca nét 2/3/6 px, nét 10 px không phóng quá 0,5 mm, nét mảnh vẫn đầy ô, căn giữa cả hai cột). Render Gotenberg 6 ca (chưa ký, QR, chữ ký thật BA, cao, rộng, 1×): đều 1 trang. Bản build production :8092 + BE :5000 thật, không chặn request: `receipt-ipad.spec.ts` **6/6**, `receipt-paper-sign.spec.ts` **6/6**.
 - **Còn mở**: đáy QR cách mép ~3,2 mm (vị trí khung trong template); "Viết bằng chữ" quá dài vẫn có thể tràn trang 2.
 - **Mức retest**: 2 (in phiếu thu + pad ký).
+
+## R-1168 (2026-11-08, mức 1: PHIẾU THU A6 — "Viết bằng chữ" thẳng cột, template của BA, F-56, main)
+
+- **Yêu cầu (BA)**: hai nhãn "Viết bằng chữ:" ở dòng "Thanh toán" và "Số tiền còn lại" nằm thẳng một cột; BA tự chỉnh `PHIẾU THU.docx`, owner chép vào source.
+- **Thay đổi**: chỉ template — tab trái ở 2552 twips (~45 mm) trước "Viết bằng chữ" ở cả hai dòng (dòng 1 tab 1134, dòng 2 tab 1418 trước số tiền). Không đổi code.
+- **Kiểm thử**: `PaymentReceiptTemplateTests` + Printing/Receipt **23/23** trên template mới. Render Gotenberg 6 mức tiền (100 nghìn, 15 triệu, 150 triệu, 1,25 tỷ, 987.654.321, hết nợ): dưới 1 tỷ thẳng cột.
+- **Còn mở (owner: chưa sửa)**:
+  - Từ 1 tỷ trở lên số tiền vượt mốc 45 mm → "Viết bằng chữ" lệch phải.
+  - Chữ dài (vd 987.654.321) xuống dòng về sát lề trái, không thụt dưới cột chữ → tràn trang 2.
+  - Chữ của dòng "Số tiền còn lại" giãn `w:spacing -20` → dính chữ ("Mộttriệu").
+- **Mức retest**: 1 (chỉ bố cục template).
