@@ -14258,3 +14258,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chữ dài (vd 987.654.321) xuống dòng về sát lề trái, không thụt dưới cột chữ → tràn trang 2.
   - Chữ của dòng "Số tiền còn lại" giãn `w:spacing -20` → dính chữ ("Mộttriệu").
 - **Mức retest**: 1 (chỉ bố cục template).
+
+## R-1169 (2026-11-08, mức 1: PHIẾU THU A6 — bỏ ép chữ dòng "Số tiền còn lại", template của BA, F-56, main)
+
+- **Thay đổi (BA)**: chỉ template — bỏ `w:spacing -20` trên chữ của dòng "Số tiền còn lại" (R-1168 bị dính chữ "Mộttriệu"). Tab 2552 twips và cỡ chữ giữ nguyên.
+- **Kiểm thử**: `PaymentReceiptTemplateTests` + Printing/Receipt **23/23**. Render Gotenberg 9 mức tiền: 100 nghìn / 15 triệu / 150 triệu / hết nợ 1 trang; 1,25 tỷ, 25.750.000 (còn 1.250.000), 12.345.000 (còn 125.500.000), số lẻ 987.654.321 → 2 trang.
+- **Còn mở (owner cho push, chưa sửa)**: hễ "Viết bằng chữ" xuống hàng là chữ ký / ngày / QR sang trang 2 — A6 không còn chỗ (QR cách mép dưới 3,3 mm ở phiếu ngắn nhất). Có từ trước BA (R-1167 cũng 2 trang với 25.750.000); bỏ ép chữ làm dòng 2 xuống hàng thêm (1.250.000). Đề xuất: chữ số tiền 11,5 → ~10 pt và/hoặc bớt giãn dòng 1.5.
+- **Mức retest**: 1 (chỉ bố cục template).
