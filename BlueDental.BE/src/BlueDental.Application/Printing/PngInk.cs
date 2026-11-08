@@ -32,8 +32,20 @@ public static class PngInk
     /// <summary>Around the strokes so their soft edges are not cut.</summary>
     private const int Margin = 4;
 
+    /// <summary>What a signature's strokes measure: where they are and how thick, in pixels.</summary>
+    public readonly record struct Strokes(Area Bounds, double Width);
+
     /// <summary>The strokes' area plus a small margin, or null when it cannot tell.</summary>
-    public static Area? Bounds(byte[] png)
+    public static Area? Bounds(byte[] png) => Measure(png)?.Bounds;
+
+    /// <summary>
+    /// Where the strokes are (plus a small margin) and how thick they are, or
+    /// null when it cannot tell. The thickness is the ink there is — each pixel
+    /// counted by how much of it is covered, so soft edges add what they show —
+    /// over half the strokes' outline: a stroke w wide and L long holds w·L of
+    /// ink and has 2·L of edge.
+    /// </summary>
+    public static Strokes? Measure(byte[] png)
     {
         var image = Decode(png);
         if (image == null)
@@ -43,7 +55,12 @@ public static class PngInk
 
         var (width, height, channels, pixels) = image.Value;
         int left = width, top = height, right = -1, bottom = -1;
+        double ink = 0;
+        long edge = 0;
         var stride = width * channels;
+        bool InkAt(int x, int y) =>
+            x >= 0 && y >= 0 && x < width && y < height && IsInk(pixels, y * stride + x * channels, channels);
+
         for (var y = 0; y < height; y++)
         {
             var row = y * stride;
@@ -52,6 +69,12 @@ public static class PngInk
                 if (!IsInk(pixels, row + x * channels, channels))
                 {
                     continue;
+                }
+
+                ink += Coverage(pixels, row + x * channels, channels);
+                if (!InkAt(x - 1, y) || !InkAt(x + 1, y) || !InkAt(x, y - 1) || !InkAt(x, y + 1))
+                {
+                    edge++;
                 }
 
                 left = Math.Min(left, x);
@@ -66,12 +89,22 @@ public static class PngInk
             return null;
         }
 
-        return new Area(
+        var bounds = new Area(
             Math.Max(0, left - Margin),
             Math.Max(0, top - Margin),
             Math.Min(width, right + 1 + Margin),
             Math.Min(height, bottom + 1 + Margin));
+        return new Strokes(bounds, Math.Max(1, 2 * ink / Math.Max(1, edge)));
     }
+
+    /// <summary>How much of an ink pixel the stroke covers, 0..1: its opacity on a transparent canvas, its darkness on paper.</summary>
+    private static double Coverage(byte[] pixels, int at, int channels) => channels switch
+    {
+        1 => (255 - pixels[at]) / 255.0,
+        2 => pixels[at + 1] / 255.0,
+        3 => (255 - Darkest(pixels, at)) / 255.0,
+        _ => pixels[at + 3] / 255.0
+    };
 
     /// <summary>Colour types 0 grey, 2 RGB, 4 grey + alpha, 6 RGBA.</summary>
     private static bool IsInk(byte[] pixels, int at, int channels) => channels switch
