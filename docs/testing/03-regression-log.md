@@ -14235,3 +14235,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa**: `utils/desktopNotify.ts` thêm `renotify: true` (kiểu `ChromeNotificationOptions` vì DOM types của TypeScript chưa có thuộc tính này). Vẫn một thông báo cho mỗi cuộc, nhưng mỗi tin mới bật banner lại.
 - **Kiểm thử** (host riêng :5157 trên DB `BlueDental_chat` + bản build production :8157, không chặn request): `chat-r1165-toast.spec.ts` **8/8**; ca thông báo Windows giờ gửi 2 tin khi app ở phía sau, kỳ vọng 2 lần tạo `Notification` cùng `tag`, đều `renotify: true`, bấm thông báo sau mở đúng cuộc trò chuyện.
 - **Mức retest**: 2 (chỉ chat, một file util).
+
+## R-1167 (2026-11-08, mức 2: PHIẾU THU A6 — chữ ký in đậm, lệch, đẩy sang trang 2, F-56, main)
+
+- **Báo lỗi (owner + BA)**: in PHIẾU THU khổ A6 có chữ ký thì (1) ra thêm trang 2 trống, (2) chữ ký bên "Người lập phiếu" không nằm giữa nhãn và tên, (3) chữ ký in đậm, nét ~1 mm răng cưa, tên "admin" bị đẩy mất.
+- **Nguyên nhân**: đoạn chữ ký chép giãn dòng 1.5 của dòng trống nên cao gấp rưỡi; khoảng trống tính theo hằng 12 pt thay vì 2 × 345 twips thật (TableGrid đặt `after=0`); ảnh chữ ký nhỏ (pad 1×) bị phóng tới 18 mm nên nét dày và vỡ pixel.
+- **Sửa**:
+  - `DocxPicture.PlaceAbove`: đo khoảng trống theo đoạn → pStyle → table style → docDefaults; dòng chữ ký giãn đơn; căn theo `jc` của dòng tên; chia lề trên/dưới, nâng 31 twips vì nhãn còn ~2,2 mm dưới chữ, tên chỉ ~1,1 mm trên chữ.
+  - `PngInk.Measure` đọc độ dày nét (2·Σđộ phủ / số pixel viền); `DocxPicture.MaxStrokeMm = 0.5` — không phóng quá nét bút bi. Chữ ký nhỏ nét dày in nhỏ (ngôi sao của BA ≈ 8×5 mm).
+  - FE `useSignaturePad`: bitmap ≥ 3× mật độ CSS, tối đa 4 triệu pixel (giữ PNG dưới 512 KB / 200 KB của server). Chỉ mịn cạnh, không đổi kích thước in.
+- **Kiểm thử**: `PaymentReceiptTemplateTests` + Printing/Receipt **23/23** (có ca nét 2/3/6 px, nét 10 px không phóng quá 0,5 mm, nét mảnh vẫn đầy ô, căn giữa cả hai cột). Render Gotenberg 6 ca (chưa ký, QR, chữ ký thật BA, cao, rộng, 1×): đều 1 trang. Bản build production :8092 + BE :5000 thật, không chặn request: `receipt-ipad.spec.ts` **6/6**, `receipt-paper-sign.spec.ts` **6/6**.
+- **Còn mở**: đáy QR cách mép ~3,2 mm (vị trí khung trong template); "Viết bằng chữ" quá dài vẫn có thể tràn trang 2.
+- **Mức retest**: 2 (in phiếu thu + pad ký).

@@ -4,9 +4,29 @@ import { useCallback, useEffect, useRef, useState, type PointerEvent } from "rea
 const LINE_WIDTH = 2.5;
 
 /**
+ * The bitmap holds at least this many pixels per CSS pixel. The receipt prints
+ * a signature a few millimetres wide, so a 1× canvas came out jagged on paper
+ * (BA 2026-11-08); the printed size does not change, only the edges smooth.
+ */
+const MIN_PIXEL_RATIO = 3;
+
+/**
+ * …unless that passes this many bitmap pixels: a full-screen tablet pad at 3×
+ * makes a scribbled PNG near the server's 512 KB cap (SignatureImage.MaxBytes).
+ */
+const MAX_BITMAP_PIXELS = 4_000_000;
+
+/** Pixels per CSS pixel: the screen's density, raised toward MIN_PIXEL_RATIO within the pixel budget. */
+function pixelRatio(cssWidth: number, cssHeight: number) {
+  const screen = window.devicePixelRatio || 1;
+  const area = Math.max(1, cssWidth * cssHeight);
+  return Math.max(screen, Math.min(MIN_PIXEL_RATIO, Math.sqrt(MAX_BITMAP_PIXELS / area)));
+}
+
+/**
  * A finger-or-stylus pad on a <canvas>. The bitmap follows the element's CSS
- * size times the screen density so the stroke stays sharp on a Retina iPad;
- * resizing clears it, as the drawing would be stretched otherwise.
+ * size times pixelRatio (the screen density or more) so the stroke stays
+ * sharp; resizing clears it, as the drawing would be stretched otherwise.
  */
 export function useSignaturePad() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -18,8 +38,8 @@ export function useSignaturePad() {
   const fit = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ratio = window.devicePixelRatio || 1;
     const { width, height } = canvas.getBoundingClientRect();
+    const ratio = pixelRatio(width, height);
     canvas.width = Math.round(width * ratio);
     canvas.height = Math.round(height * ratio);
     const ctx = canvas.getContext("2d");

@@ -113,9 +113,21 @@ public class PaymentReceiptTemplateTests
             .ServiceTypes.ShouldContain(typeof(IDocxPdfConverter));
 
     /// <summary>
+    /// The room the template leaves above each name: two blank 10 pt lines at
+    /// 1.5 spacing in a TableGrid cell (no space after) — 2 × 345 twips, ≈ 12.2 mm.
+    /// </summary>
+    private const long SignatureRoomEmu = 2 * 345 * 635;
+
+    /// <summary>
+    /// The tallest a signature goes: the room less 31 twips (0.55 mm) on each
+    /// side, so it can be lifted that far and leave equal paper above and below.
+    /// </summary>
+    private const long SignatureMaxEmu = SignatureRoomEmu - 2 * 31 * 635;
+
+    /// <summary>
     /// P2610 phase 5: the customer's signature takes the two blank lines above
     /// Người nộp tiền's name, inline in that cell, scaled to fit and never
-    /// stretched — so the A5 sheet keeps its single page.
+    /// stretched — so the sheet keeps its single page.
     /// </summary>
     [Fact]
     public void The_Signature_Takes_The_Blank_Lines_Above_The_Payer()
@@ -131,9 +143,9 @@ public class PaymentReceiptTemplateTests
         before.Paragraphs.ShouldBe(after.Paragraphs + 1);
         after.Above.ShouldNotBeNull();
         after.Above.Name.ShouldBe("customer-signature");
-        // 600 × 200 px into 50 × 18 mm: the width binds, 50 mm × 16.7 mm.
-        after.Above.Width.ShouldBe(50 * 36_000);
-        after.Above.Height.ShouldBe(50 * 36_000 / 3);
+        // 600 × 200 px into 50 mm × the ≈11.1 mm the room allows: the room binds, ≈33.2 × 11.1 mm.
+        after.Above.Height.ShouldBe(SignatureMaxEmu);
+        after.Above.Width.ShouldBe(SignatureMaxEmu * 3);
     }
 
     /// <summary>
@@ -145,7 +157,7 @@ public class PaymentReceiptTemplateTests
     public void Only_The_Strokes_Go_On_The_Paper_Midway_Above_The_Name()
     {
         // 600 × 200 canvas, strokes at x 40..199, y 120..179: 160 × 60 px, low and to the left.
-        var png = InkedPng(600, 200, left: 40, top: 120, right: 200, bottom: 180);
+        var png = InkedPng(600, 200, left: 40, top: 120, right: 200, bottom: 180, pen: 2);
 
         PngInk.Bounds(png).ShouldBe(new PngInk.Area(36, 116, 204, 184));
 
@@ -155,14 +167,115 @@ public class PaymentReceiptTemplateTests
 
         var after = PayerCell(signed);
         after.Above.ShouldNotBeNull();
-        // 168 × 68 px into 50 × 18 mm: the height binds.
-        after.Above.Height.ShouldBeInRange(18 * 36_000 - 1, 18 * 36_000);
-        after.Above.Width.ShouldBeInRange(18 * 36_000 * 168 / 68 - 1, 18 * 36_000 * 168 / 68 + 1);
+        // 168 × 68 px into 50 mm × the room: the room's height binds.
+        after.Above.Height.ShouldBeInRange(SignatureMaxEmu - 1, SignatureMaxEmu);
+        after.Above.Width.ShouldBeInRange(SignatureMaxEmu * 168 / 68 - 1, SignatureMaxEmu * 168 / 68 + 1);
         after.Above.Crop.ShouldBe(new[] { 6_000, 58_000, 66_000, 8_000 });
-        // Two blank lines of room: image (18 mm ≈ 1020 twips) exceeds the room (2 × 276 = 552 twips),
-        // so margin = 0, nudge = 0, and no vertical offset is applied.
-        (after.Above.SpaceBefore - after.Above.SpaceAfter).ShouldBe(0);
+        // As tall as it may go: lifted the whole 31 twips, all the spare paper under it.
         after.Above.SpaceBefore.ShouldBe(0);
+        after.Above.SpaceAfter.ShouldBe(62);
+    }
+
+    /// <summary>A signature small enough to leave room sits midway, lifted 0.55 mm so the paper above and below its ink matches.</summary>
+    [Fact]
+    public void A_Short_Signature_Sits_Midway_In_The_Room()
+    {
+        // 500 × 100 px into 50 mm wide: 50 × 10 mm (360000 EMU ≈ 567 twips) of the 690-twip room.
+        var signed = DocxPicture.PlaceAbove(
+            File.ReadAllBytes(TemplatePath()), "{{PayerName}}", Png(500, 100),
+            ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
+
+        var above = PayerCell(signed).Above!;
+        above.Height.ShouldBe(10 * 36_000);
+        var margin = (int)((SignatureRoomEmu / 635 - 10 * 36_000 / 635) / 2);
+        above.SpaceBefore.ShouldBe(margin - 31);
+        above.SpaceAfter.ShouldBe(margin + 31);
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(6)]
+    public void The_Stroke_Width_Is_Read_Off_The_Ink(int pen)
+    {
+        var strokes = PngInk.Measure(InkedPng(600, 200, 40, 40, 560, 160, pen))!.Value;
+
+        strokes.Width.ShouldBe(pen, tolerance: 0.1);
+        strokes.Bounds.ShouldBe(new PngInk.Area(36, 36, 564, 164));
+    }
+
+    /// <summary>
+    /// BA 2026-11-08: a name signed small on the pad, blown up to fill the
+    /// room, printed ~1 mm thick and jagged. The picture is never enlarged past
+    /// a 0.5 mm stroke, even when the room would take it larger.
+    /// </summary>
+    [Fact]
+    public void A_Signature_Is_Never_Enlarged_Past_A_Ballpoint_Stroke()
+    {
+        // A 10 px pen: 0.5 mm per 10 px = 1800 EMU per pixel; the room alone would allow ≈3115.
+        var signed = DocxPicture.PlaceAbove(
+            File.ReadAllBytes(TemplatePath()), "{{CashierName}}", InkedPng(600, 200, 40, 40, 560, 160, pen: 10),
+            ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "accountant-signature");
+
+        using var document = WordprocessingDocument.Open(new MemoryStream(signed), isEditable: false);
+        var extent = document.MainDocumentPart!.Document.Body!.Descendants<DW.Inline>()
+            .Single(i => i.DocProperties!.Name!.Value == "accountant-signature").Extent!;
+        // Ink 520 × 120 px plus the 4 px margin each side: 528 × 128 px (the frame's corners read ~0.2 % thick).
+        extent.Cx!.Value.ShouldBeInRange(528 * 1782, 528 * 1818);
+        extent.Cy!.Value.ShouldBeInRange(128 * 1782, 128 * 1818);
+    }
+
+    /// <summary>A fine pen keeps filling the room: the cap only bites on thick strokes.</summary>
+    [Fact]
+    public void A_Fine_Stroke_Still_Fills_The_Room()
+    {
+        var signed = DocxPicture.PlaceAbove(
+            File.ReadAllBytes(TemplatePath()), "{{PayerName}}", InkedPng(600, 200, 40, 40, 560, 160, pen: 2),
+            ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
+
+        PayerCell(signed).Above!.Height.ShouldBeInRange(SignatureMaxEmu - 1, SignatureMaxEmu);
+    }
+
+    /// <summary>
+    /// 2026-11-08 (owner): the cashier's blank lines carry no alignment, so the
+    /// signature copied none and sat 5 mm left of "admin". It lines up like the
+    /// name under it now, on both sides of the sheet.
+    /// </summary>
+    [Theory]
+    [InlineData("{{CashierName}}", "accountant-signature")]
+    [InlineData("{{PayerName}}", "customer-signature")]
+    public void The_Signature_Is_Centred_Like_The_Name_Under_It(string text, string name)
+    {
+        var signed = DocxPicture.PlaceAbove(
+            File.ReadAllBytes(TemplatePath()), text, InkedPng(600, 300, 20, 20, 580, 280),
+            ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, name);
+
+        using var document = WordprocessingDocument.Open(new MemoryStream(signed), isEditable: false);
+        var signature = document.MainDocumentPart!.Document.Body!.Descendants<Paragraph>()
+            .Single(p => p.Descendants<DW.Inline>().Any(i => i.DocProperties!.Name!.Value == name));
+        var nameLine = signature.NextSibling<Paragraph>()!;
+        signature.ParagraphProperties!.Justification!.Val!.Value.ShouldBe(JustificationValues.Center);
+        nameLine.ParagraphProperties!.Justification!.Val!.Value.ShouldBe(JustificationValues.Center);
+    }
+
+    /// <summary>
+    /// 2026-11-08: the signature's line copied the blanks' 1.5 line spacing, so
+    /// an 18 mm signature laid out ~27 mm tall and the A6 receipt spilled onto
+    /// a blank second page. Its line is single-spaced now.
+    /// </summary>
+    [Fact]
+    public void The_Signature_Line_Is_Single_Spaced_So_It_Takes_Only_Its_Own_Height()
+    {
+        var signed = DocxPicture.PlaceAbove(
+            File.ReadAllBytes(TemplatePath()), "{{CashierName}}", InkedPng(600, 300, 20, 20, 580, 280),
+            ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "accountant-signature");
+
+        using var document = WordprocessingDocument.Open(new MemoryStream(signed), isEditable: false);
+        var spacing = document.MainDocumentPart!.Document.Body!.Descendants<Paragraph>()
+            .Single(p => p.Descendants<DW.Inline>().Any(i => i.DocProperties!.Name!.Value == "accountant-signature"))
+            .ParagraphProperties!.SpacingBetweenLines!;
+        spacing.Line!.Value.ShouldBe("240");
+        spacing.LineRule!.Value.ShouldBe(LineSpacingRuleValues.Auto);
     }
 
     [Fact]
@@ -210,7 +323,11 @@ public class PaymentReceiptTemplateTests
     /// where the strokes are. Each row uses the next of the five filters so the
     /// reader has to undo all of them.
     /// </summary>
-    private static byte[] InkedPng(int width, int height, int left, int top, int right, int bottom)
+    /// <summary>
+    /// A canvas inked over left..right × top..bottom: solid, or only a frame
+    /// <paramref name="pen"/> pixels thick round that area, as a pen draws.
+    /// </summary>
+    private static byte[] InkedPng(int width, int height, int left, int top, int right, int bottom, int? pen = null)
     {
         var stride = width * 4;
         var pixels = new byte[height * stride];
@@ -218,7 +335,9 @@ public class PaymentReceiptTemplateTests
         {
             for (var x = left; x < right; x++)
             {
-                pixels[y * stride + x * 4 + 3] = 255;
+                var inFrame = pen is not { } p
+                    || x < left + p || x >= right - p || y < top + p || y >= bottom - p;
+                pixels[y * stride + x * 4 + 3] = inFrame ? (byte)255 : (byte)0;
             }
         }
 

@@ -24,19 +24,30 @@ public static class DocxPicture
     private const long EmuPerMillimetre = 36_000;
     private const long EmuPerTwip = 635;
 
-    /// <summary>
-    /// How tall one blank 12 pt line of a template lays out, in twips (single
-    /// spacing: about 1.15 × the font size) — the room a signature is centred in.
-    /// </summary>
-    private const long BlankLineTwips = 276;
+    /// <summary>How tall a line of text lays out at single spacing, as a share of its font size.</summary>
+    private const double SingleLineFactor = 1.15;
+
+    /// <summary>Single spacing, in 240ths of a line: the signature's line is exactly the picture's height.</summary>
+    private const string SingleSpacing = "240";
 
     /// <summary>
-    /// How far below the middle of that room the picture goes, in twips: the
-    /// label's line keeps room under its letters and the name's line room over
-    /// its accents, so the middle of the lines is about 0.5 mm above the middle
-    /// of the ink. Measured on PHIẾU THU rendered by Gotenberg.
+    /// How far above the middle of the room the picture goes, in twips. The
+    /// label's 1.5-spaced line leaves ~2.2 mm of paper under its letters but
+    /// the name only ~1.1 mm over its own, so a picture centred in the room
+    /// looks 0.55 mm low. Lifting it this far, and keeping it that much shorter
+    /// than the room on each side, gives equal gaps of paper above and below.
+    /// Measured on PHIẾU THU rendered by Gotenberg (2026-11-08); it was a 0.5 mm
+    /// push down, measured on the earlier template.
     /// </summary>
-    private const long InkNudgeTwips = 28;
+    private const long InkLiftTwips = 31;
+
+    /// <summary>
+    /// The thickest a signature's stroke may print, in mm: about a ballpoint's
+    /// line. A pad draws a few-pixel pen, so a name signed small and blown up
+    /// to fill the room printed ~1 mm thick and jagged (BA 2026-11-08). The
+    /// picture is never enlarged past this; a small signature stays small.
+    /// </summary>
+    private const double MaxStrokeMm = 0.5;
     private const string ShapeUri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape";
 
     /// <summary>Swaps the box for a square PNG, <paramref name="growMm"/> larger on every side around the box's centre.</summary>
@@ -65,7 +76,12 @@ public static class DocxPicture
     /// the paragraph that reads <paramref name="text"/> — the room the template
     /// leaves for a hand signature — so the sheet keeps about its height.
     /// Only the strokes are used: the empty canvas round them is cropped off and
-    /// they sit midway in that room, right above the name (R-1101).
+    /// they sit midway in that room, right above the name (R-1101). The room is
+    /// measured from the blank lines as the template sets them (font size, line
+    /// spacing, space before/after), the picture is never taller than it, and
+    /// its line is single-spaced. It used to copy the blanks' 1.5 spacing and
+    /// assume 12 pt lines, so an 18 mm signature took ~27 mm of a ~12 mm room
+    /// and pushed the A6 PHIẾU THU onto a second page (2026-11-08).
     /// </summary>
     public static byte[] PlaceAbove(
         byte[] docx, string text, byte[] png, double maxWidthMm, double maxHeightMm, string name) =>
@@ -83,20 +99,82 @@ public static class DocxPicture
             }
 
             var size = PngSize(png);
-            var ink = PngInk.Bounds(png) ?? new PngInk.Area(0, 0, (int)size.Width, (int)size.Height);
-            var (width, height) = Fit((ink.Width, ink.Height), Emu(maxWidthMm), Emu(maxHeightMm));
+            var strokes = PngInk.Measure(png);
+            var ink = strokes?.Bounds ?? new PngInk.Area(0, 0, (int)size.Width, (int)size.Height);
+            var room = RoomTwips(main, blanks);
+            var lift = room > 2 * InkLiftTwips ? InkLiftTwips : 0;
+            var maxHeight = room > 0 ? Math.Min(Emu(maxHeightMm), (room - 2 * lift) * EmuPerTwip) : Emu(maxHeightMm);
+            var maxEmuPerPixel = strokes is { } s ? Emu(MaxStrokeMm) / s.Width : double.MaxValue;
+            var (width, height) = Fit((ink.Width, ink.Height), Emu(maxWidthMm), maxHeight, maxEmuPerPixel);
             var properties = blanks.LastOrDefault()?.ParagraphProperties?.CloneNode(true) as ParagraphProperties
-                ?? new ParagraphProperties(new Justification { Val = JustificationValues.Center });
-            var margin = Math.Max(0, (blanks.Count * BlankLineTwips - height / EmuPerTwip) / 2);
-            var nudge = Math.Min(margin, InkNudgeTwips);
-            properties.SpacingBetweenLines ??= new SpacingBetweenLines();
-            properties.SpacingBetweenLines.Before = (margin + nudge).ToString();
-            properties.SpacingBetweenLines.After = (margin - nudge).ToString();
+                ?? new ParagraphProperties();
+            // Lined up like the name under it: the cashier's blanks carry no
+            // alignment, so a copy of theirs left the signature 5 mm off centre.
+            properties.Justification = target.ParagraphProperties?.Justification?.CloneNode(true) as Justification
+                ?? new Justification { Val = JustificationValues.Center };
+            var margin = Math.Max(0, (room - height / EmuPerTwip) / 2);
+            var shift = Math.Min(margin, lift);
+            properties.SpacingBetweenLines = new SpacingBetweenLines
+            {
+                Before = (margin - shift).ToString(),
+                After = (margin + shift).ToString(),
+                Line = SingleSpacing,
+                LineRule = LineSpacingRuleValues.Auto
+            };
             target.InsertBeforeSelf(new Paragraph(
                 properties,
                 new Run(Inline(AddImage(main, png), NextPictureId(main), name, width, height, Crop(ink, size)))));
             blanks.ForEach(p => p.Remove());
         });
+
+    /// <summary>
+    /// How tall the blank lines lay out, in twips: each one's line (its font
+    /// size × 1.15, times its line spacing) plus its space before and after,
+    /// falling back on the document's defaults for whatever it leaves unset.
+    /// </summary>
+    private static long RoomTwips(MainDocumentPart main, IEnumerable<Paragraph> blanks) =>
+        blanks.Sum(blank => LineTwips(blank, main.StyleDefinitionsPart?.Styles));
+
+    /// <summary>
+    /// One blank line's height. Each setting comes from the first place that
+    /// has it, as Word resolves it: the paragraph, its paragraph style, the
+    /// table style of the table it sits in (PHIẾU THU's TableGrid zeroes the
+    /// space after), then the document defaults.
+    /// </summary>
+    private static long LineTwips(Paragraph blank, Styles? styles)
+    {
+        var defaults = styles?.DocDefaults;
+        var paragraphStyle = Style(styles, blank.ParagraphProperties?.ParagraphStyleId?.Val?.Value);
+        var tableStyle = Style(styles, blank.Ancestors<Table>().FirstOrDefault()
+            ?.GetFirstChild<TableProperties>()?.TableStyle?.Val?.Value);
+        var spacings = new[]
+        {
+            blank.ParagraphProperties?.SpacingBetweenLines,
+            paragraphStyle?.StyleParagraphProperties?.SpacingBetweenLines,
+            tableStyle?.StyleParagraphProperties?.SpacingBetweenLines,
+            defaults?.ParagraphPropertiesDefault?.ParagraphPropertiesBaseStyle?.SpacingBetweenLines
+        }.OfType<SpacingBetweenLines>().ToList();
+        string? First(Func<SpacingBetweenLines, string?> read) => spacings.Select(read).FirstOrDefault(v => v != null);
+
+        var halfPoints = Number(
+            blank.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<FontSize>()?.Val?.Value
+            ?? paragraphStyle?.StyleRunProperties?.FontSize?.Val?.Value
+            ?? tableStyle?.StyleRunProperties?.FontSize?.Val?.Value
+            ?? defaults?.RunPropertiesDefault?.RunPropertiesBaseStyle?.FontSize?.Val?.Value, 24);
+        var natural = halfPoints * 10 * SingleLineFactor;
+        var line = Number(First(s => s.Line?.Value), 240);
+        var rule = spacings.Select(s => s.LineRule?.Value).FirstOrDefault(v => v != null) ?? LineSpacingRuleValues.Auto;
+        var height = rule == LineSpacingRuleValues.Exact ? line
+            : rule == LineSpacingRuleValues.AtLeast ? Math.Max(natural, line)
+            : natural * line / 240;
+        return (long)Math.Round(height + Number(First(s => s.Before?.Value), 0) + Number(First(s => s.After?.Value), 0));
+    }
+
+    private static Style? Style(Styles? styles, string? id) =>
+        id == null ? null : styles?.Elements<Style>().FirstOrDefault(s => s.StyleId?.Value == id);
+
+    private static double Number(string? value, double fallback) =>
+        double.TryParse(value, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var n) ? n : fallback;
 
     private static bool IsBlank(Paragraph paragraph) =>
         string.IsNullOrWhiteSpace(paragraph.InnerText) && !paragraph.Descendants<Drawing>().Any();
@@ -131,11 +209,12 @@ public static class DocxPicture
         };
     }
 
-    private static (long Width, long Height) Fit((long Width, long Height) pixels, long maxWidth, long maxHeight)
+    private static (long Width, long Height) Fit(
+        (long Width, long Height) pixels, long maxWidth, long maxHeight, double maxEmuPerPixel = double.MaxValue)
     {
-        var scale = Math.Min(
+        var scale = Math.Min(maxEmuPerPixel, Math.Min(
             (double)maxWidth / Math.Max(1, pixels.Width),
-            (double)maxHeight / Math.Max(1, pixels.Height));
+            (double)maxHeight / Math.Max(1, pixels.Height)));
         return ((long)(pixels.Width * scale), (long)(pixels.Height * scale));
     }
 
