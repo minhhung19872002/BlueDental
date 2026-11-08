@@ -59,7 +59,7 @@ public class PaymentReceiptTemplateTests
     }
 
 
-    /// <summary>The QR takes the template's box: same centre, 2 mm larger on every side, the box itself gone.</summary>
+    /// <summary>The QR takes the template's box: same centre, GrowMm larger on every side, the box itself gone.</summary>
     [Fact]
     public void The_Qr_Replaces_The_Box_Around_Its_Centre()
     {
@@ -71,7 +71,7 @@ public class PaymentReceiptTemplateTests
         xml.ShouldNotContain(ShapeUri);
         xml.ShouldNotContain("<v:rect");
         var qr = Placement(xml, PictureUri, "invoice-request-qr");
-        const long grow = 2 * 36_000;
+        const long grow = (long)(PaymentReceiptQr.GrowMm * 36_000);
         qr.Size.ShouldBe(box.Size + 2 * grow);
         qr.Left.ShouldBe(box.Left - grow);
         qr.Top.ShouldBe(box.Top - grow);
