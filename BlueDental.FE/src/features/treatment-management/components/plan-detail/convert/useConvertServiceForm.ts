@@ -74,8 +74,8 @@ export function useConvertServiceForm(row: PlanDetailRow | null, onClose: () => 
   const hasNewService = replacing ? service !== null : line !== null;
 
   // Dịch vụ cũ keeps the price the line was sold at; Thay thế takes the new
-  // service's list price.
-  const unitPrice = replacing ? (service?.price ?? 0) : (line?.price ?? 0);
+  // service's "Giá sau giảm" from Danh mục, as Chọn dịch vụ does (R-1184).
+  const unitPrice = replacing ? (service?.salePrice ?? service?.price ?? 0) : (line?.price ?? 0);
   const money = conversionMoney({
     unitPrice,
     quantity: Math.max(toothDtos.length, 1),
