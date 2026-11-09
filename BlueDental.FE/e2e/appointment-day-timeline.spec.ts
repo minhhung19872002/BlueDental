@@ -86,6 +86,23 @@ async function book(
   throw new Error(`no booking could be made: ${JSON.stringify(lastError)}`);
 }
 
+interface ColumnState {
+  name: string;
+  unassigned: boolean;
+  blocks: number;
+}
+
+/** The board's columns left to right: name, whether it is "Chưa chọn bác sĩ", how many blocks it draws. */
+async function columnStates(page: Page): Promise<ColumnState[]> {
+  return page.locator(".dtl-col").evaluateAll((cols) =>
+    cols.map((c) => ({
+      name: c.querySelector(".dtl-name")?.textContent?.trim() ?? "",
+      unassigned: c.classList.contains("dtl-col--unassigned"),
+      blocks: c.querySelectorAll(".dtl-block").length,
+    })),
+  );
+}
+
 /** Opens view Ngày on `day` and waits for that day's bookings to arrive. */
 async function openDay(page: Page, day: string): Promise<void> {
   const loaded = page.waitForResponse((r) => r.url().includes(APPOINTMENTS) && r.url().includes(`date=${day}`) && r.ok());
@@ -318,9 +335,13 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     await expect(column).toHaveCount(1);
     await expect(column.locator(".dtl-name")).toHaveText("Chưa chọn bác sĩ");
     await expect(column.locator(".dtl-doc")).toHaveAttribute("title", /Lịch tạm chưa gán bác sĩ/);
-    // It comes after every doctor.
-    await expect(page.locator(".dtl-col").last()).toHaveClass(/dtl-col--unassigned/);
     await expect(column.locator(".dtl-block").filter({ hasText: name })).toHaveCount(3);
+    // R-1173: it comes after every doctor with a booking and before those with none.
+    const states = await columnStates(page);
+    const unassignedAt = states.findIndex((c) => c.unassigned);
+    expect(states.slice(0, unassignedAt).every((c) => c.blocks > 0), JSON.stringify(states)).toBe(true);
+    expect(states.slice(unassignedAt + 1).every((c) => c.blocks === 0), JSON.stringify(states)).toBe(true);
+    expect(states.findIndex((c) => c.name === working.fullName)).toBeGreaterThan(unassignedAt);
     // Only this run's walk-ins can sit here on a day this far out; they are two people.
     await expect(column.locator(".dtl-count")).toHaveText("2");
 
@@ -331,6 +352,45 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     // ⋮ → Cập nhật still opens its booking, to put a doctor on it.
     await openBlockEditor(page, column.locator(".dtl-block").first());
     await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
+  test("doctors with no booking that day move to the end; a search does not reorder; a cancel-only doctor counts as free", async ({ page }) => {
+    // R-1173, BA 2026-11-09: "bác nào không có lịch hẹn thì đẩy về cuối hết. Có thì giữ vị trí sắp xếp như cũ."
+    const day = shiftDays(clinicToday(), 12);
+    // Both run dentists work that day; only `off` (despite its name, not OFF here) gets a live booking.
+    const live = await book(page, branchId, off.id, at(day, "09:00"), at(day, "09:30"));
+    bookings.push(live.id);
+    const cancelled = await book(page, branchId, working.id, at(day, "10:00"), at(day, "10:30"));
+    bookings.push(cancelled.id);
+    const cancel = await call(page, `${APPOINTMENTS}/${cancelled.id}/cancel`, { method: "POST", branchId, json: { reason: 1, note: "e2e" } });
+    expect(cancel.status, JSON.stringify(cancel.body.error)).toBe(200);
+
+    await openDay(page, day);
+    await expect(page.locator(".dtl-col").filter({ hasText: offName }).locator(".dtl-block")).toHaveCount(1);
+    const expectBusyFirst = async () => {
+      const states = (await columnStates(page)).filter((c) => !c.unassigned);
+      const firstIdle = states.findIndex((c) => c.blocks === 0);
+      expect(firstIdle, JSON.stringify(states)).toBeGreaterThan(-1);
+      expect(states.slice(firstIdle).every((c) => c.blocks === 0), JSON.stringify(states)).toBe(true);
+      const busyAt = states.findIndex((c) => c.name === off.fullName);
+      const idleAt = states.findIndex((c) => c.name === working.fullName);
+      expect(busyAt).toBeGreaterThan(-1);
+      expect(busyAt).toBeLessThan(firstIdle);
+      // The cancelled booking is not drawn, so its doctor is among the free ones at the end.
+      expect(idleAt).toBeGreaterThanOrEqual(firstIdle);
+      return states.map((c) => c.name);
+    };
+    const order = await expectBusyFirst();
+
+    // Searching hides the blocks but leaves the columns where they were.
+    await page.locator(".cal-search-field input").fill(`khong-co-${runId()}`);
+    await expect(page.locator(".dtl-block")).toHaveCount(0);
+    expect((await columnStates(page)).filter((c) => !c.unassigned).map((c) => c.name)).toEqual(order);
+    await page.locator(".cal-search-field input").fill("");
+
+    await page.reload();
+    await expect(page.locator(".dtl-col").filter({ hasText: offName }).locator(".dtl-block")).toHaveCount(1);
+    expect(await expectBusyFirst()).toEqual(order);
   });
 
   test("a mouse drag scrolls the board sideways and moves no booking", async ({ page }) => {

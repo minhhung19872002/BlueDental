@@ -14301,3 +14301,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `chat.spec` (case vị trí viết lại: nút nằm trong `.app-header`, "Mời lên" giữ góc, panel dưới header và "Mời lên" ở trái panel) + `chat-r1165-toast` **11/11**.
   - Ảnh chụp 1440×800: đóng / mở panel đúng bố cục.
 - **Mức retest**: 2 (Chat nội bộ — shell).
+
+## R-1173 (2026-11-09, mức 2: Lịch hẹn view Ngày — bác sĩ không có lịch dồn về cuối, F-10, develop)
+
+- **Yêu cầu BA** (ảnh chụp, 2026-11-09): "Ở trang này bác nào không có lịch hẹn thì đẩy về cuối hết. Có thì giữ vị trí sắp xếp như cũ."
+- **Owner chốt** (hỏi trước khi làm):
+  - "Không có lịch" xét **cả ngày, trước bộ lọc** toolbar (tìm kiếm / chip trạng thái / chọn bác sĩ) → cột không nhảy khi gõ tìm kiếm.
+  - Bác sĩ chỉ có lịch **Hủy hẹn** = không có lịch (lịch hủy vốn không vẽ trên view Ngày).
+  - Cột **"Chưa chọn bác sĩ"** đứng sau nhóm có lịch, trước nhóm trống (trước đây luôn cuối cùng).
+- **Đã làm** (FE only): `buildDoctorRows` trong `day-timeline/timelineRows.ts` chia cột thành bận / rảnh, giữ thứ tự cũ trong từng nhóm: `[bận…, Chưa chọn bác sĩ?, rảnh…]`; khi lọc theo bác sĩ vẫn theo thứ tự đó.
+- **Kiểm thử** (host :5000 + bản build production preview riêng :8091, không chặn request):
+  - `appointment-day-timeline.spec`: case mới (bác sĩ có lịch đứng trước mọi cột trống; bác sĩ chỉ có lịch hủy nằm nhóm cuối; gõ tìm kiếm không đổi thứ tự; reload giữ nguyên) + case "Chưa chọn bác sĩ" viết lại theo vị trí mới → **8/9**.
+  - Đỏ còn lại: "a mouse drag scrolls the board sideways" — **đỏ sẵn**, cũng đỏ trên bản build cũ :8080 (scrollLeft = 0), không liên quan thay đổi này.
+- **Mức retest**: 2 (Lịch hẹn — view Ngày).

@@ -54,6 +54,12 @@ export function filterBookings(bookings: AppointmentDto[], filter: BookingFilter
  * gets a column, so none of that day's bookings vanishes from the board. A
  * "Lịch tạm" with no doctor yet goes in a last column of its own (`NO_ID`),
  * shown only on days that have one and hidden once a doctor is picked.
+ *
+ * R-1173 (BA 2026-11-09): doctors with no booking that day move to the end,
+ * the others keep their order. "No booking" is judged on the whole day before
+ * the toolbar filters, so typing a search never shuffles the columns; cancelled
+ * bookings are already gone from `dayBookings`, so a cancel-only doctor is idle.
+ * The "Chưa chọn bác sĩ" column sits between the busy and the idle ones.
  */
 export function buildDoctorRows(
   available: TimelineDoctor[],
@@ -61,22 +67,28 @@ export function buildDoctorRows(
   doctorIds?: string[],
 ): TimelineDoctor[] {
   const rows = [...available];
-  const listed = new Set(available.map((d) => d.id));
+  const booked = new Set<string>();
   let unassigned = false;
   for (const booking of dayBookings) {
     if (!booking.doctorId || booking.doctorId === NO_ID) {
       unassigned = true;
       continue;
     }
-    if (listed.has(booking.doctorId)) continue;
-    listed.add(booking.doctorId);
-    rows.push({ id: booking.doctorId, name: booking.doctorName, labelColor: booking.doctorLabelColor });
+    if (booked.has(booking.doctorId)) continue;
+    booked.add(booking.doctorId);
+    if (!available.some((d) => d.id === booking.doctorId)) {
+      rows.push({ id: booking.doctorId, name: booking.doctorName, labelColor: booking.doctorLabelColor });
+    }
   }
 
-  if (!doctorIds || doctorIds.length === 0) return unassigned ? [...rows, { id: NO_ID, name: "" }] : rows;
+  const busy = rows.filter((d) => booked.has(d.id));
+  const idle = rows.filter((d) => !booked.has(d.id));
+  if (!doctorIds || doctorIds.length === 0) {
+    return unassigned ? [...busy, { id: NO_ID, name: "" }, ...idle] : [...busy, ...idle];
+  }
   // The doctor picker never offers NO_ID, so picking anyone hides the unassigned column.
   const picked = new Set(doctorIds);
-  return rows.filter((d) => picked.has(d.id));
+  return [...busy, ...idle].filter((d) => picked.has(d.id));
 }
 
 export function groupByDoctor(bookings: AppointmentDto[]): Map<string, AppointmentDto[]> {
