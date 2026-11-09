@@ -14,8 +14,8 @@ const TemporaryPatientDialog = lazy(() =>
 
 /**
  * The round button in the bottom-right corner of every screen (the app shell
- * mounts it, owner 2026-11-02): its badge counts the patients waiting for the
- * viewer, a click opens the list and a click anywhere else folds it away.
+ * mounts it, owner 2026-11-02): its badge counts the patients shown that still
+ * wait for a click (R-1171), a click opens the list and a click anywhere else folds it away.
  * Opening the list also stops the blink of a chime the browser blocked.
  */
 export const ArrivalCallDock: React.FC = () => {

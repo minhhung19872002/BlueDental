@@ -42,7 +42,7 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
           {item.isTemporary && <span className="arrival-row-temp">{t("Reception:StatusTemporary")}</span>}
         </div>
         {needsRecord && <div className="arrival-row-hint">{t("Reception:ArrivalCallNeedsRecord")}</div>}
-        {/* Whose patient it is: reception seats for every doctor, an admin calls up for every doctor. */}
+        {/* Whose patient it is: reception seats for every doctor, a doctor calls up for every doctor shown. */}
         <div className="arrival-row-line arrival-row-meta">
           <span>
             <Clock3 size={16} aria-hidden />
