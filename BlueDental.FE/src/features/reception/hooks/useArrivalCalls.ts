@@ -19,15 +19,15 @@ const ADMIN_ROLE = "admin";
  * The floating "Đã đến" panel (owner 2026-11-02). Who sees which list is the
  * "Bác sĩ" tick on the staff form, not a role's name; the role's Tiếp nhận
  * permissions still apply on top:
- * - ticked "Bác sĩ": their own waiting patients, seen with Xem, called up
- *   with "Mời lên" given Sửa — and, picked with the 👁, other doctors' too,
- *   only to look at (R-1164, BA 2026-11-06);
+ * - ticked "Bác sĩ": their own waiting patients and, picked with the 👁,
+ *   other doctors' too (R-1164, BA 2026-11-06), seen with Xem, any of them
+ *   called up with "Mời lên" given Sửa (R-1171, BA 2026-11-09);
  * - not ticked: only the called-up patients, with Xem and Sửa, seated with
  *   "Tiếp nhận";
  * - an admin: both lists, for every doctor, ticked or not (owner 2026-11-02).
  * So two doctors never see each other's called-up list. The server applies
  * the same rules; this only decides what to offer. The badge counts what still
- * waits for the viewer's click: another doctor's patient does not.
+ * waits for a click among the rows shown, so the 👁's pick moves it (R-1171).
  *
  * A called-up "Lịch tạm" is not seated straight away: its button opens "Tạo
  * hồ sơ" first, and once the record is attached the row offers "Tiếp nhận"
@@ -62,8 +62,6 @@ export function useArrivalCalls() {
   const waitingItems = useMemo(() => (pickedNone ? [] : (waiting.data ?? [])), [pickedNone, waiting.data]);
 
   const sections = useMemo(() => {
-    // "Mời lên" stays the visit's own doctor's, or an admin's (the server agrees).
-    const canInvite = reception.canUpdate;
     const list: ArrivalCallSection[] = [];
     if (canCall) {
       list.push({
@@ -72,8 +70,9 @@ export function useArrivalCalls() {
         items: waitingItems,
         loading: !pickedNone && waiting.isLoading,
         emptyText: pickedNone ? t("Reception:ArrivalDoctorPickNone") : undefined,
-        // Xem shows the list; "Mời lên" writes, so it takes Sửa.
-        canAct: (item) => canInvite && (isAdmin || item.doctorId === userId),
+        // Xem shows the list; "Mời lên" writes, so it takes Sửa — for any
+        // doctor's patient shown (R-1171; the server agrees).
+        canAct: () => reception.canUpdate,
       });
     }
     if (canAdmit) {
@@ -90,8 +89,6 @@ export function useArrivalCalls() {
     canCall,
     canAdmit,
     reception.canUpdate,
-    isAdmin,
-    userId,
     pickedNone,
     waitingItems,
     waiting.isLoading,
@@ -99,8 +96,9 @@ export function useArrivalCalls() {
     invited.isLoading,
   ]);
 
+  // Every shown row not yet called up — the 👁's pick moves it (R-1171).
   const badgeCount =
-    (canCall ? waitingItems.filter((i) => !i.invited && (isAdmin || i.doctorId === userId)).length : 0) +
+    (canCall ? waitingItems.filter((i) => !i.invited).length : 0) +
     (canAdmit ? (invited.data ?? []).length : 0);
 
   const pendingId =

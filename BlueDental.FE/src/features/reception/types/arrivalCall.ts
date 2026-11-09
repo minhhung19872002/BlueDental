@@ -8,7 +8,7 @@ export interface ArrivalCall {
   isTemporary: boolean;
   /** The "Lịch tạm"'s own phone, prefilled into "Tạo hồ sơ". */
   patientPhone?: string;
-  /** The visit's doctor: only they, or an admin, press "Mời lên" (R-1164). */
+  /** The visit's doctor; any doctor may press "Mời lên" for it (R-1171). */
   doctorId: string;
   doctorName: string;
   /** The doctor's "Màu nhãn"; null = the staff default (R-1155). */
@@ -36,10 +36,7 @@ export interface ArrivalCallSection {
   loading: boolean;
   /** What an empty list says, when not "no patient waiting" — e.g. no doctor picked (R-1164). */
   emptyText?: string;
-  /**
-   * Whether a row carries its button: the role may only view, and a doctor
-   * looking at another doctor's patients only looks (R-1164).
-   */
+  /** Whether a row carries its button: not when the role may only view. */
   canAct: (item: ArrivalCall) => boolean;
 }
 

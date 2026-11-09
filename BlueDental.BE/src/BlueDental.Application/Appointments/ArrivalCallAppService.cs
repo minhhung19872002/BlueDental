@@ -32,8 +32,8 @@ public class ArrivalCallAppService(
     /// <summary>
     /// An account ticked "Bác sĩ" on the staff form, or an admin, gets the
     /// doctors it picked with the 👁 (R-1164, BA 2026-11-06: "chọn hiển thị
-    /// ai thì họ chọn") — another doctor's patients too, to look at: "Mời lên"
-    /// stays the visit's own doctor's. With nothing picked a doctor gets its
+    /// ai thì họ chọn") — another doctor's patients too, and may call them up
+    /// (R-1171). With nothing picked a doctor gets its
     /// own patients and an admin every doctor's (owner 2026-11-02). Anyone
     /// else gets none.
     /// </summary>
@@ -85,15 +85,19 @@ public class ArrivalCallAppService(
         return await ToDtosAsync(query.Where(a => a.InvitedAt != null));
     }
 
-    /// <summary>Only the visit's own doctor — or an admin — calls the patient up.</summary>
+    /// <summary>
+    /// Any doctor (the "Bác sĩ" tick) — or an admin — calls the patient up,
+    /// another doctor's visit too (R-1171, BA 2026-11-09: "bỏ logic chỉ cá
+    /// nhân mới được mời"). Reception does not.
+    /// </summary>
     [Authorize(BlueDentalAbilityPermissions.Reception.Update)]
     public async Task<ArrivalCallDto> InviteAsync(Guid id)
     {
         var appointment = await GetInBranchAsync(id);
         var userId = CurrentUser.GetId();
-        if (!IsAdmin() && (!await IsDentistAsync(userId) || appointment.DentistId != userId))
+        if (!IsAdmin() && !await IsDentistAsync(userId))
         {
-            throw new AbpAuthorizationException("Only the visit's doctor can call the patient up.");
+            throw new AbpAuthorizationException("Only a doctor can call the patient up.");
         }
 
         appointment.Invite(userId);

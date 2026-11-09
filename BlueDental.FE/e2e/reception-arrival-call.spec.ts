@@ -8,7 +8,8 @@ import { call as plainCall, RUN_STAFF_PASSWORD } from "./fixtures/timekeepingSta
  *
  * Which list an account gets is the "Bác sĩ" tick on the staff form, not a
  * role's name; the role's Tiếp nhận permissions apply on top. A doctor sees
- * only their own arrived patients and calls one up with "Mời lên" — even with
+ * their own arrived patients (others' too, picked with the 👁 — R-1164) and
+ * calls any of them up with "Mời lên" (R-1171) — even with
  * Tiếp nhận "Sửa" they never see the called-up list, so two doctors do not
  * see each other's. An account not ticked "Bác sĩ" with Tiếp nhận Xem + Sửa
  * sees the called-up patient and seats them with "Tiếp nhận", which moves the
@@ -242,9 +243,7 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       const invitedForDoctor = await call(doctor.page, branchId, `${ARRIVAL_CALLS}/invited`);
       expect(invitedForDoctor.status, "a doctor has no called-up list, even with Sửa").toBe(403);
       const inviteByReception = await call(receptionist.page, branchId, `${ARRIVAL_CALLS}/${fixture.ownVisit.id}/invite`, { method: "POST" });
-      expect(inviteByReception.status, "only the visit's doctor calls up").toBe(403);
-      const inviteOther = await call(doctor.page, branchId, `${ARRIVAL_CALLS}/${fixture.otherVisit.id}/invite`, { method: "POST" });
-      expect(inviteOther.status, "a doctor cannot call up another doctor's patient").toBe(403);
+      expect(inviteByReception.status, "reception does not call up").toBe(403);
 
       // "Mời lên": the row is flagged and the badge clears.
       await rowOf(doctor.page, fixture.ownVisit).getByRole("button", { name: "Mời lên" }).click();
@@ -309,9 +308,13 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
   /**
    * R-1164 (BA 2026-11-06, owner: anyone who sees the list, several doctors,
    * kept per device): the 👁 on "Khách đã đến" picks whose arrived patients it
-   * shows. Another doctor's patient is only looked at — "Mời lên" stays theirs.
+   * shows. R-1171 (BA 2026-11-09): the doctor may call any of them up, and the
+   * dock's badge counts every shown row not yet called up, so the pick moves it.
    */
-  test("the 👁 picks whose arrived patients a doctor sees, kept on this device (R-1164)", async ({ page, browser }) => {
+  test("the 👁 picks whose arrived patients a doctor sees and calls up, kept on this device (R-1164, R-1171)", async ({
+    page,
+    browser,
+  }) => {
     test.setTimeout(240_000);
     await login(page);
     const branchId = await openBoard(page);
@@ -346,12 +349,11 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       expect(peerArrivals.body.map((a) => a.id)).toEqual([fixture.otherVisit.id]);
       const ownArrivals = await call<{ id: string }[]>(doctor.page, branchId, `${ARRIVAL_CALLS}/waiting`);
       expect(ownArrivals.body.map((a) => a.id), "nothing picked: own patients").toEqual([fixture.ownVisit.id]);
-      // Looking is not calling up: "Mời lên" on the peer's patient is still refused.
-      const inviteOther = await call(doctor.page, branchId, `${ARRIVAL_CALLS}/${fixture.otherVisit.id}/invite`, { method: "POST" });
-      expect(inviteOther.status, "a doctor cannot call up another doctor's patient").toBe(403);
 
       // Never picked: the doctor sees their own patient, ticked in the 👁.
       const desk = doctor.page;
+      const badge = dockButton(desk).locator(".arrival-dock-badge");
+      await expect(badge).toHaveText("1");
       await dockButton(desk).click();
       await expect(rowOf(desk, fixture.ownVisit)).toBeVisible();
       await expect(rowOf(desk, fixture.otherVisit)).toHaveCount(0);
@@ -362,20 +364,29 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(picker.getByRole("checkbox", { name: fixture.doctor.userName })).toBeChecked();
       await expect(picker.getByRole("checkbox", { name: peer.userName })).not.toBeChecked();
 
-      // Search, tick the peer: both patients, only the own one with "Mời lên".
+      // Search, tick the peer: both patients, each with "Mời lên" (R-1171),
+      // and the badge counts both.
       await picker.getByPlaceholder("Tìm bác sĩ...").fill(peer.userName);
       await expect(picker.getByRole("checkbox", { name: fixture.doctor.userName })).toHaveCount(0);
       await picker.getByRole("checkbox", { name: peer.userName }).check();
       await expect(panel(desk), "ticking keeps the panel open").toBeVisible();
       await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
       await expect(rowOf(desk, fixture.otherVisit).locator(".arrival-row-doctor")).toContainText(peer.userName);
-      await expect(rowOf(desk, fixture.otherVisit).getByRole("button", { name: "Mời lên" })).toHaveCount(0);
+      await expect(rowOf(desk, fixture.otherVisit).getByRole("button", { name: "Mời lên" })).toBeVisible();
       await expect(rowOf(desk, fixture.ownVisit).getByRole("button", { name: "Mời lên" })).toBeVisible();
-      // The badge still counts only what waits for this doctor's click.
-      await expect(dockButton(desk).locator(".arrival-dock-badge")).toHaveText("1");
+      await expect(badge, "the pick moves the badge").toHaveText("2");
 
-      // Kept on this device: after a reload the pick stands.
+      // Untick their own: the badge follows down.
+      await picker.getByPlaceholder("Tìm bác sĩ...").fill("");
+      await picker.getByRole("checkbox", { name: fixture.doctor.userName }).uncheck();
+      await expect(rowOf(desk, fixture.ownVisit)).toHaveCount(0);
+      await expect(badge).toHaveText("1");
+      await picker.getByRole("checkbox", { name: fixture.doctor.userName }).check();
+      await expect(badge).toHaveText("2");
+
+      // Kept on this device: after a reload the pick stands, badge too.
       await desk.reload();
+      await expect(badge).toHaveText("2");
       await dockButton(desk).click();
       await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
       await expect(rowOf(desk, fixture.ownVisit)).toBeVisible();
@@ -391,11 +402,14 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(section(desk, "Khách đã đến").locator(".arrival-row")).toHaveCount(0);
       await expect(dockButton(desk).locator(".arrival-dock-badge")).toHaveCount(0);
 
-      // "Tất cả bác sĩ": every doctor's.
+      // "Tất cả bác sĩ": every doctor's; the branch is shared, so the badge is
+      // every shown row still carrying "Mời lên".
       await all.check();
       await expect(picker.getByRole("checkbox", { name: peer.userName })).toBeChecked();
       await expect(rowOf(desk, fixture.ownVisit)).toBeVisible();
       await expect(rowOf(desk, fixture.otherVisit)).toBeVisible();
+      const inviteButtons = section(desk, "Khách đã đến").getByRole("button", { name: "Mời lên" });
+      await expect(badge).toHaveText(String(await inviteButtons.count()));
 
       // A popover left of the panel, wholly on screen; a search never moves it.
       const box = async () => {
@@ -441,10 +455,29 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await expect(picker).toHaveCount(0);
       await desk.setViewportSize({ width: 1280, height: 720 });
 
-      // Reception's "Bác sĩ mời lên" has no 👁 and is not filtered.
+      // "Mời lên" on the peer's patient (R-1171): flagged, and the badge drops one.
+      const badgeBefore = Number(await badge.textContent());
+      await rowOf(desk, fixture.otherVisit).getByRole("button", { name: "Mời lên" }).click();
+      await expect(desk.getByText("Đã mời bệnh nhân lên")).toBeVisible();
+      await expect(rowOf(desk, fixture.otherVisit)).toContainText("Đã mời");
+      await expect(rowOf(desk, fixture.otherVisit).getByRole("button", { name: "Mời lên" })).toHaveCount(0);
+      await expect(badge).toHaveText(String(badgeBefore - 1));
+      // Stored: a separate read sees it called up.
+      const afterInvite = await call<{ id: string; invitedAt: string | null }[]>(
+        doctor.page,
+        branchId,
+        `${ARRIVAL_CALLS}/waiting?dentistIds=${peer.id}`,
+      );
+      expect(afterInvite.status).toBe(200);
+      expect(afterInvite.body.find((a) => a.id === fixture.otherVisit.id)?.invitedAt, "persisted as called up").toBeTruthy();
+
+      // Reception's "Bác sĩ mời lên" has no 👁, is not filtered, and has the
+      // peer's patient to seat.
       await dockButton(receptionist.page).click();
       await expect(panel(receptionist.page)).toContainText("Bác sĩ mời lên");
       await expect(panel(receptionist.page).getByRole("button", { name: "Chọn bác sĩ hiển thị" })).toHaveCount(0);
+      await expect(rowOf(receptionist.page, fixture.otherVisit)).toBeVisible({ timeout: 15_000 });
+      await expect(rowOf(receptionist.page, fixture.otherVisit).getByRole("button", { name: "Tiếp nhận" })).toBeVisible();
     } finally {
       for (const session of sessions) await session.context.close();
       await plainCall(page, `${STAFF}/${peer.id}`, { method: "DELETE" });

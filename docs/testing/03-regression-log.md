@@ -14272,3 +14272,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: `PaymentReceiptTemplateTests` + Printing/Receipt **23/23**. Render Gotenberg 9 mức tiền: 100 nghìn / 15 triệu / 150 triệu / 1,25 tỷ (không ký, không QR) / hết nợ → 1 trang; dòng 2 "Một triệu hai trăm năm mươi nghìn đồng" giờ vừa một dòng. Vẫn 2 trang: 25.750.000 ("Hai mươi lăm triệu bảy trăm năm mươi nghìn đồng" xuống hàng), 12.345.000, số lẻ 987.654.321 / 12.345.678.
 - **Còn mở**: chữ xuống hàng → chữ ký / ngày / QR sang trang 2; ≥1 tỷ "Viết bằng chữ" lệch phải (R-1168).
 - **Mức retest**: 1 (chỉ bố cục template).
+
+## R-1171 (2026-11-09, mức 2: Khách đã đến — bác sĩ nào cũng "Mời lên" được, số trên nút theo 👁, F-11, main)
+
+- **Yêu cầu (BA 2026-11-09)**: "chọn hiển thị cho số cập nhật theo luôn" và "bỏ logic chỉ cá nhân mới được mời". Trước đây số trên nút nổi chỉ đếm khách của chính bác sĩ, dù 👁 chọn nhiều bác sĩ (ảnh BA: đầu panel 2, nút 1).
+- **Owner chốt**: số trên nút chỉ đếm dòng **chưa mời**, còn số ở đầu panel đếm mọi dòng (giữ như cũ). Bác sĩ nào cũng được mời; lễ tân vẫn không.
+- **Đã làm**:
+  - BE `InviteAsync`: bỏ điều kiện `DentistId == userId`. Vẫn cần tích "Bác sĩ" hoặc admin, quyền Tiếp nhận Sửa và đúng chi nhánh.
+  - FE `useArrivalCalls`: `canAct` của "Khách đã đến" chỉ còn kiểm tra Sửa; `badgeCount` đếm mọi dòng đang hiện mà chưa mời.
+- **Kiểm thử** (host riêng :5171 + bản build production :8171, không chặn request):
+  - `reception-arrival-call` **7/7**. Case R-1164 được viết lại:
+    - tích thêm bác sĩ khác thì số trên nút 1 → 2, bỏ tích bác sĩ của mình thì 2 → 1, số giữ nguyên sau khi tải lại;
+    - "Tất cả bác sĩ": số = số nút "Mời lên" đang hiện;
+    - dòng của bác sĩ khác có nút "Mời lên"; bấm thì dòng ghi "Đã mời", số giảm 1, đọc lại qua API thấy `invitedAt`, lễ tân thấy dòng đó trong "Bác sĩ mời lên".
+  - Lễ tân gọi mời vẫn nhận 403.
+  - `staff-label-color` **1/1**.
+- **Mức retest**: 2 (Tiếp nhận — panel nổi).
