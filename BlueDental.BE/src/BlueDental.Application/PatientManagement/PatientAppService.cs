@@ -683,6 +683,7 @@ public class PatientAppService : BlueDentalAppService, IPatientAppService
                 TotalAmount = rollup.TotalAmount,
                 TotalRevenue = rollup.TotalRevenue,
                 TotalDebt = rollup.TotalDebt,
+                MoneyHidden = rollup.MoneyHidden,
                 NextAppointmentAt = rollup.NextAppointmentAt,
                 LastVisitAt = rollup.LastVisitAt,
                 CreationTime = patient.CreationTime

@@ -22,6 +22,11 @@ namespace BlueDental.PatientManagement;
 /// <param name="TotalDebt">Công nợ.</param>
 /// <param name="NextAppointmentAt">Lịch hẹn gần nhất.</param>
 /// <param name="LastVisitAt">Lần khám cuối.</param>
+/// <param name="MoneyHidden">
+/// The patient has live slips but none of their money reaches the viewer, so
+/// the three money columns read masked rather than a misleading 0 (BA
+/// 2026-11-09, R-1174: "che luôn đi, để bị hỏi sao nó hiện 0 nữa").
+/// </param>
 public sealed record PatientRollup(
     PatientTreatmentStatus TreatmentStatus,
     IReadOnlyList<Guid> ServiceCatalogIds,
@@ -30,7 +35,8 @@ public sealed record PatientRollup(
     decimal TotalRevenue,
     decimal TotalDebt,
     DateTimeOffset? NextAppointmentAt,
-    DateTimeOffset? LastVisitAt);
+    DateTimeOffset? LastVisitAt,
+    bool MoneyHidden = false);
 
 /// <summary>
 /// Builds the patient list's per-row rollup.
@@ -95,7 +101,9 @@ public class PatientListRollupCalculator : IDomainService
             // reference shows 0 there and keeps the surplus in Trả trước.
             TotalDebt: summary.TotalDue > 0m ? summary.TotalDue : 0m,
             NextAppointmentAt: NextAppointment(appointments, now),
-            LastVisitAt: LastVisit(appointments) ?? patient.RegisteredAt);
+            LastVisitAt: LastVisit(appointments) ?? patient.RegisteredAt,
+            // A patient with no live slip owes nothing anyone could hide: 0 is the truth.
+            MoneyHidden: scope is not null && live.Count > 0 && !live.Exists(scope.ShowsMoneyOf));
     }
 
     /// <summary>

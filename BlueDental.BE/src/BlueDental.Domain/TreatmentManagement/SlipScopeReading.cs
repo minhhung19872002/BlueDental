@@ -37,4 +37,11 @@ public static class SlipScopeReading
             var ownLines when scope!.ShowsLineMoney => ownLines,
             _ => new HashSet<Guid>(),
         };
+
+    /// <summary>
+    /// Whether any of the slip's money reaches the viewer: received inside the
+    /// scope, or with at least one line whose money shows (<see cref="MoneyLinesOf"/>).
+    /// </summary>
+    public static bool ShowsMoneyOf(this SlipScope? scope, TreatmentPlan plan) =>
+        scope.MoneyLinesOf(plan) is null or { Count: > 0 };
 }

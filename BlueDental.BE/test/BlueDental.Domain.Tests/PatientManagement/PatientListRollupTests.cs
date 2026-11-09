@@ -206,4 +206,51 @@ public class PatientListRollupTests
         rollup.TotalRevenue.ShouldBe(cards.TotalPaid - cards.TotalRefund);
         rollup.TotalDebt.ShouldBe(cards.TotalDue);
     }
+
+    // ── R-1174: a row with slips but none of them in scope reads masked, not 0 ──
+
+    [Fact]
+    public void A_row_with_money_in_scope_is_not_masked()
+    {
+        FoldFor(null).MoneyHidden.ShouldBeFalse();
+        FoldFor(new SlipScope(new HashSet<Guid> { Viewer })).MoneyHidden.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void A_row_whose_slips_all_lie_outside_the_scope_is_masked()
+    {
+        var rollup = FoldFor(new SlipScope(new HashSet<Guid> { Guid.NewGuid() }));
+
+        rollup.MoneyHidden.ShouldBeTrue();
+        rollup.TotalAmount.ShouldBe(0m);
+        rollup.TotalRevenue.ShouldBe(0m);
+        rollup.TotalDebt.ShouldBe(0m);
+    }
+
+    [Fact]
+    public void A_line_seen_without_its_money_does_not_unmask_the_row()
+    {
+        var other = Guid.NewGuid();
+        var plan = APlan(other, "DT04");
+        AFinishedLine(plan, 2_000_000m, dentist: Viewer);
+
+        var rollup = _rollup.For(
+            APatient(), [plan], [], Array.Empty<Appointment>(), DateTimeOffset.UtcNow,
+            new SlipScope(new HashSet<Guid> { Viewer }, ShowsLineMoney: false));
+
+        rollup.MoneyHidden.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void A_patient_with_no_live_slip_reads_a_plain_zero()
+    {
+        var cancelled = APlan(Guid.NewGuid(), "DT05");
+        cancelled.Cancel();
+
+        var scope = new SlipScope(new HashSet<Guid> { Viewer });
+        _rollup.For(APatient(), [], [], Array.Empty<Appointment>(), DateTimeOffset.UtcNow, scope)
+            .MoneyHidden.ShouldBeFalse();
+        _rollup.For(APatient(), [cancelled], [], Array.Empty<Appointment>(), DateTimeOffset.UtcNow, scope)
+            .MoneyHidden.ShouldBeFalse();
+    }
 }

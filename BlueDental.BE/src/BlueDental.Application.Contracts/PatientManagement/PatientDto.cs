@@ -124,7 +124,8 @@ public class PatientListItemDto
     public decimal TotalDebt { get; set; }
 
     /// <summary>
-    /// Set when the caller lacks "Tài chính / Kế toán › Chi phí › Xem" (BA P2010):
+    /// Set when the caller lacks "Tài chính / Kế toán › Chi phí › Xem" (BA P2010),
+    /// or when the patient's slips all lie outside the caller's scope (R-1174):
     /// the three money fields above then arrive as 0 and are shown masked.
     /// </summary>
     public bool MoneyHidden { get; set; }

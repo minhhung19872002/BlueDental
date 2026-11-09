@@ -155,6 +155,9 @@ const tile = (value: number) => `${value.toLocaleString("vi")} đ`;
 
 const LIST_MONEY = ["Số tiền", "Thực thu", "Công nợ"];
 
+/** A /patient money cell as printed: a figure in vi format, or the mask as is. */
+const onScreen = (value: number | string) => (typeof value === "number" ? value.toLocaleString("vi") : value);
+
 /** /patient's three money cells on the row of `patientCode`. */
 const moneyCells = (page: Page, patientCode: string) =>
   page.locator("tr.ant-table-row", { hasText: patientCode }).locator(".bd-patient-money");
@@ -533,16 +536,18 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
         await page.keyboard.press("Escape");
         await expect(list).toHaveCount(0);
 
-        // Asked for Thanh toán: a slip seen through lines has Chi tiết điều trị only, and no money summary.
+        // Asked for Thanh toán: a slip seen through lines has Chi tiết điều trị and Bảo hành only — no money
+        // tab and no money summary. Bảo hành holds no money, so every viewer of the slip has it (P3110 REQ-B1).
         const answered = page.waitForResponse((res) => res.url().includes(`${PLANS}/${slip.id}/treating`));
         await page.goto(`/patient/${farPatientId}/treatment-plan/${slip.id}?branch=BD-001&planTab=payment-v2`);
         expect((await answered).status()).toBe(200);
         const tabs = page.locator(".pdt-tabrow").getByRole("tab");
         if (through) {
-          await expect(tabs).toHaveText(["Chi tiết điều trị"]);
+          // Bảo hành carries its card count after the name.
+          await expect(tabs).toHaveText(["Chi tiết điều trị", /^Bảo hành\d*$/]);
           await expect(page.locator(".pdt-stats")).toHaveCount(0);
         } else {
-          await expect(tabs).toHaveCount(4);
+          await expect(tabs).toHaveCount(5);
           await expect(page.locator(".pdt-stats")).toBeVisible();
           await tabs.filter({ hasText: "Chi tiết điều trị" }).click();
         }
@@ -685,39 +690,47 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
    * Bug 41, per account: a /patient row adds up the money the record's Hồ sơ
    * tab shows that account. Per patient, how many slips' (or lines') price it
    * counts, what was paid on them, and whether anything is owed — only on team
-   * B's finished slip of the third patient.
+   * B's finished slip of the third patient. A patient whose slips all lie
+   * outside the account's scope reads masked, not 0 (R-1174).
    */
   test("bug 41: /patient counts only the money the account sees, as Hồ sơ does — on the API, on screen and in the file", async ({ browser }) => {
     type Patient = "main" | "far" | "aside";
+    type Seen = [number, number, boolean] | "masked";
     const patients: Record<Patient, { id: string; code: string }> = {
       main: { id: patientId, code: patientCode },
       far: { id: farPatientId, code: farPatientCode },
       aside: { id: asidePatientId, code: asidePatientCode },
     };
     const farPaid = Object.values(FAR_PAID).flat().reduce((sum, paid) => sum + paid, 0);
-    const everything: Record<Patient, [number, number, boolean]> = {
+    const everything: Record<Patient, Seen> = {
       main: [4, PAID, false],
       far: [6, farPaid, false],
       aside: [2, PART_PAID, true],
     };
-    const views: { who: Who | "admin"; sees: Record<Patient, [number, number, boolean]> }[] = [
+    const views: { who: Who | "admin"; sees: Record<Patient, Seen> }[] = [
       { who: "admin", sees: everything },
       { who: "accountant", sees: everything },
       // Team A's: their slip and the member's, the far lines of theirs and the member's, the deputy's slip — never team B's.
       { who: "head", sees: { main: [2, PAID, false], far: [3, FAR_PAID.y[1], false], aside: [1, 0, false] } },
-      // A member with Chi phí: the slip they received, nothing of their head's or a teammate's.
-      { who: "deputy", sees: { main: [0, 0, false], far: [0, 0, false], aside: [1, 0, false] } },
+      // A member with Chi phí: the slip they received; the patients holding only their head's or a teammate's read masked.
+      { who: "deputy", sees: { main: "masked", far: "masked", aside: [1, 0, false] } },
     ];
 
     for (const { who, sees } of views) {
       const session = who === "admin" ? null : await signIn(browser, who, run);
       const page = session?.page ?? admin;
       try {
-        const shown = {} as Record<Patient, number[]>;
+        const shown = {} as Record<Patient, (number | string)[]>;
         for (const key of Object.keys(patients) as Patient[]) {
-          const [count, paid, owes] = sees[key];
+          const seen = sees[key];
           const row = await listRowOf(page, patients[key].code);
-          expect(row.moneyHidden).toBe(false);
+          expect(row.moneyHidden, `${who} masked on ${key}`).toBe(seen === "masked");
+          if (seen === "masked") {
+            expect([row.totalAmount, row.totalRevenue, row.totalDebt], `${who} on ${key}`).toEqual([0, 0, 0]);
+            shown[key] = [MASK, MASK, MASK];
+            continue;
+          }
+          const [count, paid, owes] = seen;
           expect([row.totalAmount, row.totalRevenue], `${who} on ${key}`).toEqual([perSlip * count, paid]);
           expect(row.totalDebt > 0, `${who} owed on ${key}`).toBe(owes);
           // The Hồ sơ cards: Tổng dự kiến thu, Đã thu less Đã hoàn, Phải thu.
@@ -741,13 +754,14 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
         await searchRun();
         const file = await listFileOf(page, run);
         for (const key of Object.keys(patients) as Patient[]) {
-          await expect(moneyCells(page, patients[key].code)).toHaveText(shown[key].map((v) => v.toLocaleString("vi")));
+          await expect(moneyCells(page, patients[key].code)).toHaveText(shown[key].map(onScreen));
           expect(file(patients[key].code), `${who}'s file on ${key}`).toEqual(shown[key]);
         }
 
         await page.reload();
         await searchRun();
-        await expect(moneyCells(page, patients.aside.code)).toHaveText(shown.aside.map((v) => v.toLocaleString("vi")));
+        await expect(moneyCells(page, patients.aside.code)).toHaveText(shown.aside.map(onScreen));
+        await expect(moneyCells(page, patients.main.code)).toHaveText(shown.main.map(onScreen));
       } finally {
         await session?.context.close();
       }
