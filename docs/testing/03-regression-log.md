@@ -14407,3 +14407,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - 6 spec bệnh án: **47 pass / 5 đỏ**. 4 đỏ có sẵn (`medical-record-sheet-facts:171`, "the index lists…", "card wears its own form's colour", "picking the day…" — xem R-1052); "print their MS" là flake do tải, chạy riêng xanh.
   - tsc + eslint sạch.
 - **Mức retest**: 2 (Bệnh án — trình soạn tờ).
+
+## R-1180 (2026-11-09, mức 1: Labo — thanh 3 bước có mũi tên + nền cho cả 3 bước, F-85, main)
+
+- **Yêu cầu** (phòng khám, ảnh chat, 2026-11-09): "cho mũi tên nữa nè, và màu nền cho 3 cái luôn" — thanh bước Đặt hàng · Nhận hàng & kiểm tra · Bảo hành chỉ có gạch nối và chỉ bước đang mở có nền.
+- **Sửa** (`labo-workflow-theme.css`, chỉ CSS, chỉ trong `.pd-labo-workflow`):
+  - Gạch nối → mũi tên (thân `::before` + đầu tam giác `::after`, màu `--lw-arrow`): tím nhạt; xanh lá khi cả hai bước hai đầu đã xong (`--joined`).
+  - Nền theo trạng thái: đang mở = tím đậm (giữ nguyên); đã xong = xanh nhạt + viền xanh; mở được = tím nhạt + viền; còn khoá = xám nhạt. Ô số trên nền nhạt đổi sang trắng.
+  - Điện thoại (≤640px): mũi tên ngắn lại, 3 bước vẫn một hàng.
+- **Kiểm thử**: mở dialog thật (API :5000, dev server, phiếu Labo đã gửi tạo qua API thật) và chụp head ở 1600px (tab Nhận hàng & kiểm tra, tab Đặt hàng) và 600px — mũi tên + nền hiện đúng, không tràn.
+- **Mức retest**: 1 (chỉ giao diện).

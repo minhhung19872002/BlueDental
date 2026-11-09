@@ -88,8 +88,9 @@
   line-height: 18px;
 }
 
-/* The steps: a filled pill for the one on screen, plain text for the rest,
-   a short rule between them. */
+/* The steps: every step a pill — filled indigo for the one on screen, pale
+   indigo for one that can be opened, pale green once finished, grey while
+   locked — with an arrow from one to the next. */
 .pd-labo-workflow .pd-labo-steps {
   flex: 0 0 auto;
   align-items: center;
@@ -104,49 +105,71 @@
   gap: 6px;
   border-radius: 999px;
   padding: 5px 12px 5px 6px;
+  background: var(--lw-primary-pale);
+  box-shadow: inset 0 0 0 1px #c7d2fe;
   color: var(--lw-label);
   font-size: 13px;
   font-weight: 500;
 }
-/* The rule between two steps sits in the gap, outside either pill. */
+.pd-labo-workflow .pd-labo-step:disabled {
+  background: var(--lw-readonly);
+  box-shadow: inset 0 0 0 1px var(--lw-line);
+}
+/* The arrow between two steps sits in the gap, outside either pill: a shaft
+   (::before) and its head (::after), both in --lw-arrow. */
 .pd-labo-workflow .pd-labo-step {
+  --lw-arrow: var(--lw-primary-soft);
   position: relative;
 }
 .pd-labo-workflow .pd-labo-step + .pd-labo-step {
   margin-left: 44px;
 }
-.pd-labo-workflow .pd-labo-step + .pd-labo-step::before {
+.pd-labo-workflow .pd-labo-step + .pd-labo-step::before,
+.pd-labo-workflow .pd-labo-step + .pd-labo-step::after {
   content: "";
   position: absolute;
   top: 50%;
-  left: -36px;
-  width: 28px;
-  height: 2px;
-  background: #c7d2fe;
   pointer-events: none;
+}
+.pd-labo-workflow .pd-labo-step + .pd-labo-step::before {
+  left: -37px;
+  width: 24px;
+  height: 2px;
+  margin-top: -1px;
+  background: var(--lw-arrow);
+}
+.pd-labo-workflow .pd-labo-step + .pd-labo-step::after {
+  left: -14px;
+  margin-top: -5px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid var(--lw-arrow);
 }
 .pd-labo-workflow .pd-labo-step:not(:disabled):hover {
   color: var(--lw-primary);
 }
 .pd-labo-workflow .pd-labo-step-no {
-  background: var(--lw-line);
+  background: #fff;
   color: var(--lw-label);
   font-weight: 700;
 }
 /* A finished step: the green tick on pale green, the label green. */
 .pd-labo-workflow .pd-labo-step--done {
+  background: var(--lw-pass-pale);
+  box-shadow: inset 0 0 0 1px var(--lw-pass-line);
   color: var(--lw-pass-ink);
 }
 .pd-labo-workflow .pd-labo-step--done .pd-labo-step-no {
   background: #dcfce7;
   color: var(--lw-pass-ink);
 }
-.pd-labo-workflow .pd-labo-step + .pd-labo-step--joined::before {
-  background: var(--lw-pass-line);
+.pd-labo-workflow .pd-labo-step--joined {
+  --lw-arrow: var(--lw-pass);
 }
 .pd-labo-workflow .pd-labo-step--active,
 .pd-labo-workflow .pd-labo-step--active:not(:disabled):hover {
   background: var(--lw-primary);
+  box-shadow: none;
   color: #fff;
   font-weight: 600;
 }
@@ -167,8 +190,11 @@
     margin-left: 20px;
   }
   .pd-labo-workflow .pd-labo-step + .pd-labo-step::before {
-    left: -16px;
-    width: 12px;
+    left: -17px;
+    width: 8px;
+  }
+  .pd-labo-workflow .pd-labo-step + .pd-labo-step::after {
+    left: -10px;
   }
 }
 
