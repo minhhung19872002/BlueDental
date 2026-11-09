@@ -123,7 +123,7 @@ export interface SheetFactsDto {
   treatmentEndDate: string | null;
   /**
    * When a doctor pressed "Mời lên" for the patient — the first call, at the
-   * set's branch, on the day the set was opened. Null when none.
+   * set's branch, since the day the set was opened. Null until one.
    */
   invitedAt: string | null;
   /** Oldest first. */

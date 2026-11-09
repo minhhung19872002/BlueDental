@@ -107,8 +107,8 @@ public class MedicalRecordSheetFactsDto
 
     /// <summary>
     /// Bệnh án ngoại trú, "12. Đến khám bệnh lúc …": when a doctor pressed
-    /// "Mời lên" for the patient — the first call, at the set's branch, on the
-    /// clinic day the set was opened. Null when no doctor called them up that day.
+    /// "Mời lên" for the patient — the first call, at the set's branch, since the
+    /// clinic day the set was opened. Null until a doctor calls them up.
     /// </summary>
     public DateTimeOffset? InvitedAt { get; set; }
 

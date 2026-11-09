@@ -181,20 +181,19 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
 
     /// <summary>
     /// "12. Đến khám bệnh lúc …" (clinic, 2026-11-09): the first "Mời lên" for the
-    /// patient at the set's branch on the clinic day the set was opened.
+    /// patient at the set's branch since the clinic day the set was opened. A set
+    /// spans visits and may be opened long before the doctor calls the patient
+    /// up (R-1177), and on the day itself the call may come before the set.
     /// </summary>
     private async Task<DateTimeOffset?> InvitedAtAsync(MedicalRecordSet set)
     {
-        var day = ClinicDayOf(set.CreationTime);
-        var from = ClinicCalendar.StartOfDay(day);
-        var to = ClinicCalendar.StartOfDay(day.AddDays(1));
+        var from = ClinicCalendar.StartOfDay(ClinicDayOf(set.CreationTime));
 
         var query = await _appointmentRepository.GetQueryableAsync();
         return await _executer.FirstOrDefaultAsync(query
             .Where(appointment => appointment.PatientId == set.PatientId
                 && appointment.BranchId == set.ClinicBranchId
-                && appointment.InvitedAt >= from
-                && appointment.InvitedAt < to)
+                && appointment.InvitedAt >= from)
             .OrderBy(appointment => appointment.InvitedAt)
             .Select(appointment => appointment.InvitedAt));
     }
