@@ -14452,3 +14452,14 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Case mới trong `reception-arrival-call.spec.ts`: BE không cho đặt lịch giờ đã qua, nên lượt "trễ" đặt trước 1 phút rồi chờ qua giờ mới bấm Đã đến; lượt "sớm" đặt 160' sau. Kiểm chữ, class đỏ/xanh, màu khác nhau, title; "Mời lên" → badge theo sang "Bác sĩ mời lên" và còn sau reload. Giá trị mong đợi tính độc lập trong spec từ `slotStart`/`checkedInAt` đã lưu.
   - Cả file `reception-arrival-call.spec.ts` 8/8 xanh. Ảnh panel: "Trễ 2p" đỏ, "Sớm 1g32p" xanh cạnh giờ hẹn. tsc + eslint sạch.
 - **Mức retest**: 2 (một feature).
+
+## R-1184 (2026-11-09, mức 2: Kế hoạch điều trị — "Chuyển đổi dịch vụ" lấy Giá sau giảm của dịch vụ mới, F-38, main)
+
+- **Lỗi** (phòng khám, ảnh dialog, 2026-11-09): "bug chưa lấy giá sau giảm". Chuyển đổi → Thay thế, chọn dịch vụ mới có giảm giá trong Danh mục → khối "Thông tin thanh toán" ra Tổng tiền = Giá gốc (giá niêm yết), và dòng mới lưu đúng giá đó. Chọn dịch vụ (phiếu tư vấn) thì đã bán theo Giá sau giảm từ trước.
+- **Nguyên nhân**: hai đầu đều đọc giá niêm yết. FE `useConvertServiceForm.ts` lấy `service.price` thay vì `salePrice`; BE `PatientTreatmentAppService.CatalogPriceAsync` trả `catalog.Price`, bỏ qua `ServiceConfig.PriceAfterDiscount`.
+- **Sửa**: FE `unitPrice = salePrice ?? price`; BE `CatalogPriceAsync` nạp kèm `ServiceConfig` và trả `PriceAfterDiscount(price)` (không có cấu hình → giá niêm yết như cũ). "Dịch vụ cũ" giữ giá dòng đã bán, không đổi. Hạn mức giảm giá (`DiscountGuard.ReferencePriceAsync`) vốn đã đo theo Giá sau giảm nên giờ khớp với giá dòng.
+- **Kiểm thử**: host riêng :5184 (build vào scratchpad, không động :5000) + `vite preview` :8184, đăng nhập thật, dữ liệu qua API thật:
+  - Spec mới `e2e/convert-sale-price.spec.ts`: dịch vụ 300.000 đ giảm 10% → dialog đọc 270.000 / 0 / 0 / 0 / 270.000 đ; lưu xong đọc lại slip bằng request riêng: `price` = `originalPrice` = `effectiveAmount` = 270.000; reload bảng in 270.000 đ, không có 300.000 đ. 1/1 xanh.
+  - Cả file `treatment-plan-detail.spec.ts` (gồm 4 case Chuyển đổi cũ) 13/13 xanh. BE build sạch, tsc sạch.
+  - Chưa chứng minh đỏ trên HEAD cũ (không dựng lại bản cũ) — lỗi đọc thẳng từ code.
+- **Mức retest**: 2 (một feature).

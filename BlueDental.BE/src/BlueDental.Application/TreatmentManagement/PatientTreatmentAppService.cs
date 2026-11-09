@@ -734,14 +734,21 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         await DiscountGuard.EnsureAsync(now.ListAmount, now.Discount, previous);
     }
 
+    /// <summary>
+    /// The price a service is sold at — Danh mục's "Giá sau giảm", the list
+    /// price less the discount set on the service — as Chọn dịch vụ prices a
+    /// new line (R-1184). A service without a service config sells at its price.
+    /// </summary>
     private async Task<decimal> CatalogPriceAsync(Guid serviceId)
     {
-        var catalog = await _catalogRepository.FirstOrDefaultAsync(c => c.Id == serviceId)
+        var query = await _catalogRepository.WithDetailsAsync(c => c.ServiceConfig);
+        var catalog = await AsyncExecuter.FirstOrDefaultAsync(query.Where(c => c.Id == serviceId))
             ?? throw new BusinessException(
                 BlueDentalDomainErrorCodes.Catalogs.CatalogEntryNotFound,
                 "That service is not in the catalog.");
 
-        return catalog.Price ?? 0m;
+        var price = catalog.Price ?? 0m;
+        return catalog.ServiceConfig?.PriceAfterDiscount(price) ?? price;
     }
 
     /// <summary>
