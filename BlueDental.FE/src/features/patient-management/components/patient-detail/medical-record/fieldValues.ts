@@ -80,6 +80,9 @@ function normalise(value: string): string {
     .replace(/[̀-ͯ]/g, "");
 }
 
+/** What Tiền sử bệnh says when the hồ sơ records nothing (clinic, 2026-11-09). */
+const NOTHING_ABNORMAL = "Chưa phát hiện gì bất thường";
+
 /**
  * The record's facts, under the names the templates ask for.
  *
@@ -176,7 +179,14 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
    * Tiền sử bệnh names the primary guardian.
    */
   alias("custom.text.66d78a3bbe7442658cecbf611b7b286d", "patient.reason");
-  alias("outpatient-dental.text.23", "patient.guardian");
+
+  /*
+   * Tiền sử bệnh (clinic, 2026-11-09): "+ Bản thân" and "+ Gia đình" read
+   * "Chưa phát hiện gì bất thường" unless the hồ sơ has something to say —
+   * the disease history from Danh mục, and the primary guardian.
+   */
+  values["outpatient.patient.history"] = values["patient.history"] ?? NOTHING_ABNORMAL;
+  values["outpatient-dental.text.23"] = values["patient.guardian"] ?? NOTHING_ABNORMAL;
 
   // Giấy đồng ý phẫu thuật/thủ thuật: "… cho người bệnh:".
   alias("surgery-consent.text.3", "patient.name");
@@ -244,6 +254,20 @@ export const FORM_CODE_VALUES: Readonly<FieldValues> = {
   "custom.text.6d1c4222d1b041c1aff9becd446183e1": "01/BV2",
   // Phiếu phẫu thuật/thủ thuật
   "custom.text.8d7eb5b7fe9746b3909ce9c21ba46a31": "PT-11",
+};
+
+/**
+ * Bệnh án ngoại trú Răng Hàm Mặt as the clinic fills nearly every one
+ * (clinic, 2026-11-09). Blanks, not print: a sheet writes over any of them and
+ * keeps what it wrote — an unticked "Tự đến" is saved as unticked.
+ */
+export const OUTPATIENT_DEFAULT_VALUES: Readonly<FieldValues> = {
+  // 5. Dân tộc
+  "outpatient-dental.text.3": "Kinh",
+  // 13. Chẩn đoán và xử lý của nơi giới thiệu: 2. Tự đến
+  "outpatient-dental.checkbox.6": true,
+  // Họ và tên under GIÁM ĐỐC PHÒNG KHÁM
+  "outpatient-dental.text.59": "BS.CKII. BÙI VĂN TỚI",
 };
 
 /**

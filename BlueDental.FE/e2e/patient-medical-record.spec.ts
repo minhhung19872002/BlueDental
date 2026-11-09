@@ -1181,6 +1181,11 @@ test.describe("Bệnh án", () => {
           // II. Lý do vào viện, and + Gia đình as the primary guardian (clinic, 2026-10-16).
           "custom.text.66d78a3bbe7442658cecbf611b7b286d": `Đau răng hàm dưới ${suffix}`,
           "outpatient-dental.text.23": `Mẹ - Mẹ Ràng Buộc ${suffix} - 0${guardianPhone}`,
+          // What the clinic writes on nearly every one (2026-11-09): Dân tộc, a
+          // Bản thân the hồ sơ says nothing of, and the director's name.
+          "outpatient-dental.text.3": "Kinh",
+          "outpatient.patient.history": "Chưa phát hiện gì bất thường",
+          "outpatient-dental.text.59": "BS.CKII. BÙI VĂN TỚI",
         },
       ],
       ["Bệnh án chỉnh nha", { "orthodontic.patient.address": address, "orthodontic.text.86": diagnosed }],
@@ -1234,6 +1239,16 @@ test.describe("Bệnh án", () => {
     await expect(blank(page, "outpatient-dental.text.4")).toHaveCount(0);
     await expect(blank(page, "outpatient-dental.text.6")).toHaveCount(0);
     await expect(sheet(page).getByText("Thôn, phố")).toHaveCount(0);
+    // 13. … nơi giới thiệu: "2. Tự đến" is ticked, "1. Y tế" is not (clinic, 2026-11-09).
+    await expect(blank(page, "outpatient-dental.checkbox.6")).toBeChecked();
+    await expect(blank(page, "outpatient-dental.checkbox.5")).not.toBeChecked();
+    // A default is a blank, not print: unticked and saved, it stays unticked.
+    await blank(page, "outpatient-dental.checkbox.6").uncheck();
+    await save(page);
+    await page.reload();
+    await openSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+    await expect(blank(page, "outpatient-dental.checkbox.6")).not.toBeChecked();
+    await expect(blank(page, "outpatient-dental.text.3")).toHaveText("Kinh");
 
     // Saved as the record answered it, nothing is frozen into the sheet, and the
     // answer comes back from PostgreSQL after a reload.

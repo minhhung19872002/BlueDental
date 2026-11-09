@@ -14417,3 +14417,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Điện thoại (≤640px): mũi tên ngắn lại, 3 bước vẫn một hàng.
 - **Kiểm thử**: mở dialog thật (API :5000, dev server, phiếu Labo đã gửi tạo qua API thật) và chụp head ở 1600px (tab Nhận hàng & kiểm tra, tab Đặt hàng) và 600px — mũi tên + nền hiện đúng, không tràn.
 - **Mức retest**: 1 (chỉ giao diện).
+## R-1181 (2026-11-09, mức 2: Bệnh án — giá trị mặc định của Bệnh án ngoại trú Răng Hàm Mặt, F-30, main + develop)
+
+- **Yêu cầu** (phòng khám, 4 ảnh khoanh đỏ, 2026-11-09): mẫu 2 điền sẵn các ô gần như phiếu nào cũng viết giống nhau.
+- **Đã làm** (FE only, `fieldValues.ts` + `useSheetFieldValues.ts`):
+  - `OUTPATIENT_DEFAULT_VALUES`: "5. Dân tộc" = `Kinh` (`outpatient-dental.text.3`); mục 13 "2. Tự đến" được tick (`outpatient-dental.checkbox.6`); "Họ và tên" dưới GIÁM ĐỐC PHÒNG KHÁM = `BS.CKII. BÙI VĂN TỚI` (`outpatient-dental.text.59`).
+  - Tiền sử bệnh: "+ Bản thân" = tiền sử bệnh trong hồ sơ, không có thì `Chưa phát hiện gì bất thường`; "+ Gia đình" = người giám hộ chính như cũ (clinic, 2026-10-16), không có thì `Chưa phát hiện gì bất thường`.
+  - Là ô trống có giá trị sẵn, không phải chữ in: sửa / bỏ tick rồi Lưu thì giữ điều đã lưu. Phiếu đã lưu trước đây mà chưa viết vào các ô này cũng hiện giá trị mặc định (phiếu chỉ lưu phần khác giá trị tự điền).
+- **Kiểm thử** (API Docker :5000 + bản build production preview :8080, không chặn request):
+  - `patient-medical-record.spec` "the record's address and diagnoses reach every form…": thêm Dân tộc, Bản thân, Giám đốc, "Tự đến" tick / "Y tế" không tick; bỏ tick "Tự đến" → Lưu → reload vẫn không tick. **1/1**.
+  - 4 spec bệnh án (`patient-medical-record`, `medical-record-sheet-facts`, `medical-record-contract-party-a`, `medical-record-set`): **43 pass / 3 đỏ có sẵn** ("the index lists…", "card wears its own form's colour", "picking the day…"); `medical-record-set` "a set is made…" đỏ do API vừa khởi động ("Failed to fetch"), chạy lại xanh.
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (Bệnh án — phiếu tự điền).
