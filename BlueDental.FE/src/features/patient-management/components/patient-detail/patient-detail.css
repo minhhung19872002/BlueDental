@@ -4222,6 +4222,11 @@
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 12px;
 }
+/* Neither column may grow past its track: a long service name once pushed the
+   Chi tiết card under the form beside it (R-1175). */
+.pd-stage-grid > * {
+  min-width: 0;
+}
 .pd-stage-colhead {
   border-radius: 12px;
   padding: 12px 16px;
@@ -4239,10 +4244,15 @@
 .pd-stage-picks {
   margin-top: 12px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 .pd-stage-picks button {
   display: block;
+  /* A card is a button, and `.app-main button` keeps buttons on one line; the
+     service name must wrap inside the column instead (R-1175). */
+  white-space: normal;
+  overflow-wrap: anywhere;
   /* BA 2026-11-05 (R-1148): the same amber as the "Chọn bác sĩ" field (R-1140). */
   border: 1px solid var(--bd-amber-bright);
   border-radius: 12px;
@@ -4622,40 +4632,73 @@
   gap: 8px;
   margin-top: 16px;
 }
-/* "Chọn nhanh" under Ghi chú lịch hẹn (R-1056): pale chips, one lit at a time. */
+/* "Chọn nhanh" under Ghi chú lịch hẹn (R-1056): pale chips, one lit at a time,
+   sorted into Ngày / Tuần / Tháng tabs (R-1175). */
 .pd-stage-quickpick {
+  margin-top: 8px;
+}
+.pd-stage-quickpick-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 8px;
 }
-.pd-stage-quickpick > span {
+.pd-stage-quickpick-head > span {
   color: var(--bd-muted);
   font-size: 13px;
 }
-.pd-stage-quickpick > button {
+/* The shared segmented control, cut down to the chips' scale. */
+.pd-stage-quicktabs.seg-tabs {
+  height: 30px;
+  padding: 2px;
+  border-radius: 8px;
+}
+.pd-stage-quicktabs .seg-tabs-thumb {
+  top: 2px;
+  bottom: 2px;
+  border-radius: 6px;
+}
+.pd-stage-quicktabs .seg-tabs-item {
+  border-radius: 6px;
+  padding: 0 12px;
+  font-size: 12.5px;
+}
+/* Two chips a row even in the narrow column of a 1366px screen, so the twelve
+   of Tháng stay six rows; a chip too narrow for its caption breaks it between
+   the step and the day ("+10 tháng" / "· 09/09"), never inside either. */
+.pd-stage-quickpick-chips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+.pd-stage-quickpick-chips > button {
   border: 1px solid transparent;
   border-radius: 6px;
-  padding: 3px 8px;
+  padding: 3px 4px;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
   background: var(--bd-blue-pale);
   color: var(--bd-primary);
   font-size: 12px;
   font-weight: 500;
-  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color 0.12s ease,
     color 0.12s ease;
 }
-.pd-stage-quickpick > button:hover:not(:disabled) {
+.pd-stage-quickpick-chips > button > span {
+  white-space: nowrap;
+}
+.pd-stage-quickpick-chips > button:hover:not(:disabled) {
   background: var(--bd-blue-pale-hover);
 }
-.pd-stage-quickpick > button.active {
+.pd-stage-quickpick-chips > button.active {
   background: var(--bd-primary);
   color: #fff;
 }
-.pd-stage-quickpick > button:disabled {
+.pd-stage-quickpick-chips > button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
