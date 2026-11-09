@@ -14314,3 +14314,17 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `appointment-day-timeline.spec`: case mới (bác sĩ có lịch đứng trước mọi cột trống; bác sĩ chỉ có lịch hủy nằm nhóm cuối; gõ tìm kiếm không đổi thứ tự; reload giữ nguyên) + case "Chưa chọn bác sĩ" viết lại theo vị trí mới → **8/9**.
   - Đỏ còn lại: "a mouse drag scrolls the board sideways" — **đỏ sẵn**, cũng đỏ trên bản build cũ :8080 (scrollLeft = 0), không liên quan thay đổi này.
 - **Mức retest**: 2 (Lịch hẹn — view Ngày).
+
+## R-1174 (2026-11-09, mức 2: /patient — dòng ngoài phạm vi che tiền thay vì hiện 0, F-75, develop)
+
+- **Yêu cầu BA** (ảnh chụp, 2026-11-09, tiếp bug 41): /patient hiện Số tiền / Thực thu / Công nợ = 0 cho bệnh nhân mà mọi phiếu nằm ngoài phạm vi người xem → "che luôn đi, để bị hỏi sao nó hiện 0 nữa".
+- **Đã làm** (BE only, FE + Excel vốn đọc `moneyHidden`):
+  - `SlipScopeReading.ShowsMoneyOf(plan)`: phiếu có đồng nào tới người xem không (nhận trong phạm vi, hoặc có dòng hiện tiền).
+  - `PatientRollup.MoneyHidden` = có phạm vi **và** có phiếu còn hiệu lực **và** không phiếu nào `ShowsMoneyOf` → `PatientListItemDto.MoneyHidden` → 3 cột `*********` (màn hình + file Excel).
+  - Bệnh nhân không có phiếu (hoặc chỉ phiếu đã huỷ) vẫn hiện 0 — đó là số thật. Dòng thấy qua line mà không có Chi phí không mở che.
+  - Chưa đổi: phần hồ sơ dùng chung SĐT (`GetLinkedPeopleAsync`) và thẻ tab Hồ sơ.
+- **Kiểm thử** (host riêng :5160 + bản build production preview :8160, không chặn request):
+  - Domain: `PatientListRollupTests` +4 case → rollup / SlipSeenThroughLines / OrgChart **53/53**.
+  - `plan-treating-scope.spec` **19/19**: bug 41 — phó nhóm (có Chi phí) thấy 2 dòng che (cờ API, màn hình, file, sau reload); trưởng nhóm có Chi phí vẫn thấy số của mình + thành viên.
+  - Case bug 40 "slip seen through a line" **đỏ sẵn** từ P3110 (tab Bảo hành, R-1084): kỳ vọng sửa thành `[Chi tiết điều trị, Bảo hành]` / 5 tab.
+- **Mức retest**: 2 (Danh sách bệnh nhân — cột tiền).
