@@ -14344,3 +14344,17 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Spec liên quan: `stage-remark`, `stage-staff-pickers`, `stage-treatment-date`, `stage-date-lock` → 12/13, đỏ `stage-staff-pickers:163` là đỏ sẵn; `warranty-stage` + `cskh-after-treatment` **6/6**.
   - tsc + eslint sạch.
 - **Mức retest**: 2 (form công đoạn — dùng chung cho Thêm công đoạn / Tiếp tục công đoạn / Tiếp tục bảo hành).
+
+## R-1176 (2026-11-09, mức 2: Bệnh án — "Đến khám bệnh lúc" lấy giờ Mời lên; "Tê môi, tê lưỡi" in đậm, F-30, main)
+
+- **Yêu cầu BA** (2 ảnh chụp, 2026-11-09):
+  - Bệnh án ngoại trú Răng Hàm Mặt, mục "12. Đến khám bệnh lúc … giờ … phút ngày … tháng … năm": "Lấy dữ liệu từ lúc bác sĩ bấm mời lên".
+  - Giấy đồng ý thực hiện phẫu thuật/thủ thuật, ô sau "Tê môi, tê lưỡi" (ví dụ "Trái"): "In đậm".
+- **Quy tắc chọn lần mời** (bộ hồ sơ không gắn với lượt hẹn nào): lần "Mời lên" **đầu tiên** của bệnh nhân, **tại chi nhánh của bộ**, trong **ngày (giờ phòng khám) mở bộ hồ sơ** (`Appointment.InvitedAt`). Không có lần mời nào ngày đó → để trống cho viết tay. Giá trị chỉ là mặc định — nội dung đã gõ / đã lưu trên phiếu vẫn thắng.
+- **Đã làm**:
+  - BE: `MedicalRecordSheetFactsDto.InvitedAt`, `MedicalRecordSheetFactsBuilder.InvitedAtAsync`.
+  - FE: `sheetFacts.ts` điền `outpatient-dental.text.14…18` (HH, mm, DD, MM, YYYY); `sheetCss.ts` in đậm `surgery-consent.text.21` (màn hình + bản in).
+- **Kiểm thử** (API Docker :5000 + bản build production preview :8080, không chặn request):
+  - `medical-record-sheet-facts.spec` **3/3**: case mới (lượt hẹn hôm nay → check-in → Mời lên → mở bộ → 5 ô khớp `invitedAt` theo giờ VN; ô Tê môi `font-weight: 700`); case cũ thêm: chưa mời → `invitedAt` null, ô trống.
+  - `reception-arrival-call.spec` **7/7** (fixture `bookVisitToday` thêm tham số `patientId` tùy chọn).
+- **Mức retest**: 2 (Bệnh án — phiếu tự điền).

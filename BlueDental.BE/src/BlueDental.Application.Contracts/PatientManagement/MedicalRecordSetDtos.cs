@@ -105,6 +105,13 @@ public class MedicalRecordSheetFactsDto
     /// <summary>Null until every service on every slip is finished; warranty work is left out.</summary>
     public DateOnly? TreatmentEndDate { get; set; }
 
+    /// <summary>
+    /// Bệnh án ngoại trú, "12. Đến khám bệnh lúc …": when a doctor pressed
+    /// "Mời lên" for the patient — the first call, at the set's branch, on the
+    /// clinic day the set was opened. Null when no doctor called them up that day.
+    /// </summary>
+    public DateTimeOffset? InvitedAt { get; set; }
+
     /// <summary>The slips the set holds, oldest first.</summary>
     public List<MedicalRecordSheetPlanDto> Plans { get; set; } = new();
 
