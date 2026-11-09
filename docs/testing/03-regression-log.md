@@ -14328,3 +14328,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `plan-treating-scope.spec` **19/19**: bug 41 — phó nhóm (có Chi phí) thấy 2 dòng che (cờ API, màn hình, file, sau reload); trưởng nhóm có Chi phí vẫn thấy số của mình + thành viên.
   - Case bug 40 "slip seen through a line" **đỏ sẵn** từ P3110 (tab Bảo hành, R-1084): kỳ vọng sửa thành `[Chi tiết điều trị, Bảo hành]` / 5 tab.
 - **Mức retest**: 2 (Danh sách bệnh nhân — cột tiền).
+
+## R-1175 (2026-11-09, mức 2: Chi tiết phiếu — form công đoạn) Chọn nhanh chia 3 tab + thẻ dịch vụ không còn bị form đè
+
+- **Yêu cầu BA** (ảnh chụp, 2026-11-09):
+  1. "Chọn nhanh" dưới Ghi chú lịch hẹn chia làm 3 tab: Ngày +1 → +7, Tuần +1 → +4, Tháng +1 → +12.
+  2. "Sao nó bị đè giao diện": thẻ dịch vụ vàng ở cột Chi tiết bị form bên cạnh đè lên khi tên dịch vụ dài.
+- **Chủ phòng khám chốt**: chữ trên chip giữ như cũ ("+3 ngày · 12/11"); mở form vào tab Ngày, riêng khi ô đã có dòng của một chip thì mở đúng tab của chip đó; làm cả main + develop.
+- **Đã làm** (FE only, không đổi BE / i18n — tab dùng lại `Common:Day/Week/Month`):
+  - `stage/appointmentNote.ts`: `QUICK_PICKS` = 7 ngày + 4 tuần + 12 tháng; `picksOf(unit)`; `pickedOf(note, date, prefer?)` — hai chip trùng ngày (+7 ngày ≡ +1 tuần; +4 tuần ≡ +1 tháng từ một ngày tháng 2 năm thường) thì chip của tab đang mở thắng, không thì chip "thô" nhất. `quickPickLabel` trả về 2 phần {step, day}.
+  - `stage/StageAppointmentNote.tsx`: `SegmentedTabs` (Ngày | Tuần | Tháng) cạnh nhãn "Chọn nhanh"; chip là lưới 2 cột, chữ chỉ được xuống dòng giữa "+10 tháng" và "· 09/09". Xem tab khác không đổi chip đã chọn; ô bị đổi ngoài tab (gõ tay, reset) thì tự nhảy sang tab của chip.
+  - `patient-detail.css`: `.pd-stage-grid > * { min-width: 0 }` + `.pd-stage-picks` một cột `minmax(0, 1fr)` + nút thẻ `white-space: normal; overflow-wrap: anywhere` (gốc lỗi: `.app-main button` nowrap làm cột grid giãn theo tên dài, chạy xuống dưới form).
+- **Kiểm thử** (host :5000 + dev server :5173, không chặn request):
+  - `stage-appointment-note.spec` **4/4**: 3 tab + số chip + chữ từng tab; chọn/thay/bỏ chip, chip tab khác thay chip cũ, xem tab không đổi gì, dời theo Ngày điều trị, +7 ngày hiện đã chọn ở tab Tuần, lưu + GET + reload; Tiếp tục công đoạn; **mới**: tên dịch vụ dài xuống dòng trong thẻ (đỏ trên CSS cũ, cao 22.6px = 1 dòng); **mới**: ở 1366 / 1300px chip 2 cột, không chip nào bị cắt chữ.
+  - Spec liên quan: `stage-remark`, `stage-staff-pickers`, `stage-treatment-date`, `stage-date-lock` → 12/13, đỏ `stage-staff-pickers:163` là đỏ sẵn; `warranty-stage` + `cskh-after-treatment` **6/6**.
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (form công đoạn — dùng chung cho Thêm công đoạn / Tiếp tục công đoạn / Tiếp tục bảo hành).
