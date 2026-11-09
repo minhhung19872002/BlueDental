@@ -1,5 +1,6 @@
 import { expect, test, type FrameLocator, type Page } from "@playwright/test";
 import { BRANCH2_USER, login } from "./fixtures/auth";
+import { APPOINTMENTS, bookVisitToday } from "./fixtures/receptionBoard";
 import { call } from "./fixtures/timekeepingStaff";
 import {
   SETS_API,
@@ -25,6 +26,7 @@ interface Facts {
   year: number | null;
   treatmentStartDate: string | null;
   treatmentEndDate: string | null;
+  invitedAt: string | null;
   plans: {
     planCode: string;
     dentistName: string | null;
@@ -223,6 +225,9 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "outpatient-dental.text.1")).toHaveText(facts.outpatientNumber!);
     await expect(blank(page, "outpatient-dental.text.2")).toHaveText(facts.storageCode!);
     await expect(blank(page, "custom.text.8b780086e4014a049f87decd95bffaf3")).toHaveText("16/BV-01");
+    // No doctor called the patient up today: "12. Đến khám bệnh lúc" is left for the pen.
+    expect(facts.invitedAt).toBeNull();
+    await expect(blank(page, "outpatient-dental.text.14")).toHaveText("");
 
     // Bệnh án chỉnh nha: Mã ngoại trú; IX lists every slip's services straight
     // on — no slip name, no blank line between slips (R-1094).
@@ -335,6 +340,59 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
       expect(peek.status).toBe(404);
     } finally {
       await other.close();
+    }
+  });
+
+  test("Đến khám bệnh lúc is when the doctor pressed Mời lên; the side of Tê môi, tê lưỡi prints bold", async ({
+    page,
+  }) => {
+    // Today's visit for the run's patient, arrived, and called up with "Mời lên".
+    const visit = await bookVisitToday(page, patient.branchId, 30, "e2e-benhan-moilen", undefined, true, patient.id);
+    try {
+      const arrived = await call(page, `${APPOINTMENTS}/${visit.id}/check-in`, {
+        method: "POST",
+        branchId: patient.branchId,
+      });
+      expect(arrived.status, JSON.stringify(arrived.body)).toBe(200);
+      const invited = await call<{ invitedAt: string }>(page, `/api/v1/app/arrival-calls/${visit.id}/invite`, {
+        method: "POST",
+        branchId: patient.branchId,
+      });
+      expect(invited.status, JSON.stringify(invited.body)).toBe(200);
+
+      const made = await call<{ id: string }>(page, SETS_API, {
+        method: "POST",
+        json: { patientId: patient.id, treatmentPlanIds: [patient.slips[0].id], visibleForms: [] },
+      });
+      expect(made.status, JSON.stringify(made.body)).toBe(200);
+      const facts = await factsOf(page, made.body.id);
+      expect(facts.invitedAt).not.toBeNull();
+      expect(new Date(facts.invitedAt!).getTime()).toBe(new Date(invited.body.invitedAt).getTime());
+
+      // On the clinic's clock: giờ, phút, ngày, tháng, năm.
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        hour: "2-digit",
+        minute: "2-digit",
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hourCycle: "h23",
+      }).formatToParts(new Date(facts.invitedAt!));
+      const of = (type: string) => parts.find((part) => part.type === type)!.value;
+
+      await openBenhAn(page, patient.id);
+      await openSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+      await expect(blank(page, "outpatient-dental.text.14")).toHaveText(of("hour"));
+      await expect(blank(page, "outpatient-dental.text.15")).toHaveText(of("minute"));
+      await expect(blank(page, "outpatient-dental.text.16")).toHaveText(of("day"));
+      await expect(blank(page, "outpatient-dental.text.17")).toHaveText(of("month"));
+      await expect(blank(page, "outpatient-dental.text.18")).toHaveText(of("year"));
+
+      await openSheet(page, "Giấy đồng ý thực hiện phẫu thuật/thủ thuật");
+      await expect(blank(page, "surgery-consent.text.21")).toHaveCSS("font-weight", "700");
+    } finally {
+      await call(page, `${APPOINTMENTS}/${visit.id}`, { method: "DELETE", branchId: patient.branchId });
     }
   });
 

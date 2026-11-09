@@ -103,6 +103,8 @@ export async function bookVisitToday(
    * then rides in the Ghi chú (the board search reads both).
    */
   withContent = true,
+  /** Books this patient rather than one picked from the branch's list. */
+  patientId?: string,
 ): Promise<Appointment & { searchKey: string }> {
   const searchKey = `${keyPrefix}-${runId()}-${minutesAhead}`;
   const firstStart = new Date(Date.now() + minutesAhead * 60_000);
@@ -133,7 +135,9 @@ export async function bookVisitToday(
   const bookedPatients = new Set(
     upcoming.body.items.filter((a) => a.status !== 6 && a.status !== 7).map((a) => a.patientId),
   );
-  const candidates = patients.body.items.filter((p) => p.patientCode && !bookedPatients.has(p.id));
+  const candidates = patientId
+    ? [{ id: patientId, patientCode: "" }]
+    : patients.body.items.filter((p) => p.patientCode && !bookedPatients.has(p.id));
   // Every run books patients weeks ahead, so the free pool runs dry on a busy
   // day; a fresh patient through the real API keeps the fixture standing.
   if (candidates.length === 0) {

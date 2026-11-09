@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Appointments;
 using BlueDental.Catalogs;
 using BlueDental.Staff;
 using BlueDental.TreatmentManagement;
@@ -28,6 +29,7 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
     private readonly IRepository<TreatmentStage, Guid> _stageRepository;
     private readonly IRepository<PatientAdvise, Guid> _adviseRepository;
     private readonly IRepository<CatalogEntry, Guid> _catalogRepository;
+    private readonly IRepository<Appointment, Guid> _appointmentRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly IAsyncQueryableExecuter _executer;
     private readonly IDataFilter _dataFilter;
@@ -37,6 +39,7 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
         IRepository<TreatmentStage, Guid> stageRepository,
         IRepository<PatientAdvise, Guid> adviseRepository,
         IRepository<CatalogEntry, Guid> catalogRepository,
+        IRepository<Appointment, Guid> appointmentRepository,
         IIdentityUserRepository userRepository,
         IAsyncQueryableExecuter executer,
         IDataFilter dataFilter)
@@ -45,6 +48,7 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
         _stageRepository = stageRepository;
         _adviseRepository = adviseRepository;
         _catalogRepository = catalogRepository;
+        _appointmentRepository = appointmentRepository;
         _userRepository = userRepository;
         _executer = executer;
         _dataFilter = dataFilter;
@@ -113,6 +117,7 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
             Year = first is null ? null : ClinicDayOf(first.CreationTime).Year,
             TreatmentStartDate = start,
             TreatmentEndDate = MedicalRecordTreatmentDates.EndOfAll(planEnds.Values.ToList()),
+            InvitedAt = await InvitedAtAsync(set),
             Plans = plans.Select(plan =>
             {
                 // The doctor the slip had when it joined: each slip keeps its own.
@@ -172,6 +177,26 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
                 })
                 .ToList(),
         };
+    }
+
+    /// <summary>
+    /// "12. Đến khám bệnh lúc …" (clinic, 2026-11-09): the first "Mời lên" for the
+    /// patient at the set's branch on the clinic day the set was opened.
+    /// </summary>
+    private async Task<DateTimeOffset?> InvitedAtAsync(MedicalRecordSet set)
+    {
+        var day = ClinicDayOf(set.CreationTime);
+        var from = ClinicCalendar.StartOfDay(day);
+        var to = ClinicCalendar.StartOfDay(day.AddDays(1));
+
+        var query = await _appointmentRepository.GetQueryableAsync();
+        return await _executer.FirstOrDefaultAsync(query
+            .Where(appointment => appointment.PatientId == set.PatientId
+                && appointment.BranchId == set.ClinicBranchId
+                && appointment.InvitedAt >= from
+                && appointment.InvitedAt < to)
+            .OrderBy(appointment => appointment.InvitedAt)
+            .Select(appointment => appointment.InvitedAt));
     }
 
     private static DateOnly ClinicDayOf(DateTime instant) =>

@@ -105,6 +105,23 @@ function coverValues(facts: SheetFactsDto, values: FieldValues) {
   putDay(values, ["cover.text.5", "cover.text.6", "cover.text.7"], facts.treatmentEndDate);
 }
 
+/** Bệnh án ngoại trú, "12. Đến khám bệnh lúc … giờ … phút ngày … tháng … năm …". */
+const OUTPATIENT_ARRIVAL = [
+  ["outpatient-dental.text.14", "HH"],
+  ["outpatient-dental.text.15", "mm"],
+  ["outpatient-dental.text.16", "DD"],
+  ["outpatient-dental.text.17", "MM"],
+  ["outpatient-dental.text.18", "YYYY"],
+] as const;
+
+/** "12. Đến khám bệnh lúc": when the doctor pressed "Mời lên" (clinic, 2026-11-09). */
+function outpatientArrivalValues(facts: SheetFactsDto, values: FieldValues) {
+  if (!facts.invitedAt) return;
+  const invited = dayjs(facts.invitedAt);
+  if (!invited.isValid()) return;
+  OUTPATIENT_ARRIVAL.forEach(([key, format]) => put(values, key, invited.format(format)));
+}
+
 /** The numbers at the top right of Bệnh án ngoại trú, chỉnh nha and Phiếu theo dõi điều trị. */
 function numberValues(facts: SheetFactsDto, values: FieldValues) {
   put(values, "outpatient-dental.text.1", facts.outpatientNumber);
@@ -280,6 +297,7 @@ export function sheetFactFieldValues(facts: SheetFactsDto | undefined, formats: 
 
   coverValues(facts, values);
   numberValues(facts, values);
+  outpatientArrivalValues(facts, values);
   orthodonticValues(facts, values, formats.teeth);
   generalConsultationValues(facts, values);
   treatmentConsentValues(facts, values, formats);
