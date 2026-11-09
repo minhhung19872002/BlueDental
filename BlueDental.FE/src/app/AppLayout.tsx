@@ -381,6 +381,13 @@ export function AppLayout() {
             <kbd className="app-header-search-kbd">Ctrl K</kbd>
           </button>
 
+          {/* Chat nội bộ sits here, not in the bottom-right corner (R-1172). */}
+          {!branchPending && (
+            <ErrorBoundary name="chat" fallback={(reset) => <ChatDockFallback onRetry={reset} />}>
+              <ChatDock />
+            </ErrorBoundary>
+          )}
+
           <StaffNotesLauncher />
 
           <Popover
@@ -471,11 +478,6 @@ export function AppLayout() {
       </div>
 
       {!branchPending && <ArrivalCallDock />}
-      {!branchPending && (
-        <ErrorBoundary name="chat" fallback={(reset) => <ChatDockFallback onRetry={reset} />}>
-          <ChatDock />
-        </ErrorBoundary>
-      )}
 
       <MobileNavDrawer
         open={drawerOpen}

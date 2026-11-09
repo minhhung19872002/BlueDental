@@ -1,83 +1,41 @@
 /* ── Chat nội bộ (F-89 / R-1157) ──────────────────────────────────────
-   The chat button owns the bottom-right corner; "Mời lên" (ArrivalCallDock)
-   steps one button to its left. The panel docks on the right edge over the
-   page, and while it is open both buttons sit to its left. */
-.chat-dock {
-  position: fixed;
-  right: 24px;
-  bottom: 24px;
-  z-index: 900;
-}
-
-body:has(.chat-dock) .arrival-dock {
-  right: 100px;
-}
-
-body:has(.chat-panel) .chat-dock {
-  right: 412px;
-}
-
+   The chat button is a header icon beside the notes button (R-1172); the
+   bottom-right corner belongs to "Mời lên" (ArrivalCallDock) alone. The panel
+   docks on the right edge over the page; while it is open the arrival dock
+   sits to its left. */
 body:has(.chat-panel) .arrival-dock {
-  right: 488px;
+  right: 412px;
 }
 
 body:has(.chat-panel) .scroll-top-button {
   visibility: hidden;
 }
 
-/* Same 46px "back to top" stacking as the arrival dock (arrival-call.css),
-   now above the chat button, which holds the corner even when "Mời lên" is off. */
-body:has(.chat-dock) .scroll-top-button {
-  inset-inline-end: 31px;
-  inset-block-end: 100px;
-}
-
-.chat-dock-button {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 60px;
-  height: 60px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--bd-primary);
-  color: #fff;
-  box-shadow: var(--bd-shadow-glow);
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.chat-dock-button:hover,
 .chat-dock-button--open {
-  transform: translateY(-1px);
-  box-shadow: var(--bd-shadow-glow), var(--bd-shadow-pop);
+  border-color: var(--bd-primary);
+  color: var(--bd-primary);
 }
 
-/* After a render error (R-1162 H6.6): grey, a click brings chat back. */
+/* After a render error (R-1162 H6.6): muted, a click brings chat back. */
 .chat-dock-button--failed {
-  background: var(--bd-muted);
+  color: var(--bd-muted);
 }
 
-.chat-dock-button:focus-visible {
-  outline: 3px solid var(--bd-accent);
-  outline-offset: 3px;
-}
-
+/* Same red count as the header's other icon buttons. */
 .chat-dock-badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 6px;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
   border: 2px solid var(--bd-card);
   border-radius: var(--bd-radius-pill);
   background: var(--bd-red);
   color: #fff;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
-  line-height: 20px;
+  line-height: 14px;
   text-align: center;
 }
 
@@ -908,18 +866,7 @@ body:has(.chat-dock) .scroll-top-button {
 }
 
 @media (max-width: 640px) {
-  .chat-dock {
-    right: 16px;
-    bottom: 16px;
-  }
-  body:has(.chat-dock) .arrival-dock {
-    right: 88px;
-  }
-  body:has(.chat-dock) .scroll-top-button {
-    inset-inline-end: 23px;
-    inset-block-end: 92px;
-  }
-  /* Full width over the page; the buttons stay underneath until it closes. */
+  /* Full width over the page; the arrival dock stays underneath until it closes. */
   .chat-panel {
     top: calc(var(--bd-header-height) + 8px);
     right: 8px;
@@ -928,17 +875,8 @@ body:has(.chat-dock) .scroll-top-button {
     width: auto;
     max-width: none;
   }
-  body:has(.chat-panel) .chat-dock {
-    right: 16px;
-  }
   body:has(.chat-panel) .arrival-dock {
-    right: 88px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chat-dock-button {
-    transition: none;
+    right: 16px;
   }
 }
 
