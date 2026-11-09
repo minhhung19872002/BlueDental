@@ -346,6 +346,15 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
   test("Đến khám bệnh lúc is when the doctor pressed Mời lên; the side of Tê môi, tê lưỡi prints bold", async ({
     page,
   }) => {
+    // The set is opened first — as a set opened weeks before a visit is (R-1177):
+    // until a doctor calls the patient up, the blank waits.
+    const made = await call<{ id: string }>(page, SETS_API, {
+      method: "POST",
+      json: { patientId: patient.id, treatmentPlanIds: [patient.slips[0].id], visibleForms: [] },
+    });
+    expect(made.status, JSON.stringify(made.body)).toBe(200);
+    expect((await factsOf(page, made.body.id)).invitedAt).toBeNull();
+
     // Today's visit for the run's patient, arrived, and called up with "Mời lên".
     const visit = await bookVisitToday(page, patient.branchId, 30, "e2e-benhan-moilen", undefined, true, patient.id);
     try {
@@ -360,11 +369,6 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
       });
       expect(invited.status, JSON.stringify(invited.body)).toBe(200);
 
-      const made = await call<{ id: string }>(page, SETS_API, {
-        method: "POST",
-        json: { patientId: patient.id, treatmentPlanIds: [patient.slips[0].id], visibleForms: [] },
-      });
-      expect(made.status, JSON.stringify(made.body)).toBe(200);
       const facts = await factsOf(page, made.body.id);
       expect(facts.invitedAt).not.toBeNull();
       expect(new Date(facts.invitedAt!).getTime()).toBe(new Date(invited.body.invitedAt).getTime());

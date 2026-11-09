@@ -14358,3 +14358,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `medical-record-sheet-facts.spec` **3/3**: case mới (lượt hẹn hôm nay → check-in → Mời lên → mở bộ → 5 ô khớp `invitedAt` theo giờ VN; ô Tê môi `font-weight: 700`); case cũ thêm: chưa mời → `invitedAt` null, ô trống.
   - `reception-arrival-call.spec` **7/7** (fixture `bookVisitToday` thêm tham số `patientId` tùy chọn).
 - **Mức retest**: 2 (Bệnh án — phiếu tự điền).
+
+## R-1177 (2026-11-09, mức 2: Bệnh án — "Đến khám bệnh lúc" tìm lần Mời lên từ ngày mở bộ trở đi, F-30, main)
+
+- **Báo lỗi** (owner, ảnh chụp, 2026-11-09): bệnh nhân đã đến, bác sĩ đã bấm "Mời lên" (12:29) nhưng mục 12 của Bệnh án ngoại trú vẫn trống.
+- **Nguyên nhân**: R-1176 chỉ tìm lần "Mời lên" **trong đúng ngày mở bộ hồ sơ**; bộ của bệnh nhân mở từ 17/08, lượt khám hôm nay nằm ngoài ngày đó.
+- **Đã làm** (BE only): `MedicalRecordSheetFactsBuilder.InvitedAtAsync` lấy lần "Mời lên" **đầu tiên từ ngày mở bộ trở đi** (cùng bệnh nhân, cùng chi nhánh). Mời lên trước khi mở bộ trong cùng ngày vẫn tính.
+- **Kiểm thử** (API Docker :5000 + bản build production preview :8080, không chặn request):
+  - `medical-record-sheet-facts.spec` **3/3**: case Mời lên viết lại theo thứ tự thật — mở bộ trước (`invitedAt` null), rồi check-in + Mời lên → 5 ô khớp giờ mời.
+  - Bệnh nhân local của owner (bộ mở 17/08, Mời lên 09/11 12:29): mục 12 hiện 12 / 29 / 09 / 11 / 2026.
+- **Mức retest**: 2 (Bệnh án — phiếu tự điền).
