@@ -68,4 +68,11 @@ public interface IChatAppService : IApplicationService
 public interface IChatNotifier
 {
     Task NotifyAsync(Guid conversationId, IReadOnlyCollection<Guid> userIds);
+
+    /// <summary>
+    /// Someone's read mark moved (R-1178): the other members' open thread
+    /// refetches who has seen what. Lighter than <see cref="NotifyAsync"/>,
+    /// which makes every screen reload the list, the thread and the badge.
+    /// </summary>
+    Task NotifyReadAsync(Guid conversationId, IReadOnlyCollection<Guid> userIds);
 }

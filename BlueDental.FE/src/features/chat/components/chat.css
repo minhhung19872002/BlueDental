@@ -1509,3 +1509,80 @@ body:has(.chat-panel) .chat-toasts {
     animation: none;
   }
 }
+
+/* Đã xem (R-1178): under a message, on the right like the viewer's bubbles. */
+.chat-seen {
+  display: flex;
+  align-self: flex-end;
+  justify-content: flex-end;
+  margin: -2px 2px 2px 0;
+}
+
+.chat-seen-text {
+  color: var(--bd-muted);
+  font-size: 11px;
+}
+
+.chat-seen-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 2px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-seen-button:hover {
+  background: var(--bd-blue-pale);
+}
+
+.chat-seen-button:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 1px;
+}
+
+.chat-seen-avatar {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--bd-bg-soft);
+  font-size: 8px;
+  letter-spacing: -0.2px;
+}
+
+.chat-seen-avatar + .chat-seen-avatar {
+  margin-left: -4px;
+}
+
+.chat-seen-more {
+  background: var(--bd-blue-pale-hover);
+}
+
+.chat-seen-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-seen-column-title {
+  margin: 0 0 4px;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chat-seen-time,
+.chat-seen-empty,
+.chat-seen-hint {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.chat-seen-empty {
+  margin: 0;
+  padding: 4px 12px;
+}
+
+.chat-seen-hint {
+  margin: 12px 0 0;
+}

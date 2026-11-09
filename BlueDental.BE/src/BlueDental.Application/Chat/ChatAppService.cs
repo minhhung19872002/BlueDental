@@ -169,6 +169,9 @@ public class ChatAppService(
             await members.UpdateAsync(member, autoSave: true);
             // The caller's other tabs drop the badge too.
             await notifier.NotifyAsync(id, [userId]);
+            // Everyone else's open thread moves "Đã xem" (R-1178).
+            var others = (await conversationManager.GetMemberIdsAsync(id)).Where(m => m != userId).ToList();
+            await notifier.NotifyReadAsync(id, others);
         }
     }
 
@@ -549,7 +552,13 @@ public class ChatAppService(
             var people = memberRows
                 .Where(m => m.ConversationId == c.Id)
                 .OrderBy(m => m.JoinedAt)
-                .Select(m => new ChatMemberDto { UserId = m.UserId, FullName = NameOf(names, m.UserId) })
+                .Select(m => new ChatMemberDto
+                {
+                    UserId = m.UserId,
+                    FullName = NameOf(names, m.UserId),
+                    IsMe = m.UserId == userId,
+                    LastReadAt = m.LastReadAt,
+                })
                 .ToList();
             var last = latestMapped.GetValueOrDefault(c.Id);
             return new ChatConversationDto
@@ -700,4 +709,6 @@ public class ChatAppService(
 public class NullChatNotifier : IChatNotifier, Volo.Abp.DependencyInjection.ITransientDependency
 {
     public Task NotifyAsync(Guid conversationId, IReadOnlyCollection<Guid> userIds) => Task.CompletedTask;
+
+    public Task NotifyReadAsync(Guid conversationId, IReadOnlyCollection<Guid> userIds) => Task.CompletedTask;
 }

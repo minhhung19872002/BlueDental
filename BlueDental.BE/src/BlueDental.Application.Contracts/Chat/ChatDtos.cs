@@ -20,6 +20,16 @@ public class ChatMemberDto
     public Guid UserId { get; set; }
 
     public string FullName { get; set; } = default!;
+
+    /// <summary>This member is the caller.</summary>
+    public bool IsMe { get; set; }
+
+    /// <summary>
+    /// When this member last opened the thread with something new in it: every
+    /// message sent up to then counts as seen by them (R-1178 Đã xem). Null
+    /// until their first read. Only members see it, like the rest of the thread.
+    /// </summary>
+    public DateTime? LastReadAt { get; set; }
 }
 
 public class ChatAttachmentDto

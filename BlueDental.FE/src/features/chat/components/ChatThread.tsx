@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import { useChatConversation, useChatMessages } from "../api/chatQueries";
 import { isStillEditable } from "../hooks/useEditWindow";
 import { useMarkReadWhenUnread } from "../hooks/useMarkReadWhenUnread";
-import { CHAT_KIND, type ChatMessageDto } from "../types";
+import { CHAT_KIND, type ChatMemberDto, type ChatMessageDto } from "../types";
 import { ChatComposer } from "./ChatComposer";
 import { ChatPanelHeader } from "./ChatPanelHeader";
 import { ChatStatus } from "./ChatStatus";
@@ -13,6 +13,9 @@ import { MessageList } from "./MessageList";
 import { MessageSearch } from "./MessageSearch";
 import { SharedLibrary } from "./SharedLibrary";
 import { ThreadMenu } from "./ThreadMenu";
+
+/** Until the conversation loads: nobody has read anything. */
+const NO_MEMBERS: readonly ChatMemberDto[] = [];
 
 interface ChatThreadProps {
   conversationId: string;
@@ -103,7 +106,8 @@ export const ChatThread: React.FC<ChatThreadProps> = ({ conversationId, onBack, 
         <>
           <MessageList
             conversationId={conversationId}
-            showSenders={isGroup}
+            isGroup={isGroup}
+            members={conversation?.members ?? NO_MEMBERS}
             onEdit={setEditing}
             focusMessageId={focusMessageId}
             onFocused={handleFocused}

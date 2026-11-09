@@ -14368,3 +14368,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `medical-record-sheet-facts.spec` **3/3**: case Mời lên viết lại theo thứ tự thật — mở bộ trước (`invitedAt` null), rồi check-in + Mời lên → 5 ô khớp giờ mời.
   - Bệnh nhân local của owner (bộ mở 17/08, Mời lên 09/11 12:29): mục 12 hiện 12 / 29 / 09 / 11 / 2026.
 - **Mức retest**: 2 (Bệnh án — phiếu tự điền).
+
+## R-1178 (2026-11-09, mức 2: Chat nội bộ — "Đã xem", F-89, develop)
+
+- **Yêu cầu owner** (2026-11-09): chat nội bộ chưa có "Đã xem". Owner duyệt đề xuất:
+  - Chat 1-1: dưới tin **mới nhất của mình** hiện chữ xám nhỏ "Đã xem HH:mm" (hôm nay), "DD/MM HH:mm" (cùng năm), "DD/MM/YYYY HH:mm" (năm khác); chưa đọc → "Đã gửi". Tin cuối là của người kia → không hiện gì.
+  - Nhóm: tối đa 5 avatar chữ tắt + "+n" dưới tin cuối mà từng người đã đọc tới (kiểu Zalo), trừ mình và người gửi; trỏ chuột hiện tên; bấm → popup "Đã xem" (tên + giờ) / "Chưa xem". Tin mới nhất của mình chưa ai đọc → "Đã gửi".
+  - Ai cũng thấy, không có nút tắt, không có trạng thái "Đã nhận". Tin thu hồi / đã sửa giữ trạng thái xem.
+  - Chỉ tính đã xem khi cuộc trò chuyện đang mở **và** tab đang hiện (toast không tính). Cập nhật realtime.
+- **Đã làm** (không migration — dùng `ChatMember.LastReadAt` sẵn có):
+  - BE: `ChatMemberDto` thêm `IsMe`, `LastReadAt`. `MarkReadAsync` đẩy sự kiện SignalR nhẹ `ChatRead` (chỉ mang id cuộc trò chuyện) tới các thành viên khác. `SignalRChatNotifier` gom 2 sự kiện qua một `SendAsync`.
+  - FE: `utils/chatSeen.ts` (ai dừng ở tin nào: `sentAt ≤ lastReadAt`, mốc đọc nằm trên tin thì mới có giờ), `components/MessageSeen.tsx`, `components/SeenDialog.tsx`; `MessageList` nhận `isGroup` + `members`; `useChatLive` nghe `ChatRead` → chỉ làm mới `chatKeys.conversation(id)`. CSS trong `chat.css`, chữ qua `Chat:Sent`, `Chat:SeenAt`, `Chat:SeenBy`, `Chat:SeenTitle`, `Chat:SeenList`, `Chat:NotSeenList`, `Chat:SeenNobody`, `Chat:SeenHint`.
+  - Popup nhóm: người đã đọc **qua** tin này (mốc đọc nằm ở tin sau) không có giờ riêng cho tin này → hiện dòng gợi ý `Chat:SeenHint`.
+- **Kiểm thử** (host riêng :5178 trên DB `BlueDental_chat` + bản build production preview :8178, không chặn request):
+  - `chat-r1178-seen-api.spec` **2/2**: 1-1 — mỗi bên đúng `isMe`; mốc của người gửi ≥ `sentAt`, của người nhận < `sentAt` tới khi họ gọi `POST /read`; request riêng của người gửi thấy mốc mới; danh sách cuộc trò chuyện cũng mang mốc; tài khoản chi nhánh 2 → 404. Nhóm — người chưa mở có `lastReadAt` null, chỉ một thành viên `isMe`.
+  - `chat-r1178-seen.spec` **2/2** (hai trình duyệt thật): "Đã gửi" → "Đã xem HH:mm" ngay khi bên kia mở (không reload); bên đọc không thấy trạng thái; reload vẫn còn; bên kia trả lời → trạng thái biến mất. Nhóm: avatar "Đã xem: Quản lý toàn phòng khám" hiện realtime; popup "Đã xem (1)" có giờ, "Chưa xem (1)" là thành viên thứ ba, người xem không có trong danh sách; reload vẫn còn.
+  - Toàn bộ `e2e/chat*` **73/73** (69 cũ + 4 mới). tsc + eslint sạch, BE build sạch.
+- **Mức retest**: 2 (Chat nội bộ — DTO thành viên + sự kiện SignalR mới; không đụng chức năng khác).

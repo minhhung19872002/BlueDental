@@ -12,7 +12,9 @@ const MAX_RETRY_MS = 60_000;
  * Keeps the chat current without a reload: the hub sends "ChatChanged" with
  * the conversation id to every member's connections (group `user:{id}`), and
  * the badge, the list and an open thread refetch through the API — the push
- * itself carries no message text.
+ * itself carries no message text. A read sends the lighter "ChatRead" to
+ * the other members, which refetches only that conversation's read marks
+ * (R-1178 Đã xem).
  *
  * SignalR retries a dropped socket for about 45 s and then closes for good;
  * this keeps trying after that (and after a failed first start) with a
@@ -58,6 +60,11 @@ export function useChatLive(enabled: boolean, onChanged?: (conversationId: strin
     connection.on("ChatChanged", (conversationId: unknown) => {
       refresh();
       if (typeof conversationId === "string") onChangedRef.current?.(conversationId);
+    });
+    // Someone read the thread (R-1178): only the members' read marks moved.
+    connection.on("ChatRead", (conversationId: unknown) => {
+      if (typeof conversationId !== "string") return;
+      void queryClient.invalidateQueries({ queryKey: chatKeys.conversation(conversationId) });
     });
     connection.onreconnected(refresh);
     connection.onclose(() => scheduleStart());

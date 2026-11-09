@@ -5,15 +5,19 @@ import { t } from "@/lib/i18n";
 import { useChatMessages } from "../api/chatQueries";
 import { useJumpToMessage } from "../hooks/useJumpToMessage";
 import { useStickToBottom } from "../hooks/useStickToBottom";
-import type { ChatMessageDto } from "../types";
+import type { ChatMemberDto, ChatMessageDto } from "../types";
+import { readersAt, readersByMessage } from "../utils/chatSeen";
 import { ChatSpinner } from "./ChatSpinner";
 import { ChatStatus } from "./ChatStatus";
 import { MessageBubble } from "./MessageBubble";
+import { MessageSeen } from "./MessageSeen";
 
 interface MessageListProps {
   conversationId: string;
-  /** Group chats name the sender above each run of their messages. */
-  showSenders: boolean;
+  /** Group chats name the sender above each run of their messages, and show readers as avatars. */
+  isGroup: boolean;
+  /** Everyone in the conversation with their read mark (R-1178 Đã xem). */
+  members: readonly ChatMemberDto[];
   onEdit: (message: ChatMessageDto) => void;
   /** A search result to scroll to and flash; loads older pages until it is there. */
   focusMessageId: string | null;
@@ -23,7 +27,8 @@ interface MessageListProps {
 /** The thread, oldest at the top; older pages load on request. */
 export const MessageList: React.FC<MessageListProps> = ({
   conversationId,
-  showSenders,
+  isGroup,
+  members,
   onEdit,
   focusMessageId,
   onFocused,
@@ -34,6 +39,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const newest = messages.at(-1);
+  const readers = useMemo(() => readersByMessage(messages, members), [messages, members]);
   const { unpin } = useStickToBottom(scrollRef, contentRef, newest?.id, newest?.isMine ?? false);
   const loadedIds = useMemo(() => messages.map((message) => message.id), [messages]);
   const loadOlder = useCallback(() => void fetchNextPage(), [fetchNextPage]);
@@ -70,7 +76,14 @@ export const MessageList: React.FC<MessageListProps> = ({
           return (
             <React.Fragment key={message.id}>
               {newDay && <div className="chat-day">{dayjs(message.sentAt).format("DD/MM/YYYY")}</div>}
-              <MessageBubble message={message} showSender={showSenders && newSender && !message.isMine} onEdit={onEdit} />
+              <MessageBubble message={message} showSender={isGroup && newSender && !message.isMine} onEdit={onEdit} />
+              <MessageSeen
+                message={message}
+                readers={readersAt(readers, message.id)}
+                isNewest={message === newest}
+                isGroup={isGroup}
+                members={members}
+              />
             </React.Fragment>
           );
         })}
