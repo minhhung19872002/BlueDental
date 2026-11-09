@@ -14385,3 +14385,25 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `chat-r1178-seen.spec` **2/2** (hai trình duyệt thật): "Đã gửi" → "Đã xem HH:mm" ngay khi bên kia mở (không reload); bên đọc không thấy trạng thái; reload vẫn còn; bên kia trả lời → trạng thái biến mất. Nhóm: avatar "Đã xem: Quản lý toàn phòng khám" hiện realtime; popup "Đã xem (1)" có giờ, "Chưa xem (1)" là thành viên thứ ba, người xem không có trong danh sách; reload vẫn còn.
   - Toàn bộ `e2e/chat*` **73/73** (69 cũ + 4 mới). tsc + eslint sạch, BE build sạch.
 - **Mức retest**: 2 (Chat nội bộ — DTO thành viên + sự kiện SignalR mới; không đụng chức năng khác).
+
+## R-1179 (2026-11-09, mức 2: Bệnh án — bôi đen / sao chép nhiều dòng một lần, F-30, main)
+
+- **Báo lỗi** (phòng khám, ảnh chat, 2026-11-09): mẫu 2 "4. Tóm tắt bệnh án" viết qua nhiều dòng chấm, nhưng chỉ bôi đen / sao chép được **từng dòng một**.
+- **Nguyên nhân**: mỗi dòng của tờ là một ô `contenteditable` riêng (kể cả dòng do chữ dài tràn xuống — `flowLines` — hoặc do Enter thêm — `lineEditing`). Chrome giữ vùng chọn trong ô nó bắt đầu, nên kéo chuột hay Ctrl+A chỉ lấy một dòng.
+- **Owner chốt**:
+  - Ctrl+A trong ô → chọn **cả mục**: ô của nhãn + mọi dòng chỉ có chữ viết bên dưới, tới nhãn kế tiếp.
+  - Sao chép: dòng tràn do độ rộng nối bằng dấu cách, xuống dòng thật giữ `\n`.
+  - Chỉ FE: không đổi BE, dữ liệu lưu hay bản in.
+- **Đã làm** (FE only):
+  - `heldBlanks.ts`: tạm khoá các ô (`contenteditable="false"` + dấu `data-held-editable`) trong lúc vùng chọn chạy qua nhiều dòng; trả lại ở lần bấm chuột / phím kế tiếp.
+  - `multiLineSelect.ts`: kéo chuột ra khỏi ô ban đầu → chọn tới con trỏ; Ctrl+A → cả mục; phím bất kỳ (trừ Ctrl+C) chỉ dùng để trả ô lại, nên Delete / Enter không xoá những dòng không nhìn thấy; chuột phải giữ vùng chọn cho "Copy".
+  - `sheetCopy.ts`: chữ sao chép theo quy tắc trên. `flowLines.ts` xuất `FLOW_BREAK`, dòng tràn tạo ra là ô sửa được khi ô gốc sửa được. `MedicalRecordDocument.tsx` gắn / gỡ.
+- **Lỗi phát hiện khi làm — tờ "giật" khi bắt đầu bôi đen** (owner, 2 ảnh mẫu 5 "3. Khác", 2026-11-09): nội dung trượt xuống ~40px và vùng chọn rơi vào chữ in "3. K".
+  - Nguyên nhân: ô trống đang sửa được có một dòng cho con trỏ, nên baseline là baseline chữ; khi bị khoá (không còn editable) và trống, baseline là mép dưới → mỗi dòng có ô trống cao thêm ~4px. Chrome cũng gán `line-break: after-white-space` riêng cho `[contenteditable]`. Mẫu 2 trượt 100px phía trên `text.37`, tờ cao thêm 294px, nên con trỏ chuột chỉ sang chữ khác.
+  - Sửa (`sheetCss.ts`): ô bị khoá giữ `line-break:after-white-space`, ô trống bị khoá có `::before` chứa ký tự rộng 0 (`\200b`) làm dòng cho nó. Lưu ý: CSS ở đây là `String.raw`, escape chỉ **một** dấu `\`.
+  - Đo trên cả 9 mẫu (khoá mọi ô, so toạ độ từng phần tử): **0** phần tử dịch chuyển (trước khi sửa mẫu 2 dịch 100px).
+- **Kiểm thử** (API Docker :5000 + bản build production preview :8179, không chặn request):
+  - Case mới trong `patient-medical-record.spec`, "a summary written over several lines can be selected and copied whole": kéo chuột qua nhiều dòng → tờ **không dịch** (toạ độ `text.37` + chiều cao khung giữ nguyên) → Ctrl+C ra đúng `tóm tắt\ndòng dưới`; Delete chỉ trả ô, không xoá; Ctrl+A trên dòng tràn chọn cả mục; gõ tiếp được; Ctrl+A ở ô ngày sinh không khoá; lưu + reload vẫn còn. **1/1**.
+  - 6 spec bệnh án: **47 pass / 5 đỏ**. 4 đỏ có sẵn (`medical-record-sheet-facts:171`, "the index lists…", "card wears its own form's colour", "picking the day…" — xem R-1052); "print their MS" là flake do tải, chạy riêng xanh.
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (Bệnh án — trình soạn tờ).

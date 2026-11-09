@@ -1488,6 +1488,83 @@ test.describe("Bệnh án", () => {
   });
 
   /**
+   * Copying what is written over several lines (clinic, 2026-11-09, R-1179):
+   * every line is a blank of its own, and a selection used to stop at the
+   * first one's edge. A drag across lines, or Ctrl+A in a blank, now takes the
+   * whole entry; the copy joins the lines the width broke with a space and keeps
+   * the ones the writer broke. The next key or click gives the blanks back, and
+   * what is written is untouched.
+   */
+  test("a summary written over several lines can be selected and copied whole", async ({ page }) => {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    const summary =
+      "Bệnh nhân nam 35t, đến khám do răng khôn hàm dưới mọc lệch, gây sưng đau, và mắc thức ăn. Bệnh nhân đã uống thuốc nhiều lần nhưng bị tái đi tái lại. Qua thăm khám hỏi bệnh thấy: R38 lệch gần 90 độ, chân răng xòe, sát ống thần kinh";
+    const below = "Nướu nề nhẹ, không sưng, không có dịch, há ngậm miệng bình thường";
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt", {
+      "outpatient-dental.text.37": summary,
+      "outpatient-dental.text.38": below,
+    });
+    const document = sheet(page);
+    const flowed = document.locator('[data-flow-of="outpatient-dental.text.37"]');
+    expect(await flowed.count(), "the summary runs over lines of its own").toBeGreaterThanOrEqual(1);
+    const clipboard = () => page.evaluate(() => navigator.clipboard.readText());
+    const editable = (field: string) => blank(page, field).getAttribute("contenteditable");
+
+    // A drag from the summary's first word to the end of the line under it.
+    await blank(page, "outpatient-dental.text.37").scrollIntoViewIfNeeded();
+    const from = await blank(page, "outpatient-dental.text.37").boundingBox();
+    const to = await blank(page, "outpatient-dental.text.38").boundingBox();
+    if (!from || !to) throw new Error("the blanks are not on screen");
+    // The sheet must not move as the drag takes hold of it: blanks held still keep
+    // the shape they had while editable, so the pointer stays on the line it was on.
+    const sheetHeight = () => page.locator(".mr-doc-frame").first().evaluate((frame) => frame.getBoundingClientRect().height);
+    const heightBefore = await sheetHeight();
+    await page.mouse.move(from.x + 1, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 + 12, { steps: 2 });
+    expect(await editable("outpatient-dental.text.38"), "held once the drag leaves its blank").toBe("false");
+    expect((await blank(page, "outpatient-dental.text.37").boundingBox())?.y, "the sheet stays where it was").toBe(from.y);
+    expect(await sheetHeight()).toBe(heightBefore);
+    await page.mouse.move(from.x + from.width / 2, to.y + to.height / 2, { steps: 5 });
+    await page.mouse.move(to.x + to.width - 2, to.y + to.height / 2, { steps: 5 });
+    await page.mouse.up();
+    expect(await editable("outpatient-dental.text.38"), "held still while the selection lasts").toBe("false");
+    await page.keyboard.press("Control+c");
+    expect(await clipboard()).toBe(`${summary}\n${below}`);
+
+    // A key gives the blanks back, and is spent on that: Delete wipes nothing.
+    await page.keyboard.press("Delete");
+    expect(await editable("outpatient-dental.text.38")).toBe("true");
+    await expect(blank(page, "outpatient-dental.text.38")).toHaveText(below);
+
+    // Ctrl+A on a line the summary flowed onto takes the label's whole entry.
+    await flowed.first().click();
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Control+c");
+    expect(await clipboard()).toBe(`${summary}\n${below}`);
+
+    // A click writes again, where it lands.
+    await blank(page, "outpatient-dental.text.38").click();
+    expect(await editable("outpatient-dental.text.38")).toBe("true");
+    await page.keyboard.press("End");
+    await page.keyboard.type(".");
+    // Ctrl+A in a blank with print after it on its line ("Sinh ngày __/") is that blank only.
+    await blank(page, "outpatient.patient.birth-day").click();
+    await page.keyboard.press("Control+a");
+    expect(await editable("outpatient-dental.text.38"), "one blank needs no holding").toBe("true");
+    await save(page);
+
+    await page.reload();
+    await openLastSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+    await expect(blank(page, "outpatient-dental.text.38")).toHaveText(`${below}.`);
+    const written = await document
+      .locator('[data-medical-record-field="outpatient-dental.text.37"], [data-flow-of="outpatient-dental.text.37"]')
+      .evaluateAll((nodes) => nodes.map((node) => node.textContent).join(" "));
+    expect(written).toBe(summary);
+  });
+
+  /**
    * The other eight forms take mẫu 5's style (clinic, 2026-10-16): taken in
    * like it, each at the largest type whose every page fits its sheet of A4 —
    * so each prints exactly the pages it is drawn with, through the app's own

@@ -21,6 +21,7 @@ import { MaterialTypeDialog } from "./materials/MaterialTypeDialog";
 import { useSheetMaterials } from "./materials/useSheetMaterials";
 import { attachSections } from "./sheetSections";
 import { flowLongBlanks, flowedText, isPartOf, writeFlowed } from "./flowLines";
+import { attachMultiLineSelect } from "./multiLineSelect";
 
 /** A4 at 96dpi, plus the 20px margin the sheet's own page leaves around it. */
 const PAGE_WIDTH = 834;
@@ -221,6 +222,9 @@ export function MedicalRecordDocument({
         })
       : () => undefined;
 
+    // A selection can run across the sheet's lines, for copying; see multiLineSelect.
+    const detachSelect = editable ? attachMultiLineSelect(doc) : () => undefined;
+
     frame.current?.addEventListener(
       "beforeunload",
       () => {
@@ -230,6 +234,7 @@ export function MedicalRecordDocument({
         detachHandles();
         detachDrawing();
         detachLines();
+        detachSelect();
         detachMaterials();
         detachSections();
       },

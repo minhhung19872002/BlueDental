@@ -207,6 +207,16 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl .nfc-medical-record-text-field:empty::before{content:attr(data-placeholder);color:#9ca3af;font-style:italic}
 .nfc-tpl .nfc-medical-record-text-field[data-placeholder="Nhập nội dung"]:empty::before{content:''}
 .nfc-tpl .nfc-medical-record-text-field:focus{background:#fff9c4;outline:2px solid #f59e0b}
+/*
+ * A blank held still for a selection across lines (R-1179) keeps the shape it
+ * had while editable. Chrome gives an editable its own line break rule, and an
+ * empty one a line to put the caret on; without that line an empty blank sits
+ * on its bottom edge, every line holding one grows, and the sheet jumps under
+ * the pointer as the drag begins. The invisible character is that line.
+ */
+.nfc-tpl [data-held-editable]{line-break:after-white-space}
+.nfc-tpl .nfc-medical-record-text-field[data-held-editable]:empty::before{content:attr(data-placeholder) "\200b"}
+.nfc-tpl .nfc-medical-record-text-field[data-held-editable][data-placeholder="Nhập nội dung"]:empty::before{content:"\200b"}
 /* The paper's small boxes (clinic, 2026-10-16, after mẫu 5). */
 .nfc-tpl .nfc-medical-record-checkbox{width:12px;height:12px;margin:0 3px;vertical-align:-1px;accent-color:#2671d8;cursor:pointer}
 @media print{
