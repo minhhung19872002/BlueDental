@@ -11,9 +11,41 @@ body:has(.chat-panel) .scroll-top-button {
   visibility: hidden;
 }
 
-.chat-dock-button--open {
-  border-color: var(--bd-primary);
-  color: var(--bd-primary);
+/* R-1182 (clinic, 2026-11-09): "lấy cái messenger … hay cho màu nền vô" — a
+   round blue-to-violet badge with a white filled bubble; our own icon, not
+   Meta's logo. Doubled class so it outranks .app-header-icon-btn:hover. */
+.app-header-icon-btn.chat-dock-button {
+  --chat-dock-from: #1a8cff;
+  --chat-dock-to: #8a3ffc;
+  --chat-dock-glow: rgb(74 76 230 / 0.35);
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--chat-dock-from), var(--chat-dock-to));
+  color: #fff;
+  box-shadow: 0 2px 6px var(--chat-dock-glow);
+  transition:
+    box-shadow 0.12s,
+    filter 0.12s;
+}
+
+.app-header-icon-btn.chat-dock-button:hover {
+  background: linear-gradient(135deg, var(--chat-dock-from), var(--chat-dock-to));
+  color: #fff;
+  filter: brightness(1.08);
+  box-shadow: 0 3px 10px var(--chat-dock-glow);
+}
+
+.app-header-icon-btn.chat-dock-button:focus-visible {
+  outline: 2px solid var(--bd-primary);
+  outline-offset: 2px;
+}
+
+/* Panel open: a white gap, then a primary ring around the badge. */
+.app-header-icon-btn.chat-dock-button--open,
+.app-header-icon-btn.chat-dock-button--open:hover {
+  box-shadow:
+    0 0 0 2px var(--bd-card),
+    0 0 0 4px var(--bd-primary);
 }
 
 /* After a render error (R-1162 H6.6): muted, a click brings chat back. */
