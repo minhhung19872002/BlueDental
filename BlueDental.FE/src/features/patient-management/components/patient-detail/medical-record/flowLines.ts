@@ -10,6 +10,8 @@
  * because only then is a blank's width known.
  */
 
+import { isEditableBlank } from "./heldBlanks";
+
 const FIELD_SELECTOR = "[data-medical-record-field]";
 const TEXT_BLANK_SELECTOR = `${FIELD_SELECTOR}[data-field-type="text"]`;
 const BLOCK_SELECTOR = "p, h1, h2, h3, h4, li";
@@ -17,7 +19,7 @@ const BLOCK_SELECTOR = "p, h1, h2, h3, h4, li";
 /** On a flowed line's blank: the id of the blank it continues. */
 const FLOW_OF = "data-flow-of";
 /** "hard" where the text itself broke the line, "soft" where only the width did. */
-const FLOW_BREAK = "data-flow-break";
+export const FLOW_BREAK = "data-flow-break";
 /** On the block a flowed line sits in — what a cloned table row must leave behind. */
 export const FLOW_LINE_ATTR = "data-flow-line";
 
@@ -91,7 +93,8 @@ function flowLine(field: Element, block: Element, line: Line): HTMLElement {
     const value = field.getAttribute(name);
     if (value !== null) blank.setAttribute(name, value);
   }
-  if (field.getAttribute("contenteditable") === "true") blank.setAttribute("contenteditable", "true");
+  // Flowed while a selection holds the sheet still: the line takes writing once it lets go.
+  if (isEditableBlank(field)) blank.setAttribute("contenteditable", "true");
   blank.setAttribute(FLOW_OF, field.getAttribute("data-medical-record-field") ?? "");
   blank.setAttribute(FLOW_BREAK, line.hard ? "hard" : "soft");
   blank.textContent = line.text;
