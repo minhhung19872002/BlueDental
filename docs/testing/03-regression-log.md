@@ -14429,3 +14429,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - 4 spec bệnh án (`patient-medical-record`, `medical-record-sheet-facts`, `medical-record-contract-party-a`, `medical-record-set`): **43 pass / 3 đỏ có sẵn** ("the index lists…", "card wears its own form's colour", "picking the day…"); `medical-record-set` "a set is made…" đỏ do API vừa khởi động ("Failed to fetch"), chạy lại xanh.
   - tsc + eslint sạch.
 - **Mức retest**: 2 (Bệnh án — phiếu tự điền).
+
+## R-1182 (2026-11-09, mức 1: Chat nội bộ — nút chat trên header có màu nền, F-89, main + develop)
+
+- **Yêu cầu** (phòng khám, ảnh chat khoanh đỏ, 2026-11-09): "lấy cái messenger đc không? hay cho màu nền vô cũng đc" — nút chat viền xám giống hệt nút ghi chú bên cạnh, khó nhận ra. Chủ dự án chọn phương án A.
+- **Sửa** (`ChatDockButton.tsx` + `chat.css`, chỉ giao diện):
+  - Nút tròn 38px, nền gradient xanh `#1a8cff` → tím `#8a3ffc`, bóng nhẹ; icon bong bóng `MessageCircle` trắng tô đặc. Dùng icon riêng, không chép logo Messenger (thương hiệu của Meta).
+  - Hover sáng lên; khi panel mở có vòng `--bd-primary` cách một khe trắng; focus-visible có viền.
+  - Badge đỏ đếm tin chưa đọc, aria-label, nút lỗi (`ChatDockFallback`, xám) giữ nguyên.
+- **Kiểm thử**: dev server :5173 + API :5000, đăng nhập thật, chụp header ở 1920px lúc panel đóng và panel mở — đúng màu, tròn, không lệch hàng. tsc + eslint sạch.
+- **Mức retest**: 1 (chỉ giao diện).
