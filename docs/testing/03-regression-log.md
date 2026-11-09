@@ -14288,3 +14288,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Lễ tân gọi mời vẫn nhận 403.
   - `staff-label-color` **1/1**.
 - **Mức retest**: 2 (Tiếp nhận — panel nổi).
+
+## R-1172 (2026-11-09, mức 2: Chat nội bộ — nút chat lên header, F-89, develop)
+
+- **Yêu cầu owner** (ảnh chụp, 2026-11-09): "Này ít dùng nên cho nó lên đây đi" — nút chat tròn ở góc dưới-phải chuyển lên header.
+- **Đã làm** (FE only):
+  - `ChatDock` render trong header, ngay trước nút Ghi chú (Alt+N); nút dùng kiểu `app-header-icon-btn` 38px, icon 18px, badge đỏ số tin chưa đọc giữ class `chat-dock-badge`.
+  - Panel chat + toast render qua `createPortal(document.body)`: header có `backdrop-filter` nên nếu để bên trong, `position: fixed` bị neo vào header.
+  - Góc dưới-phải trả lại cho "Mời lên" (ArrivalCallDock) — bỏ các rule đẩy `.arrival-dock` sang trái 100px và đẩy nút "lên đầu trang"; khi panel mở, "Mời lên" lùi ra trái panel (412px). Mobile: panel full width, "Mời lên" nằm dưới.
+  - Fallback lỗi render (`ChatDockFallback`) cũng là icon header.
+- **Kiểm thử** (host :5000 + bản build production preview riêng :8273, không chặn request):
+  - `chat.spec` (case vị trí viết lại: nút nằm trong `.app-header`, "Mời lên" giữ góc, panel dưới header và "Mời lên" ở trái panel) + `chat-r1165-toast` **11/11**.
+  - Ảnh chụp 1440×800: đóng / mở panel đúng bố cục.
+- **Mức retest**: 2 (Chat nội bộ — shell).

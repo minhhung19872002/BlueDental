@@ -48,25 +48,27 @@ async function openThreadWith(page: Page, title: string) {
 
 const message = (page: Page, text: string) => panel(page).locator(".chat-message").filter({ hasText: text });
 
-test("the chat button sits bottom-right, Mời lên to its left, and both move left of the open panel", async () => {
+test("the chat button sits in the header (R-1172), Mời lên keeps the corner and moves left of the open panel", async () => {
   const page = admin.page;
   await expect(chatButton(page)).toBeVisible();
   await expect(arrivalButton(page)).toBeVisible();
   const viewport = page.viewportSize()!;
 
+  const header = await box(page.locator(".app-header"));
   const chatClosed = await box(chatButton(page));
   const arrivalClosed = await box(arrivalButton(page));
-  expect(viewport.width - (chatClosed.x + chatClosed.width)).toBeLessThanOrEqual(32);
-  expect(arrivalClosed.x + arrivalClosed.width).toBeLessThanOrEqual(chatClosed.x);
+  await expect(page.locator(".app-header").getByRole("button", { name: "Mở chat nội bộ" })).toHaveCount(1);
+  expect(chatClosed.y + chatClosed.height).toBeLessThanOrEqual(header.y + header.height);
+  expect(viewport.width - (arrivalClosed.x + arrivalClosed.width)).toBeLessThanOrEqual(32);
 
   await chatButton(page).click();
   await expect(panel(page)).toBeVisible();
   const aside = await box(panel(page));
-  const chatOpen = await box(chatButton(page));
   const arrivalOpen = await box(arrivalButton(page));
   expect(viewport.width - (aside.x + aside.width)).toBeLessThanOrEqual(24);
-  expect(chatOpen.x + chatOpen.width).toBeLessThanOrEqual(aside.x);
-  expect(arrivalOpen.x + arrivalOpen.width).toBeLessThanOrEqual(chatOpen.x);
+  expect(aside.y).toBeGreaterThanOrEqual(header.y + header.height);
+  expect(aside.height).toBeGreaterThan(300);
+  expect(arrivalOpen.x + arrivalOpen.width).toBeLessThanOrEqual(aside.x);
 
   await panel(page).getByRole("button", { name: "Đóng" }).click();
   await expect(panel(page)).toBeHidden();

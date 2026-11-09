@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { createPortal } from "react-dom";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { useChatUnreadCount } from "../api/chatQueries";
 import { useChatLive } from "../hooks/useChatLive";
@@ -10,11 +11,15 @@ import { ChatToastStack } from "./ChatToastStack";
 import "./chat.css";
 
 /**
- * Chat nội bộ (F-89, BA 2026-11-06): a round button in the bottom-right
- * corner of every screen, where "Mời lên" used to sit — that dock moves one
- * place left. A click opens the chat beside it, docked to the right edge over
- * the current page; the page itself does not reflow. New messages also show
- * as toasts top right (R-1165); a click on one opens its thread here.
+ * Chat nội bộ (F-89): an icon button in the header, beside the notes button.
+ * The owner moved it up from the bottom-right corner (R-1172) — it is used too
+ * rarely to hold the corner, which "Mời lên" has back. A click opens the chat
+ * docked to the right edge over the current page; the page itself does not
+ * reflow. New messages also show as toasts top right (R-1165); a click on one
+ * opens its thread here.
+ *
+ * The panel and toasts render into <body>: the header's backdrop-filter would
+ * otherwise become their containing block and trap them inside the bar.
  */
 export const ChatDock: React.FC = () => {
   const branchId = useBranchFilter();
@@ -50,18 +55,21 @@ export const ChatDock: React.FC = () => {
 
   return (
     <>
-      <div className="chat-dock">
-        <ChatDockButton open={open} unreadCount={unread.data?.count ?? 0} onToggle={handleToggle} />
-      </div>
-      <ChatToastStack alerts={alerts.alerts} onOpen={openConversation} onDismiss={alerts.dismiss} />
-      {open && (
-        <ChatPanel
-          key={branchId ?? "all"}
-          branchId={branchId}
-          activeId={activeId}
-          onActiveChange={setActiveId}
-          onClose={handleClose}
-        />
+      <ChatDockButton open={open} unreadCount={unread.data?.count ?? 0} onToggle={handleToggle} />
+      {createPortal(
+        <>
+          <ChatToastStack alerts={alerts.alerts} onOpen={openConversation} onDismiss={alerts.dismiss} />
+          {open && (
+            <ChatPanel
+              key={branchId ?? "all"}
+              branchId={branchId}
+              activeId={activeId}
+              onActiveChange={setActiveId}
+              onClose={handleClose}
+            />
+          )}
+        </>,
+        document.body,
       )}
     </>
   );
