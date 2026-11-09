@@ -768,4 +768,85 @@ test.describe("Tiếp nhận — Mời lên / Tiếp nhận", () => {
       await plainCall(page, `${APPOINTMENTS}/${visit.id}`, { method: "DELETE", branchId });
     }
   });
+
+  /**
+   * R-1183 (clinic, 2026-11-09): "Trễ 8p" red / "Sớm 5p" green beside the
+   * booked time, none on the booked minute; from an hour up "1g20p". Read off
+   * the stored slot and check-in stamp, on the clock reception reads (HH:mm).
+   */
+  test("each row says how late or early the patient came against the booked time", async ({ page }) => {
+    test.setTimeout(360_000);
+    await login(page);
+    const branchId = await openBoard(page);
+    // A booking may not lie in the past, so the late one is booked a minute
+    // ahead and checked in once its minute has gone by — as at the desk.
+    const late = await bookVisitToday(page, branchId, 1, "e2e-tre");
+    const early = await bookVisitToday(page, branchId, 160, "e2e-som");
+
+    try {
+      const lateBy = new Date(late.slotStart).getTime() + 61_000 - Date.now();
+      test.skip(lateBy > 240_000, "every doctor is busy around now: the late visit slid too far ahead");
+      await page.waitForTimeout(Math.max(lateBy, 0));
+      for (const visit of [late, early]) {
+        expect((await call(page, branchId, `${APPOINTMENTS}/${visit.id}/check-in`, { method: "POST" })).status).toBe(200);
+      }
+      const expected = async (visit: Visit) => {
+        const stored = await getAppointment(page, branchId, visit.id);
+        expect(stored.checkedInAt, "checked in").not.toBeNull();
+        return expectedPunctuality(stored.slotStart, stored.checkedInAt ?? "");
+      };
+      const lateBadge = await expected(late);
+      const earlyBadge = await expected(early);
+      expect(lateBadge?.direction, "checked in after the booked minute").toBe("late");
+      expect(earlyBadge?.direction, "booked hours ahead").toBe("early");
+
+      await page.goto("/calendar/list");
+      await dockButton(page).click();
+      const waiting = (visit: Visit) =>
+        section(page, "Khách đã đến").locator(".arrival-row").filter({ hasText: visit.searchKey });
+      for (const [visit, badge] of [[late, lateBadge], [early, earlyBadge]] as const) {
+        const shown = waiting(visit).locator(".arrival-row-punctuality");
+        await expect(shown).toHaveText(badge?.text ?? "");
+        await expect(shown).toHaveClass(new RegExp(`arrival-row-punctuality--${badge?.direction}`));
+        await expect(shown).toHaveAttribute("title", badge?.hint ?? "");
+      }
+      // Red for late, green for early — not the same pill twice.
+      const lateColour = await waiting(late).locator(".arrival-row-punctuality").evaluate((el) => getComputedStyle(el).color);
+      const earlyColour = await waiting(early).locator(".arrival-row-punctuality").evaluate((el) => getComputedStyle(el).color);
+      expect(lateColour).not.toBe(earlyColour);
+
+      // Called up, the badge follows the patient into "Bác sĩ mời lên", and a reload keeps it.
+      await waiting(late).getByRole("button", { name: "Mời lên" }).click();
+      await expect(page.getByText("Đã mời bệnh nhân lên")).toBeVisible();
+      await page.reload();
+      await dockButton(page).click();
+      const seatRow = section(page, "Bác sĩ mời lên").locator(".arrival-row").filter({ hasText: late.searchKey });
+      await expect(seatRow.locator(".arrival-row-punctuality")).toHaveText(lateBadge?.text ?? "");
+    } finally {
+      for (const visit of [late, early]) {
+        await plainCall(page, `${APPOINTMENTS}/${visit.id}`, { method: "DELETE", branchId });
+      }
+    }
+  });
 });
+
+/** The badge R-1183 should show, worked out here independently of the app's code. */
+function expectedPunctuality(slotStart: string, checkedInAt: string) {
+  const booked = new Date(slotStart);
+  booked.setSeconds(0, 0);
+  const arrived = new Date(checkedInAt);
+  arrived.setSeconds(0, 0);
+  const minutes = Math.round((arrived.getTime() - booked.getTime()) / 60_000);
+  if (minutes === 0) return null;
+  const abs = Math.abs(minutes);
+  const hours = Math.floor(abs / 60);
+  const rest = abs % 60;
+  let span = `${abs}p`;
+  if (hours > 0) span = rest === 0 ? `${hours}g` : `${hours}g${String(rest).padStart(2, "0")}p`;
+  const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return {
+    direction: minutes > 0 ? "late" : "early",
+    text: `${minutes > 0 ? "Trễ" : "Sớm"} ${span}`,
+    hint: `Hẹn ${hhmm(booked)} · Đến ${hhmm(arrived)}`,
+  };
+}
