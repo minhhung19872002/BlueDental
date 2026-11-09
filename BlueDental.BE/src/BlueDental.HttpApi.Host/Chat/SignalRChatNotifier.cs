@@ -18,9 +18,18 @@ public class SignalRChatNotifier(IHubContext<NotificationHub> hub) : IChatNotifi
 {
     public const string EventName = "ChatChanged";
 
+    /// <summary>Someone read the thread (R-1178); only "Đã xem" needs refetching.</summary>
+    public const string ReadEventName = "ChatRead";
+
     public Task NotifyAsync(Guid conversationId, IReadOnlyCollection<Guid> userIds) =>
+        SendAsync(EventName, conversationId, userIds);
+
+    public Task NotifyReadAsync(Guid conversationId, IReadOnlyCollection<Guid> userIds) =>
+        SendAsync(ReadEventName, conversationId, userIds);
+
+    private Task SendAsync(string eventName, Guid conversationId, IReadOnlyCollection<Guid> userIds) =>
         userIds.Count == 0
             ? Task.CompletedTask
             : hub.Clients.Groups(userIds.Distinct().Select(NotificationHub.UserGroupOf).ToList())
-                .SendAsync(EventName, conversationId);
+                .SendAsync(eventName, conversationId);
 }

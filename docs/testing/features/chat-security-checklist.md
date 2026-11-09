@@ -372,3 +372,12 @@ Chạy thật trên host riêng (`BlueDental_chat`, ClamAV thật) + bản build
 
 Test cũ gọi thu hồi trực tiếp giờ đi qua `patiently` (thu hồi dùng chung giới hạn gửi).
 
+
+### R-1178 Đã xem — xong (2026-11-09)
+
+| Mục | Kết quả |
+|---|---|
+| Lộ mốc đọc | ✅ chạy thật: `lastReadAt` chỉ nằm trong `ChatMemberDto` của cuộc trò chuyện mình là thành viên; tài khoản chi nhánh 2 gọi `GET conversations/{id}` → 404 (`chat-r1178-seen-api`) |
+| Push `ChatRead` | ✅ đọc code: chỉ mang `conversationId`, gửi tới group người dùng của các thành viên khác, không mang nội dung hay giờ đọc |
+| Giả mạo mốc đọc | ✅ đọc code: mốc chỉ đổi qua `POST conversations/{id}/read` của chính người gọi, `MarkRead(Clock.Now)` lấy giờ server và chỉ tiến lên — client không gửi giờ |
+| Hiển thị | ✅ đọc code: tên người xem render text (React escape), không `dangerouslySetInnerHTML` |

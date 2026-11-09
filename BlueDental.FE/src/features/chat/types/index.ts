@@ -12,6 +12,10 @@ export interface ChatContactDto {
 export interface ChatMemberDto {
   userId: string;
   fullName: string;
+  /** This member is the signed-in account. */
+  isMe: boolean;
+  /** Everything sent up to this moment counts as seen by them (R-1178); null until their first read. */
+  lastReadAt: string | null;
 }
 
 export interface ChatAttachmentDto {

@@ -1,6 +1,6 @@
 # F-89 — Chat nội bộ có đính kèm file (R-1157)
 
-Trạng thái: `VERIFIED` 2026-11-06 trên develop: R-1157 e1566669, R-1158 hardening, R-1159 sửa tin, R-1160 Kho lưu trữ, R-1161 gắn khách bằng `#`. R-1165 thông báo tin mới (toast 5 s + ting + thông báo Windows) trên main. Rà bảo mật chi tiết: `chat-security-checklist.md`.
+Trạng thái: `VERIFIED` 2026-11-06 trên develop: R-1157 e1566669, R-1158 hardening, R-1159 sửa tin, R-1160 Kho lưu trữ, R-1161 gắn khách bằng `#`. R-1165 thông báo tin mới (toast 5 s + ting + thông báo Windows) trên main. R-1178 "Đã xem" (2026-11-09). Rà bảo mật chi tiết: `chat-security-checklist.md`.
 
 ## Quyết định của owner (2026-11-06)
 
@@ -122,6 +122,17 @@ BA 2026-11-06: "Thêm cho chat phần thông báo để xem nhanh nha (5s)", khu
 - Thông báo Windows: trình duyệt hỏi quyền một lần, khi bấm mở chat hoặc bấm toast. Chỉ hiện khi tab bị ẩn hoặc cửa sổ khác đang ở trên; bấm vào → đưa app lên và mở cuộc trò chuyện. Nội dung cắt ở 140 ký tự. Xem rủi ro ở checklist H3.3. *(R-1166)* Tin sau của cùng cuộc trò chuyện thay thông báo cũ (cùng `tag`) **và bật lên lại** (`renotify: true`); trước đó Chrome chỉ âm thầm đổi chữ trong Trung tâm thông báo, không có banner.
 - Code: `hooks/useNewMessageAlerts.ts`, `components/ChatToastStack.tsx`, `utils/chatSound.ts`, `utils/desktopNotify.ts`; `ChatDock` giữ cuộc trò chuyện đang mở (`ChatPanel` thành controlled) để toast mở được nó.
 
+## Đã xem (R-1178)
+
+Owner 2026-11-09 duyệt: ai cũng thấy, không có nút tắt, không có "Đã nhận"; tin thu hồi / đã sửa giữ trạng thái xem.
+
+- Dữ liệu: không migration. Mỗi `ChatMemberDto` mang `lastReadAt` (mốc `ChatMember.LastReadAt`, chỉ tiến lên) và `isMe`. Người gửi được tính đã đọc tại `SentAt`. Một tin được coi là người đó đã xem khi `sentAt ≤ lastReadAt`.
+- Chỉ đánh dấu đọc khi cuộc trò chuyện đang mở và tab đang hiện (`useMarkReadWhenUnread`); toast không tính.
+- 1-1: chỉ dưới tin **mới nhất** và tin đó là **của mình** — "Đã gửi" hoặc "Đã xem HH:mm" / "DD/MM HH:mm" / "DD/MM/YYYY HH:mm".
+- Nhóm: avatar (tối đa 5 + "+n") dưới tin cuối mỗi người đã đọc tới, trừ mình và người gửi tin đó. Trỏ chuột → tên; bấm → popup "Đã xem (n)" (tên + giờ) / "Chưa xem (n)". Người đã đọc qua tin này (mốc nằm ở tin sau) không có giờ riêng → popup có dòng gợi ý.
+- Realtime: `MarkReadAsync` đẩy `ChatRead` (chỉ id cuộc trò chuyện) tới các thành viên khác; FE chỉ làm mới `GET conversations/{id}`, không tải lại danh sách.
+- Code: `utils/chatSeen.ts`, `components/MessageSeen.tsx`, `components/SeenDialog.tsx`, `hooks/useChatLive.ts`.
+
 ## Triển khai
 
 - Chạy DbMigrator để áp 5 migration: `ChatR1157`, `ChatOwnerR1158` (cột `OwnerId`), `ChatRevisionsR1159` (bảng bản cũ), `ChatPatientTagsR1161` (cột `PatientIds`), `ChatClientMessageIdR1162` (cột `ClientMessageId` + unique index lọc).
@@ -180,4 +191,5 @@ E2E_BASE_URL=<preview> E2E_DB_NAME=<db của host> npx playwright test e2e/chat-
 - `chat-r1162-api.spec.ts` (5): phân trang cùng `SentAt`, gửi lại cùng `clientMessageId`, 4 request mở 1-1 cùng lúc, giới hạn quản lý + thu hồi.
 - `chat-r1162.spec.ts` (3, giao diện): huỷ file 45 MB đang tải, file EICAR → chip lỗi + thử lại + bỏ, bộ đếm ký tự.
 - `chat-r1165-toast.spec.ts` (8, giao diện, hai trình duyệt): toast dưới header góc phải và tự đóng sau ~5 s; có ting (đếm oscillator Web Audio); trỏ chuột giữ lại, × đóng; tin mới thay toast cũ + "2 tin chưa đọc"; bấm toast mở cuộc trò chuyện, cuộc đang mở không có toast; tin của chính mình không có toast; toast nhóm "người gửi · nhóm"; app ở phía sau → thông báo Windows (thay `window.Notification` + `document.hasFocus` của trình duyệt, không chặn request nào) và bấm vào mở cuộc trò chuyện.
-- Toàn bộ chat: **61/61** (R-1162); **69/69** (R-1165); R-1166 chạy lại `chat-r1165-toast` **8/8**. `chat.spec` xoá tin chưa đọc của manager ở `beforeAll`, vì badge đếm mọi tin chưa đọc.
+- `chat-r1178-seen-api.spec.ts` (2) và `chat-r1178-seen.spec.ts` (2, hai trình duyệt): mốc đọc qua HTTP thật + cách ly chi nhánh; "Đã gửi" → "Đã xem HH:mm" realtime, avatar nhóm + popup Đã xem / Chưa xem, reload vẫn còn.
+- Toàn bộ chat: **61/61** (R-1162); **69/69** (R-1165); R-1166 chạy lại `chat-r1165-toast` **8/8**. **73/73** (R-1178). `chat.spec` xoá tin chưa đọc của manager ở `beforeAll`, vì badge đếm mọi tin chưa đọc.
