@@ -232,6 +232,28 @@ body:has(.arrival-panel) .scroll-top-button {
   font-weight: 600;
 }
 
+/* R-1183: "Trễ 8p" red / "Sớm 5p" green after the booked time; none on time. */
+.arrival-row-punctuality {
+  flex-shrink: 0;
+  padding: 0 8px;
+  border-radius: var(--bd-radius-pill);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.arrival-row-punctuality--late {
+  background: var(--bd-red-pale);
+  color: var(--bd-red-dark);
+}
+
+.arrival-row-punctuality--early {
+  background: var(--bd-green-pale);
+  color: var(--bd-green);
+}
+
 /* A "Lịch tạm" keeps its lilac tag here as on its board card. */
 .arrival-row-temp {
   flex-shrink: 0;

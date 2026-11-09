@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { api } from "@/lib/axios";
 import type { ArrivalCall, ArrivalDoctor, ArrivalDoctorPick } from "../types/arrivalCall";
+import { getArrivalPunctuality } from "../utils/arrivalPunctuality";
 
 const BASE = "/v1/app/arrival-calls";
 
@@ -40,6 +41,8 @@ function adaptArrivalCall(dto: ServerArrivalCallDto): ArrivalCall {
     doctorLabelColor: dto.dentistLabelColor ?? null,
     checkedInAt: dto.checkedInAt ?? undefined,
     time: dayjs(dto.slotStart).format("HH:mm"),
+    arrivedTime: dto.checkedInAt ? dayjs(dto.checkedInAt).format("HH:mm") : "",
+    punctuality: getArrivalPunctuality(dto.slotStart, dto.checkedInAt ?? undefined),
     content: dto.content ?? "",
     invited: !!dto.invitedAt,
     isFlagged: dto.isFlagged,

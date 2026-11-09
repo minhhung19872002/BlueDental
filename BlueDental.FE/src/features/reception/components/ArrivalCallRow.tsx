@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { useWaitClock } from "../hooks/useWaitState";
 import type { ArrivalCall, ArrivalCallAction } from "../types/arrivalCall";
 import { FLAG_PENNANT_SRC } from "../utils/flagPennant";
+import { ArrivalPunctualityBadge } from "./ArrivalPunctualityBadge";
 import { WaitTimerChip } from "./WaitTimerChip";
 
 interface ArrivalCallRowProps {
@@ -47,6 +48,13 @@ export const ArrivalCallRow: React.FC<ArrivalCallRowProps> = ({ item, action, ca
           <span>
             <Clock3 size={16} aria-hidden />
             {item.time}
+            {item.punctuality && (
+              <ArrivalPunctualityBadge
+                punctuality={item.punctuality}
+                bookedTime={item.time}
+                arrivedTime={item.arrivedTime}
+              />
+            )}
           </span>
           {item.doctorName && (
             <span className="arrival-row-doctor">

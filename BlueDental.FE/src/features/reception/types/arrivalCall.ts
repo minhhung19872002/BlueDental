@@ -1,3 +1,5 @@
+import type { ArrivalPunctuality } from "../utils/arrivalPunctuality";
+
 /** A patient on the floating "Đã đến" panel — arrived today, not yet in the chair. */
 export interface ArrivalCall {
   id: string;
@@ -17,6 +19,10 @@ export interface ArrivalCall {
   checkedInAt?: string;
   /** The booked time, HH:mm. */
   time: string;
+  /** When "Đã đến" was pressed, HH:mm — empty when it has not been. */
+  arrivedTime: string;
+  /** "Trễ 8p" / "Sớm 5p" against the booked time; null on the booked minute (R-1183). */
+  punctuality: ArrivalPunctuality | null;
   /** Nội dung đặt lịch, or the Ghi chú of a visit booked without one. */
   content: string;
   /** The doctor already pressed "Mời lên". */

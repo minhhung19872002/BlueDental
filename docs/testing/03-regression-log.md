@@ -14439,3 +14439,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Badge đỏ đếm tin chưa đọc, aria-label, nút lỗi (`ChatDockFallback`, xám) giữ nguyên.
 - **Kiểm thử**: dev server :5173 + API :5000, đăng nhập thật, chụp header ở 1920px lúc panel đóng và panel mở — đúng màu, tròn, không lệch hàng. tsc + eslint sạch.
 - **Mức retest**: 1 (chỉ giao diện).
+
+## R-1183 (2026-11-09, mức 2: Tiếp nhận — badge Trễ/Sớm trên panel "Khách đã đến", F-45, main + develop)
+
+- **Yêu cầu** (phòng khám, ảnh panel, 2026-11-09): "Thêm badge Trễ <số phút> màu đỏ, Sớm <số phút> màu xanh, đúng giờ thì không có". Chủ dự án chốt: chỉ panel nổi (cả hai mục "Khách đã đến" và "Bác sĩ mời lên"), không có ngưỡng — lệch 1 phút là có badge, từ 60 phút ghi "1g20p", đến khác ngày ghi "Trễ/Sớm N ngày", rê chuột hiện "Hẹn HH:mm · Đến HH:mm".
+- **Sửa** (chỉ FE + chuỗi dịch, BE không đổi — DTO đã có `slotStart` và `checkedInAt`):
+  - `utils/arrivalPunctuality.ts`: so giờ hẹn với giờ bấm "Đã đến" theo phút (bỏ giây); khác ngày → đếm ngày; cùng phút → không badge.
+  - `ArrivalPunctualityBadge.tsx`: "Trễ 8p" / "Sớm 1g05p" / "Trễ 1 ngày", title gợi ý giờ hẹn và giờ đến. CSS `arrival-call.css`: pill 12px, đỏ `--bd-red-pale`/`--bd-red-dark`, xanh `--bd-green-pale`/`--bd-green`.
+  - Adapter `arrivalCallApi.ts` thêm `arrivedTime` + `punctuality`; `ArrivalCallRow.tsx` đặt badge ngay sau giờ hẹn.
+  - 7 key `Reception:Punctuality*` trong vi.json / en.json.
+- **Kiểm thử**: host riêng :5183 (build vào scratchpad, không động :5000) + `vite preview` :8183, đăng nhập thật, dữ liệu qua API thật:
+  - Case mới trong `reception-arrival-call.spec.ts`: BE không cho đặt lịch giờ đã qua, nên lượt "trễ" đặt trước 1 phút rồi chờ qua giờ mới bấm Đã đến; lượt "sớm" đặt 160' sau. Kiểm chữ, class đỏ/xanh, màu khác nhau, title; "Mời lên" → badge theo sang "Bác sĩ mời lên" và còn sau reload. Giá trị mong đợi tính độc lập trong spec từ `slotStart`/`checkedInAt` đã lưu.
+  - Cả file `reception-arrival-call.spec.ts` 8/8 xanh. Ảnh panel: "Trễ 2p" đỏ, "Sớm 1g32p" xanh cạnh giờ hẹn. tsc + eslint sạch.
+- **Mức retest**: 2 (một feature).
