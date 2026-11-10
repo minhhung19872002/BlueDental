@@ -21,6 +21,8 @@ public class ZaloInboxAppServiceContractTests
     [Theory]
     [InlineData(typeof(ZaloInboxAppService), typeof(IZaloInboxAppService), BlueDentalAbilityPermissions.CskhInbox.Read)]
     [InlineData(typeof(ZaloInboxZnsAppService), typeof(IZaloInboxZnsAppService), BlueDentalAbilityPermissions.CskhInbox.Read)]
+    // R-1194: the ring's pulse has its own leaf, so reception need not read the inbox.
+    [InlineData(typeof(ZaloInboxPulseAppService), typeof(IZaloInboxPulseAppService), BlueDentalAbilityPermissions.CskhInbox.Notify)]
     [InlineData(typeof(PatientCareHistoryAppService), typeof(IPatientCareHistoryAppService), BlueDentalAbilityPermissions.TreatmentCskh.Read)]
     public void Services_Read_With_Their_Read_Permission_In_The_Branch(System.Type service, System.Type contract, string policy)
     {

@@ -208,6 +208,22 @@ URL giữ chip đang chọn (`box` = `unreplied` / `mine` / `cared` / `all`) và
 - **hook:** `useHoldActions`, `useHistorySync`.
 - **logic thuần:** `inboxLook.ts`.
 
+### Nghe chuông tin nhắn Zalo (R-1194, 2026-11-10)
+
+- **Quyền:** `BlueDental.cskhInbox.notify` — "Nghe chuông tin nhắn Zalo", một lá trong nhóm Hộp thư Zalo. Không role nào có sẵn; chủ dự án tick cho "Phòng tiếp nhận". Admin vẫn có quyền nên vẫn kêu.
+- **BE:** `GET /api/v1/app/zalo-inbox/pulse` (`ZaloInboxPulseAppService`).
+  - Cần `cskhInbox.notify` và kiểm chi nhánh.
+  - Trả `{ lastCustomerMessageAt }`: giờ tin khách mới nhất của chi nhánh. Không có nội dung tin, tên hay SĐT.
+  - Tin OA / nhân viên gửi không đổi giá trị này.
+- **FE:** `hooks/useZaloMessageChime.ts` + `components/ZaloMessageChime.tsx`, gắn trong `AppLayout` nên kêu ở mọi màn hình.
+  - Hỏi mỗi 10 giây, kể cả khi tab ở nền.
+  - Lần đầu sau khi tải trang hoặc đổi chi nhánh chỉ ghi mốc.
+  - Giờ mới hơn thì phát `public/sounds/tinnhan.mp3` 1 lần, dù trong lượt hỏi đó có nhiều tin.
+  - Chọn "Tất cả chi nhánh" thì không hỏi.
+  - Nhiều tab cùng trình duyệt chỉ kêu 1 lần (`navigator.locks` + localStorage `bd:zalo-message-chime:<branchId>`).
+  - Âm thanh qua `lib/chime.ts` `playMessageChime`, dùng chung trạng thái mở khoá với chuông "Bác sĩ mời lên".
+- **Hạn chế:** trình duyệt chặn autoplay khi trang chưa được bấm lần nào. Lần kêu bị chặn thì mất. Chỉ tài khoản có Tiếp nhận "Sửa" thấy chuông tắt nhấp nháy ở dock (R-1145).
+
 ## Kiểm thử
 
 | Mức | Kết quả |
@@ -327,9 +343,12 @@ E2E_BASE_URL=http://127.0.0.1:8131 E2E_ZALO_STUB=1 \
 - `zalo-oa` cần BD-001 **không** có kết nối. Spec này tự nối rồi tự gỡ nếu đầu test chưa có.
 - Hai hồ sơ cùng số (R-1026): khi tạo hồ sơ, kiểm tra trùng SĐT chỉ so đúng chuỗi, và `+84` được đổi về `0` còn `84…` thì giữ nguyên. Vì vậy hồ sơ thứ hai được lưu số dạng `84…`. Đếm `user/detail` theo user id, chỉ tính phần chênh từ mốc trước khi Đồng bộ.
 
+- Nghe chuông (R-1194): `e2e/zalo-message-chime.spec.ts` **2/2** (cần `E2E_ZALO_STUB=1`). Spec đếm số lần kêu bằng init script bọc `HTMLMediaElement.play`: lần phát volume 0 là phép thử autoplay, không tính. `page.goto` chạy lại init script nên số đếm về 0. Webhook ký + nối/gỡ stub OA nằm ở `e2e/fixtures/zaloWebhook.ts`.
+
 ## Còn treo
 
 - Các điểm tự chọn hoặc khác mock: xem `docs/clone/unknowns.md` (F-80).
+- Nghe chuông (R-1194): lần kêu bị trình duyệt chặn (chưa bấm vào trang) không được phát bù.
 - Tin OA tự gửi (R-1029): chỉ nhận ra được khi Zalo trả dạng template / list… Tin tự động là **chữ thường** (ví dụ tin trả lời tự động cài trong OA Manager) thì không phân biệt được với nhân viên trả lời trên OA Manager, nên vẫn tính là trả lời.
 - Hội thoại khách chỉ quan tâm OA / bấm Nhắn tin mà chưa nhắn chữ nào hiện "Đã chăm sóc" (chưa có tin khách nào để chờ trả lời). Chưa hỏi chủ dự án có muốn để "Chưa trả lời" không.
 - Chưa kiểm được với OA thật:

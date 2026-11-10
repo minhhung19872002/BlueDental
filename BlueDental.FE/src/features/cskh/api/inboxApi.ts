@@ -164,10 +164,16 @@ export interface ZnsPreview {
   block: ZnsBlock | null;
 }
 
+/** "Nghe chuông tin nhắn Zalo" (R-1194): when a customer last wrote to the branch, nothing else. */
+export interface InboxPulse {
+  lastCustomerMessageAt: string | null;
+}
+
 const BASE = "/v1/app/zalo-inbox";
 const conversationPath = (id: string) => `${BASE}/conversations/${id}`;
 
 const inboxApi = {
+  pulse: () => api.get<InboxPulse>(`${BASE}/pulse`).then((r) => r.data),
   list: (input: InboxListInput) =>
     api
       .get<InboxList>(`${BASE}/conversations`, { params: { filter: input.filter || undefined, tab: input.tab } })
@@ -202,6 +208,7 @@ const inboxApi = {
 
 export const inboxKeys = {
   all: ["zalo-inbox"] as const,
+  pulse: (branchId: string) => [...inboxKeys.all, "pulse", branchId] as const,
   lists: () => [...inboxKeys.all, "list"] as const,
   list: (input: InboxListInput) => [...inboxKeys.lists(), input] as const,
   counts: () => [...inboxKeys.lists(), "counts"] as const,
@@ -220,6 +227,23 @@ export const inboxKeys = {
  */
 const LIST_POLL_MS = 10_000;
 const CHAT_POLL_MS = 5_000;
+
+/**
+ * The ring's pulse (R-1194). Read in the background too: reception may be on
+ * another tab or window when a customer writes. No branch (Tất cả chi nhánh)
+ * reads nothing — the server needs one.
+ */
+export function useInboxPulse(branchId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: inboxKeys.pulse(branchId ?? ""),
+    queryFn: branchId && enabled ? inboxApi.pulse : skipToken,
+    refetchInterval: LIST_POLL_MS,
+    refetchIntervalInBackground: true,
+    // A branch switched back to starts from a fresh read, not an old one.
+    gcTime: 0,
+    retry: false,
+  });
+}
 
 export function useInboxList(input: InboxListInput) {
   return useQuery({

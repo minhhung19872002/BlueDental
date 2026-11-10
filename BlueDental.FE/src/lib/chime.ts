@@ -7,13 +7,16 @@
  * sound is unlocked yet; the dock shows a muted bell until then (R-1145).
  * A site a browser policy lets play sound with no click (Chrome/Edge
  * AutoplayAllowlist) is found on load by {@link probeAutoplay}: no bell there.
+ *
+ * A customer's new Zalo message rings a sound of its own (R-1194),
+ * `public/sounds/tinnhan.mp3`, through the same unlock.
  */
 const CHIME_URL = "/sounds/invite-chime.mp3";
+const MESSAGE_CHIME_URL = "/sounds/tinnhan.mp3";
 
 /** Inputs that give the page user activation, which lifts the block. */
 const ACTIVATION_EVENTS = ["pointerdown", "keydown", "touchend"] as const;
 
-let audio: HTMLAudioElement | null = null;
 // A browser without the API (older Safari) is taken as unlocked: no false hint.
 let unlocked = typeof navigator === "undefined" || (navigator.userActivation?.hasBeenActive ?? true);
 const listeners = new Set<() => void>();
@@ -89,20 +92,37 @@ export function subscribeSoundUnlocked(listener: () => void): () => void {
   };
 }
 
+/** One element per sound file, so one sound restarting never cuts the other. */
+const players = new Map<string, HTMLAudioElement>();
+
 /**
- * Plays the chime once, from the start even if it is still ringing. Resolves
+ * Plays a sound once, from the start even if it is still ringing. Resolves
  * whether it was heard: `false` when the browser blocked it.
  */
-export async function playChime(): Promise<boolean> {
+async function playSound(url: string, label: string): Promise<boolean> {
   if (typeof Audio !== "function") return false;
-  audio ??= new Audio(CHIME_URL);
-  audio.currentTime = 0;
+  let player = players.get(url);
+  if (!player) {
+    player = new Audio(url);
+    players.set(url, player);
+  }
+  player.currentTime = 0;
   try {
-    await audio.play();
+    await player.play();
     markUnlocked();
     return true;
   } catch (error: unknown) {
-    console.warn("Invite chime not played:", error);
+    console.warn(`${label} not played:`, error);
     return false;
   }
+}
+
+/** The "Bác sĩ mời lên" chime (R-1144). */
+export function playChime(): Promise<boolean> {
+  return playSound(CHIME_URL, "Invite chime");
+}
+
+/** The "Nghe chuông tin nhắn Zalo" ring (R-1194), a sound of its own. */
+export function playMessageChime(): Promise<boolean> {
+  return playSound(MESSAGE_CHIME_URL, "Zalo message chime");
 }

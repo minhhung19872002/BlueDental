@@ -6631,6 +6631,7 @@
     "BE:Perm:CareSendCreate": "Send",
     "BE:Perm:CareInbox": "Zalo inbox",
     "BE:Perm:CareInboxHandle": "Handle conversations",
+    "BE:Perm:CareInboxNotify": "Ring on new Zalo messages",
     "BE:Perm:CareStats": "Customer-care statistics",
     "BE:Perm:AttendanceOthers": "Manage work schedules",
     "BE:Perm:IncomeExpenseMgmt": "Income & expense management",

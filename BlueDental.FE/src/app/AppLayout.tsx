@@ -18,6 +18,7 @@ import { authApi } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { ChatDock } from "@/features/chat/components/ChatDock";
 import { ChatDockFallback } from "@/features/chat/components/ChatDockFallback";
+import { ZaloMessageChime } from "@/features/cskh/components/ZaloMessageChime";
 import { useClinicBranches } from "@/features/organizations/api";
 import { ArrivalCallDock } from "@/features/reception/components/ArrivalCallDock";
 import { StaffNotesLauncher } from "@/features/staff-notes/components/StaffNotesLauncher";
@@ -478,6 +479,7 @@ export function AppLayout() {
       </div>
 
       {!branchPending && <ArrivalCallDock />}
+      {!branchPending && user && <ZaloMessageChime />}
 
       <MobileNavDrawer
         open={drawerOpen}
