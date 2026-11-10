@@ -41,7 +41,19 @@ function overflowOnOneLine(block: HTMLElement): number {
   block.style.whiteSpace = "nowrap";
   const range = doc.createRange();
   range.selectNodeContents(block);
-  const contentRight = range.getBoundingClientRect().right;
+  // A range's box stops at its boxes' borders, but the line has to hold their
+  // right margins too: line 13 ends in a tick box with 3px after it, and
+  // leaving that out shortened the blank 2px too little — the box still
+  // dropped to a line of its own (clinic, 2026-11-10).
+  const contentRight = Array.from(block.querySelectorAll("*")).reduce(
+    (right, element) =>
+      Math.max(
+        right,
+        element.getBoundingClientRect().right +
+          (parseFloat(doc.defaultView?.getComputedStyle(element).marginRight ?? "") || 0),
+      ),
+    range.getBoundingClientRect().right,
+  );
   const edge = block.getBoundingClientRect().right - parseFloat(style.paddingRight);
   block.style.whiteSpace = before;
 

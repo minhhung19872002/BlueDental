@@ -1708,6 +1708,11 @@ test.describe("Bệnh án", () => {
             return { right: right - node.getBoundingClientRect().right, lines: node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight) };
           }),
           flowed: Array.from(root.querySelectorAll('[data-flow-of="outpatient-dental.text.43"]')).map((node) => right - node.getBoundingClientRect().right),
+          // Line 13 ends in "2. Tự đến ☐": the box, margin and all, on the line (2026-11-10).
+          referralLines: (() => {
+            const line = root.querySelector('[data-medical-record-field="outpatient-dental.checkbox.6"]')!.closest("p")!;
+            return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
+          })(),
         };
       });
 
@@ -1726,6 +1731,7 @@ test.describe("Bệnh án", () => {
     }
     expect(layout.flowed.length, "Chẩn đoán goes on to lines of its own").toBeGreaterThanOrEqual(1);
     for (const right of layout.flowed) expect(Math.abs(right), "a line of its own reaches the right margin").toBeLessThan(1);
+    expect(layout.referralLines, "line 13 with its Tự đến box on one line").toBeLessThan(1.6);
 
     // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
     await page.evaluate(() => {
