@@ -14643,3 +14643,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Hạn chế**: trình duyệt chặn autoplay khi trang chưa được bấm lần nào. Lần kêu bị chặn thì mất (không phát bù). Tài khoản có Tiếp nhận "Sửa" thấy chuông tắt nhấp nháy ở dock Khách đã đến (R-1145). Tài khoản chỉ có quyền nghe chuông thì không có dấu hiệu này.
 - **Deploy**: build lại BE, chạy DbMigrator (seed quyền mới), xoá cache Redis `*PermissionGrant*`. Sau đó tick "Nghe chuông tin nhắn Zalo" cho role "Phòng tiếp nhận".
 - **Mức retest**: 3 (`chime.ts`, `AppLayout`). Thêm vào `02-impact-map.md`.
+
+## R-1196 (2026-11-10, mức 1: Bệnh án mẫu 2 — ô "2. Tự đến" rớt xuống dòng, F-30)
+
+- **Lỗi** (phòng khám, 2026-11-10): dòng "13. Chẩn đoán và xử lý của nơi giới thiệu: … 1. Y tế ☐ 2. Tự đến ☐" — ô tick "Tự đến" rớt xuống dòng riêng sau khi mẫu 2 lên 14px (R-1190).
+- **Nguyên nhân**: `fitBlanks.overflowOnOneLine` đo phần tràn bằng `Range.getBoundingClientRect()`, khung này dừng ở viền của ô tick, bỏ mất margin phải 3px. Đo ra tràn 19px, thực tế cần 21px → ô trống chỉ rút 288 → 269px, thiếu 2px.
+- **Sửa**: mép phải nội dung = max(khung range, mép phải + margin-right của từng phần tử con). Dòng 13 giờ rút về 266px và nằm một dòng. Đo lại cả mẫu 2 (sửa được và chỉ xem): 78/78 dòng vốn một dòng ở 13px vẫn một dòng ở 14px.
+- **Kiểm thử** (dev :5173, đăng nhập thật):
+  - `patient-medical-record.spec.ts` "mẫu 2: 15mm margins…" thêm khẳng định dòng 13 có ô Tự đến nằm một dòng → **xanh**.
+  - "every form shares mẫu 5's type…" (mẫu 2 14px, in 3 trang) → **xanh**.
+- **Mức retest**: 1 (chỉ cách vẽ, không lưu dữ liệu).
