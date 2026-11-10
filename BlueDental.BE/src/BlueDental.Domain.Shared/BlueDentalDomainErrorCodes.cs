@@ -415,6 +415,12 @@ public static class BlueDentalDomainErrorCodes
         /// further, or warrantied: delete the newer row first.
         /// </summary>
         public const string StageDeleteHasSuccessor = "BlueDental:Treatment:0065";
+
+        /// <summary>
+        /// Writing a công đoạn of a line that was converted (Chuyển đổi) or
+        /// cancelled: the line is closed, its history read-only (BA 2026-11-10, R-1186).
+        /// </summary>
+        public const string StageLineClosed = "BlueDental:Treatment:0066";
     }
 
     public static class Billing

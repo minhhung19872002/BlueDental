@@ -131,6 +131,12 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.TreatmentServiceCompleted);
         }
+
+        // A converted or cancelled line is closed: no Labo either (R-1186).
+        if (StageLineGuard.IsClosed(line.Status))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.TreatmentManagement.StageLineClosed);
+        }
     }
 
     /// <summary>

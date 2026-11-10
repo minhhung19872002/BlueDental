@@ -32,6 +32,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
     private readonly BranchAccessChecker _branchAccess;
     private readonly IRepository<TreatmentStage, Guid> _stageRepository;
     private readonly TreatmentStageChangeRecorder _stageChanges;
+    private readonly StageLineGuard _lineGuard;
 
     public PatientImageAppService(
         IRepository<PatientImage, Guid> repository,
@@ -39,7 +40,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
         IRepository<TreatmentStage, Guid> stageRepository,
-        TreatmentStageChangeRecorder stageChanges)
+        TreatmentStageChangeRecorder stageChanges,
+        StageLineGuard lineGuard)
     {
         _repository = repository;
         _blobContainer = blobContainer;
@@ -47,6 +49,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         _branchAccess = branchAccess;
         _stageRepository = stageRepository;
         _stageChanges = stageChanges;
+        _lineGuard = lineGuard;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Read)]
@@ -91,6 +94,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
     public async Task<PatientImageDto> UploadAsync(UploadPatientImageDto input)
     {
         await _branchAccess.CheckAsync(input.ClinicBranchId);
+        await EnsureStageWritableAsync(input.TreatmentStageId);
 
         if (input.File == null)
         {
@@ -187,10 +191,24 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
     {
         var image = await LoadAsync(id);
         image.EnsureDeletableOn(ClinicCalendar.DateOf(DateTimeOffset.UtcNow));
+        await EnsureStageWritableAsync(image.TreatmentStageId);
 
         await LogStagePictureAsync(image, TreatmentStageChangeAction.ImageRemoved);
         await _repository.DeleteAsync(id, autoSave: true);
         await _blobContainer.DeleteAsync(image.BlobName);
+    }
+
+    /// <summary>
+    /// A công đoạn of a converted or cancelled line takes no picture and gives
+    /// none up (R-1186); a picture of no công đoạn is not concerned.
+    /// </summary>
+    private async Task EnsureStageWritableAsync(Guid? stageId)
+    {
+        if (stageId is { } id
+            && await _stageRepository.FindAsync(id, includeDetails: false) is { } stage)
+        {
+            await _lineGuard.EnsureOpenAsync(stage.TreatmentServiceId);
+        }
     }
 
     /// <summary>

@@ -95,3 +95,8 @@
 .pd-stage-date-lock > .anticon {
   margin-top: 3px;
 }
+
+/* A row of a converted or cancelled line: read-only, said under the service (R-1186). */
+.pd-stage-date-lock.pd-stage-line-lock {
+  margin: 4px 0 6px;
+}

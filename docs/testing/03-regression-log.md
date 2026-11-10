@@ -14463,3 +14463,21 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Cả file `treatment-plan-detail.spec.ts` (gồm 4 case Chuyển đổi cũ) 13/13 xanh. BE build sạch, tsc sạch.
   - Chưa chứng minh đỏ trên HEAD cũ (không dựng lại bản cũ) — lỗi đọc thẳng từ code.
 - **Mức retest**: 2 (một feature).
+
+## R-1185 (2026-11-10, mức 2: Kế hoạch điều trị — dropdown "Thêm dịch vụ mới" của Chuyển đổi dịch vụ hiện Giá sau giảm, F-38, main + develop)
+
+- **Yêu cầu** (BA, ảnh dialog, 2026-11-10): dropdown chọn dịch vụ mới trong "Chuyển đổi dịch vụ" vẫn in giá gốc, trong khi Thay thế tính theo Giá sau giảm (R-1184). Chủ dự án chốt: chỉ dialog Chuyển đổi đổi; ban đầu duyệt "giá gốc gạch ngang + giá sau giảm", sau đó đổi ý — **chỉ hiện Giá sau giảm**, không giá gốc.
+- **Sửa** (chỉ FE): `PlanServicePicker` có prop `salePrices`; bật thì giá của option = `salePrice ?? price`, bảng dịch vụ của nhóm tính Giảm giá / Thành tiền từ đó. `ConvertNewService` bật prop; "Thêm dịch vụ" không bật nên vẫn giá gốc.
+- **Kiểm thử**: `convert-sale-price.spec.ts` thêm kiểm option dịch vụ 300.000 đ giảm 10% đọc đúng "270.000 đ". 1/1 xanh trên stack thật (dev :5173 + host :5000). tsc, eslint, vite build sạch.
+- **Mức retest**: 2.
+
+## R-1186 (2026-11-10, mức 2: Công đoạn — dịch vụ đã chuyển đổi / đã hủy bị khoá, chỉ xem, F-38 / F-62, main + develop)
+
+- **Yêu cầu** (BA, 2026-11-10): "dịch vụ đã chuyển đổi rồi thì khóa luôn". Chủ dự án chốt: khoá cả dòng Đã hủy; admin vẫn được "Xóa công đoạn" (ghi nhầm).
+- **Sửa**:
+  - FE: `stageModel.isLineClosed` (Replaced / Cancelled) — dòng đóng không còn trong TIẾP TỤC CÔNG ĐOẠN / BẢO HÀNH. LỊCH SỬ ĐIỀU TRỊ: hàng của dòng đóng có `data-line-closed`, dòng chữ khoá ("Khoá: dịch vụ đã chuyển đổi, chỉ xem" / "… đã hủy …"), mất bút sửa nội dung + Ghi chú, Hoàn thành disabled, mất Tải ảnh / Tạo Labo / bảo hành / xoá ảnh; vẫn xem Labo, ảnh, hàm và vẫn có Xóa công đoạn.
+  - BE: `StageLineGuard` — mọi thao tác ghi công đoạn (tạo, tiếp tục kể cả nguồn khác, sửa, sửa nội dung, Ghi chú, hoàn thành / mở lại, bước công đoạn, gắn ảnh), tạo / sửa Labo, tải / xoá ảnh công đoạn trên dòng đóng → `BlueDental:Treatment:0066` (vi/en). Get và Delete không chặn.
+- **Kiểm thử** (stack thật, dev :5173 + host :5000, không chặn request):
+  - Spec mới `convert-line-lock.spec.ts`: tạo BN + phiếu + công đoạn qua API, Chuyển đổi → Dịch vụ cũ; sửa nội dung / Ghi chú / hoàn thành / tiếp tục / tạo mới đều 4xx `0066`; đọc lại bằng request riêng: không đổi, vẫn 1 công đoạn; UI: tab TIẾP TỤC CÔNG ĐOẠN = 0, hàng khoá có chữ, không bút, Hoàn thành disabled, không Tải ảnh / Tạo Labo, Xóa công đoạn còn và xoá được (GET sau đó 404). 1/1 xanh.
+  - Hồi quy: labo-api, labo-workflow, plan-warranty-api, stage-date-lock(-api), stage-remark, treatment-stage(-chain), warranty-stage-api — 52/52 xanh. BE build sạch.
+- **Mức retest**: 2 (công đoạn + Labo + ảnh công đoạn của cùng feature điều trị).

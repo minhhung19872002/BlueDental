@@ -42,7 +42,7 @@ export function ConvertNewService({ form }: { form: Form }) {
 
         {form.replacing && (
           <Form form={pickerForm} className="cvt-picker">
-            <PlanServicePicker onPickService={form.setService} />
+            <PlanServicePicker salePrices onPickService={form.setService} />
           </Form>
         )}
         {form.errors.service && <p className="cvt-error">{form.errors.service}</p>}
