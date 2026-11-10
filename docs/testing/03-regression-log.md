@@ -14578,3 +14578,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chụp phiếu thật: cụm hiện đúng như ảnh của phòng khám; không còn dòng "Bác sĩ" cũ.
   - `patient-medical-record.spec` "every form draws the whole…" đổi mẫu 3 từ 182 → **184** ô → **xanh**; "every form shares…" (mẫu 3 in vẫn 4 trang) → **xanh**; "the record's address and diagnoses…" thêm kiểm `orthodontic.text.112` = `BS.CKII. BÙI VĂN TỚI` → **xanh**; `medical-record-contract-from-orthodontic` → **xanh**. **4/4**.
 - **Mức retest**: 2 (F-30 Bệnh án, mẫu 3).
+
+## R-1192 (2026-11-10, mức 2: Lịch làm việc — người đang đăng nhập lên đầu, F-90)
+
+- **Yêu cầu BA** (đoạn chat 2026-11-10): "sort cái lịch của current user lên đầu danh sách để họ book lịch cho dễ". Cùng đoạn chat BA chốt phạm vi: "Chỉ có trưởng phòng là xem dc lịch của tất cả nhân viên bên dưới… Nhân viên ở phòng ban cao hơn cũng ko coi dc" — đã khớp `OrgChartScope.WorkScheduleReachOf`, không sửa BE.
+- **Sửa** (chỉ FE): `utils/workScheduleOrder.ts` `viewerFirst(groups, viewerId)` — nhóm của người xem lên đầu, người xem lên đầu nhóm (trên cả trưởng phòng), các nhóm/người khác giữ thứ tự API. `WorkScheduleBoard` áp dụng trước bộ lọc, nên cả "Theo team", danh sách trái "Từng bác sĩ / nhân viên" (chọn sẵn chính mình) và dropdown team đều theo thứ tự này.
+- **Kiểm thử**: `e2e/work-schedule-board.spec.ts` thêm 1 test UI; cả spec 5/5 xanh trên host :5190 + `vite preview` :8095, đăng nhập thật, không chặn request.
+- **Mức retest**: 2.

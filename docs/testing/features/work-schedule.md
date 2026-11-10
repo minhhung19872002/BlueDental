@@ -78,3 +78,10 @@ Chưa chạy: toàn bộ `appointment*` / `reception*`.
 - 15 test luật cũ `test.skip` có ghi chú TEMP; `appointment-day-timeline` đổi kỳ vọng cột bác sĩ nghỉ. 22 xanh, 2 đỏ có sẵn (drag-scroll R-1173, nút Thanh toán R-1099).
 - Domain 1353 xanh, 3 skip.
 - Mức retest 3.
+
+## R-1192 — người đang đăng nhập lên đầu bảng (2026-11-10)
+
+- BA: "sort cái lịch của current user lên đầu danh sách để họ book lịch cho dễ". Phạm vi xem BA chốt cùng lúc (chỉ trưởng phòng xem cả cây con) đã khớp `OrgChartScope.WorkScheduleReachOf`, không sửa.
+- FE: `viewerFirst` (`features/timekeeping/utils/workScheduleOrder.ts`) đưa nhóm của người xem lên đầu, người xem lên đầu nhóm; chế độ "Từng bác sĩ / nhân viên" vì thế chọn sẵn chính họ. API không đổi.
+- `e2e/work-schedule-board.spec.ts` test mới "the viewer's own row comes first": thành viên thường thấy mình trên trưởng phòng (API vẫn để trưởng đầu); một nhân viên quyền admin làm trưởng phòng ban riêng thấy nhóm mình đầu tiên dù API xếp nhóm khác trước. Cả spec **5/5** trên stack riêng :5190/:8095, đăng nhập thật, không chặn request.
+- Mức retest 2 (chỉ màn Lịch làm việc).

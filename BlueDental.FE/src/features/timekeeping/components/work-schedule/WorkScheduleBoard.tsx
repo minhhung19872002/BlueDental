@@ -3,6 +3,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { Spin } from "antd";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
 import { WORK_SCHEDULE_SHIFT } from "../../api/workScheduleApi";
 import { useSaveWorkSchedule, useWorkScheduleBoard } from "../../api/workScheduleQueries";
@@ -10,6 +11,7 @@ import { useScheduleDraft } from "../../hooks/useScheduleDraft";
 import { useScheduleFilters } from "../../hooks/useScheduleFilters";
 import { useSchedulePaint, type PaintBlock } from "../../hooks/useSchedulePaint";
 import type { ScheduleGroupVm, ScheduleView } from "../../types/workSchedule";
+import { viewerFirst } from "../../utils/workScheduleOrder";
 import { monthDays, type BrushShift } from "../../utils/workScheduleShift";
 import type { GridContext } from "./ScheduleGroupRows";
 import { PersonScheduleView } from "./PersonScheduleView";
@@ -49,7 +51,9 @@ export function WorkScheduleBoard({ initialDate }: Props) {
   const save = useSaveWorkSchedule();
   const draft = useScheduleDraft();
   const paint = useSchedulePaint(draft, brush, handleBlocked);
-  const groups = board.data?.groups ?? NO_GROUPS;
+  const viewerId = useAuthStore((s) => s.user?.id);
+  const loaded = board.data?.groups ?? NO_GROUPS;
+  const groups = useMemo(() => viewerFirst(loaded, viewerId), [loaded, viewerId]);
   const filters = useScheduleFilters(groups);
 
   const today = board.data?.today ?? dayjs().format("YYYY-MM-DD");
