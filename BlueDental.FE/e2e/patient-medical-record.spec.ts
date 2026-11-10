@@ -253,7 +253,8 @@ test.describe("Bệnh án", () => {
       { form: "Bìa hồ sơ bệnh án", blanks: 58, boxes: 20, pages: 3 },
       // The reference's 142, less Thôn, phố and Huyện (clinic, 2026-10-16).
       { form: "Bệnh án ngoại trú Răng Hàm Mặt", blanks: 140, boxes: 18, pages: 3 },
-      { form: "Bệnh án chỉnh nha", blanks: 182, boxes: 64, pages: 3 },
+      // Plus "Tôi …" and the patient's name under NGƯỜI BỆNH/THÂN NHÂN (clinic, 2026-11-10, R-1191).
+      { form: "Bệnh án chỉnh nha", blanks: 184, boxes: 64, pages: 3 },
       { form: "Phiếu Tư Vấn Tổng Quát", blanks: 23, boxes: 0, pages: 1 },
       // The reference's 82, less the cost table's eighth line: seven and Tổng, as on paper (2026-10-16).
       // Since 2026-10-16: "Loại" comes from Danh mục (Zirconia…Khác and the implant's typed type
@@ -1188,7 +1189,15 @@ test.describe("Bệnh án", () => {
           "outpatient-dental.text.59": "BS.CKII. BÙI VĂN TỚI",
         },
       ],
-      ["Bệnh án chỉnh nha", { "orthodontic.patient.address": address, "orthodontic.text.86": diagnosed }],
+      [
+        "Bệnh án chỉnh nha",
+        {
+          "orthodontic.patient.address": address,
+          "orthodontic.text.86": diagnosed,
+          // The name under BÁC SĨ at the foot (clinic, 2026-11-10, R-1191).
+          "orthodontic.text.112": "BS.CKII. BÙI VĂN TỚI",
+        },
+      ],
       [
         "Phiếu Tư Vấn Tổng Quát",
         {
@@ -1593,7 +1602,7 @@ test.describe("Bệnh án", () => {
 
     const expected: Array<[string, string, string, number]> = [
       ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
-      ["Bệnh án ngoại trú Răng Hàm Mặt", "13px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
       ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
       ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],

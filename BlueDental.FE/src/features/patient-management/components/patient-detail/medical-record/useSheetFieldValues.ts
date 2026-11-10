@@ -12,7 +12,7 @@ import {
   branchFieldValues,
   contractPartyAValues,
   FORM_CODE_VALUES,
-  OUTPATIENT_DEFAULT_VALUES,
+  SHEET_DEFAULT_VALUES,
   patientFieldValues,
   sheetPhone,
   type FieldValues,
@@ -111,7 +111,7 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
       catalogs[materialCatalogKey(kind)] = JSON.stringify(list);
     }
 
-    const clinic = { ...OUTPATIENT_DEFAULT_VALUES, ...branchFieldValues(branch), ...contractPartyAValues(branch) };
+    const clinic = { ...SHEET_DEFAULT_VALUES, ...branchFieldValues(branch), ...contractPartyAValues(branch) };
     if (!patient) return { ...FORM_CODE_VALUES, ...clinic, ...catalogs };
 
     const job =

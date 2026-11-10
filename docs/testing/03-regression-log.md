@@ -14544,3 +14544,37 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Domain tests: 1353 xanh, 3 skip (`DentistShiftCheckerTests` ngày nghỉ / nghỉ nửa ngày / ca S-C, ghi chú TEMP).
 - **Khôi phục**: tìm `TEMP-DAYOFF-FILTER-OFF` trong BE và e2e, bỏ comment / bỏ skip cùng lúc.
 - **Mức retest**: 3 (mọi picker bác sĩ và mọi đường lưu lịch hẹn).
+
+## R-1190 (2026-11-10, mức 2: Bệnh án mẫu 2 — chữ 13px → 14px, vẫn in 3 trang, F-30, main + develop)
+
+- **Yêu cầu** (phòng khám, ảnh chat, 2026-11-10): "font size bị nhỏ… đr in ra nhìn nhỏ xíu" — Bệnh án ngoại trú Răng Hàm Mặt in ra chữ nhỏ, tăng lên một chút.
+- **Đo trước khi sửa** (luồng in thật "In biểu mẫu" → `page.pdf`, khổ viết 680px; vùng in mỗi trang 267mm sau lề 15mm):
+
+  | Cỡ | Trang 1 | Trang 2 | Trang 3 | Số trang PDF |
+  |---|---|---|---|---|
+  | 13px (cũ) | 262,8 | 213,7 | 258,8 | 3 |
+  | 13,5px | 314,3 | 220,9 | 300,6 | 5 |
+  | 14px | 327,3 | 224,9 | 309,2 | 5 |
+
+  - Nguyên nhân: các ô nhập có `min-width` px cố định, vẽ vừa khít một dòng ở 13px (R-1067). Chữ nhãn to ra là ô cuối dòng rớt xuống dòng mới ("+ Bản thân", "Địa chỉ", "Tự đến", …), mỗi trang dài thêm ~5cm.
+- **Sửa (chỉ FE)**:
+  - `fitBlanks.ts` (mới) — `fitBlanksToLines(doc)`, gọi trong `handleLoad` trước `flowLongBlanks`: chỉ mẫu 2. Đo từng đoạn có ô nhập ở 13px (cỡ ô được vẽ); đoạn nào một dòng ở 13px mà nay gãy thì rút `min-width` của ô rộng nhất trên đoạn (rồi ô kế tiếp) đúng phần tràn, không dưới 40px. Ô `width:100%`, ô trong bảng kẻ ô, sinh hiệu, khối MS không đụng. Chỉ là cách vẽ: không lưu; bản sao in `cloneNode` mang theo.
+  - `sheetCss.ts`: `.nfc-tpl[data-form="2"]{font-size:14px}`; đoạn văn mẫu 2 line-height 1.2 (14 × 1.2 ≈ 13 × 1.3 — khoảng cách dòng kẻ giữ như cũ); ô "Hồ sơ, phim, ảnh" cuối trang 3 giữ 13px (ở 14px trang 3 chỉ còn dư 0,8mm).
+- **Kết quả đo**: 259,8 / 212,8 / 258,0mm — dư 7 / 54 / 9mm; PDF **3 trang**, cả phiếu trống lẫn phiếu có địa chỉ dài. Ảnh trang in đã soát: các dòng mục I giữ một dòng như ở 13px.
+- **Kiểm thử** (API Docker :5000 + bản build production preview :8080, không chặn request, đăng nhập thật):
+  - `patient-medical-record.spec` "every form shares mẫu 5's…" đổi mẫu 2 thành 14px / 3 trang → **xanh**; "mẫu 2: 15mm margins…" → **xanh**.
+  - 4 spec bệnh án (`patient-medical-record`, `medical-record-set`, `medical-record-sheet-facts`, `medical-record-drawing`): **47 pass / 3 đỏ có sẵn** ("the index lists…", "the open sheet's card wears…", "picking the day…" — xem R-1052, R-1181).
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (F-30 Bệnh án, mẫu 2: màn hình + bản in). Chỉ tab hồ sơ import `sheetCss.ts`/`fitBlanks.ts`, `/taxonomy` không ảnh hưởng. Đã thêm `fitBlanks.ts` vào dòng `sheetCss.ts` trong `02-impact-map.md`.
+
+## R-1191 (2026-11-10, mức 2: Bệnh án mẫu 3 — cụm ký tên cuối phiếu, F-30, main + develop)
+
+- **Yêu cầu** (phòng khám, 2 ảnh chat, 2026-11-10): ở Bệnh án chỉnh nha, bỏ dòng "Bác sĩ ___" căn phải cuối phiếu; thay bằng cụm như mẫu 5: "Tôi ___ (Khách hàng tự ghi: “đồng ý điều trị”)", hai cột ký NGƯỜI BỆNH/THÂN NHÂN | BÁC SĨ (chỉ "Bác sĩ", **không** phải "Bác sĩ tư vấn"), mỗi cột "(Ký, ghi rõ họ tên)" và một ô tên.
+- **Sửa** (chỉ FE, `templates/orthodontic.ts`): dựng theo markup cụm ký của mẫu 5 (bảng `data-borderless` hai cột, căn giữa).
+  - Ô tên dưới BÁC SĨ giữ id cũ `orthodontic.text.112` (ô "Bác sĩ" cũ), nên tên đã lưu trên phiếu cũ vẫn hiện.
+  - Thêm ô mới `orthodontic.text.113` ("Tôi …") và `orthodontic.text.114` (tên người bệnh/thân nhân).
+  - Vòng 2 (phòng khám, cùng ngày): cụm cách phần trên một khoảng — `p[data-record-section="orthodontic-agreement"]{margin-top:18px}` (`sheetCss.ts`); tên dưới BÁC SĨ mặc định `BS.CKII. BÙI VĂN TỚI` — `orthodontic.text.112` thêm vào map mặc định, đổi tên `OUTPATIENT_DEFAULT_VALUES` → `SHEET_DEFAULT_VALUES` (`fieldValues.ts`, `useSheetFieldValues.ts`). Là ô có giá trị sẵn như R-1181: sửa rồi Lưu thì giữ điều đã lưu.
+- **Kiểm thử** (API Docker :5000 + bản build production preview :8080, không chặn request):
+  - Chụp phiếu thật: cụm hiện đúng như ảnh của phòng khám; không còn dòng "Bác sĩ" cũ.
+  - `patient-medical-record.spec` "every form draws the whole…" đổi mẫu 3 từ 182 → **184** ô → **xanh**; "every form shares…" (mẫu 3 in vẫn 4 trang) → **xanh**; "the record's address and diagnoses…" thêm kiểm `orthodontic.text.112` = `BS.CKII. BÙI VĂN TỚI` → **xanh**; `medical-record-contract-from-orthodontic` → **xanh**. **4/4**.
+- **Mức retest**: 2 (F-30 Bệnh án, mẫu 3).
