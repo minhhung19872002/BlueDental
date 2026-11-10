@@ -29,12 +29,34 @@ interface Props {
   disabled?: boolean;
   /** A service was chosen, from the list or from a group's table. */
   onPickService?: (service: CatalogOption) => void;
+  /**
+   * Price the options at Danh mục's "Giá sau giảm" — for "Chuyển đổi dịch vụ",
+   * whose Thay thế charges that price (R-1184): an option reads Giá sau giảm
+   * alone, and the group table's Giảm giá / Thành tiền come from it (R-1185). "Thêm dịch vụ" starts a line at giá gốc,
+   * so it leaves this off.
+   */
+  salePrices?: boolean;
 }
 
 interface ServiceOption {
   value: string;
   label: string;
+  /** What the line would be charged: Giá sau giảm with `salePrices`, giá gốc without. */
   price: number;
+}
+
+/** The price a service is sold at under the picker's rule. */
+function sellingPrice(service: CatalogOption, salePrices: boolean): number {
+  const price = service.price ?? 0;
+  return salePrices ? (service.salePrice ?? price) : price;
+}
+
+function toOption(service: CatalogOption, salePrices: boolean): ServiceOption {
+  return {
+    value: service.id,
+    label: service.name,
+    price: sellingPrice(service, salePrices),
+  };
 }
 
 interface GroupListProps {
@@ -73,6 +95,7 @@ interface GroupPanelProps {
   group: TaxonomyGroupOption;
   /** The group's own services, searched on the server like the flat list. */
   search: string;
+  salePrices: boolean;
   onBack: () => void;
   onPick: (service: CatalogOption) => void;
 }
@@ -82,7 +105,7 @@ interface GroupPanelProps {
  * round back button with the group's name and a bordered table of its
  * services. Clicking a row picks that service.
  */
-function GroupServicesPanel({ group, search, onBack, onPick }: GroupPanelProps) {
+function GroupServicesPanel({ group, search, salePrices, onBack, onPick }: GroupPanelProps) {
   const query = useCatalogOptionSearch(CATALOG_GROUP.CareService, {
     search,
     taxonomyId: group.id,
@@ -131,14 +154,18 @@ function GroupServicesPanel({ group, search, onBack, onPick }: GroupPanelProps) 
                 )}
               </tr>
             )}
-            {services.map((service) => (
-              <tr key={service.id} role="button" tabIndex={0} onClick={() => onPick(service)}>
-                <td>{service.name}</td>
-                <td className="tp-num">{moneyText(service.price ?? 0)}</td>
-                <td className="tp-num">{moneyText(0)}</td>
-                <td className="tp-num">{moneyText(service.price ?? 0)}</td>
-              </tr>
-            ))}
+            {services.map((service) => {
+              const price = service.price ?? 0;
+              const sold = sellingPrice(service, salePrices);
+              return (
+                <tr key={service.id} role="button" tabIndex={0} onClick={() => onPick(service)}>
+                  <td>{service.name}</td>
+                  <td className="tp-num">{moneyText(price)}</td>
+                  <td className="tp-num">{moneyText(Math.max(price - sold, 0))}</td>
+                  <td className="tp-num">{moneyText(sold)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         <div ref={sentinelRef} className="tp-more-sentinel" />
@@ -168,7 +195,7 @@ function GroupServicesPanel({ group, search, onBack, onPick }: GroupPanelProps) 
  * surrounding Form's `serviceId`; `onPickService` fires with the catalog
  * entry whichever way it was chosen.
  */
-export function PlanServicePicker({ extraServices, disabled, onPickService }: Props) {
+export function PlanServicePicker({ extraServices, disabled, onPickService, salePrices = false }: Props) {
   const form = Form.useFormInstance();
   const [mode, setMode] = useState<PickerMode>("service");
   const [group, setGroup] = useState<TaxonomyGroupOption | null>(null);
@@ -195,13 +222,8 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
   }, [flat.data, extraServices]);
 
   const options = useMemo<ServiceOption[]>(
-    () =>
-      services.map((service) => ({
-        value: service.id,
-        label: service.name,
-        price: service.price ?? 0,
-      })),
-    [services],
+    () => services.map((service) => toOption(service, salePrices)),
+    [services, salePrices],
   );
 
   /**
@@ -270,6 +292,7 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
         <GroupServicesPanel
           group={group}
           search={debouncedSearch}
+          salePrices={salePrices}
           onBack={() => setGroup(null)}
           onPick={handlePanelPick}
         />
@@ -287,9 +310,9 @@ export function PlanServicePicker({ extraServices, disabled, onPickService }: Pr
   const pickedOptions = useMemo<ServiceOption[]>(
     () =>
       picked && !options.some((option) => option.value === picked.id)
-        ? [...options, { value: picked.id, label: picked.name, price: picked.price ?? 0 }]
+        ? [...options, toOption(picked, salePrices)]
         : options,
-    [options, picked],
+    [options, picked, salePrices],
   );
 
   return (

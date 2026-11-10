@@ -40,6 +40,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     private readonly ServiceLineProgress _lineProgress;
     private readonly TreatmentStageChangeRecorder _changes;
     private readonly IRepository<TreatmentStageChangeLog, Guid> _changeLogRepository;
+    private readonly StageLineGuard _lineGuard;
 
     public TreatmentStageAppService(
         IRepository<TreatmentStage, Guid> repository,
@@ -54,7 +55,8 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         IRepository<ServiceWarrantyCard, Guid> cardRepository,
         ServiceLineProgress lineProgress,
         TreatmentStageChangeRecorder changes,
-        IRepository<TreatmentStageChangeLog, Guid> changeLogRepository)
+        IRepository<TreatmentStageChangeLog, Guid> changeLogRepository,
+        StageLineGuard lineGuard)
     {
         _repository = repository;
         _catalogRepository = catalogRepository;
@@ -69,6 +71,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         _lineProgress = lineProgress;
         _changes = changes;
         _changeLogRepository = changeLogRepository;
+        _lineGuard = lineGuard;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Read)]
@@ -153,6 +156,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     public async Task<TreatmentStageDto> CreateAsync(CreateTreatmentStageDto input)
     {
         await _branchAccess.CheckAsync(input.ClinicBranchId);
+        await _lineGuard.EnsureOpenAsync(input.TreatmentServiceId);
 
         var teeth = PatientDiagnosisAppService.ToToothSelections(input.Teeth);
         var lineTeeth = await LineTeethAsync(input.TreatmentId, input.TreatmentServiceId);
@@ -225,7 +229,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentStageDto> UpdateAsync(Guid id, UpdateTreatmentStageDto input)
     {
-        var stage = await LoadAsync(id);
+        var stage = await LoadWritableAsync(id);
         var before = TreatmentStageChangeRecorder.Snapshot(stage);
 
         stage.UpdateDetails(
@@ -256,7 +260,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentStageDto> UpdateNoteAsync(Guid id, UpdateTreatmentStageNoteDto input)
     {
-        var stage = await LoadAsync(id);
+        var stage = await LoadWritableAsync(id);
         var before = stage.Note;
         stage.SetNote(input.Note);
         await _changes.RecordAsync(stage, TreatmentStageChangeAction.NoteChanged, before, stage.Note);
@@ -375,12 +379,12 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Continue)]
     public async Task<TreatmentStageDto> ContinueAsync(Guid id, ContinueTreatmentStageDto input)
     {
-        var stage = await LoadAsync(id);
+        var stage = await LoadWritableAsync(id);
 
         var others = new List<(TreatmentStage Stage, IEnumerable<int>? ToothCodes)>();
         foreach (var source in input.AlsoFrom.GroupBy(x => x.StageId).Select(g => g.Last()))
         {
-            others.Add((await LoadAsync(source.StageId), source.ToothCodes));
+            others.Add((await LoadWritableAsync(source.StageId), source.ToothCodes));
         }
 
         var next = stage.ContinueAs(
@@ -418,7 +422,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Complete)]
     public async Task<TreatmentStageDto> CompleteAsync(Guid id)
     {
-        var stage = await LoadAsync(id);
+        var stage = await LoadWritableAsync(id);
         await GuardNotDateLockedAsync(stage);
         await GuardNotLockedByLaboAsync(stage);
         stage.Complete();
@@ -447,7 +451,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Complete)]
     public async Task<TreatmentStageDto> RevertAsync(Guid id)
     {
-        var stage = await LoadAsync(id);
+        var stage = await LoadWritableAsync(id);
         await GuardNotDateLockedAsync(stage);
         stage.Revert();
         await _changes.RecordAsync(stage, TreatmentStageChangeAction.Reverted);
@@ -468,7 +472,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         Guid id,
         UpdateStageServiceItemsDto input)
     {
-        var stage = await LoadAsync(id);
+        var stage = await LoadWritableAsync(id);
         var before = TickedSteps(stage);
 
         stage.UpdateServiceItems(
@@ -498,7 +502,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
         Guid id,
         UpdateTreatmentStageRemarkDto input)
     {
-        var stage = await LoadAsync(id);
+        var stage = await LoadWritableAsync(id);
         var before = stage.Remark;
         stage.SetRemark(input.Remark);
         await _changes.RecordAsync(stage, TreatmentStageChangeAction.RemarkChanged, before, stage.Remark);
@@ -509,7 +513,7 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     [Authorize(BlueDentalAbilityPermissions.TreatmentStage.Update)]
     public async Task<TreatmentStageDto> AttachImageAsync(Guid id, AttachStageImageDto input)
     {
-        var stage = await LoadAsync(id);
+        var stage = await LoadWritableAsync(id);
         stage.AttachImage(input.ImageUrl);
         await _changes.RecordAsync(stage, TreatmentStageChangeAction.ImageAdded, after: input.ImageUrl.Trim());
         await _repository.UpdateAsync(stage, autoSave: true);
@@ -671,6 +675,14 @@ public class TreatmentStageAppService : ApplicationService, ITreatmentStageAppSe
     {
         var stage = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(stage.ClinicBranchId);
+        return stage;
+    }
+
+    /// <summary>A công đoạn about to be written: its line must still be open (R-1186).</summary>
+    private async Task<TreatmentStage> LoadWritableAsync(Guid id)
+    {
+        var stage = await LoadAsync(id);
+        await _lineGuard.EnsureOpenAsync(stage.TreatmentServiceId);
         return stage;
     }
 

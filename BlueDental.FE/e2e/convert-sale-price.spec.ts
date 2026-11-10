@@ -105,6 +105,9 @@ test("Chuyển đổi → Thay thế charges the new service at its Giá sau gi�
     .locator(".tp-service-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option")
     .filter({ hasText: name });
   await expect(option).toHaveCount(1, { timeout: 15_000 });
+  // R-1185: the option reads the sale price alone, as Thông tin thanh toán
+  // will charge — no list price beside it (owner, 2026-11-10).
+  await expect(option.locator(".tp-opt-price")).toHaveText(money(270_000));
   await option.click();
 
   // Thông tin thanh toán of the new service, one tooth: Tổng tiền and Còn lại

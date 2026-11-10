@@ -212,6 +212,7 @@ export function TreatmentStagePanel({
         total={composer.shownCount}
         imagesOf={composer.imagesOf}
         historyTeethOf={composer.historyTeethOf}
+        statusOf={composer.statusOf}
         savingNoteFor={composer.savingNoteFor}
         savingRemarkFor={composer.savingRemarkFor}
         uploadingFor={composer.uploadingFor}

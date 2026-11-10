@@ -1,9 +1,13 @@
 import { useState, type Ref } from "react";
 import { Button } from "antd";
-import { HistoryOutlined } from "@ant-design/icons";
+import { HistoryOutlined, LockOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatShortDate } from "@/utils/format";
 import type { TreatmentStageDto } from "@/features/treatment-management/api/stageApi";
+import {
+  SERVICE_LINE_STATUS,
+  type TreatmentServiceStatus,
+} from "@/features/treatment-management/api/treatmentPlanApi";
 import type { PatientImageDto } from "../../../api/patientImageApi";
 import { StageEditPencil } from "./StageEditPencil";
 import { NOTE_LIMIT } from "./StageForm";
@@ -14,7 +18,7 @@ import { StageNoteBullets } from "./StageNoteBullets";
 import { StageNoteInput } from "./StageNoteInput";
 import { StageRemarkCell } from "./StageRemarkCell";
 import { StageRowActions, type StageHistoryLeaves, type StageRowHandlers } from "./StageRowActions";
-import { namedSteps, type HistoryTooth, type WarrantyState } from "./stageModel";
+import { isLineClosed, namedSteps, type HistoryTooth, type WarrantyState } from "./stageModel";
 
 /** One calendar day's stages, the way the reference groups its rows. */
 export interface StageDay {
@@ -44,6 +48,8 @@ interface Props extends StageRowHandlers {
   warrantyOf: (stage: TreatmentStageDto) => WarrantyState;
   /** Every tooth of the row's service, each marked worked, done or neither. */
   historyTeethOf: (stage: TreatmentStageDto) => HistoryTooth[];
+  /** The status of the service line a row belongs to — a closed one locks the row. */
+  statusOf: (treatmentServiceId: string) => TreatmentServiceStatus | null;
   /** The patient's Labo tab, behind "+n phiếu trước · Xem tất cả ›". */
   laboListHref: string;
   /** "Lịch sử chỉnh sửa" of the whole slip; shown with can.delete. */
@@ -126,6 +132,37 @@ function NoteCell({
 }
 
 /**
+ * What a row of a converted or cancelled line still offers (BA 2026-11-10,
+ * R-1186): looking — the Labo slip, the pictures, the jaw — and the admin's
+ * "Xóa công đoạn" for a row written by mistake (owner's call). Nothing that
+ * writes the treatment: no note or Ghi chú pencil, no Hoàn thành, no Tải ảnh,
+ * no Tạo Labo, no warranty.
+ */
+function closedLineLeaves(can: StageHistoryLeaves): StageHistoryLeaves {
+  return {
+    update: false,
+    complete: false,
+    warranty: false,
+    labo: false,
+    laboRead: can.laboRead,
+    imageDelete: false,
+    delete: can.delete,
+  };
+}
+
+/** Why a row of a closed line is read-only, under its service's name. */
+function ClosedLineNote({ status }: { status: TreatmentServiceStatus | null }) {
+  return (
+    <p className="pd-stage-date-lock pd-stage-line-lock">
+      <LockOutlined aria-hidden="true" />
+      {status === SERVICE_LINE_STATUS.Replaced
+        ? t("Patient:Stage:LineReplacedLocked")
+        : t("Patient:Stage:LineCancelledLocked")}
+    </p>
+  );
+}
+
+/**
  * "LỊCH SỬ ĐIỀU TRỊ" — every công đoạn on the slip, grouped by the day it was
  * worked. The date cell spans its day's rows, which is why the row is a grid
  * inside a grid rather than one flat table.
@@ -151,6 +188,7 @@ export function StageHistory({
   onOpenChangeLog,
   warrantyOf,
   historyTeethOf,
+  statusOf,
   laboListHref,
   ref,
 }: Props) {
@@ -204,10 +242,14 @@ export function StageHistory({
                     const live = !stage.isSuperseded;
                     const serviceName = stage.serviceName ?? stage.name;
                     const { labo } = stage;
+                    const lineStatus = statusOf(stage.treatmentServiceId);
+                    const closed = isLineClosed(lineStatus);
+                    const rowCan = closed ? closedLineLeaves(can) : can;
                     return (
                       <div
                         className="pd-stage-histrow"
                         data-superseded={!live}
+                        data-line-closed={closed}
                         /*
                          * A slip can hold several service lines, each with its
                          * own live công đoạn, so a row has to say which line it
@@ -220,16 +262,17 @@ export function StageHistory({
                       >
                         <div>
                           <p className="pd-stage-histservice">{serviceName}</p>
+                          {closed && <ClosedLineNote status={lineStatus} />}
                           <StageHistoryTeeth teeth={historyTeethOf(stage)} serviceName={serviceName} />
                           {labo && (
                             <StageLaboChip
                               labo={labo}
-                              onView={can.laboRead ? () => onOpenLabo(labo.orderId) : undefined}
+                              onView={rowCan.laboRead ? () => onOpenLabo(labo.orderId) : undefined}
                             />
                           )}
                           <StageHistoryShots
                             images={imagesOf(stage.id)}
-                            canDelete={can.imageDelete}
+                            canDelete={rowCan.imageDelete}
                             onDelete={onDeleteImage}
                           />
                         </div>
@@ -237,14 +280,14 @@ export function StageHistory({
                         <NoteCell
                           stage={stage}
                           saving={savingNoteFor === stage.id}
-                          editable={can.update}
+                          editable={rowCan.update}
                           onSave={(note) => onSaveNote(stage, note)}
                         />
 
                         <StageRemarkCell
                           stage={stage}
                           saving={savingRemarkFor === stage.id}
-                          editable={can.update}
+                          editable={rowCan.update}
                           onSave={(remark) => onSaveRemark(stage, remark)}
                         />
 
@@ -261,7 +304,7 @@ export function StageHistory({
 
                         <StageRowActions
                           stage={stage}
-                          can={can}
+                          can={rowCan}
                           completing={completingId === stage.id}
                           uploading={uploadingFor === stage.id}
                           warranty={warrantyOf(stage)}

@@ -54,6 +54,15 @@ const OPEN_LINE: ReadonlySet<TreatmentServiceStatus> = new Set([
   SERVICE_LINE_STATUS.Warranty,
 ]);
 
+/**
+ * A line closed by a decision about the line itself — converted ("Chuyển đổi")
+ * or cancelled. Its công đoạn are locked for good: none is offered on the
+ * continue tabs and its history rows are read-only (BA 2026-11-10, R-1186). A
+ * finished line is not here: it still takes warranty work.
+ */
+export const isLineClosed = (status: TreatmentServiceStatus | null | undefined): boolean =>
+  status === SERVICE_LINE_STATUS.Replaced || status === SERVICE_LINE_STATUS.Cancelled;
+
 export const isStageDone = (stage: TreatmentStageDto): boolean =>
   stage.status === STAGE_STATUS.Completed;
 
@@ -199,6 +208,7 @@ export function buildStageItems(
 
     // Cards in the slip's line order, as on `add`.
     return services.flatMap((line): StageItem[] => {
+      if (isLineClosed(line.status)) return [];
       const chains = open.get(line.id);
       const covered = warranty ? warrantable.get(line.id) : undefined;
       if (!chains && covered) {
