@@ -257,17 +257,20 @@ export const FORM_CODE_VALUES: Readonly<FieldValues> = {
 };
 
 /**
- * Bệnh án ngoại trú Răng Hàm Mặt as the clinic fills nearly every one
- * (clinic, 2026-11-09). Blanks, not print: a sheet writes over any of them and
- * keeps what it wrote — an unticked "Tự đến" is saved as unticked.
+ * Blanks the clinic fills the same on nearly every sheet: Bệnh án ngoại trú
+ * Răng Hàm Mặt (clinic, 2026-11-09) and the doctor's name on Bệnh án chỉnh nha
+ * (2026-11-10). Blanks, not print: a sheet writes over any of them and keeps
+ * what it wrote — an unticked "Tự đến" is saved as unticked.
  */
-export const OUTPATIENT_DEFAULT_VALUES: Readonly<FieldValues> = {
+export const SHEET_DEFAULT_VALUES: Readonly<FieldValues> = {
   // 5. Dân tộc
   "outpatient-dental.text.3": "Kinh",
   // 13. Chẩn đoán và xử lý của nơi giới thiệu: 2. Tự đến
   "outpatient-dental.checkbox.6": true,
   // Họ và tên under GIÁM ĐỐC PHÒNG KHÁM
   "outpatient-dental.text.59": "BS.CKII. BÙI VĂN TỚI",
+  // Bệnh án chỉnh nha: Họ và tên under BÁC SĨ
+  "orthodontic.text.112": "BS.CKII. BÙI VĂN TỚI",
 };
 
 /**

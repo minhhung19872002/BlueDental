@@ -95,8 +95,14 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl[data-form="9"]{font-size:15.5px}
 .nfc-tpl[data-form="3"]{font-size:15px}
 .nfc-tpl[data-form="8"]{font-size:14px}
-/* 13px since its margins went to 15mm (R-1067). */
-.nfc-tpl[data-form="2"]{font-size:13px}
+/* 14px (clinic, 2026-11-10: too small on paper). Its blanks are drawn for
+   13px inside 15mm margins (R-1067); fitBlanks shortens them so each line
+   still holds on one line and the form still prints on 3 sheets. Its lines
+   keep 13px's pitch (14 × 1.2 ≈ 13 × 1.3, rule below), and the handover box
+   at the foot of the last page stays at 13px: at 14px that page has under
+   1mm to spare. */
+.nfc-tpl[data-form="2"]{font-size:14px}
+.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]{font-size:13px}
 /* 15px from the clinic's own copy, inside 15mm margins (R-1068). */
 .nfc-tpl[data-form="6"]{font-size:15px}
 /* 14px from the clinic's own copy, inside 15mm margins (R-1073). */
@@ -112,6 +118,9 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl>:is(p,h2)+table{margin-top:1px}
 .nfc-tpl [data-grid-cell] p,.nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{line-height:1.2;min-height:1.2em}
 .nfc-tpl p[data-record-section="consultation-other"]{padding-left:6px}
+/* Mẫu 3: "Tôi … (Khách hàng tự ghi …)" and the signatures under it stand a
+   line apart from the plan lines above (clinic, 2026-11-10, R-1191). */
+.nfc-tpl p[data-record-section="orthodontic-agreement"]{margin-top:18px}
 /* A part shown only for a ticked box (sheetSections): gone while unticked. */
 .nfc-tpl [hidden]{display:none!important}
 /* "Loại" on mẫu 5 (materials/materialField): the types of Danh mục as boxes in
@@ -132,6 +141,8 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl p[data-spacer]::before{content:none}
 .nfc-tpl h1:not([data-cover] *){margin:10px 0 6px;line-height:1.2!important}
 .nfc-tpl p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.3!important}
+/* Mẫu 2 at 14px keeps 13px's line pitch (2026-11-10). */
+.nfc-tpl[data-form="2"] p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.2!important}
 /* Mẫu 2's MS / Số ngoại trú / Số lưu trữ (clinic, 2026-10-28, R-1067), and mẫu
    7's MS / Mã người bệnh (2026-10-29, R-1073): the labels in one column, the
    blanks lined up after the ":", the block against the right margin. After the
