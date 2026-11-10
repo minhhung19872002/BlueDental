@@ -143,9 +143,15 @@ function planLines(facts: SheetFactsDto, teeth: TeethLabel): string[] {
   );
 }
 
-/** Bệnh án chỉnh nha, IX; past the seven printed lines the sheet grows lines of its own. */
+/**
+ * Bệnh án chỉnh nha, IX; past the seven printed lines the sheet grows lines of
+ * its own. The name under BÁC SĨ at the foot is the oldest slip's doctor, by
+ * Chức danh (clinic, 2026-11-10, R-1197) — with no slip it stays the clinic's
+ * default (SHEET_DEFAULT_VALUES).
+ */
 function orthodonticValues(facts: SheetFactsDto, values: FieldValues, teeth: TeethLabel) {
   putLines(values, ORTHODONTIC_PLAN_LINES, planLines(facts, teeth));
+  put(values, "orthodontic.text.112", facts.plans[0]?.dentistName);
 }
 
 /**

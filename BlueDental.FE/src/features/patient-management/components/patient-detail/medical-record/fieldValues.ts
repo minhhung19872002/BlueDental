@@ -151,6 +151,8 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   alias("consultation.text.54", "patient.name");
   alias("consultation.text.56", "patient.name");
   alias("orthodontic.text.2", "patient.cccd");
+  // Bệnh án chỉnh nha: the name under NGƯỜI BỆNH/THÂN NHÂN (clinic, 2026-11-10).
+  alias("orthodontic.text.114", "patient.name");
   alias("general-consultation.text.10", "patient.nameUppercase");
   alias("general-consultation.text.11", "patient.birthYear");
   alias("general-consultation.text.12", "patient.address");
@@ -268,7 +270,7 @@ export const SHEET_DEFAULT_VALUES: Readonly<FieldValues> = {
   "outpatient-dental.checkbox.6": true,
   // Họ và tên under GIÁM ĐỐC PHÒNG KHÁM
   "outpatient-dental.text.59": "BS.CKII. BÙI VĂN TỚI",
-  // Bệnh án chỉnh nha: Họ và tên under BÁC SĨ
+  // Bệnh án chỉnh nha: Họ và tên under BÁC SĨ — the slip's doctor once the set has one (sheetFacts)
   "orthodontic.text.112": "BS.CKII. BÙI VĂN TỚI",
 };
 

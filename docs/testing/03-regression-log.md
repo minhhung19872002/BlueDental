@@ -14669,3 +14669,17 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `patient-medical-record.spec.ts` "mẫu 2: 15mm margins…" thêm khẳng định dòng 13 có ô Tự đến nằm một dòng → **xanh**.
   - "every form shares mẫu 5's type…" (mẫu 2 14px, in 3 trang) → **xanh**.
 - **Mức retest**: 1 (chỉ cách vẽ, không lưu dữ liệu).
+
+## R-1197 (2026-11-10, mức 2: Bệnh án mẫu 3 — tên ở cụm ký tên cuối phiếu, F-30)
+
+- **Yêu cầu** (phòng khám, ảnh chat, 2026-11-10): ở cụm ký cuối Bệnh án chỉnh nha (R-1191), điền sẵn tên bệnh nhân dưới NGƯỜI BỆNH/THÂN NHÂN, và chức danh bác sĩ điều trị dưới BÁC SĨ; không có bác sĩ điều trị thì giữ mặc định `BS.CKII. BÙI VĂN TỚI`.
+- **Sửa** (chỉ FE):
+  - `fieldValues.ts`: `orthodontic.text.114` ← `patient.name` (tên như hồ sơ ghi, không viết hoa — như các ô ký tên của mẫu 5).
+  - `sheetFacts.ts`: `orthodontic.text.112` ← `plans[0].dentistName` của bộ hồ sơ — bác sĩ của phiếu điều trị cũ nhất, theo Chức danh (rỗng thì là tên, quy tắc owner 2026-10-19, như "BÁC SĨ ĐIỀU TRỊ" của mẫu 5). Giá trị từ phiếu đè lên `SHEET_DEFAULT_VALUES`, nên bộ hồ sơ không có phiếu (và dialog "In bệnh án" ở Kế hoạch điều trị, không đọc sheet-facts) vẫn in `BS.CKII. BÙI VĂN TỚI`.
+  - Vẫn là ô có giá trị sẵn: sửa rồi Lưu thì giữ điều đã lưu; phiếu đã lưu mà chưa sửa hai ô này sẽ hiện giá trị mới.
+- **Kiểm thử** (API Docker :5000 build từ develop + bản build production preview :8080, đăng nhập thật, không chặn request):
+  - `medical-record-sheet-facts.spec` "numbers, dates, doctors…" thêm kiểm `orthodontic.text.112` = chức danh/tên bác sĩ phiếu → **xanh**.
+  - `patient-medical-record.spec` "the record's address and diagnoses…" đổi `orthodontic.text.112` từ tên mặc định sang bác sĩ của phiếu (đọc từ `sheet-facts`), thêm `orthodontic.text.114` = tên bệnh nhân → **xanh**.
+  - Chạy tay: BD269013, bác sĩ bs.ha đặt Chức danh `BS.CKI. LÊ THU HÀ` (dữ liệu local) → mẫu 3 hiện "Trịnh Thị Ngọc" | "BS.CKI. LÊ THU HÀ".
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (F-30 Bệnh án, mẫu 3).

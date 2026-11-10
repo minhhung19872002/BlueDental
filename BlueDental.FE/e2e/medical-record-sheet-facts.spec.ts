@@ -238,6 +238,8 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "orthodontic.text.107")).toContainText("Răng 21 - ");
     await expect(blank(page, "orthodontic.text.108")).toHaveText("");
     await expect(sheet(page).locator("body")).not.toContainText("Phiếu điều trị");
+    // The name under BÁC SĨ at the foot: the oldest slip's doctor, not the clinic's default (R-1197).
+    await expect(blank(page, "orthodontic.text.112")).toHaveText(dentist);
 
     // Phiếu tư vấn tổng quát: the slip's doctor, and the day picked above the sheet.
     await openSheet(page, "Phiếu Tư Vấn Tổng Quát");
