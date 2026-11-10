@@ -137,7 +137,7 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     for (const s of [working, off]) if (s) await deleteStaff(page, s.id);
   });
 
-  test("doctors are columns: an OFF doctor has none, a booking sits in its doctor's column, is counted and survives a reload", async ({ page, browser }) => {
+  test("doctors are columns: an OFF doctor still has one (R-1189), a booking sits in its doctor's column, is counted and survives a reload", async ({ page, browser }) => {
     const day = shiftDays(clinicToday(), 6);
     await setOwnDay(browser, off, branchId, day, DAY_OFF);
     const booking = await book(page, branchId, working.id, at(day, "09:00"), at(day, "09:30"));
@@ -151,7 +151,9 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     await openDay(page, day);
     const column = page.locator(".dtl-col").filter({ hasText: workingName });
     await expect(column).toHaveCount(1);
-    await expect(page.locator(".dtl-col").filter({ hasText: offName })).toHaveCount(0);
+    // TEMP-DAYOFF-FILTER-OFF (R-1189): a day off no longer takes the doctor's
+    // column away; restore toHaveCount(0) with the BA's new rule.
+    await expect(page.locator(".dtl-col").filter({ hasText: offName })).toHaveCount(1);
 
     // The time column shows the viewer's hours (R-977 default 08:00–18:45); the column is headed by the
     // doctor's full name (Tên + Họ, as the staff list returns it) and the

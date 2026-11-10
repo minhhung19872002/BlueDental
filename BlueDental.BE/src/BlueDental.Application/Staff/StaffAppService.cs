@@ -57,9 +57,14 @@ public class StaffAppService(
         // so "thu" would miss "Lê Thu Hà". The pickers search as the user types,
         // which makes that a real miss rather than a curiosity — so the term is
         // matched here instead, the way the catalog list matches its own.
-        var offStaffIds = input.AvailableOn.HasValue
-            ? await GetDayOffStaffIdsAsync(input.AvailableOn.Value, input.BranchId)
-            : null;
+        // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): the pickers no longer
+        // leave out staff registered OFF that day — "trước hết gỡ logic ra đã",
+        // the BA is rewriting who counts as off around the Lịch làm việc board.
+        // `AvailableOn` is still accepted and ignored; uncomment to restore.
+        // var offStaffIds = input.AvailableOn.HasValue
+        //     ? await GetDayOffStaffIdsAsync(input.AvailableOn.Value, input.BranchId)
+        //     : null;
+        HashSet<Guid>? offStaffIds = null;
 
         // Lịch làm việc / Chấm công rows follow the Sơ đồ tổ chức (F-67).
         var scheduleStaffIds = input.ScheduleScope == true

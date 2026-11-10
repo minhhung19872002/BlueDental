@@ -214,7 +214,9 @@ test.describe("Lặp lại lịch hẹn — API", () => {
     expect(stored.map((a) => a.id)).toEqual([single.body.id]);
   });
 
-  test("lunch time clashes with the shift on every session, and confirming does not get past it", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("lunch time clashes with the shift on every session, and confirming does not get past it", async ({ page }) => {
     const day = farDay();
     const input = weekly(day, "12:15", "12:45", 3);
     const preview = await call<Series>(page, `${SERIES}/preview`, { method: "POST", branchId, json: input });

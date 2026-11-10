@@ -103,7 +103,9 @@ test.describe("Chọn lịch hẹn tiếp theo — ca làm việc của bác sĩ
     if (dentist) await deleteStaff(page, dentist.id);
   });
 
-  test("the API lays out a day off, leave and the profile hours, day by day", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("the API lays out a day off, leave and the profile hours, day by day", async ({ page }) => {
     const res = await call<WorkDay[]>(page, workDaysUrl(dentist.id, DAY_OFF, LEAVE_DAY), { branchId });
     expect(res.status, JSON.stringify(res.body.error)).toBe(200);
     const [off, plain, leave] = res.body;
@@ -148,7 +150,9 @@ test.describe("Chọn lịch hẹn tiếp theo — ca làm việc của bác sĩ
     await other.close();
   });
 
-  test("the picker greys out the day off and the leave, and shows the week's hours", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("the picker greys out the day off and the leave, and shows the week's hours", async ({ page }) => {
     await page.goto("/reception");
     const visit = await bookVisitToday(page, branchId, 110, "e2e-ca");
     const card = await cardOf(page, visit);

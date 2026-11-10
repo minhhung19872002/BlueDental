@@ -130,7 +130,9 @@ test.describe("Lịch đã hẹn theo bác sĩ — bấm ô trống điền gi�
     for (const s of [off, working, gone]) if (s) await deleteStaff(page, s.id);
   });
 
-  test("Tạo lịch hẹn: OFF / ngừng hoạt động → chỉ điền giờ + toast lý do; bác sĩ làm việc → điền cả hai, lưu và đọc lại", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("Tạo lịch hẹn: OFF / ngừng hoạt động → chỉ điền giờ + toast lý do; bác sĩ làm việc → điền cả hai, lưu và đọc lại", async ({ page }) => {
     await page.getByRole("button", { name: /Tạo lịch hẹn/ }).first().click();
     const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
     await expect(dialog).toBeVisible();
@@ -194,7 +196,9 @@ test.describe("Lịch đã hẹn theo bác sĩ — bấm ô trống điền gi�
     expect(starts).toEqual([at(day, "11:30"), at(day, "14:00")]);
   });
 
-  test("Tạo lịch tạm: bấm ô ở hàng bác sĩ điền giờ và bác sĩ, hàng bác sĩ nghỉ thì cảnh báo", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("Tạo lịch tạm: bấm ô ở hàng bác sĩ điền giờ và bác sĩ, hàng bác sĩ nghỉ thì cảnh báo", async ({ page }) => {
     await page.goto("/calendar");
     await page.locator(".cal-btn-temp").click();
     const dialog = page.getByRole("dialog", { name: "Tạo lịch tạm" });

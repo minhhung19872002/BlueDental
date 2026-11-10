@@ -44,7 +44,9 @@ async function typeDate(input: Locator, day: string) {
   await expect(input).toHaveValue(typed(day));
 }
 
-test.describe("Bác sĩ nghỉ — ẩn khỏi ô chọn bác sĩ", () => {
+// TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+// limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+test.describe.skip("Bác sĩ nghỉ — ẩn khỏi ô chọn bác sĩ", () => {
   let branchId: string;
   let off: RunStaff & { userName: string };
   let working: RunStaff;

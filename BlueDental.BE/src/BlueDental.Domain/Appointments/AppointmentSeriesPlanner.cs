@@ -84,12 +84,14 @@ public class AppointmentSeriesPlanner : ITransientDependency
     {
         if (start < nowMinute) return SeriesConflictReason.InThePast;
 
-        var windows = DentistShiftChecker.WorkingWindows(records.GetValueOrDefault(day), dentist);
-        if (windows.Count == 0) return SeriesConflictReason.DentistOff;
-        if (!DentistShiftChecker.Fits(windows, ClinicCalendar.ToLocal(start), ClinicCalendar.ToLocal(end)))
-        {
-            return SeriesConflictReason.OutsideShift;
-        }
+        // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): a session is no longer
+        // refused for the dentist's day off or hours, as a single booking is not.
+        // var windows = DentistShiftChecker.WorkingWindows(records.GetValueOrDefault(day), dentist);
+        // if (windows.Count == 0) return SeriesConflictReason.DentistOff;
+        // if (!DentistShiftChecker.Fits(windows, ClinicCalendar.ToLocal(start), ClinicCalendar.ToLocal(end)))
+        // {
+        //     return SeriesConflictReason.OutsideShift;
+        // }
 
         var overlapping = busy.Where(a => a.Slot.Start < end && a.Slot.End > start).ToList();
         // Patient first: a dentist overlap is only a warning the user may confirm

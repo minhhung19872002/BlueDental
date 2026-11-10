@@ -80,7 +80,9 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
     });
   }
 
-  test("the default shifts: lunch, evening and a slot running past 17:00 are refused, 09:00 is booked", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("the default shifts: lunch, evening and a slot running past 17:00 are refused, 09:00 is booked", async ({ page }) => {
     const day = farDay();
 
     for (const [from, to] of [["12:15", "12:45"], ["19:00", "19:30"], ["16:45", "17:15"]]) {
@@ -109,7 +111,9 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
     expect(new Date(stored.body.slotStart).toISOString()).toBe(at(day, "09:00"));
   });
 
-  test("a shift opened in Lịch làm việc moves the limit: 19:00 is booked, 20:00 still refused", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("a shift opened in Lịch làm việc moves the limit: 19:00 is booked, 20:00 still refused", async ({ page }) => {
     const day = farDay();
     const opened = await call(page, "/api/v1/app/time-keepings/open-day", {
       method: "POST",
@@ -144,7 +148,9 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
     bookings.push(lastSlot.body.id);
   });
 
-  test("no shift opened: the profile hours apply — 17:15 is booked against a 19:00 profile end, 19:15 refused", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("no shift opened: the profile hours apply — 17:15 is booked against a 19:00 profile end, 19:15 refused", async ({ page }) => {
     // Bug 2026-10-13: Bs Tới's profile ran to 19:00 and the Chấm công board
     // showed it, yet a 17:15 booking was refused against the 17:00 default.
     const run = `${runId()}${test.info().workerIndex}p`;
@@ -212,7 +218,9 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
     bookings.push(evening.body.id);
   });
 
-  test("the editor: 12:15 is refused with the reason and the dialog stays open, 09:00 then saves", async ({ page }) => {
+  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+  test.skip("the editor: 12:15 is refused with the reason and the dialog stays open, 09:00 then saves", async ({ page }) => {
     const reason = `Giờ làm E2E ${runId()}`;
     const [year, month, date] = farDay().split("-");
 

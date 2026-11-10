@@ -37,8 +37,25 @@ public class DentistShiftChecker : ITransientDependency
         _userRepository = userRepository;
     }
 
-    /// <summary>Throws Appointment:0008 (or 0009 on a day off) unless the slot fits.</summary>
-    public async Task EnsureWithinShiftAsync(
+    /// <summary>
+    /// Throws Appointment:0008 (or 0009 on a day off) unless the slot fits.
+    /// Switched off by TEMP-DAYOFF-FILTER-OFF (R-1189): every slot passes, only
+    /// the overlap checks still apply to a booking.
+    /// </summary>
+    public Task EnsureWithinShiftAsync(
+        Guid dentistId,
+        Guid branchId,
+        AppointmentSlot slot)
+    {
+        // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): a booking no longer
+        // checks the dentist's day off, registered shift or working hours while
+        // the BA rewrites the rule. Restore by deleting this return and the
+        // `#pragma` pair, and making the method async again.
+        return Task.CompletedTask;
+    }
+
+#pragma warning disable IDE0051 // kept for TEMP-DAYOFF-FILTER-OFF
+    private async Task EnsureWithinShiftCheckedAsync(
         Guid dentistId,
         Guid branchId,
         AppointmentSlot slot)
@@ -64,6 +81,7 @@ public class DentistShiftChecker : ITransientDependency
         throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.OutsideWorkingHours)
             .WithData("Shifts", Describe(windows));
     }
+#pragma warning restore IDE0051
 
     /// <summary>
     /// The dentist's working day for each date in [<paramref name="from"/>, <paramref name="to"/>]
@@ -109,23 +127,28 @@ public class DentistShiftChecker : ITransientDependency
     /// </summary>
     public static IReadOnlyList<ShiftWindow> WorkingWindows(TimeKeepingRecord? record, IHasExtraProperties? dentist = null)
     {
-        if (record?.Registration == WorkRegistration.DayOff)
-        {
-            return [];
-        }
+        // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): a day off, the shift
+        // registered on the Lịch làm việc board and a leave window no longer take
+        // hours away — "Chọn lịch hẹn tiếp theo" and the series planner open the
+        // whole planned day. Uncomment the three blocks below to restore.
+        // if (record?.Registration == WorkRegistration.DayOff)
+        // {
+        //     return [];
+        // }
 
         var (morning, afternoon) = PlannedShifts(record, dentist);
-        IEnumerable<ShiftWindow> windows = record?.ScheduledShift switch
-        {
-            WorkScheduleShift.Morning => [morning],
-            WorkScheduleShift.Afternoon => [afternoon],
-            _ => [morning, afternoon]
-        };
+        IEnumerable<ShiftWindow> windows = [morning, afternoon];
+        // IEnumerable<ShiftWindow> windows = record?.ScheduledShift switch
+        // {
+        //     WorkScheduleShift.Morning => [morning],
+        //     WorkScheduleShift.Afternoon => [afternoon],
+        //     _ => [morning, afternoon]
+        // };
 
-        if (record?.LeaveStart is { } leaveStart && record.LeaveEnd is { } leaveEnd)
-        {
-            windows = windows.SelectMany(w => w.Without(leaveStart, leaveEnd));
-        }
+        // if (record?.LeaveStart is { } leaveStart && record.LeaveEnd is { } leaveEnd)
+        // {
+        //     windows = windows.SelectMany(w => w.Without(leaveStart, leaveEnd));
+        // }
 
         return Merge(windows.OrderBy(w => w.Start));
     }
