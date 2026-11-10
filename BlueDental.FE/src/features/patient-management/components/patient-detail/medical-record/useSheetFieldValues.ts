@@ -2,12 +2,10 @@ import { useMemo } from "react";
 import { CATALOG_GROUP, useCatalogOptions } from "@/hooks/useCatalogOptions";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { RESTORATION_MATERIAL_KIND, useRestorationMaterials } from "@/hooks/useRestorationMaterials";
-import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { useMedicalRecordPhones, type MedicalRecordPhonesDto } from "../../../api/medicalRecordApi";
 import { useAddressParts } from "../../../hooks/useGuardianSubject";
-import { GENDER, GUARDIAN_RELATION, type PatientDto, type PatientGuardianDto } from "../../../types/patient";
-import { RELATION_LABEL } from "../../../utils/guardian";
+import { GENDER, type PatientDto, type PatientGuardianDto } from "../../../types/patient";
 import {
   branchFieldValues,
   contractPartyAValues,
@@ -59,29 +57,6 @@ function wholePhone(
 /** The guardian the sheets print: the one ticked as primary contact, else the first listed. */
 function primaryGuardian(guardians: readonly PatientGuardianDto[]): PatientGuardianDto | undefined {
   return guardians.find((item) => item.isPrimaryContact) ?? guardians[0];
-}
-
-/**
- * The primary guardian as "Quan hệ - Họ tên - Số điện thoại" (clinic,
- * 2026-10-16). A relation of "Khác" prints what the desk wrote beside it, when
- * it wrote any.
- */
-function guardianLine(
-  guardians: readonly PatientGuardianDto[],
-  phones: MedicalRecordPhonesDto | undefined,
-): string | undefined {
-  const guardian = primaryGuardian(guardians);
-  if (!guardian) return undefined;
-
-  const relation =
-    guardian.relation === GUARDIAN_RELATION.Other && guardian.relationNote?.trim()
-      ? guardian.relationNote.trim()
-      : t(RELATION_LABEL[guardian.relation]);
-  const phone = wholePhone(phones, phones?.guardianPhones[guardian.id], guardian.phone);
-  return [relation, guardian.fullName, phone]
-    .map((part) => part?.trim())
-    .filter(Boolean)
-    .join(" - ");
 }
 
 /**
@@ -153,7 +128,6 @@ export function useSheetFieldValues(patient: PatientDto | undefined, branchId: s
         history: history || undefined,
         note: patient.note ?? undefined,
         insuranceNumber: patient.insuranceNumber ?? undefined,
-        guardian: guardianLine(patient.guardians, phones),
         minorGuardianName: minor ? primaryGuardian(patient.guardians)?.fullName : undefined,
         gender: GENDER_NAME[patient.gender],
       }),

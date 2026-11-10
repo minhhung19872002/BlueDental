@@ -1179,9 +1179,10 @@ test.describe("Bệnh án", () => {
           "outpatient-dental.text.5": "Phường Ba Đình",
           "outpatient-dental.text.7": "Thành phố Hà Nội",
           "outpatient-dental.text.43": diagnosed,
-          // II. Lý do vào viện, and + Gia đình as the primary guardian (clinic, 2026-10-16).
+          // II. Lý do vào viện (clinic, 2026-10-16).
           "custom.text.66d78a3bbe7442658cecbf611b7b286d": `Đau răng hàm dưới ${suffix}`,
-          "outpatient-dental.text.23": `Mẹ - Mẹ Ràng Buộc ${suffix} - 0${guardianPhone}`,
+          // + Gia đình is the family's illnesses, not the guardian on file (R-1195).
+          "outpatient-dental.text.23": "Chưa phát hiện gì bất thường",
           // What the clinic writes on nearly every one (2026-11-09): Dân tộc, a
           // Bản thân the hồ sơ says nothing of, and the director's name.
           "outpatient-dental.text.3": "Kinh",

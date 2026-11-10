@@ -38,8 +38,6 @@ export interface SheetPatientFacts {
   history?: string;
   note?: string;
   insuranceNumber?: string;
-  /** The primary guardian as "Quan hệ - Họ tên - Số điện thoại". */
-  guardian?: string;
   /** The primary guardian's name alone, and only for a patient under 18. */
   minorGuardianName?: string;
   country?: string;
@@ -110,7 +108,6 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
   put(values, "patient.history", facts.history);
   put(values, "patient.note", facts.note);
   put(values, "patient.insuranceNumber", facts.insuranceNumber);
-  put(values, "patient.guardian", facts.guardian);
   put(values, "patient.minorGuardianName", facts.minorGuardianName);
 
   const parts = facts.dateOfBirth?.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
@@ -175,18 +172,20 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
 
   /*
    * Clinic, 2026-10-16: "II. Lý do vào viện" is the hồ sơ's Lý do đến khám —
-   * its first line, the second stays for the pen — and "+ Gia đình" under
-   * Tiền sử bệnh names the primary guardian.
+   * its first line, the second stays for the pen.
    */
   alias("custom.text.66d78a3bbe7442658cecbf611b7b286d", "patient.reason");
 
   /*
-   * Tiền sử bệnh (clinic, 2026-11-09): "+ Bản thân" and "+ Gia đình" read
-   * "Chưa phát hiện gì bất thường" unless the hồ sơ has something to say —
-   * the disease history from Danh mục, and the primary guardian.
+   * Tiền sử bệnh (clinic, 2026-11-09): "+ Bản thân" reads the disease history
+   * from Danh mục, else "Chưa phát hiện gì bất thường". "+ Gia đình" is the
+   * family's illnesses, which the hồ sơ does not keep, so it always starts as
+   * "Chưa phát hiện gì bất thường" for the doctor to write over. It printed the
+   * primary guardian's name and phone from 2026-10-16 until the clinic asked
+   * who had put it there (2026-11-10, R-1195).
    */
   values["outpatient.patient.history"] = values["patient.history"] ?? NOTHING_ABNORMAL;
-  values["outpatient-dental.text.23"] = values["patient.guardian"] ?? NOTHING_ABNORMAL;
+  values["outpatient-dental.text.23"] = NOTHING_ABNORMAL;
 
   // Giấy đồng ý phẫu thuật/thủ thuật: "… cho người bệnh:".
   alias("surgery-consent.text.3", "patient.name");
