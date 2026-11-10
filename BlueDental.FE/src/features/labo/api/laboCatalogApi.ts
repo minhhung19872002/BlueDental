@@ -152,6 +152,8 @@ export interface LaboMaterialDto {
   name: string;
   sortOrder: number;
   isActive: boolean;
+  /** "Có lựa chọn Trên implant" (F-91): the Phiếu yêu cầu offers this material on an implant too. */
+  allowOnImplant: boolean;
   creationTime: string;
   lastModificationTime?: string | null;
 }
@@ -159,6 +161,7 @@ export interface LaboMaterialDto {
 export interface LaboMaterialInput {
   name: string;
   taxonomyId: string;
+  allowOnImplant: boolean;
 }
 
 export interface LaboMaterialQuery {

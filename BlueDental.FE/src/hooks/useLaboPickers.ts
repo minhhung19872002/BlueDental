@@ -110,10 +110,15 @@ export function useLaboServiceOptions(clinicBranchId: string, enabled = true) {
 /** A Vật liệu and the Dịch vụ Labo it belongs to. */
 export interface LaboMaterialOption extends PickerOption {
   serviceId: string;
+  /** "Có lựa chọn Trên implant" (F-91): the Phiếu yêu cầu gives it a second column. */
+  allowOnImplant: boolean;
+  isActive: boolean;
 }
 
 interface MaterialRow extends NamedRow {
   taxonomyId: string;
+  allowOnImplant?: boolean;
+  isActive?: boolean;
 }
 
 /**
@@ -129,7 +134,41 @@ export function useLaboMaterialOptions(clinicBranchId: string, enabled = true) {
         .get<PagedResult<MaterialRow>>("/v1/app/labo-materials", {
           params: { ClinicBranchId: clinicBranchId, MaxResultCount: 1000 },
         })
-        .then((r) => r.data.items.map((row) => ({ value: row.id, label: row.name, serviceId: row.taxonomyId }))),
+        .then((r) =>
+          r.data.items.map((row) => ({
+            value: row.id,
+            label: row.name,
+            serviceId: row.taxonomyId,
+            allowOnImplant: row.allowOnImplant ?? false,
+            isActive: row.isActive ?? true,
+          })),
+        ),
+    enabled: enabled && Boolean(clinicBranchId),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** A Đường hoàn tất with the description the Phiếu yêu cầu shows on hover (F-91). */
+export interface LaboFinishLineOption extends PickerOption {
+  description?: string;
+}
+
+/** Đường hoàn tất — the labo_finish_line taxonomy with each row's description. */
+export function useLaboFinishLineOptions(clinicBranchId: string, enabled = true) {
+  return useQuery<LaboFinishLineOption[]>({
+    queryKey: [...laboPickerKeys.taxonomies, LABO_TAXONOMY.finishLine, "rich", clinicBranchId],
+    queryFn: () =>
+      api
+        .get<PagedResult<ServiceRow>>("/v1/app/taxonomies", {
+          params: { ClinicBranchId: clinicBranchId, Group: LABO_TAXONOMY.finishLine, MaxResultCount: 200 },
+        })
+        .then((r) =>
+          r.data.items.map((row) => ({
+            value: row.id,
+            label: row.name,
+            description: row.description?.trim() || undefined,
+          })),
+        ),
     enabled: enabled && Boolean(clinicBranchId),
     staleTime: 5 * 60_000,
   });

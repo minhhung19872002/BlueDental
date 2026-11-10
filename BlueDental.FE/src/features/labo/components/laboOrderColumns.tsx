@@ -4,15 +4,11 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
-import { isWarrantyCardPhoto, type LaboOrderDto } from "../api/laboApi";
+import { isWarrantyCardPhoto, laboOrderNo, type LaboOrderDto } from "../api/laboApi";
 import { laboStatusPill } from "../api/laboStatus";
 import { LaboSendDueCell } from "./order-dialogs/LaboSendDueCell";
-import {
-  LaboImagesButton,
-  LaboRowActions,
-  LaboSupplierBadge,
-  type LaboRowActionHandlers,
-} from "./order-dialogs/laboOrderCells";
+import { LaboImagesButton, LaboRowActions, type LaboRowActionHandlers } from "./order-dialogs/laboOrderCells";
+import { laboWorkOf } from "./order-dialogs/laboRequestSlipText";
 
 interface Options extends Pick<LaboRowActionHandlers, "onDetail"> {
   /** Rides on the patient and treatment-slip links, as on the reference. */
@@ -24,10 +20,11 @@ const dash = (value: string | undefined) => value ?? <span className="bd-cat-num
 /**
  * Mẫu Labo — the reference's columns (docs/clone/pages/labo.md §2.4) with
  * P2910_03's Gửi → Hẹn giao and Trạng thái in place of the two date/pill
- * pairs: the code, the supplier over its creation date, the customer and the
- * treatment slip as links into the patient record, the dentist, material and
- * teeth, the returned-file folder and Thao tác (Xem only — the workflow runs
- * on the patient record).
+ * pairs: the Mã số (the Labo's own slip number since F-91, else the order
+ * code), its creation date — F-91 dropped the supplier — the customer and the
+ * treatment slip as links into the patient record, the dentist, Loại phục hình
+ * and teeth, the returned-file folder and Thao tác (Xem only — the workflow
+ * runs on the patient record).
  */
 export function buildLaboOrderColumns({ branchId, onDetail }: Options): ColumnsType<LaboOrderDto> {
   const patientHref = (row: LaboOrderDto) => withBranch(`/patient/${row.patientId}`, branchId);
@@ -37,20 +34,15 @@ export function buildLaboOrderColumns({ branchId, onDetail }: Options): ColumnsT
   return [
     {
       key: "orderCode",
-      title: t("Patient:Labo:Code"),
+      title: t("Labo:Slip:SlipNo"),
       width: 132,
-      render: (_, row) => <span className="pd-labo-code">{row.orderCode}</span>,
+      render: (_, row) => <span className="pd-labo-code">{laboOrderNo(row)}</span>,
     },
     {
-      key: "supplier",
-      title: t("Labo:Orders:SupplierCreatedAt"),
-      width: 180,
-      render: (_, row) => (
-        <div className="bd-labo-stack">
-          <LaboSupplierBadge name={row.supplierName ?? row.labProviderName} color={row.supplierLabelColor} />
-          <span className="bd-labo-sub">{formatDate(row.creationTime)}</span>
-        </div>
-      ),
+      key: "createdAt",
+      title: t("Common:CreatedAt"),
+      width: 112,
+      render: (_, row) => formatDate(row.creationTime),
     },
     {
       key: "patient",
@@ -101,9 +93,9 @@ export function buildLaboOrderColumns({ branchId, onDetail }: Options): ColumnsT
     },
     {
       key: "materialName",
-      title: t("Labo:Orders:Material"),
-      width: 150,
-      render: (_, row) => dash(row.materialName),
+      title: t("Patient:Labo:ProsthesisType"),
+      width: 180,
+      render: (_, row) => dash(laboWorkOf(row) || undefined),
     },
     {
       key: "toothNumbers",

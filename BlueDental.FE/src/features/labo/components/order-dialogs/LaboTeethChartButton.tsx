@@ -8,7 +8,7 @@ import {
   type ToothPick,
 } from "@/components/ToothChart";
 import { t } from "@/lib/i18n";
-import { LABO_TOOTH_RESULT, type LaboOrderDto } from "@/features/labo/api/laboApi";
+import { LABO_TOOTH_RESULT, laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import "./labo-teeth-chart.css";
 
 const LEGEND = [
@@ -107,5 +107,5 @@ export function LaboTeethChartButton({ order }: { order: LaboOrderDto }) {
   const passed = order.teeth
     .filter((tooth) => tooth.checkResult === LABO_TOOTH_RESULT.Passed)
     .map((tooth) => tooth.toothNumber);
-  return <TeethChartButton teeth={orderTeeth(order)} passed={passed} code={order.orderCode} />;
+  return <TeethChartButton teeth={orderTeeth(order)} passed={passed} code={laboOrderNo(order)} />;
 }

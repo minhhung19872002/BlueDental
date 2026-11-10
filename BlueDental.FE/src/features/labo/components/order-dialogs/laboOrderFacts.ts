@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { orderedSurfaces, surfaceList, surfaceName } from "@/components/ToothSurfacePicker";
 import type { LaboOrderDto, LaboOrderToothDto, LaboOrderToothSurfaceDto } from "@/features/labo/api/laboApi";
 import { formatDate } from "@/utils/format";
@@ -85,3 +86,7 @@ export type LaboOrderFacts = ReturnType<typeof laboOrderFacts>;
 
 /** The sheet's reading of a missing value. */
 export const dashed = (value: string) => (value === "" ? "—" : value);
+
+/** "Ngày 8 tháng 9 năm 2026", the wording under a printed sheet's title. */
+export const longDate = (value: Date): string =>
+  t("Patient:Labo:LongDate", value.getDate(), value.getMonth() + 1, value.getFullYear());

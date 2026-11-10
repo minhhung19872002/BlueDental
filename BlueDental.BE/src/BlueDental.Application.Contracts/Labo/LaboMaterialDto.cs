@@ -14,6 +14,9 @@ public class LaboMaterialDto : FullAuditedEntityDto<Guid>
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
 
+    /// <summary>"Có lựa chọn Trên implant" (F-91).</summary>
+    public bool AllowOnImplant { get; set; }
+
     /// <summary>"BE:Field:CategoryGroup" — filled from the group so the table needs no join of its own.</summary>
     public string? TaxonomyName { get; set; }
 }
@@ -29,6 +32,9 @@ public class LaboMaterialInputDto
     public Guid TaxonomyId { get; set; }
 
     public Guid? ClinicBranchId { get; set; }
+
+    /// <summary>"Có lựa chọn Trên implant" (F-91). Omitted reads as false.</summary>
+    public bool AllowOnImplant { get; set; }
 }
 
 public class CreateLaboMaterialDto : LaboMaterialInputDto;

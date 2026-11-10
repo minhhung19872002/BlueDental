@@ -1,6 +1,6 @@
 import { Form } from "antd";
 import { t } from "@/lib/i18n";
-import type { LaboOrderDto } from "@/features/labo/api/laboApi";
+import { laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { LaboWarrantyCardsSection } from "./LaboWarrantyCardsSection";
 import { LaboWarrantySharedPreview } from "./LaboWarrantySharedPreview";
 import { LaboWarrantyToothPicker } from "./LaboWarrantyToothPicker";
@@ -26,7 +26,7 @@ interface Props {
  */
 export function LaboWarrantyActivationBox({ order, warranty, logoUrl, active }: Props) {
   const restoration = restorationName(order);
-  const caption = [restoration, order.orderCode].filter(Boolean).join(" · ");
+  const caption = [restoration, laboOrderNo(order)].filter(Boolean).join(" · ");
   const what = [restoration, order.supplierName].filter(Boolean).join(" · ");
   const jump = useWarrantyToothJump();
   const picked = warranty.pending.filter((tooth) => warranty.open && warranty.selected.includes(tooth.toothNumber));

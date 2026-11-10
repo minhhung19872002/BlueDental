@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Button, Modal } from "antd";
 import { CalendarOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
-import { isWarrantyCardPhoto, type LaboOrderDto } from "@/features/labo/api/laboApi";
+import { isRequestSlip, isWarrantyCardPhoto, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { laboStatusPill } from "@/features/labo/api/laboStatus";
 import { AppointmentEditorModal } from "@/features/appointments/components/AppointmentEditorModal";
 import { LaboDetailFacts } from "./LaboDetailFacts";
 import { LaboPictureWell } from "./LaboPictureWell";
 import { LaboPrintButton } from "./LaboPrintButton";
+import { LaboRequestSlipFacts } from "./LaboRequestSlipFacts";
 import { laboOrderFacts, type LaboDetailPatient } from "./laboOrderFacts";
 import "../labo-order-dialog.css";
 
@@ -50,7 +51,11 @@ export function LaboDetailDialog({ order, branchId, canCreateAppointment, onClos
       >
         {order && patient && (
           <>
-            <LaboDetailFacts facts={laboOrderFacts(order, patient)} pill={laboStatusPill(order)} />
+            {isRequestSlip(order) ? (
+              <LaboRequestSlipFacts order={order} patient={patient} pill={laboStatusPill(order)} />
+            ) : (
+              <LaboDetailFacts facts={laboOrderFacts(order, patient)} pill={laboStatusPill(order)} />
+            )}
             <LaboPictureWell
               tiles={order.images
                 .filter((image) => !isWarrantyCardPhoto(image))

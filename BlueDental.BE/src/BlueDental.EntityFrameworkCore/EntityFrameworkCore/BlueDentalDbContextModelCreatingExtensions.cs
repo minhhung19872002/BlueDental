@@ -894,6 +894,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.SpecMode).HasConversion<short>().HasDefaultValue(LaboSpecMode.PerTooth);
             entity.Property(x => x.AttachmentUrl).HasMaxLength(500);
             entity.Property(x => x.ToothShade).HasMaxLength(100);
+            // F-91 Phiếu yêu cầu: every order written before it is the classic form.
+            entity.Property(x => x.Layout).HasConversion<short>().HasDefaultValue(LaboOrderLayout.Classic);
+            entity.Property(x => x.CaseType).HasConversion<short>().HasDefaultValue(LaboCaseType.New);
+            entity.Property(x => x.LabSlipNo).HasMaxLength(50);
+            // Mã số is the branch's own, among orders not cancelled (6), exact case.
+            entity.HasIndex(x => new { x.BranchId, x.LabSlipNo })
+                .IsUnique()
+                .HasFilter("\"LabSlipNo\" IS NOT NULL AND \"Status\" <> 6 AND \"IsDeleted\" = false");
             // A child (Làm tiếp công đoạn / Bảo hành) keeps its parent's code,
             // so only the orders without a parent hold the code uniquely.
             entity.HasIndex(x => x.OrderCode).IsUnique().HasFilter("\"ParentOrderId\" IS NULL");
@@ -935,6 +943,17 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 s.Property(x => x.Shade).HasMaxLength(100);
             });
             entity.Navigation(x => x.Surfaces).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // F-91 Phiếu yêu cầu: Màu răng by zone, Đường hoàn tất and Loại phục hình.
+            entity.OwnsOne(x => x.ShadeZones, z =>
+            {
+                z.ToJson();
+                z.Ignore(x => x.Zones);
+                z.Ignore(x => x.IsEmpty);
+                z.Ignore(x => x.Summary);
+            });
+            entity.Property(x => x.FinishLineIds);
+            entity.OwnsMany(x => x.Restorations, r => r.ToJson());
+            entity.Navigation(x => x.Restorations).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.LaboOrderId, x.ToothNumber }).IsUnique();
         });
 

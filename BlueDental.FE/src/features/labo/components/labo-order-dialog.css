@@ -530,6 +530,95 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+/* ── PHIẾU YÊU CẦU LABO (F-91): the Phiếu yêu cầu order's printed sheet ──────
+   Same letterhead and signature as above, set in the app's own font (owner,
+   2026-11-10) instead of the reference's Times. Rules and boxes are ink on
+   paper, so they stay black rather than screen tokens. */
+.pd-print-sheet article.pd-labo-sheet.pd-slip-print {
+  font-family: var(--bd-font);
+}
+.pd-slip-print .pd-labo-sheet-body {
+  font-size: 14px;
+  line-height: 22px;
+}
+.pd-slip-print .pd-labo-sheet-body h3 {
+  margin-top: 16px;
+}
+.pd-slip-print-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+.pd-slip-print-field {
+  margin: 0 0 6px;
+}
+.pd-slip-print-field b {
+  white-space: nowrap;
+}
+.pd-slip-print-case {
+  display: inline-flex;
+  gap: 16px;
+}
+.pd-slip-print-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+.pd-slip-print-notes {
+  min-height: 66px;
+}
+.pd-slip-print-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 24px;
+  break-inside: avoid;
+}
+.pd-slip-print-shade {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pd-slip-print-shade th,
+.pd-slip-print-shade td {
+  height: 30px;
+  padding: 2px 8px;
+  border: 1px solid #000;
+  text-align: center;
+}
+.pd-slip-print-shade tbody th {
+  width: 72px;
+  text-align: left;
+}
+.pd-slip-print-chart {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.pd-slip-print-chart-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.pd-slip-print-chart-row:first-child {
+  padding-bottom: 6px;
+  border-bottom: 1px solid #000;
+}
+.pd-slip-print-chart-half {
+  display: flex;
+  justify-content: space-around;
+}
+.pd-slip-print-chart-half:first-child {
+  border-right: 1px solid #000;
+}
+.pd-slip-print-chart-half span {
+  min-width: 26px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 12px;
+  text-align: center;
+}
+.pd-slip-print-chart-half span.is-picked {
+  border-color: #000;
+  font-weight: 700;
+}
 .pd-labo-act.ant-btn.pd-labo-act--danger,
 .pd-labo-act.ant-btn.pd-labo-act--danger:not(:disabled):hover,
 .pd-labo-act.ant-btn.pd-labo-act--danger:not(:disabled):active {

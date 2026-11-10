@@ -4193,6 +4193,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AllowOnImplant")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("ClinicBranchId")
                         .HasColumnType("uuid");
 
@@ -4274,6 +4277,11 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<short>("CaseType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1);
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -4329,6 +4337,10 @@ namespace BlueDental.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("LabSlipNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("LastModificationTime");
@@ -4336,6 +4348,11 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("LastModifierId")
                         .HasColumnType("uuid")
                         .HasColumnName("LastModifierId");
+
+                    b.Property<short>("Layout")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1);
 
                     b.Property<Guid?>("MaterialId")
                         .HasColumnType("uuid");
@@ -4412,6 +4429,10 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("TreatmentStageId");
 
+                    b.HasIndex("BranchId", "LabSlipNo")
+                        .IsUnique()
+                        .HasFilter("\"LabSlipNo\" IS NOT NULL AND \"Status\" <> 6 AND \"IsDeleted\" = false");
+
                     b.HasIndex("BranchId", "Status");
 
                     b.ToTable("bd_labo_orders", (string)null);
@@ -4478,6 +4499,10 @@ namespace BlueDental.Migrations
 
                     b.Property<Guid?>("FinishLineId")
                         .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<Guid>>("FinishLineIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
 
                     b.Property<string>("LabNote")
                         .HasMaxLength(1000)
@@ -11993,6 +12018,64 @@ namespace BlueDental.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.OwnsOne("BlueDental.Labo.LaboShadeZones", "ShadeZones", b1 =>
+                        {
+                            b1.Property<Guid>("LaboOrderToothId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("BodyDistal")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("BodyMesial")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("CervicalDistal")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("CervicalMesial")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("IncisalDistal")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("IncisalMesial")
+                                .HasColumnType("text");
+
+                            b1.HasKey("LaboOrderToothId");
+
+                            b1.ToTable("bd_labo_order_teeth");
+
+                            b1.ToJson("ShadeZones");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboOrderToothId");
+                        });
+
+                    b.OwnsMany("BlueDental.Labo.LaboToothRestoration", "Restorations", b1 =>
+                        {
+                            b1.Property<Guid>("LaboOrderToothId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<Guid>("MaterialId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<bool>("OnImplant")
+                                .HasColumnType("boolean");
+
+                            b1.HasKey("LaboOrderToothId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_labo_order_teeth");
+
+                            b1.ToJson("Restorations");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboOrderToothId");
+                        });
+
                     b.OwnsMany("BlueDental.Labo.LaboToothSurface", "Surfaces", b1 =>
                         {
                             b1.Property<Guid>("LaboOrderToothId")
@@ -12023,6 +12106,10 @@ namespace BlueDental.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("LaboOrderToothId");
                         });
+
+                    b.Navigation("Restorations");
+
+                    b.Navigation("ShadeZones");
 
                     b.Navigation("Surfaces");
                 });

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Col, Form, Input, Row, Select } from "antd";
+import { Checkbox, Col, Form, Input, Row, Select } from "antd";
 import { toast } from "sonner";
 import { useLaboMaterialCommands, type LaboMaterialDto } from "../api/laboCatalogApi";
 import type { LaboCatalogItem } from "../api/laboCatalogListApi";
@@ -20,11 +20,13 @@ interface Props {
 interface FormValues {
   name: string;
   taxonomyId: string;
+  allowOnImplant: boolean;
 }
 
 /**
  * Tạo / Sửa vật liệu — a name and the group it is filed under, which is what
- * the reference's own dialog asks for, and both are required.
+ * the reference's own dialog asks for, and both are required; "Có lựa chọn
+ * Trên implant" (F-91) gives the material a second tick on the Phiếu yêu cầu.
  */
 export function LaboMaterialDialog({
   open,
@@ -49,13 +51,14 @@ export function LaboMaterialDialog({
     form.setFieldsValue({
       name: material?.name ?? "",
       taxonomyId: material?.taxonomyId ?? fallback,
+      allowOnImplant: material?.allowOnImplant ?? false,
     });
   }, [open, material, form]);
 
   const pending = create.isPending || update.isPending;
 
   const submit = async (values: FormValues) => {
-    const input = { name: values.name.trim(), taxonomyId: values.taxonomyId };
+    const input = { name: values.name.trim(), taxonomyId: values.taxonomyId, allowOnImplant: values.allowOnImplant };
 
     try {
       if (material) {
@@ -85,7 +88,7 @@ export function LaboMaterialDialog({
         form={form}
         layout="vertical"
         requiredMark={false}
-        initialValues={{ name: "", taxonomyId: "" }}
+        initialValues={{ name: "", taxonomyId: "", allowOnImplant: false }}
         onFinish={(values) => void submit(values)}
       >
         <Row gutter={[16, 12]}>
@@ -112,6 +115,11 @@ export function LaboMaterialDialog({
                 options={groups.map((group) => ({ value: group.id, label: group.name }))}
               />
             </FloatingField>
+          </Col>
+          <Col xs={24}>
+            <Form.Item name="allowOnImplant" valuePropName="checked" noStyle>
+              <Checkbox>{t("Labo:Material:AllowOnImplant")}</Checkbox>
+            </Form.Item>
           </Col>
         </Row>
       </Form>

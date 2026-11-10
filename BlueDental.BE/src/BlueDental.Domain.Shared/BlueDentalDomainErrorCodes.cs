@@ -616,6 +616,16 @@ public static class BlueDentalDomainErrorCodes
         public const string FaultSurfaceMissing = "BlueDental:Labo:0040";
         /// <summary>A Mặt bị lỗi the tooth was not ordered on (R-1151); data "tooth", "surface".</summary>
         public const string FaultSurfaceInvalid = "BlueDental:Labo:0041";
+
+        // Phiếu yêu cầu (F-91).
+        /// <summary>Tạo phiếu Labo on the Phiếu yêu cầu without a Mã số.</summary>
+        public const string LabSlipNoRequired = "BlueDental:Labo:0042";
+        /// <summary>The Mã số is on another order of the branch that is not cancelled (case-sensitive); data "code".</summary>
+        public const string LabSlipNoTaken = "BlueDental:Labo:0043";
+        /// <summary>Tạo phiếu Labo with no Loại phục hình ticked; data "tooth".</summary>
+        public const string RestorationMissing = "BlueDental:Labo:0044";
+        /// <summary>A Loại phục hình that is not an active material of the branch, or "Trên implant" where the material has none.</summary>
+        public const string RestorationInvalid = "BlueDental:Labo:0045";
     }
 
     public static class Promotions

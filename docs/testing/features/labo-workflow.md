@@ -387,6 +387,79 @@ Tests (round 2): `e2e/stage-backfill-log-api.spec.ts` (6, real HTTP),
     width.
 - Tests: `e2e/labo-workflow.spec.ts` (Bảo hành + Dùng chung), `plan-warranty-tab`.
 
+## F-91 — Phiếu yêu cầu Labo (BA mock "bản 2 nhập mã số, không kế hoạch nhà cung cấp", R-1198)
+
+Step 1 Đặt hàng of a **new** order is now the Labo's own Phiếu yêu cầu
+(`request-slip/LaboRequestSlipStep`). Orders made before keep the old form
+(`layout` 1 = Classic, 2 = RequestSlip).
+
+- Thông tin phiếu:
+  - Mã số is typed by hand and required to send, not to save a draft.
+  - It is unique per branch, case-sensitive, and cancelled orders do not count:
+    `Labo:0042` (missing) and `Labo:0043` (taken).
+  - Loại phiếu is Ca mới or Sửa / làm lại. It is a stored flag only.
+  - Phòng khám, Bệnh nhân and Tuổi · Giới tính are read-only.
+  - Bác sĩ chỉ định.
+  - Ngày gửi defaults to today. Ngày nhận dự kiến must come after it.
+- Loại phục hình comes from Danh mục vật liệu (`labo_material` groups):
+  - A group that has a material ticked "Có lựa chọn Trên implant" shows as a
+    2-column table (Thường / Trên implant).
+  - Other groups show as a list.
+  - `Labo:0044` means none is picked; `Labo:0045` means the pick is not in the
+    catalog, or Trên implant was picked on a material that does not allow it.
+- Màu răng has 6 zones (Cổ / Thân / Rìa cắn × Gần / Xa).
+- Chỉ định is the system's "Răng *" row (`LaboToothRow`):
+  - The purple tooth button opens the shared Chọn răng dialog (Răng vĩnh viễn
+    / Răng sữa).
+  - The picked teeth follow as chips, with Số lượng.
+  - It sits in column 3, above Đường hoàn tất (owner, 2026-11-10).
+  - The prior-tooth warning covers every order of the patient that is Nháp,
+    Đã gửi, Chờ kiểm tra or Labo trả lại.
+- Đường hoàn tất comes from the `labo_finish_line` taxonomy. Several can be
+  picked, and each one's tooltip is its description.
+- Yêu cầu and Ảnh chung.
+- Everything is entered once and stored on **every** tooth
+  (`bd_labo_order_teeth`: restorations jsonb, shade zones, finish line ids).
+- No supplier, no plan, no line and no công đoạn link.
+- "Tạo phiếu Labo" waits for the footer to show "Phiếu đã đủ thông tin.", sends
+  the order, then goes to the patient's Labo tab (`/patient/:id?tab=labo`).
+  It went to `/labo` until the owner changed it on 2026-11-10.
+- A sent order shows the same sheet locked, with Hủy phiếu and In Phiếu Labo.
+- An old draft reopens with its saved values filled in.
+- Print: "PHIẾU YÊU CẦU LABO" (`LaboRequestSlipSheet`) uses the app font, with
+  the Màu răng grid and the tooth chart with the picked teeth boxed. Old orders
+  keep "PHIẾU ĐẶT HÀNG LABO".
+- In Phiếu Labo puts `@page { size: A4; margin: 0 }` on the page while it
+  prints (`useLaboPrint`, both sheets). Without it the page took the
+  printer's default paper: on a PDF printer's small default the letterhead ran
+  together, the type looked oversized and one order filled three sheets.
+- The sheet scrolls under a pinned footer (`.rs-slip-scroll`; its children
+  are `flex: none` or the clipped sections collapse to a line) and folds to
+  2 columns at 1280px, then 1 column at 640px, with no sideways scroll.
+- Lists:
+  - Mã số replaces Mã phiếu on `/labo`, on the patient Labo tab and on the
+    workflow card. Old orders show the order code.
+  - Loại phục hình replaces Vật liệu.
+  - The supplier column and its colour badge are gone from both lists.
+  - The supplier master data (`/labo/supplier`) stays.
+- Accepted for now (owner, 2026-11-10):
+  - No công đoạn lock.
+  - No service-completion block.
+  - No Phiếu Labo cell on the slip.
+  - No warranty activation until the Bảo hành step is reworked.
+  - The Kiểm tra step reads the old fields ("làm sau").
+- Tests:
+  - `e2e/labo-request-slip-api.spec.ts` (8).
+  - `e2e/labo-request-slip-ui.spec.ts` (4):
+    - Create from the patient tab: scroll by wheel, Chọn răng with Răng sữa,
+      widths 1100 / 800 / 390.
+    - Land back on the patient's Labo tab.
+    - Read each tooth back; Xem and the print sheet print as one A4 page when
+      the paper defaults to 105×148mm.
+    - A duplicate Mã số is refused.
+    - A draft refills; a sent sheet is locked.
+    - The Trên implant checkbox in the material dialog.
+
 ## Not built / open
 
 - Tiếp nhận bảo hành (Lần BH, phiếu BH1) — later round.

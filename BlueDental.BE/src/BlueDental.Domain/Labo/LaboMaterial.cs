@@ -26,6 +26,12 @@ public class LaboMaterial : FullAuditedAggregateRoot<Guid>
 
     public bool IsActive { get; private set; }
 
+    /// <summary>
+    /// "Có lựa chọn Trên implant" (F-91): the Phiếu yêu cầu offers this
+    /// material plain and "Trên implant", and shows its group as a two-column table.
+    /// </summary>
+    public bool AllowOnImplant { get; private set; }
+
     protected LaboMaterial() { }
 
     public static LaboMaterial Create(
@@ -69,6 +75,12 @@ public class LaboMaterial : FullAuditedAggregateRoot<Guid>
 
         TaxonomyId = taxonomyId;
         Name = name;
+        return this;
+    }
+
+    public LaboMaterial SetAllowOnImplant(bool allow)
+    {
+        AllowOnImplant = allow;
         return this;
     }
 

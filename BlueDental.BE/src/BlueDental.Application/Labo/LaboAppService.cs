@@ -211,9 +211,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                 .ToDictionary(s => s.Id);
         }
 
+        // The order's material, and every Loại phục hình ticked on a Phiếu yêu cầu tooth.
         var materialIds = entities
             .Where(o => o.MaterialId.HasValue)
             .Select(o => o.MaterialId!.Value)
+            .Concat(entities.SelectMany(o => o.Teeth.SelectMany(t => t.Restorations.Select(r => r.MaterialId))))
             .Distinct()
             .ToList();
         var materials = new Dictionary<Guid, LaboMaterial>();
@@ -233,6 +235,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     .Concat(t.Surfaces.Select(s => s.FinishLineId)))))
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
+            .Concat(entities.SelectMany(o => o.Teeth.SelectMany(t => t.FinishLineIds)))
             .Concat(materials.Values.Select(m => m.TaxonomyId))
             .Distinct()
             .ToList();
@@ -301,6 +304,16 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     surface.FinishLineName = surface.FinishLineId.HasValue
                         ? taxonomies.GetValueOrDefault(surface.FinishLineId.Value)
                         : null;
+                tooth.FinishLineNames = tooth.FinishLineIds
+                    .Select(id => taxonomies.GetValueOrDefault(id))
+                    .OfType<string>()
+                    .ToList();
+                foreach (var restoration in tooth.Restorations)
+                {
+                    var picked = materials.GetValueOrDefault(restoration.MaterialId);
+                    restoration.MaterialName = picked?.Name;
+                    restoration.GroupName = picked is null ? null : taxonomies.GetValueOrDefault(picked.TaxonomyId);
+                }
             }
 
             if (entity.TreatmentServiceId.HasValue &&
@@ -417,7 +430,9 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         if (input.Status.HasValue)
             query = query.Where(o => o.Status == input.Status.Value);
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(o => o.OrderCode.ToLower().Contains(term) || DbText.Unaccent(o.LabProviderName.ToLower()).Contains(DbText.Unaccent(term)));
+            query = query.Where(o => o.OrderCode.ToLower().Contains(term)
+                || (o.LabSlipNo != null && o.LabSlipNo.ToLower().Contains(term))
+                || DbText.Unaccent(o.LabProviderName.ToLower()).Contains(DbText.Unaccent(term)));
 
         // The window is named in whole days, so the upper bound covers all of
         // the day it names rather than stopping at its midnight.
@@ -582,9 +597,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         await EnsureServiceLineOpenAsync(input.PatientId, input.TreatmentServiceId);
         await EnsureStageNotDateLockedAsync(input.TreatmentStageId);
 
+        await EnsureLabSlipNoFreeAsync(input, branchId, exceptOrderId: null);
+
         var code = await ResolveOrderCodeAsync(input.OrderCode);
         var order = new LaboOrder(
-            GuidGenerator.Create(), code, input.PatientId, branchId, await ToDetailsAsync(input));
+            GuidGenerator.Create(), code, input.PatientId, branchId, await ToDetailsAsync(input, branchId));
         var pictures = OrderPicturesOf(input, order);
         EnsurePictureSets(pictures.Select(p => p.ToothNumber));
         if (input.Submit)
@@ -602,7 +619,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     {
         var order = await GetInBranchAsync(id);
         await EnsureServiceLineOpenAsync(order.PatientId, input.TreatmentServiceId);
-        order.UpdateDraft(await ToDetailsAsync(input));
+        await EnsureLabSlipNoFreeAsync(input, order.BranchId, exceptOrderId: order.Id);
+        order.UpdateDraft(await ToDetailsAsync(input, order.BranchId));
 
         // Only the pictures sent to the lab are on the Đặt hàng tab; a
         // round's Ảnh kiểm tra are never touched from here. A tooth taken off
@@ -678,8 +696,13 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     /// from the supplier picked, so the list, print and Excel keep showing it
     /// even if the supplier is later renamed or removed.
     /// </summary>
-    private async Task<LaboOrderDetails> ToDetailsAsync(SaveLaboOrderDto input)
+    private async Task<LaboOrderDetails> ToDetailsAsync(SaveLaboOrderDto input, Guid branchId)
     {
+        if (input.Layout == LaboOrderLayout.RequestSlip)
+        {
+            return await ToRequestSlipDetailsAsync(input, branchId);
+        }
+
         var supplier = input.SupplierId.HasValue
             ? await _supplierRepository.FindAsync(input.SupplierId.Value)
             : null;
@@ -710,6 +733,94 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             TreatmentServiceId = input.TreatmentServiceId,
             TreatmentStageId = input.TreatmentStageId,
         };
+    }
+
+    /// <summary>
+    /// The Phiếu yêu cầu (F-91): no supplier, Khớp cắn, Kiểu nhịp or per-tooth
+    /// spec. Each Loại phục hình must be an active material of this branch,
+    /// and "Trên implant" only where the material offers it. Đường hoàn tất
+    /// keeps only this branch's rows, so another clinic's id never lands on a
+    /// tooth.
+    /// </summary>
+    private async Task<LaboOrderDetails> ToRequestSlipDetailsAsync(SaveLaboOrderDto input, Guid branchId)
+    {
+        var restorations = (input.Restorations ?? [])
+            .Select(r => new LaboToothRestoration(r.MaterialId, r.OnImplant))
+            .ToList();
+        var materialIds = restorations.Select(r => r.MaterialId).Distinct().ToList();
+        var materials = materialIds.Count == 0
+            ? []
+            : (await _materialRepository.GetListAsync(m =>
+                    materialIds.Contains(m.Id) && m.ClinicBranchId == branchId && m.IsActive))
+                .ToDictionary(m => m.Id);
+        if (restorations.Any(r =>
+                !materials.TryGetValue(r.MaterialId, out var material) || (r.OnImplant && !material.AllowOnImplant)))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
+        }
+
+        var requestedFinishLines = (input.FinishLineIds ?? []).Distinct().ToList();
+        var knownFinishLines = requestedFinishLines.Count == 0
+            ? []
+            : (await _taxonomyRepository.GetListAsync(t =>
+                    requestedFinishLines.Contains(t.Id)
+                    && t.ClinicBranchId == branchId
+                    && t.Group == TaxonomyGroups.LaboFinishLine))
+                .Select(t => t.Id)
+                .ToHashSet();
+
+        var zones = input.ShadeZones;
+        return new LaboOrderDetails
+        {
+            Layout = LaboOrderLayout.RequestSlip,
+            LabSlipNo = input.LabSlipNo,
+            CaseType = input.CaseType,
+            DentistId = input.DentistId,
+            Teeth = input.Teeth,
+            ShadeZones = zones is null
+                ? null
+                : new LaboShadeZones(
+                    zones.CervicalMesial, zones.CervicalDistal,
+                    zones.BodyMesial, zones.BodyDistal,
+                    zones.IncisalMesial, zones.IncisalDistal),
+            FinishLineIds = requestedFinishLines.Where(knownFinishLines.Contains).ToList(),
+            Restorations = restorations,
+            SpecMode = LaboSpecMode.SharedAll,
+            Quantity = input.Quantity,
+            WorkDescription = input.WorkDescription,
+            Notes = input.Notes,
+            SentAt = input.SentAt,
+            DueAt = input.DueAt,
+            EstimatedCost = input.EstimatedCost,
+            // New orders carry no link (owner, F-91); an old draft refilled on
+            // the new form sends its own back and keeps it.
+            TreatmentServiceId = input.TreatmentServiceId,
+            TreatmentStageId = input.TreatmentStageId,
+        };
+    }
+
+    /// <summary>
+    /// Mã số is unique within the branch among orders that are not cancelled,
+    /// matched exactly as typed (case-sensitive). A blank one is allowed on a
+    /// draft; sending is refused by the aggregate.
+    /// </summary>
+    private async Task EnsureLabSlipNoFreeAsync(SaveLaboOrderDto input, Guid branchId, Guid? exceptOrderId)
+    {
+        if (input.Layout != LaboOrderLayout.RequestSlip || string.IsNullOrWhiteSpace(input.LabSlipNo))
+        {
+            return;
+        }
+
+        var code = input.LabSlipNo.Trim();
+        var taken = await _repository.AnyAsync(o =>
+            o.BranchId == branchId
+            && o.LabSlipNo == code
+            && o.Status != LaboStatus.Cancelled
+            && (exceptOrderId == null || o.Id != exceptOrderId));
+        if (taken)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.LabSlipNoTaken).WithData("code", code);
+        }
     }
 
     /// <summary>
@@ -984,16 +1095,35 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             L["BE:LaboField:LaboModels"],
             new List<ExcelColumn<LaboOrderDto>>
             {
-                new(L["BE:Field:RecordNo"], row => row.OrderCode, 18),
+                // F-91: Mã số stands for Số phiếu; an order written before it has only its code.
+                new(L["BE:LaboField:LabSlipNo"], row => row.LabSlipNo ?? row.OrderCode, 18),
                 new(L["BE:Perm:Customers"], row => row.PatientName, 26),
-                new(L["BE:Common:Supplier"], row => row.LabProviderName, 24),
                 new(L["BE:Field:Tooth"], row => row.ToothNumbers, 12),
+                new(L["BE:LaboField:Restoration"], RestorationLabel, 30),
                 new(L["BE:LaboField:DueBack"], row => row.DueAt?.ToOffset(ClinicUtcOffset).DateTime, 14),
                 new(L["BE:Col:Expenses"], row => row.EstimatedCost, 16),
                 new(L["BE:Field:Status"], row => StatusLabel(row), 16),
                 new(L["BE:Status:LateArrival"], row => row.IsOverdue ? L["BE:Common:Yes"].Value : L["BE:Common:No"].Value, 12)
             },
             page.Items);
+    }
+
+    /// <summary>
+    /// Loại phục hình of a Phiếu yêu cầu — every tooth's, once each, "(Trên implant)"
+    /// where ticked so; a classic order names its one material.
+    /// </summary>
+    private string? RestorationLabel(LaboOrderDto row)
+    {
+        if (row.Layout != LaboOrderLayout.RequestSlip)
+            return row.MaterialName;
+        var onImplant = L["BE:LaboField:OnImplant"].Value;
+        var names = row.Teeth
+            .SelectMany(t => t.Restorations)
+            .Select(r => r.OnImplant ? $"{r.MaterialName} ({onImplant})" : r.MaterialName)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .ToList();
+        return names.Count == 0 ? null : string.Join(", ", names);
     }
 
     /// <summary>Hết hạn bảo hành is read, not stored, so it is named here rather than by the enum.</summary>

@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { t } from "@/lib/i18n";
-import type { LaboOrderDto } from "@/features/labo/api/laboApi";
+import { laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { useDeleteLaboOrder } from "@/features/labo/api/laboMutations";
 
 interface Props {
@@ -28,7 +28,7 @@ export function LaboDeleteOrderDialog({ order, onClose }: Props) {
   return (
     <ConfirmDialog
       open={order !== null}
-      message={t("Labo:Workflow:DeleteConfirm", order?.orderCode ?? "")}
+      message={t("Labo:Workflow:DeleteConfirm", order ? laboOrderNo(order) : "")}
       pending={remove.isPending}
       onConfirm={() => void handleConfirm()}
       onClose={onClose}

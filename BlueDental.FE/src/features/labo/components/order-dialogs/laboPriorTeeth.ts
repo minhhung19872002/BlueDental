@@ -9,13 +9,23 @@ export interface LaboPriorGroup {
   teeth: string[];
 }
 
-const isLive = (order: LaboOrderDto) =>
-  order.status !== LABO_STATUS.Cancelled && order.kind !== LABO_ORDER_KIND.Canceled;
+/**
+ * An order still on its way (F-91, BA 2026-11-10): Nháp, Đã gửi, Chờ kiểm tra
+ * or Labo trả lại. A finished, warranty or cancelled order never warns.
+ */
+const LIVE_STATUSES: ReadonlySet<number> = new Set([
+  LABO_STATUS.Draft,
+  LABO_STATUS.Sent,
+  LABO_STATUS.AwaitingCheck,
+  LABO_STATUS.Returned,
+]);
+
+const isLive = (order: LaboOrderDto) => LIVE_STATUSES.has(order.status) && order.kind !== LABO_ORDER_KIND.Canceled;
 
 /**
- * The teeth of a phiếu điều trị's other orders that still stand — not the one
- * on screen, not a cancelled one (P0111_02, R-1106). The orders come newest
- * first, so a tooth sent twice names its latest order.
+ * The teeth of the patient's other orders still on their way — not the one on
+ * screen (P0111_02 R-1106, widened to every order of the patient by F-91). The
+ * orders come newest first, so a tooth sent twice names its latest order.
  */
 export function priorLaboTeeth(orders: LaboOrderDto[], currentOrderId: string | undefined): LaboPriorTeeth {
   const priors = new Map<string, LaboOrderDto>();

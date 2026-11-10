@@ -45,6 +45,17 @@ public class LaboOrderTooth : Entity<Guid>
     /// <summary>Mặt răng (R-1150), in <see cref="ToothSurfaces"/> order; none on an order made before it.</summary>
     public IReadOnlyList<LaboToothSurface> Surfaces => _surfaces.AsReadOnly();
 
+    /// <summary>Màu răng of the Phiếu yêu cầu (F-91): six zones; null on an order written on the classic form.</summary>
+    public LaboShadeZones? ShadeZones { get; private set; }
+
+    /// <summary>Đường hoàn tất of the Phiếu yêu cầu (F-91): any number of Labo taxonomy rows.</summary>
+    public List<Guid> FinishLineIds { get; private set; } = [];
+
+    private readonly List<LaboToothRestoration> _restorations = [];
+
+    /// <summary>Loại phục hình of the Phiếu yêu cầu (F-91), in the order they were ticked.</summary>
+    public IReadOnlyList<LaboToothRestoration> Restorations => _restorations.AsReadOnly();
+
     /// <summary>What the clinic has accepted so far; None while a check is due.</summary>
     public LaboToothCheckResult CheckResult { get; private set; }
 
@@ -91,6 +102,42 @@ public class LaboOrderTooth : Entity<Guid>
         FinishLineId = finishLineId;
         RhythmId = rhythmId;
         BiteId = biteId;
+    }
+
+    /// <summary>A Phiếu yêu cầu tooth has its shade once any of the six zones is filled.</summary>
+    public bool HasShadeZones => ShadeZones is { IsEmpty: false };
+
+    /// <summary>
+    /// The Phiếu yêu cầu's spec (F-91), entered once for the order and kept on
+    /// every tooth so a tooth can later be given its own. The classic spec
+    /// columns are cleared — the form has no Kiểu nhịp, Khớp cắn or Mặt răng —
+    /// except Màu and Đường hoàn tất, which mirror the new values for the
+    /// readers that predate them.
+    /// </summary>
+    internal void SetRequestSpec(
+        LaboShadeZones? zones,
+        IReadOnlyCollection<Guid> finishLineIds,
+        IReadOnlyCollection<LaboToothRestoration> restorations)
+    {
+        // Each tooth gets its own copies: EF tracks an owned value per owner,
+        // so one instance cannot sit on several rows.
+        ShadeZones = zones is { IsEmpty: false }
+            ? new LaboShadeZones(
+                zones.CervicalMesial, zones.CervicalDistal,
+                zones.BodyMesial, zones.BodyDistal,
+                zones.IncisalMesial, zones.IncisalDistal)
+            : null;
+        Shade = ShadeZones?.Summary;
+        FinishLineIds = finishLineIds.Distinct().ToList();
+        FinishLineId = FinishLineIds.Count == 0 ? null : FinishLineIds[0];
+        RhythmId = null;
+        BiteId = null;
+        ShadeBySurface = false;
+        _surfaces.Clear();
+        _restorations.Clear();
+        _restorations.AddRange(restorations
+            .DistinctBy(r => (r.MaterialId, r.OnImplant))
+            .Select(r => new LaboToothRestoration(r.MaterialId, r.OnImplant)));
     }
 
     /// <summary>

@@ -17,14 +17,14 @@ import { addPlanLine, findLaboPatient, seedLaboOrder } from "./fixtures/laboSeed
  */
 
 const HEADERS = [
-  "Mã phiếu labo",
-  "Nhà cung cấp / Ngày tạo",
+  "Mã số",
+  "Ngày tạo",
   "Tên khách hàng",
   "Phiếu điều trị",
   "Gửi → Hẹn giao",
   "Trạng thái",
   "Bác sĩ chỉ định",
-  "Vật liệu",
+  "Loại phục hình",
   "Răng",
   "File phòng khám gửi về",
   "Thao tác",

@@ -1,0 +1,551 @@
+/*
+ * Phiếu yêu cầu Labo (F-91) — measured off the BA mock
+ * "Labo - Phiếu yêu cầu (bản 2 nhập mã số, không kế hoạch nhà cung cấp)".
+ * The mock's palette is the indigo of the Labo v2 screens; it is named once
+ * here so the rules below read like the mock.
+ */
+.rs-slip {
+  --rs-line: #e5e7eb;
+  --rs-field: #d1d5db;
+  --rs-head-bg: #eef0ff;
+  --rs-head-ink: #3730a3;
+  --rs-ink: #111827;
+  --rs-label: #374151;
+  --rs-sub: #4b5563;
+  --rs-muted: #6b7280;
+  --rs-ro-bg: #f3f4f6;
+  --rs-hover: #f5f6fb;
+  --rs-accent: #4f46e5;
+  --rs-accent-strong: #4338ca;
+  --rs-accent-soft: #a5b4fc;
+  --rs-focus: #6366f1;
+  --rs-danger: #dc2626;
+  --rs-danger-bg: #fff5f5;
+
+  /* The workflow dialog's body is a fixed-height, unpadded flex column with
+     overflow hidden: the sheet fills it, scrolls above the footer, and the
+     footer stays pinned. */
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  background: #f8f9fc;
+  color: var(--rs-ink);
+}
+
+.rs-slip-scroll {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 24px;
+}
+
+/* A clipped section's min-height is 0, so the column would squeeze it to a line. */
+.rs-slip-scroll > * {
+  flex: none;
+}
+
+/* ── Sections ─────────────────────────────────────────────── */
+.rs-sec {
+  border: 1px solid var(--rs-line);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.rs-sech {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--rs-head-bg);
+  color: var(--rs-head-ink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rs-secb {
+  padding: 16px;
+}
+
+.rs-req {
+  color: var(--rs-danger);
+}
+
+.rs-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.rs-badge--miss {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.rs-badge--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.rs-badge--opt {
+  background: #f3f4f6;
+  color: var(--rs-sub);
+  font-weight: 600;
+}
+
+/* ── Thông tin phiếu ──────────────────────────────────────── */
+.rs-info {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.rs-span2 {
+  grid-column: span 2;
+}
+
+.rs-lbl {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--rs-label);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.rs-slip .rs-inp,
+.rs-slip .rs-inp.ant-picker,
+.rs-slip .rs-inp.ant-select .ant-select-selector {
+  width: 100%;
+  height: 38px;
+  border-color: var(--rs-field);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--rs-ink);
+}
+
+.rs-slip .rs-inp.ant-select {
+  height: 38px;
+}
+
+.rs-slip .rs-inp.ant-select .ant-select-selector {
+  align-items: center;
+}
+
+.rs-slip .rs-inp.rs-err,
+.rs-slip .rs-inp.rs-err.ant-picker,
+.rs-slip .rs-inp.rs-err.ant-select .ant-select-selector {
+  border-color: var(--rs-danger);
+  background: var(--rs-danger-bg);
+}
+
+.rs-ro {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--rs-field);
+  border-radius: 10px;
+  background: var(--rs-ro-bg);
+  color: var(--rs-sub);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rs-radios {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 38px;
+}
+
+.rs-radios .ant-radio-wrapper {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.rs-ferr {
+  margin-top: 4px;
+  color: var(--rs-danger);
+  font-size: 11px;
+}
+
+/* ── Loại phục hình ───────────────────────────────────────── */
+.rs-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rs-heading-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--rs-ink);
+  white-space: nowrap;
+}
+
+.rs-heading-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--rs-line);
+}
+
+.rs-heading-picked {
+  max-width: 55%;
+  color: var(--rs-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.rs-heading-picked b {
+  color: var(--rs-ink);
+}
+
+.rs-main {
+  display: grid;
+  grid-template-columns: 340px 360px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.rs-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.rs-thead,
+.rs-trow {
+  display: grid;
+  grid-template-columns: 1fr 80px 80px;
+  align-items: center;
+}
+
+.rs-thead {
+  margin-bottom: 6px;
+  background: var(--rs-head-bg);
+  color: var(--rs-head-ink);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rs-thead > span {
+  padding: 7px 10px;
+}
+
+.rs-thead > .rs-c {
+  padding: 7px 0;
+  text-align: center;
+}
+
+.rs-trow {
+  min-height: 30px;
+  margin: 0 8px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.rs-trow > span {
+  padding: 0 2px;
+}
+
+.rs-trow > .rs-c {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+}
+
+.rs-trow:last-child,
+.rs-krow:last-child {
+  margin-bottom: 8px;
+}
+
+.rs-trow:hover,
+.rs-krow:hover {
+  background: var(--rs-hover);
+}
+
+.rs-trow.rs-on,
+.rs-krow.rs-on {
+  background: var(--rs-head-bg);
+}
+
+.rs-krow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  margin: 0 8px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.rs-sech + .rs-krow {
+  margin-top: 6px;
+}
+
+.rs-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.rs-fingrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 20px;
+  padding: 10px 12px;
+}
+
+.rs-fingrid .rs-krow {
+  margin: 0;
+}
+
+.rs-fingrid .rs-krow:last-child {
+  margin-bottom: 0;
+}
+
+.rs-slip .ant-checkbox-inner {
+  width: 17px;
+  height: 17px;
+}
+
+.rs-slip .ant-checkbox-checked .ant-checkbox-inner {
+  border-color: var(--rs-accent);
+  background: var(--rs-accent);
+}
+
+.rs-empty {
+  margin: 10px 12px;
+  color: var(--rs-muted);
+  font-size: 12px;
+}
+
+/* ── Chỉ định: the system's "Răng *" row; the chart opens in Chọn răng
+   (BA 2026-11-10) ─────────────────────────────────────────── */
+.rs-teeth {
+  padding: 14px 16px;
+}
+
+.rs-prior {
+  padding: 0 16px 16px;
+}
+
+/* ── Màu răng ─────────────────────────────────────────────── */
+.rs-shade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 16px;
+}
+
+.rs-shade-row {
+  display: flex;
+  gap: 14px;
+}
+
+.rs-shade-rows {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  align-items: center;
+  height: 260px;
+  color: var(--rs-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.rs-toothmap {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 220px;
+  height: 260px;
+  overflow: hidden;
+  border: 2px solid var(--rs-accent);
+  border-radius: 48% 48% 34% 34% / 38% 38% 24% 24%;
+  background: #fff;
+}
+
+.rs-zone {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-right: 1px dashed var(--rs-accent-soft);
+  border-bottom: 1px dashed var(--rs-accent-soft);
+  background: transparent;
+  color: var(--rs-ink);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.rs-zone:nth-child(even) {
+  border-right: 0;
+}
+
+.rs-zone:nth-child(n + 5) {
+  border-bottom: 0;
+}
+
+.rs-zone::placeholder {
+  color: #c7cbd4;
+  font-weight: 500;
+}
+
+.rs-zone:hover:not(:disabled) {
+  background: #f5f6ff;
+}
+
+.rs-zone:focus {
+  background: var(--rs-head-bg);
+  box-shadow: inset 0 0 0 2px var(--rs-focus);
+}
+
+.rs-shade-cols {
+  display: grid;
+  grid-template-columns: repeat(2, 110px);
+  margin: 6px 0 0 calc(14px + 3.5em);
+  color: var(--rs-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ── Yêu cầu ──────────────────────────────────────────────── */
+.rs-note {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  padding: 6px 16px 8px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: repeating-linear-gradient(180deg, transparent 0 31px, var(--rs-line) 31px 32px);
+  color: var(--rs-ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 32px;
+}
+
+.rs-note:focus {
+  outline: 2px solid var(--rs-accent-soft);
+  outline-offset: -2px;
+}
+
+.rs-pictures {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--rs-line);
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.rs-footer {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 16px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--rs-line);
+  background: #fff;
+}
+
+.rs-footer-sum {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--rs-label);
+  font-size: 13px;
+}
+
+.rs-footer-err {
+  color: var(--rs-danger);
+}
+
+.rs-footer-ok {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.rs-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rs-footer-actions .ant-btn {
+  min-height: 42px;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 1280px) {
+  .rs-main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rs-main > .rs-col:last-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1100px) {
+  .rs-info {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rs-info > * {
+    grid-column: span 1;
+  }
+
+  .rs-info > .rs-span2 {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .rs-slip-scroll {
+    padding: 14px 12px;
+  }
+
+  .rs-main,
+  .rs-info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rs-info > *,
+  .rs-info > .rs-span2 {
+    grid-column: 1 / -1;
+  }
+
+  .rs-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

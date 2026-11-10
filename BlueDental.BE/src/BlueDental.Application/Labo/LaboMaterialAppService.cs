@@ -88,6 +88,7 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
             clinicBranchId,
             input.TaxonomyId,
             input.Name.Trim());
+        entity.SetAllowOnImplant(input.AllowOnImplant);
 
         await _repository.InsertAsync(entity, autoSave: true);
         return (await MapAsync([entity]))[0];
@@ -100,7 +101,7 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
         await _branchAccess.CheckAsync(entity.ClinicBranchId);
         await GuardGroupAsync(input.TaxonomyId, entity.ClinicBranchId);
 
-        entity.SetDetails(input.TaxonomyId, input.Name.Trim());
+        entity.SetDetails(input.TaxonomyId, input.Name.Trim()).SetAllowOnImplant(input.AllowOnImplant);
 
         await _repository.UpdateAsync(entity, autoSave: true);
         return (await MapAsync([entity]))[0];

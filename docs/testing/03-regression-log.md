@@ -14683,3 +14683,33 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chạy tay: BD269013, bác sĩ bs.ha đặt Chức danh `BS.CKI. LÊ THU HÀ` (dữ liệu local) → mẫu 3 hiện "Trịnh Thị Ngọc" | "BS.CKI. LÊ THU HÀ".
   - tsc + eslint sạch.
 - **Mức retest**: 2 (F-30 Bệnh án, mẫu 3).
+
+## R-1198 (2026-11-10, mức 3: Labo — Phiếu yêu cầu thay bước Đặt hàng, F-91)
+
+- **Yêu cầu** (BA, mock "Labo - Phiếu yêu cầu (bản 2 nhập mã số, không kế hoạch nhà cung cấp)", chủ dự án chốt 2026-11-10): bước 1 Đặt hàng của phiếu Labo mới là Phiếu yêu cầu của Labo. Mã số nhập tay, kiểm trùng phân biệt hoa thường theo chi nhánh (bỏ phiếu đã huỷ). Không còn nhà cung cấp, kế hoạch, dòng dịch vụ hay công đoạn. Loại phục hình lấy từ Danh mục vật liệu, có thêm ô "Có lựa chọn Trên implant". Đường hoàn tất lấy từ taxonomy `labo_finish_line`, chọn được nhiều. Nhập một lần nhưng lưu trên từng răng. Giữ Ảnh chung và cảnh báo răng đã có phiếu (Nháp / Đã gửi / Chờ kiểm tra / Labo trả lại). Bỏ Khớp cắn và Kiểu nhịp. "Sửa / làm lại" chỉ lưu cờ. Gửi xong thì về tab Labo của hồ sơ bệnh nhân (`/patient/:id?tab=labo`; ban đầu là `/labo`, chủ dự án đổi 2026-11-10). Phiếu đã gửi hiện cùng tờ nhưng khoá, có Hủy phiếu và In phiếu. Có mẫu in mới; phiếu cũ in mẫu cũ.
+- **Sửa**:
+  - BE:
+    - `LaboOrder.Layout` (Classic 1 / RequestSlip 2), `LabSlipNo`, `CaseType`.
+    - `LaboOrderTooth`: `Restorations` (jsonb), `ShadeZones` (6 ô) và `FinishLineIds`.
+    - `LaboMaterial.AllowOnImplant`.
+    - Lỗi `Labo:0042..0045`.
+    - Migration `LaboRequestSlipF91`.
+  - FE:
+    - `features/labo/components/request-slip/*` thay bước Đặt hàng khi `layout = 2`.
+    - Có thêm `LaboRequestSlipFacts`, `LaboRequestSlipSheet` (mẫu in "PHIẾU YÊU CẦU LABO") và `laboRequestSlipText`.
+    - Cột Mã phiếu trên `/labo` và tab Labo của hồ sơ nay hiện Mã số (phiếu cũ vẫn hiện mã phiếu). Cột Vật liệu thành Loại phục hình. Bỏ cột nhà cung cấp và nhãn màu ở cả hai danh sách; danh mục nhà cung cấp vẫn giữ.
+    - Chỉnh theo phản hồi 2026-11-10:
+      - Tờ cuộn bằng con lăn, footer ghim; con của `.rs-slip-scroll` đặt `flex: none` để các mục không bị ép thành một vạch.
+      - Ô Yêu cầu có viền khi focus.
+      - Chỉ định dùng hàng "Răng *" của hệ thống (`LaboToothRow`); nút răng mở dialog Chọn răng (có Răng sữa). Hàng này nằm ở cột 3, trên Đường hoàn tất.
+      - Responsive: 2 cột ở 1280px, 1 cột ở 640px, không cuộn ngang.
+      - In Phiếu Labo: `useLaboPrint` gắn `@page { size: A4; margin: 0 }` trong lúc in, cho cả mẫu cũ. Trước đó, máy in PDF có khổ mặc định nhỏ làm header chồng chữ, chữ to và một phiếu ra 3 tờ.
+- **Kiểm thử** (stack riêng: host :5152 + bản build production preview :8097, đăng nhập thật, không chặn request):
+  - `e2e/labo-request-slip-api.spec.ts` 8/8: lưu từng răng; Mã số trùng / phân biệt hoa thường / được nhả khi Hủy phiếu; nháp không cần Mã số; Gửi thiếu Mã số, Loại phục hình hay Màu răng bị chặn; Trên implant chỉ với vật liệu cho phép và cùng chi nhánh; tìm theo Mã số trên `/labo`. Quyền Labo dùng lại quyền cũ, chạy lại bằng `labo-orders-permissions`.
+  - `e2e/labo-request-slip-ui.spec.ts` 4/4: tạo từ tab Labo (cuộn bằng con lăn, Chọn răng có Răng sữa, các khổ 1100 / 800 / 390) → về lại tab Labo của hồ sơ → in ra đúng 1 trang A4 khi khổ mặc định là 105×148mm → đọc lại từng răng, Xem + tờ in; trùng Mã số; nháp mở lại đúng giá trị và phiếu đã gửi bị khoá; ô Trên implant ở dialog vật liệu.
+  - Spec Labo cũ: xem dòng F-91 ở registry.
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (`LaboOrder` / `LaboAppService`, mọi lối vào popup Labo).
+- **Mở** (chủ dự án chấp nhận tạm):
+  - Bước Kiểm tra và Bảo hành vẫn đọc trường cũ ("làm sau").
+  - Phiếu mới chưa khoá công đoạn, chưa chặn Hoàn thành dịch vụ, chưa có ô Phiếu Labo trên phiếu điều trị, chưa kích hoạt thẻ bảo hành.

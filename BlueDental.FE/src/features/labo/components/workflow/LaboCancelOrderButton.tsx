@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { t } from "@/lib/i18n";
 import { useAbility } from "@/hooks/useAbility";
-import { LABO_STATUS, type LaboOrderDto } from "@/features/labo/api/laboApi";
+import { LABO_STATUS, laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { useCancelLaboOrder } from "@/features/labo/api/laboMutations";
 
 /** Hủy phiếu reaches Đã hủy from these; once something came back for checking the order runs its course. */
@@ -46,7 +46,7 @@ export function LaboCancelOrderButton({ order, disabled, onDone }: Props) {
       </Button>
       <ConfirmDialog
         open={asking}
-        message={t("Labo:Workflow:CancelConfirm", order.orderCode)}
+        message={t("Labo:Workflow:CancelConfirm", laboOrderNo(order))}
         pending={cancel.isPending}
         onConfirm={() => void handleConfirm()}
         onClose={() => setAsking(false)}

@@ -1,8 +1,9 @@
 import { ExclamationCircleFilled, RightOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
-import type { LaboOrderDto } from "@/features/labo/api/laboApi";
+import { laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { laboStatusPill } from "@/features/labo/api/laboStatus";
+import { laboWorkOf } from "./laboRequestSlipText";
 import { toothLabel } from "./laboToothSpecs";
 import type { LaboPriorGroup } from "./laboPriorTeeth";
 
@@ -17,10 +18,11 @@ function stateOf(order: LaboOrderDto): string {
   return t(laboStatusPill(order).label);
 }
 
+
 /**
  * Under Răng on the Đặt hàng tab (P0111_02, R-1106): each earlier order of the
- * same phiếu điều trị that already carries a picked tooth — its code,
- * material, supplier and state, and «Xem phiếu ›» to look at it. Only a
+ * patient still on its way that already carries a picked tooth — its number,
+ * what it makes and its state (F-91 dropped the supplier), and «Xem phiếu ›» to look at it. Only a
  * warning: Tạo phiếu Labo still goes, a remake or warranty being the reason.
  */
 export function LaboPriorOrderWarning({ groups, onView }: Props) {
@@ -34,8 +36,8 @@ export function LaboPriorOrderWarning({ groups, onView }: Props) {
             <div className="pd-labo-prior-text">
               <b className="pd-labo-prior-title">{t("Labo:Prior:Title", teeth.map(toothLabel).join(", "))}</b>
               <p>
-                <span className="pd-labo-prior-code">{order.orderCode}</span>
-                {[order.materialName, order.supplierName ?? order.labProviderName, stateOf(order)]
+                <span className="pd-labo-prior-code">{laboOrderNo(order)}</span>
+                {[laboWorkOf(order), stateOf(order)]
                   .filter(Boolean)
                   .map((part) => ` · ${part}`)
                   .join("")}
