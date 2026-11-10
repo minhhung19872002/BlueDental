@@ -45,6 +45,13 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     public string? Note { get; private set; }
 
     /// <summary>
+    /// The half of the day signed up for on the Lịch làm việc board (BA P0911,
+    /// F-90) — Morning or Afternoon; FullDay for SC. Null for a day registered
+    /// before the board, or by the old toggles, which keeps its whole plan.
+    /// </summary>
+    public WorkScheduleShift? ScheduledShift { get; private set; }
+
+    /// <summary>
     /// Set when someone other than the staff member clocked them in or out
     /// (permission <c>workSchedule.attendanceOthers</c> in the reference).
     /// </summary>
@@ -87,6 +94,7 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
         Registration = WorkRegistration.Working;
         LeaveReason = null;
         ClearLeaveWindow();
+        ScheduledShift = null;
 
         if (Status == AttendanceStatus.OnLeave)
         {
@@ -110,6 +118,7 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
         LeaveReason = reason;
         Status = AttendanceStatus.OnLeave;
         ClearLeaveWindow();
+        ScheduledShift = null;
 
         if (force && HasAnyAttendance)
         {
@@ -155,8 +164,45 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
         LeaveShift = leave.Shift;
         LeaveStart = leave.Start;
         LeaveEnd = leave.End;
+        ScheduledShift = null;
         return this;
     }
+
+    /// <summary>
+    /// Đăng ký ca on the Lịch làm việc board (F-90): S, C or SC registers the day
+    /// as working that half or whole; <see cref="WorkScheduleShift.None"/> takes
+    /// the sign-up back. A leave or day off on the day is replaced.
+    /// </summary>
+    public TimeKeepingRecord ScheduleShift(WorkScheduleShift shift)
+    {
+        if (HasAnyAttendance)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.Timekeeping.RegistrationLocked,
+                "The schedule can no longer change once a shift has been checked in.");
+        }
+
+        LeaveReason = null;
+        ClearLeaveWindow();
+        Status = AttendanceStatus.NotStarted;
+        Registration = shift == WorkScheduleShift.None ? WorkRegistration.NotRegistered : WorkRegistration.Working;
+        ScheduledShift = shift == WorkScheduleShift.None ? null : shift;
+        return this;
+    }
+
+    /// <summary>
+    /// The shift the board shows for the day. A day registered before the board
+    /// reads from its leave: working with the afternoon off is Ca sáng, with the
+    /// morning off Ca chiều, otherwise Cả ngày. A day off reads as none.
+    /// </summary>
+    public WorkScheduleShift CurrentScheduledShift => Registration != WorkRegistration.Working
+        ? WorkScheduleShift.None
+        : ScheduledShift ?? LeaveShift switch
+        {
+            Timekeeping.LeaveShift.Afternoon => WorkScheduleShift.Morning,
+            Timekeeping.LeaveShift.Morning => WorkScheduleShift.Afternoon,
+            _ => WorkScheduleShift.FullDay
+        };
 
     /// <summary>Vào ca.</summary>
     public TimeKeepingRecord CheckIn(WorkShiftKind shift, DateTimeOffset at, Guid? recordedByStaffId = null)
@@ -235,6 +281,7 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
         Registration = WorkRegistration.NotRegistered;
         LeaveReason = null;
         ClearLeaveWindow();
+        ScheduledShift = null;
         Status = AttendanceStatus.NotStarted;
 
         if (force && HasAnyAttendance)

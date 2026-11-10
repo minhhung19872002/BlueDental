@@ -60,6 +60,26 @@ public class OrgChartScopeResolver(
         return OrgChartScope.VisibleSlips(viewerId, viewerIsAdmin: false, seesCosts, viewerIsDentist: true, units, members);
     }
 
+    /// <summary>
+    /// Whom the caller sees and may manage on the Lịch làm việc board —
+    /// <see cref="OrgChartScope.WorkScheduleReachOf"/> (F-90).
+    /// </summary>
+    public virtual async Task<WorkScheduleReach> WorkScheduleReachAsync()
+    {
+        if (currentUser.Id is not { } viewerId)
+        {
+            return new WorkScheduleReach(new HashSet<Guid>(), new HashSet<Guid>());
+        }
+
+        if (currentUser.IsInRole(BlueDentalAbilitySeedContributor.AdminRoleName))
+        {
+            return WorkScheduleReach.Everyone;
+        }
+
+        var (units, members) = await LoadChartAsync();
+        return OrgChartScope.WorkScheduleReachOf(viewerId, viewerIsAdmin: false, units, members);
+    }
+
     /// <summary>Whether the caller is a dentist heading a unit — the root, a Phòng ban or a Team.</summary>
     public virtual async Task<bool> HeadsAUnitAsync()
     {

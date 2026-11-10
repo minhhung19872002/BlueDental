@@ -55,16 +55,19 @@ public class TimekeepingEndOfDayWorker : AsyncPeriodicBackgroundWorkerBase
             count++;
         }
 
-        // 2) Mark no-shows (registered Working but never checked in)
-        foreach (var record in records.Where(x =>
-            x.Registration == WorkRegistration.Working &&
-            x.Status == AttendanceStatus.NotStarted &&
-            !x.HasAnyAttendance))
-        {
-            record.MarkNoShow("Đã đăng ký nhưng không chấm công.");
-            await tkRepo.UpdateAsync(record);
-            count++;
-        }
+        // 2) Mark no-shows (registered Working but never checked in).
+        // F-90 (BA P0911): Chấm công is gone from the Lịch làm việc screen, so no
+        // one checks in any more and this would mark every registered day as
+        // Abandoned. Kept commented, like the rest of the old attendance logic.
+        // foreach (var record in records.Where(x =>
+        //     x.Registration == WorkRegistration.Working &&
+        //     x.Status == AttendanceStatus.NotStarted &&
+        //     !x.HasAnyAttendance))
+        // {
+        //     record.MarkNoShow("Đã đăng ký nhưng không chấm công.");
+        //     await tkRepo.UpdateAsync(record);
+        //     count++;
+        // }
 
         if (count > 0)
         {

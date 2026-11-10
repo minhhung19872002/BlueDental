@@ -16,13 +16,16 @@ export function StaffTabBar({ activeKey }: Props) {
   const staff = useAbility("staff");
   const orgChart = useAbility("orgChart");
   const penalty = useAbility("staffPenalty");
-  const payroll = useAbility("payroll");
+  // F-90 (BA P0911): Bảng lương counts worked days from check-ins, and Chấm công
+  // is commented out, so its numbers would be wrong — tab hidden until BA settles
+  // the new rule (owner 2026-11-10, R-1188). Re-enable with Chấm công.
+  // const payroll = useAbility("payroll");
 
   const tabs = [
     staff.canRead && { key: "list", label: t("Staff:Tab:List"), to: "/staff" },
     orgChart.canRead && { key: "orgChart", label: t("Staff:Tab:OrgChart"), to: "/staff/org-chart" },
     penalty.canRead && { key: "penalties", label: t("Staff:Tab:Penalties"), to: "/staff/penalties" },
-    payroll.canRead && { key: "payroll", label: t("Staff:Tab:Payroll"), to: "/staff/payroll" },
+    // payroll.canRead && { key: "payroll", label: t("Staff:Tab:Payroll"), to: "/staff/payroll" },
   ].filter((tab) => tab !== false);
 
   if (tabs.length < 2) return null;
