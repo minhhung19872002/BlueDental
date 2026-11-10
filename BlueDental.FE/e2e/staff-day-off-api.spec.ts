@@ -37,7 +37,9 @@ async function listedIds(page: Parameters<typeof call>[0], branchId: string, que
   return res.body.items.map((s) => s.id);
 }
 
-test.describe("Bác sĩ nghỉ — /staff AvailableOn", () => {
+// TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
+// limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
+test.describe.skip("Bác sĩ nghỉ — /staff AvailableOn", () => {
   let branchId: string;
   let otherBranchId: string | undefined;
   let off: RunStaff & { userName: string };

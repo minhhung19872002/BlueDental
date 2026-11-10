@@ -70,3 +70,11 @@ Mức 3, vì đụng phạm vi sơ đồ tổ chức, `DentistShiftChecker` (m�
 - `work-schedule-own-dayoff`
 
 Chưa chạy: toàn bộ `appointment*` / `reception*`.
+
+## R-1189 — bỏ lọc bác sĩ nghỉ và bỏ chặn giờ làm (2026-11-10, TEMP-DAYOFF-FILTER-OFF)
+
+- BE: `StaffAppService` bỏ qua `AvailableOn`; `DentistShiftChecker.EnsureWithinShiftAsync` không chặn; `WorkingWindows` không trừ DayOff / ca S-C / phép; `AppointmentSeriesPlanner` bỏ `DentistOff` / `OutsideShift`. FE không đổi.
+- `e2e/doctor-day-off-ignored.spec.ts` **2/2** trên stack riêng :5190/:8095, không chặn request: bác sĩ DayOff và bác sĩ chỉ đăng ký S vẫn trong `/staff?AvailableOn`, đặt được 09:00 / 20:00 ngày nghỉ và 15:00 cho ca S, đọc lại đúng giờ; dialog Tạo lịch hẹn chọn được bác sĩ nghỉ.
+- 15 test luật cũ `test.skip` có ghi chú TEMP; `appointment-day-timeline` đổi kỳ vọng cột bác sĩ nghỉ. 22 xanh, 2 đỏ có sẵn (drag-scroll R-1173, nút Thanh toán R-1099).
+- Domain 1353 xanh, 3 skip.
+- Mức retest 3.

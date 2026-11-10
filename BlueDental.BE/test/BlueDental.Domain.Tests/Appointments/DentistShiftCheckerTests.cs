@@ -85,7 +85,7 @@ public class DentistShiftCheckerTests
         Assert.Equal(fits, DentistShiftChecker.Fits(windows, At(sh, sm), At(eh, em)));
     }
 
-    [Fact]
+    [Fact(Skip = "TEMP-DAYOFF-FILTER-OFF (R-1189): day off / shift / leave no longer limit bookings; re-enable with the rule")]
     public void A_Day_Off_Has_No_Working_Hours()
     {
         var record = Record().RegisterDayOff("Nghỉ phép");
@@ -93,7 +93,7 @@ public class DentistShiftCheckerTests
         Assert.Empty(DentistShiftChecker.WorkingWindows(record));
     }
 
-    [Fact]
+    [Fact(Skip = "TEMP-DAYOFF-FILTER-OFF (R-1189): day off / shift / leave no longer limit bookings; re-enable with the rule")]
     public void A_Half_Day_Leave_Is_Taken_Out_Of_Its_Shift()
     {
         var record = Record().RegisterLeave(
@@ -157,7 +157,7 @@ public class DentistShiftCheckerTests
         Assert.False(DentistShiftChecker.Fits(windows, At(8, 0), At(8, 0).AddDays(1)));
     }
 
-    [Theory]
+    [Theory(Skip = "TEMP-DAYOFF-FILTER-OFF (R-1189): day off / shift / leave no longer limit bookings; re-enable with the rule")]
     [InlineData(WorkScheduleShift.Morning, "08:00-12:00")]
     [InlineData(WorkScheduleShift.Afternoon, "13:00-17:00")]
     [InlineData(WorkScheduleShift.FullDay, "08:00-12:00, 13:00-17:00")]

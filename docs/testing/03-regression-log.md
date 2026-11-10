@@ -14523,3 +14523,24 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Route `/staff/payroll`, quyền và BE giữ nguyên. Gõ thẳng URL vẫn mở được trang.
 - **Kiểm thử**: tsc và eslint sạch. Bản build production trên stack riêng :5190/:8095, admin đăng nhập thật: thanh tab `/staff` còn "Danh sách nhân viên / Sơ đồ tổ chức / Chế tài". Không spec nào bấm tab này (`payroll.spec` mở thẳng URL).
 - **Mức retest**: 1.
+
+## R-1189 (2026-11-10, mức 3: bỏ lọc bác sĩ nghỉ ở mọi ô chọn bác sĩ và bỏ chặn giờ làm khi đặt lịch, F-90 / F-10, TEMP-DAYOFF-FILTER-OFF)
+
+- **Yêu cầu BA** (đoạn chat 2026-11-10): "Bỏ logic đó lun e… Trc hết gỡ logic ra đã", "Ừ e bỏ lun giúp a" — bỏ lọc bác sĩ nghỉ trong dropdown bác sĩ. BA đang viết lại quy tắc "ngày nào không đăng ký là nghỉ", **chưa làm**.
+- **Chủ dự án chốt** (2026-11-10):
+  - Bỏ hết, kể cả chặn S/C: dropdown hiện mọi bác sĩ; lưu lịch hẹn không còn kiểm ngày nghỉ, ca đã đăng ký hay giờ làm. Chỉ còn kiểm trùng lịch.
+  - Bỏ ở mọi chỗ: gỡ một lần ở BE, nên mọi picker và các cột view Ngày đều thấy đủ nhân viên đang hoạt động.
+- **Sửa** (chỉ BE, comment lại với nhãn `TEMP-DAYOFF-FILTER-OFF`, không xoá):
+  - `StaffAppService.GetListAsync`: `AvailableOn` vẫn nhận nhưng bỏ qua, không loại ai (`GetDayOffStaffIdsAsync` giữ lại, chưa dùng).
+  - `DentistShiftChecker.EnsureWithinShiftAsync`: trả về ngay; thân cũ chuyển sang `EnsureWithinShiftCheckedAsync` (private, không gọi). `Appointment:0008` / `0009` không còn phát sinh.
+  - `DentistShiftChecker.WorkingWindows`: không còn trừ DayOff, ca S/C đã đăng ký hay giờ nghỉ phép; luôn là ca sáng + ca chiều dự kiến. Ảnh hưởng `dentist-work-days` ("Chọn lịch hẹn tiếp theo").
+  - `AppointmentSeriesPlanner.ReasonFor`: bỏ `DentistOff` / `OutsideShift`; còn `InThePast`, trùng bệnh nhân, trùng bác sĩ.
+  - FE không đổi. Nhánh `dayOff` của `useSlotPickHandler` và lỗi "Bác sĩ nghỉ vào ngày này" ở các form không còn chạy tới.
+- **Kiểm thử** (host riêng :5190 build từ working tree + `vite preview` :8095, đăng nhập thật, không chặn request):
+  - Spec mới `e2e/doctor-day-off-ignored.spec.ts` **2/2**: bác sĩ có DayOff (ghi qua bulk-register thật) và bác sĩ chỉ đăng ký S (qua `work-schedules/save` thật) vẫn có trong `/staff?AvailableOn`; đặt được 09:00 và 20:00 ngày nghỉ, 15:00 cho người chỉ đăng ký S, đọc lại bằng request riêng đúng giờ; `dentist-work-days` mở cả ngày; dialog Tạo lịch hẹn liệt kê và chọn được bác sĩ nghỉ, không báo lỗi.
+  - `appointment-day-timeline` "doctors are columns": đổi kỳ vọng — bác sĩ nghỉ vẫn có cột (ghi chú TEMP).
+  - 15 test luật cũ chuyển `test.skip` / `test.describe.skip` kèm ghi chú TEMP: `doctor-day-off-pickers` ×3, `staff-day-off-api` ×3, `appointment-working-hours` ×4 (`:178` vẫn xanh), `reception-follow-up-shifts` ×2, `appointment-slot-pick-doctor` ×2, `appointment-series-api` ×1.
+  - Lần chạy cuối 10 spec: **22 xanh, 15 skip, 2 đỏ có sẵn**: "a mouse drag scrolls the board sideways" (đã ghi đỏ sẵn ở R-1173) và `stage-staff-pickers` "Thanh toán moves to the payment tab" (nút Thanh toán đã ẩn khỏi Chi tiết phiếu từ R-1099). Cả hai không đụng tới thay đổi này.
+  - Domain tests: 1353 xanh, 3 skip (`DentistShiftCheckerTests` ngày nghỉ / nghỉ nửa ngày / ca S-C, ghi chú TEMP).
+- **Khôi phục**: tìm `TEMP-DAYOFF-FILTER-OFF` trong BE và e2e, bỏ comment / bỏ skip cùng lúc.
+- **Mức retest**: 3 (mọi picker bác sĩ và mọi đường lưu lịch hẹn).

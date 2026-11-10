@@ -78,6 +78,9 @@ Lỗi (đều trả HTTP 403):
 
 ## Ảnh hưởng tới chọn bác sĩ và đặt lịch (đã kiểm tra 2026-11-10)
 
+> **Đang tắt từ R-1189** (BA 2026-11-10: "Bỏ logic đó lun e… Trc hết gỡ logic ra đã"). Chủ dự án chốt bỏ hết, ở mọi chỗ: dropdown bác sĩ hiện mọi người, lưu lịch hẹn không còn kiểm ngày nghỉ, ca S/C hay giờ làm, chỉ còn kiểm trùng lịch. Code cũ comment lại với nhãn `TEMP-DAYOFF-FILTER-OFF`. BA đang viết lại quy tắc mới ("ngày nào không đăng ký là nghỉ"), quy tắc này ngược với quyết định 2 ở trên và **chưa làm**. Phần dưới mô tả hành vi trước R-1189, giữ để khôi phục.
+
+
 - Dropdown bác sĩ trong các form đặt lịch (`AvailableOn`, `StaffAppService.GetDayOffStaffIdsAsync`) chỉ loại người có bản ghi **DayOff** ngày đó. Code này không đổi. Board mới không bao giờ ghi DayOff, nên bác sĩ đăng ký S, C, SC hay chưa đăng ký đều vẫn hiện trong dropdown.
 - Giờ được đặt (`DentistShiftChecker.WorkingWindows`, dùng cho lúc lưu lịch hẹn và cho `dentist-work-days` của "Chọn lịch hẹn tiếp theo"):
   - S chỉ nhận ca sáng.
@@ -90,5 +93,6 @@ Lỗi (đều trả HTTP 403):
 ## Đã lệch hoặc còn mở
 
 - Bảng lương (F-57) đếm ngày công theo lần vào ca. Từ nay không ai vào ca nữa, nên số ngày công sẽ về 0 cho đến khi BA chốt cách tính mới. Vì vậy tab Bảng lương đang ẩn (R-1188); route `/staff/payroll` vẫn còn.
-- Bản ghi nghỉ (DayOff) cũ vẫn chặn đặt lịch hẹn, nhưng trên bảng mới hiện là "Chưa đăng ký". Chủ dự án chấp nhận giữ nguyên (2026-11-10).
+- Bản ghi nghỉ (DayOff) cũ vẫn chặn đặt lịch hẹn, nhưng trên bảng mới hiện là "Chưa đăng ký". Chủ dự án chấp nhận giữ nguyên (2026-11-10). Từ R-1189 không còn chặn nữa.
+- UNKNOWN: quy tắc mới của BA "ngày nào không đăng ký là nghỉ", "ngày đăng ký = hôm nay mà chưa đăng ký thì coi như vắng" — BA đang viết lại, chờ bản chốt.
 - Bước đánh dấu "nghỉ ngang" cuối ngày (`TimekeepingEndOfDayWorker`) bị comment lại, vì không còn ai chấm công. Chủ dự án chấp nhận (2026-11-10).
