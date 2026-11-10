@@ -30,7 +30,7 @@ export interface LaboTab {
   /** Reference permission subject — see docs/clone/api.md §Labo. */
   subject: string;
   /** Which screen renders the tab. */
-  screen: "orders" | "supplier" | "catalog" | "service-material";
+  screen: "orders" | "supplier" | "catalog" | "service-material" | "form-template";
   /** Taxonomy group backing a flat catalog tab. */
   group?: string;
   /**
@@ -83,6 +83,13 @@ export function laboTabs(): LaboTab[] {
       screen: "service-material",
       group: LABO_GROUP.Material,
       noun: t("Labo:Noun:Material"),
+    },
+    {
+      // F-93: the branch's Mẫu phiếu bổ sung, a catalog like the one before it.
+      key: "form-template",
+      label: t("Labo:Tab:FormTemplate"),
+      subject: "laboMaterial",
+      screen: "form-template",
     },
   ];
 }

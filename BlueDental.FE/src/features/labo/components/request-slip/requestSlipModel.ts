@@ -5,6 +5,7 @@ import {
   type LaboOrderDto,
   type LaboShadeZonesDto,
 } from "@/features/labo/api/laboApi";
+import { extraBody, extraFromOrder, extraMissing, type ExtraFormValues } from "./extraFormModel";
 
 /** The six cells of Màu răng, in the order the 2×3 map lays them out (Gần then Xa, Cổ → Rìa cắn). */
 export const SHADE_ZONES = [
@@ -38,6 +39,8 @@ export interface RequestSlipValues {
   shade: ShadeValues;
   finishLineIds: string[];
   notes: string;
+  /** Thông tin bổ sung (F-93); null while no Mẫu bổ sung is picked. */
+  extra: ExtraFormValues | null;
 }
 
 /** What a new order starts from: the known teeth and doctor of the công đoạn it was raised on. */
@@ -89,6 +92,7 @@ export function requestSlipSeed(
       shade: { ...EMPTY_SHADE },
       finishLineIds: [],
       notes: "",
+      extra: null,
     };
   }
   const first = order.teeth[0];
@@ -107,6 +111,7 @@ export function requestSlipSeed(
     shade: mapZones((zone) => zones[zone] ?? ""),
     finishLineIds: first?.finishLineIds ?? [],
     notes: order.notes ?? "",
+    extra: extraFromOrder(order.extraForm),
   };
 }
 
@@ -148,6 +153,7 @@ export function requestSlipErrors(values: RequestSlipValues): string[] {
   if (values.teeth.length === 0) errors.push("Labo:Slip:Err:Teeth");
   if (values.restorations.length === 0) errors.push("Labo:Slip:Err:Restoration");
   if (!hasShade(values.shade)) errors.push("Labo:Slip:Err:Shade");
+  if (extraMissing(values.extra)) errors.push("Labo:Slip:Err:Extra");
   return errors;
 }
 
@@ -177,5 +183,6 @@ export function requestSlipBody(values: RequestSlipValues) {
     shadeZones: mapZones((zone) => blankToUndefined(values.shade[zone])),
     finishLineIds: values.finishLineIds,
     restorations: values.restorations,
+    ...extraBody(values.extra),
   };
 }

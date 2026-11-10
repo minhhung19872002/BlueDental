@@ -55,6 +55,9 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     /// <summary>Ca mới / Sửa - làm lại (F-91).</summary>
     public LaboCaseType CaseType { get; set; }
 
+    /// <summary>Thông tin bổ sung (F-93): the Mẫu phiếu copied onto the order, with its answers; null when none.</summary>
+    public LaboExtraFormDto? ExtraForm { get; set; }
+
     public string? SupplierName { get; set; }
 
     /// <summary>The supplier's badge colour, "#RRGGBB"; null reads grey (R-1072).</summary>
@@ -339,6 +342,15 @@ public class SaveLaboOrderDto
     public List<Guid>? FinishLineIds { get; set; }
     public List<LaboToothRestorationDto>? Restorations { get; set; }
 
+    /// <summary>
+    /// Mẫu bổ sung (F-93): null for none. The same template as the order
+    /// already holds keeps its copied fields; another one is copied afresh.
+    /// </summary>
+    public Guid? ExtraFormTemplateId { get; set; }
+
+    /// <summary>The answers of Thông tin bổ sung, by field key; a key the form does not have is ignored.</summary>
+    public List<LaboExtraFormAnswerDto>? ExtraFormAnswers { get; set; }
+
     /// <summary>Ảnh đính kèm chung picked in the dialog — at most five with those kept, none required.</summary>
     public List<IRemoteStreamContent>? Pictures { get; set; }
 
@@ -347,6 +359,33 @@ public class SaveLaboOrderDto
 
     /// <summary>The tooth of each <see cref="ToothPictures"/> entry, same order: FDI, or 0 for the "Dùng chung" row.</summary>
     public List<int>? ToothPictureTeeth { get; set; }
+}
+
+/// <summary>One answer of Thông tin bổ sung (F-93): several values only for a MultiSelect field.</summary>
+public class LaboExtraFormAnswerDto
+{
+    [StringLength(40)]
+    public string Key { get; set; } = default!;
+    public List<string>? Values { get; set; }
+}
+
+/// <summary>The Mẫu phiếu as the order copied it (F-93).</summary>
+public class LaboExtraFormDto
+{
+    public Guid TemplateId { get; set; }
+    public string TemplateName { get; set; } = default!;
+    public int Version { get; set; }
+    public List<LaboExtraFormEntryDto> Entries { get; set; } = [];
+}
+
+public class LaboExtraFormEntryDto
+{
+    public string Key { get; set; } = default!;
+    public string Label { get; set; } = default!;
+    public LaboFormFieldType Type { get; set; }
+    public bool Required { get; set; }
+    public List<string> Options { get; set; } = [];
+    public List<string> Values { get; set; } = [];
 }
 
 /// <summary>One row of the Thông số từng răng table.</summary>

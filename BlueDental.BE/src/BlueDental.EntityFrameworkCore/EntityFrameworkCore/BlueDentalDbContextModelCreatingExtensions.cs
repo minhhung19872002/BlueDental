@@ -909,6 +909,12 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.TreatmentStageId);
             entity.HasIndex(x => x.TreatmentServiceId);
             entity.HasIndex(x => x.ParentOrderId);
+            // F-93: Thông tin bổ sung, the Mẫu phiếu copied with its answers.
+            entity.OwnsOne(x => x.ExtraForm, f =>
+            {
+                f.ToJson();
+                f.OwnsMany(x => x.Entries);
+            });
 
             // P2910_03: each tooth carries its check result and warranty card,
             // each Nhận hàng · lần N its own row.
@@ -973,6 +979,17 @@ public static class BlueDentalDbContextModelCreatingExtensions
             });
             entity.Navigation(x => x.ToothResults).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.LaboOrderId, x.RoundNo }).IsUnique();
+        });
+
+        builder.Entity<LaboFormTemplate>(entity =>
+        {
+            entity.ToTable("bd_labo_form_templates");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(LaboFormTemplate.MaxNameLength).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(LaboFormTemplate.MaxDescriptionLength);
+            entity.OwnsMany(x => x.Fields, f => f.ToJson());
+            entity.Navigation(x => x.Fields).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => x.ClinicBranchId);
         });
 
         builder.Entity<LaboSupplier>(entity =>

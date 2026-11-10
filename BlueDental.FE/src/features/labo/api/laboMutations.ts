@@ -83,6 +83,9 @@ export interface LaboRequestSlipFields {
   shadeZones: LaboShadeZonesDto;
   finishLineIds: string[];
   restorations: { materialId: string; onImplant: boolean }[];
+  /** Thông tin bổ sung (F-93): none sent clears it. */
+  extraFormTemplateId?: string;
+  extraFormAnswers: { key: string; values: string[] }[];
   /** Only an old draft re-saved on this form sends its links back. */
   treatmentServiceId?: string;
   treatmentStageId?: string;
@@ -140,12 +143,23 @@ function appendToothPictures(form: FormData, pictures: LaboToothPicture[]): Form
 }
 
 /** The Phiếu yêu cầu's values: the zones and restorations bound as ABP binds nested objects. */
-function requestSlipValues({ shadeZones, restorations, ...fields }: Omit<LaboRequestSlipFields, "pictures">) {
+function requestSlipValues({
+  shadeZones,
+  restorations,
+  extraFormAnswers,
+  ...fields
+}: Omit<LaboRequestSlipFields, "pictures">) {
   const values: Record<string, FormValue> = { ...fields, estimatedCost: 0 };
   for (const [key, value] of Object.entries(shadeZones)) values[`shadeZones.${key}`] = value;
   restorations.forEach((restoration, i) => {
     values[`restorations[${i}].materialId`] = restoration.materialId;
     values[`restorations[${i}].onImplant`] = restoration.onImplant;
+  });
+  extraFormAnswers.forEach((answer, i) => {
+    values[`extraFormAnswers[${i}].key`] = answer.key;
+    answer.values.forEach((value, j) => {
+      values[`extraFormAnswers[${i}].values[${j}]`] = value;
+    });
   });
   return values;
 }

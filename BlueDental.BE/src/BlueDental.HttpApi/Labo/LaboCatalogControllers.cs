@@ -95,3 +95,32 @@ public sealed class LaboMaterialController(ILaboMaterialAppService service) : Bl
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }
+
+/// <summary>Mẫu phiếu — /labo/form-template (F-93): the extra field lists of the Phiếu yêu cầu.</summary>
+[RemoteService]
+[Authorize]
+[Route("api/v1/app/labo-form-templates")]
+public sealed class LaboFormTemplateController(ILaboFormTemplateAppService service) : BlueDentalController
+{
+    [HttpGet]
+    public Task<PagedResultDto<LaboFormTemplateDto>> GetListAsync(
+        [FromQuery] GetLaboFormTemplateListInput input) => service.GetListAsync(input);
+
+    [HttpGet("{id:guid}")]
+    public Task<LaboFormTemplateDto> GetAsync(Guid id) => service.GetAsync(id);
+
+    [HttpPost]
+    public Task<LaboFormTemplateDto> CreateAsync([FromBody] SaveLaboFormTemplateDto input) =>
+        service.CreateAsync(input);
+
+    [HttpPut("{id:guid}")]
+    public Task<LaboFormTemplateDto> UpdateAsync(Guid id, [FromBody] SaveLaboFormTemplateDto input) =>
+        service.UpdateAsync(id, input);
+
+    [HttpPut("{id:guid}/active")]
+    public Task<LaboFormTemplateDto> SetActiveAsync(Guid id, [FromBody] SetLaboFormTemplateActiveDto input) =>
+        service.SetActiveAsync(id, input);
+
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+}

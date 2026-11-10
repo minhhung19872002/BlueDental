@@ -859,3 +859,87 @@ Phiếu yêu cầu is one supplier's form. F-91 took the supplier off the order;
 **Recommendation:** A. There are only a few suppliers, each one has its own
 paper slip to match, and `Layout` is already the switch. Move to B only if
 suppliers start to multiply.
+
+**Update 2026-11-11 (F-93, R-1200).** The owner compared A and B and chose a
+**hybrid**, which is now built (§12). The fixed Phiếu yêu cầu (layout 2) stays
+as typed columns. A supplier's extra questions are added as data, with no code
+change. Option A is still the path if a supplier needs its own printed paper.
+
+## 12. F-93 — Mẫu phiếu bổ sung (hybrid of §11.1, R-1200, 2026-11-11)
+
+Owner decisions (2026-11-11):
+
+- **"Chọn mẫu, không cần NCC".** The slip gets a **Mẫu bổ sung** picker. A
+  template has no supplier link.
+- **"Tab riêng 'Mẫu phiếu'".** A new /labo tab, `/labo/form-template`.
+- **"Không in phần riêng".** The print sheet is unchanged; the extra section
+  appears on screen only.
+- **Picker visibility.** The picker shows only when the branch has at least one
+  active template, or when the slip already holds a copy. Otherwise the section
+  is hidden and the slip reads exactly as before.
+
+Data:
+
+- **`bd_labo_form_templates`.** Each row has a branch, a Name (≤200 characters,
+  unique per branch, ignoring case and outer spaces) and a Description (≤500).
+  It also has `IsActive`, a `Version`, and a jsonb list of fields. There are 1–30
+  fields.
+- **Each field** has:
+  - a Key: generated, kept stable across edits, ≤40 characters;
+  - a Label: required and unique within the template;
+  - a Type: Text ≤500 · LongText ≤4000 · Number · Date · Select · MultiSelect · YesNo;
+  - a Bắt buộc flag;
+  - Options, for choice fields only: 1–50 of them, each ≤100 characters,
+    with no duplicates.
+- **`LaboOrder.ExtraForm`** (jsonb) holds a *copy*: the template id, name and
+  version, plus each field together with its answer. The order reads back from
+  that copy alone, so later edits, a stop or a delete of the template never
+  change an order that was already written.
+
+Rules (BE):
+
+- **Saving the same template again** keeps the copy and changes only the
+  answers.
+- **Picking a different template** takes a fresh copy. It must be active and
+  belong to the order's branch, otherwise the save fails with
+  `Labo:0057 TemplateUnavailable`.
+- **Picking none** clears the section.
+- **Answers are cleaned:**
+  - blanks are dropped;
+  - CRLF line breaks become `\n`;
+  - Number is stored in invariant form;
+  - Date is stored as yyyy-MM-dd;
+  - YesNo is stored as "true" / "false";
+  - MultiSelect is stored in the options' order;
+  - anything that does not fit its field fails with `Labo:0049`.
+- **Lưu nháp** keeps a blank Bắt buộc field. **Tạo phiếu Labo** refuses it with
+  `Labo:0048`.
+- **Template errors:** `0050` name required · `0051` name taken · `0052` field
+  count · `0053` label required · `0054` duplicate label · `0055` options ·
+  `0056` type.
+- **A Classic (layout 1) order** never keeps an extra section.
+- **Permissions:** `Catalogs.*`, the same as Vật liệu Labo and the other Labo
+  catalogs. A user who needs the list must hold a catalog read leaf. The
+  `laboMaterial` leaf alone does not open it; that bridge gap was already there
+  for Vật liệu.
+
+Endpoints, `api/v1/app/labo-form-templates`:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/` | List; filters `ClinicBranchId`, `IsActive`, `Filter` |
+| GET | `/{id}` | One template |
+| POST | `/` | Create |
+| PUT | `/{id}` | Edit |
+| PUT | `/{id}/active` | Switch on or off |
+| DELETE | `/{id}` | Soft delete |
+
+The order form takes `ExtraFormTemplateId` and `ExtraFormAnswers[]`.
+
+FE:
+
+- `components/form-template/*` holds the table, the dialog with its field rows,
+  and the model.
+- `request-slip/ExtraFormSection` + `ExtraFieldInput` render "Thông tin bổ
+  sung" under the slip. The picker is searchable without accents. A slip that
+  is sent is locked and shows its answers read-only.

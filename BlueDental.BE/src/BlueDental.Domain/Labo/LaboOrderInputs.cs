@@ -55,6 +55,9 @@ public record LaboOrderDetails
     public LaboShadeZones? ShadeZones { get; init; }
     public IReadOnlyList<Guid> FinishLineIds { get; init; } = [];
     public IReadOnlyList<LaboToothRestoration> Restorations { get; init; } = [];
+
+    /// <summary>Thông tin bổ sung (F-93), already copied from its template and checked; read only on the Phiếu yêu cầu.</summary>
+    public LaboExtraForm? ExtraForm { get; init; }
 }
 
 /// <summary>

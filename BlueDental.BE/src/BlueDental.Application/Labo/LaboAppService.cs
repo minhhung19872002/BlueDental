@@ -42,6 +42,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     private readonly IBlobContainer _blobContainer;
     private readonly BranchAccessChecker _branchAccess;
     private readonly IRepository<TreatmentStage, Guid> _stageRepository;
+    private readonly IRepository<LaboFormTemplate, Guid> _formTemplateRepository;
 
     public LaboAppService(
         IRepository<LaboOrder, Guid> repository,
@@ -57,7 +58,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         IRepository<PatientImage, Guid> imageRepository,
         IBlobContainer blobContainer,
         BranchAccessChecker branchAccess,
-        IRepository<TreatmentStage, Guid> stageRepository)
+        IRepository<TreatmentStage, Guid> stageRepository,
+        IRepository<LaboFormTemplate, Guid> formTemplateRepository)
     {
         _repository = repository;
         _patientRepository = patientRepository;
@@ -73,6 +75,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         _blobContainer = blobContainer;
         _branchAccess = branchAccess;
         _stageRepository = stageRepository;
+        _formTemplateRepository = formTemplateRepository;
     }
 
     /// <summary>One service line of a plan, as the order form names it.</summary>
@@ -601,7 +604,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
 
         var code = await ResolveOrderCodeAsync(input.OrderCode);
         var order = new LaboOrder(
-            GuidGenerator.Create(), code, input.PatientId, branchId, await ToDetailsAsync(input, branchId));
+            GuidGenerator.Create(), code, input.PatientId, branchId, await ToDetailsAsync(input, branchId, current: null));
         var pictures = OrderPicturesOf(input, order);
         EnsurePictureSets(pictures.Select(p => p.ToothNumber));
         if (input.Submit)
@@ -620,7 +623,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         var order = await GetInBranchAsync(id);
         await EnsureServiceLineOpenAsync(order.PatientId, input.TreatmentServiceId);
         await EnsureLabSlipNoFreeAsync(input, order.BranchId, exceptOrderId: order.Id);
-        order.UpdateDraft(await ToDetailsAsync(input, order.BranchId));
+        order.UpdateDraft(await ToDetailsAsync(input, order.BranchId, order.ExtraForm));
 
         // Only the pictures sent to the lab are on the Đặt hàng tab; a
         // round's Ảnh kiểm tra are never touched from here. A tooth taken off
@@ -696,11 +699,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     /// from the supplier picked, so the list, print and Excel keep showing it
     /// even if the supplier is later renamed or removed.
     /// </summary>
-    private async Task<LaboOrderDetails> ToDetailsAsync(SaveLaboOrderDto input, Guid branchId)
+    private async Task<LaboOrderDetails> ToDetailsAsync(SaveLaboOrderDto input, Guid branchId, LaboExtraForm? current)
     {
         if (input.Layout == LaboOrderLayout.RequestSlip)
         {
-            return await ToRequestSlipDetailsAsync(input, branchId);
+            return await ToRequestSlipDetailsAsync(input, branchId, current);
         }
 
         var supplier = input.SupplierId.HasValue
@@ -744,7 +747,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     /// keeps only this branch's rows, so another clinic's id never lands on a
     /// tooth.
     /// </summary>
-    private async Task<LaboOrderDetails> ToRequestSlipDetailsAsync(SaveLaboOrderDto input, Guid branchId)
+    private async Task<LaboOrderDetails> ToRequestSlipDetailsAsync(
+        SaveLaboOrderDto input, Guid branchId, LaboExtraForm? current)
     {
         var restorations = (input.Restorations ?? [])
             .Select(r => new LaboToothRestoration(r.MaterialId, r.OnImplant))
@@ -794,6 +798,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     zones.IncisalMesial, zones.IncisalDistal),
             FinishLineIds = requestedFinishLines.Where(knownFinishLines.Contains).ToList(),
             Restorations = restorations,
+            ExtraForm = await ResolveExtraFormAsync(input, branchId, current),
             SpecMode = LaboSpecMode.SharedAll,
             Quantity = input.Quantity,
             WorkDescription = input.WorkDescription,
@@ -806,6 +811,41 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             TreatmentServiceId = input.TreatmentServiceId,
             TreatmentStageId = input.TreatmentStageId,
         };
+    }
+
+    /// <summary>
+    /// Thông tin bổ sung (F-93). The template the order already holds keeps
+    /// its copy, even if it was edited, switched off or deleted since; a newly
+    /// picked one must be an active template of the order's branch and is
+    /// copied as it is now.
+    /// </summary>
+    private async Task<LaboExtraForm?> ResolveExtraFormAsync(
+        SaveLaboOrderDto input, Guid branchId, LaboExtraForm? current)
+    {
+        if (input.ExtraFormTemplateId is not { } templateId)
+        {
+            return null;
+        }
+
+        var answers = (input.ExtraFormAnswers ?? [])
+            .Where(a => !string.IsNullOrWhiteSpace(a.Key))
+            .GroupBy(a => a.Key.Trim(), StringComparer.Ordinal)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<string>)g.SelectMany(a => a.Values ?? []).ToList(),
+                StringComparer.Ordinal);
+        if (current is not null && current.TemplateId == templateId)
+        {
+            return current.WithAnswers(answers);
+        }
+
+        var template = await _formTemplateRepository.FindAsync(templateId);
+        if (template is null || template.ClinicBranchId != branchId || !template.IsActive)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.FormTemplateUnavailable);
+        }
+
+        return LaboExtraForm.From(template, answers);
     }
 
     /// <summary>

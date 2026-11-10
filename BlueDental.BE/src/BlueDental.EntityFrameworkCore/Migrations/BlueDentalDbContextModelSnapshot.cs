@@ -4188,6 +4188,78 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_material_allocation_items", (string)null);
                 });
 
+            modelBuilder.Entity("BlueDental.Labo.LaboFormTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId");
+
+                    b.ToTable("bd_labo_form_templates", (string)null);
+                });
+
             modelBuilder.Entity("BlueDental.Labo.LaboMaterial", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11970,6 +12042,119 @@ namespace BlueDental.Migrations
                         .HasForeignKey("MaterialAllocationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BlueDental.Labo.LaboFormTemplate", b =>
+                {
+                    b.OwnsMany("BlueDental.Labo.LaboFormField", "Fields", b1 =>
+                        {
+                            b1.Property<Guid>("LaboFormTemplateId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Key")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Label")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.PrimitiveCollection<List<string>>("Options")
+                                .IsRequired()
+                                .HasColumnType("text[]");
+
+                            b1.Property<bool>("Required")
+                                .HasColumnType("boolean");
+
+                            b1.Property<short>("Type")
+                                .HasColumnType("smallint");
+
+                            b1.HasKey("LaboFormTemplateId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_labo_form_templates");
+
+                            b1.ToJson("Fields");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboFormTemplateId");
+                        });
+
+                    b.Navigation("Fields");
+                });
+
+            modelBuilder.Entity("BlueDental.Labo.LaboOrder", b =>
+                {
+                    b.OwnsOne("BlueDental.Labo.LaboExtraForm", "ExtraForm", b1 =>
+                        {
+                            b1.Property<Guid>("LaboOrderId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("TemplateId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("TemplateName")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<int>("Version")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("LaboOrderId");
+
+                            b1.ToTable("bd_labo_orders");
+
+                            b1.ToJson("ExtraForm");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboOrderId");
+
+                            b1.OwnsMany("BlueDental.Labo.LaboExtraFormEntry", "Entries", b2 =>
+                                {
+                                    b2.Property<Guid>("LaboExtraFormLaboOrderId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("integer");
+
+                                    b2.Property<string>("Key")
+                                        .IsRequired()
+                                        .HasColumnType("text");
+
+                                    b2.Property<string>("Label")
+                                        .IsRequired()
+                                        .HasColumnType("text");
+
+                                    b2.PrimitiveCollection<List<string>>("Options")
+                                        .IsRequired()
+                                        .HasColumnType("text[]");
+
+                                    b2.Property<bool>("Required")
+                                        .HasColumnType("boolean");
+
+                                    b2.Property<short>("Type")
+                                        .HasColumnType("smallint");
+
+                                    b2.PrimitiveCollection<List<string>>("Values")
+                                        .IsRequired()
+                                        .HasColumnType("text[]");
+
+                                    b2.HasKey("LaboExtraFormLaboOrderId", "__synthesizedOrdinal");
+
+                                    b2.ToTable("bd_labo_orders");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("LaboExtraFormLaboOrderId");
+                                });
+
+                            b1.Navigation("Entries");
+                        });
+
+                    b.Navigation("ExtraForm");
                 });
 
             modelBuilder.Entity("BlueDental.Labo.LaboOrderRound", b =>

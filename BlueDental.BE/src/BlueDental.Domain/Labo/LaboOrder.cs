@@ -108,6 +108,12 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// <summary>Ca mới / Sửa - làm lại (F-91); recorded only.</summary>
     public LaboCaseType CaseType { get; private set; } = LaboCaseType.New;
 
+    /// <summary>
+    /// Thông tin bổ sung (F-93): the Mẫu phiếu picked on the Phiếu yêu cầu,
+    /// copied with its answers. Null when none was picked, and always on Classic.
+    /// </summary>
+    public LaboExtraForm? ExtraForm { get; private set; }
+
     private readonly List<LaboOrderTooth> _teeth = [];
     public IReadOnlyCollection<LaboOrderTooth> Teeth => _teeth.AsReadOnly();
 
@@ -244,6 +250,11 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         if (noShade is not null)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothSpecIncomplete)
                 .WithData("tooth", noShade.ToothNumber);
+
+        // F-93: Thông tin bổ sung comes last, as it sits under the fixed form.
+        if (ExtraForm?.FirstMissing() is { } missing)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ExtraFieldRequired)
+                .WithData("field", missing.Label);
     }
 
     /// <summary>A set of the order's pictures — the shared ones, or one tooth's: never more than five.</summary>
@@ -434,6 +445,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         SetDueAt(DayOf(details.DueAt));
         SetTeeth(details.Teeth);
         Layout = Enum.IsDefined(details.Layout) ? details.Layout : LaboOrderLayout.Classic;
+        ExtraForm = Layout == LaboOrderLayout.RequestSlip ? details.ExtraForm : null;
         if (Layout == LaboOrderLayout.RequestSlip)
             SetRequestSlip(details);
         else

@@ -15,6 +15,7 @@ import type { paymentReceiptKeys } from "@/features/billing/api/paymentReceiptAp
 import type { careKeys } from "@/features/cskh/api/careApi";
 import type { laboMaterialKeys, laboSupplierKeys } from "@/features/labo/api/laboCatalogApi";
 import type { laboCatalogKeys } from "@/features/labo/api/laboCatalogListApi";
+import type { laboFormTemplateKeys } from "@/features/labo/api/laboFormTemplateApi";
 import type { branchManagerKeys } from "@/features/organizations/api/branchManagerQueries";
 import type { invoiceRequestKeys } from "@/features/patient-management/api/invoiceRequestApi";
 import type { patientImageKeys } from "@/features/patient-management/api/patientImageApi";
@@ -163,6 +164,8 @@ export const ENTITY_QUERY_ROOTS = {
     LABO_CATALOG,
     laboPickerKeys.materials,
   ],
+  // Mẫu phiếu (F-93): its tab and the Phiếu yêu cầu picker share one root.
+  laboFormTemplate: [["labo-form-templates"] satisfies RootOf<typeof laboFormTemplateKeys>],
   laboTaxonomy: [
     LABO_CATALOG,
     laboPickerKeys.taxonomies,

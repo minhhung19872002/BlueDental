@@ -14751,3 +14751,39 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Vật liệu cũ chưa có Mã cho tới khi được sửa.
   - Nhóm cũ bị ẩn, không xoá.
   - Mẫu cho nhà cung cấp khác mới là đề xuất.
+
+## R-1200 (2026-11-11, mức 3: Labo — Mẫu phiếu bổ sung, phương án lai, F-93)
+
+- **Yêu cầu**:
+  - Chủ dự án chọn phương án lai thay cho A/B ở `labo.md` §11.1.
+  - Trả lời ngày 2026-11-11:
+    - "Chọn mẫu, không cần NCC".
+    - "Tab riêng 'Mẫu phiếu'".
+    - "Không in phần riêng".
+    - Ô chọn mẫu chỉ hiện khi có mẫu; không có thì phiếu giữ nguyên như hiện tại.
+    - "Nhớ test kỹ các case".
+- **Sửa**:
+  - BE:
+    - `LaboFormTemplate` + `LaboFormField` (7 kiểu, tối đa 30 trường, Key cố định khi sửa).
+    - `LaboExtraForm` là bản sao jsonb trên `LaboOrder`.
+    - Câu trả lời được làm sạch: CRLF đổi thành `\n`, số và ngày theo dạng invariant, MultiSelect giữ thứ tự lựa chọn.
+    - `LaboFormTemplateAppService`: dùng quyền `Catalogs.*`; endpoint `api/v1/app/labo-form-templates` (danh sách / xem / tạo / sửa / bật tắt / xoá mềm).
+    - `LaboAppService`: lưu nháp giữ bản sao; khi gửi kiểm tra đủ trường Bắt buộc (`Labo:0048`).
+    - Mẫu đã ngừng hoặc của chi nhánh khác thì không chọn mới được (`0057`).
+    - Thêm các mã lỗi `0049`–`0056`.
+    - Migration `LaboFormTemplateF93`.
+  - FE:
+    - Tab "Mẫu phiếu" (`form-template/*`): bảng, dialog dựng từng trường, chân dialog báo lý do chưa lưu được.
+    - `ExtraFormSection` + `ExtraFieldInput` trong Phiếu yêu cầu: ô chọn mẫu tìm được không dấu; phần này ẩn khi không có mẫu đang dùng và phiếu chưa giữ bản sao.
+    - Phiếu đã gửi chỉ xem; không đưa vào bản in.
+- **Kiểm thử** (stack riêng: host :5152 + bản build production preview :8098, đăng nhập thật, không chặn request):
+  - `labo-form-template-api` 14/14, trong đó có test quyền: bác sĩ không có leaf bị 403; có `catalogService.read` thì đọc được, mọi lệnh ghi vẫn 403.
+  - `labo-form-template-ui` 2/2.
+  - Helper UI của Phiếu yêu cầu tách ra `e2e/fixtures/laboSlipUi.ts`; `labo-request-slip-ui` vẫn xanh.
+  - Toàn bộ spec Labo + `taxonomy-dental-material`: 63 xanh / 3 skip (skip có sẵn từ F-91).
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (đụng `LaboAppService` lưu/gửi đơn và DbContext).
+- **Triển khai**: phải chạy DbMigrator cho `LaboFormTemplateF93`.
+- **Mở**:
+  - Leaf `laboMaterial` chưa mở được các endpoint `Catalogs.*`. Lỗ hổng bridge này có sẵn từ trước, Vật liệu Labo cũng bị.
+  - Nhà cung cấp cần bản in riêng thì vẫn theo phương án A.

@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { LaboCatalogScreen } from "../components/LaboCatalogScreen";
+import { LaboFormTemplateScreen } from "../components/form-template/LaboFormTemplateScreen";
 import { LaboOrdersScreen } from "../components/LaboOrdersScreen";
 import { LaboServiceMaterialScreen } from "../components/LaboServiceMaterialScreen";
 import { LaboSupplierScreen } from "../components/LaboSupplierScreen";
@@ -46,13 +47,21 @@ function LaboScreen({ tab }: { tab: LaboTab }) {
           canDelete={ability.canDelete}
         />
       );
+    case "form-template":
+      return (
+        <LaboFormTemplateScreen
+          canCreate={ability.canCreate}
+          canUpdate={ability.canUpdate}
+          canDelete={ability.canDelete}
+        />
+      );
   }
 }
 
 /**
  * Labo.
  *
- * Six sub-screens, each its own URL as the reference has them, so a tab can be
+ * Seven sub-screens, each its own URL as the reference has them, so a tab can be
  * bookmarked, shared and reached with the back button. The shell is the tab row
  * and nothing else — each tab brings its own screen.
  *
@@ -74,6 +83,7 @@ export function LaboPage() {
   const abilityFinishLine = useAbility(allTabs[3].subject);
   const abilityRhythm = useAbility(allTabs[4].subject);
   const abilityMaterial = useAbility(allTabs[5].subject);
+  const abilityFormTemplate = useAbility(allTabs[6].subject);
 
   const abilitiesByIndex = [
     abilityTemplate,
@@ -82,6 +92,7 @@ export function LaboPage() {
     abilityFinishLine,
     abilityRhythm,
     abilityMaterial,
+    abilityFormTemplate,
   ];
 
   const tabs = allTabs.filter((_, i) => abilitiesByIndex[i].canRead);

@@ -525,3 +525,43 @@ proposal for other suppliers' forms is in §11.1.
 - "Tạo Labo" still shows on the other công đoạn of a line that already has a
   live order (a second order is allowed).
 - Assumptions taken without the BA: `docs/clone/unknowns.md` (P2910_03).
+
+## F-93 — Mẫu phiếu bổ sung (hybrid, R-1200, 2026-11-11)
+
+What was built and the rules: `docs/clone/pages/labo.md` §12.
+
+Tests: stack :5152/:8098, real login, no interception.
+
+- **`e2e/labo-form-template-api.spec.ts` (14).** It covers:
+  - CRUD with stable keys;
+  - name rules;
+  - field-list checks;
+  - branch isolation;
+  - 401 for a caller who is not signed in;
+  - permissions: no leaf → 403, `catalogService.read` → reads only, every
+    write still 403;
+  - every answer kind, cleaned;
+  - invalid answers;
+  - a draft against a sent slip with a required field;
+  - the copy surviving an edit, a stop and a delete;
+  - a stopped or unknown template refused;
+  - switching templates and clearing them;
+  - a Classic order.
+- **`e2e/labo-form-template-ui.spec.ts` (2).**
+  - The Mẫu phiếu tab builds a template field by field. It checks:
+    - the footer messages that block Lưu;
+    - search without accents;
+    - edit in place;
+    - Ngừng;
+    - Xoá.
+  - The slip:
+    - the section is hidden when the branch has no active template;
+    - the section appears once one exists, marked "Không in trên phiếu";
+    - Tạo phiếu Labo stays disabled while a Bắt buộc field is blank;
+    - a draft keeps its answers, read back from the API;
+    - after the template is renamed, edited and stopped, the slip keeps its own
+      copy, which is offered next to the live templates;
+    - a sent slip shows its answers locked;
+    - the print leaves the section out.
+- **Shared helpers** for the Phiếu yêu cầu UI were moved to
+  `e2e/fixtures/laboSlipUi.ts`.

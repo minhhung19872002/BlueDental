@@ -11,6 +11,7 @@ import { laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { LaboPrintButton } from "../order-dialogs/LaboPrintButton";
 import { toothLabel } from "../order-dialogs/laboToothSpecs";
 import { LaboCancelOrderButton } from "../workflow/LaboCancelOrderButton";
+import { ExtraFormSection } from "./ExtraFormSection";
 import { FinishLineChecks } from "./FinishLineChecks";
 import { RequestNotes } from "./RequestNotes";
 import { RequestSlipFooter } from "./RequestSlipFooter";
@@ -51,7 +52,8 @@ function summaryOf(values: RequestSlipValues, names: string[], finishes: string[
  * Tab Đặt hàng as the Labo's own Phiếu yêu cầu (F-91): Thông tin phiếu, then
  * Loại phục hình in three columns (BA P1011) — Toàn sứ and Hợp kim, then
  * Phục hình khác trên implant with Màu răng, then Chỉ định (the system's Chọn
- * răng button) with Đường hoàn tất — then Yêu cầu, and the footer.
+ * răng button) with Đường hoàn tất — then Thông tin bổ sung when the branch
+ * keeps a Mẫu phiếu (F-93, never printed), Yêu cầu, and the footer.
  * A sent order shows the same sheet locked, with In phiếu and Hủy phiếu.
  */
 export function LaboRequestSlipStep({
@@ -150,6 +152,13 @@ export function LaboRequestSlipStep({
             />
           </div>
         </div>
+        <ExtraFormSection
+          templates={step.templates}
+          extra={values.extra}
+          saved={order?.extraForm}
+          editable={editable}
+          onChange={(extra) => change({ extra })}
+        />
         <RequestNotes
           notes={values.notes}
           editable={editable}

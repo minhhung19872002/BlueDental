@@ -9,6 +9,7 @@ import {
   type LaboOrderDto,
 } from "@/features/labo/api/laboApi";
 import { useSaveLaboOrder } from "@/features/labo/api/laboMutations";
+import { useActiveLaboFormTemplates, type LaboFormTemplateDto } from "@/features/labo/api/laboFormTemplateApi";
 import { priorLaboTeeth, type LaboPriorTeeth } from "../order-dialogs/laboPriorTeeth";
 import { useLaboPictureTiles, type LaboPictureTiles } from "../order-dialogs/useLaboPictureTiles";
 import {
@@ -39,6 +40,8 @@ export interface RequestSlipStep {
   /** The i18n keys of what «Tạo phiếu Labo» still waits for. */
   errors: string[];
   priors: LaboPriorTeeth;
+  /** The branch's Đang dùng Mẫu phiếu, offered under Thông tin bổ sung while the slip is editable. */
+  templates: LaboFormTemplateDto[];
   pictures: LaboPictureTiles;
   saving: boolean;
   saveDraft: () => Promise<void>;
@@ -46,6 +49,7 @@ export interface RequestSlipStep {
 }
 
 const NO_PRIORS: LaboPriorTeeth = new Map();
+const NO_TEMPLATES: LaboFormTemplateDto[] = [];
 
 /**
  * The Phiếu yêu cầu (F-91): one spec for the whole order, entered once and
@@ -67,6 +71,7 @@ export function useRequestSlipStep({ branchId, patientId, order, start, readOnly
   // Every order of the patient still on its way, not only the plan's (F-91).
   const patientOrders = usePatientLaboOrders({ patientId, maxResultCount: 1000 }, editable).data?.items;
   const priors = editable ? priorLaboTeeth(patientOrders ?? [], order?.id) : NO_PRIORS;
+  const templates = useActiveLaboFormTemplates(branchId, editable).data ?? NO_TEMPLATES;
 
   const change = (patch: Partial<RequestSlipValues>) => setValues((current) => ({ ...current, ...patch }));
 
@@ -102,6 +107,7 @@ export function useRequestSlipStep({ branchId, patientId, order, start, readOnly
     editable,
     errors,
     priors,
+    templates: editable ? templates : NO_TEMPLATES,
     pictures,
     saving: save.isPending,
     saveDraft: () => persist(false),

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 import type { WarrantyCardSide } from "@/components/WarrantyCardPhotos";
+import type { LaboExtraFormDto } from "./laboFormTemplateApi";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -202,6 +203,8 @@ export interface LaboOrderDto {
   /** Mã số typed on the Phiếu yêu cầu; it stands for the order wherever it is set. */
   labSlipNo?: string | null;
   caseType?: LaboCaseType | null;
+  /** Thông tin bổ sung (F-93): the Mẫu phiếu copied when picked, with the answers; not printed. */
+  extraForm?: LaboExtraFormDto | null;
   patientId: string;
   branchId: string;
   patientName?: string;

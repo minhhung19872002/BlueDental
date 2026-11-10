@@ -632,6 +632,28 @@ public static class BlueDentalDomainErrorCodes
         public const string MaterialCodeRequired = "BlueDental:Labo:0046";
         /// <summary>The Mã is on another material of the branch (case-insensitive); data "code".</summary>
         public const string MaterialCodeTaken = "BlueDental:Labo:0047";
+
+        // Mẫu phiếu bổ sung (F-93).
+        /// <summary>Tạo phiếu Labo with a required Thông tin bổ sung field left blank; data "field".</summary>
+        public const string ExtraFieldRequired = "BlueDental:Labo:0048";
+        /// <summary>A Thông tin bổ sung answer that does not fit its field; data "field".</summary>
+        public const string ExtraAnswerInvalid = "BlueDental:Labo:0049";
+        /// <summary>A Mẫu phiếu saved without a name.</summary>
+        public const string FormTemplateNameRequired = "BlueDental:Labo:0050";
+        /// <summary>The name is on another Mẫu phiếu of the branch (case-insensitive); data "name".</summary>
+        public const string FormTemplateNameTaken = "BlueDental:Labo:0051";
+        /// <summary>A Mẫu phiếu with no field, or more than the cap; data "max".</summary>
+        public const string FormTemplateFieldCount = "BlueDental:Labo:0052";
+        /// <summary>A field without a label; data "index" (1-based).</summary>
+        public const string FormFieldLabelRequired = "BlueDental:Labo:0053";
+        /// <summary>Two fields with the same label (case-insensitive); data "field".</summary>
+        public const string FormFieldLabelDuplicate = "BlueDental:Labo:0054";
+        /// <summary>A choice field with no option, too many, a repeated or too long one; data "field".</summary>
+        public const string FormFieldOptionsInvalid = "BlueDental:Labo:0055";
+        /// <summary>A field of an unknown kind; data "field".</summary>
+        public const string FormFieldTypeInvalid = "BlueDental:Labo:0056";
+        /// <summary>The Mẫu bổ sung picked is not an active template of the branch.</summary>
+        public const string FormTemplateUnavailable = "BlueDental:Labo:0057";
     }
 
     public static class Promotions
