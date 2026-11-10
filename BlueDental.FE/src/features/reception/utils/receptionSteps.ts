@@ -24,6 +24,8 @@ export interface StepView {
   undo?: StepAction;
   /** Tooltip on a done step that a click takes back. */
   undoHint?: string;
+  /** "Đã đến" / "Đang khám": the front desk's, never a doctor's (R-1193). */
+  deskOnly?: boolean;
 }
 
 const STEP_COLORS = ["#6366f1", "#d98b0f", "#0e9f6e"] as const;
@@ -62,11 +64,11 @@ export function buildSteps(item: ReceptionItem, wait: WaitState): StepView[] {
   const arrived: StepView = {
     key: "arrived", number: 1, label: t("Reception:StatusArrived"), time: item.step1Time,
     done: step1Done, color: STEP_COLORS[0], icon: "check", action: "check-in",
-    undo: "undo-check-in", undoHint: t("Reception:UndoArrivedHint"),
+    undo: "undo-check-in", undoHint: t("Reception:UndoArrivedHint"), deskOnly: true,
   };
   const inChair: StepView = {
     key: "in-chair", number: 2, label: t("Reception:StepInProgress"), time: item.step2Time,
-    done: step2Done, color: STEP_COLORS[1], icon: "check", action: "start",
+    done: step2Done, color: STEP_COLORS[1], icon: "check", action: "start", deskOnly: true,
     ...undoOf("undo-start", t("Reception:UndoStartHint")),
     ...(wait.kind === "waiting" && { color: WAIT_COLORS[wait.level], pending: true }),
     ...(wait.kind === "waited" && { note: t("Reception:WaitedMinutes", wait.minutes) }),
@@ -110,6 +112,9 @@ export function buildSteps(item: ReceptionItem, wait: WaitState): StepView[] {
  * from Hoàn tất (owner 2026-11-03, R-1143). "Đã đến" only goes while nothing
  * came after it, so not once the patient is in the chair (owner 2026-10-28,
  * kept on 2026-11-03).
+ *
+ * Pass `canAdvance` false for a bar that may not move at all; a doctor's bar
+ * ({@link StepView.deskOnly}) is cut by the caller, see {@link isDeskLocked}.
  */
 export function clickActionOf(
   step: StepView,
@@ -122,3 +127,7 @@ export function clickActionOf(
   if (step.undo === "undo-check-in" && next?.done) return undefined;
   return step.undo;
 }
+
+/** A step a doctor would otherwise press, held for the front desk (R-1193). */
+export const isDeskLocked = (step: StepView, command: StepAction | undefined, deskStepsLocked: boolean) =>
+  deskStepsLocked && !!step.deskOnly && !!command;

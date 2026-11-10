@@ -3135,6 +3135,7 @@
     "Reception:ArrivalDoctorPickNone": "Chưa chọn bác sĩ nào",
     "Reception:ArrivalDoctorPickNoDoctors": "Không có bác sĩ",
     "Reception:UndoArrivedHint": "Bấm để huỷ Đã đến",
+    "Reception:DeskStepLockedHint": "Bước này do lễ tân thao tác",
     "Reception:UndoArrivedSuccess": "Đã huỷ Đã đến",
     "Reception:UndoStartHint": "Bấm để huỷ Đang khám",
     "Reception:UndoStartSuccess": "Đã huỷ Đang khám",

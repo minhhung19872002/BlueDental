@@ -3236,6 +3236,7 @@
     "Reception:ArrivalDoctorPickNone": "No doctor chosen",
     "Reception:ArrivalDoctorPickNoDoctors": "No doctors",
     "Reception:UndoArrivedHint": "Click to undo Arrived",
+    "Reception:DeskStepLockedHint": "The front desk marks this step",
     "Reception:UndoArrivedSuccess": "Arrival undone",
     "Reception:UndoStartHint": "Click to undo In progress",
     "Reception:UndoStartSuccess": "In progress undone",
