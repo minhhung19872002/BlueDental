@@ -1936,6 +1936,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.LeaveReason).HasMaxLength(500);
             entity.Property(x => x.LeaveShift).HasConversion<short?>();
+            entity.Property(x => x.ScheduledShift).HasConversion<short?>();
             entity.Property(x => x.Note).HasMaxLength(1000);
 
             entity.OwnsOne(x => x.MorningShift, shift =>
@@ -1963,9 +1964,19 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Ignore(x => x.HasAnyAttendance);
             entity.Ignore(x => x.HasOpenShift);
             entity.Ignore(x => x.TotalWorkedMinutes);
+            entity.Ignore(x => x.CurrentScheduledShift);
 
             entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.StaffId }).IsUnique();
             entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.Status });
+        });
+
+        builder.Entity<WorkScheduleChangeLog>(entity =>
+        {
+            entity.ToTable("bd_work_schedule_change_logs");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.FromShift).HasConversion<short>();
+            entity.Property(x => x.ToShift).HasConversion<short>();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.StaffId });
         });
     }
 

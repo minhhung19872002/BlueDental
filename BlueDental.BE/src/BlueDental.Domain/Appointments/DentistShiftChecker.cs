@@ -115,7 +115,12 @@ public class DentistShiftChecker : ITransientDependency
         }
 
         var (morning, afternoon) = PlannedShifts(record, dentist);
-        IEnumerable<ShiftWindow> windows = [morning, afternoon];
+        IEnumerable<ShiftWindow> windows = record?.ScheduledShift switch
+        {
+            WorkScheduleShift.Morning => [morning],
+            WorkScheduleShift.Afternoon => [afternoon],
+            _ => [morning, afternoon]
+        };
 
         if (record?.LeaveStart is { } leaveStart && record.LeaveEnd is { } leaveEnd)
         {

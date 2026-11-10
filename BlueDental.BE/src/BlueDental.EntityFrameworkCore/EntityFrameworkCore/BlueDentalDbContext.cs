@@ -112,6 +112,7 @@ public class BlueDentalDbContext :
 
     // Timekeeping
     public DbSet<TimeKeepingRecord> TimeKeepingRecords { get; set; }
+    public DbSet<WorkScheduleChangeLog> WorkScheduleChangeLogs { get; set; }
 
     // Finance
     public DbSet<SalesEntry> SalesEntries { get; set; }

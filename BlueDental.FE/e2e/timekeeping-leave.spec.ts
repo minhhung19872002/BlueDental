@@ -68,7 +68,8 @@ test.describe("Đăng ký nghỉ", () => {
     if (other) await deleteStaff(page, other.id);
   });
 
-  test("registers several days off with their own shifts and keeps them after a reload", async () => {
+  // F-90 (BA P0911): the old board — KPIs, ON/OFF, check-in, Đăng ký nghỉ, X cells — is commented out; re-enable with it.
+  test.skip("registers several days off with their own shifts and keeps them after a reload", async () => {
     const page = mePage;
     const month = nextMonth();
     await page.goto("/calendar?tab=timekeeping&workSchedule=builder");
@@ -140,7 +141,8 @@ test.describe("Đăng ký nghỉ", () => {
     }
   });
 
-  test("past days cannot be picked", async () => {
+  // F-90 (BA P0911): the old board — KPIs, ON/OFF, check-in, Đăng ký nghỉ, X cells — is commented out; re-enable with it.
+  test.skip("past days cannot be picked", async () => {
     const page = mePage;
     await page.goto("/calendar?tab=timekeeping&workSchedule=builder");
     await leaveButton(page, me.fullName).click();

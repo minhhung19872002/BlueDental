@@ -152,7 +152,8 @@ test.describe("Lịch làm việc — chỉ đánh X của chính mình", () => 
     expect(today.morningShift.checkedInAt).not.toBeNull();
   });
 
-  test("UI: only my own empty cells click to X, the X survives a reload", async ({ page }) => {
+  // F-90 (BA P0911): the old board — KPIs, ON/OFF, check-in, Đăng ký nghỉ, X cells — is commented out; re-enable with it.
+  test.skip("UI: only my own empty cells click to X, the X survives a reload", async ({ page }) => {
     const today = clinicToday();
     const tomorrow = shiftDays(today, 1);
     await clockInToday(page, branchId, me.id);

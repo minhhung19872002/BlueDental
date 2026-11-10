@@ -52,7 +52,8 @@ test.describe("Chấm công", () => {
     await login(page);
   });
 
-  test("the work schedule board loads its KPIs from the real API", async ({ page }) => {
+  // F-90 (BA P0911): the old board — KPIs, ON/OFF, check-in, Đăng ký nghỉ, X cells — is commented out; re-enable with it.
+  test.skip("the work schedule board loads its KPIs from the real API", async ({ page }) => {
     await page.goto("/calendar?tab=timekeeping");
     await assertRealApiTraffic(page, "/api/v1/app/time-keepings/summary");
 
@@ -85,7 +86,8 @@ test.describe("Chấm công", () => {
     );
   });
 
-  test("OFF/ON is a read-only status, and check-in is only offered on the current day", async ({ page }) => {
+  // F-90 (BA P0911): the old board — KPIs, ON/OFF, check-in, Đăng ký nghỉ, X cells — is commented out; re-enable with it.
+  test.skip("OFF/ON is a read-only status, and check-in is only offered on the current day", async ({ page }) => {
     // BA 2026-10-02: nobody flips OFF/ON by hand, and no manager override —
     // even admin cannot clock any day other than today.
     await page.goto(`/calendar?tab=timekeeping&date=${freshWorkDate()}`);
@@ -104,7 +106,8 @@ test.describe("Chấm công", () => {
     }
   });
 
-  test("today: checking in on the progress bar turns the card ON, and it survives a reload", async ({ page }) => {
+  // F-90 (BA P0911): the old board — KPIs, ON/OFF, check-in, Đăng ký nghỉ, X cells — is commented out; re-enable with it.
+  test.skip("today: checking in on the progress bar turns the card ON, and it survives a reload", async ({ page }) => {
     const branchId = await firstBranchId(page);
     const run = `${runId()}${test.info().workerIndex}`;
     // The morning shift opened at midnight, so it is already due whenever this runs.
@@ -149,7 +152,8 @@ test.describe("Chấm công", () => {
     }
   });
 
-  test("today: a shift not yet due stays neutral, not OFF", async ({ page }) => {
+  // F-90 (BA P0911): the old board — KPIs, ON/OFF, check-in, Đăng ký nghỉ, X cells — is commented out; re-enable with it.
+  test.skip("today: a shift not yet due stays neutral, not OFF", async ({ page }) => {
     test.skip(localMinuteOfDay() >= 23 * 60 + 55, "the shift below starts at 23:56");
     const branchId = await firstBranchId(page);
     const run = `${runId()}${test.info().workerIndex}n`;

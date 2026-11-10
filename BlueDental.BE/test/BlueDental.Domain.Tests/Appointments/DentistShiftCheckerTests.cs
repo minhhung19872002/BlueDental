@@ -156,4 +156,16 @@ public class DentistShiftCheckerTests
 
         Assert.False(DentistShiftChecker.Fits(windows, At(8, 0), At(8, 0).AddDays(1)));
     }
+
+    [Theory]
+    [InlineData(WorkScheduleShift.Morning, "08:00-12:00")]
+    [InlineData(WorkScheduleShift.Afternoon, "13:00-17:00")]
+    [InlineData(WorkScheduleShift.FullDay, "08:00-12:00, 13:00-17:00")]
+    public void A_Scheduled_Half_Day_Only_Opens_That_Half(WorkScheduleShift shift, string expected)
+    {
+        // F-90 Lịch làm việc: S = sáng, C = chiều, SC = cả ngày.
+        var record = Record().ScheduleShift(shift);
+
+        Assert.Equal(expected, DentistShiftChecker.Describe(DentistShiftChecker.WorkingWindows(record)));
+    }
 }

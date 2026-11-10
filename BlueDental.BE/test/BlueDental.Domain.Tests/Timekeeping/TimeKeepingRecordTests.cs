@@ -299,4 +299,93 @@ public class TimeKeepingRecordTests
         Assert.Null(record.LeaveStart);
         Assert.Null(record.LeaveReason);
     }
+
+    [Theory]
+    [InlineData(WorkScheduleShift.Morning)]
+    [InlineData(WorkScheduleShift.Afternoon)]
+    [InlineData(WorkScheduleShift.FullDay)]
+    public void Scheduling_A_Shift_Registers_The_Day_As_Working(WorkScheduleShift shift)
+    {
+        var record = OpenDay();
+
+        record.ScheduleShift(shift);
+
+        Assert.Equal(WorkRegistration.Working, record.Registration);
+        Assert.Equal(shift, record.ScheduledShift);
+        Assert.Equal(shift, record.CurrentScheduledShift);
+    }
+
+    [Fact]
+    public void Scheduling_None_Clears_The_Day_Back_To_Not_Registered()
+    {
+        var record = OpenDay();
+        record.ScheduleShift(WorkScheduleShift.Morning);
+
+        record.ScheduleShift(WorkScheduleShift.None);
+
+        Assert.Equal(WorkRegistration.NotRegistered, record.Registration);
+        Assert.Null(record.ScheduledShift);
+        Assert.Equal(WorkScheduleShift.None, record.CurrentScheduledShift);
+    }
+
+    [Fact]
+    public void Scheduling_Over_A_Day_Off_Drops_The_Leave()
+    {
+        var record = OpenDay();
+        record.RegisterDayOff("Việc gia đình");
+
+        record.ScheduleShift(WorkScheduleShift.Afternoon);
+
+        Assert.Equal(AttendanceStatus.NotStarted, record.Status);
+        Assert.Null(record.LeaveReason);
+        Assert.Equal(WorkScheduleShift.Afternoon, record.CurrentScheduledShift);
+    }
+
+    [Fact]
+    public void A_Legacy_Working_Day_Reads_As_Full_Day_And_A_Day_Off_As_None()
+    {
+        var working = OpenDay();
+        working.RegisterWorking();
+        Assert.Equal(WorkScheduleShift.FullDay, working.CurrentScheduledShift);
+
+        var dayOff = OpenDay();
+        dayOff.RegisterDayOff();
+        Assert.Equal(WorkScheduleShift.None, dayOff.CurrentScheduledShift);
+    }
+
+    [Fact]
+    public void Re_Registering_Through_The_Old_Paths_Forgets_The_Scheduled_Shift()
+    {
+        var record = OpenDay();
+        record.ScheduleShift(WorkScheduleShift.Morning);
+
+        record.RegisterWorking();
+
+        Assert.Null(record.ScheduledShift);
+        Assert.Equal(WorkScheduleShift.FullDay, record.CurrentScheduledShift);
+    }
+
+    [Fact]
+    public void A_Day_With_Attendance_Cannot_Be_Rescheduled()
+    {
+        var record = OpenDay();
+        record.RegisterWorking();
+        record.CheckIn(WorkShiftKind.Morning, At(8));
+
+        Assert.Throws<BusinessException>(() => record.ScheduleShift(WorkScheduleShift.Afternoon));
+    }
+
+    [Theory]
+    [InlineData(1, WorkScheduleShift.FullDay, WorkScheduleShift.Morning, true)]
+    [InlineData(1, WorkScheduleShift.Morning, WorkScheduleShift.None, true)]
+    [InlineData(1, WorkScheduleShift.None, WorkScheduleShift.FullDay, false)]
+    [InlineData(1, WorkScheduleShift.Afternoon, WorkScheduleShift.Afternoon, false)]
+    [InlineData(2, WorkScheduleShift.FullDay, WorkScheduleShift.None, false)]
+    public void Only_Changing_Or_Cancelling_A_Saved_Shift_For_Tomorrow_Is_Logged(
+        int daysAhead, WorkScheduleShift from, WorkScheduleShift to, bool logged)
+    {
+        var today = new DateOnly(2026, 11, 10);
+
+        Assert.Equal(logged, WorkScheduleChangeLog.IsLateChange(today, today.AddDays(daysAhead), from, to));
+    }
 }

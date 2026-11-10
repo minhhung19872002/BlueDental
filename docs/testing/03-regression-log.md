@@ -14481,3 +14481,45 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Spec mới `convert-line-lock.spec.ts`: tạo BN + phiếu + công đoạn qua API, Chuyển đổi → Dịch vụ cũ; sửa nội dung / Ghi chú / hoàn thành / tiếp tục / tạo mới đều 4xx `0066`; đọc lại bằng request riêng: không đổi, vẫn 1 công đoạn; UI: tab TIẾP TỤC CÔNG ĐOẠN = 0, hàng khoá có chữ, không bút, Hoàn thành disabled, không Tải ảnh / Tạo Labo, Xóa công đoạn còn và xoá được (GET sau đó 404). 1/1 xanh.
   - Hồi quy: labo-api, labo-workflow, plan-warranty-api, stage-date-lock(-api), stage-remark, treatment-stage(-chain), warranty-stage-api — 52/52 xanh. BE build sạch.
 - **Mức retest**: 2 (công đoạn + Labo + ảnh công đoạn của cùng feature điều trị).
+
+## R-1187 (2026-11-10, mức 3: Lịch làm việc — bảng đăng ký ca mới thay bảng chấm công, F-90, main + develop)
+
+- **Yêu cầu** (BA P0911: drawio + prototype HTML; chủ dự án chốt 6 điểm ngày 2026-11-10): thay hoàn toàn tab "Lịch làm việc".
+  - Mỗi người đăng ký S / C / SC theo ngày.
+  - Xem "Theo team" hoặc "Từng bác sĩ / nhân viên", vẽ bằng cọ rồi "Lưu lịch" qua hộp xác nhận.
+  - Chấm công (vào ca, ra ca, ON/OFF, KPI, Đăng ký nghỉ) bị comment lại.
+  - Ngày "Chưa đăng ký" vẫn nhận lịch hẹn theo giờ trong hồ sơ.
+  - Hôm nay và ngày đã qua bị khoá. Đổi hoặc huỷ ca đã lưu của ngày mai thì ghi log, chỉ lưu DB.
+  - Bỏ qua team lồng team.
+  - Phạm vi: thành viên Phòng ban thấy cả phòng; "Chưa phân nhóm" chỉ admin, trưởng gốc và chính người đó thấy; admin thấy và sửa tất cả.
+  - Quyền "Điểm danh NV khác" đổi tên thành "Quản lý lịch làm việc".
+- **Sửa**:
+  - BE:
+    - `WorkScheduleShift` và cột `ScheduledShift` trên `bd_time_keeping_records`.
+    - Bảng `bd_work_schedule_change_logs`, migration `20261110013921_WorkScheduleBoardF90`.
+    - `GET /work-schedules`, `POST /work-schedules/save`.
+    - `OrgChartScope.WorkScheduleReachOf`.
+    - `DentistShiftChecker`: S/C chỉ mở ca đó.
+    - Bước no-show cuối ngày bị comment lại.
+    - Lỗi `Timekeeping:0018` (ngày khoá, từ chối cả lô, admin cũng vậy) và `0019` (không được sửa người này).
+  - FE: `features/timekeeping/components/work-schedule/*`, hooks draft/paint/filters, `work-schedule.css`. Khoá i18n `Timekeeping:Board:*`.
+- **Lỗi bắt được khi kiểm thử**:
+  - `workScheduleApi.ts` ghép `/api` hai lần, request thành `/api/api/v1` và trả 404.
+  - Người không có vai trò hiện "· 1 công"; thêm khoá `Timekeeping:Board:Units`.
+- **Kiểm thử**: host riêng :5190 (build vào scratchpad, không đụng :5000) và `vite preview` :8095, đăng nhập thật, không chặn request.
+  - Spec mới `e2e/work-schedule-board.spec.ts`: **4/4**. Gồm phạm vi nhìn và canEdit, lưu và đọc lại, log (đọc thẳng DB: đúng 2 dòng cho ngày mai), khoá hôm nay/hôm qua, `0019`, cách ly chi nhánh `0016`, giao diện vẽ → xác nhận → reload, ô khoá và ô chỉ đọc.
+  - Spec cũ: 13 xanh. 7 test giao diện bảng cũ (`timekeeping` ×4, `timekeeping-leave` ×2, `work-schedule-own-dayoff` ×1) chuyển `test.skip`, có ghi chú bật lại cùng chấm công.
+  - Domain 97/97. tsc và eslint sạch.
+- **Hệ quả còn mở**:
+  - Bảng lương đếm ngày công theo lần vào ca, nay không còn ai vào ca.
+  - Bản ghi DayOff cũ vẫn chặn đặt lịch dù bảng hiện "Chưa đăng ký".
+- **Mức retest**: 3, vì đụng phạm vi sơ đồ tổ chức và `DentistShiftChecker`. Chưa chạy toàn bộ `appointment*` / `reception*`.
+
+## R-1188 (2026-11-10, mức 1: Nhân sự — ẩn tab "Bảng lương", F-57 / F-90, main + develop)
+
+- **Yêu cầu** (chủ dự án, 2026-11-10, sau R-1187): tạm ẩn tab Bảng lương trên giao diện. Lý do: bảng lương đếm ngày công theo lần vào ca, mà chấm công đã bị comment lại, nên số liệu sẽ sai.
+- **Chủ dự án chốt hai hệ quả còn mở của R-1187**: (2) bản ghi DayOff cũ vẫn chặn đặt lịch, giữ nguyên; (3) bước "nghỉ ngang" cuối ngày comment lại, giữ nguyên.
+- **Sửa** (chỉ FE): `StaffTabBar.tsx` comment lại tab `payroll` cùng `useAbility("payroll")`, ghi chú bật lại cùng chấm công.
+  - Route `/staff/payroll`, quyền và BE giữ nguyên. Gõ thẳng URL vẫn mở được trang.
+- **Kiểm thử**: tsc và eslint sạch. Bản build production trên stack riêng :5190/:8095, admin đăng nhập thật: thanh tab `/staff` còn "Danh sách nhân viên / Sơ đồ tổ chức / Chế tài". Không spec nào bấm tab này (`payroll.spec` mở thẳng URL).
+- **Mức retest**: 1.

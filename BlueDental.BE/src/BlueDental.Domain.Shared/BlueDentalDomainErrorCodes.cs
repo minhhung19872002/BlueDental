@@ -665,6 +665,8 @@ public static class BlueDentalDomainErrorCodes
         public const string LeaveDaysRequired = "BlueDental:Timekeeping:0015";
         public const string StaffNotInBranch = "BlueDental:Timekeeping:0016";
         public const string LeaveInPast = "BlueDental:Timekeeping:0017";
+        public const string ScheduleDayLocked = "BlueDental:Timekeeping:0018";
+        public const string ScheduleNotEditable = "BlueDental:Timekeeping:0019";
     }
 
     public static class CustomerCare

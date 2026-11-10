@@ -7527,6 +7527,9 @@ namespace BlueDental.Migrations
                     b.Property<short>("Registration")
                         .HasColumnType("smallint");
 
+                    b.Property<short?>("ScheduledShift")
+                        .HasColumnType("smallint");
+
                     b.Property<Guid>("StaffId")
                         .HasColumnType("uuid");
 
@@ -7544,6 +7547,41 @@ namespace BlueDental.Migrations
                     b.HasIndex("ClinicBranchId", "WorkDate", "Status");
 
                     b.ToTable("bd_time_keeping_records", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.Timekeeping.WorkScheduleChangeLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<short>("FromShift")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("StaffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("ToShift")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateOnly>("WorkDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId", "WorkDate", "StaffId");
+
+                    b.ToTable("bd_work_schedule_change_logs", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.Tools.CallAssignment", b =>

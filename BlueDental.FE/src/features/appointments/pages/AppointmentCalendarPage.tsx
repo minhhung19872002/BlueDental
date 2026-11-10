@@ -21,9 +21,12 @@ import { TempAppointmentEditorModal } from "../components/TempAppointmentEditorM
 import { TemporaryRecordDialog } from "../components/TemporaryRecordDialog";
 import { CalendarFabs } from "../components/CalendarFabs";
 import { CalendarControlPanel } from "../components/CalendarControlPanel";
-import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
-import { TimekeepingSummaryChips } from "@/features/timekeeping/components/TimekeepingSummaryChips";
-import { WorkScheduleBuilder } from "@/features/timekeeping/components/WorkScheduleBuilder";
+// F-90 (BA P0911): Chấm công (ON/OFF, check-in/out, KPI chips) and the old
+// work-schedule builder are switched off — the tab is the new Lịch làm việc board.
+// import { TimekeepingBoard } from "@/features/timekeeping/components/TimekeepingBoard";
+// import { TimekeepingSummaryChips } from "@/features/timekeeping/components/TimekeepingSummaryChips";
+// import { WorkScheduleBuilder } from "@/features/timekeeping/components/WorkScheduleBuilder";
+import { WorkScheduleBoard } from "@/features/timekeeping/components/work-schedule/WorkScheduleBoard";
 import { useAbility } from "@/hooks/useAbility";
 import { useCalendarState } from "../hooks/useCalendarState";
 import { useCalendarFilters } from "../hooks/useCalendarFilters";
@@ -222,9 +225,11 @@ export function AppointmentCalendarPage() {
         onToggle={filters.toggleStatus}
       />
     );
-  } else if (state.workSchedule !== "builder") {
-    tabExtra = <TimekeepingSummaryChips workDate={state.currentDate.format("YYYY-MM-DD")} />;
   }
+  // F-90: Chấm công KPI chips switched off.
+  // else if (state.workSchedule !== "builder") {
+  //   tabExtra = <TimekeepingSummaryChips workDate={state.currentDate.format("YYYY-MM-DD")} />;
+  // }
 
   return (
     <>
@@ -350,19 +355,9 @@ export function AppointmentCalendarPage() {
               />
             )}
           </div>
-        ) : state.workSchedule === "builder" ? (
-          <WorkScheduleBuilder
-            currentDate={state.currentDate}
-            onBack={() => state.setWorkSchedule(null)}
-          />
         ) : (
-          <TimekeepingBoard
-            currentDate={state.currentDate}
-            viewMode={state.viewMode}
-            onViewModeChange={state.setViewMode}
-            onDateChange={(d) => state.setCurrentDate(() => d)}
-            onOpenBuilder={() => state.setWorkSchedule("builder")}
-          />
+          // F-90: was WorkScheduleBuilder (?workSchedule=builder) / TimekeepingBoard.
+          <WorkScheduleBoard initialDate={state.currentDate} />
         )}
       </div>
 

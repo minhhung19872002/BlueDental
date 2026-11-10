@@ -30,6 +30,20 @@ public sealed record SlipScope(IReadOnlySet<Guid> Staff, bool ShowsLineMoney = t
 }
 
 /// <summary>
+/// Whom a viewer reaches on the Lịch làm việc board (F-90): <paramref name="Visible"/>
+/// shows, <paramref name="Managed"/> they may change on behalf of others.
+/// A null set means everyone.
+/// </summary>
+public sealed record WorkScheduleReach(IReadOnlySet<Guid>? Visible, IReadOnlySet<Guid>? Managed)
+{
+    public static readonly WorkScheduleReach Everyone = new(null, null);
+
+    public bool Sees(Guid staffId) => Visible is null || Visible.Contains(staffId);
+
+    public bool Manages(Guid staffId) => Managed is null || Managed.Contains(staffId);
+}
+
+/// <summary>
 /// Whose Lịch làm việc / Chấm công a user may see, from the org chart (BA
 /// 2026-10-10):
 /// <list type="bullet">
@@ -147,6 +161,63 @@ public static class OrgChartScope
         return VisibleStaff(viewerId, viewerIsDentist, units, members) is { } staff
             ? new SlipScope(staff)
             : null;
+    }
+
+    /// <summary>
+    /// Who shows on the new Lịch làm việc board, and whose days a head may
+    /// change there (BA P0911, F-90):
+    /// <list type="bullet">
+    /// <item>an admin or the head of the root (Giám đốc) → everyone, both ways;</item>
+    /// <item>the head of a Phòng ban or Team → every member and sub-head of that
+    /// unit and of the units under it, both seen and managed;</item>
+    /// <item>a member of a Phòng ban → also everyone in that Phòng ban, its head
+    /// included, seen but not managed;</item>
+    /// <item>a member of a Team, of the root itself or of no unit → only themselves.</item>
+    /// </list>
+    /// Managing others still needs the "Quản lý lịch làm việc" permission; the
+    /// scope only says whom it reaches.
+    /// </summary>
+    public static WorkScheduleReach WorkScheduleReachOf(
+        Guid viewerId,
+        bool viewerIsAdmin,
+        IReadOnlyCollection<OrgScopeUnit> units,
+        IReadOnlyCollection<(Guid OrgUnitId, Guid StaffId)> members)
+    {
+        var headed = units.Where(u => u.HeadStaffId == viewerId).ToList();
+        if (viewerIsAdmin || headed.Any(u => u.Kind == OrgUnitKind.Root))
+        {
+            return WorkScheduleReach.Everyone;
+        }
+
+        var managed = new HashSet<Guid>();
+        foreach (var unit in headed)
+        {
+            var subtree = Subtree(unit.Id, units);
+            managed.UnionWith(members.Where(m => subtree.Contains(m.OrgUnitId)).Select(m => m.StaffId));
+            managed.UnionWith(units
+                .Where(u => subtree.Contains(u.Id) && u.HeadStaffId is not null)
+                .Select(u => u.HeadStaffId!.Value));
+        }
+
+        managed.Remove(viewerId);
+
+        var visible = new HashSet<Guid>(managed) { viewerId };
+        var ownDepartments = members
+            .Where(m => m.StaffId == viewerId)
+            .Select(m => units.FirstOrDefault(u => u.Id == m.OrgUnitId))
+            .Where(u => u?.Kind == OrgUnitKind.Department)
+            .Select(u => u!)
+            .ToList();
+        foreach (var department in ownDepartments)
+        {
+            visible.UnionWith(members.Where(m => m.OrgUnitId == department.Id).Select(m => m.StaffId));
+            if (department.HeadStaffId is { } head)
+            {
+                visible.Add(head);
+            }
+        }
+
+        return new WorkScheduleReach(visible, managed);
     }
 
     /// <summary>The unit and every unit below it.</summary>
