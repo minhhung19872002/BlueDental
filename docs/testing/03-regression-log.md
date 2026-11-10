@@ -14585,3 +14585,21 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa** (chỉ FE): `utils/workScheduleOrder.ts` `viewerFirst(groups, viewerId)` — nhóm của người xem lên đầu, người xem lên đầu nhóm (trên cả trưởng phòng), các nhóm/người khác giữ thứ tự API. `WorkScheduleBoard` áp dụng trước bộ lọc, nên cả "Theo team", danh sách trái "Từng bác sĩ / nhân viên" (chọn sẵn chính mình) và dropdown team đều theo thứ tự này.
 - **Kiểm thử**: `e2e/work-schedule-board.spec.ts` thêm 1 test UI; cả spec 5/5 xanh trên host :5190 + `vite preview` :8095, đăng nhập thật, không chặn request.
 - **Mức retest**: 2.
+
+## R-1193 (2026-11-10, mức 2: Tiếp nhận — bác sĩ không bấm được "Đã đến" / "Đang khám")
+
+- **Yêu cầu** (Huỳnh Văn Định, ảnh chat 2026-11-10): "Vai trò bác sĩ, khóa lại 2 mục này nhe" — khoanh đỏ 2 bước "Đã đến" và "Đang khám" trên thẻ Tiếp nhận.
+- **Chủ dự án chốt** (2026-11-10):
+  - "Bác sĩ" = tick "Bác sĩ" trên form nhân viên (`isDentist`), không theo tên vai trò; admin (role `admin`) được miễn.
+  - Khoá cả bấm tới lẫn bấm huỷ của 2 bước. "Hoàn tất" (và huỷ Hoàn tất) bác sĩ vẫn bấm.
+  - Nút kết quả "Chuyển bác sĩ" / "Kết thúc điều trị" (tự đẩy bước) để nguyên.
+  - "chỉ cần khóa ở FE": **không** thêm luật server — bác sĩ có quyền Lịch hẹn "Sửa" vẫn gọi API được.
+- **Sửa (chỉ FE + 1 key localization)**:
+  - `src/hooks/useDeskStepsLock.ts` (mới, dùng chung 2 feature): `deskStepsLocked = isDentist && !roles.includes("admin")`.
+  - `receptionSteps.ts`: `StepView.deskOnly` trên bước 1–2; `isDeskLocked(step, command, locked)`. `ReceptionCardSteps` cắt lệnh của bước bị khoá (nút disabled, không còn vòng huỷ) và gắn tooltip `Reception:DeskStepLockedHint` ("Bước này do lễ tân thao tác"). `ReceptionPage` → `ReceptionCard` → `ReceptionCardSteps` truyền cờ.
+  - Thanh bước trong hồ sơ bệnh nhân (`ReceptionSteps.tsx`): bước 1–2 khoá như trên, cùng tooltip.
+  - `vi.json` / `en.json`: thêm `Reception:DeskStepLockedHint` — deploy cần build lại BE để tooltip có chữ.
+- **Kiểm thử** (host riêng :5152 + `vite preview` :8193 từ working tree, đăng nhập thật, không chặn request):
+  - `e2e/reception-desk-steps-lock.spec.ts` (mới): cùng một role (Tiếp nhận + Lịch hẹn Xem/Sửa, Hồ sơ Xem), một tài khoản tick "Bác sĩ" và một không tick. Bác sĩ: "Đã đến" khoá khi đã hẹn; sau khi lễ tân bấm Đã đến (qua UI) thì cả "Đã đến" (huỷ) lẫn "Đang khám" khoá, không còn nút huỷ; thanh bước ở hồ sơ cũng khoá "Đang khám". Lễ tân bấm "Đang khám" (qua UI). Bác sĩ bấm "Hoàn tất" được; đọc lại API: checkedInAt / startedAt / completedAt đều lưu → **xanh**.
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (Tiếp nhận + thanh bước hồ sơ). Thêm `useDeskStepsLock.ts` vào `02-impact-map.md`.

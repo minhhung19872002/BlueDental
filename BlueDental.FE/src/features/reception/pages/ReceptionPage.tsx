@@ -42,6 +42,7 @@ import { t } from "@/lib/i18n";
 import { useBranchFilter } from "@/lib/clinicBranch";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAbility } from "@/hooks/useAbility";
+import { useDeskStepsLock } from "@/hooks/useDeskStepsLock";
 import type {
   ReceptionStatus,
   ReceptionFilter,
@@ -75,6 +76,7 @@ export const ReceptionPage: React.FC = () => {
   const branchId = useBranchFilter();
   const ability = useAbility("reception");
   const patientAbility = useAbility("patient");
+  const { deskStepsLocked } = useDeskStepsLock();
   const debouncedKeyword = useDebounce(keyword);
   const { data: doctors = [], isSuccess: doctorsLoaded } = useReceptionDoctors(branchId);
   const rankedDoctorIds = useMemo(
@@ -323,6 +325,7 @@ export const ReceptionPage: React.FC = () => {
                   busy={busyCards.has(item.id)}
                   patientTab={patientTab}
                   canEditTags={patientAbility.canUpdate}
+                  deskStepsLocked={deskStepsLocked}
                   onStatusChange={ability.canUpdate ? handleStatusChange : undefined}
                   onCancel={ability.canUpdate ? handleCancel : undefined}
                   onFlagChange={ability.canUpdate ? handleFlagChange : undefined}

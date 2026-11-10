@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { extractApiError } from "@/lib/apiError";
 import { notifyError } from "@/lib/notify";
 import { t } from "@/lib/i18n";
+import { useDeskStepsLock } from "@/hooks/useDeskStepsLock";
 import { formatClock } from "@/utils/format";
 import { RECEPTION_FLOW, SERVER_STATUS } from "@/features/appointments/api/appointmentAdapters";
 import type { Appointment } from "@/features/appointments/types/appointment";
@@ -67,7 +68,11 @@ function isToday(_instant: string): boolean {
   return true;
 }
 
+/** "Đã đến" and "Đang khám": the front desk's steps, never a doctor's (R-1193). */
+const DESK_STEPS = 2;
+
 export function ReceptionSteps({ appointment, onAdvanced }: Props) {
+  const { deskStepsLocked } = useDeskStepsLock();
   const advanceReception = useAdvanceReception();
   const busy = advanceReception.isPending;
   const reached = reachedUpTo(appointment.statusCode);
@@ -98,13 +103,16 @@ export function ReceptionSteps({ appointment, onAdvanced }: Props) {
         const done = reached >= index + 1;
         // Only the step immediately after the one reached is live — and a
         // booking is received on its own day only (bug list item 25).
-        const next = reached === index && (index > 0 || isToday(appointment.startTime));
+        const live = reached === index && (index > 0 || isToday(appointment.startTime));
+        const deskLocked = live && deskStepsLocked && index < DESK_STEPS;
+        const next = live && !deskLocked;
 
         return (
           <li key={label} data-step={index + 1} className={done ? "reached" : undefined}>
             <button
               type="button"
               disabled={!next || busy}
+              title={deskLocked ? t("Reception:DeskStepLockedHint") : undefined}
               aria-current={next ? "step" : undefined}
               onClick={() => void advance(index)}
             >

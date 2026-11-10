@@ -40,6 +40,8 @@ interface ReceptionCardProps {
   patientTab?: PatientLinkTab;
   /** Whether the 🏷 button shows — ticking a tag edits the patient's record. */
   canEditTags?: boolean;
+  /** A doctor's board: "Đã đến" and "Đang khám" are the front desk's (R-1193). */
+  deskStepsLocked?: boolean;
   onOutcomeChange?: (id: string, outcome: AppointmentOutcome) => void;
   onDoctorChange?: (id: string, doctorId: string) => void;
   onStatusChange?: (id: string, action: StatusAction) => void;
@@ -126,6 +128,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
   busy = false,
   patientTab = "profile",
   canEditTags = false,
+  deskStepsLocked = false,
   onOutcomeChange,
   onDoctorChange,
   onStatusChange,
@@ -313,6 +316,7 @@ export const ReceptionCard: React.FC<ReceptionCardProps> = ({
               <ReceptionCardSteps
                 item={item}
                 canAdvance={!isCancelled && !awaitsItsDay}
+                deskStepsLocked={deskStepsLocked}
                 wait={wait}
                 onAdvance={(action) => onStatusChange?.(item.id, action)}
               />
