@@ -14644,6 +14644,22 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Deploy**: build lại BE, chạy DbMigrator (seed quyền mới), xoá cache Redis `*PermissionGrant*`. Sau đó tick "Nghe chuông tin nhắn Zalo" cho role "Phòng tiếp nhận".
 - **Mức retest**: 3 (`chime.ts`, `AppLayout`). Thêm vào `02-impact-map.md`.
 
+## R-1195 (2026-11-10, mức 2: Bệnh án mẫu 2 — "+ Gia đình" thôi in người giám hộ, F-30)
+
+- **Yêu cầu** (phòng khám, ảnh chat, 2026-11-10): "Tiền sử bệnh: Ai Ai cho cái này vào vậy?" — ô "+ Gia đình" in `Mẹ - {Họ tên} - {SĐT}`.
+- **Nguyên nhân**: R-963 (P1610_01, 2026-10-16) map "+ Gia đình" ← người giám hộ chính; R-1181 giữ nguyên. Nhưng "Tiền sử bệnh → Gia đình" là tiền sử bệnh của người trong gia đình, không phải thông tin liên lạc người thân. Hồ sơ không có trường nào lưu điều này.
+- **Sửa** (FE only):
+  - `fieldValues.ts`: `outpatient-dental.text.23` luôn có sẵn `Chưa phát hiện gì bất thường` (ô trống có giá trị sẵn, bác sĩ ghi đè được, giống "+ Bản thân" khi hồ sơ trống). Bỏ fact `patient.guardian`.
+  - `useSheetFieldValues.ts`: bỏ `guardianLine` (không còn chỗ nào dùng). `primaryGuardian` vẫn dùng cho tên người giám hộ của bệnh nhân dưới 18 tuổi ở mẫu 10 (R-1079).
+  - Phiếu đã lưu: ô này nếu chưa ai sửa thì không được lưu (chỉ lưu phần khác giá trị tự điền), nên giờ hiện `Chưa phát hiện gì bất thường`. Phiếu mà người dùng đã gõ vào ô này thì giữ nguyên chữ đã lưu.
+  - BE `GET medical-records/phones` vẫn trả `guardianPhones`; FE không còn đọc. Để nguyên, không đổi API.
+- **Kiểm thử** (API :5000 + bản build production preview riêng :8091, không chặn request):
+  - `patient-medical-record.spec` "the record's address and diagnoses reach every form…": ô Gia đình = `Chưa phát hiện gì bất thường` dù hồ sơ có người giám hộ → **xanh**.
+  - `patient-hide-phone.spec` "the Bệnh án sheets print the whole numbers…": bỏ khẳng định SĐT giám hộ in ra; thêm: ô Gia đình = câu mặc định, SĐT giám hộ không có trên tờ (cả nguyên lẫn che) → **5/5 xanh**.
+  - 4 spec bệnh án: **42 pass / 4 đỏ**. 3 ca đỏ có sẵn (như R-1181). Thêm `medical-record-sheet-facts:171`: `discountAmount` của phiếu từ API = 0, câu kiểm tra nằm trước khi đọc tờ nên không liên quan.
+  - tsc + eslint sạch.
+- **Mức retest**: 2.
+
 ## R-1196 (2026-11-10, mức 1: Bệnh án mẫu 2 — ô "2. Tự đến" rớt xuống dòng, F-30)
 
 - **Lỗi** (phòng khám, 2026-11-10): dòng "13. Chẩn đoán và xử lý của nơi giới thiệu: … 1. Y tế ☐ 2. Tự đến ☐" — ô tick "Tự đến" rớt xuống dòng riêng sau khi mẫu 2 lên 14px (R-1190).

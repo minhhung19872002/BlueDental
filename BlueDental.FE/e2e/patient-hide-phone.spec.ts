@@ -354,8 +354,11 @@ test.describe("Ẩn số điện thoại", () => {
         .click();
       const sheet = masked.page.frameLocator(".mr-doc-frame");
       await expect(sheet.locator('[data-medical-record-field="outpatient.patient.phone"]')).toHaveText(record.phoneNumber);
-      await expect(sheet.locator('[data-medical-record-field="outpatient-dental.text.23"]')).toContainText(guardianPhone);
       await expect(sheet.getByText(mask(record.phoneNumber))).toHaveCount(0);
+      // "+ Gia đình" is the family's illnesses: the guardian is not printed, whole or masked (R-1195).
+      await expect(sheet.locator('[data-medical-record-field="outpatient-dental.text.23"]')).toHaveText("Chưa phát hiện gì bất thường");
+      await expect(sheet.getByText(guardianPhone)).toHaveCount(0);
+      await expect(sheet.getByText(mask(guardianPhone))).toHaveCount(0);
 
       // Without Bệnh án the whole numbers are not there to read.
       await setGrants(page, fixture.roleName, ["BlueDental.patientMedicalRecord.read"], false);
