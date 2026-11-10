@@ -20,6 +20,7 @@ export type AbilityAction =
   | "transfer"
   | "hidePhone"
   | "attendanceOthers"
+  | "notify"
   | "manage";
 
 /** `BlueDental.<subject>.<action>` — the permission name the server checks. */

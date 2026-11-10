@@ -247,6 +247,12 @@ public static class BlueDentalAbilityPermissions
         public const string Subject = "cskhInbox";
         public const string Read = "BlueDental.cskhInbox.read";
         public const string Update = "BlueDental.cskhInbox.update";
+
+        /// <summary>
+        /// BlueDental-local: "Nghe chuông tin nhắn Zalo" (R-1194). Reads the inbox
+        /// pulse alone — when a customer last wrote — not the conversations.
+        /// </summary>
+        public const string Notify = "BlueDental.cskhInbox.notify";
     }
 
     /// <summary>Subject <c>helpSupport</c>.</summary>

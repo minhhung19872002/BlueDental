@@ -14,8 +14,13 @@ namespace BlueDental.ZaloInbox;
 [Route("api/v1/app/zalo-inbox")]
 public sealed class ZaloInboxController(
     IZaloInboxAppService inbox,
-    IZaloInboxZnsAppService zns) : BlueDentalController
+    IZaloInboxZnsAppService zns,
+    IZaloInboxPulseAppService pulse) : BlueDentalController
 {
+    /// <summary>"Nghe chuông tin nhắn Zalo" (R-1194): when a customer last wrote, for the ring.</summary>
+    [HttpGet("pulse")]
+    public Task<ZaloInboxPulseDto> GetPulseAsync() => pulse.GetAsync();
+
     [HttpGet("conversations")]
     public Task<ZaloInboxListDto> GetListAsync([FromQuery] GetZaloConversationsInput input) => inbox.GetListAsync(input);
 

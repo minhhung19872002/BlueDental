@@ -14603,3 +14603,43 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `e2e/reception-desk-steps-lock.spec.ts` (mới): cùng một role (Tiếp nhận + Lịch hẹn Xem/Sửa, Hồ sơ Xem), một tài khoản tick "Bác sĩ" và một không tick. Bác sĩ: "Đã đến" khoá khi đã hẹn; sau khi lễ tân bấm Đã đến (qua UI) thì cả "Đã đến" (huỷ) lẫn "Đang khám" khoá, không còn nút huỷ; thanh bước ở hồ sơ cũng khoá "Đang khám". Lễ tân bấm "Đang khám" (qua UI). Bác sĩ bấm "Hoàn tất" được; đọc lại API: checkedInAt / startedAt / completedAt đều lưu → **xanh**.
   - tsc + eslint sạch.
 - **Mức retest**: 2 (Tiếp nhận + thanh bước hồ sơ). Thêm `useDeskStepsLock.ts` vào `02-impact-map.md`.
+
+## R-1194 (2026-11-10, mức 3: Nghe chuông tin nhắn Zalo — F-80, dùng chung `chime.ts` + `AppLayout`)
+
+- **Yêu cầu** (ảnh chat 2026-11-10): lễ tân nghe chuông khi khách nhắn Zalo tới OA; "miễn ở bác sĩ đừng kêu là đc". File âm thanh `public/sounds/tinnhan.mp3` do chủ dự án đưa vào (khác `invite-chime.mp3` của "Bác sĩ mời lên").
+- **Chủ dự án chốt** (2026-11-10):
+  1. Kêu khi khách nhắn ở **bất kỳ** hội thoại nào của chi nhánh đang chọn (không chỉ hội thoại mình giữ).
+  2. Admin giữ quyền và vẫn kêu.
+  3. Nhiều tab trong cùng một trình duyệt chỉ kêu 1 lần.
+  4. Làm trên `main` rồi đưa sang `develop`.
+- **Sửa**:
+  - Quyền mới `BlueDental.cskhInbox.notify` — "Nghe chuông tin nhắn Zalo", lá trong nhóm Hộp thư Zalo của cây phân quyền. Không gán sẵn cho role nào: chủ dự án tick cho "Phòng tiếp nhận". Bác sĩ không có quyền này thì không hỏi API, không kêu.
+  - BE: `ZaloInboxPulseAppService` + `GET /api/v1/app/zalo-inbox/pulse`. Cần `cskhInbox.notify`, kiểm chi nhánh (`BranchAccessChecker`), và chỉ trả `lastCustomerMessageAt` — giờ tin khách mới nhất của chi nhánh, không có nội dung tin, tên hay SĐT. `LastCustomerMessageAt` chỉ đổi khi có tin **đến** (`user_send_*`), nên tin OA / nhân viên gửi (`oa_send_*`) không kêu. Không có migration.
+  - FE:
+    - `useZaloMessageChime` gắn toàn cục trong `AppLayout` qua `ZaloMessageChime`. Hỏi pulse mỗi 10 giây, kể cả khi tab ở nền.
+    - Lần đọc đầu sau khi tải trang hoặc đổi chi nhánh chỉ ghi mốc. Giờ mới hơn thì kêu 1 lần; nhiều tin trong một lượt hỏi vẫn chỉ kêu 1 lần.
+    - "Tất cả chi nhánh" thì không hỏi.
+    - Nhiều tab: `navigator.locks` + localStorage `bd:zalo-message-chime:<branchId>`. Chỉ ghi lại lần kêu đã thực sự phát ra.
+    - `lib/chime.ts` tách thành player theo file (`playChime` / `playMessageChime`), dùng chung trạng thái "đã mở khoá âm thanh".
+    - Thêm 2 key i18n `BE:Perm:CareInboxNotify` vi/en.
+- **Kiểm thử** (host riêng :5194, DB `BlueDental_r1194`, Redis db 7, Zalo stub :5294; `vite preview` :8197 dựng từ working tree; đăng nhập thật, không chặn request; webhook ký thật):
+  - `e2e/zalo-message-chime.spec.ts` (mới) → **2/2 xanh**:
+    - Ca có quyền:
+      - tải trang thì không kêu dù đã có tin cũ;
+      - khách nhắn thì kêu đúng 1 lần `tinnhan.mp3`, không phải chuông mời lên;
+      - 2 tin trong một lượt hỏi kêu 1 lần;
+      - tin OA không kêu;
+      - 2 tab cùng trình duyệt kêu 1 lần.
+    - Bác sĩ không có quyền: 0 request pulse, 0 tiếng kêu; gọi thẳng API bị 403.
+    - Chi nhánh 2 có quyền: gọi pulse của chi nhánh 1 bị 403, của mình thì 200. Pulse chi nhánh 2 không đổi khi chi nhánh 1 có tin.
+  - Thêm `e2e/fixtures/zaloWebhook.ts` (webhook ký, nối/gỡ stub OA) để spec khác dùng lại.
+  - `ZaloInboxAppServiceContractTests` thêm dòng cho pulse (`[Authorize(CskhInbox.Notify)]`).
+  - Hồi quy mức 3 trên cùng stack, `zalo-inbox` + `reception-arrival-call` → **18/23**. 5 đỏ không do R-1194:
+    - 3 ca `reception-arrival-call`: "every dentist was booked at each slot tried" (slot hôm nay trên DB riêng đã bị các lượt trước chiếm).
+    - 1 ca `reception-arrival-call:205`: badge "Khách đã đến" = 2, còn sót bệnh nhân đã đến từ lượt trước. R-1194 không đụng badge.
+    - 1 ca `zalo-inbox:588`: `Patient:0033` — spec tạo hồ sơ thứ hai cùng SĐT mà không chọn quan hệ (luật F-82), cũ từ trước.
+    - Các ca chuông "Mời lên" (cùng `chime.ts`) đều xanh.
+  - tsc + eslint sạch.
+- **Hạn chế**: trình duyệt chặn autoplay khi trang chưa được bấm lần nào. Lần kêu bị chặn thì mất (không phát bù). Tài khoản có Tiếp nhận "Sửa" thấy chuông tắt nhấp nháy ở dock Khách đã đến (R-1145). Tài khoản chỉ có quyền nghe chuông thì không có dấu hiệu này.
+- **Deploy**: build lại BE, chạy DbMigrator (seed quyền mới), xoá cache Redis `*PermissionGrant*`. Sau đó tick "Nghe chuông tin nhắn Zalo" cho role "Phòng tiếp nhận".
+- **Mức retest**: 3 (`chime.ts`, `AppLayout`). Thêm vào `02-impact-map.md`.

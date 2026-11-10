@@ -42,6 +42,8 @@ public static class BlueDentalAbilities
         public const string ReadAll = "readAll";
         /// <summary>BlueDental-local: "Xoá phiếu điều trị" on the Kế hoạch điều trị tab.</summary>
         public const string DeletePlan = "deletePlan";
+        /// <summary>BlueDental-local: "Nghe chuông tin nhắn Zalo" — the account rings when a customer writes (R-1194).</summary>
+        public const string Notify = "notify";
     }
 
     /// <summary>Every subject the reference exposes.</summary>
@@ -184,7 +186,8 @@ public static class BlueDentalAbilities
         ["cskhStats"] = [Actions.Read, Actions.Export],
         // BlueDental-local: CSKH ▸ Hộp thư Zalo (BA P2210, F-80). Update = "Xử lý":
         // take, answer, hand on or let go of a conversation, its tags and notes.
-        ["cskhInbox"] = [Actions.Read, Actions.Update],
+        // Notify = "Nghe chuông tin nhắn Zalo" (R-1194): ring on a customer's new message.
+        ["cskhInbox"] = [Actions.Read, Actions.Update, Actions.Notify],
         ["helpSupport"] = [Actions.Read],
         ["laboBite"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],
         ["laboFinishLine"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete, Actions.Export],

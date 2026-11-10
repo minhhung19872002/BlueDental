@@ -6631,6 +6631,7 @@
     "BE:Perm:CareSendCreate": "Gửi",
     "BE:Perm:CareInbox": "Hộp thư Zalo",
     "BE:Perm:CareInboxHandle": "Xử lý hội thoại",
+    "BE:Perm:CareInboxNotify": "Nghe chuông tin nhắn Zalo",
     "BE:Perm:CareStats": "Thống kê CSKH",
     "BE:Perm:AttendanceOthers": "Quản lý lịch làm việc",
     "BE:Perm:IncomeExpenseMgmt": "Quản lý thu chi",
