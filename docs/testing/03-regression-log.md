@@ -14713,3 +14713,41 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Mở** (chủ dự án chấp nhận tạm):
   - Bước Kiểm tra và Bảo hành vẫn đọc trường cũ ("làm sau").
   - Phiếu mới chưa khoá công đoạn, chưa chặn Hoàn thành dịch vụ, chưa có ô Phiếu Labo trên phiếu điều trị, chưa kích hoạt thẻ bảo hành.
+
+## R-1199 (2026-11-11, mức 3: Labo — Vật liệu & loại phục hình, F-92)
+
+- **Yêu cầu** (BA `P1011.drawio`; chủ dự án trả lời 2026-11-11: "1. đề xuất 2. bỏ luôn cho đồng bộ 3. giữ modal 4. ok"):
+  - Tab "Dịch vụ - vật liệu" đổi tên thành **Vật liệu & loại phục hình**.
+  - Mỗi chi nhánh có đúng 3 nhóm cố định: Toàn sứ / Hợp kim / Phục hình khác trên implant.
+  - Vật liệu có Mã (không trùng trong chi nhánh) và Trạng thái.
+  - Phiếu yêu cầu chia 3 cột; mỗi thẻ hiện tối đa 10 dòng rồi cuộn.
+  - Bỏ cột Phiếu điều trị ở mọi nơi.
+  - DB phải ghi chú được cách mở rộng cho nhà cung cấp khác. Chỉ viết đề xuất: `docs/clone/pages/labo.md` §11.1, khuyên phương án A (mỗi nhà cung cấp một mẫu theo `LaboOrder.Layout`).
+- **Sửa**:
+  - BE:
+    - `LaboMaterialGroups` (TOAN_SU / HOP_KIM / KHAC_TREN_IMPLANT, quy tắc `Accepts`).
+    - `TaxonomyAppService.EnsureFixedGroupsAsync`: dùng chung cho Vật liệu nha khoa; chỉ xét các dòng `IsSystem`.
+    - `LaboMaterial.Code` / `SetActive`.
+    - `PUT labo-materials/{id}/active`.
+    - Tìm kiếm khớp cả Mã.
+    - Lỗi `Labo:0046` / `0047`.
+    - Migration `LaboMaterialCodeP1011`.
+  - FE:
+    - Thêm `LaboMaterialHeader` (tên nhóm + chip mã + gợi ý) và `LaboMaterialTable` (Mã + tên, công tắc Trạng thái, Cập nhật gần nhất, Thao tác).
+    - Không còn nút thêm / sửa / xoá nhóm.
+    - Dialog gồm Mã\*, Tên vật liệu\*, Nhóm vật liệu\*, Trạng thái; bỏ ô Trên implant.
+    - `RestorationSections`: Toàn sứ và Hợp kim có cột thường + cột Trên implant; KHAC một cột, lưu `onImplant: true`; `.rs-rows` tối đa 322px.
+    - Bỏ cột Phiếu điều trị ở `/labo`, tab Labo của hồ sơ và file Excel xuất.
+- **Kiểm thử** (stack riêng: host :5152 + bản build production preview :8098, đăng nhập thật, không chặn request):
+  - `labo-request-slip-api` 10/10.
+  - `labo-request-slip-ui` 7/7.
+  - Spec Labo cũ đã chỉnh vị trí cột: `labo-orders-actions`, `labo-tab-list`, `labo.spec`.
+  - `labo-orders-actions:137`: chập chờn có sẵn, đã xử lý. Hiệu ứng đóng ảnh xem trước của AntD thỉnh thoảng kẹt ở `fade-leave-active` khi chạy headless, và mask đè lên bảng → test tải lại danh sách rồi mới bấm mắt. Lặp 3 lần đều xanh.
+  - Toàn bộ spec Labo 60 xanh / 3 skip (skip có sẵn từ F-91); `taxonomy-dental-material` 2/2.
+  - tsc sạch.
+- **Mức retest**: 3 (seeding taxonomy dùng chung với Vật liệu nha khoa; `LaboAppService` kiểm tra phục hình).
+- **Triển khai**: phải chạy DbMigrator cho `LaboMaterialCodeP1011`.
+- **Mở**:
+  - Vật liệu cũ chưa có Mã cho tới khi được sửa.
+  - Nhóm cũ bị ẩn, không xoá.
+  - Mẫu cho nhà cung cấp khác mới là đề xuất.

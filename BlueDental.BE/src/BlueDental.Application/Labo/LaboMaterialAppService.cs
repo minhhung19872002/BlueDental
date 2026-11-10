@@ -14,7 +14,7 @@ using Volo.Abp.Domain.Repositories;
 namespace BlueDental.Labo;
 
 /// <summary>
-/// Dịch vụ - vật liệu — the right-hand table of /labo/service-material.
+/// Vật liệu & loại phục hình — the right-hand table of /labo/service-material.
 ///
 /// The groups on the left are ordinary taxonomy rows under
 /// <c>TaxonomyGroups.LaboMaterial</c>, served by the taxonomy endpoint; only
@@ -58,7 +58,9 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
 
         foreach (var term in SearchTerms.From(input.Filter))
         {
-            query = query.Where(x => DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)));
+            query = query.Where(x =>
+                DbText.Unaccent(x.Name.ToLower()).Contains(DbText.Unaccent(term)) ||
+                (x.Code != null && x.Code.ToLower().Contains(term)));
         }
 
         var totalCount = query.Count();
@@ -82,13 +84,14 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
             _branchResolver.GetRequiredClinicBranchId());
 
         await GuardGroupAsync(input.TaxonomyId, clinicBranchId);
+        await EnsureCodeFreeAsync(clinicBranchId, input.Code, exceptId: null);
 
         var entity = LaboMaterial.Create(
             GuidGenerator.Create(),
             clinicBranchId,
             input.TaxonomyId,
             input.Name.Trim());
-        entity.SetAllowOnImplant(input.AllowOnImplant);
+        entity.SetCode(input.Code).SetActive(input.IsActive ?? true).SetAllowOnImplant(input.AllowOnImplant ?? false);
 
         await _repository.InsertAsync(entity, autoSave: true);
         return (await MapAsync([entity]))[0];
@@ -100,8 +103,23 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
         var entity = await _repository.GetAsync(id);
         await _branchAccess.CheckAsync(entity.ClinicBranchId);
         await GuardGroupAsync(input.TaxonomyId, entity.ClinicBranchId);
+        await EnsureCodeFreeAsync(entity.ClinicBranchId, input.Code, entity.Id);
 
-        entity.SetDetails(input.TaxonomyId, input.Name.Trim()).SetAllowOnImplant(input.AllowOnImplant);
+        entity.SetDetails(input.TaxonomyId, input.Name.Trim()).SetCode(input.Code);
+        if (input.IsActive.HasValue) entity.SetActive(input.IsActive.Value);
+        if (input.AllowOnImplant.HasValue) entity.SetAllowOnImplant(input.AllowOnImplant.Value);
+
+        await _repository.UpdateAsync(entity, autoSave: true);
+        return (await MapAsync([entity]))[0];
+    }
+
+    [Authorize(BlueDentalPermissions.Catalogs.Edit)]
+    public async Task<LaboMaterialDto> SetActiveAsync(Guid id, SetLaboMaterialActiveDto input)
+    {
+        var entity = await _repository.GetAsync(id);
+        await _branchAccess.CheckAsync(entity.ClinicBranchId);
+
+        entity.SetActive(input.IsActive);
 
         await _repository.UpdateAsync(entity, autoSave: true);
         return (await MapAsync([entity]))[0];
@@ -131,6 +149,31 @@ public class LaboMaterialAppService : ApplicationService, ILaboMaterialAppServic
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Labo.MaterialNeedsGroup,
                 "That classification group does not belong to this branch's labo materials.");
+        }
+    }
+
+    /// <summary>
+    /// One Mã per branch among live materials, compared without regard to case
+    /// or surrounding spaces, so "ts01" cannot sit beside "TS01" (P1011).
+    /// </summary>
+    private async Task EnsureCodeFreeAsync(Guid clinicBranchId, string? code, Guid? exceptId)
+    {
+        var wanted = code?.Trim().ToLower();
+        if (string.IsNullOrEmpty(wanted))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.MaterialCodeRequired);
+        }
+
+        var query = await _repository.GetQueryableAsync();
+        var taken = await AsyncExecuter.AnyAsync(query.Where(x =>
+            x.ClinicBranchId == clinicBranchId &&
+            x.Id != exceptId &&
+            x.Code != null &&
+            x.Code.Trim().ToLower() == wanted));
+        if (taken)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.MaterialCodeTaken)
+                .WithData("code", code!.Trim());
         }
     }
 

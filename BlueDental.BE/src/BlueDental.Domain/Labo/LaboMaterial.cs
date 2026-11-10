@@ -5,7 +5,7 @@ using Volo.Abp.Domain.Entities.Auditing;
 namespace BlueDental.Labo;
 
 /// <summary>
-/// One row of Dịch vụ - vật liệu.
+/// One row of Vật liệu &amp; loại phục hình (named Dịch vụ - vật liệu before P1011).
 ///
 /// A material belongs to a classification group, not to a supplier: the
 /// reference's own groups are named after labs but are separate records from
@@ -21,6 +21,12 @@ public class LaboMaterial : FullAuditedAggregateRoot<Guid>
     public Guid TaxonomyId { get; private set; }
 
     public string Name { get; private set; } = default!;
+
+    /// <summary>
+    /// Mã (P1011), e.g. "TS01": unique within the branch. Materials made
+    /// before P1011 have none until someone edits them.
+    /// </summary>
+    public string? Code { get; private set; }
 
     public int SortOrder { get; private set; }
 
@@ -78,6 +84,30 @@ public class LaboMaterial : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
+    /// <summary>Mã (P1011); the service checks it is free in the branch.</summary>
+    public LaboMaterial SetCode(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.MaterialCodeRequired);
+        }
+
+        Code = code.Trim();
+        return this;
+    }
+
+    /// <summary>Trạng thái: Đang dùng / Ngừng (P1011).</summary>
+    public LaboMaterial SetActive(bool active)
+    {
+        IsActive = active;
+        return this;
+    }
+
+    /// <summary>
+    /// "Có lựa chọn Trên implant" (F-91). Since P1011 the group decides the
+    /// columns (<see cref="LaboMaterialGroups"/>); the flag is only read for
+    /// groups made before it.
+    /// </summary>
     public LaboMaterial SetAllowOnImplant(bool allow)
     {
         AllowOnImplant = allow;

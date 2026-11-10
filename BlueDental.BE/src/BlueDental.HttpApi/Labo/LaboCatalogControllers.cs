@@ -88,6 +88,10 @@ public sealed class LaboMaterialController(ILaboMaterialAppService service) : Bl
     public Task<LaboMaterialDto> UpdateAsync(Guid id, [FromBody] UpdateLaboMaterialDto input) =>
         service.UpdateAsync(id, input);
 
+    [HttpPut("{id:guid}/active")]
+    public Task<LaboMaterialDto> SetActiveAsync(Guid id, [FromBody] SetLaboMaterialActiveDto input) =>
+        service.SetActiveAsync(id, input);
+
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
 }

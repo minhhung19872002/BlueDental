@@ -774,3 +774,88 @@ What in §1–§9 no longer describes BlueDental:
   doc).
 - The order form fields, chip strips (Vật liệu search R-1062), supplier label
   colour (R-1072) and print sheet are kept as cloned.
+
+## 11. P1011 — Vật liệu & loại phục hình (F-92, R-1199, 2026-11-11)
+
+**BA requirement, not the reference.** BA `P1011.drawio` reworks §5 and the
+F-91 Phiếu yêu cầu. app.nfcdental.com still has the §5 screen.
+
+What in §5 no longer describes BlueDental:
+
+- The tab `/labo/service-material` is named **Vật liệu & loại phục hình**.
+- Groups:
+  - There are exactly three fixed groups per branch, seeded the first time the
+    list is read: `TOAN_SU` Toàn sứ, `HOP_KIM` Hợp kim and `KHAC_TREN_IMPLANT`
+    Phục hình khác trên implant.
+  - Each is a `labo_material` taxonomy row with `IsSystem` and `SubGroup` = the
+    code (`LaboMaterialGroups`, `TaxonomyAppService.EnsureFixedGroupsAsync`).
+  - There is no "Thêm" button, and no pencil or bin on a group.
+  - Groups made before P1011 stay in the database, because old orders still
+    name their materials, but neither the screen nor the slip lists them.
+  - The right pane's head shows the group name with its code chip and the
+    hint "Vật liệu = dòng trên phiếu · Loại phục hình = cột ô tích trên phiếu".
+- Material dialog (kept as a modal; the owner, 2026-11-11):
+  - Fields: Mã\*, Tên vật liệu\*, Nhóm vật liệu\* and Trạng thái (Đang dùng /
+    Ngừng).
+  - Mã is unique within the branch, ignoring case and outer spaces:
+    `Labo:0046` when missing, `Labo:0047` "Mã vật liệu {code} đã tồn tại."
+  - Materials made before P1011 have no Mã until someone edits them.
+  - The F-91 "Có lựa chọn Trên implant" checkbox is gone; the group now decides
+    the columns.
+- Material table:
+  - Columns: Mã (mono) + Vật liệu, Trạng thái, Cập nhật gần nhất, Thao tác.
+  - Trạng thái is a switch in the row (`PUT labo-materials/{id}/active`).
+  - The search matches Mã as well as the name, on the server.
+- Phiếu yêu cầu, Loại phục hình:
+  - The three groups sit side by side in three columns.
+  - Toàn sứ and Hợp kim each have a plain column and a Trên implant column.
+  - Phục hình khác trên implant has one column, and each tick is stored with
+    `onImplant: true`.
+  - A card shows at most 10 rows and then scrolls (`.rs-rows`).
+  - A Ngừng material is not offered on a new slip.
+  - An old order keeps the rows of the old group it ticked.
+- The Phiếu điều trị column is removed from `/labo`, the patient Labo tab and
+  the Excel export (the owner chose to drop it everywhere, 2026-11-11).
+- Not built, by decision: "Xem trước trên phiếu", the "Loại phục hình (n)" tab
+  and an inline tooth chart in the material screen.
+
+### 11.1 Other suppliers — how the form can grow (proposal, not built)
+
+The BA asks only that the DB can take other suppliers' forms later. Today's
+Phiếu yêu cầu is one supplier's form. F-91 took the supplier off the order;
+`LaboOrder.SupplierId` is still a nullable column and stays empty on
+`layout = 2`.
+
+**Option A — one template per supplier (recommended).**
+
+- `LaboOrder.Layout` already versions the form: 1 = Classic, 2 = RequestSlip.
+  A supplier with its own paper form becomes a new layout value.
+- `LaboSupplier` gets a `FormLayout` field. The slip picks the supplier again
+  and opens that supplier's layout.
+- Each layout has its own pieces:
+  - an FE step component and print sheet;
+  - a BE validator chosen by layout (strategy pattern, CLAUDE.md §15.6).
+- The fields every form shares stay as columns: Mã số, dates, dentist, teeth,
+  shade, finish lines. A supplier's own extra fields go in a jsonb column
+  validated by its layout.
+- The material groups get a nullable `LaboSupplierId` (null = the default
+  form), and the rules in `LaboMaterialGroups.Accepts` become per layout.
+- For: typed data, a print that can match each supplier's paper, a clear test
+  per layout, and the hook already exists.
+- Against: each new supplier is development work.
+
+**Option B — dynamic form.**
+
+- A `LaboFormTemplate` table holds the supplier, a version and a JSON schema
+  of sections, fields and options.
+- An order stores its template id, the version and an answers jsonb.
+- The FE renders the form from the schema, and the print is generic.
+- For: a new supplier needs no code.
+- Against:
+  - validation, the print and reports over jsonb are generic and weaker;
+  - a supplier's paper is hard to match 1:1;
+  - it is much more to build now.
+
+**Recommendation:** A. There are only a few suppliers, each one has its own
+paper slip to match, and `Layout` is already the switch. Move to B only if
+suppliers start to multiply.

@@ -470,6 +470,55 @@ Step 1 Đặt hàng of a **new** order is now the Labo's own Phiếu yêu cầu
       editing) and `labo-material-search:204` (no Vật liệu popup any more).
     - The Labo specs ran 24 passed / 3 skipped.
 
+## F-92 — Vật liệu & loại phục hình (BA P1011, R-1199)
+
+The screen and the slip are described in `docs/clone/pages/labo.md` §11. The
+proposal for other suppliers' forms is in §11.1.
+
+- Owner's answers, 2026-11-11:
+  1. Multi-supplier: write a proposal only (Option A recommended).
+  2. Drop the Phiếu điều trị column everywhere: `/labo`, the patient Labo tab
+     and the Excel export.
+  3. Keep the material dialog as a modal.
+  4. Leave out "Xem trước trên phiếu", the "Loại phục hình (n)" tab and the
+     inline tooth chart.
+- Data:
+  - `LaboMaterial.Code` is unique per branch, case-insensitive. The error
+    codes are `Labo:0046` (missing) and `Labo:0047` (taken).
+  - `IsActive` is edited through the dialog or `PUT {id}/active`.
+  - Migration `LaboMaterialCodeP1011`.
+- Fixed groups:
+  - Defined in `LaboMaterialGroups` and seeded per branch by
+    `TaxonomyAppService.EnsureFixedGroupsAsync`.
+  - The same helper now also seeds the Vật liệu nha khoa groups; the existing
+    check is limited to `IsSystem` rows.
+- Slip rule (`LaboMaterialGroups.Accepts`, `Labo:0045`):
+  - Toàn sứ and Hợp kim accept either column.
+  - KHAC accepts only `onImplant`.
+  - An old group keeps the material's F-91 `AllowOnImplant` flag.
+- Tests:
+  - `e2e/labo-request-slip-api.spec.ts` (10) adds:
+    - the three groups are seeded once per branch;
+    - Mã: required, unique per branch, free in another branch, found by
+      search;
+    - the `/active` switch;
+    - the KHAC and old-group rules.
+  - `e2e/labo-request-slip-ui.spec.ts` (7) adds:
+    - the columns and the 10-row scroll;
+    - the master screen: three groups, no add, code chip, Mã dialog,
+      duplicate toast, search by Mã, switch survives a reload;
+    - a Ngừng material is not offered on the slip.
+  - Older specs brought in line:
+    - `labo-orders-actions`: the plan cell is gone and the indexes shift by
+      one. After the image preview the list is reloaded before the eye is
+      clicked, because AntD's leave motion now and then stalls headless and
+      its mask stays over the table.
+    - `labo-tab-list`: Trạng thái is now the 4th column.
+    - `labo.spec`: the new tab name, the three groups, and the column indexes
+      of the "names, not ids" check.
+  - The Labo specs ran 60 passed / 3 skipped (the F-91 skips).
+    `taxonomy-dental-material` ran 2/2.
+
 ## Not built / open
 
 - Tiếp nhận bảo hành (Lần BH, phiếu BH1) — later round.

@@ -776,7 +776,3 @@
   place-items: center;
   color: var(--bd-muted);
 }
-.pd-labo-plan-link {
-  color: var(--bd-link);
-  font-weight: 500;
-}

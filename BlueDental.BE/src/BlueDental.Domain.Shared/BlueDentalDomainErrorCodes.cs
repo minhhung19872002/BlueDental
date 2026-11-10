@@ -626,6 +626,12 @@ public static class BlueDentalDomainErrorCodes
         public const string RestorationMissing = "BlueDental:Labo:0044";
         /// <summary>A Loại phục hình that is not an active material of the branch, or "Trên implant" where the material has none.</summary>
         public const string RestorationInvalid = "BlueDental:Labo:0045";
+
+        // Vật liệu & loại phục hình (P1011).
+        /// <summary>A material saved without its Mã.</summary>
+        public const string MaterialCodeRequired = "BlueDental:Labo:0046";
+        /// <summary>The Mã is on another material of the branch (case-insensitive); data "code".</summary>
+        public const string MaterialCodeTaken = "BlueDental:Labo:0047";
     }
 
     public static class Promotions

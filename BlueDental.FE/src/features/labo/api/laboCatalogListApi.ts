@@ -27,6 +27,10 @@ export interface LaboCatalogItem {
   lastModificationTime: string | null;
   /** How many rows sit inside the group; only asked for where it is shown. */
   itemCount?: number;
+  /** A seeded group's code, e.g. "TOAN_SU" for the Vật liệu groups (P1011). */
+  subGroup?: string | null;
+  /** Seeded by the system: neither renamed nor deleted. */
+  isSystem?: boolean;
 }
 
 export interface LaboCatalogQuery {

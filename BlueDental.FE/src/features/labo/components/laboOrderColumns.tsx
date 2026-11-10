@@ -11,7 +11,7 @@ import { LaboImagesButton, LaboRowActions, type LaboRowActionHandlers } from "./
 import { laboWorkOf } from "./order-dialogs/laboRequestSlipText";
 
 interface Options extends Pick<LaboRowActionHandlers, "onDetail"> {
-  /** Rides on the patient and treatment-slip links, as on the reference. */
+  /** Rides on the patient link, as on the reference. */
   branchId: string;
 }
 
@@ -21,15 +21,13 @@ const dash = (value: string | undefined) => value ?? <span className="bd-cat-num
  * Mẫu Labo — the reference's columns (docs/clone/pages/labo.md §2.4) with
  * P2910_03's Gửi → Hẹn giao and Trạng thái in place of the two date/pill
  * pairs: the Mã số (the Labo's own slip number since F-91, else the order
- * code), its creation date — F-91 dropped the supplier — the customer and the
- * treatment slip as links into the patient record, the dentist, Loại phục hình
+ * code), its creation date — F-91 dropped the supplier — the customer as a
+ * link into the patient record (P1011 dropped the treatment slip), the dentist, Loại phục hình
  * and teeth, the returned-file folder and Thao tác (Xem only — the workflow
  * runs on the patient record).
  */
 export function buildLaboOrderColumns({ branchId, onDetail }: Options): ColumnsType<LaboOrderDto> {
   const patientHref = (row: LaboOrderDto) => withBranch(`/patient/${row.patientId}`, branchId);
-  const planHref = (row: LaboOrderDto) =>
-    withBranch(`/patient/${row.patientId}/treatment-plan/${row.treatmentPlanId}`, branchId);
 
   return [
     {
@@ -52,19 +50,6 @@ export function buildLaboOrderColumns({ branchId, onDetail }: Options): ColumnsT
         row.patientName ? (
           <Link className="bd-labo-link" to={patientHref(row)}>
             {row.patientCode ? `[${row.patientCode}] - ${row.patientName}` : row.patientName}
-          </Link>
-        ) : (
-          dash(undefined)
-        ),
-    },
-    {
-      key: "treatmentPlan",
-      title: t("Labo:Orders:TreatmentSlip"),
-      width: 104,
-      render: (_, row) =>
-        row.treatmentPlanId && row.treatmentPlanCode ? (
-          <Link className="bd-labo-link" to={planHref(row)}>
-            {row.treatmentPlanCode}
           </Link>
         ) : (
           dash(undefined)

@@ -4199,6 +4199,10 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("ClinicBranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -4256,6 +4260,8 @@ namespace BlueDental.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId", "Code");
 
                     b.HasIndex("ClinicBranchId", "TaxonomyId");
 

@@ -140,7 +140,7 @@ export function useLaboSupplierCommands() {
   return { create, update, remove };
 }
 
-// ── Dịch vụ - vật liệu ─────────────────────────────────────────────────
+// ── Vật liệu & loại phục hình ─────────────────────────────────────────────
 
 const MATERIAL_BASE = "/v1/app/labo-materials";
 
@@ -150,18 +150,22 @@ export interface LaboMaterialDto {
   taxonomyId: string;
   taxonomyName?: string | null;
   name: string;
+  /** Mã (P1011), e.g. "TS01"; null on a material saved before it. */
+  code?: string | null;
   sortOrder: number;
   isActive: boolean;
-  /** "Có lựa chọn Trên implant" (F-91): the Phiếu yêu cầu offers this material on an implant too. */
+  /** "Có lựa chọn Trên implant" (F-91); since P1011 only read for groups made before it. */
   allowOnImplant: boolean;
   creationTime: string;
   lastModificationTime?: string | null;
 }
 
+/** What the dialog sends (P1011): Mã, Tên, Nhóm and Trạng thái. */
 export interface LaboMaterialInput {
+  code: string;
   name: string;
   taxonomyId: string;
-  allowOnImplant: boolean;
+  isActive: boolean;
 }
 
 export interface LaboMaterialQuery {
@@ -184,7 +188,8 @@ export const laboMaterialKeys = {
     ] as const,
 };
 
-export function useLaboMaterialList(query: LaboMaterialQuery) {
+/** `enabled` is false until a group is selected, so the table never loads every group at once. */
+export function useLaboMaterialList(query: LaboMaterialQuery, enabled = true) {
   const clinicBranchId = useBranchFilter();
 
   return useQuery({
@@ -202,6 +207,7 @@ export function useLaboMaterialList(query: LaboMaterialQuery) {
       return response.data;
     },
     placeholderData: (previous) => previous,
+    enabled,
   });
 }
 
@@ -224,10 +230,17 @@ export function useLaboMaterialCommands() {
     meta,
   });
 
+  /** The table's Trạng thái switch: the flag alone, so a material with no Mã still toggles. */
+  const setActive = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      api.put(`${MATERIAL_BASE}/${id}/active`, { isActive }).then(() => undefined),
+    meta,
+  });
+
   const remove = useMutation({
     mutationFn: (id: string) => api.delete(`${MATERIAL_BASE}/${id}`).then(() => undefined),
     meta,
   });
 
-  return { create, update, remove };
+  return { create, update, setActive, remove };
 }

@@ -300,8 +300,15 @@
   cursor: pointer;
 }
 
-.rs-sech + .rs-krow {
-  margin-top: 6px;
+.rs-sech + .rs-rows {
+  padding-top: 6px;
+}
+
+/* Ten 30px rows and the last one's margin, then the rows scroll under the
+   card's header (P1011) — an 11th row peeks in to say there is more. */
+.rs-rows {
+  max-height: 322px;
+  overflow-y: auto;
 }
 
 .rs-grow {

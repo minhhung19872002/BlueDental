@@ -1111,6 +1111,10 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_labo_materials");
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Code).HasMaxLength(50);
+            // Mã is unique per branch among live rows (P1011); the service checks
+            // it, since a soft-deleted row keeps its code.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Code });
             // The table is read one branch at a time, and usually one group too.
             entity.HasIndex(x => new { x.ClinicBranchId, x.TaxonomyId });
         });

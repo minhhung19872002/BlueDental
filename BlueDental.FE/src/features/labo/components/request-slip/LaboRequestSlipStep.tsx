@@ -49,9 +49,9 @@ function summaryOf(values: RequestSlipValues, names: string[], finishes: string[
 
 /**
  * Tab Đặt hàng as the Labo's own Phiếu yêu cầu (F-91): Thông tin phiếu, then
- * Loại phục hình in three columns — the implant tables, the other groups with
- * Màu răng, Chỉ định (the system's Chọn răng button) with Đường hoàn tất —
- * then Yêu cầu, and the footer.
+ * Loại phục hình in three columns (BA P1011) — Toàn sứ and Hợp kim, then
+ * Phục hình khác trên implant with Màu răng, then Chỉ định (the system's Chọn
+ * răng button) with Đường hoàn tất — then Yêu cầu, and the footer.
  * A sent order shows the same sheet locked, with In phiếu and Hủy phiếu.
  */
 export function LaboRequestSlipStep({
@@ -115,7 +115,7 @@ export function LaboRequestSlipStep({
         <div className="rs-main">
           <div className="rs-col">
             {groups
-              .filter((group) => group.implant)
+              .filter((group) => group.kind === "pair")
               .map((group) => (
                 <RestorationTable key={group.id} group={group} {...sectionProps} />
               ))}
@@ -123,7 +123,7 @@ export function LaboRequestSlipStep({
           </div>
           <div className="rs-col">
             {groups
-              .filter((group) => !group.implant)
+              .filter((group) => group.kind !== "pair")
               .map((group) => (
                 <RestorationList key={group.id} group={group} {...sectionProps} />
               ))}

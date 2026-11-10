@@ -50,7 +50,11 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 
         if (input.Group == TaxonomyGroups.DentalMaterial)
         {
-            await EnsureDentalMaterialGroupsAsync(branchFilter);
+            await EnsureFixedGroupsAsync(TaxonomyGroups.DentalMaterial, DentalMaterialGroups.All, branchFilter);
+        }
+        else if (input.Group == TaxonomyGroups.LaboMaterial)
+        {
+            await EnsureFixedGroupsAsync(TaxonomyGroups.LaboMaterial, Labo.LaboMaterialGroups.All, branchFilter);
         }
 
         if (!string.IsNullOrWhiteSpace(input.Group))
@@ -162,31 +166,36 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
     }
 
     /// <summary>
-    /// The fixed groups of "Vật liệu nha khoa", made for each branch the list is
-    /// read for the first time it is — so the tab, and mẫu 5 adding a type, always
-    /// find the group of each kind.
+    /// The fixed groups of a catalog, made for each branch the list is read for
+    /// the first time it is — so the tab, and whatever adds to it (mẫu 5 adding a
+    /// type of "Vật liệu nha khoa", the Phiếu yêu cầu's tables of "Vật liệu &amp;
+    /// loại phục hình"), always find the group of each kind. A group is told by
+    /// its <c>SubGroup</c>, so a rename never makes a second one.
     /// </summary>
-    private async Task EnsureDentalMaterialGroupsAsync(IReadOnlyCollection<Guid> branchIds)
+    private async Task EnsureFixedGroupsAsync(
+        string group,
+        IReadOnlyList<(string SubGroup, string Name)> fixedGroups,
+        IReadOnlyCollection<Guid> branchIds)
     {
         if (branchIds.Count == 0) return;
 
         var query = await _repository.GetQueryableAsync();
         var existing = query
-            .Where(x => x.Group == TaxonomyGroups.DentalMaterial && branchIds.Contains(x.ClinicBranchId))
+            .Where(x => x.Group == group && x.IsSystem && branchIds.Contains(x.ClinicBranchId))
             .Select(x => new { x.ClinicBranchId, x.SubGroup })
             .ToList();
 
         foreach (var branchId in branchIds)
         {
             var order = 0;
-            foreach (var (subGroup, name) in DentalMaterialGroups.All)
+            foreach (var (subGroup, name) in fixedGroups)
             {
                 if (!existing.Any(x => x.ClinicBranchId == branchId && x.SubGroup == subGroup))
                 {
                     await _repository.InsertAsync(Taxonomy.Create(
                         GuidGenerator.Create(),
                         branchId,
-                        TaxonomyGroups.DentalMaterial,
+                        group,
                         name,
                         subGroup: subGroup,
                         isSystem: true,

@@ -1,9 +1,9 @@
 import { expect, type Page } from "@playwright/test";
 import { runId } from "./auth";
-import { BRANCH_ONE, call, daysFromNow, LABO_ORDERS, laboCatalog, type FormValue, type LaboOrderView } from "./laboApi";
+import { BRANCH_ONE, call, daysFromNow, LABO_ORDERS, laboCatalog, type FormValue, type LaboOrderView, type Paged } from "./laboApi";
 
 /**
- * Seeding for the Labo Phiếu yêu cầu (F-91) specs: a catalog to pick from, a
+ * Seeding for the Labo Phiếu yêu cầu (F-91, BA P1011) specs: a catalog to pick from, a
  * fresh patient, and the multipart body the form posts. Every call is a real
  * HTTP request from the logged-in page.
  */
@@ -49,12 +49,33 @@ export interface SlipBody {
   submit: boolean;
 }
 
-/** What the Phiếu yêu cầu picks from: a group with an implant-able material and a plain one, two finish lines. */
+/** The three fixed groups of Vật liệu & loại phục hình (BA P1011), by their code. */
+export const MaterialGroup = { AllCeramic: "TOAN_SU", Alloy: "HOP_KIM", OtherOnImplant: "KHAC_TREN_IMPLANT" } as const;
+export type MaterialGroupCode = (typeof MaterialGroup)[keyof typeof MaterialGroup];
+
+export interface SlipGroup {
+  id: string;
+  name: string;
+}
+
+export interface SlipMaterial {
+  id: string;
+  name: string;
+  code: string;
+  groupName: string;
+}
+
+/**
+ * What the Phiếu yêu cầu picks from: a material in each fixed group — Toàn sứ
+ * and Hợp kim take a plain and a Trên implant tick, Phục hình khác trên implant
+ * only the implant one — and two finish lines.
+ */
 export interface SlipCatalog {
   dentistId: string;
-  groupName: string;
-  implantMaterial: { id: string; name: string };
-  plainMaterial: { id: string; name: string };
+  groups: Record<MaterialGroupCode, SlipGroup>;
+  ceramic: SlipMaterial;
+  alloy: SlipMaterial;
+  implantOther: SlipMaterial;
   finishLines: { id: string; name: string }[];
 }
 
@@ -66,35 +87,53 @@ export async function post<T>(page: Page, url: string, json: unknown, branchId =
   return res.body as T & { id: string; name: string };
 }
 
+/** The branch's three fixed groups — the first list read seeds them. */
+export async function fixedGroups(page: Page, branchId = BRANCH_ONE): Promise<Record<MaterialGroupCode, SlipGroup>> {
+  const res = await call<Paged<{ id: string; name: string; subGroup: string | null; isSystem: boolean }>>(
+    page,
+    `/api/v1/app/taxonomies?ClinicBranchId=${branchId}&Group=labo_material&MaxResultCount=1000`,
+    { branchId },
+  );
+  expect(res.status, res.text).toBe(200);
+  const pick = (code: MaterialGroupCode): SlipGroup => {
+    const row = (res.body.items ?? []).find((one) => one.isSystem && one.subGroup === code);
+    expect(row, `fixed group ${code} of ${branchId}`).toBeTruthy();
+    return { id: row!.id, name: row!.name };
+  };
+  return {
+    TOAN_SU: pick(MaterialGroup.AllCeramic),
+    HOP_KIM: pick(MaterialGroup.Alloy),
+    KHAC_TREN_IMPLANT: pick(MaterialGroup.OtherOnImplant),
+  };
+}
+
+/** A material with a fresh Mã in one group, as Tạo vật liệu saves it. */
+export async function newMaterial(page: Page, group: SlipGroup, name: string, branchId = BRANCH_ONE): Promise<SlipMaterial> {
+  const code = `E2E-${runId()}${Math.floor(Math.random() * 1000)}`.slice(0, 50);
+  const made = await post<{ code: string }>(
+    page,
+    "/api/v1/app/labo-materials",
+    { code, name, taxonomyId: group.id, clinicBranchId: branchId },
+    branchId,
+  );
+  return { id: made.id, name: made.name, code: made.code, groupName: group.name };
+}
+
 export async function slipCatalog(page: Page): Promise<SlipCatalog> {
   if (catalog) return catalog;
   const id = runId();
   const { dentistId } = await laboCatalog(page, BRANCH_ONE, id);
-  const group = await post(page, "/api/v1/app/taxonomies", {
-    group: "labo_material",
-    name: `Sứ e2e F91 ${id}`,
-    clinicBranchId: BRANCH_ONE,
-  });
-  const implantMaterial = await post<{ allowOnImplant: boolean }>(page, "/api/v1/app/labo-materials", {
-    name: `Zirconia e2e ${id}`,
-    taxonomyId: group.id,
-    clinicBranchId: BRANCH_ONE,
-    allowOnImplant: true,
-  });
-  const plainMaterial = await post(page, "/api/v1/app/labo-materials", {
-    name: `Veneer e2e ${id}`,
-    taxonomyId: group.id,
-    clinicBranchId: BRANCH_ONE,
-  });
+  const groups = await fixedGroups(page);
   const finishLines = [
     await post(page, "/api/v1/app/taxonomies", { group: "labo_finish_line", name: `Chamfer e2e ${id}`, clinicBranchId: BRANCH_ONE }),
     await post(page, "/api/v1/app/taxonomies", { group: "labo_finish_line", name: `Shoulder e2e ${id}`, clinicBranchId: BRANCH_ONE }),
   ];
   catalog = {
     dentistId,
-    groupName: group.name,
-    implantMaterial: { id: implantMaterial.id, name: implantMaterial.name },
-    plainMaterial: { id: plainMaterial.id, name: plainMaterial.name },
+    groups,
+    ceramic: await newMaterial(page, groups.TOAN_SU, `Zirconia e2e ${id}`),
+    alloy: await newMaterial(page, groups.HOP_KIM, `Titan e2e ${id}`),
+    implantOther: await newMaterial(page, groups.KHAC_TREN_IMPLANT, `Abutment e2e ${id}`),
     finishLines: finishLines.map(({ id: lineId, name }) => ({ id: lineId, name })),
   };
   return catalog;
@@ -160,7 +199,7 @@ export function fullSlip(c: SlipCatalog, patientId: string, labSlipNo: string, e
     labSlipNo,
     zones: { bodyMesial: "a2" },
     finishLineIds: [c.finishLines[0].id],
-    restorations: [{ materialId: c.implantMaterial.id, onImplant: false }],
+    restorations: [{ materialId: c.ceramic.id, onImplant: false }],
     submit: true,
     ...extra,
   };

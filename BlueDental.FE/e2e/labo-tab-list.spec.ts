@@ -152,7 +152,7 @@ test.describe("Patient Labo tab — URL and server paging", () => {
     await expect(pagerText).toContainText(`trên ${stats.draft} phiếu labo`);
     await expect(laboRows(page)).toHaveCount(Math.min(PAGE, stats.draft));
     // Every row on the page is a Nháp; the counters still count the whole record.
-    await expect(laboRows(page).locator("td:nth-child(5)").filter({ hasNotText: "Nháp" })).toHaveCount(0);
+    await expect(laboRows(page).locator("td:nth-child(4)").filter({ hasNotText: "Nháp" })).toHaveCount(0);
     await expect(cards.nth(1).locator("strong")).toHaveText(String(stats.returned));
 
     // ── Pressing it again clears the filter ──────────────────────────────

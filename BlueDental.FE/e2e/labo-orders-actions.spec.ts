@@ -20,7 +20,6 @@ const HEADERS = [
   "Mã số",
   "Ngày tạo",
   "Tên khách hàng",
-  "Phiếu điều trị",
   "Gửi → Hẹn giao",
   "Trạng thái",
   "Bác sĩ chỉ định",
@@ -88,7 +87,7 @@ test.describe("Mẫu Labo — columns and Thao tác", () => {
     await page.goto("/labo/mau-labo");
     await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
 
-    // ── Eleven headers, Gửi → Hẹn giao and Trạng thái in the middle ──────
+    // ── Ten headers, Gửi → Hẹn giao and Trạng thái in the middle ──────
     await expect(page.locator(".bd-labo-screen thead th")).toHaveText(HEADERS);
 
     const row = rowWithCode(page, seeded.orderCode);
@@ -100,15 +99,12 @@ test.describe("Mẫu Labo — columns and Thao tác", () => {
     await expect(patientLink).toHaveText(`[${target.patientCode}] - ${target.patientName}`);
     // The branch rides along as its code (F-68).
     await expect(patientLink).toHaveAttribute("href", `/patient/${target.patientId}?branch=BD-001`);
-    // No treatment slip behind an order raised straight on the patient.
-    await expect(cells.nth(3)).toHaveText("—");
-
     // ── "dd/MM → dd/MM"; a Nháp is not at the Labo, so no due tag ───────
-    await expect(cells.nth(4)).toHaveText(/^\d{2}\/\d{2} → \d{2}\/\d{2}$/);
-    await expect(cells.nth(5)).toHaveText("Nháp");
+    await expect(cells.nth(3)).toHaveText(/^\d{2}\/\d{2} → \d{2}\/\d{2}$/);
+    await expect(cells.nth(4)).toHaveText("Nháp");
 
     // ── No returned file yet: the folder is greyed ───────────────────────
-    await expect(cells.nth(9).getByRole("button", { name: "Xem file phòng khám gửi về" })).toBeDisabled();
+    await expect(cells.nth(8).getByRole("button", { name: "Xem file phòng khám gửi về" })).toBeDisabled();
 
     // ── Thao tác: the eye alone, whatever the status ─────────────────────
     expect(await actionNames(row)).toEqual(["Xem"]);
@@ -147,18 +143,22 @@ test.describe("Mẫu Labo — columns and Thao tác", () => {
     await page.goto("/labo/mau-labo");
     await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
     const cells = rowWithCode(page, sent.orderCode).getByRole("cell");
-    await expect(cells.nth(3)).not.toHaveText("—");
-    await expect(cells.nth(4)).toContainText(/còn \d+ ngày/);
-    await expect(cells.nth(5)).toHaveText("Đã gửi Labo");
+    await expect(cells.nth(3)).toContainText(/còn \d+ ngày/);
+    await expect(cells.nth(4)).toHaveText("Đã gửi Labo");
 
     // ── The folder previews the picture sent with the order ─────────────
-    const file = cells.nth(9).getByRole("button", { name: "Xem file phòng khám gửi về" });
+    const file = cells.nth(8).getByRole("button", { name: "Xem file phòng khám gửi về" });
     await expect(file).toBeEnabled();
     await file.click();
     await expect(page.locator(".ant-image-preview")).toBeVisible();
     await page.keyboard.press("Escape");
     // AntD leaves the closed preview mounted in its fade-leave state at opacity 0.
     await expect(page.locator(".ant-image-preview:not(.ant-image-preview-fade-leave)")).toHaveCount(0);
+    // Now and then its leave motion stalls in "fade-leave-active" headless and
+    // the mask stays over the table, catching the next click: start the detail
+    // from a fresh load of the list.
+    await page.reload();
+    await expect(rowWithCode(page, sent.orderCode)).toBeVisible();
 
     // ── The detail lists it with Xem ảnh only, no Xóa ảnh ────────────────
     const detail = await openDetail(page, sent.orderCode);
@@ -211,6 +211,6 @@ test.describe("Mẫu Labo — columns and Thao tác", () => {
       await expect(listRow).toBeVisible();
       expect(await actionNames(listRow)).toEqual(["Xem"]);
     }
-    await expect(rowWithCode(page, done.orderCode).getByRole("cell").nth(5)).toHaveText("Hoàn thành");
+    await expect(rowWithCode(page, done.orderCode).getByRole("cell").nth(4)).toHaveText("Hoàn thành");
   });
 });

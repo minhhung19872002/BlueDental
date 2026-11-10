@@ -3,14 +3,17 @@ import { login, runId } from "./fixtures/auth";
 import { BRANCH_ONE, call, LABO_ORDERS, LaboStatus, type Paged } from "./fixtures/laboApi";
 import {
   CaseType,
+  fixedGroups,
   fullSlip,
   Layout,
+  newMaterial,
   newPatient,
   post,
   readBack,
   save,
   slipCatalog,
   slipNo,
+  type SlipMaterial,
   type SlipOrderView,
 } from "./fixtures/laboSlipApi";
 
@@ -31,6 +34,8 @@ const LAB_SLIP_NO_TAKEN = code(43);
 const RESTORATION_MISSING = code(44);
 const RESTORATION_INVALID = code(45);
 const TOOTH_SPEC_INCOMPLETE = code(34);
+const MATERIAL_CODE_TAKEN = code(47);
+const MATERIALS = "/api/v1/app/labo-materials";
 const BRANCH_TWO = "22222222-2222-2222-2222-222222222222";
 
 test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
@@ -38,17 +43,88 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
     await login(page);
   });
 
-  test("a material can be marked Trên implant and reads back so", async ({ page }) => {
+  test("each material is filed under one of the branch's fixed groups and reads back with its Mã", async ({ page }) => {
     const c = await slipCatalog(page);
-    const res = await call<Paged<{ id: string; allowOnImplant: boolean }>>(
+    const res = await call<Paged<{ id: string; code: string | null; taxonomyId: string }>>(
       page,
       `/api/v1/app/labo-materials?ClinicBranchId=${BRANCH_ONE}&MaxResultCount=1000`,
       { branchId: BRANCH_ONE },
     );
     expect(res.status, res.text).toBe(200);
-    const byId = new Map((res.body.items ?? []).map((m) => [m.id, m.allowOnImplant]));
-    expect(byId.get(c.implantMaterial.id)).toBe(true);
-    expect(byId.get(c.plainMaterial.id)).toBe(false);
+    const byId = new Map((res.body.items ?? []).map((m) => [m.id, m]));
+    expect(byId.get(c.ceramic.id)).toMatchObject({ code: c.ceramic.code, taxonomyId: c.groups.TOAN_SU.id });
+    expect(byId.get(c.alloy.id)).toMatchObject({ code: c.alloy.code, taxonomyId: c.groups.HOP_KIM.id });
+    expect(byId.get(c.implantOther.id)).toMatchObject({
+      code: c.implantOther.code,
+      taxonomyId: c.groups.KHAC_TREN_IMPLANT.id,
+    });
+  });
+
+  test("every branch has the three fixed groups, seeded once", async ({ page }) => {
+    for (const branchId of [BRANCH_ONE, BRANCH_TWO]) {
+      const first = await fixedGroups(page, branchId);
+      const again = await fixedGroups(page, branchId);
+      expect(again).toEqual(first);
+      expect(new Set(Object.values(first).map((g) => g.id)).size).toBe(3);
+    }
+  });
+
+  test("a material needs a Mã unique within its branch, found by search and switched on and off", async ({ page }) => {
+    const c = await slipCatalog(page);
+    const noCode = await call(page, MATERIALS, {
+      method: "POST",
+      branchId: BRANCH_ONE,
+      json: { code: "  ", name: `Không mã ${runId()}`, taxonomyId: c.groups.TOAN_SU.id, clinicBranchId: BRANCH_ONE },
+    });
+    expect([400, 403], noCode.text).toContain(noCode.status);
+
+    const taken = await call<{ error?: { code?: string } }>(page, MATERIALS, {
+      method: "POST",
+      branchId: BRANCH_ONE,
+      json: { code: c.ceramic.code, name: `Trùng mã ${runId()}`, taxonomyId: c.groups.HOP_KIM.id, clinicBranchId: BRANCH_ONE },
+    });
+    expect(taken.status, taken.text).toBe(403);
+    expect(taken.body.error?.code).toBe(MATERIAL_CODE_TAKEN);
+
+    // The same Mã is free in another branch.
+    const elsewhere = await call(page, MATERIALS, {
+      method: "POST",
+      branchId: BRANCH_TWO,
+      json: {
+        code: c.ceramic.code,
+        name: `CN2 ${runId()}`,
+        taxonomyId: (await fixedGroups(page, BRANCH_TWO)).TOAN_SU.id,
+        clinicBranchId: BRANCH_TWO,
+      },
+    });
+    expect(elsewhere.status, elsewhere.text).toBe(200);
+
+    const found = await call<Paged<{ id: string }>>(
+      page,
+      `${MATERIALS}?ClinicBranchId=${BRANCH_ONE}&Filter=${encodeURIComponent(c.ceramic.code.toLowerCase())}&MaxResultCount=10`,
+      { branchId: BRANCH_ONE },
+    );
+    expect(found.status, found.text).toBe(200);
+    expect(found.body.items?.map((m) => m.id)).toEqual([c.ceramic.id]);
+
+    const readActive = async () => {
+      const res = await call<Paged<{ id: string; isActive: boolean }>>(
+        page,
+        `${MATERIALS}?ClinicBranchId=${BRANCH_ONE}&TaxonomyId=${c.groups.TOAN_SU.id}&MaxResultCount=1000`,
+        { branchId: BRANCH_ONE },
+      );
+      expect(res.status, res.text).toBe(200);
+      return res.body.items?.find((m) => m.id === c.ceramic.id)?.isActive;
+    };
+    for (const isActive of [false, true]) {
+      const set = await call(page, `${MATERIALS}/${c.ceramic.id}/active`, {
+        method: "PUT",
+        branchId: BRANCH_ONE,
+        json: { isActive },
+      });
+      expect(set.status, set.text).toBe(200);
+      expect(await readActive()).toBe(isActive);
+    }
   });
 
   test("Lưu nháp needs no Mã số and carries no supplier or slip link", async ({ page }) => {
@@ -86,8 +162,9 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
         zones: { cervicalMesial: "a3", bodyMesial: " a2 ", incisalDistal: "B1" },
         finishLineIds: c.finishLines.map((f) => f.id),
         restorations: [
-          { materialId: c.implantMaterial.id, onImplant: true },
-          { materialId: c.plainMaterial.id, onImplant: false },
+          { materialId: c.ceramic.id, onImplant: true },
+          { materialId: c.alloy.id, onImplant: false },
+          { materialId: c.implantOther.id, onImplant: true },
         ],
       }),
     );
@@ -106,10 +183,13 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
       expect(tooth.shade).toBe("A3/A2/B1");
       expect(tooth.finishLineIds).toEqual(c.finishLines.map((f) => f.id));
       expect(tooth.finishLineNames).toEqual(c.finishLines.map((f) => f.name));
-      expect(tooth.restorations).toEqual([
-        { materialId: c.implantMaterial.id, onImplant: true, materialName: c.implantMaterial.name, groupName: c.groupName },
-        { materialId: c.plainMaterial.id, onImplant: false, materialName: c.plainMaterial.name, groupName: c.groupName },
-      ]);
+      const line = (material: SlipMaterial, onImplant: boolean) => ({
+        materialId: material.id,
+        onImplant,
+        materialName: material.name,
+        groupName: material.groupName,
+      });
+      expect(tooth.restorations).toEqual([line(c.ceramic, true), line(c.alloy, false), line(c.implantOther, true)]);
     }
   });
 
@@ -144,24 +224,28 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
     expect(reused.status, reused.text).toBe(200);
   });
 
-  test("Trên implant needs a material that allows it, of this branch", async ({ page }) => {
+  test("Phục hình khác trên implant is ticked only on an implant, and a material is of this branch", async ({ page }) => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "implant");
-    const plainOnImplant = await save(
+    const plainOther = await save(
       page,
-      fullSlip(c, patientId, slipNo("imp"), { restorations: [{ materialId: c.plainMaterial.id, onImplant: true }] }),
+      fullSlip(c, patientId, slipNo("imp"), { restorations: [{ materialId: c.implantOther.id, onImplant: false }] }),
     );
-    expect(plainOnImplant.status).toBe(403);
-    expect(plainOnImplant.body.error?.code).toBe(RESTORATION_INVALID);
+    expect(plainOther.status).toBe(403);
+    expect(plainOther.body.error?.code).toBe(RESTORATION_INVALID);
 
+    // A group made before P1011 keeps the material's own Trên implant flag.
     const id = runId();
-    const group = await post(page, "/api/v1/app/taxonomies", { group: "labo_material", name: `CN2 e2e ${id}`, clinicBranchId: BRANCH_TWO }, BRANCH_TWO);
-    const foreign = await post(
+    const legacy = await post(page, "/api/v1/app/taxonomies", { group: "labo_material", name: `Cũ e2e ${id}`, clinicBranchId: BRANCH_ONE });
+    const legacyMaterial = await newMaterial(page, legacy, `Cũ vật liệu ${id}`);
+    const legacyOnImplant = await save(
       page,
-      "/api/v1/app/labo-materials",
-      { name: `CN2 vật liệu ${id}`, taxonomyId: group.id, clinicBranchId: BRANCH_TWO, allowOnImplant: true },
-      BRANCH_TWO,
+      fullSlip(c, patientId, slipNo("old"), { restorations: [{ materialId: legacyMaterial.id, onImplant: true }] }),
     );
+    expect(legacyOnImplant.status).toBe(403);
+    expect(legacyOnImplant.body.error?.code).toBe(RESTORATION_INVALID);
+
+    const foreign = await newMaterial(page, (await fixedGroups(page, BRANCH_TWO)).TOAN_SU, `CN2 vật liệu ${id}`, BRANCH_TWO);
     const foreignRes = await save(
       page,
       fullSlip(c, patientId, slipNo("cn2"), { restorations: [{ materialId: foreign.id, onImplant: false }] }),

@@ -107,6 +107,7 @@ async function seedCatalog(page: Page, branchId: string): Promise<Seeded> {
       for (const name of materials) {
         if (existing.items.some((row) => row.name === name)) continue;
         await post("/api/v1/app/labo-materials", {
+          code: name.slice(0, 50),
           name,
           taxonomyId: taxonomy.id,
           clinicBranchId: branchId,

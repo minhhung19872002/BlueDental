@@ -221,7 +221,7 @@ export async function laboCatalog(page: Page, branchId: string, id: string): Pro
     (await create("/api/v1/app/taxonomies", { group: "labo_material", name: `Dịch vụ e2e ${id}`, clinicBranchId: branchId }));
   const material =
     (await first(`/api/v1/app/labo-materials?ClinicBranchId=${branchId}&TaxonomyId=${group.id}&MaxResultCount=1`)) ??
-    (await create("/api/v1/app/labo-materials", { name: `Vật liệu e2e ${id}`, taxonomyId: group.id, clinicBranchId: branchId }));
+    (await create("/api/v1/app/labo-materials", { code: `VL-E2E-${id}`, name: `Vật liệu e2e ${id}`, taxonomyId: group.id, clinicBranchId: branchId }));
   const finishLine =
     (await first(`/api/v1/app/taxonomies?ClinicBranchId=${branchId}&Group=labo_finish_line&MaxResultCount=1`)) ??
     (await create("/api/v1/app/taxonomies", { group: "labo_finish_line", name: `Đường hoàn tất e2e ${id}`, clinicBranchId: branchId }));

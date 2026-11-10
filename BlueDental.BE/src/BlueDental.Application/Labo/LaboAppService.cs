@@ -738,7 +738,9 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     /// <summary>
     /// The Phiếu yêu cầu (F-91): no supplier, Khớp cắn, Kiểu nhịp or per-tooth
     /// spec. Each Loại phục hình must be an active material of this branch,
-    /// and "Trên implant" only where the material offers it. Đường hoàn tất
+    /// ticked in a column its group has (P1011, <see cref="LaboMaterialGroups"/>):
+    /// Toàn sứ and Hợp kim either way, Phục hình khác trên implant only on an
+    /// implant, a group from before P1011 by the material's own flag. Đường hoàn tất
     /// keeps only this branch's rows, so another clinic's id never lands on a
     /// tooth.
     /// </summary>
@@ -753,8 +755,15 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             : (await _materialRepository.GetListAsync(m =>
                     materialIds.Contains(m.Id) && m.ClinicBranchId == branchId && m.IsActive))
                 .ToDictionary(m => m.Id);
+        var groupIds = materials.Values.Select(m => m.TaxonomyId).Distinct().ToList();
+        var groupCodes = groupIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : (await _taxonomyRepository.GetListAsync(t => groupIds.Contains(t.Id)))
+                .ToDictionary(t => t.Id, t => t.IsSystem ? t.SubGroup : null);
         if (restorations.Any(r =>
-                !materials.TryGetValue(r.MaterialId, out var material) || (r.OnImplant && !material.AllowOnImplant)))
+                !materials.TryGetValue(r.MaterialId, out var material) ||
+                !LaboMaterialGroups.Accepts(
+                    groupCodes.GetValueOrDefault(material.TaxonomyId), r.OnImplant, material.AllowOnImplant)))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
         }
