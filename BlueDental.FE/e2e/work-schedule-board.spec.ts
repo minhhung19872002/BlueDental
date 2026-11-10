@@ -252,6 +252,54 @@ test.describe("Lịch làm việc (F-90)", () => {
     expect(shiftOn(await readBoard(admin, day), staff.member.id, day)).toBe(SHIFT.None);
   });
 
+  test("UI: the viewer's own row comes first — their group on top, themselves above its head (R-1192)", async ({ browser }) => {
+    const day = shiftDays(clinicToday(), 2);
+    const firstRow = (page: Page) => page.locator(".ws-namecol--member .ws-name").first();
+    const open = async (page: Page) => {
+      const loaded = page.waitForResponse((r) => r.url().includes(`${BOARD}?`) && r.request().method() === "GET");
+      await page.goto(`/calendar?tab=timekeeping&date=${day}`);
+      expect((await loaded).status()).toBe(200);
+    };
+
+    // The server lists the Phòng ban head first; a plain member still sees themselves on top.
+    const peer = await signIn(browser, "peer");
+    const served = await readBoard(peer, day);
+    expect(served.groups[0].members[0].staffId, "the server's order leads with the head").toBe(staff.head.id);
+    await open(peer);
+    await expect(firstRow(peer)).toHaveText(staff.peer.fullName);
+    await peer.getByRole("button", { name: "Từng bác sĩ / nhân viên" }).click();
+    const firstItem = peer.locator(".ws-pitem").first();
+    await expect(firstItem).toContainText(staff.peer.fullName);
+    await expect(firstItem).toHaveAttribute("aria-current", "true");
+
+    // An admin heading a Phòng ban sees every group; theirs, listed after the
+    // root's by the server, moves to the top with them first in it.
+    const boss = await createRunStaff(admin, BRANCH_ONE, `${run}x`, { roleNames: ["admin"] });
+    const chart = await call<{ units: { id: string; kind: number }[] }>(admin, ORG, { branchId: BRANCH_ONE });
+    const unitName = `E2E Phòng admin ${run}`;
+    const bossUnit = await call<{ id: string }>(admin, `${ORG}/units`, {
+      method: "POST",
+      branchId: BRANCH_ONE,
+      json: { kind: DEPARTMENT, name: unitName, parentId: chart.body.units.find((u) => u.kind === ROOT)!.id, headStaffId: boss.id, memberStaffIds: [] },
+    });
+    expect(bossUnit.status, JSON.stringify(bossUnit.body.error)).toBe(200);
+    try {
+      const context = await browser.newContext({ viewport: { width: 1600, height: 900 } });
+      sessions.push(context);
+      const page = await context.newPage();
+      await login(page, { userName: `tk-e2e-${run}x`, password: RUN_STAFF_PASSWORD });
+      const all = await readBoard(page, day);
+      const at = all.groups.findIndex((g) => g.unitId === bossUnit.body.id);
+      expect(at, "the server lists another group before the admin's").toBeGreaterThan(0);
+      await open(page);
+      await expect(page.locator(".ws-namecol--group .ws-name").first()).toHaveText(unitName);
+      await expect(firstRow(page)).toHaveText(boss.fullName);
+    } finally {
+      await call(admin, `${ORG}/units/${bossUnit.body.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+      await deleteStaff(admin, boss.id);
+    }
+  });
+
   test("UI: paint, confirm and save survive a reload; locked and read-only cells refuse", async ({ browser }) => {
     const today = clinicToday();
     const target = shiftDays(today, 5);

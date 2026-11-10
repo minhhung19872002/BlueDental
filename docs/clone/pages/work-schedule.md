@@ -47,6 +47,8 @@ Công: S = 0,5, C = 0,5, SC = 1.
 | 4 | Bỏ qua trường hợp team lồng team. |
 | 5 | Phạm vi nhìn: thành viên Phòng ban thấy cả phòng ban. Người chưa vào đơn vị nào nằm trong nhóm "Chưa phân nhóm", chỉ admin, trưởng gốc (Giám đốc) và chính người đó thấy. Admin thấy và sửa tất cả. |
 | 6 | Quyền "Điểm danh NV khác" đổi tên thành "Quản lý lịch làm việc". |
+| 7 | (BA 2026-11-10, R-1192) Người đang đăng nhập lên đầu danh sách "để họ book lịch cho dễ": nhóm của họ lên đầu, họ đứng đầu nhóm (trên cả trưởng phòng); ở chế độ "Từng bác sĩ / nhân viên" họ đứng đầu danh sách trái và được chọn sẵn. Chỉ FE (`utils/workScheduleOrder.ts`), API giữ thứ tự cũ. |
+| 8 | (BA 2026-11-10) Dưới Phòng ban có thể là Phòng ban con hoặc Team bác sĩ. Chỉ **trưởng phòng** xem được lịch của mọi người bên dưới; nhân viên phòng ban cấp trên **không** xem được đơn vị con. Khớp phạm vi hiện tại bên dưới, không phải sửa. |
 
 Phạm vi theo sơ đồ tổ chức (`OrgChartScope.WorkScheduleReachOf`):
 
