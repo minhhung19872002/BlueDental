@@ -1151,11 +1151,20 @@ test.describe("Bệnh án", () => {
 
     // Sheets are kept in a bộ hồ sơ, and a set is opened for a treatment slip.
     const treatment = await createSlipViaApi(page, patient.body.id);
-    const set = await call(page, SETS_API, {
+    const set = await call<{ id: string }>(page, SETS_API, {
       method: "POST",
       json: { patientId: patient.body.id, treatmentPlanIds: [treatment.id], visibleForms: [] },
     });
     expect(set.status, JSON.stringify(set.body)).toBe(200);
+
+    // The name under BÁC SĨ on mẫu 3 is the slip's doctor, by Chức danh (R-1197).
+    const facts = await call<{ plans: { dentistName: string | null }[] }>(
+      page,
+      `${SETS_API}/${set.body.id}/sheet-facts`,
+    );
+    expect(facts.status, JSON.stringify(facts.body)).toBe(200);
+    const slipDentist = facts.body.plans[0]?.dentistName ?? "";
+    expect(slipDentist).not.toBe("");
 
     await page.goto(`/patient/${patient.body.id}?branchId=${branch}&view=medical-record`);
     await expect(page.locator(".pd-medical-form").first()).toBeVisible();
@@ -1195,8 +1204,11 @@ test.describe("Bệnh án", () => {
         {
           "orthodontic.patient.address": address,
           "orthodontic.text.86": diagnosed,
-          // The name under BÁC SĨ at the foot (clinic, 2026-11-10, R-1191).
-          "orthodontic.text.112": "BS.CKII. BÙI VĂN TỚI",
+          // The names at the foot (clinic, 2026-11-10): under NGƯỜI BỆNH/THÂN NHÂN
+          // the patient; under BÁC SĨ the slip's doctor — BS.CKII. BÙI VĂN TỚI
+          // only with no slip to name one (R-1191, R-1197).
+          "orthodontic.text.114": `Ràng Buộc ${suffix} Địa Chỉ`,
+          "orthodontic.text.112": slipDentist,
         },
       ],
       [
