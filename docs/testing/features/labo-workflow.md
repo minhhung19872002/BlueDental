@@ -450,15 +450,25 @@ Step 1 Đặt hàng of a **new** order is now the Labo's own Phiếu yêu cầu
   - The Kiểm tra step reads the old fields ("làm sau").
 - Tests:
   - `e2e/labo-request-slip-api.spec.ts` (8).
-  - `e2e/labo-request-slip-ui.spec.ts` (4):
+  - `e2e/labo-request-slip-ui.spec.ts` (5):
     - Create from the patient tab: scroll by wheel, Chọn răng with Răng sữa,
       widths 1100 / 800 / 390.
     - Land back on the patient's Labo tab.
     - Read each tooth back; Xem and the print sheet print as one A4 page when
       the paper defaults to 105×148mm.
     - A duplicate Mã số is refused.
+    - A tooth on another open order is flagged but not blocked (R-1106 carried
+      over).
     - A draft refills; a sent sheet is locked.
     - The Trên implant checkbox in the material dialog.
+  - Older specs brought in line:
+    - `labo-workflow:182` now starts from an old-form order already sent
+      through the API.
+    - `labo-supplier-color` no longer looks for the badge on the two Labo
+      lists.
+    - `test.skip` with a note: `labo-workflow` R-1106 and R-1150 (old-form
+      editing) and `labo-material-search:204` (no Vật liệu popup any more).
+    - The Labo specs ran 24 passed / 3 skipped.
 
 ## Not built / open
 

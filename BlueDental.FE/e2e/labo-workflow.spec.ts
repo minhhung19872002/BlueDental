@@ -179,62 +179,27 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     await login(page);
   });
 
-  test("a Nháp is sent, returned for one tooth, passed on round 2 and gets a warranty card per tooth", async ({ page }) => {
+  test("a sent order is returned for one tooth, passed on round 2 and gets a warranty card per tooth", async ({ page }) => {
     test.setTimeout(240_000);
     const id = runId();
     const line = await laboLine(page);
     const catalog = await laboCatalog(page, line.branchId, id);
     const stageA = await addStage(page, line, catalog.dentistId, `Labo A ${id}`);
     const stageB = await addStage(page, line, catalog.dentistId, `Labo B ${id}`);
-    const draft = await createOrder(
+    // Sent through the API: since F-91 (R-1198) a Nháp opens as the Phiếu yêu
+    // cầu, whose own create/send flow is labo-request-slip-ui.spec.ts. An
+    // old-form order already sent still runs this workflow.
+    const sent = await sentOrder(
       page,
       orderBody(catalog, line, id, { treatmentServiceId: line.lineId, treatmentStageId: stageA }),
-      1,
     );
-    expect(draft.status, draft.text).toBe(200);
-    const orderId = draft.body.id!;
-    const orderCode = draft.body.orderCode!;
+    const orderId = sent.id;
+    const orderCode = sent.orderCode;
     const dialog = workflowDialog(page);
 
-    await test.step("Đặt hàng: Lưu nháp keeps a Nháp, Tạo phiếu Labo sends it", async () => {
+    await test.step("Đặt hàng: the sent order waits on Kiểm tra Labo", async () => {
       await openLaboTab(page, line);
       const row = laboRow(page, orderCode);
-      await expect(row).toContainText("Nháp");
-      expect(await actionNames(row)).toEqual(["Xem chi tiết", "Xoá"]);
-
-      await row.getByRole("button", { name: "Xem chi tiết" }).click();
-      await expectStep(dialog, "Đặt hàng", "Nháp");
-      await expect(dialog.getByRole("tab", { name: /Nhận hàng & kiểm tra/ })).toBeDisabled();
-      // The locked fields carry their label as their accessible name.
-      const locked = (name: string) => dialog.getByRole("textbox", { name, exact: true });
-      await expect(locked("Số phiếu Labo")).toHaveValue(orderCode);
-      await expect(locked("Số phiếu Labo")).toBeDisabled();
-      await expect(locked("Dịch vụ điều trị")).toHaveValue(line.serviceName);
-      await expect(locked("Tên khách hàng")).not.toHaveValue("");
-      await expect(locked("Kế hoạch điều trị")).not.toHaveValue("");
-      // Răng (P3110 REQ-C6): the teeth picked as chips with Số lượng; the
-      // purple button opens the chart, and Hủy there changes nothing.
-      const teethRow = dialog.locator(".pd-labo-teeth");
-      await expect(teethRow.locator(".pd-labo-toothchip")).toHaveText(["R11", "R21"]);
-      await expect(teethRow).toContainText("Số lượng: 2");
-      await teethRow.getByRole("button", { name: "Chọn răng" }).click();
-      const chart = page.getByRole("dialog", { name: "Chọn răng" });
-      await expect(chart).toBeVisible();
-      await chart.getByRole("button", { name: "Hủy" }).click();
-      await expect(chart).toBeHidden();
-      await expect(teethRow.locator(".pd-labo-toothchip")).toHaveText(["R11", "R21"]);
-      // Each tooth came with its Mặt gần, Màu and Đường hoàn tất: nothing lacks (R-1150).
-      await expect(dialog.locator(".pd-labo-footer-status")).toContainText("Riêng thông số · riêng màu — R11 1 mặt · R21 1 mặt");
-      await expect(dialog.locator(".pd-labo-footer-hint--done")).toHaveText("✓ Đã đủ thông tin bắt buộc");
-      await dialog.getByRole("button", { name: "Lưu nháp" }).click();
-      await expect(page.getByText("Đã lưu nháp phiếu Labo")).toBeVisible();
-      await expect(dialog).toBeHidden();
-      expect((await read(page, orderId)).status).toBe(LaboStatus.Draft);
-
-      await row.getByRole("button", { name: "Xem chi tiết" }).click();
-      await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
-      await expect(page.getByText("Đã tạo phiếu Labo")).toBeVisible();
-      await expect(dialog).toBeHidden();
       await expect(row).toContainText("Đã gửi Labo");
       expect(await actionNames(row)).toEqual(["Xem chi tiết", "Kiểm tra Labo"]);
       expect((await read(page, orderId)).status).toBe(LaboStatus.Sent);
@@ -751,7 +716,10 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     });
   });
 
-  test("a tooth already on another order of the slip is flagged, not blocked (P0111_02, R-1106)", async ({ page }) => {
+  // F-91 (R-1198): a Nháp opens as the Phiếu yêu cầu, so this old form is never
+  // offered for editing. The warning lives on there: labo-request-slip-ui.spec.ts
+  // "a tooth another order of the patient is still making is flagged, not blocked".
+  test.skip("a tooth already on another order of the slip is flagged, not blocked (P0111_02, R-1106)", async ({ page }) => {
     test.setTimeout(120_000);
     const id = runId();
     const line = await laboLine(page);
@@ -789,7 +757,9 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     expect((await read(page, later.body.id!)).status).toBe(LaboStatus.Sent);
   });
 
-  test("Đặt hàng per tooth: a new tooth waits on its Mặt răng and Màu, the modes keep what was typed, Khớp cắn is the order's (R-1150)", async ({
+  // F-91 (R-1198) replaced this form: no per-tooth thông số cards and no Khớp
+  // cắn on the Phiếu yêu cầu (owner decision). Kept for the old form's history.
+  test.skip("Đặt hàng per tooth: a new tooth waits on its Mặt răng and Màu, the modes keep what was typed, Khớp cắn is the order's (R-1150)", async ({
     page,
   }) => {
     test.setTimeout(180_000);

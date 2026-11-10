@@ -248,6 +248,43 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     expect(await ordersOf(page, patientId)).toHaveLength(0);
   });
 
+  /** R-1106 carried onto the Phiếu yêu cầu: kept by the owner's F-91 decisions. */
+  test("a tooth another order of the patient is still making is flagged, not blocked", async ({
+    page,
+  }) => {
+    const c = await slipCatalog(page);
+    const patientId = await newPatient(page, "prior");
+    const earlierNo = slipNo("prior-a");
+    const earlier = await save(page, fullSlip(c, patientId, earlierNo, { teeth: [16] }));
+    expect(earlier.status, earlier.text).toBe(200);
+
+    const dialog = await startSlip(page, patientId);
+    const no = slipNo("prior-b");
+    await fillRequired(page, dialog, no, c.implantMaterial.name);
+
+    // R16 sits on the earlier order: the box names it, R17 is not in it.
+    const warning = dialog.locator(".pd-labo-prior");
+    await expect(warning.locator(".pd-labo-prior-order")).toHaveCount(1);
+    await expect(warning).toContainText("R16 đã có phiếu Labo trước đó");
+    await expect(warning.locator(".pd-labo-prior-code")).toHaveText(earlierNo);
+    await expect(warning).not.toContainText("R17");
+
+    // «Xem phiếu» opens the earlier order on top; the slip being made stays.
+    await warning.getByRole("button", { name: /Xem phiếu/ }).click();
+    const detail = page.locator(".pd-labo-detail-dialog");
+    await expect(detail).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(detail).toBeHidden();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("Mã số", { exact: true })).toHaveValue(no);
+
+    // Only a warning: Tạo phiếu Labo still sends it.
+    await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
+    await expect(page).toHaveURL(new RegExp(`/patient/${patientId}\\?.*tab=labo`));
+    const made = (await ordersOf(page, patientId)).find((order) => order.labSlipNo === no);
+    expect(made?.status).toBe(LaboStatus.Sent);
+  });
+
   test("a draft without Mã số reopens refilled; a sent slip opens locked with Hủy phiếu and In phiếu", async ({
     page,
   }) => {

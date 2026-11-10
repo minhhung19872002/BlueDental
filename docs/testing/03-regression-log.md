@@ -14706,8 +14706,8 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
       - In Phiếu Labo: `useLaboPrint` gắn `@page { size: A4; margin: 0 }` trong lúc in, cho cả mẫu cũ. Trước đó, máy in PDF có khổ mặc định nhỏ làm header chồng chữ, chữ to và một phiếu ra 3 tờ.
 - **Kiểm thử** (stack riêng: host :5152 + bản build production preview :8097, đăng nhập thật, không chặn request):
   - `e2e/labo-request-slip-api.spec.ts` 8/8: lưu từng răng; Mã số trùng / phân biệt hoa thường / được nhả khi Hủy phiếu; nháp không cần Mã số; Gửi thiếu Mã số, Loại phục hình hay Màu răng bị chặn; Trên implant chỉ với vật liệu cho phép và cùng chi nhánh; tìm theo Mã số trên `/labo`. Quyền Labo dùng lại quyền cũ, chạy lại bằng `labo-orders-permissions`.
-  - `e2e/labo-request-slip-ui.spec.ts` 4/4: tạo từ tab Labo (cuộn bằng con lăn, Chọn răng có Răng sữa, các khổ 1100 / 800 / 390) → về lại tab Labo của hồ sơ → in ra đúng 1 trang A4 khi khổ mặc định là 105×148mm → đọc lại từng răng, Xem + tờ in; trùng Mã số; nháp mở lại đúng giá trị và phiếu đã gửi bị khoá; ô Trên implant ở dialog vật liệu.
-  - Spec Labo cũ: xem dòng F-91 ở registry.
+  - `e2e/labo-request-slip-ui.spec.ts` 5/5: tạo từ tab Labo (cuộn bằng con lăn, Chọn răng có Răng sữa, các khổ 1100 / 800 / 390) → về lại tab Labo của hồ sơ → in ra đúng 1 trang A4 khi khổ mặc định là 105×148mm → đọc lại từng răng, Xem + tờ in; trùng Mã số; răng đã có trên phiếu khác chỉ cảnh báo, vẫn gửi được (R-1106 mang sang); nháp mở lại đúng giá trị và phiếu đã gửi bị khoá; ô Trên implant ở dialog vật liệu.
+  - Spec Labo cũ: `labo-workflow:182` giờ bắt đầu từ đơn kiểu cũ đã gửi qua API; `labo-supplier-color` bỏ phần nhãn trên hai danh sách Labo. `test.skip` có ghi chú: `labo-workflow` R-1106 / R-1150 (sửa form cũ) và `labo-material-search:204` (không còn popup Vật liệu). `labo-orders-actions:141` chỉ đỏ khi chạy sau spec khác, chạy riêng 3/3 xanh. Toàn bộ spec Labo: 24 xanh / 3 skip.
   - tsc + eslint sạch.
 - **Mức retest**: 3 (`LaboOrder` / `LaboAppService`, mọi lối vào popup Labo).
 - **Mở** (chủ dự án chấp nhận tạm):
