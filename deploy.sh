@@ -2,6 +2,11 @@
 # BlueDental deploy script
 # Chay:  bash deploy.sh          (neu da co quyen docker)
 #        sudo bash deploy.sh     (neu chay bang root)
+#
+# Mac dinh build image ngay tren may nay. Neu co API_IMAGE + FRONTEND_IMAGE
+# (CD cua nhanh develop truyen vao) thi KHONG build: keo image da build san
+# tren GitHub Actions ve. VM staging dung chung, 11 GB RAM, khong swap --
+# `dotnet publish` trong luc build an 3.5 GB va lam treo ca may.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -11,8 +16,25 @@ echo "==> [1/6] Trang thai hien tai"
 docker compose ps || true
 
 echo
-echo "==> [2/6] Build image api + frontend (co the mat 5-10 phut lan dau)"
-docker compose build --pull api frontend migrator
+NO_BUILD=
+if [[ -n "${API_IMAGE:-}" && -n "${FRONTEND_IMAGE:-}" ]]; then
+  echo "==> [2/6] Keo image da build san (khong build tren may nay)"
+  # CD dang nhap GHCR vao mot docker config tam; chay tay thi dung ~/.docker.
+  GHCR_CONFIG="$HOME/.cache/bluedental-ghcr"
+  pull() { if [[ -d "$GHCR_CONFIG" ]]; then docker --config "$GHCR_CONFIG" pull "$1"; else docker pull "$1"; fi; }
+  pull "$API_IMAGE"
+  pull "$FRONTEND_IMAGE"
+  # Ten ma compose tu dat cho service co `build:` (project "bluedental"), nen
+  # docker-compose.yml khong phai doi va `up` thay image moi la tao lai container.
+  docker tag "$API_IMAGE" bluedental-api
+  docker tag "$API_IMAGE" bluedental-migrator
+  docker tag "$FRONTEND_IMAGE" bluedental-frontend
+  docker rmi "$API_IMAGE" "$FRONTEND_IMAGE" >/dev/null || true   # chi go tag ghcr
+  NO_BUILD=1
+else
+  echo "==> [2/6] Build image api + frontend (co the mat 5-10 phut lan dau)"
+  docker compose build --pull api frontend migrator
+fi
 
 echo
 echo "==> [3/6] Khoi dong infra (postgres, redis, minio, clamav, gotenberg)"
@@ -37,7 +59,7 @@ fi
 
 echo
 echo "==> [5/6] Khoi dong api + frontend (+ caddy neu dung docker-compose.prod.yml)"
-docker compose up -d
+docker compose up -d ${NO_BUILD:+--no-build}
 
 echo "    Cho api healthy..."
 for _ in $(seq 1 60); do

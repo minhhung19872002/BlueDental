@@ -7,6 +7,16 @@ Hai workflow trong `.github/workflows/`:
 | `ci.yml` | pull request, push (nhanh khac main/develop) | Lint + typecheck + format + unit test + build cho FE; build + test cho BE; build thu 2 Docker image |
 | `cd.yml` | push vao `main` / `develop`, hoac chay tay | Chay lai toan bo CI, roi SSH vao VM deploy va smoke test |
 
+**Image build o dau:** `main` (production) build ngay tren VM bang
+`docker compose build`. `develop` (staging) thi KHONG: job `images` cua
+`cd.yml` build tren GitHub Actions, day len GHCR
+(`ghcr.io/<owner>/bluedental-api|frontend:<sha>`), roi `deploy.sh` nhan
+`API_IMAGE` / `FRONTEND_IMAGE` va chi `docker pull`. VM staging dung chung voi
+nhieu app khac, 11 GB RAM, khong swap -- build .NET tren do an 3.5 GB va da lam
+treo ca may 2 lan ngay 2026-11-11. Package GHCR la private; job deploy dang nhap
+VM bang `GITHUB_TOKEN` cua chinh no vao `~/.cache/bluedental-ghcr` va xoa sau
+khi xong, khong can PAT hay secret nao them.
+
 `cd.yml` goi `ci.yml` qua `workflow_call`, nen **chi deploy khi CI xanh**.
 
 | Nhanh | GitHub environment | VM | URL |
