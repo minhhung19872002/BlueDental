@@ -32,6 +32,17 @@ public static class LaboMaterialGroups
         code is AllCeramic or Alloy or OtherOnImplant;
 
     /// <summary>
+    /// The card of the Phiếu yêu cầu a group's materials sit on (R-1202): a
+    /// group made before P1011 shares Phục hình khác trên implant.
+    /// </summary>
+    public static LaboFormBlockKind CardOf(string? code) => code switch
+    {
+        AllCeramic => LaboFormBlockKind.AllCeramic,
+        Alloy => LaboFormBlockKind.Alloy,
+        _ => LaboFormBlockKind.OtherOnImplant,
+    };
+
+    /// <summary>
     /// Whether a material of the group may be ticked as it is, or on an implant.
     /// A group made before P1011 keeps the material's own "Có lựa chọn Trên
     /// implant" flag, so an old order still saves the way it was written.

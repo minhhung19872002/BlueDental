@@ -10,7 +10,13 @@ import {
   type LaboFormTemplateDto,
   type LaboFormTemplateInput,
 } from "../../api/laboFormTemplateApi";
-import { SYSTEM_BLOCKS, sectionEntries } from "../request-slip/slipLayout";
+import {
+  BLOCK_NAME,
+  SYSTEM_BLOCKS,
+  isSystemKind,
+  sectionEntries,
+  withRestorationCards,
+} from "../request-slip/slipLayout";
 
 /** The server's limits (BlueDental.Labo.LaboFormTemplate / LaboFormField / LaboFormLayout). */
 export const MAX_FIELDS = 30;
@@ -105,17 +111,16 @@ function blockDraft(block: LaboFormBlockDto, fields: LaboFormFieldDto[]): BlockD
 }
 
 /**
- * A new template starts from the slip's own layout and one section holding
- * one empty field; an edit loads the stored one, each field in its section.
+ * A new template starts from the slip's own blocks alone, with no section of
+ * its own (owner, 2026-11-11 — Thêm mục adds one); an edit loads the stored
+ * layout, each field in its section.
  */
 export function templateDraft(template: LaboFormTemplateDto | null): TemplateDraft {
   if (!template) {
-    const blocks = defaultBlocks().map((block) =>
-      block.kind === LABO_BLOCK_KIND.Custom ? blankSection(t("Labo:Slip:Extra")) : blockDraft(block, []),
-    );
+    const blocks = SYSTEM_BLOCKS.map(({ kind, span }) => blockDraft({ kind, span, visible: true }, []));
     return { name: "", description: "", isActive: true, blocks };
   }
-  const layout = template.blocks?.length ? template.blocks : defaultBlocks();
+  const layout = template.blocks?.length ? withRestorationCards(template.blocks) : defaultBlocks();
   return {
     name: template.name,
     description: template.description ?? "",
@@ -220,3 +225,7 @@ export const FIELD_TYPE_LABEL: Record<LaboFieldType, string> = {
   [LABO_FIELD_TYPE.MultiSelect]: "Labo:FormTpl:Type:MultiSelect",
   [LABO_FIELD_TYPE.YesNo]: "Labo:FormTpl:Type:YesNo",
 };
+
+/** How the builder names a block in its labels: a system block by its own name, a section by its place. */
+export const blockLabel = (block: Pick<BlockDraft, "kind">, index: number): string =>
+  isSystemKind(block.kind) ? t(BLOCK_NAME[block.kind]) : String(index + 1);

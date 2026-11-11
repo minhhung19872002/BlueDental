@@ -6,7 +6,9 @@ import {
   type LaboMaterialOption,
   type LaboServiceOption,
 } from "@/hooks/useLaboPickers";
+import { LABO_BLOCK_KIND } from "@/features/labo/api/laboFormTemplateApi";
 import { sameRestoration, type RestorationPick } from "./requestSlipModel";
+import type { RestorationCardKind } from "./slipLayout";
 
 /** One Vật liệu as a row of Loại phục hình. */
 export interface RestorationItem {
@@ -77,6 +79,16 @@ export function restorationGroups(
       };
     })
     .filter((group) => group.items.length > 0);
+}
+
+/**
+ * The card a group sits on (R-1202), as the server files it: Toàn sứ and Hợp
+ * kim their own, Phục hình khác trên implant also every group made before P1011.
+ */
+export function cardOf(group: Pick<RestorationGroup, "code">): RestorationCardKind {
+  if (group.code === LABO_MATERIAL_GROUP.AllCeramic) return LABO_BLOCK_KIND.AllCeramic;
+  if (group.code === LABO_MATERIAL_GROUP.Alloy) return LABO_BLOCK_KIND.Alloy;
+  return LABO_BLOCK_KIND.OtherOnImplant;
 }
 
 export const isTicked = (picked: RestorationPick[], pick: RestorationPick): boolean =>

@@ -4,7 +4,7 @@ import { t } from "@/lib/i18n";
 import { isLockedBlock } from "../../api/laboFormTemplateApi";
 import { BLOCK_NAME, isSystemKind } from "../request-slip/slipLayout";
 import { LaboFormSectionFields } from "./LaboFormSectionFields";
-import { isSection, type BlockDraft } from "./formTemplateModel";
+import { blockLabel, isSection, type BlockDraft } from "./formTemplateModel";
 
 interface Props {
   block: BlockDraft;
@@ -29,7 +29,7 @@ export function LaboFormBlockRow({ block, index, count, fieldSlot, onChange, onM
   const section = isSection(block);
   const locked = isLockedBlock(block.kind);
   const ownName = isSystemKind(block.kind) ? t(BLOCK_NAME[block.kind]) : "";
-  const name = ownName || String(index + 1);
+  const name = blockLabel(block, index);
   const className = ["ft-block", section && "ft-block--section", !block.visible && "ft-block--hidden"]
     .filter(Boolean)
     .join(" ");
@@ -103,6 +103,7 @@ export function LaboFormBlockRow({ block, index, count, fieldSlot, onChange, onM
       </div>
       {section && (
         <LaboFormSectionFields
+          blockRowId={block.rowId}
           fields={block.fields}
           firstNumber={fieldSlot.firstNumber}
           canAdd={fieldSlot.canAdd}

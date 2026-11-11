@@ -1000,3 +1000,30 @@ FE:
   (`SlipBlockLayout`); without one the fixed form stays (`LegacySlipLayout`).
 - Print: `LaboRequestSlipPrintBody` prints the order's blocks, or the fixed
   sheet when the order holds no layout.
+
+### 13.x R-1202 — kéo thả và xem trước (2026-11-11)
+
+- Builder: blocks and fields drag by their grip (`@dnd-kit`, keyboard too);
+  a field may go to another section. The ↑/↓ buttons stay.
+- Preview beside the builder: the slip's own parts (Thông tin phiếu, Loại phục
+  hình with the branch's groups, Chỉ định, Màu răng, Đường hoàn tất, Yêu cầu,
+  and each section as its Thông tin bổ sung card) at their spans on the
+  3-column grid, zoomed and inert. Drag a block there to reorder; click it to
+  reach its card.
+- Modal up to 1600px wide; ≤ 1100px the preview goes under the builder;
+  ≤ 640px blocks stack, as on the slip itself.
+- Slip with a template and its preview pack blocks without row gaps
+  (`useMasonryRows`: 2px grid rows, each block spans its own height + gap),
+  so a block sits right under a shorter one; order stays the template's.
+  The no-template slip keeps its fixed layout.
+- Loại phục hình split (owner): block 2 is the heading only; its cards are
+  system blocks AllCeramic 7, Alloy 8, OtherOnImplant 9, each renamed /
+  resized / moved / hidden on its own. Default order = the no-template slip:
+  Info 3, Restoration 3, AllCeramic 1, OtherOnImplant 1, Teeth 1, Alloy 1,
+  Shade 1, FinishLine 1, Notes 3. A layout saved before the split gets the
+  three cards right after Restoration with its visibility. Restorations are
+  required while any card shows; picks on a hidden card are dropped by the
+  server. No migration.
+- A new template starts with the system blocks only — no default "Thông tin
+  bổ sung" section (owner); Thêm mục adds one. An F-93 template without a
+  layout still reads with its section.

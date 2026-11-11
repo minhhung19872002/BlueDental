@@ -1,10 +1,13 @@
 import { Checkbox } from "antd";
 import { t } from "@/lib/i18n";
 import type { RestorationPick } from "./requestSlipModel";
-import { isTicked, type RestorationGroup } from "./restorationGroups";
+import { cardOf, isTicked, type RestorationGroup } from "./restorationGroups";
+import type { RestorationCardKind } from "./slipLayout";
 
 interface Props {
   group: RestorationGroup;
+  /** The card's heading as a Mẫu phiếu names it; none keeps the group's name. */
+  title?: string;
   picked: RestorationPick[];
   editable: boolean;
   onToggle: (pick: RestorationPick) => void;
@@ -18,11 +21,11 @@ const rowClass = (base: string, on: boolean) => (on ? `${base} rs-on` : base);
  * second cell empty for a material without the implant option. Past ten rows
  * the rows scroll under the header.
  */
-export function RestorationTable({ group, picked, editable, onToggle }: Props) {
+export function RestorationTable({ group, title, picked, editable, onToggle }: Props) {
   return (
-    <section className="rs-sec" aria-label={group.name}>
+    <section className="rs-sec" aria-label={title ?? group.name}>
       <div className="rs-thead">
-        <span>{group.name}</span>
+        <span>{title ?? group.name}</span>
         <span className="rs-c">{group.name}</span>
         <span className="rs-c">{t("Labo:Slip:OnImplant")}</span>
       </div>
@@ -66,10 +69,10 @@ export function RestorationTable({ group, picked, editable, onToggle }: Props) {
  * option: its name over a ticked list. The first stores every tick on an
  * implant (P1011), the second as it is.
  */
-export function RestorationList({ group, picked, editable, onToggle }: Props) {
+export function RestorationList({ group, title, picked, editable, onToggle }: Props) {
   return (
-    <section className="rs-sec" aria-label={group.name}>
-      <div className="rs-sech">{group.name}</div>
+    <section className="rs-sec" aria-label={title ?? group.name}>
+      <div className="rs-sech">{title ?? group.name}</div>
       <div className="rs-rows">
         {group.items.map((item) => {
           const pick = { materialId: item.id, onImplant: group.kind === "implantOnly" };
@@ -83,5 +86,49 @@ export function RestorationList({ group, picked, editable, onToggle }: Props) {
         })}
       </div>
     </section>
+  );
+}
+
+/** Loại phục hình's heading: its name, a rule, and "Đã chọn" with the ticked names. */
+export function RestorationHeading({ title, names }: { title: string; names: string[] }) {
+  return (
+    <div className="rs-heading">
+      <span className="rs-heading-title">{title}</span>
+      <span className="rs-heading-rule" aria-hidden />
+      <span className="rs-heading-picked">
+        {t("Labo:Slip:Picked")} <b>{names.length ? names.join(", ") : t("Labo:Slip:NotPickedLower")}</b>
+      </span>
+    </div>
+  );
+}
+
+interface CardProps extends Omit<Props, "group"> {
+  kind: RestorationCardKind;
+  groups: RestorationGroup[];
+  /** Given, a card with no group shows this heading over an empty note; otherwise it shows nothing. */
+  emptyTitle?: string;
+}
+
+/**
+ * One card of Loại phục hình (R-1202): its group as a table (Toàn sứ, Hợp
+ * kim) or a ticked list (Phục hình khác trên implant), followed on that card
+ * by any group made before P1011 the order still ticks.
+ */
+export function RestorationCard({ kind, groups, title, emptyTitle, ...part }: CardProps) {
+  const own = groups.filter((group) => cardOf(group) === kind);
+  if (own.length === 0)
+    return emptyTitle === undefined ? null : (
+      <section className="rs-sec" aria-label={title ?? emptyTitle}>
+        <div className="rs-sech">{title ?? emptyTitle}</div>
+        <p className="rs-empty rs-card-empty">{t("Labo:Slip:CardEmpty")}</p>
+      </section>
+    );
+  return (
+    <div className="rs-col">
+      {own.map((group, index) => {
+        const Section = group.kind === "pair" ? RestorationTable : RestorationList;
+        return <Section key={group.id} group={group} title={index === 0 ? title : undefined} {...part} />;
+      })}
+    </div>
   );
 }

@@ -754,7 +754,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         var extraForm = await ResolveExtraFormAsync(input, branchId, current);
         bool Hidden(LaboFormBlockKind kind) => extraForm?.Hides(kind) == true;
 
-        var restorations = (Hidden(LaboFormBlockKind.Restoration) ? [] : input.Restorations ?? [])
+        var restorations = (extraForm?.HidesRestorations() == true ? [] : input.Restorations ?? [])
             .Select(r => new LaboToothRestoration(r.MaterialId, r.OnImplant))
             .ToList();
         var materialIds = restorations.Select(r => r.MaterialId).Distinct().ToList();
@@ -775,6 +775,10 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
         }
+
+        // R-1202: a tick on a card the Mẫu phiếu hides is not kept either.
+        if (extraForm is not null)
+            restorations.RemoveAll(r => extraForm.HidesGroup(groupCodes.GetValueOrDefault(materials[r.MaterialId].TaxonomyId)));
 
         var requestedFinishLines = (Hidden(LaboFormBlockKind.FinishLine) ? [] : input.FinishLineIds ?? [])
             .Distinct()

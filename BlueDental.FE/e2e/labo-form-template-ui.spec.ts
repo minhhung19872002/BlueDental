@@ -99,9 +99,14 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
       await expect(dialog).toContainText("Tạo mẫu phiếu");
       await expect(problem).toHaveText("Vui lòng nhập Tên mẫu");
       await expect(saveButton).toBeDisabled();
-      await expect(dialog.getByRole("button", { name: "Xoá trường 1" })).toBeDisabled();
-
       await dialog.getByLabel("Tên mẫu").fill(name);
+
+      // A new template holds no section of its own (owner, 2026-11-11); Thêm mục adds one.
+      await expect(dialog.getByTestId("form-field-row")).toHaveCount(0);
+      await dialog.getByRole("button", { name: "Thêm mục" }).click();
+      await expect(problem).toHaveText("Khối 9 chưa có tiêu đề");
+      await dialog.getByLabel("Tiêu đề khối 9").fill("Thông tin bổ sung");
+      await expect(dialog.getByRole("button", { name: "Xoá trường 1" })).toBeDisabled();
       await expect(problem).toHaveText("Trường 1 chưa có tên");
       await dialog.getByLabel("Tên trường 1").fill("Mã labo");
       await expect(problem).toHaveCount(0);
@@ -178,7 +183,6 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
     await test.step("a name the branch already has is refused and the dialog stays", async () => {
       await page.getByRole("button", { name: "Tạo mẫu phiếu" }).click();
       await dialog.getByLabel("Tên mẫu").fill(name.toUpperCase());
-      await dialog.getByLabel("Tên trường 1").fill("Khác");
       await saveButton.click();
       await expect(page.getByText(`Mẫu phiếu ${name.toUpperCase()} đã tồn tại.`)).toBeVisible();
       await expect(dialog).toBeVisible();

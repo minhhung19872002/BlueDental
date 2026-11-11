@@ -48,6 +48,10 @@ export const LABO_BLOCK_KIND = {
   Teeth: 4,
   FinishLine: 5,
   Notes: 6,
+  /** Loại phục hình's cards (R-1202); Restoration is then only its heading with "Đã chọn". */
+  AllCeramic: 7,
+  Alloy: 8,
+  OtherOnImplant: 9,
 } as const;
 export type LaboBlockKind = (typeof LABO_BLOCK_KIND)[keyof typeof LABO_BLOCK_KIND];
 

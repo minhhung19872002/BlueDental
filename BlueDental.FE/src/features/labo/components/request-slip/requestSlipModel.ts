@@ -7,7 +7,7 @@ import {
 } from "@/features/labo/api/laboApi";
 import { LABO_BLOCK_KIND, type LaboBlockKind } from "@/features/labo/api/laboFormTemplateApi";
 import { extraBody, extraFromOrder, extraMissing, type ExtraFormValues } from "./extraFormModel";
-import { hidesBlock } from "./slipLayout";
+import { hidesBlock, hidesRestorations } from "./slipLayout";
 
 /** The six cells of Màu răng, in the order the 2×3 map lays them out (Gần then Xa, Cổ → Rìa cắn). */
 export const SHADE_ZONES = [
@@ -157,7 +157,7 @@ export function requestSlipErrors(values: RequestSlipValues): string[] {
   if (!values.dentistId) errors.push("Labo:Slip:Err:Dentist");
   if (isDueBad(values)) errors.push("Labo:Slip:Err:Due");
   if (values.teeth.length === 0) errors.push("Labo:Slip:Err:Teeth");
-  if (!hidden(values, LABO_BLOCK_KIND.Restoration) && values.restorations.length === 0)
+  if (!hidesRestorations(values.extra?.blocks) && values.restorations.length === 0)
     errors.push("Labo:Slip:Err:Restoration");
   if (!hidden(values, LABO_BLOCK_KIND.Shade) && !hasShade(values.shade)) errors.push("Labo:Slip:Err:Shade");
   if (extraMissing(values.extra)) errors.push("Labo:Slip:Err:Extra");
@@ -190,7 +190,8 @@ export function requestSlipBody(values: RequestSlipValues) {
     dueAt: dayOf(values.dueDate),
     shadeZones: mapZones((zone) => (shown(LABO_BLOCK_KIND.Shade) ? blankToUndefined(values.shade[zone]) : undefined)),
     finishLineIds: shown(LABO_BLOCK_KIND.FinishLine) ? values.finishLineIds : [],
-    restorations: shown(LABO_BLOCK_KIND.Restoration) ? values.restorations : [],
+    // A tick on a hidden card the server drops itself, knowing each material's group (R-1202).
+    restorations: hidesRestorations(values.extra?.blocks) ? [] : values.restorations,
     ...extraBody(values.extra),
   };
 }

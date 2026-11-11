@@ -14811,4 +14811,28 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - tsc + eslint sạch.
 - **Mức retest**: 3 (đụng `LaboAppService` lưu/gửi đơn và DbContext).
 - **Triển khai**: phải chạy DbMigrator cho `LaboFormLayoutF94`.
-- **Trạng thái**: commit develop, **chưa push** (chủ dự án dặn).
+- **Trạng thái**: commit develop, push origin/develop 2026-11-11 (chủ dự án: "commit và push lên develop đi"), cùng F-94 5e9b0e31.
+
+## R-1202 (2026-11-11, mức 2: Labo — Mẫu phiếu kéo thả + xem trước, F-94)
+
+- **Yêu cầu** (chủ dự án):
+  - "hiện tại modal tạo mẫu là chọn layout field đó, có cách nào kéo thả cho trực quan k và có preview nữa".
+  - "cho modal rộng ra đi"; "có handle responsive chưa".
+  - "Chỗ Thông tin phiếu t thấy hiện k giống lúc UI form tạo"; "check các box hệ thống kia để làm cho giống".
+  - "hình như nó đang bị responsive chứ k phải ở view desktop à"; "ở màn hình t k lệch này" (so với phiếu không dùng mẫu).
+- **Sửa** (chỉ FE, không đổi API / DB):
+  - Kéo thả bằng `@dnd-kit` (`useLayoutDnd`, `SortableShell`, `layoutDnd.ts`): khối kéo bằng tay nắm (cả bàn phím: Space, ↑/↓, Space); trường kéo trong mục hoặc sang mục khác; mục rỗng hiện "Kéo trường vào đây". Nút ↑/↓ cũ giữ nguyên.
+  - Xem trước (`LaboFormLayoutPreview`) bên phải: các khối đang hiện theo thứ tự, đúng độ rộng trên lưới 3 cột; kéo khối ở đây cũng đổi thứ tự bên trái; bấm khối thì cuộn tới thẻ của nó; khối ẩn ghi "Đang ẩn: …".
+  - Xem trước vẽ **đúng các phần của Phiếu yêu cầu**: dùng lại `ShadeZoneMap`, `FinishLineChecks`, `RestorationTable` / `RestorationList`, `LaboToothRow`, `SectionBadge`, `ExtraFieldInput`, `LaboPictureWell`; Thông tin phiếu chép markup của `RequestSlipInfo`. Loại phục hình / Đường hoàn tất lấy từ danh mục thật của chi nhánh (`usePreviewCatalog`, đủ danh sách: mỗi thẻ 10 dòng rồi cuộn như phiếu).
+  - **Xếp khối không chừa hàng trống** (đổi cả phiếu thật dùng mẫu, `SlipBlockLayout`): trước đây lưới xếp theo hàng nên khối thấp (Chỉ định) để trống bên dưới và Màu răng bị đẩy xuống hàng mới. Nay lưới chạy trên hàng 2px, mỗi khối chiếm số hàng bằng chiều cao của nó + khoảng cách (`useMasonryRows` + `.rs-masonry`, đo lại khi khối đổi cỡ), nên khối sau nằm ngay dưới khối ngắn; thứ tự khối vẫn theo mẫu. Khối rộng 2/3 vẫn phải chờ cả hai cột trống (Đường hoàn tất 2/3 nằm dưới Loại phục hình). Phiếu không dùng mẫu (bố cục cố định) không đổi.
+  - Nội dung mỗi khối thu nhỏ bằng `zoom` trên lớp bên trong (không đặt lên khối kéo, để dnd-kit đo đúng) và `inert` (bấm rơi xuống khối; ô nhập không lọt vào cây a11y).
+  - Modal rộng `min(1600px, 100vw - 48px)`; ≤ 1100px xem trước xuống dưới; ≤ 640px khối xếp một cột như phiếu thật. Không tràn ngang ở 390 / 1024 / 1280 / 1600.
+  - **Tách Loại phục hình** ("b tách riêng ra từng cái được k"; chủ dự án chọn: tiêu đề là khối riêng, mặc định giống phiếu không dùng mẫu): khối Loại phục hình (2) nay chỉ còn tiêu đề; ba thẻ thành ba khối hệ thống mới — Toàn sứ (7), Hợp kim (8), Phục hình khác trên implant (9) — đổi tên / độ rộng / thứ tự / ẩn như khối khác. Mặc định: Thông tin 3, Loại phục hình 3, Toàn sứ 1, Phục hình khác 1, Chỉ định 1, Hợp kim 1, Màu răng 1, Đường hoàn tất 1, Yêu cầu 3. Bố cục lưu trước khi tách (không có thẻ) đọc ra ba thẻ ngay sau Loại phục hình, ẩn/hiện theo nó (FE `withRestorationCards`, BE `LaboFormLayout.WithCards`). Loại phục hình chỉ bắt nhập khi còn ít nhất một thẻ hiện; lựa chọn thuộc thẻ đang ẩn bị server bỏ (`LaboExtraForm.HidesGroup`, `LaboMaterialGroups.CardOf`). BE đổi enum + i18n `Labo:Slip:Card:*`, `Labo:Slip:CardEmpty`; **không migration mới**.
+  - **Mẫu mới không còn mục "Thông tin bổ sung" mặc định** ("mặc định bỏ cái box Thông tin bổ sung đi"): Tạo mẫu phiếu mở ra chỉ có các khối hệ thống, "0/10 mục"; Thêm mục mới thêm. Mẫu F-93 cũ (không có bố cục) vẫn đọc ra mục Thông tin bổ sung chứa các trường của nó.
+- **Kiểm thử** (host :5000 Development + bản build production preview :8080, đăng nhập thật, không chặn request):
+  - Mới `e2e/labo-form-layout-dnd.spec.ts`: thứ tự / độ rộng khối trong xem trước; kéo khối bằng bàn phím; kéo trường sang mục khác, mục rỗng báo lỗi và chặn Lưu; kéo khối trong xem trước; ẩn khối; bấm khối mở thẻ; lưu rồi đọc lại bằng GET riêng.
+  - `labo-form-layout*` + `labo-form-template*`: 21/21.
+  - Toàn bộ spec Labo: 81 xanh / 3 skip (skip có sẵn từ F-91). `labo-form-template-ui` sửa theo mẫu mới không có mục mặc định (thêm qua Thêm mục).
+  - tsc + eslint sạch. Ảnh so với phiếu thật ở 1600 / 1024 / 390.
+- **Mức retest**: 2 (dialog Mẫu phiếu + phiếu yêu cầu dùng mẫu).
+- **Trạng thái**: commit develop, push origin/develop 2026-11-11 (chủ dự án: "commit và push lên develop đi"), cùng F-94 5e9b0e31. Chuỗi i18n mới cần build lại BE khi triển khai.

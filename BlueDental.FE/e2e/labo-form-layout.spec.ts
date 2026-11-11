@@ -44,6 +44,17 @@ function expectRefused(res: Refusable, errorCode: string) {
   expect(res.body.error?.code, res.text).toBe(errorCode);
 }
 
+/** Every block a slip can do without, Loại phục hình's heading and cards among them. */
+const HIDDEN_ALL: number[] = [
+  BlockKind.Restoration,
+  BlockKind.AllCeramic,
+  BlockKind.Alloy,
+  BlockKind.OtherOnImplant,
+  BlockKind.Shade,
+  BlockKind.FinishLine,
+  BlockKind.Notes,
+];
+
 const section = (key: string, title: string, span = 3): BlockInput => ({ key, kind: BlockKind.Custom, title, span });
 
 /** The system blocks with one change applied to the block of `kind`. */
@@ -146,12 +157,15 @@ test.describe("Labo Mẫu phiếu layout API (F-94)", () => {
     ];
     const made = await layoutTemplate(page, "Bố cục riêng", blocks, fields);
 
-    await test.step("read back with its own GET, as laid out", async () => {
+    await test.step("read back with its own GET, as laid out; sent without cards, Loại phục hình gets its three after it", async () => {
       const back = await getTemplate(page, made.id);
       expect(shapeOf(back.blocks)).toEqual([
         [BlockKind.Info, null, true, 3],
         [BlockKind.Teeth, "Răng làm", true, 1],
         [BlockKind.Restoration, null, true, 3],
+        [BlockKind.AllCeramic, null, true, 1],
+        [BlockKind.Alloy, null, true, 1],
+        [BlockKind.OtherOnImplant, null, true, 1],
         [BlockKind.Custom, "Kỹ thuật", true, 1],
         [BlockKind.Shade, "Màu sắc", true, 1],
         [BlockKind.FinishLine, null, false, 3],
@@ -172,11 +186,9 @@ test.describe("Labo Mẫu phiếu layout API (F-94)", () => {
       expect(res.status, res.text).toBe(200);
       const back = await getTemplate(page, res.body.id);
       expect(shapeOf(back.blocks)).toEqual([
-        [BlockKind.Info, null, true, 3],
-        [BlockKind.Restoration, null, true, 2],
-        [BlockKind.Teeth, null, true, 1],
-        [BlockKind.Shade, null, true, 1],
-        [BlockKind.FinishLine, null, true, 2],
+        ...systemBlocks()
+          .filter((b) => b.kind !== BlockKind.Notes)
+          .map((b) => [b.kind, null, true, b.span]),
         [BlockKind.Custom, null, true, 3],
         [BlockKind.Notes, null, true, 3],
       ]);
@@ -191,11 +203,7 @@ test.describe("Labo Mẫu phiếu layout API (F-94)", () => {
       page,
       "Ẩn khối",
       [
-        ...systemBlocks().map((b) =>
-          [BlockKind.Restoration, BlockKind.Shade, BlockKind.FinishLine, BlockKind.Notes].includes(b.kind as 2 | 3 | 5 | 6)
-            ? { ...b, visible: false }
-            : b,
-        ),
+        ...systemBlocks().map((b) => (HIDDEN_ALL.includes(b.kind) ? { ...b, visible: false } : b)),
         section("lab", "Phòng lab"),
       ],
       [{ label: "Mã labo", type: FieldType.Text, required: true, blockKey: "lab" }],
@@ -209,6 +217,31 @@ test.describe("Labo Mẫu phiếu layout API (F-94)", () => {
       expectRefused(await saveExtra(page, body, shown.id, []), RESTORATION_MISSING);
       const noShade = fullSlip(c, patientId, slipNo("lay1"), { zones: {} });
       expectRefused(await saveExtra(page, noShade, shown.id, []), TOOTH_SPEC_INCOMPLETE);
+    });
+
+    await test.step("Loại phục hình is asked for while a card shows; a hidden card's ticks are dropped (R-1202)", async () => {
+      const lab = [section("lab", "Phòng lab")];
+      const labField = [{ label: "Mã labo", type: FieldType.Text, blockKey: "lab" }];
+      const headingOff = await layoutTemplate(page, "Ẩn tiêu đề", [...withSystem(BlockKind.Restoration, { visible: false }), ...lab], labField);
+      const none = fullSlip(c, patientId, slipNo("lay3"), { restorations: [] });
+      expectRefused(await saveExtra(page, none, headingOff.id, []), RESTORATION_MISSING);
+
+      const ceramicOff = await layoutTemplate(page, "Ẩn Toàn sứ", [...withSystem(BlockKind.AllCeramic, { visible: false }), ...lab], labField);
+      const both = fullSlip(c, patientId, slipNo("lay4"), {
+        restorations: [
+          { materialId: c.ceramic.id, onImplant: false },
+          { materialId: c.alloy.id, onImplant: false },
+        ],
+      });
+      const res = await saveExtra(page, both, ceramicOff.id, []);
+      expect(res.status, res.text).toBe(200);
+      const order = await readExtra(page, res.body.id);
+      for (const tooth of order.teeth) {
+        expect(tooth.restorations.map((r) => [r.materialId, r.onImplant])).toEqual([[c.alloy.id, false]]);
+      }
+
+      const ceramicOnly = fullSlip(c, patientId, slipNo("lay5"));
+      expectRefused(await saveExtra(page, ceramicOnly, ceramicOff.id, []), RESTORATION_MISSING);
     });
 
     const no = slipNo("lay2");
@@ -265,10 +298,12 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
     const saveButton = dialog.locator(".bd-modal-foot-actions .ant-btn-primary");
     const blockRow = (text: string) => dialog.getByTestId("form-block-row").filter({ has: page.getByLabel(`Tiêu đề khối ${text}`) });
 
-    await test.step("a new template starts from the slip's own blocks; Thông tin phiếu and Chỉ định cannot be hidden", async () => {
+    await test.step("a new template starts from the slip's own blocks alone; Thông tin phiếu and Chỉ định cannot be hidden", async () => {
       await page.getByRole("button", { name: "Tạo mẫu phiếu" }).click();
-      await expect(dialog.getByTestId("form-block-row")).toHaveCount(7);
-      await expect(dialog.getByLabel("Tiêu đề khối 6")).toHaveValue("Thông tin bổ sung");
+      // No Thông tin bổ sung section by default (owner, 2026-11-11).
+      await expect(dialog.getByTestId("form-block-row")).toHaveCount(9);
+      await expect(dialog.getByTestId("form-field-row")).toHaveCount(0);
+      await expect(dialog).toContainText("0/10 mục");
       for (const locked of ["Thông tin phiếu", "Chỉ định"]) {
         await expect(blockRow(locked)).toContainText("Luôn hiện");
         await expect(dialog.getByRole("switch", { name: `Hiện khối ${locked}` })).toHaveCount(0);
@@ -276,7 +311,6 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
       await expect(dialog.getByRole("button", { name: "Đưa khối Thông tin phiếu lên trên" })).toBeDisabled();
       await expect(dialog.getByRole("button", { name: "Đưa khối Yêu cầu xuống dưới" })).toBeDisabled();
       await dialog.getByLabel("Tên mẫu").fill(name);
-      await dialog.getByLabel("Tên trường 1").fill("Mã labo");
       await expect(problem).toHaveCount(0);
     });
 
@@ -289,11 +323,21 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
 
     await test.step("Thêm mục adds a section before Yêu cầu; untitled, it stops Lưu", async () => {
       await dialog.getByRole("button", { name: "Thêm mục" }).click();
-      await expect(dialog.getByTestId("form-block-row")).toHaveCount(8);
-      await expect(dialog).toContainText("2/10 mục");
-      await expect(problem).toHaveText("Khối 7 chưa có tiêu đề");
+      await expect(dialog.getByTestId("form-block-row")).toHaveCount(10);
+      await expect(dialog).toContainText("1/10 mục");
+      await expect(problem).toHaveText("Khối 9 chưa có tiêu đề");
       await expect(saveButton).toBeDisabled();
-      await dialog.getByLabel("Tiêu đề khối 7").fill("Kỹ thuật");
+      await dialog.getByLabel("Tiêu đề khối 9").fill("Phòng lab");
+      await expect(problem).toHaveText("Trường 1 chưa có tên");
+      await dialog.getByLabel("Tên trường 1").fill("Mã labo");
+      await expect(problem).toHaveCount(0);
+
+      await dialog.getByRole("button", { name: "Thêm mục" }).click();
+      await expect(dialog.getByTestId("form-block-row")).toHaveCount(11);
+      await expect(dialog).toContainText("2/10 mục");
+      await expect(problem).toHaveText("Khối 10 chưa có tiêu đề");
+      await expect(saveButton).toBeDisabled();
+      await dialog.getByLabel("Tiêu đề khối 10").fill("Kỹ thuật");
       await expect(problem).toHaveText("Trường 2 chưa có tên");
       await dialog.getByLabel("Tên trường 2").fill("Loại trụ");
       await expect(problem).toHaveCount(0);
@@ -301,7 +345,7 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
 
     await test.step("Yêu cầu moves up above the new section", async () => {
       await dialog.getByRole("button", { name: "Đưa khối Yêu cầu lên trên" }).click();
-      await expect(dialog.getByLabel("Tiêu đề khối 8")).toHaveValue("Kỹ thuật");
+      await expect(dialog.getByLabel("Tiêu đề khối 11")).toHaveValue("Kỹ thuật");
     });
 
     await test.step("Lưu keeps the layout as built", async () => {
@@ -311,11 +355,14 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
       const made = await templateByName(page, name);
       expect(shapeOf(made.blocks)).toEqual([
         [BlockKind.Info, null, true, 3],
-        [BlockKind.Restoration, null, true, 2],
+        [BlockKind.Restoration, null, true, 3],
+        [BlockKind.AllCeramic, null, true, 1],
+        [BlockKind.OtherOnImplant, null, true, 1],
         [BlockKind.Teeth, null, true, 1],
+        [BlockKind.Alloy, null, true, 1],
         [BlockKind.Shade, "Màu sắc", true, 3],
-        [BlockKind.FinishLine, null, false, 2],
-        [BlockKind.Custom, "Thông tin bổ sung", true, 3],
+        [BlockKind.FinishLine, null, false, 1],
+        [BlockKind.Custom, "Phòng lab", true, 3],
         [BlockKind.Notes, null, true, 3],
         [BlockKind.Custom, "Kỹ thuật", true, 3],
       ]);
@@ -332,15 +379,15 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
       await page.getByRole("button", { name: `Chỉnh sửa ${name}` }).click();
       await expect(dialog.getByLabel("Tiêu đề khối Màu răng")).toHaveValue("Màu sắc");
       await expect(dialog.getByRole("switch", { name: "Hiện khối Đường hoàn tất" })).not.toBeChecked();
-      await expect(dialog.getByLabel("Tiêu đề khối 8")).toHaveValue("Kỹ thuật");
-      await dialog.getByRole("button", { name: "Xoá khối 8" }).click();
-      await expect(dialog.getByTestId("form-block-row")).toHaveCount(7);
+      await expect(dialog.getByLabel("Tiêu đề khối 11")).toHaveValue("Kỹ thuật");
+      await dialog.getByRole("button", { name: "Xoá khối 11" }).click();
+      await expect(dialog.getByTestId("form-block-row")).toHaveCount(10);
       await saveButton.click();
       await expect(page.getByText("Đã cập nhật").first()).toBeVisible();
 
       const after = await templateByName(page, name);
       expect(after.version).toBe(2);
-      expect(after.blocks.filter((b) => b.kind === BlockKind.Custom).map((b) => b.key)).toEqual([before.blocks[5].key]);
+      expect(after.blocks.filter((b) => b.kind === BlockKind.Custom).map((b) => b.key)).toEqual([before.blocks[8].key]);
       expect(after.fields.map((f) => f.label)).toEqual(["Mã labo"]);
       expect(after.fields[0].key).toBe(before.fields[0].key);
     });
@@ -372,13 +419,17 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
       const dialog = await startSlip(page, patientId);
       await choose(page, dialog.getByLabel("Mẫu phiếu", { exact: true }), template.name);
       const blocks = dialog.locator(".rs-blocks > .rs-block");
-      await expect(blocks).toHaveCount(5);
+      // Laid out before the cards (R-1202): Loại phục hình's three follow its heading.
+      await expect(blocks).toHaveCount(8);
       const order = await blocks.evaluateAll((nodes) =>
         nodes.map((node) => node.getAttribute("data-block-kind") ?? `section:${node.getAttribute("aria-label")}`),
       );
-      expect(order).toEqual(["1", "4", "2", "section:Kỹ thuật", "6"]);
+      expect(order).toEqual(["1", "4", "2", "7", "8", "9", "section:Kỹ thuật", "6"]);
       await expect(blocks.nth(1)).toContainText("Răng làm");
-      await expect(blocks.nth(4)).toContainText("Dặn dò");
+      await expect(blocks.nth(3)).toContainText(c.ceramic.name);
+      await expect(blocks.nth(4)).toContainText(c.alloy.name);
+      await expect(blocks.nth(5)).toContainText(c.implantOther.name);
+      await expect(blocks.nth(7)).toContainText("Dặn dò");
       await expect(dialog.locator(".rs-shade")).toHaveCount(0);
       await expect(dialog.getByText("Đường hoàn tất", { exact: true })).toHaveCount(0);
       await expect(blocks.nth(1)).toHaveClass(/is-span-1/);
@@ -415,7 +466,7 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
       await patientRow(page, no).getByRole("button", { name: "Xem chi tiết" }).click();
       await page.getByRole("dialog").getByRole("tab", { name: "Đặt hàng" }).click();
       const dialog = slipDialog(page);
-      await expect(dialog.locator(".rs-blocks > .rs-block")).toHaveCount(5);
+      await expect(dialog.locator(".rs-blocks > .rs-block")).toHaveCount(8);
       await expect(dialog.getByRole("region", { name: "Kỹ thuật" })).toContainText("Osstem");
       await expect(dialog.getByLabel("Mẫu phiếu", { exact: true })).toBeDisabled();
     });

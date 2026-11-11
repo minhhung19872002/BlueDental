@@ -14,8 +14,9 @@ import { RequestSlipInfo } from "./RequestSlipInfo";
 import { RequestToothChart } from "./RequestToothChart";
 import { chartOrder, type RequestSlipValues } from "./requestSlipModel";
 import { pickedNames, restorationGroups, toggleRestoration } from "./restorationGroups";
-import { RestorationList, RestorationTable } from "./RestorationSections";
+import { RestorationCard, RestorationHeading } from "./RestorationSections";
 import { ShadeZoneMap } from "./ShadeZoneMap";
+import type { RestorationCardKind } from "./slipLayout";
 import type { RequestSlipStep } from "./useRequestSlipStep";
 
 export interface SlipPartsSetup {
@@ -34,10 +35,13 @@ export interface SlipPartsSetup {
 export interface SlipParts {
   info: (title?: string) => ReactNode;
   restorationHeading: (title?: string) => ReactNode;
-  /** Toàn sứ and Hợp kim — the groups with a Trên implant column. */
-  restorationPairs: ReactNode;
-  /** Phục hình khác trên implant and any other single-column group. */
-  restorationLists: ReactNode;
+  /**
+   * One card of Loại phục hình (R-1202). With `emptyTitle`, a card whose group
+   * has no material shows that heading over a note; without it, nothing.
+   */
+  restorationCard: (kind: RestorationCardKind, title?: string, emptyTitle?: string) => ReactNode;
+  /** The branch has any material to tick. */
+  hasRestorations: boolean;
   shade: (title?: string) => ReactNode;
   teeth: (title?: string) => ReactNode;
   finishLines: (title?: string) => ReactNode;
@@ -85,27 +89,12 @@ export function useSlipParts({ branchId, patient, dentists, order, step }: SlipP
       />
     ),
     restorationHeading: (title) => (
-      <div className="rs-heading">
-        <span className="rs-heading-title">{title ?? t("Labo:Slip:Restoration")}</span>
-        <span className="rs-heading-rule" aria-hidden />
-        <span className="rs-heading-picked">
-          {t("Labo:Slip:Picked")} <b>{names.length ? names.join(", ") : t("Labo:Slip:NotPickedLower")}</b>
-        </span>
-      </div>
+      <RestorationHeading title={title ?? t("Labo:Slip:Restoration")} names={names} />
     ),
-    restorationPairs: (
-      <>
-        {groups
-          .filter((group) => group.kind === "pair")
-          .map((group) => (
-            <RestorationTable key={group.id} group={group} {...sectionProps} />
-          ))}
-        {groups.length === 0 && <p className="rs-empty">{t("Labo:Slip:NoRestorations")}</p>}
-      </>
+    restorationCard: (kind, title, emptyTitle) => (
+      <RestorationCard kind={kind} groups={groups} title={title} emptyTitle={emptyTitle} {...sectionProps} />
     ),
-    restorationLists: groups
-      .filter((group) => group.kind !== "pair")
-      .map((group) => <RestorationList key={group.id} group={group} {...sectionProps} />),
+    hasRestorations: groups.length > 0,
     shade: (title) => (
       <ShadeZoneMap shade={values.shade} editable={editable} title={title} onChange={(shade) => change({ shade })} />
     ),

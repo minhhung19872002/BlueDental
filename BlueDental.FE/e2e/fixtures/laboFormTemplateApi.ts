@@ -42,6 +42,10 @@ export const BlockKind = {
   Teeth: 4,
   FinishLine: 5,
   Notes: 6,
+  /** Loại phục hình's cards (R-1202); Restoration is then its heading alone. */
+  AllCeramic: 7,
+  Alloy: 8,
+  OtherOnImplant: 9,
 } as const;
 
 export interface BlockInput {
@@ -60,14 +64,21 @@ export interface BlockView {
   span: number;
 }
 
-/** The slip's own blocks in its own order, every one shown — a layout to edit from. */
+/**
+ * The slip's own blocks as a new template lays them out (R-1202), every one
+ * shown: Loại phục hình's heading, then its three cards in the fixed slip's
+ * columns — a layout to edit from.
+ */
 export function systemBlocks(): BlockInput[] {
   return [
     { kind: BlockKind.Info, span: 3 },
-    { kind: BlockKind.Restoration, span: 2 },
+    { kind: BlockKind.Restoration, span: 3 },
+    { kind: BlockKind.AllCeramic, span: 1 },
+    { kind: BlockKind.OtherOnImplant, span: 1 },
     { kind: BlockKind.Teeth, span: 1 },
+    { kind: BlockKind.Alloy, span: 1 },
     { kind: BlockKind.Shade, span: 1 },
-    { kind: BlockKind.FinishLine, span: 2 },
+    { kind: BlockKind.FinishLine, span: 1 },
     { kind: BlockKind.Notes, span: 3 },
   ];
 }

@@ -242,7 +242,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.OrderIncomplete);
 
         // F-94: a part the order's Mẫu phiếu hides is not asked for.
-        var noRestoration = ExtraForm?.Hides(LaboFormBlockKind.Restoration) == true
+        var noRestoration = ExtraForm?.HidesRestorations() == true
             ? null
             : _teeth.FirstOrDefault(t => t.Restorations.Count == 0);
         if (noRestoration is not null)

@@ -596,3 +596,26 @@ interception.
     the same order with the section's answers.
 - **`e2e/labo-form-template-ui.spec.ts`** now picks "Mẫu phiếu" and expects
   the section on paper (F-93's "Không in" replaced by F-94's print).
+
+## F-94 — kéo thả và xem trước (R-1202, 2026-11-11)
+
+- **`e2e/labo-form-layout-dnd.spec.ts`.**
+  - The preview lists the shown blocks in order (read from each block's
+    `aria-label`; the slip part inside draws its own heading) at their spans.
+  - A block moves from the keyboard by its grip; a field dragged into another
+    section moves there and the emptied section blocks Lưu until a field lands
+    in it; a block dragged in the preview moves in the builder too.
+  - A hidden block leaves the preview and is named under it; a click on a
+    preview block focuses its card; the saved layout is read back by GET.
+- The preview draws the slip's own parts (inert, zoomed), so a change to the
+  Phiếu yêu cầu parts shows up in the builder as well.
+- Both the slip with a template and the preview pack blocks without row
+  gaps (`useMasonryRows`); the Labo suite covers the slip with a template.
+- **Loại phục hình split into cards 7 / 8 / 9** — `labo-form-layout.spec.ts`:
+  the stored layout reads back with the cards after the heading; an F-93
+  template reads as the default; API step: heading hidden alone still asks
+  for Loại phục hình, a hidden card's ticks are dropped per tooth, a pick only
+  on a hidden card → `RESTORATION_MISSING`; the slip draws each card as its
+  own block in the template's order.
+- **No default section** — the builder opens with 9 system blocks and
+  "0/10 mục"; both specs add their sections through Thêm mục.

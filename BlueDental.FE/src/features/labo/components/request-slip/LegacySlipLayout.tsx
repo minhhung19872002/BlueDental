@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n";
+import { LABO_BLOCK_KIND } from "@/features/labo/api/laboFormTemplateApi";
 import { ExtraFormSection } from "./ExtraFormSection";
 import type { ExtraFormValues } from "./extraFormModel";
 import type { SlipParts } from "./useSlipParts";
@@ -23,9 +24,13 @@ export function LegacySlipLayout({ parts, extra, editable, onAnswer }: Props) {
       {parts.info()}
       {parts.restorationHeading()}
       <div className="rs-main">
-        <div className="rs-col">{parts.restorationPairs}</div>
         <div className="rs-col">
-          {parts.restorationLists}
+          {parts.restorationCard(LABO_BLOCK_KIND.AllCeramic)}
+          {parts.restorationCard(LABO_BLOCK_KIND.Alloy)}
+          {!parts.hasRestorations && <p className="rs-empty">{t("Labo:Slip:NoRestorations")}</p>}
+        </div>
+        <div className="rs-col">
+          {parts.restorationCard(LABO_BLOCK_KIND.OtherOnImplant)}
           {parts.shade()}
         </div>
         <div className="rs-col">

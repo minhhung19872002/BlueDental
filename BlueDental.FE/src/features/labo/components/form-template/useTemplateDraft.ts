@@ -7,6 +7,7 @@ import {
   type BlockDraft,
   type TemplateDraft,
 } from "./formTemplateModel";
+import { reorderBlocks } from "./layoutDnd";
 
 /**
  * The builder's draft (F-94): the head fields and the layout, block by block.
@@ -57,5 +58,11 @@ export function useTemplateDraft(open: boolean, template: LaboFormTemplateDto | 
     [setBlocks],
   );
 
-  return { draft, patch, updateBlock, moveBlock, removeBlock, addSection };
+  /** A drop in the preview (R-1202): the block takes the place of the one it lands on. */
+  const reorderBlock = useCallback(
+    (activeRowId: string, overRowId: string) => setBlocks((blocks) => reorderBlocks(blocks, activeRowId, overRowId)),
+    [setBlocks],
+  );
+
+  return { draft, patch, setBlocks, updateBlock, moveBlock, removeBlock, addSection, reorderBlock };
 }

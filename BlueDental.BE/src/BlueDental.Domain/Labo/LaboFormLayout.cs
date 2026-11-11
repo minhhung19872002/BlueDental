@@ -27,16 +27,27 @@ public static class LaboFormLayout
         LaboFormBlockKind.Teeth,
         LaboFormBlockKind.FinishLine,
         LaboFormBlockKind.Notes,
+        LaboFormBlockKind.AllCeramic,
+        LaboFormBlockKind.Alloy,
+        LaboFormBlockKind.OtherOnImplant,
     ];
 
-    /// <summary>The slip's own order: Thông tin phiếu, Loại phục hình beside Chỉ định, Màu răng, Đường hoàn tất, the fields, Yêu cầu.</summary>
+    /// <summary>
+    /// The fixed slip's look (R-1202): Thông tin phiếu and Loại phục hình's
+    /// heading across, then three columns read left to right and placed under
+    /// the block above in the same column — Toàn sứ, Phục hình khác, Chỉ định;
+    /// Hợp kim, Màu răng, Đường hoàn tất — then the fields and Yêu cầu.
+    /// </summary>
     public static List<LaboFormBlock> Default(bool withCustom) =>
     [
         LaboFormBlock.Create(null, LaboFormBlockKind.Info, null, true, 3),
-        LaboFormBlock.Create(null, LaboFormBlockKind.Restoration, null, true, 2),
+        LaboFormBlock.Create(null, LaboFormBlockKind.Restoration, null, true, 3),
+        LaboFormBlock.Create(null, LaboFormBlockKind.AllCeramic, null, true, 1),
+        LaboFormBlock.Create(null, LaboFormBlockKind.OtherOnImplant, null, true, 1),
         LaboFormBlock.Create(null, LaboFormBlockKind.Teeth, null, true, 1),
+        LaboFormBlock.Create(null, LaboFormBlockKind.Alloy, null, true, 1),
         LaboFormBlock.Create(null, LaboFormBlockKind.Shade, null, true, 1),
-        LaboFormBlock.Create(null, LaboFormBlockKind.FinishLine, null, true, 2),
+        LaboFormBlock.Create(null, LaboFormBlockKind.FinishLine, null, true, 1),
         .. withCustom ? [LaboFormBlock.Create(DefaultCustomKey, LaboFormBlockKind.Custom, null, true, 3)] : Array.Empty<LaboFormBlock>(),
         LaboFormBlock.Create(null, LaboFormBlockKind.Notes, null, true, 3),
     ];
@@ -74,8 +85,25 @@ public static class LaboFormLayout
         return Default(withCustom: true);
     }
 
-    private static List<LaboFormBlock> Check(IReadOnlyList<LaboFormBlock> blocks)
+    /// <summary>
+    /// A layout saved before Loại phục hình was split (R-1202) has its one block
+    /// and no cards: the three cards go right after it, shown as it was.
+    /// </summary>
+    private static IReadOnlyList<LaboFormBlock> WithCards(IReadOnlyList<LaboFormBlock> blocks)
     {
+        LaboFormBlockKind[] cards = [LaboFormBlockKind.AllCeramic, LaboFormBlockKind.Alloy, LaboFormBlockKind.OtherOnImplant];
+        var heading = blocks.Where(b => b.Kind == LaboFormBlockKind.Restoration).ToList();
+        if (heading.Count != 1 || blocks.Any(b => cards.Contains(b.Kind)))
+            return blocks;
+        var at = blocks.ToList().IndexOf(heading[0]) + 1;
+        var upgraded = blocks.ToList();
+        upgraded.InsertRange(at, cards.Select(kind => LaboFormBlock.Create(null, kind, null, heading[0].Visible, 1)));
+        return upgraded;
+    }
+
+    private static List<LaboFormBlock> Check(IReadOnlyList<LaboFormBlock> sent)
+    {
+        var blocks = WithCards(sent);
         if (blocks.Any(b => !Enum.IsDefined(b.Kind))
             || SystemKinds.Any(kind => blocks.Count(b => b.Kind == kind) != 1))
             throw Invalid();

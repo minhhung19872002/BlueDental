@@ -1,10 +1,12 @@
-import { Button, Input, Select } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { useRef } from "react";
+import { Input, Select } from "antd";
 import { toast } from "sonner";
 import { AppDialog } from "@/components/AppDialog";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { useLaboFormTemplateCommands, type LaboFormTemplateDto } from "../../api/laboFormTemplateApi";
-import { LaboFormBlockRow } from "./LaboFormBlockRow";
+import { LaboFormLayoutList } from "./LaboFormLayoutList";
+import { LaboFormLayoutPreview } from "./LaboFormLayoutPreview";
 import {
   MAX_FIELDS,
   MAX_SECTIONS,
@@ -13,6 +15,7 @@ import {
   isSection,
   templateInput,
 } from "./formTemplateModel";
+import { usePreviewCatalog } from "./usePreviewCatalog";
 import { useTemplateDraft } from "./useTemplateDraft";
 
 interface Props {
@@ -21,26 +24,35 @@ interface Props {
   onClose: () => void;
 }
 
+/** Bring a block's card into view and put the caret in its first box. */
+function revealBlock(list: HTMLDivElement | null, rowId: string) {
+  const card = list?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(rowId)}"]`);
+  if (!card) return;
+  card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  card.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+}
+
 /**
  * Tạo / Sửa mẫu phiếu (F-93, F-94): Tên mẫu, Mô tả, Trạng thái and the
  * layout of the Phiếu yêu cầu — its own blocks and the template's sections
- * with their fields. What still stops Lưu reads in the footer; the server
- * checks the same rules again. A slip that already took the template keeps its
- * own copy, so an edit only reaches the slips that pick it from now on.
+ * with their fields, built on the left by drag and drop and seen on the right
+ * as the slip will lay it out (R-1202). What still stops Lưu reads in the
+ * footer; the server checks the same rules again. A slip that already took the
+ * template keeps its own copy, so an edit only reaches the slips that pick it
+ * from now on.
  */
 export function LaboFormTemplateDialog({ open, template, onClose }: Props) {
-  const { draft, patch, updateBlock, moveBlock, removeBlock, addSection } = useTemplateDraft(open, template);
+  const editor = useTemplateDraft(open, template);
+  const { draft, patch } = editor;
   const { create, update } = useLaboFormTemplateCommands();
+  const listRef = useRef<HTMLDivElement>(null);
+  const currentBranchId = useCurrentBranchId();
+  const catalog = usePreviewCatalog(template?.clinicBranchId ?? currentBranchId, open);
 
   const problem = draftProblem(draft);
   const pending = create.isPending || update.isPending;
   const fieldCount = allFields(draft).length;
   const sectionCount = draft.blocks.filter(isSection).length;
-  // The number of each block's first field, counting the fields of the blocks before it.
-  const firstNumbers = draft.blocks.reduce<number[]>(
-    (acc, _block, index) => [...acc, index === 0 ? 1 : acc[index - 1] + draft.blocks[index - 1].fields.length],
-    [],
-  );
 
   const handleSave = async () => {
     if (problem) return;
@@ -63,7 +75,7 @@ export function LaboFormTemplateDialog({ open, template, onClose }: Props) {
   return (
     <AppDialog
       open={open}
-      width={900}
+      width="min(1600px, calc(100vw - 48px))"
       title={template ? t("Common:EditItem", noun) : t("Common:CreateItem", noun)}
       canSave={problem === null}
       saving={pending}
@@ -95,33 +107,27 @@ export function LaboFormTemplateDialog({ open, template, onClose }: Props) {
           <Input maxLength={500} value={draft.description} onChange={(e) => patch({ description: e.target.value })} />
         </label>
 
-        <div className="ft-fields-head">
-          <span>{t("Labo:FormTpl:Layout")}</span>
-          <span className="ft-count">
-            {t("Labo:FormTpl:BlockCount", String(sectionCount), String(MAX_SECTIONS))}
-            {" · "}
-            {t("Labo:FormTpl:FieldCount", String(fieldCount), String(MAX_FIELDS))}
-          </span>
+        <div className="ft-body">
+          <div className="ft-builder">
+            <div className="ft-fields-head">
+              <span>{t("Labo:FormTpl:Layout")}</span>
+              <span className="ft-count">
+                {t("Labo:FormTpl:BlockCount", String(sectionCount), String(MAX_SECTIONS))}
+                {" · "}
+                {t("Labo:FormTpl:FieldCount", String(fieldCount), String(MAX_FIELDS))}
+              </span>
+            </div>
+            <p className="ft-hint">{t("Labo:FormTpl:LayoutHint")}</p>
+            {template && <p className="ft-hint">{t("Labo:FormTpl:SnapshotHint")}</p>}
+            <LaboFormLayoutList blocks={draft.blocks} editor={editor} listRef={listRef} />
+          </div>
+          <LaboFormLayoutPreview
+            blocks={draft.blocks}
+            catalog={catalog}
+            onReorder={editor.reorderBlock}
+            onPick={(rowId) => revealBlock(listRef.current, rowId)}
+          />
         </div>
-        <p className="ft-hint">{t("Labo:FormTpl:LayoutHint")}</p>
-        {template && <p className="ft-hint">{t("Labo:FormTpl:SnapshotHint")}</p>}
-        <div className="ft-fields">
-          {draft.blocks.map((block, index) => (
-            <LaboFormBlockRow
-              key={block.rowId}
-              block={block}
-              index={index}
-              count={draft.blocks.length}
-              fieldSlot={{ firstNumber: firstNumbers[index], canAdd: fieldCount < MAX_FIELDS }}
-              onChange={updateBlock}
-              onMove={(step) => moveBlock(index, step)}
-              onRemove={() => removeBlock(block.rowId)}
-            />
-          ))}
-        </div>
-        <Button icon={<PlusOutlined />} disabled={sectionCount >= MAX_SECTIONS} onClick={addSection}>
-          {t("Labo:FormTpl:AddSection")}
-        </Button>
       </div>
     </AppDialog>
   );

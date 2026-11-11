@@ -615,37 +615,33 @@
 .rs-blocks {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  column-gap: 14px;
   align-items: start;
+}
+
+/* No row gaps (R-1202): thin rows; useMasonryRows places each block in the
+   template's order — its column, its width held to the grid's columns, its
+   first row under the blocks above it, and as many rows as its height plus
+   the gap — so a short block's column fills up under it. */
+.rs-masonry {
+  grid-auto-rows: 2px;
+  row-gap: 0;
+}
+
+.rs-masonry > * {
+  grid-column: var(--rs-col, auto) / span var(--rs-span, 1);
+  grid-row: var(--rs-row, auto) / span var(--rs-rows, 1);
 }
 
 .rs-block { min-width: 0; }
-.rs-block.is-span-1 { grid-column: span 1; }
-.rs-block.is-span-2 { grid-column: span 2; }
-.rs-block.is-span-3 { grid-column: 1 / -1; }
-
-.rs-restoration { display: flex; flex-direction: column; gap: 14px; }
-
-.rs-restoration-cols {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  align-items: start;
-}
-
-.rs-block.is-span-1 .rs-restoration-cols { grid-template-columns: minmax(0, 1fr); }
 .rs-block.is-span-1 .rs-extra-grid { grid-template-columns: minmax(0, 1fr); }
 .rs-block.is-span-2 .rs-extra-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 @media (max-width: 1100px) {
   .rs-blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .rs-block.is-span-2 { grid-column: 1 / -1; }
 }
 
 @media (max-width: 640px) {
-  .rs-blocks,
-  .rs-restoration-cols { grid-template-columns: minmax(0, 1fr); }
-  .rs-block.is-span-1,
-  .rs-block.is-span-2 { grid-column: 1 / -1; }
+  .rs-blocks { grid-template-columns: minmax(0, 1fr); }
   .rs-tpl-bar { flex-direction: column; align-items: stretch; max-width: none; }
 }
