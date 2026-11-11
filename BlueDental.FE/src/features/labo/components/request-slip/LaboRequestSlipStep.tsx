@@ -1,28 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { t } from "@/lib/i18n";
 import { withBranch } from "@/lib/clinicBranch";
-import {
-  useLaboFinishLineOptions,
-  useLaboMaterialOptions,
-  useLaboServiceOptions,
-  type PickerOption,
-} from "@/hooks/useLaboPickers";
-import { laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
+import type { PickerOption } from "@/hooks/useLaboPickers";
+import type { LaboOrderDto } from "@/features/labo/api/laboApi";
 import { LaboPrintButton } from "../order-dialogs/LaboPrintButton";
-import { toothLabel } from "../order-dialogs/laboToothSpecs";
 import { LaboCancelOrderButton } from "../workflow/LaboCancelOrderButton";
-import { ExtraFormSection } from "./ExtraFormSection";
-import { FinishLineChecks } from "./FinishLineChecks";
-import { RequestNotes } from "./RequestNotes";
+import { answerExtra, hasLayout } from "./extraFormModel";
+import { LegacySlipLayout } from "./LegacySlipLayout";
 import { RequestSlipFooter } from "./RequestSlipFooter";
-import { RequestSlipInfo } from "./RequestSlipInfo";
-import { RequestToothChart } from "./RequestToothChart";
-import { LABO_CASE_TYPE } from "@/features/labo/api/laboApi";
-import { chartOrder, type RequestSlipStart, type RequestSlipValues } from "./requestSlipModel";
-import { pickedNames, restorationGroups, toggleRestoration } from "./restorationGroups";
-import { RestorationList, RestorationTable } from "./RestorationSections";
-import { ShadeZoneMap } from "./ShadeZoneMap";
+import type { RequestSlipStart } from "./requestSlipModel";
+import { SlipBlockLayout } from "./SlipBlockLayout";
+import { SlipTemplatePicker } from "./SlipTemplatePicker";
 import { useRequestSlipStep } from "./useRequestSlipStep";
+import { useSlipParts } from "./useSlipParts";
 import "./request-slip.css";
 
 interface Props {
@@ -35,36 +24,13 @@ interface Props {
   onClose: () => void;
 }
 
-/** "Ca mới · R18, R17 · Sứ Lava +1 · Vai 90°" — the footer's one line. */
-function summaryOf(values: RequestSlipValues, names: string[], finishes: string[]): string {
-  const teeth = chartOrder(values.teeth);
-  return [
-    t(values.caseType === LABO_CASE_TYPE.Redo ? "Labo:Slip:CaseRedo" : "Labo:Slip:CaseNew"),
-    teeth.length ? teeth.map(toothLabel).join(", ") : t("Labo:Slip:NoTeeth"),
-    names.length
-      ? names[0] + (names.length > 1 ? ` +${names.length - 1}` : "")
-      : t("Labo:Slip:NoRestoration"),
-    ...(finishes.length ? [finishes.join(", ")] : []),
-  ].join(" · ");
-}
-
 /**
- * Tab Đặt hàng as the Labo's own Phiếu yêu cầu (F-91): Thông tin phiếu, then
- * Loại phục hình in three columns (BA P1011) — Toàn sứ and Hợp kim, then
- * Phục hình khác trên implant with Màu răng, then Chỉ định (the system's Chọn
- * răng button) with Đường hoàn tất — then Thông tin bổ sung when the branch
- * keeps a Mẫu phiếu (F-93, never printed), Yêu cầu, and the footer.
- * A sent order shows the same sheet locked, with In phiếu and Hủy phiếu.
+ * Tab Đặt hàng as the Labo's own Phiếu yêu cầu (F-91). With a Mẫu phiếu
+ * picked at the top (F-94) the sheet follows the template's layout; without
+ * one it keeps its fixed form. A sent order shows the same sheet locked, with
+ * In phiếu and Hủy phiếu.
  */
-export function LaboRequestSlipStep({
-  branchId,
-  patient,
-  order,
-  start,
-  dentists,
-  readOnly,
-  onClose,
-}: Props) {
+export function LaboRequestSlipStep({ branchId, patient, order, start, dentists, readOnly, onClose }: Props) {
   const navigate = useNavigate();
   const step = useRequestSlipStep({
     branchId,
@@ -79,105 +45,37 @@ export function LaboRequestSlipStep({
     },
   });
   const { values, change, editable } = step;
-  const services = useLaboServiceOptions(branchId).data ?? [];
-  const materials = useLaboMaterialOptions(branchId).data ?? [];
-  const finishLines = useLaboFinishLineOptions(branchId).data ?? [];
-
-  const groups = restorationGroups(services, materials, values.restorations);
-  const names = pickedNames(groups, values.restorations);
-  const finishes = finishLines
-    .filter((line) => values.finishLineIds.includes(line.value))
-    .map((line) => line.label);
-  const sectionProps = {
-    picked: values.restorations,
-    editable,
-    onToggle: (pick: RequestSlipValues["restorations"][number]) =>
-      change({ restorations: toggleRestoration(values.restorations, pick) }),
+  const parts = useSlipParts({ branchId, patient, dentists, order, step });
+  const extra = values.extra;
+  const handleAnswer = (key: string, answer: string[]) => {
+    if (extra) change({ extra: answerExtra(extra, key, answer) });
   };
 
   return (
     <div className="rs-slip">
       <div className="rs-slip-scroll">
-        <RequestSlipInfo
-          branchId={branchId}
-          patient={patient}
-          dentists={dentists}
-          values={values}
-          editable={editable}
-          onChange={change}
-        />
-        <div className="rs-heading">
-          <span className="rs-heading-title">{t("Labo:Slip:Restoration")}</span>
-          <span className="rs-heading-rule" aria-hidden />
-          <span className="rs-heading-picked">
-            {t("Labo:Slip:Picked")}{" "}
-            <b>{names.length ? names.join(", ") : t("Labo:Slip:NotPickedLower")}</b>
-          </span>
-        </div>
-        <div className="rs-main">
-          <div className="rs-col">
-            {groups
-              .filter((group) => group.kind === "pair")
-              .map((group) => (
-                <RestorationTable key={group.id} group={group} {...sectionProps} />
-              ))}
-            {groups.length === 0 && <p className="rs-empty">{t("Labo:Slip:NoRestorations")}</p>}
-          </div>
-          <div className="rs-col">
-            {groups
-              .filter((group) => group.kind !== "pair")
-              .map((group) => (
-                <RestorationList key={group.id} group={group} {...sectionProps} />
-              ))}
-            <ShadeZoneMap
-              shade={values.shade}
-              editable={editable}
-              onChange={(shade) => change({ shade })}
-            />
-          </div>
-          <div className="rs-col">
-            <RequestToothChart
-              branchId={branchId}
-              code={order ? laboOrderNo(order) : ""}
-              teeth={values.teeth}
-              editable={editable}
-              priors={step.priors}
-              onChange={(teeth) => change({ teeth })}
-            />
-            <FinishLineChecks
-              options={finishLines}
-              value={values.finishLineIds}
-              editable={editable}
-              onChange={(finishLineIds) => change({ finishLineIds })}
-            />
-          </div>
-        </div>
-        <ExtraFormSection
+        <SlipTemplatePicker
           templates={step.templates}
-          extra={values.extra}
+          extra={extra}
           saved={order?.extraForm}
           editable={editable}
-          onChange={(extra) => change({ extra })}
+          onChange={(picked) => change({ extra: picked })}
         />
-        <RequestNotes
-          notes={values.notes}
-          editable={editable}
-          pictures={step.pictures}
-          busy={step.saving}
-          onChange={(notes) => change({ notes })}
-        />
+        {hasLayout(extra) ? (
+          <SlipBlockLayout parts={parts} extra={extra} editable={editable} onAnswer={handleAnswer} />
+        ) : (
+          <LegacySlipLayout parts={parts} extra={extra} editable={editable} onAnswer={handleAnswer} />
+        )}
       </div>
       <RequestSlipFooter
-        summary={summaryOf(values, names, finishes)}
+        summary={parts.summary}
         errors={step.errors}
         editable={editable}
         saving={step.saving}
         extra={
           order && (
             <>
-              {!readOnly && (
-                <LaboCancelOrderButton order={order} disabled={step.saving} onDone={onClose} />
-              )}
+              {!readOnly && <LaboCancelOrderButton order={order} disabled={step.saving} onDone={onClose} />}
               {!editable && (
                 <LaboPrintButton
                   order={order}

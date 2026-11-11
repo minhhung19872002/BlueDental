@@ -943,3 +943,60 @@ FE:
 - `request-slip/ExtraFormSection` + `ExtraFieldInput` render "Thông tin bổ
   sung" under the slip. The picker is searchable without accents. A slip that
   is sent is locked and shows its answers read-only.
+
+## 13. F-94 — Mẫu phiếu dựng cả Phiếu yêu cầu (R-1201, 2026-11-11)
+
+The owner widened F-93: "ý ba mở rộng là làm chức năng custom toàn bộ form
+đó". Their answers (2026-11-11):
+
+- **"Khối hệ thống khóa".** The slip's own blocks — Thông tin phiếu, Loại phục
+  hình, Màu răng, Chỉ định, Đường hoàn tất, Yêu cầu — stay as they are inside.
+  A template can only rename them, set their width (1/3, 2/3 or the whole row),
+  move them, and hide them. Thông tin phiếu and Chỉ định are always shown.
+  Around them a template adds its own titled sections (at most 10), each
+  holding fields (at most 30 in the whole template). Kiểm tra, Bảo hành and
+  the Excel export are unchanged.
+- **"Theo chi nhánh, chọn khi tạo phiếu".** As in F-93: the template belongs to
+  a branch and is picked on the slip ("Mẫu phiếu"); there is no supplier link.
+- **"In tự sinh theo mẫu".** The print follows the order's layout: the shown
+  blocks in order, at their width, under their headings, each section's fields
+  printed as «Nhãn: câu trả lời». This replaces F-93's "Không in phần riêng".
+
+Data:
+
+- `LaboFormTemplate.Blocks` (jsonb): an ordered list of `{key, kind, title,
+  visible, span}`. Kind: Custom 0, Info 1, Restoration 2, Shade 3, Teeth 4,
+  FinishLine 5, Notes 6. Each field gains a `blockKey` naming its section.
+- A template written before F-94 has no blocks. It reads as the slip's own
+  layout (Info 3, Restoration 2, Teeth 1, Shade 1, FinishLine 2, one untitled
+  section `extra` of width 3, Notes 3), with every field in `extra`.
+- `LaboOrder.ExtraForm` copies the blocks with the fields, so an order keeps
+  the layout it was written with.
+- Migration `LaboFormLayoutF94` (needs DbMigrator).
+
+Rules (BE):
+
+- Every system kind appears exactly once; an unknown kind, more than 10
+  sections, or two sections sharing a key → `Labo:0058 FormLayoutInvalid`.
+- A section with no title → `0059` (data: its 1-based place); a section with
+  no field → `0060`. No blocks and no fields → `0052` as before.
+- A width is held to 1–3; Info and Teeth are forced shown. A section key must
+  match `^[A-Za-z0-9_-]+$`, else a new one is made. A field naming no section
+  of the layout is filed under the first section.
+- A layout of system blocks only, with no field, is a valid template.
+- A block the order's layout hides is not kept: restorations, shade zones,
+  finish lines and notes the form sends for it are dropped, and Tạo phiếu Labo
+  no longer asks for Loại phục hình (`0044`) or Màu răng (`0034`) when that
+  block is hidden.
+
+FE:
+
+- Builder (`form-template/LaboFormBlockRow`, `LaboFormSectionFields`,
+  `useTemplateDraft`): one card per block — heading, width, Hiện switch (or
+  "Luôn hiện"), up/down arrows, and for a section its fields and Xoá; "Thêm
+  mục" adds a section before Yêu cầu. The footer names what still stops Lưu
+  ("Khối N chưa có tiêu đề", "Mục … chưa có trường", …).
+- Slip: picking a Mẫu phiếu lays the sheet out on a 3-column grid
+  (`SlipBlockLayout`); without one the fixed form stays (`LegacySlipLayout`).
+- Print: `LaboRequestSlipPrintBody` prints the order's blocks, or the fixed
+  sheet when the order holds no layout.

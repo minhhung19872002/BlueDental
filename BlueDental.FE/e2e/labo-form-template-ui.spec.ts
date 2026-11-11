@@ -226,7 +226,7 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
     });
   });
 
-  test("Thông tin bổ sung on the Phiếu yêu cầu: hidden with no template, answered, saved as a draft, kept as a copy, sent and left off the print", async ({
+  test("Thông tin bổ sung on the Phiếu yêu cầu: hidden with no template, answered, saved as a draft, kept as a copy, sent and printed", async ({
     page,
   }) => {
     const c = await slipCatalog(page);
@@ -240,7 +240,7 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
       const dialog = await startSlip(page, patientId);
       await expect(dialog.locator(".rs-teeth")).toBeVisible();
       await expect(section(dialog)).toHaveCount(0);
-      await expect(dialog.getByLabel("Mẫu bổ sung")).toHaveCount(0);
+      await expect(dialog.getByLabel("Mẫu phiếu", { exact: true })).toHaveCount(0);
       await dialog.getByRole("button", { name: "Huỷ", exact: true }).click();
       await expect(dialog).toBeHidden();
     });
@@ -251,18 +251,22 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
 
     await test.step("with one, the picker shows and is searched accent-blind", async () => {
       const dialog = await startSlip(page, patientId);
-      await expect(section(dialog)).toBeVisible();
-      await expect(section(dialog)).toContainText("Không in trên phiếu");
+      // Nothing picked yet: the fixed slip, the picker at its top (F-94).
+      await expect(section(dialog)).toHaveCount(0);
+      await expect(dialog.getByLabel("Mẫu phiếu", { exact: true })).toBeVisible();
       await fillRequired(page, dialog, no, c.ceramic.name);
       await expect(status(dialog)).toHaveText("Phiếu đã đủ thông tin.");
 
-      const picker = dialog.getByLabel("Mẫu bổ sung");
+      const picker = dialog.getByLabel("Mẫu phiếu", { exact: true });
       await picker.click();
       await picker.fill(fold(template.name).toLowerCase());
       const options = page.locator(".ant-select-dropdown:visible .ant-select-item-option");
       await expect(options).toHaveText([template.name]);
       await options.first().click();
 
+      // A template saved without a layout lays the slip out as the default one, its fields printed (F-94).
+      await expect(dialog.locator(".rs-blocks")).toBeVisible();
+      await expect(section(dialog)).not.toContainText("Không in trên phiếu");
       for (const label of ["Mã labo", "Ghi chú kỹ thuật", "Số lượng trụ", "Hạn bảo hành", "Hãng sứ", "Phụ kiện", "Có mẫu hàm"])
         await expect(section(dialog).getByLabel(label, { exact: true })).toBeVisible();
       await expect(section(dialog).locator(".rs-extra-field.is-missing")).toHaveCount(2);
@@ -338,11 +342,11 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
       await pick.hover();
       await pick.locator(".ant-select-clear").click();
       await expect(section(dialog).getByLabel("Mã labo", { exact: true })).toHaveCount(0);
-      await expect(dialog.getByLabel("Mẫu bổ sung")).toBeVisible();
+      await expect(dialog.getByLabel("Mẫu phiếu", { exact: true })).toBeVisible();
       await expect(status(dialog)).toHaveText("Phiếu đã đủ thông tin.");
 
       // The stopped template is offered only as the slip's own copy, next to the live one.
-      await dialog.getByLabel("Mẫu bổ sung").click();
+      await dialog.getByLabel("Mẫu phiếu", { exact: true }).click();
       const options = page.locator(".ant-select-dropdown:visible .ant-select-item-option");
       await expect(options.filter({ hasText: other.name })).toHaveCount(1);
       await options.filter({ hasText: template.name }).click();
@@ -379,18 +383,24 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
       const extra = section(dialog);
       await expect(extra.getByLabel("Mã labo", { exact: true })).toHaveValue("ML-02");
       await expect(extra.getByLabel("Mã labo", { exact: true })).toBeDisabled();
-      await expect(dialog.getByLabel("Mẫu bổ sung")).toBeDisabled();
+      await expect(dialog.getByLabel("Mẫu phiếu", { exact: true })).toBeDisabled();
       await expect(dialog.locator(".rs-extra-pick")).toContainText(template.name);
     });
 
-    await test.step("In Phiếu Labo leaves Thông tin bổ sung off the sheet", async () => {
+    await test.step("In Phiếu Labo prints Thông tin bổ sung as the template lays it out (F-94)", async () => {
       await page.goto(`/labo?branchId=${BRANCH_ONE}`);
       const row = page.locator(".bd-labo-screen tbody tr.ant-table-row").filter({ hasText: no }).first();
       await row.getByRole("button", { name: "Xem", exact: true }).click();
       const sheet = page.locator(".pd-slip-print");
       await expect(sheet).toContainText(`Mã số: ${no}`);
-      for (const text of ["Thông tin bổ sung", template.name, "Mã labo", "ML-02", "Emax"])
-        await expect(sheet).not.toContainText(text);
+      const extra = sheet.locator(".pd-slip-print-block").filter({ hasText: "Thông tin bổ sung" });
+      await expect(extra).toHaveCount(1);
+      await expect(extra).toContainText("Mã labo: ML-02");
+      await expect(extra).toContainText("Hãng sứ: Emax");
+      await expect(extra).toContainText("Phụ kiện: Trụ, Khay");
+      await expect(extra).toContainText("Có mẫu hàm: Có");
+      await expect(extra).toContainText(`Hạn bảo hành: ${day(30)}`);
+      await expect(sheet).not.toContainText(template.name);
     });
   });
 });

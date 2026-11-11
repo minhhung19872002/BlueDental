@@ -31,10 +31,28 @@ public class LaboFormTemplate : FullAuditedAggregateRoot<Guid>
     private readonly List<LaboFormField> _fields = [];
     public IReadOnlyList<LaboFormField> Fields => _fields.AsReadOnly();
 
+    // Null or empty on a row saved before F-94: such a template reads as the default layout.
+    private List<LaboFormBlock>? _blocks = [];
+
+    /// <summary>
+    /// The slip's layout (F-94): the system blocks and the template's own
+    /// sections in order. A template saved before layouts reads as
+    /// <see cref="LaboFormLayout.Default"/> with its fields in one section.
+    /// </summary>
+    public IReadOnlyList<LaboFormBlock> Blocks =>
+        HasLayout ? _blocks!.AsReadOnly() : LaboFormLayout.Default(withCustom: true);
+
+    /// <summary>The section a field sits in, reading a field saved before layouts as the default one.</summary>
+    public string BlockKeyOf(LaboFormField field) =>
+        HasLayout ? field.BlockKey ?? LaboFormLayout.DefaultCustomKey : LaboFormLayout.DefaultCustomKey;
+
+    private bool HasLayout => _blocks is { Count: > 0 };
+
     protected LaboFormTemplate() { }
 
     public static LaboFormTemplate Create(
-        Guid id, Guid clinicBranchId, string? name, string? description, IReadOnlyList<LaboFormField> fields)
+        Guid id, Guid clinicBranchId, string? name, string? description, IReadOnlyList<LaboFormField> fields,
+        IReadOnlyList<LaboFormBlock>? blocks = null)
     {
         var template = new LaboFormTemplate
         {
@@ -42,15 +60,21 @@ public class LaboFormTemplate : FullAuditedAggregateRoot<Guid>
             ClinicBranchId = clinicBranchId,
             IsActive = true,
         };
-        return template.Update(name, description, fields);
+        return template.Update(name, description, fields, blocks);
     }
 
-    /// <summary>The builder saves the name, the description and the whole field list together.</summary>
-    public LaboFormTemplate Update(string? name, string? description, IReadOnlyList<LaboFormField> fields)
+    /// <summary>
+    /// The builder saves the name, the description, the layout and the whole
+    /// field list together. No layout sent (the F-93 call) gives the default
+    /// one, which needs at least one field; a layout of its own may hold none.
+    /// </summary>
+    public LaboFormTemplate Update(
+        string? name, string? description, IReadOnlyList<LaboFormField> fields,
+        IReadOnlyList<LaboFormBlock>? blocks = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.FormTemplateNameRequired);
-        if (fields.Count == 0 || fields.Count > MaxFields)
+        if (fields.Count > MaxFields)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.FormTemplateFieldCount)
                 .WithData("max", MaxFields);
 
@@ -69,10 +93,12 @@ public class LaboFormTemplate : FullAuditedAggregateRoot<Guid>
                 keys.Add(field.TakeNewKey());
         }
 
+        var layout = LaboFormLayout.Arrange(blocks, fields);
         Name = name.Trim();
         Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
         _fields.Clear();
         _fields.AddRange(fields);
+        _blocks = layout;
         Version++;
         return this;
     }

@@ -15,6 +15,8 @@ interface Props {
   values: RequestSlipValues;
   editable: boolean;
   onChange: (patch: Partial<RequestSlipValues>) => void;
+  /** The heading a Mẫu phiếu gives this part (F-94); none keeps its own name. */
+  title?: string;
 }
 
 const DAY_FORMAT = "DD/MM/YYYY";
@@ -53,14 +55,14 @@ const ReadOnly = ({ label, text }: { label: string; text: string }) => (
 );
 
 /** Thông tin phiếu: what the Labo needs to know about the order, the clinic, patient and doctor. */
-export function RequestSlipInfo({ branchId, patient, dentists, values, editable, onChange }: Props) {
+export function RequestSlipInfo({ branchId, patient, dentists, values, editable, onChange, title }: Props) {
   const clinic = useBranchInfo(branchId).data;
   const brief = usePatientBrief(patient.id).data;
   const dueBad = isDueBad(values);
 
   return (
     <section className="rs-sec">
-      <div className="rs-sech">{t("Labo:Slip:Info")}</div>
+      <div className="rs-sech">{title ?? t("Labo:Slip:Info")}</div>
       <div className="rs-secb rs-info">
         <Field label={t("Labo:Slip:SlipNo")} required wide>
           <Input

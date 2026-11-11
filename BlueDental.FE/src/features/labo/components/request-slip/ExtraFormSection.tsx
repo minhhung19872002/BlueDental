@@ -1,77 +1,42 @@
-import { Select } from "antd";
 import { t } from "@/lib/i18n";
-import { foldFilterOption } from "@/utils/foldForSearch";
-import type { LaboExtraFormDto, LaboFormTemplateDto } from "@/features/labo/api/laboFormTemplateApi";
 import { ExtraFieldInput } from "./ExtraFieldInput";
-import { pickExtra, type ExtraFormValues } from "./extraFormModel";
+import type { ExtraField } from "./extraFormModel";
 
 interface Props {
-  /** The branch's Đang dùng templates; empty while the slip is locked. */
-  templates: LaboFormTemplateDto[];
-  extra: ExtraFormValues | null;
-  /** What the order holds on the server, so picking its template again restores the copy. */
-  saved: LaboExtraFormDto | null | undefined;
+  title: string;
+  fields: ExtraField[];
+  answers: Record<string, string[]>;
   editable: boolean;
-  onChange: (extra: ExtraFormValues | null) => void;
-}
-
-/** The picker's choices: the live templates, and the one the slip holds even if it was switched off since. */
-function templateOptions(templates: LaboFormTemplateDto[], extra: ExtraFormValues | null, saved: Props["saved"]) {
-  const options = templates.map((template) => ({ value: template.id, label: template.name }));
-  for (const held of [extra, saved]) {
-    if (held && !options.some((option) => option.value === held.templateId))
-      options.push({ value: held.templateId, label: held.templateName });
-  }
-  return options;
+  /** A copy made before layouts (F-93): the section says it is not printed. */
+  unprinted?: boolean;
+  /** The block's width class on the slip's grid (F-94). */
+  className?: string;
+  onAnswer: (key: string, values: string[]) => void;
 }
 
 /**
- * Thông tin bổ sung (F-93): the fields of a Mẫu phiếu picked for this slip.
- * Shown only while the branch keeps an Đang dùng template, or the slip already
- * holds one — otherwise the slip reads as it did before. A locked slip shows
- * its answers without the picker's choices. Not part of the printed sheet.
+ * One section of a Mẫu phiếu's own fields (F-93, F-94), named by the
+ * template. A locked slip shows the answers without letting them change.
  */
-export function ExtraFormSection({ templates, extra, saved, editable, onChange }: Props) {
-  // Cleared on an open slip, the picker stays while there is something to pick: a live template or the saved copy.
-  if (!extra && !(editable && (templates.length > 0 || saved))) return null;
-
-  const handleAnswer = (key: string, values: string[]) => {
-    if (extra) onChange({ ...extra, answers: { ...extra.answers, [key]: values } });
-  };
-
+export function ExtraFormSection({ title, fields, answers, editable, unprinted, className, onAnswer }: Props) {
   return (
-    <section className="rs-sec rs-extra" aria-label={t("Labo:Slip:Extra")}>
+    <section className={["rs-sec rs-extra", className].filter(Boolean).join(" ")} aria-label={title}>
       <div className="rs-sech">
-        {t("Labo:Slip:Extra")}
-        <span className="rs-extra-hint">{t("Labo:Slip:ExtraHint")}</span>
+        {title}
+        {unprinted && <span className="rs-extra-hint">{t("Labo:Slip:ExtraHint")}</span>}
       </div>
       <div className="rs-extra-body">
-        <label className="rs-extra-pick">
-          <span className="rs-extra-label">{t("Labo:Slip:ExtraTemplate")}</span>
-          <Select
-            allowClear
-            showSearch={{ filterOption: foldFilterOption }}
-            value={extra?.templateId}
-            disabled={!editable}
-            aria-label={t("Labo:Slip:ExtraTemplate")}
-            placeholder={t("Labo:Slip:ExtraNone")}
-            options={templateOptions(templates, extra, saved)}
-            onChange={(id: string | undefined) => onChange(pickExtra(id, templates, saved))}
-          />
-        </label>
-        {extra && extra.fields.length > 0 && (
-          <div className="rs-extra-grid">
-            {extra.fields.map((field) => (
-              <ExtraFieldInput
-                key={field.key}
-                field={field}
-                values={extra.answers[field.key] ?? []}
-                disabled={!editable}
-                onChange={(values) => handleAnswer(field.key, values)}
-              />
-            ))}
-          </div>
-        )}
+        <div className="rs-extra-grid">
+          {fields.map((field) => (
+            <ExtraFieldInput
+              key={field.key}
+              field={field}
+              values={answers[field.key] ?? []}
+              disabled={!editable}
+              onChange={(values) => onAnswer(field.key, values)}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );

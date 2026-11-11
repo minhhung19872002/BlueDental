@@ -12055,6 +12055,9 @@ namespace BlueDental.Migrations
                                 .ValueGeneratedOnAdd()
                                 .HasColumnType("integer");
 
+                            b1.Property<string>("BlockKey")
+                                .HasColumnType("text");
+
                             b1.Property<string>("Key")
                                 .IsRequired()
                                 .HasColumnType("text");
@@ -12082,6 +12085,43 @@ namespace BlueDental.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("LaboFormTemplateId");
                         });
+
+                    b.OwnsMany("BlueDental.Labo.LaboFormBlock", "Blocks", b1 =>
+                        {
+                            b1.Property<Guid>("LaboFormTemplateId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Key")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<short>("Kind")
+                                .HasColumnType("smallint");
+
+                            b1.Property<int>("Span")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Title")
+                                .HasColumnType("text");
+
+                            b1.Property<bool>("Visible")
+                                .HasColumnType("boolean");
+
+                            b1.HasKey("LaboFormTemplateId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_labo_form_templates");
+
+                            b1.ToJson("Blocks");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboFormTemplateId");
+                        });
+
+                    b.Navigation("Blocks");
 
                     b.Navigation("Fields");
                 });
@@ -12112,6 +12152,39 @@ namespace BlueDental.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("LaboOrderId");
 
+                            b1.OwnsMany("BlueDental.Labo.LaboFormBlock", "Blocks", b2 =>
+                                {
+                                    b2.Property<Guid>("LaboExtraFormLaboOrderId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("integer");
+
+                                    b2.Property<string>("Key")
+                                        .IsRequired()
+                                        .HasColumnType("text");
+
+                                    b2.Property<short>("Kind")
+                                        .HasColumnType("smallint");
+
+                                    b2.Property<int>("Span")
+                                        .HasColumnType("integer");
+
+                                    b2.Property<string>("Title")
+                                        .HasColumnType("text");
+
+                                    b2.Property<bool>("Visible")
+                                        .HasColumnType("boolean");
+
+                                    b2.HasKey("LaboExtraFormLaboOrderId", "__synthesizedOrdinal");
+
+                                    b2.ToTable("bd_labo_orders");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("LaboExtraFormLaboOrderId");
+                                });
+
                             b1.OwnsMany("BlueDental.Labo.LaboExtraFormEntry", "Entries", b2 =>
                                 {
                                     b2.Property<Guid>("LaboExtraFormLaboOrderId")
@@ -12120,6 +12193,9 @@ namespace BlueDental.Migrations
                                     b2.Property<int>("__synthesizedOrdinal")
                                         .ValueGeneratedOnAdd()
                                         .HasColumnType("integer");
+
+                                    b2.Property<string>("BlockKey")
+                                        .HasColumnType("text");
 
                                     b2.Property<string>("Key")
                                         .IsRequired()
@@ -12150,6 +12226,8 @@ namespace BlueDental.Migrations
                                     b2.WithOwner()
                                         .HasForeignKey("LaboExtraFormLaboOrderId");
                                 });
+
+                            b1.Navigation("Blocks");
 
                             b1.Navigation("Entries");
                         });

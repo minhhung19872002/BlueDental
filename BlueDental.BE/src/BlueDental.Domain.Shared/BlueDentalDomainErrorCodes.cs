@@ -654,6 +654,14 @@ public static class BlueDentalDomainErrorCodes
         public const string FormFieldTypeInvalid = "BlueDental:Labo:0056";
         /// <summary>The Mẫu bổ sung picked is not an active template of the branch.</summary>
         public const string FormTemplateUnavailable = "BlueDental:Labo:0057";
+
+        // Mẫu phiếu tuỳ biến (F-94).
+        /// <summary>A layout missing or repeating a system block, an unknown block, two sections with one key, too many sections, or fields with no section.</summary>
+        public const string FormLayoutInvalid = "BlueDental:Labo:0058";
+        /// <summary>A custom section without a title; data "index" (1-based, in the layout).</summary>
+        public const string FormBlockTitleRequired = "BlueDental:Labo:0059";
+        /// <summary>A custom section with no field; data "block".</summary>
+        public const string FormBlockEmpty = "BlueDental:Labo:0060";
     }
 
     public static class Promotions

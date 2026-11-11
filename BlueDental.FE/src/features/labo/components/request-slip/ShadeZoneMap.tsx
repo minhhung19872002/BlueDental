@@ -6,6 +6,8 @@ interface Props {
   shade: ShadeValues;
   editable: boolean;
   onChange: (shade: ShadeValues) => void;
+  /** The heading a Mẫu phiếu gives this part (F-94); none keeps its own name. */
+  title?: string;
 }
 
 /** The i18n key of each zone's accessible name, e.g. "Màu cổ gần". */
@@ -23,12 +25,12 @@ const ZONE_LABEL: Record<ShadeZone, string> = {
  * typed in each cell (upper-cased, "A3.5"). One map for every tooth of the
  * order; any cell filled is enough.
  */
-export function ShadeZoneMap({ shade, editable, onChange }: Props) {
+export function ShadeZoneMap({ shade, editable, onChange, title }: Props) {
   const filled = hasShade(shade);
   return (
     <section className="rs-sec">
       <div className="rs-sech">
-        {t("Labo:Slip:Shade")} <span className="rs-req">*</span>
+        {title ?? t("Labo:Slip:Shade")} <span className="rs-req">*</span>
         <SectionBadge tone={filled ? "ok" : "miss"}>
           {t(filled ? "Labo:Slip:ShadeFull" : "Labo:Slip:ShadeMissing")}
         </SectionBadge>

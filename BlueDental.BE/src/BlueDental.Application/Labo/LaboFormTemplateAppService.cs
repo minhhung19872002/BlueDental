@@ -79,7 +79,7 @@ public class LaboFormTemplateAppService : BlueDentalAppService, ILaboFormTemplat
         await EnsureNameFreeAsync(clinicBranchId, input.Name, exceptId: null);
 
         var entity = LaboFormTemplate.Create(
-            GuidGenerator.Create(), clinicBranchId, input.Name, input.Description, FieldsOf(input));
+            GuidGenerator.Create(), clinicBranchId, input.Name, input.Description, FieldsOf(input), BlocksOf(input));
         entity.SetActive(input.IsActive ?? true);
 
         await _repository.InsertAsync(entity, autoSave: true);
@@ -93,7 +93,7 @@ public class LaboFormTemplateAppService : BlueDentalAppService, ILaboFormTemplat
         await _branchAccess.CheckAsync(entity.ClinicBranchId);
         await EnsureNameFreeAsync(entity.ClinicBranchId, input.Name, entity.Id);
 
-        entity.Update(input.Name, input.Description, FieldsOf(input));
+        entity.Update(input.Name, input.Description, FieldsOf(input), BlocksOf(input));
         if (input.IsActive.HasValue) entity.SetActive(input.IsActive.Value);
 
         await _repository.UpdateAsync(entity, autoSave: true);
@@ -123,7 +123,12 @@ public class LaboFormTemplateAppService : BlueDentalAppService, ILaboFormTemplat
 
     private static List<LaboFormField> FieldsOf(SaveLaboFormTemplateDto input) =>
         (input.Fields ?? [])
-            .Select(f => LaboFormField.Create(f.Key, f.Label, f.Type, f.Required, f.Options))
+            .Select(f => LaboFormField.Create(f.Key, f.Label, f.Type, f.Required, f.Options, f.BlockKey))
+            .ToList();
+
+    private static List<LaboFormBlock>? BlocksOf(SaveLaboFormTemplateDto input) =>
+        input.Blocks?
+            .Select(b => LaboFormBlock.Create(b.Key, b.Kind, b.Title, b.Visible, b.Span))
             .ToList();
 
     /// <summary>One name per branch among live templates, ignoring case and outer spaces.</summary>
@@ -160,6 +165,15 @@ public class LaboFormTemplateAppService : BlueDentalAppService, ILaboFormTemplat
             Type = f.Type,
             Required = f.Required,
             Options = f.Options.ToList(),
+            BlockKey = entity.BlockKeyOf(f),
+        }).ToList(),
+        Blocks = entity.Blocks.Select(b => new LaboFormBlockDto
+        {
+            Key = b.Key,
+            Kind = b.Kind,
+            Title = b.Title,
+            Visible = b.Visible,
+            Span = b.Span,
         }).ToList(),
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,

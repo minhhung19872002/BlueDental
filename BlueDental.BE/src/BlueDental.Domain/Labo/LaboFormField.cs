@@ -28,6 +28,9 @@ public class LaboFormField
     /// <summary>The choices of a Select / MultiSelect field; empty for every other kind.</summary>
     public List<string> Options { get; private set; } = [];
 
+    /// <summary>The custom section of the layout the field sits in (F-94); null on a field saved before layouts.</summary>
+    public string? BlockKey { get; private set; }
+
     protected LaboFormField() { }
 
     /// <summary>
@@ -36,7 +39,8 @@ public class LaboFormField
     /// A blank label is let through here so the template can name its position.
     /// </summary>
     public static LaboFormField Create(
-        string? key, string? label, LaboFormFieldType type, bool required, IEnumerable<string?>? options)
+        string? key, string? label, LaboFormFieldType type, bool required, IEnumerable<string?>? options,
+        string? blockKey = null)
     {
         var trimmed = label?.Trim() ?? string.Empty;
         if (!Enum.IsDefined(type))
@@ -52,6 +56,7 @@ public class LaboFormField
             Type = type,
             Required = required,
             Options = IsChoice(type) && trimmed.Length > 0 ? CleanOptions(trimmed, options) : [],
+            BlockKey = string.IsNullOrWhiteSpace(blockKey) ? null : blockKey.Trim(),
         };
     }
 
@@ -67,6 +72,9 @@ public class LaboFormField
         Key = NewKey();
         return Key;
     }
+
+    /// <summary>Puts the field in another section — used when the one it names is not in the layout.</summary>
+    internal void MoveTo(string blockKey) => BlockKey = blockKey;
 
     private static string NewKey() => Guid.NewGuid().ToString("N");
 

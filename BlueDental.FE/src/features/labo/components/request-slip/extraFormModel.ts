@@ -1,6 +1,7 @@
 import type {
   LaboExtraFormDto,
   LaboFieldType,
+  LaboFormBlockDto,
   LaboFormTemplateDto,
 } from "@/features/labo/api/laboFormTemplateApi";
 
@@ -11,6 +12,8 @@ export interface ExtraField {
   type: LaboFieldType;
   required: boolean;
   options: string[];
+  /** The section of the layout it sits in (F-94); null on a copy made before layouts. */
+  blockKey: string | null;
 }
 
 /**
@@ -23,6 +26,11 @@ export interface ExtraFormValues {
   templateName: string;
   fields: ExtraField[];
   answers: Record<string, string[]>;
+  /**
+   * The slip's layout from the template (F-94). Empty on a copy made before
+   * layouts: the slip then keeps its fixed form with the fields as one section.
+   */
+  blocks: LaboFormBlockDto[];
 }
 
 /** A saved order's own copy, answers included. */
@@ -31,8 +39,16 @@ export function extraFromOrder(extra: LaboExtraFormDto | null | undefined): Extr
   return {
     templateId: extra.templateId,
     templateName: extra.templateName,
-    fields: extra.entries.map(({ key, label, type, required, options }) => ({ key, label, type, required, options })),
+    fields: extra.entries.map(({ key, label, type, required, options, blockKey }) => ({
+      key,
+      label,
+      type,
+      required,
+      options,
+      blockKey: blockKey ?? null,
+    })),
     answers: Object.fromEntries(extra.entries.map((entry) => [entry.key, entry.values])),
+    blocks: extra.blocks ?? [],
   };
 }
 
@@ -43,8 +59,16 @@ export function extraFromTemplate(template: LaboFormTemplateDto): ExtraFormValue
     templateName: template.name,
     fields: template.fields
       .filter((field): field is typeof field & { key: string } => Boolean(field.key))
-      .map(({ key, label, type, required, options }) => ({ key, label, type, required, options })),
+      .map(({ key, label, type, required, options, blockKey }) => ({
+        key,
+        label,
+        type,
+        required,
+        options,
+        blockKey: blockKey ?? null,
+      })),
     answers: {},
+    blocks: template.blocks ?? [],
   };
 }
 
@@ -71,6 +95,10 @@ export function extraMissing(extra: ExtraFormValues | null): boolean {
   return extra !== null && extra.fields.some((field) => field.required && !filled(extra.answers[field.key]));
 }
 
+/** True when the picked template lays the slip out (F-94); false keeps the fixed form. */
+export const hasLayout = (extra: ExtraFormValues | null): extra is ExtraFormValues =>
+  (extra?.blocks.length ?? 0) > 0;
+
 /** The section as the save sends it; no template sent clears it on the server. */
 export function extraBody(extra: ExtraFormValues | null) {
   if (!extra) return { extraFormTemplateId: undefined, extraFormAnswers: [] };
@@ -81,3 +109,9 @@ export function extraBody(extra: ExtraFormValues | null) {
       .filter((answer) => answer.values.length > 0),
   };
 }
+
+/** The section with one field's answer replaced. */
+export const answerExtra = (extra: ExtraFormValues, key: string, values: string[]): ExtraFormValues => ({
+  ...extra,
+  answers: { ...extra.answers, [key]: values },
+});

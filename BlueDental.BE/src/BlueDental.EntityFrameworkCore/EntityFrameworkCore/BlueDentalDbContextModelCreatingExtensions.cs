@@ -914,6 +914,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             {
                 f.ToJson();
                 f.OwnsMany(x => x.Entries);
+                // F-94: the layout copied with it.
+                f.OwnsMany(x => x.Blocks, b => b.Ignore(x => x.IsCustom).Ignore(x => x.IsLocked));
             });
 
             // P2910_03: each tooth carries its check result and warranty card,
@@ -989,6 +991,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Description).HasMaxLength(LaboFormTemplate.MaxDescriptionLength);
             entity.OwnsMany(x => x.Fields, f => f.ToJson());
             entity.Navigation(x => x.Fields).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // F-94: the slip's layout; null on a template saved before it.
+            entity.OwnsMany(x => x.Blocks, b =>
+            {
+                b.ToJson();
+                b.Ignore(x => x.IsCustom);
+                b.Ignore(x => x.IsLocked);
+            });
+            entity.Navigation(x => x.Blocks).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => x.ClinicBranchId);
         });
 

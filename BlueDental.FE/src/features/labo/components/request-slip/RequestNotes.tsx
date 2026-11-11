@@ -8,13 +8,15 @@ interface Props {
   pictures: LaboPictureTiles;
   busy: boolean;
   onChange: (notes: string) => void;
+  /** The heading a Mẫu phiếu gives this part (F-94); none keeps its own name. */
+  title?: string;
 }
 
 /** Yêu cầu: the lined note for the Labo, and Ảnh chung under it (kept at the BA's ask). */
-export function RequestNotes({ notes, editable, pictures, busy, onChange }: Props) {
+export function RequestNotes({ notes, editable, pictures, busy, onChange, title }: Props) {
   return (
     <section className="rs-sec">
-      <div className="rs-sech">{t("Labo:Slip:Request")}</div>
+      <div className="rs-sech">{title ?? t("Labo:Slip:Request")}</div>
       <textarea
         className="rs-note"
         rows={3}

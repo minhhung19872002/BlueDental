@@ -16,6 +16,8 @@ interface Props {
   editable: boolean;
   priors: LaboPriorTeeth;
   onChange: (teeth: number[]) => void;
+  /** The heading a Mẫu phiếu gives this part (F-94); none keeps its own name. */
+  title?: string;
 }
 
 /**
@@ -23,7 +25,7 @@ interface Props {
  * Chọn răng chart, the picked teeth follow as chips with their count — then
  * the warning for a tooth another order of the patient is still making (F-91).
  */
-export function RequestToothChart({ branchId, code, teeth, editable, priors, onChange }: Props) {
+export function RequestToothChart({ branchId, code, teeth, editable, priors, onChange, title }: Props) {
   const [viewing, setViewing] = useState<LaboOrderDto | null>(null);
   const shown = chartOrder(teeth).map(String);
   const warnings = editable ? priorGroups(shown, priors) : [];
@@ -31,7 +33,7 @@ export function RequestToothChart({ branchId, code, teeth, editable, priors, onC
   return (
     <section className="rs-sec">
       <div className="rs-sech">
-        {t("Labo:Slip:Teeth")} <span className="rs-req">*</span>
+        {title ?? t("Labo:Slip:Teeth")} <span className="rs-req">*</span>
         <SectionBadge tone={teeth.length ? "ok" : "miss"}>
           {teeth.length
             ? t("Labo:Slip:TeethCount", String(teeth.length))

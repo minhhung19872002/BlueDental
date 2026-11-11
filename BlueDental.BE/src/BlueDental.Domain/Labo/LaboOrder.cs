@@ -241,12 +241,17 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         if (!DentistId.HasValue || !SentAt.HasValue || !DueAt.HasValue || _teeth.Count == 0)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.OrderIncomplete);
 
-        var noRestoration = _teeth.FirstOrDefault(t => t.Restorations.Count == 0);
+        // F-94: a part the order's Mẫu phiếu hides is not asked for.
+        var noRestoration = ExtraForm?.Hides(LaboFormBlockKind.Restoration) == true
+            ? null
+            : _teeth.FirstOrDefault(t => t.Restorations.Count == 0);
         if (noRestoration is not null)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationMissing)
                 .WithData("tooth", noRestoration.ToothNumber);
 
-        var noShade = _teeth.FirstOrDefault(t => !t.HasShadeZones);
+        var noShade = ExtraForm?.Hides(LaboFormBlockKind.Shade) == true
+            ? null
+            : _teeth.FirstOrDefault(t => !t.HasShadeZones);
         if (noShade is not null)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothSpecIncomplete)
                 .WithData("tooth", noShade.ToothNumber);

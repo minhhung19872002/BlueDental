@@ -6,8 +6,11 @@ import { FIELD_TYPE_LABEL, MAX_OPTIONS, MAX_OPTION_LENGTH, type FieldDraft } fro
 
 interface Props {
   field: FieldDraft;
+  /** Place within its section, and the section's field count: the arrows move a field inside its section. */
   index: number;
   count: number;
+  /** The field's number across the whole template, shown and used in the labels. */
+  number: number;
   onChange: (field: FieldDraft) => void;
   onMove: (step: -1 | 1) => void;
   onRemove: () => void;
@@ -18,8 +21,8 @@ interface Props {
  * choice kinds only — the Lựa chọn, typed and confirmed with Enter. The arrows
  * set the order the Phiếu yêu cầu shows them in.
  */
-export function LaboFormFieldRow({ field, index, count, onChange, onMove, onRemove }: Props) {
-  const position = String(index + 1);
+export function LaboFormFieldRow({ field, index, count, number, onChange, onMove, onRemove }: Props) {
+  const position = String(number);
   const choice = isChoiceType(field.type);
 
   const handleOptions = (options: string[]) =>

@@ -35,6 +35,37 @@ export interface LaboFormFieldDto {
   type: LaboFieldType;
   required: boolean;
   options: string[];
+  /** The custom section it sits in (F-94). */
+  blockKey?: string | null;
+}
+
+/** Mirrors BlueDental.Labo.LaboFormBlockKind: the slip's own blocks, and the template's sections. */
+export const LABO_BLOCK_KIND = {
+  Custom: 0,
+  Info: 1,
+  Restoration: 2,
+  Shade: 3,
+  Teeth: 4,
+  FinishLine: 5,
+  Notes: 6,
+} as const;
+export type LaboBlockKind = (typeof LABO_BLOCK_KIND)[keyof typeof LABO_BLOCK_KIND];
+
+/** The system blocks a slip is made of; each comes once in every layout. */
+export type LaboSystemBlockKind = Exclude<LaboBlockKind, typeof LABO_BLOCK_KIND.Custom>;
+
+/** Thông tin phiếu and Chỉ định hold what every order needs, so they always show. */
+export const isLockedBlock = (kind: LaboBlockKind): boolean =>
+  kind === LABO_BLOCK_KIND.Info || kind === LABO_BLOCK_KIND.Teeth;
+
+/** One block of a Mẫu phiếu's layout (F-94). Span is the width on the slip's three-column grid. */
+export interface LaboFormBlockDto {
+  key?: string | null;
+  kind: LaboBlockKind;
+  /** None keeps a system block's own name; a custom section always has one. */
+  title?: string | null;
+  visible: boolean;
+  span: number;
 }
 
 export interface LaboFormTemplateDto {
@@ -45,6 +76,8 @@ export interface LaboFormTemplateDto {
   isActive: boolean;
   version: number;
   fields: LaboFormFieldDto[];
+  /** The slip's layout in order; a template saved before F-94 reads as the default one. */
+  blocks: LaboFormBlockDto[];
   creationTime: string;
   lastModificationTime?: string | null;
 }
@@ -54,6 +87,7 @@ export interface LaboFormTemplateInput {
   description?: string;
   isActive: boolean;
   fields: LaboFormFieldDto[];
+  blocks?: LaboFormBlockDto[];
 }
 
 /** Thông tin bổ sung as an order keeps it: the template's fields copied, with the answers. */
@@ -64,6 +98,8 @@ export interface LaboExtraFormEntryDto {
   required: boolean;
   options: string[];
   values: string[];
+  /** The section of the copied layout it sits in; none on a copy made before F-94. */
+  blockKey?: string | null;
 }
 
 export interface LaboExtraFormDto {
@@ -71,6 +107,8 @@ export interface LaboExtraFormDto {
   templateName: string;
   version: number;
   entries: LaboExtraFormEntryDto[];
+  /** The layout as copied (F-94); empty on a copy made before layouts, which keeps the fixed slip. */
+  blocks?: LaboFormBlockDto[];
 }
 
 export interface LaboFormTemplateQuery {

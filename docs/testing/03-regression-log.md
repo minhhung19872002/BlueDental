@@ -14787,3 +14787,28 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Mở**:
   - Leaf `laboMaterial` chưa mở được các endpoint `Catalogs.*`. Lỗ hổng bridge này có sẵn từ trước, Vật liệu Labo cũng bị.
   - Nhà cung cấp cần bản in riêng thì vẫn theo phương án A.
+
+## R-1201 (2026-11-11, mức 3: Labo — Mẫu phiếu dựng cả Phiếu yêu cầu, F-94)
+
+- **Yêu cầu**:
+  - Chủ dự án: "ý ba mở rộng là làm chức năng custom toàn bộ form đó".
+  - Chốt: khối hệ thống khoá (đổi tên / độ rộng / thứ tự / ẩn, Thông tin và Răng luôn hiện), thêm mục riêng (≤ 10 mục, ≤ 30 trường); mẫu theo chi nhánh, chọn khi tạo phiếu; bản in tự sinh theo mẫu. Kiểm tra, Bảo hành, Excel không đổi.
+  - "làm xong đừng push develop".
+- **Sửa**:
+  - BE:
+    - `LaboFormLayout` + `LaboFormBlock` (`LaboFormBlockKind` Custom/Info/Restoration/Shade/Teeth/FinishLine/Notes, Span 1–3, Visible); mẫu F-93 không có bố cục đọc ra bố cục mặc định.
+    - `LaboExtraForm` giữ bản sao bố cục; khối ẩn trên đơn thì không bắt Loại phục hình (`0044`) / màu (`0034`).
+    - Lỗi mới `0058` (bố cục sai: thiếu/trùng khối hệ thống, ẩn Thông tin/Răng, span ngoài 1–3), `0059` (khối không tiêu đề), `0060` (mục không trường); `0052` đếm trường mọi mục.
+    - Migration `LaboFormLayoutF94`.
+  - FE:
+    - Dialog Mẫu phiếu dựng theo khối (`LaboFormBlockRow`, `LaboFormSectionFields`, `useTemplateDraft`).
+    - Phiếu yêu cầu: ô "Mẫu phiếu" ở đầu; có mẫu thì `SlipBlockLayout` (lưới 3 cột, `is-span-N`), không thì `LegacySlipLayout` như cũ.
+    - Bản in `LaboRequestSlipPrintBody` theo bố cục của đơn; đơn không có bố cục in mẫu cố định F-91.
+- **Kiểm thử** (host :5000 Development + bản build production preview :8080, đăng nhập thật, không chặn request):
+  - `labo-form-layout` 5/5 (từ chối 0058/0059/0060/0052; bố cục giữ nguyên + mặc định cho mẫu F-93; đơn ẩn khối, 0044/0034 khi khối hiện, bản sao không đổi khi sửa mẫu; dialog dựng mẫu; phiếu + bản in qua /labo "Xem").
+  - `labo-form-template-api` / `-ui` đã chỉnh theo bố cục.
+  - Toàn bộ spec Labo: 80 xanh / 3 skip (skip có sẵn từ F-91).
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (đụng `LaboAppService` lưu/gửi đơn và DbContext).
+- **Triển khai**: phải chạy DbMigrator cho `LaboFormLayoutF94`.
+- **Trạng thái**: commit develop, **chưa push** (chủ dự án dặn).

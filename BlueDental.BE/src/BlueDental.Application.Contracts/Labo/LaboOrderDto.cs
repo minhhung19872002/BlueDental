@@ -376,6 +376,9 @@ public class LaboExtraFormDto
     public string TemplateName { get; set; } = default!;
     public int Version { get; set; }
     public List<LaboExtraFormEntryDto> Entries { get; set; } = [];
+
+    /// <summary>The layout as copied (F-94); empty on a copy made before layouts.</summary>
+    public List<LaboFormBlockDto> Blocks { get; set; } = [];
 }
 
 public class LaboExtraFormEntryDto
@@ -386,6 +389,9 @@ public class LaboExtraFormEntryDto
     public bool Required { get; set; }
     public List<string> Options { get; set; } = [];
     public List<string> Values { get; set; } = [];
+
+    /// <summary>The section of <see cref="LaboExtraFormDto.Blocks"/> it sits in; null on a copy made before layouts.</summary>
+    public string? BlockKey { get; set; }
 }
 
 /// <summary>One row of the Thông số từng răng table.</summary>

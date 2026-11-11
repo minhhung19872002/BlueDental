@@ -599,3 +599,53 @@
 @media (max-width: 640px) {
   .rs-extra-grid { grid-template-columns: 1fr; }
 }
+
+/* Mẫu phiếu (F-94): the picker on top, then the template's blocks on a
+   three-column grid, each as wide as its span. */
+.rs-tpl-bar {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  max-width: 480px;
+}
+
+.rs-tpl-bar .rs-extra-label { flex: 0 0 auto; }
+.rs-tpl-bar .ant-select { flex: 1 1 auto; min-width: 0; }
+
+.rs-blocks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.rs-block { min-width: 0; }
+.rs-block.is-span-1 { grid-column: span 1; }
+.rs-block.is-span-2 { grid-column: span 2; }
+.rs-block.is-span-3 { grid-column: 1 / -1; }
+
+.rs-restoration { display: flex; flex-direction: column; gap: 14px; }
+
+.rs-restoration-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.rs-block.is-span-1 .rs-restoration-cols { grid-template-columns: minmax(0, 1fr); }
+.rs-block.is-span-1 .rs-extra-grid { grid-template-columns: minmax(0, 1fr); }
+.rs-block.is-span-2 .rs-extra-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+@media (max-width: 1100px) {
+  .rs-blocks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rs-block.is-span-2 { grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+  .rs-blocks,
+  .rs-restoration-cols { grid-template-columns: minmax(0, 1fr); }
+  .rs-block.is-span-1,
+  .rs-block.is-span-2 { grid-column: 1 / -1; }
+  .rs-tpl-bar { flex-direction: column; align-items: stretch; max-width: none; }
+}

@@ -750,7 +750,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     private async Task<LaboOrderDetails> ToRequestSlipDetailsAsync(
         SaveLaboOrderDto input, Guid branchId, LaboExtraForm? current)
     {
-        var restorations = (input.Restorations ?? [])
+        // F-94: a part the Mẫu phiếu hides is not kept, whatever the form sent.
+        var extraForm = await ResolveExtraFormAsync(input, branchId, current);
+        bool Hidden(LaboFormBlockKind kind) => extraForm?.Hides(kind) == true;
+
+        var restorations = (Hidden(LaboFormBlockKind.Restoration) ? [] : input.Restorations ?? [])
             .Select(r => new LaboToothRestoration(r.MaterialId, r.OnImplant))
             .ToList();
         var materialIds = restorations.Select(r => r.MaterialId).Distinct().ToList();
@@ -772,7 +776,9 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
         }
 
-        var requestedFinishLines = (input.FinishLineIds ?? []).Distinct().ToList();
+        var requestedFinishLines = (Hidden(LaboFormBlockKind.FinishLine) ? [] : input.FinishLineIds ?? [])
+            .Distinct()
+            .ToList();
         var knownFinishLines = requestedFinishLines.Count == 0
             ? []
             : (await _taxonomyRepository.GetListAsync(t =>
@@ -782,7 +788,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                 .Select(t => t.Id)
                 .ToHashSet();
 
-        var zones = input.ShadeZones;
+        var zones = Hidden(LaboFormBlockKind.Shade) ? null : input.ShadeZones;
         return new LaboOrderDetails
         {
             Layout = LaboOrderLayout.RequestSlip,
@@ -798,11 +804,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     zones.IncisalMesial, zones.IncisalDistal),
             FinishLineIds = requestedFinishLines.Where(knownFinishLines.Contains).ToList(),
             Restorations = restorations,
-            ExtraForm = await ResolveExtraFormAsync(input, branchId, current),
+            ExtraForm = extraForm,
             SpecMode = LaboSpecMode.SharedAll,
             Quantity = input.Quantity,
             WorkDescription = input.WorkDescription,
-            Notes = input.Notes,
+            Notes = Hidden(LaboFormBlockKind.Notes) ? null : input.Notes,
             SentAt = input.SentAt,
             DueAt = input.DueAt,
             EstimatedCost = input.EstimatedCost,

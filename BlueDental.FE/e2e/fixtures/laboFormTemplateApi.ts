@@ -29,6 +29,47 @@ export interface FieldInput {
   type: number;
   required?: boolean;
   options?: string[];
+  /** The custom section it sits in (F-94). */
+  blockKey?: string;
+}
+
+/** LaboFormBlockKind on the wire (F-94). */
+export const BlockKind = {
+  Custom: 0,
+  Info: 1,
+  Restoration: 2,
+  Shade: 3,
+  Teeth: 4,
+  FinishLine: 5,
+  Notes: 6,
+} as const;
+
+export interface BlockInput {
+  key?: string;
+  kind: number;
+  title?: string;
+  visible?: boolean;
+  span?: number;
+}
+
+export interface BlockView {
+  key: string;
+  kind: number;
+  title: string | null;
+  visible: boolean;
+  span: number;
+}
+
+/** The slip's own blocks in its own order, every one shown — a layout to edit from. */
+export function systemBlocks(): BlockInput[] {
+  return [
+    { kind: BlockKind.Info, span: 3 },
+    { kind: BlockKind.Restoration, span: 2 },
+    { kind: BlockKind.Teeth, span: 1 },
+    { kind: BlockKind.Shade, span: 1 },
+    { kind: BlockKind.FinishLine, span: 2 },
+    { kind: BlockKind.Notes, span: 3 },
+  ];
 }
 
 export interface TemplateView {
@@ -38,7 +79,8 @@ export interface TemplateView {
   description: string | null;
   isActive: boolean;
   version: number;
-  fields: { key: string; label: string; type: number; required: boolean; options: string[] }[];
+  fields: { key: string; label: string; type: number; required: boolean; options: string[]; blockKey: string | null }[];
+  blocks: BlockView[];
 }
 
 export interface ExtraEntryView {
@@ -48,10 +90,17 @@ export interface ExtraEntryView {
   required: boolean;
   options: string[];
   values: string[];
+  blockKey: string | null;
 }
 
 export interface ExtraOrderView extends SlipOrderView {
-  extraForm: { templateId: string; templateName: string; version: number; entries: ExtraEntryView[] } | null;
+  extraForm: {
+    templateId: string;
+    templateName: string;
+    version: number;
+    entries: ExtraEntryView[];
+    blocks: BlockView[];
+  } | null;
 }
 
 export interface Answer {
@@ -76,7 +125,14 @@ export function templateName(tag: string): string {
 
 export function saveTemplate(
   page: Page,
-  body: { name?: string; description?: string; isActive?: boolean; fields: FieldInput[]; clinicBranchId?: string },
+  body: {
+    name?: string;
+    description?: string;
+    isActive?: boolean;
+    fields: FieldInput[];
+    blocks?: BlockInput[];
+    clinicBranchId?: string;
+  },
   options: { id?: string; branchId?: string } = {},
 ) {
   const branchId = options.branchId ?? BRANCH_ONE;

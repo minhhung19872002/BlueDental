@@ -619,6 +619,21 @@
   border-color: #000;
   font-weight: 700;
 }
+/* F-94: an order with a Mẫu phiếu prints its blocks in the template's order,
+   on the same three columns as the screen. */
+.pd-slip-print-blocks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 24px;
+  align-items: start;
+}
+.pd-slip-print-block {
+  min-width: 0;
+  break-inside: avoid;
+}
+.pd-slip-print-block.is-span-1 { grid-column: span 1; }
+.pd-slip-print-block.is-span-2 { grid-column: span 2; }
+.pd-slip-print-block.is-span-3 { grid-column: 1 / -1; }
 .pd-labo-act.ant-btn.pd-labo-act--danger,
 .pd-labo-act.ant-btn.pd-labo-act--danger:not(:disabled):hover,
 .pd-labo-act.ant-btn.pd-labo-act--danger:not(:disabled):active {

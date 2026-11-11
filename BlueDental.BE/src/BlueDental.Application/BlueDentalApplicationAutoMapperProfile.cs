@@ -121,6 +121,7 @@ public class BlueDentalApplicationAutoMapperProfile : Profile
         CreateMap<LaboShadeZones, LaboShadeZonesDto>();
         CreateMap<LaboExtraForm, LaboExtraFormDto>();
         CreateMap<LaboExtraFormEntry, LaboExtraFormEntryDto>();
+        CreateMap<LaboFormBlock, LaboFormBlockDto>();
         CreateMap<LaboToothRestoration, LaboOrderToothRestorationDto>()
             .ForMember(d => d.MaterialName, opt => opt.Ignore())
             .ForMember(d => d.GroupName, opt => opt.Ignore());

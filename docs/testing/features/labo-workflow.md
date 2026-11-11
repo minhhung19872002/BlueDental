@@ -565,3 +565,34 @@ Tests: stack :5152/:8098, real login, no interception.
     - the print leaves the section out.
 - **Shared helpers** for the Phiếu yêu cầu UI were moved to
   `e2e/fixtures/laboSlipUi.ts`.
+
+## F-94 — Mẫu phiếu dựng cả Phiếu yêu cầu (R-1201, 2026-11-11)
+
+What was built and the rules: `docs/clone/pages/labo.md` §13.
+
+Tests: host :5000 + production build preview :8080, real login, no
+interception.
+
+- **`e2e/labo-form-layout.spec.ts` (5).**
+  - API, refusals: a system block missing, twice, or of an unknown kind;
+    eleven sections; two sections with one key (`0058`); an untitled section
+    (`0059`); a section with no field (`0060`); nothing at all (`0052`).
+  - API, kept as sent: order, headings, widths and hidden flags read back with
+    their own GET; Info/Teeth forced shown; widths held to 1–3; a field naming
+    no section goes to the first; a system-only layout needs no field; an
+    F-93-style template reads as the default layout with its fields in
+    `extra`.
+  - API, orders: a layout that shows them still asks for Loại phục hình and
+    Màu răng; a layout hiding Loại phục hình, Màu răng, Đường hoàn tất and Yêu
+    cầu sends the slip and keeps none of them; the order's copy of the layout
+    survives an edit of the template.
+  - UI, builder: rename / resize / hide system blocks, locked blocks show
+    "Luôn hiện", Thêm mục with its footer message, move Yêu cầu up, save and
+    read back; Sửa reloads it, removing a section removes its fields, version
+    2, keys kept.
+  - UI, slip and print: the picked layout orders the sheet with its headings
+    and widths, Màu răng and Đường hoàn tất absent; filled by hand and sent;
+    reopened after a reload, locked; In Phiếu Labo prints the same headings in
+    the same order with the section's answers.
+- **`e2e/labo-form-template-ui.spec.ts`** now picks "Mẫu phiếu" and expects
+  the section on paper (F-93's "Không in" replaced by F-94's print).

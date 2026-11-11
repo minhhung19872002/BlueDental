@@ -5,7 +5,9 @@ import {
   type LaboOrderDto,
   type LaboShadeZonesDto,
 } from "@/features/labo/api/laboApi";
+import { LABO_BLOCK_KIND, type LaboBlockKind } from "@/features/labo/api/laboFormTemplateApi";
 import { extraBody, extraFromOrder, extraMissing, type ExtraFormValues } from "./extraFormModel";
+import { hidesBlock } from "./slipLayout";
 
 /** The six cells of Màu răng, in the order the 2×3 map lays them out (Gần then Xa, Cổ → Rìa cắn). */
 export const SHADE_ZONES = [
@@ -144,6 +146,10 @@ export const hasShade = (shade: ShadeValues): boolean =>
 export const sameRestoration = (a: RestorationPick, b: RestorationPick): boolean =>
   a.materialId === b.materialId && a.onImplant === b.onImplant;
 
+/** True when the picked Mẫu phiếu hides that part of the slip (F-94): it is neither asked for nor sent. */
+const hidden = (values: Pick<RequestSlipValues, "extra">, kind: LaboBlockKind): boolean =>
+  hidesBlock(values.extra?.blocks, kind);
+
 /** The i18n keys of what «Tạo phiếu Labo» still waits for, in the mock's order. */
 export function requestSlipErrors(values: RequestSlipValues): string[] {
   const errors: string[] = [];
@@ -151,8 +157,9 @@ export function requestSlipErrors(values: RequestSlipValues): string[] {
   if (!values.dentistId) errors.push("Labo:Slip:Err:Dentist");
   if (isDueBad(values)) errors.push("Labo:Slip:Err:Due");
   if (values.teeth.length === 0) errors.push("Labo:Slip:Err:Teeth");
-  if (values.restorations.length === 0) errors.push("Labo:Slip:Err:Restoration");
-  if (!hasShade(values.shade)) errors.push("Labo:Slip:Err:Shade");
+  if (!hidden(values, LABO_BLOCK_KIND.Restoration) && values.restorations.length === 0)
+    errors.push("Labo:Slip:Err:Restoration");
+  if (!hidden(values, LABO_BLOCK_KIND.Shade) && !hasShade(values.shade)) errors.push("Labo:Slip:Err:Shade");
   if (extraMissing(values.extra)) errors.push("Labo:Slip:Err:Extra");
   return errors;
 }
@@ -169,20 +176,21 @@ export function isDueBad({
 const dayOf = (date: Dayjs | null) => date?.startOf("day").toISOString();
 const blankToUndefined = (value: string) => value.trim() || undefined;
 
-/** The values as the mutation sends them; empty zones stay out of the request. */
+/** The values as the mutation sends them; empty zones, and the parts the Mẫu phiếu hides, stay out of the request. */
 export function requestSlipBody(values: RequestSlipValues) {
+  const shown = (kind: LaboBlockKind) => !hidden(values, kind);
   return {
     labSlipNo: blankToUndefined(values.labSlipNo),
     caseType: values.caseType,
     dentistId: values.dentistId,
     teeth: values.teeth,
     quantity: values.teeth.length,
-    notes: blankToUndefined(values.notes),
+    notes: shown(LABO_BLOCK_KIND.Notes) ? blankToUndefined(values.notes) : undefined,
     sentAt: dayOf(values.sentDate),
     dueAt: dayOf(values.dueDate),
-    shadeZones: mapZones((zone) => blankToUndefined(values.shade[zone])),
-    finishLineIds: values.finishLineIds,
-    restorations: values.restorations,
+    shadeZones: mapZones((zone) => (shown(LABO_BLOCK_KIND.Shade) ? blankToUndefined(values.shade[zone]) : undefined)),
+    finishLineIds: shown(LABO_BLOCK_KIND.FinishLine) ? values.finishLineIds : [],
+    restorations: shown(LABO_BLOCK_KIND.Restoration) ? values.restorations : [],
     ...extraBody(values.extra),
   };
 }

@@ -22,6 +22,30 @@ public class LaboFormFieldDto
 
     /// <summary>The choices of a Select / MultiSelect field; ignored for the other kinds.</summary>
     public List<string> Options { get; set; } = [];
+
+    /// <summary>The custom section it sits in (F-94); none, or one not in the layout, puts it in the first.</summary>
+    [MaxLength(40)]
+    public string? BlockKey { get; set; }
+}
+
+/// <summary>One block of a Mẫu phiếu's layout (F-94), as read and as written.</summary>
+public class LaboFormBlockDto
+{
+    /// <summary>A system block's is its kind; a custom section's is stable across edits (the builder makes one up).</summary>
+    [MaxLength(40)]
+    public string? Key { get; set; }
+
+    public LaboFormBlockKind Kind { get; set; }
+
+    /// <summary>The heading; none keeps a system block's own name. Required on a custom section.</summary>
+    [MaxLength(200)]
+    public string? Title { get; set; }
+
+    /// <summary>Thông tin phiếu and Chỉ định are always shown.</summary>
+    public bool Visible { get; set; } = true;
+
+    /// <summary>Width on the slip's three-column grid, 1–3.</summary>
+    public int Span { get; set; } = 3;
 }
 
 public class LaboFormTemplateDto : FullAuditedEntityDto<Guid>
@@ -32,6 +56,9 @@ public class LaboFormTemplateDto : FullAuditedEntityDto<Guid>
     public bool IsActive { get; set; }
     public int Version { get; set; }
     public List<LaboFormFieldDto> Fields { get; set; } = [];
+
+    /// <summary>The slip's layout in order (F-94); a template saved before layouts reads as the default one.</summary>
+    public List<LaboFormBlockDto> Blocks { get; set; } = [];
 }
 
 public class SaveLaboFormTemplateDto
@@ -48,6 +75,13 @@ public class SaveLaboFormTemplateDto
     public bool? IsActive { get; set; }
 
     public List<LaboFormFieldDto> Fields { get; set; } = [];
+
+    /// <summary>
+    /// The layout (F-94): every system block once, in the order wanted, with
+    /// the custom sections. None sent keeps the F-93 shape — the default layout
+    /// with the fields in one "Thông tin bổ sung" section.
+    /// </summary>
+    public List<LaboFormBlockDto>? Blocks { get; set; }
 }
 
 public class SetLaboFormTemplateActiveDto

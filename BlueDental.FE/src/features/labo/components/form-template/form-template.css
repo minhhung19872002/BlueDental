@@ -73,8 +73,34 @@
 
 .ft-problem { font-size: 13px; color: var(--bd-red); }
 
+/* F-94: the layout, one card per block; a section holds its field rows. */
+.ft-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+}
+
+.ft-block--section { border-color: var(--bd-table-head-line); background: var(--bd-row-alt); }
+.ft-block--hidden .ft-block-title,
+.ft-block--hidden .ft-block-kind { opacity: 0.55; }
+
+.ft-block-head { display: flex; align-items: center; gap: 8px; }
+.ft-block-kind { flex: 0 0 auto; margin: 0; }
+.ft-block-title { flex: 1 1 auto; min-width: 0; }
+.ft-block-span { flex: 0 0 110px; }
+.ft-block-always { flex: 0 0 auto; font-size: 12px; color: var(--bd-muted); }
+
+.ft-section-fields { display: flex; flex-direction: column; gap: 6px; padding-left: 8px; }
+.ft-add-field { align-self: flex-start; }
+
 @media (max-width: 640px) {
   .ft-head { grid-template-columns: 1fr; }
   .ft-row-line { flex-wrap: wrap; }
   .ft-row-type { flex: 1 1 100%; }
+  .ft-block-head { flex-wrap: wrap; }
+  .ft-block-title { flex: 1 1 100%; }
 }

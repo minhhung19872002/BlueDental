@@ -19,9 +19,16 @@ public class LaboExtraForm
     public int Version { get; private set; }
     public List<LaboExtraFormEntry> Entries { get; private set; } = [];
 
+    /// <summary>
+    /// The template's layout as copied (F-94). Empty on a copy made before
+    /// layouts: the slip then reads as the fixed form with the fields as one
+    /// section, and nothing is hidden.
+    /// </summary>
+    public List<LaboFormBlock>? Blocks { get; private set; } = [];
+
     protected LaboExtraForm() { }
 
-    /// <summary>A template just picked: its current fields, answered.</summary>
+    /// <summary>A template just picked: its current layout and fields, answered.</summary>
     public static LaboExtraForm From(
         LaboFormTemplate template, IReadOnlyDictionary<string, IReadOnlyList<string>> answers)
     {
@@ -30,11 +37,16 @@ public class LaboExtraForm
             TemplateId = template.Id,
             TemplateName = template.Name,
             Version = template.Version,
+            Blocks = template.Blocks.Select(b => b.Copy()).ToList(),
             Entries = template.Fields
-                .Select(f => LaboExtraFormEntry.Create(f.Key, f.Label, f.Type, f.Required, f.Options, answers))
+                .Select(f => LaboExtraFormEntry.Create(
+                    f.Key, f.Label, f.Type, f.Required, f.Options, template.BlockKeyOf(f), answers))
                 .ToList(),
         };
     }
+
+    /// <summary>True when the copied layout hides this part of the slip, so Tạo phiếu Labo does not ask for it.</summary>
+    public bool Hides(LaboFormBlockKind kind) => (Blocks ?? []).Any(b => b.Kind == kind && !b.Visible);
 
     /// <summary>The same template saved again: the copied fields stay, only the answers change.</summary>
     public LaboExtraForm WithAnswers(IReadOnlyDictionary<string, IReadOnlyList<string>> answers)
@@ -44,8 +56,10 @@ public class LaboExtraForm
             TemplateId = TemplateId,
             TemplateName = TemplateName,
             Version = Version,
+            Blocks = (Blocks ?? []).Select(b => b.Copy()).ToList(),
             Entries = Entries
-                .Select(e => LaboExtraFormEntry.Create(e.Key, e.Label, e.Type, e.Required, e.Options, answers))
+                .Select(e => LaboExtraFormEntry.Create(
+                    e.Key, e.Label, e.Type, e.Required, e.Options, e.BlockKey, answers))
                 .ToList(),
         };
     }
@@ -67,11 +81,14 @@ public class LaboExtraFormEntry
     public List<string> Options { get; private set; } = [];
     public List<string> Values { get; private set; } = [];
 
+    /// <summary>The section of <see cref="LaboExtraForm.Blocks"/> it sits in; null on a copy made before layouts.</summary>
+    public string? BlockKey { get; private set; }
+
     protected LaboExtraFormEntry() { }
 
     internal static LaboExtraFormEntry Create(
         string key, string label, LaboFormFieldType type, bool required, IReadOnlyList<string> options,
-        IReadOnlyDictionary<string, IReadOnlyList<string>> answers)
+        string? blockKey, IReadOnlyDictionary<string, IReadOnlyList<string>> answers)
     {
         var given = answers.TryGetValue(key, out var raw) ? raw : [];
         return new LaboExtraFormEntry
@@ -81,6 +98,7 @@ public class LaboExtraFormEntry
             Type = type,
             Required = required,
             Options = options.ToList(),
+            BlockKey = blockKey,
             Values = Clean(label, type, options, given),
         };
     }

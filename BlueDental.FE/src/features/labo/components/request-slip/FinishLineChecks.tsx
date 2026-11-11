@@ -8,19 +8,21 @@ interface Props {
   value: string[];
   editable: boolean;
   onChange: (ids: string[]) => void;
+  /** The heading a Mẫu phiếu gives this part (F-94); none keeps its own name. */
+  title?: string;
 }
 
 /**
  * Đường hoàn tất: the labo_finish_line rows of Danh mục, several at once, each
  * row's description on hover. Not required.
  */
-export function FinishLineChecks({ options, value, editable, onChange }: Props) {
+export function FinishLineChecks({ options, value, editable, onChange, title }: Props) {
   const toggle = (id: string) => onChange(value.includes(id) ? value.filter((one) => one !== id) : [...value, id]);
 
   return (
     <section className="rs-sec">
       <div className="rs-sech">
-        {t("Labo:Slip:FinishLine")}
+        {title ?? t("Labo:Slip:FinishLine")}
         <SectionBadge tone={value.length ? "ok" : "opt"}>
           {value.length ? t("Labo:Slip:PickedCount", String(value.length)) : t("Labo:Slip:Optional")}
         </SectionBadge>
