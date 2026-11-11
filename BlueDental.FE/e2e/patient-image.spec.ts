@@ -372,20 +372,28 @@ test.describe("Hình ảnh bệnh nhân", () => {
     await expect(card(page, SECOND)).toBeHidden();
   });
 
-  test("a branch-scoped account cannot read another branch's pictures", async ({ page }) => {
-    await login(page, BRANCH2_USER);
+  test("a branch-scoped account cannot read another branch's pictures", async ({ browser }) => {
+    // Its own browser: the page of beforeEach is signed in as admin, and /login
+    // sends a signed-in browser straight back into the app.
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    try {
+      await login(page, BRANCH2_USER);
 
-    // The list is scoped like every other branch resource: naming a branch the
-    // account is not assigned to is refused outright, not answered empty.
-    const status = await page.evaluate(
-      async ([api, branch]) => {
-        const res = await fetch(`${api}?clinicBranchId=${branch}`, {
-          headers: { accept: "application/json" },
-        });
-        return res.status;
-      },
-      [IMAGES_API, BRANCH_ONE] as const,
-    );
-    expect(status).toBe(403);
+      // The list is scoped like every other branch resource: naming a branch the
+      // account is not assigned to is refused outright, not answered empty.
+      const status = await page.evaluate(
+        async ([api, branch]) => {
+          const res = await fetch(`${api}?clinicBranchId=${branch}`, {
+            headers: { accept: "application/json" },
+          });
+          return res.status;
+        },
+        [IMAGES_API, BRANCH_ONE] as const,
+      );
+      expect(status).toBe(403);
+    } finally {
+      await context.close();
+    }
   });
 });

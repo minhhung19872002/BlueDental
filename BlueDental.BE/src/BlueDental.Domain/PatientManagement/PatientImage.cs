@@ -71,8 +71,14 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
 
     public string? Note { get; private set; }
 
-    /// <summary>Who uploaded it.</summary>
-    public Guid StaffId { get; private set; }
+    /// <summary>
+    /// Who uploaded it — null on a picture an X-ray PC put on the record by
+    /// its code (F-95), which nobody uploaded.
+    /// </summary>
+    public Guid? StaffId { get; private set; }
+
+    /// <summary>The X-ray PC the picture came from (F-95); null on a picture uploaded by hand.</summary>
+    public Guid? XrayDeviceId { get; private set; }
 
     public DateTimeOffset TakenAt { get; private set; }
 
@@ -96,7 +102,7 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
         string fileName,
         string contentType,
         long sizeBytes,
-        Guid staffId,
+        Guid? staffId,
         DateTimeOffset takenAt,
         Guid? treatmentPlanId = null,
         Guid? treatmentStageId = null,
@@ -107,7 +113,8 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
         int? laboRoundNo = null,
         int? laboToothNumber = null,
         WarrantyCardSide? warrantyCardSide = null,
-        Guid? serviceWarrantyCardId = null)
+        Guid? serviceWarrantyCardId = null,
+        Guid? xrayDeviceId = null)
     {
         Check.NotNullOrWhiteSpace(blobName, nameof(blobName));
         Check.NotNullOrWhiteSpace(fileName, nameof(fileName));
@@ -138,6 +145,7 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
             ContentType = contentType,
             SizeBytes = sizeBytes,
             StaffId = staffId,
+            XrayDeviceId = xrayDeviceId,
             TakenAt = takenAt,
             TreatmentPlanId = treatmentPlanId,
             TreatmentStageId = treatmentStageId,

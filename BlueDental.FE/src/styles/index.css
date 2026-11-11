@@ -657,6 +657,19 @@ body::-webkit-scrollbar-track {
   color: #fff;
 }
 
+/* A count beside a menu entry (NavBadges) — e.g. Ảnh chưa gán hồ sơ, F-95. */
+.app-nav-badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: var(--bd-radius-pill);
+  background: var(--bd-red);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
 /* ── Header ── */
 
 /* The one blurred surface in the app: a pane of glass the page runs under.

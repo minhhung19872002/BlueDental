@@ -87,6 +87,13 @@ export const NAV_ENTRIES = {
     icon: "M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.28 0M15 7a3 3 0 11-6 0 3 3 0 016 0z",
     permissions: ROUTE_PERMISSIONS.patientGroup,
   },
+  /* F-95: films the X-ray PC sent that no record took; the badge counts them. */
+  xrayInbox: {
+    path: "/xray-inbox",
+    label: "Menu:XrayInbox",
+    icon: "M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10",
+    permissions: ROUTE_PERMISSIONS.xrayInbox,
+  },
   billing: {
     path: "/billing",
     label: "Menu:Billing",
@@ -178,6 +185,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       NAV_ENTRIES.calendar,
       NAV_ENTRIES.patients,
       NAV_ENTRIES.patientGroup,
+      NAV_ENTRIES.xrayInbox,
       NAV_ENTRIES.cskh,
       NAV_ENTRIES.marketing,
       NAV_ENTRIES.queue,

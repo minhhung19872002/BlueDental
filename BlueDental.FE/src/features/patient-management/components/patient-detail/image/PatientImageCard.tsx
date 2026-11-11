@@ -51,6 +51,11 @@ export const PatientImageCard = memo(function PatientImageCard({
         <img src={image.url} alt={image.fileName} loading="lazy" draggable={false} />
       </button>
       <span className="pi-card-no" aria-hidden="true" />
+      {image.xraySource !== null && (
+        <span className="pi-card-xray" title={image.xraySource || undefined}>
+          {t("Patient:Image:XrayChip")}
+        </span>
+      )}
 
       <div className="pi-card-actions">
         {canSort && (

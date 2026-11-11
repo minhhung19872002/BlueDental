@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { Input, Select, Tooltip } from "antd";
-import { Search, X } from "lucide-react";
+import { Button, Input, Select, Tooltip } from "antd";
+import { ScanLine, Search, X } from "lucide-react";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
 import type { PatientImageType } from "../../../api/patientImageApi";
@@ -13,6 +13,8 @@ interface Props {
   filter: PatientImageType | null;
   onFilterChange: (filter: PatientImageType) => void;
   onClearFilter: () => void;
+  /** "Mở EzDent-i": given only while the branch has an X-ray PC paired (F-95). */
+  onOpenEzdent?: () => void;
 }
 
 /** Trước, Trong, Sau điều trị — the order the columns stand in. */
@@ -29,7 +31,14 @@ function useTypeOptions() {
  * one column; and an "Xóa lọc" cross that only appears once a stage is picked.
  * Uploading lives on each column's own header.
  */
-export function PatientImageToolbar({ search, onSearchChange, filter, onFilterChange, onClearFilter }: Props) {
+export function PatientImageToolbar({
+  search,
+  onSearchChange,
+  filter,
+  onFilterChange,
+  onClearFilter,
+  onOpenEzdent,
+}: Props) {
   const options = useTypeOptions();
 
   return (
@@ -58,6 +67,14 @@ export function PatientImageToolbar({ search, onSearchChange, filter, onFilterCh
           <button type="button" className="pi-clear" aria-label={t("Patient:Misc:ClearFilter")} onClick={onClearFilter}>
             <X size={16} />
           </button>
+        </Tooltip>
+      )}
+
+      {onOpenEzdent && (
+        <Tooltip title={t("Patient:Image:OpenEzdentHint")}>
+          <Button className="pi-ezdent" icon={<ScanLine size={16} aria-hidden="true" />} onClick={onOpenEzdent}>
+            {t("Patient:Image:OpenEzdent")}
+          </Button>
         </Tooltip>
       )}
     </section>

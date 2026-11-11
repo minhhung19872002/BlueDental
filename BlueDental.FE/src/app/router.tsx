@@ -143,6 +143,12 @@ const StaffPayrollPage = lazy(() =>
   })),
 );
 
+const XrayInboxPage = lazy(() =>
+  import("@/features/xray-inbox/pages/XrayInboxPage").then((m) => ({
+    default: m.XrayInboxPage,
+  })),
+);
+
 const LaboPage = lazy(() =>
   import("@/features/labo/pages/LaboPage").then((m) => ({
     default: m.LaboPage,
@@ -369,6 +375,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="patients">
             <PatientManagementPage />
+          </G>
+        ),
+      },
+      // ── Ảnh chưa gán hồ sơ (F-95) ──
+      {
+        path: "xray-inbox",
+        element: (
+          <G k="xrayInbox">
+            <XrayInboxPage />
           </G>
         ),
       },

@@ -19,6 +19,8 @@ export interface PatientImageViewModel {
   takenLabel: string;
   /** A công đoạn picture past its upload day keeps no Xóa ảnh (R-1111). */
   deletable: boolean;
+  /** Sent by an X-ray PC (F-95): its name, for the "X-quang" chip; null otherwise. */
+  xraySource: string | null;
 }
 
 export interface PatientImageDay {
@@ -41,6 +43,7 @@ export function adaptPatientImage(dto: PatientImageDto): PatientImageViewModel {
     dayLabel: takenAt.format("DD/MM/YYYY"),
     takenLabel: formatDateTime(dto.takenAt),
     deletable: dto.deletable,
+    xraySource: dto.xrayDeviceId ? (dto.xrayDeviceName ?? "") : null,
   };
 }
 

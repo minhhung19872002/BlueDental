@@ -14683,3 +14683,59 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Chạy tay: BD269013, bác sĩ bs.ha đặt Chức danh `BS.CKI. LÊ THU HÀ` (dữ liệu local) → mẫu 3 hiện "Trịnh Thị Ngọc" | "BS.CKI. LÊ THU HÀ".
   - tsc + eslint sạch.
 - **Mức retest**: 2 (F-30 Bệnh án, mẫu 3).
+
+## R-1203 (2026-11-11, mức 3: Liên kết máy X-quang Vatech EzDent-i, F-95)
+
+- **Yêu cầu** (chủ dự án, qua ảnh Zalo của phòng khám):
+  - Máy X-quang Vatech chạy EzDent-i 3.5.3 bản Console; phim cần tự vào hồ sơ.
+  - Bấm từ hồ sơ trên app thì EzDent-i mở đúng bệnh nhân.
+  - Phòng khám tìm phim theo Biểu đồ số (gõ tay theo Mã KH), không có mã thì theo tên + năm sinh.
+  - Owner chốt: ảnh vào cột **Trước điều trị**, có nhãn "X-quang"; ảnh chỉ khớp tên + năm sinh thì **luôn chờ nhân viên xác nhận**; làm đủ BE + web + agent Windows + nút "Mở EzDent-i". Không dùng DICOM.
+- **Sửa**:
+  - **BE, module mới `Imaging`:**
+    - `XrayDevice` theo mẫu SigningDevice: token 43 ký tự, chỉ lưu hash, thu hồi được.
+    - `XrayInboxItem`: nhật ký mọi tệp nhận về; Pending / AutoAssigned / Assigned / Discarded; unique `(XrayDeviceId, Sha256)`.
+    - `XrayPatientMatcher`: khớp PatientCode rồi LegacyId, luôn trong chi nhánh của máy, không bao giờ theo tên.
+    - Ba app service: station (`[AllowAnonymous]` + `[DisableAuditing]`), devices (`Organizations.*`), inbox (`TreatmentImage.*`).
+    - Tệp kiểm bằng magic bytes, tối đa 20 MB, quét ClamAV theo kiểu fail-closed.
+    - Lỗi `Imaging:0001..0009` (vi/en).
+  - **`PatientImage`:** `StaffId` cho phép null, thêm `XrayDeviceId`. Lõi ghi ảnh tách ra `PatientImageWriter`, dùng chung cho upload tay, tự gán và gán từ inbox.
+  - **Migration `XrayAgentF95`** (cần DbMigrator).
+  - **nginx:** thêm location `/api/v1/public/xray-station/` với `client_max_body_size 21m`.
+  - **FE:**
+    - Cài đặt → tab "Máy X-quang" (`XrayDeviceTab`): thêm máy, token hiện một lần kèm nút copy, thu hồi, lần cuối kết nối.
+    - Trang mới `/xray-inbox` "Ảnh chưa gán hồ sơ" (`features/xray-inbox/`), badge trên menu qua `useNavBadges`. Dialog "Gán ảnh vào hồ sơ": gợi ý "Trùng tên và năm sinh" + ô tìm hồ sơ. Có nút Bỏ qua.
+    - Tab Hình ảnh: chip "X-quang" trên thẻ ảnh. Nút "Mở EzDent-i" chỉ hiện khi chi nhánh có máy đang hoạt động.
+  - **Agent `BlueDental.XrayAgent/`:**
+    - Core net9.0 + app WinForms tray net9.0-windows + xUnit.
+    - `--install` / `--uninstall` chỉ ghi HKCU (protocol `bluedental-xray` + Run). Token lưu bằng DPAPI.
+    - Watcher: FileSystemWatcher + quét lại 60 s. Tệp phải đứng yên 2 s và mở độc quyền được.
+    - Ledger hash, backoff khi lỗi, dừng gửi khi token bị thu hồi.
+    - Regex tên tệp cấu hình được. Bridge ghi `linkage.xml` (UTF-8 không BOM, tên bỏ dấu) rồi chạy loader.
+    - Named pipe cho bản thứ hai. Log không có PHI. README hướng dẫn cài tại phòng khám.
+  - **Tài liệu:** `docs/integrations/xray-ezdent.md`, `docs/testing/features/xray-agent.md`.
+- **Kiểm thử** (stack riêng: DB `BlueDental_f95`, host :5195, bản build production preview :8195, MinIO + ClamAV thật, đăng nhập thật, không chặn request):
+  - Mới `e2e/xray-agent.spec.ts`: 6/6.
+    - Ghép máy qua UI, token hiện một lần.
+    - Ảnh có mã → Trước điều trị + chip, gửi lại không trùng.
+    - Mã của hồ sơ chi nhánh khác → inbox, `by-code` trả `Imaging:0009`.
+    - Không mã → inbox, gợi ý tên + năm sinh, Gán / Bỏ qua, tải lại kiểm.
+    - Tài khoản chi nhánh 2 không thấy và không gán được.
+    - Thu hồi → `Imaging:0002`.
+  - **BE:** Domain `XrayTests` 10, Application `XrayAppServiceContractTests` 4, EF `XrayMappingTests` 3, `ControllerConventionTests`. Cả bốn project test xanh.
+  - **Agent:** xUnit 88/88. Smoke thật với Core:
+    - Thả `<Mã KH>_pano.jpg` → `status=2`, trình duyệt thấy ảnh + chip.
+    - `OpenAsync` → `linkage.xml` đúng; loader giả nhận đường dẫn linkage, thư mục làm việc là Bin.
+    - Log chỉ có mã + SHA.
+  - **Khớp LegacyId:** smoke tay trên DB riêng (đặt LegacyId bằng SQL) → AutoAssigned, `by-code` 200.
+  - **Hồi quy:** `patient-image*` 14/14.
+    - `patient-image.spec.ts` "a branch-scoped account cannot read another branch's pictures" đỏ từ trước F-95: đăng nhập chi nhánh 2 trên trình duyệt đã đăng nhập admin bị `PublicOnlyRoute` đẩy về app.
+    - Sửa: test chạy trong context riêng.
+- **Mức retest**: 3 (`PatientImage` dùng chung, DbContext, menu / router).
+- **Còn mở (UNVERIFIED)**:
+  - Tên tệp ảnh của EzDent-i.
+  - Định dạng `linkage.xml` / tên loader / tham số.
+  - Biểu đồ số cũ là PatientCode hay LegacyId.
+  - Tất cả đã để cấu hình được; cần thử với bộ cài Vatech hoặc tại phòng khám.
+  - `--install` và named pipe chưa chạy trên máy dev (để không ghi HKCU).
+- **Trạng thái**: develop 9da2c66e, cherry-pick sang main (commit kế tiếp của main). Triển khai cần DbMigrator `XrayAgentF95` + build lại BE (i18n mới) + FE + nginx.

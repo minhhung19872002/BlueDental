@@ -70,6 +70,12 @@
 .pi-clear:hover {
   background: var(--pi-hover);
 }
+/* F-95 "Mở EzDent-i": same height as the search and the stage filter. */
+.pi-ezdent.ant-btn {
+  height: 40px;
+  border-radius: 12px;
+  border-color: var(--pi-line);
+}
 /* ---- Stage columns: Trước / Trong / Sau điều trị ---- */
 .pi-stages {
   display: grid;
@@ -542,6 +548,20 @@
 }
 .pi-card-no::before {
   content: counter(pi-tile);
+}
+/* F-95: a picture the X-ray PC sent, bottom right across from the number. */
+.pi-card-xray {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--bd-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  pointer-events: none;
 }
 /* Grip at the left, trash at the right; shown on hover, always without one. */
 .pi-card-actions {

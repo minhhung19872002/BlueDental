@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using BlueDental.Imaging;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement;
@@ -33,6 +34,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
     private readonly IRepository<TreatmentStage, Guid> _stageRepository;
     private readonly TreatmentStageChangeRecorder _stageChanges;
     private readonly StageLineGuard _lineGuard;
+    private readonly PatientImageWriter _writer;
+    private readonly IRepository<XrayDevice, Guid> _xrayDevices;
 
     public PatientImageAppService(
         IRepository<PatientImage, Guid> repository,
@@ -41,7 +44,9 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         BranchAccessChecker branchAccess,
         IRepository<TreatmentStage, Guid> stageRepository,
         TreatmentStageChangeRecorder stageChanges,
-        StageLineGuard lineGuard)
+        StageLineGuard lineGuard,
+        PatientImageWriter writer,
+        IRepository<XrayDevice, Guid> xrayDevices)
     {
         _repository = repository;
         _blobContainer = blobContainer;
@@ -50,6 +55,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         _stageRepository = stageRepository;
         _stageChanges = stageChanges;
         _lineGuard = lineGuard;
+        _writer = writer;
+        _xrayDevices = xrayDevices;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Read)]
@@ -104,8 +111,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         }
 
         var id = GuidGenerator.Create();
-        var blobName = $"patients/{input.PatientId}/{id}{Path.GetExtension(input.File.FileName)}";
-        var ordering = await NextOrderingAsync(input.PatientId, input.ClinicBranchId);
+        var blobName = PatientImageWriter.BlobName(input.PatientId, id, Path.GetExtension(input.File.FileName));
+        var ordering = await _writer.NextOrderingAsync(input.PatientId, input.ClinicBranchId);
 
         await using var stream = input.File.GetStream();
         using var buffer = new MemoryStream();
@@ -231,17 +238,6 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             after: action == TreatmentStageChangeAction.ImageAdded ? picture : null);
     }
 
-    private async Task<int> NextOrderingAsync(Guid patientId, Guid clinicBranchId)
-    {
-        var query = await _repository.GetQueryableAsync();
-        var last = query
-            .Where(x => x.PatientId == patientId && x.ClinicBranchId == clinicBranchId)
-            .Select(x => (int?)x.Ordering)
-            .Max();
-
-        return (last ?? 0) + 1;
-    }
-
     private async Task<PatientImage> LoadAsync(Guid id)
     {
         var image = await _repository.FindAsync(id)
@@ -260,9 +256,13 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             return [];
         }
 
-        var staffIds = items.Select(x => x.StaffId).Distinct().ToList();
-        var users = await _userRepository.GetListByIdsAsync(staffIds);
+        var staffIds = items.Where(x => x.StaffId.HasValue).Select(x => x.StaffId!.Value).Distinct().ToList();
+        var users = staffIds.Count > 0 ? await _userRepository.GetListByIdsAsync(staffIds) : [];
         var staffNames = users.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
+        var deviceIds = items.Where(x => x.XrayDeviceId.HasValue).Select(x => x.XrayDeviceId!.Value).Distinct().ToList();
+        var deviceNames = deviceIds.Count > 0
+            ? (await _xrayDevices.GetListAsync(d => deviceIds.Contains(d.Id))).ToDictionary(d => d.Id, d => d.Name)
+            : new Dictionary<Guid, string>();
         var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
 
         return items.Select(x => new PatientImageDto
@@ -277,11 +277,13 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             SizeBytes = x.SizeBytes,
             Note = x.Note,
             StaffId = x.StaffId,
+            XrayDeviceId = x.XrayDeviceId,
+            XrayDeviceName = x.XrayDeviceId is { } deviceId && deviceNames.TryGetValue(deviceId, out var device) ? device : null,
             TakenAt = x.TakenAt,
             Type = x.Type,
             Ordering = x.Ordering,
             Url = $"/api/v1/app/patient-images/{x.Id}/content",
-            StaffName = staffNames.TryGetValue(x.StaffId, out var staff) ? staff : null,
+            StaffName = x.StaffId is { } staffId && staffNames.TryGetValue(staffId, out var staff) ? staff : null,
             Deletable = x.IsDeletableOn(today),
             CreationTime = x.CreationTime,
             CreatorId = x.CreatorId,

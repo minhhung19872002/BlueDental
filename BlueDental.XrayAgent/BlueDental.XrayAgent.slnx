@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BlueDental.XrayAgent.Core/BlueDental.XrayAgent.Core.csproj" />
+    <Project Path="src/BlueDental.XrayAgent/BlueDental.XrayAgent.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/BlueDental.XrayAgent.Tests/BlueDental.XrayAgent.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -7,6 +7,7 @@ using BlueDental.Chat;
 using BlueDental.ClinicIntegration;
 using BlueDental.CustomerCare;
 using BlueDental.FileManagement;
+using BlueDental.Imaging;
 using BlueDental.Inventory;
 using BlueDental.Labo;
 using BlueDental.Notifications;
@@ -1255,6 +1256,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.TreatmentStageId);
             entity.HasIndex(x => new { x.LaboOrderId, x.LaboRoundNo, x.LaboToothNumber });
             entity.HasIndex(x => x.ServiceWarrantyCardId);
+            entity.HasIndex(x => x.XrayDeviceId);
         });
 
         // Phieu benh an cua benh nhan
@@ -2294,6 +2296,34 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.ClinicBranchId, "IX_bd_einvoice_provider_configs_ClinicBranchId_Active")
                 .IsUnique()
                 .HasFilter("\"IsActive\" = true AND \"IsDeleted\" = false");
+        });
+
+        // Máy X-quang (F-95): the PC beside the X-ray machine, and the log of
+        // every picture it sent — the ones no record took wait there for staff.
+        builder.Entity<XrayDevice>(entity =>
+        {
+            entity.ToTable("bd_xray_devices");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(XrayDevice.MaxNameLength).IsRequired();
+            entity.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => x.ClinicBranchId);
+        });
+
+        builder.Entity<XrayInboxItem>(entity =>
+        {
+            entity.ToTable("bd_xray_inbox_items");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.BlobName).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.FileName).HasMaxLength(XrayInboxItem.MaxFileNameLength).IsRequired();
+            entity.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Sha256).HasMaxLength(64).IsRequired();
+            entity.Property(x => x.HintCode).HasMaxLength(XrayInboxItem.MaxHintCodeLength);
+            entity.Property(x => x.HintName).HasMaxLength(XrayInboxItem.MaxHintNameLength);
+            entity.Property(x => x.Status).HasConversion<short>();
+            // The same file sent twice by one PC is one row.
+            entity.HasIndex(x => new { x.XrayDeviceId, x.Sha256 }).IsUnique();
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Status, x.ReceivedAt });
         });
     }
 }

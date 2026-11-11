@@ -1,0 +1,167 @@
+/* Ảnh chưa gán hồ sơ (F-95) — prefix `xi-`. Same card frame as the Hình ảnh tab. */
+
+.xi-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.xi-intro {
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 13px;
+}
+
+.xi-loading {
+  align-self: center;
+  margin: 40px 0;
+}
+
+.xi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.xi-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--bd-border);
+  border-radius: 14px;
+  background: var(--bd-card);
+}
+
+.xi-card-thumb {
+  display: block;
+  aspect-ratio: 4 / 3;
+  background: var(--bd-ink);
+}
+
+.xi-card-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.xi-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 0;
+  min-width: 0;
+}
+
+.xi-card-name {
+  overflow: hidden;
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xi-card-meta {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.xi-card-hint {
+  color: var(--bd-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.xi-card-hint--none {
+  color: var(--bd-ink-4);
+  font-weight: 400;
+}
+
+.xi-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.xi-pagination {
+  align-self: flex-end;
+}
+
+/* ---- Gán hồ sơ ---- */
+.xi-assign {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.xi-assign-preview {
+  display: block;
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: var(--bd-radius-control);
+  background: var(--bd-ink);
+}
+
+.xi-assign-label {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.xi-assign-empty {
+  color: var(--bd-ink-4);
+  font-size: 13px;
+}
+
+.xi-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.xi-suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-control);
+  background: var(--bd-card);
+  color: var(--bd-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.xi-suggestion:hover {
+  background: var(--bd-hover-tint);
+}
+
+.xi-suggestion--picked,
+.xi-suggestion--picked:hover {
+  border-color: var(--bd-primary);
+  background: var(--bd-hover-tint);
+}
+
+.xi-suggestion-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.xi-suggestion-reason {
+  flex: 0 0 auto;
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .xi-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
