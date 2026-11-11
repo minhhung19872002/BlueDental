@@ -14783,7 +14783,11 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Lỗi** (chủ dự án, prod): "Chuyển đổi dịch vụ" một dòng Hai hàm giá 24.000.000 đ → Tổng tiền dịch vụ mới 768.000.000 đ (= 32 × 24.000.000). Bản gốc: Nguyên hàm 32.000.000 đ → 32.000.000 đ; răng lẻ 17, 16, 15 → 96.000.000 đ (3 ×).
 - **Nguyên nhân**: bản gốc lưu cả hàm thành **một** mã răng (`code: 10`, xem `docs/clone/api.md`), nên số lượng = 1. BlueDental lưu hàm thành đủ 16/32 răng, còn dialog (FE `useConvertServiceForm`) và BE (`PatientTreatmentAppService` convert) lấy số lượng = số răng → nhân 16/32. BE lưu thật dòng mới với giá đó.
 - **Sửa**: răng đúng bằng một hàm (Hàm trên / Hàm dưới / Hai hàm, `ToothArch.WholeJawOf` / `teeth.kind === "jaw"`) → số lượng 1; răng lẻ vẫn nhân theo số răng.
-- **Kiểm thử**: build BE 0 lỗi, `tsc` FE sạch. Chưa chạy e2e `convert-*.spec.ts` trên stack thật, chưa có test mới cho ca cả hàm.
+- **Kiểm thử**: build BE 0 lỗi, `tsc` FE sạch. e2e mới `e2e/convert-whole-jaw.spec.ts` (viết sau, cùng ngày):
+  - Dịch vụ cũ trên dòng Hai hàm → Tổng tiền = đơn giá × 1. Dòng mới lưu price = grossAmount = effectiveAmount = đơn giá, quantity 1; đọc lại bằng request riêng và sau reload.
+  - 17·16·15 → × 3, quantity 3.
+  - Stack thật riêng (host HEAD :5207 + `vite preview` bản build HEAD :8317): 2/2 xanh.
+  - Stack cũ (:5000/:8080, build trước R-1207): ca Hai hàm đỏ ngay ở bước SL ("32" thay vì "1"), nên chưa tới phần chuyển đổi; ca răng lẻ xanh.
 - **Dữ liệu cũ**: dòng đã chuyển đổi từ dịch vụ cả hàm trước bản sửa đã lưu giá ×16/×32 — phải rà riêng.
 - **Mức retest**: 2.
 
@@ -14791,5 +14795,5 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 
 - **Lỗi**: bảng điều trị tab Hồ sơ, dòng công đoạn của dịch vụ cả hàm hiện SL = 16 / 32 (đếm số răng lưu). Bản gốc hiện "Nguyên hàm" · SL 1 vì lưu cả hàm thành một mã răng. Cùng gốc với R-1207.
 - **Sửa FE** (`treatmentRows.ts`): công đoạn có răng đúng bằng một hàm (`wholeJawOf`) → SL 1; răng lẻ vẫn đếm số răng; không răng → SL của dòng dịch vụ. Chỉ hiển thị — không phép tính tiền, xuất, in hay API nào đọc giá trị này.
-- **Kiểm thử**: `tsc` + eslint sạch. e2e `patient.spec.ts` chỉ kiểm tiêu đề cột "SL", không đổi. Chưa chạy e2e trên stack thật.
+- **Kiểm thử**: `tsc` + eslint sạch. e2e `patient.spec.ts` chỉ kiểm tiêu đề cột "SL", không đổi. `e2e/convert-whole-jaw.spec.ts` kiểm SL = 1 trên công đoạn Hai hàm ở bảng điều trị hồ sơ: xanh trên HEAD, đỏ ("32") trên build cũ.
 - **Mức retest**: 1.
