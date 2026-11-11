@@ -33,7 +33,11 @@ export interface PatientImageDto {
   contentType: string;
   sizeBytes: number;
   note: string | null;
-  staffId: string;
+  /** Null on a picture the X-ray PC put on the record by itself (F-95). */
+  staffId: string | null;
+  /** The X-ray PC the picture came from — the card's "X-quang" chip (F-95). */
+  xrayDeviceId: string | null;
+  xrayDeviceName: string | null;
   takenAt: string;
   type: PatientImageType;
   /** 1-based position in the patient's sequence; drag-to-sort rewrites it. */

@@ -1078,4 +1078,22 @@ public static class BlueDentalDomainErrorCodes
         /// <summary>Without Patients.View only patients booked or checked in today can be tagged (K1).</summary>
         public const string PatientNotToday = "BlueDental:Chat:0027";
     }
+
+    /// <summary>Liên kết máy X-quang (F-95).</summary>
+    public static class Imaging
+    {
+        public const string DeviceNameRequired = "BlueDental:Imaging:0001";
+        /// <summary>Unknown or revoked token: one answer for both, so a guess learns nothing.</summary>
+        public const string DeviceNotPaired = "BlueDental:Imaging:0002";
+        /// <summary>Not a JPEG or PNG by its first bytes, whatever its name says.</summary>
+        public const string InvalidImage = "BlueDental:Imaging:0003";
+        public const string ImageTooLarge = "BlueDental:Imaging:0004";
+        public const string ImageInfected = "BlueDental:Imaging:0005";
+        public const string MalwareScanUnavailable = "BlueDental:Imaging:0006";
+        public const string InboxItemNotFound = "BlueDental:Imaging:0007";
+        /// <summary>The picture was already put on a record or set aside.</summary>
+        public const string InboxItemHandled = "BlueDental:Imaging:0008";
+        /// <summary>Unknown, deleted or of another branch: one answer.</summary>
+        public const string PatientUnavailable = "BlueDental:Imaging:0009";
+    }
 }

@@ -90,3 +90,9 @@
     flex-direction: column;
   }
 }
+
+/* Máy X-quang (F-95) — reuses the iPad pairing frame; labels over the two copy rows */
+.xray-pair-label {
+  color: var(--bd-muted);
+  font-size: 13px;
+}

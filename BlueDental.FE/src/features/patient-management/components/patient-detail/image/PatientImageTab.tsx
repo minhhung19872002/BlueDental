@@ -3,8 +3,10 @@ import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useDebounce } from "@/hooks/useDebounce";
 import { t } from "@/lib/i18n";
+import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { useDeletePatientImage, type PatientImageType } from "../../../api/patientImageApi";
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
+import { ezdentLinkOf, useXrayStationAvailable } from "../../../api/xrayStationApi";
 import { useCameraAvailability } from "../../../hooks/useCameraAvailability";
 import { usePatientImagePermissions } from "../../../hooks/usePatientImagePermissions";
 import { PatientImageStageColumn } from "./PatientImageStageColumn";
@@ -13,6 +15,8 @@ import { PATIENT_IMAGE_STAGES } from "./patientImageStages";
 
 interface Props {
   patientId: string;
+  /** Mã khách hàng — what "Mở EzDent-i" hands the X-ray PC (F-95). */
+  patientCode: string;
 }
 
 /**
@@ -22,8 +26,9 @@ interface Props {
  * column, full width; a search narrows every column to the matching notes.
  * See docs/clone/pages/patient-detail.md, Tab 5.
  */
-export function PatientImageTab({ patientId }: Props) {
+export function PatientImageTab({ patientId, patientCode }: Props) {
   const permissions = usePatientImagePermissions();
+  const xrayStation = useXrayStationAvailable(useCurrentBranchId());
   const deleteImage = useDeletePatientImage();
   const cameraAvailability = useCameraAvailability();
 
@@ -47,6 +52,11 @@ export function PatientImageTab({ patientId }: Props) {
     }
   };
 
+  // The agent on the X-ray PC answers the link; on any other PC it does nothing.
+  const handleOpenEzdent = () => {
+    window.location.href = ezdentLinkOf(patientCode);
+  };
+
   return (
     <div className="pi-tab" data-testid="patient-image-tab">
       <PatientImageToolbar
@@ -55,6 +65,7 @@ export function PatientImageTab({ patientId }: Props) {
         filter={filter}
         onFilterChange={setFilter}
         onClearFilter={() => setFilter(null)}
+        onOpenEzdent={xrayStation.data && patientCode ? handleOpenEzdent : undefined}
       />
 
       <div className={["pi-stages", filter !== null && "pi-stages--single"].filter(Boolean).join(" ")}>

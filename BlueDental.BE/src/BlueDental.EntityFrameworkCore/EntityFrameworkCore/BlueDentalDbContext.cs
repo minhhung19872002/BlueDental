@@ -5,6 +5,7 @@ using BlueDental.ClinicIntegration;
 using BlueDental.CustomerCare;
 using BlueDental.EInvoicing;
 using BlueDental.FileManagement;
+using BlueDental.Imaging;
 using BlueDental.Finance;
 using BlueDental.Inventory;
 using BlueDental.Labo;
@@ -209,6 +210,8 @@ public class BlueDentalDbContext :
     public DbSet<InvoiceRequestLink> InvoiceRequestLinks { get; set; }
     public DbSet<ReceiptSigningSession> ReceiptSigningSessions { get; set; }
     public DbSet<SigningDevice> SigningDevices { get; set; }
+    public DbSet<XrayDevice> XrayDevices { get; set; }
+    public DbSet<XrayInboxItem> XrayInboxItems { get; set; }
     public DbSet<AccountantSignature> AccountantSignatures { get; set; }
     public DbSet<AccountantSignatureChange> AccountantSignatureChanges { get; set; }
     public DbSet<PaymentReceiptLog> PaymentReceiptLogs { get; set; }

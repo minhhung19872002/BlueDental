@@ -36,6 +36,14 @@ function classes(...parts: (string | false | undefined)[]): string {
   return parts.filter(Boolean).join(" ");
 }
 
+/** Counts shown beside an entry, keyed by its path (e.g. Ảnh chưa gán hồ sơ, F-95). */
+export type NavBadges = Readonly<Record<string, number>>;
+
+function NavBadge({ count }: { count: number | undefined }) {
+  if (!count) return null;
+  return <span className="app-nav-badge">{count > 99 ? "99+" : count}</span>;
+}
+
 interface GroupsProps {
   /** The groups the signed-in user may see — see `useVisibleNav`. */
   groups: readonly NavGroup[];
@@ -85,6 +93,7 @@ export function HeaderNavGroups({ groups, pathname, openGroupId, onOpenGroup }: 
 interface RibbonProps {
   items: readonly NavEntry[];
   pathname: string;
+  badges?: NavBadges;
   onSelect: (entry: NavEntry) => void;
 }
 
@@ -93,7 +102,7 @@ interface RibbonProps {
  * always there — with no members it stands empty at its usual height, so the
  * page beneath never jumps as groups change.
  */
-export function NavRibbon({ items, pathname, onSelect }: RibbonProps) {
+export function NavRibbon({ items, pathname, badges, onSelect }: RibbonProps) {
   const t = useT();
 
   return (
@@ -111,6 +120,7 @@ export function NavRibbon({ items, pathname, onSelect }: RibbonProps) {
         >
           <NavIcon d={item.icon} />
           <span>{t(item.label)}</span>
+          <NavBadge count={badges?.[item.path]} />
         </button>
       ))}
     </div>
@@ -122,12 +132,13 @@ interface DrawerProps {
   /** The entries the signed-in user may open — see `useVisibleNav`. */
   items: readonly NavEntry[];
   pathname: string;
+  badges?: NavBadges;
   onClose: () => void;
   onSelect: (entry: NavEntry) => void;
 }
 
 /** Below 1100px the group bar cannot fit, and this holds the whole menu. */
-export function MobileNavDrawer({ open, items, pathname, onClose, onSelect }: DrawerProps) {
+export function MobileNavDrawer({ open, items, pathname, badges, onClose, onSelect }: DrawerProps) {
   const t = useT();
 
   return (
@@ -154,6 +165,7 @@ export function MobileNavDrawer({ open, items, pathname, onClose, onSelect }: Dr
         >
           <NavIcon d={item.icon} size={18} />
           <span>{t(item.label)}</span>
+          <NavBadge count={badges?.[item.path]} />
         </button>
       ))}
     </Drawer>

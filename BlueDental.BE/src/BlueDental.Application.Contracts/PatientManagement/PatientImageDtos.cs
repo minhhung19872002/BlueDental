@@ -18,7 +18,14 @@ public class PatientImageDto : FullAuditedEntityDto<Guid>
     public string ContentType { get; set; } = string.Empty;
     public long SizeBytes { get; set; }
     public string? Note { get; set; }
-    public Guid StaffId { get; set; }
+    /// <summary>Null on a picture an X-ray PC put on the record by itself (F-95).</summary>
+    public Guid? StaffId { get; set; }
+
+    /// <summary>The X-ray PC the picture came from (F-95) — the card's "X-quang" chip.</summary>
+    public Guid? XrayDeviceId { get; set; }
+
+    public string? XrayDeviceName { get; set; }
+
     public DateTimeOffset TakenAt { get; set; }
     public PatientImageType Type { get; set; }
 

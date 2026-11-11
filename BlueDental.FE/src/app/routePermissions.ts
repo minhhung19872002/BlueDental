@@ -69,6 +69,8 @@ export const ROUTE_PERMISSIONS = {
   calendar: readOf(["appointment", "workSchedule"]),
   patients: readOf(["patient"]),
   patientGroup: readOf(["patientGroup"]),
+  /* Ảnh chưa gán hồ sơ (F-95): the X-ray PC's films are patient pictures. */
+  xrayInbox: readOf(["treatmentImage"]),
   cskh: readOf(["cskhGroup", "cskhCare", "cskhTemplate", "cskhSend", "cskhInbox"]),
   /* The template editor only saves: Tạo mẫu mới is the create leaf, Chỉnh sửa the update leaf. */
   cskhTemplateNew: [abilityPermission("cskhTemplate", "create")] as readonly string[],

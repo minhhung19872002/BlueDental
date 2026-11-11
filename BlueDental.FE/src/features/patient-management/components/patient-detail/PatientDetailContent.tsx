@@ -30,7 +30,7 @@ export function PatientDetailContent({ activeTab, patient }: Props) {
     case "image":
       return (
         <section className="pd-pane">
-          <PatientImageTab patientId={id} />
+          <PatientImageTab patientId={id} patientCode={patient.patientCode} />
         </section>
       );
     case "labo":

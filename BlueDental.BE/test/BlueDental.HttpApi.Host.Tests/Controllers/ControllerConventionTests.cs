@@ -76,6 +76,8 @@ public class ControllerConventionTests
         typeof(BlueDental.EInvoicing.PublicInvoiceRequestController),
         // The branch's iPad (P2610); the paired device token is the key.
         typeof(SigningStationController),
+        // The PC beside the X-ray machine (F-95); the paired device token is the key.
+        typeof(BlueDental.Imaging.XrayStationController),
     ];
 
     /// <summary>

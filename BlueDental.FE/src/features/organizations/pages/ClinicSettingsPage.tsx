@@ -18,6 +18,7 @@ import {
   TeamOutlined,
   SearchOutlined,
   TabletOutlined,
+  ScanOutlined,
 } from "@ant-design/icons";
 import { validateImageFile, IMAGE_ACCEPT } from "@/utils/validateImageFile";
 import {
@@ -45,6 +46,7 @@ import {
 import { useDebounce } from "@/hooks/useDebounce";
 import { PermissionsTab } from "../components/PermissionsTab";
 import { IpadPairingTab } from "../components/IpadPairingTab";
+import { XrayDeviceTab } from "../components/XrayDeviceTab";
 import { DataTable } from "@/components/DataTable";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { useCurrentBranchId, useBranchStore } from "@/lib/clinicBranch";
@@ -60,7 +62,7 @@ import { getLocale, t } from "@/lib/i18n";
 import { foldFilterOption } from "@/utils/foldForSearch";
 import "../components/organizations.css";
 
-type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage" | "ipad";
+type TabKey = "info" | "password" | "clinic" | "permission" | "branches" | "branch-manage" | "ipad" | "xray";
 
 /**
  * The account's own tabs carry no permission; the clinic-wide ones need the
@@ -76,6 +78,7 @@ const TAB_ITEMS: { key: TabKey; icon: React.ReactNode; label: string; permission
   { key: "branches", icon: <BranchesOutlined />, label: "Organization:TabBranchList", permissions: [LegacyPermissions.Organizations.View] },
   { key: "branch-manage", icon: <TeamOutlined />, label: "Organization:TabBranchManage", permissions: [LegacyPermissions.BranchManager.View] },
   { key: "ipad", icon: <TabletOutlined />, label: "Organization:TabIpad", permissions: [LegacyPermissions.Organizations.View] },
+  { key: "xray", icon: <ScanOutlined />, label: "Organization:TabXray", permissions: [LegacyPermissions.Organizations.View] },
 ];
 
 /* ── Tab: Thông tin cá nhân ───────────────────────────────────────────── */
@@ -983,6 +986,8 @@ export function ClinicSettingsPage() {
         return <BranchManageTab />;
       case "ipad":
         return <IpadPairingTab branchId={branchId} canEdit={grantedSet.has(LegacyPermissions.Organizations.Edit)} />;
+      case "xray":
+        return <XrayDeviceTab branchId={branchId} canEdit={grantedSet.has(LegacyPermissions.Organizations.Edit)} />;
       default:
         return <PersonalInfoTab branchId={branchId} />;
     }

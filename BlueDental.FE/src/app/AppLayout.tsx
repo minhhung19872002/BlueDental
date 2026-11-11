@@ -37,6 +37,7 @@ import { brand } from "@/theme/index";
 import { HeaderNavGroups, MobileNavDrawer, NavRibbon } from "./HeaderNav";
 import { type NavEntry, type NavGroup } from "./nav";
 import { useRibbonGroup } from "./useRibbonGroup";
+import { useNavBadges } from "./useNavBadges";
 import { useVisibleNav } from "./useVisibleNav";
 
 /** Longer than the account menu's hover delays (0.15s / 0.1s); see the menu below. */
@@ -67,6 +68,7 @@ export function AppLayout() {
   useAppointmentLiveUpdates(!!user);
   useTrackPatientOrigin();
   const visibleNav = useVisibleNav();
+  const navBadges = useNavBadges();
   const ribbon = useRibbonGroup(visibleNav.groups, location.pathname);
   const resetRibbon = ribbon.reset;
 
@@ -460,6 +462,7 @@ export function AppLayout() {
         <NavRibbon
           items={ribbon.items}
           pathname={location.pathname}
+          badges={navBadges}
           onSelect={handleSelectEntry}
         />
       </div>
@@ -485,6 +488,7 @@ export function AppLayout() {
         open={drawerOpen}
         items={visibleNav.items}
         pathname={location.pathname}
+        badges={navBadges}
         onClose={() => setDrawerOpen(false)}
         onSelect={handleSelectEntry}
       />
