@@ -39,7 +39,13 @@ Kết quả: **6/6 xanh**.
 
 ## Agent
 
-- **Unit test:** xUnit 88/88 (`BlueDental.XrayAgent.Tests`), gồm parser tên tệp / URL, ledger, pipeline (backoff, token bị thu hồi), station client, bridge.
+- **Unit test:** xUnit 109/109 (`BlueDental.XrayAgent.Tests`), gồm parser tên tệp / URL, ledger, pipeline (backoff, token bị thu hồi), station client, bridge.
+  - Phần tệp thông tin ảnh EzDent-i (2026-11-11) có `EzdentInfoFileTests` và các test pipeline / watcher:
+    - Chart No thắng tên tệp.
+    - Ảnh chờ tệp thông tin 20 giây rồi gửi không mã.
+    - Tắt cài đặt thì bỏ qua tệp thông tin.
+    - Log không lộ tên, năm sinh hay tên tệp.
+  - Dữ liệu test đều là dữ liệu tổng hợp.
 - **Smoke thật** (2026-11-11): harness console tham chiếu `BlueDental.XrayAgent.Core` và gọi `AgentRuntime.Start` với các thư mục tạm, chạy với API :5195.
   - **Ghép máy + Ping:** ghép máy qua API của app, sau đó Ping ok.
   - **Tải ảnh:** thả `<Mã KH>_pano.jpg` (JPEG thật) vào thư mục theo dõi. Log ghi `sent code=… status=2`. Trình duyệt thật mở tab Hình ảnh và thấy 1 thẻ trong Trước điều trị, có chip X-quang, ảnh thu nhỏ tải được (200), nút "Mở EzDent-i" hiện.

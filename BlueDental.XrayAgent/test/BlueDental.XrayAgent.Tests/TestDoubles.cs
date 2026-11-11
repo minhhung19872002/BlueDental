@@ -26,7 +26,7 @@ internal sealed class FakeStation : IStationApi
     public Queue<StationResult<UploadReceipt>> UploadAnswers { get; } = new();
     public StationResult<StationPatient> PatientAnswer { get; set; } =
         new(null, StationFailure.NotFound, "BlueDental:Imaging:0009");
-    public List<(FileNameHints Hints, string FileName, string ContentType, byte[] Bytes)> Uploads { get; } = [];
+    public List<(FileNameHints Hints, string FileName, string ContentType, byte[] Bytes, DateTimeOffset? CapturedAt)> Uploads { get; } = [];
     public List<string> LookedUp { get; } = [];
 
     public Task<StationResult<StationInfo>> PingAsync(CancellationToken ct) =>
@@ -36,7 +36,7 @@ internal sealed class FakeStation : IStationApi
     {
         using var copy = new MemoryStream();
         await upload.Content.CopyToAsync(copy, ct);
-        Uploads.Add((upload.Hints, upload.FileName, upload.ContentType, copy.ToArray()));
+        Uploads.Add((upload.Hints, upload.FileName, upload.ContentType, copy.ToArray(), upload.CapturedAt));
         return UploadAnswers.Count > 0 ? UploadAnswers.Dequeue() : StationResult<UploadReceipt>.Ok(new UploadReceipt(1, false));
     }
 

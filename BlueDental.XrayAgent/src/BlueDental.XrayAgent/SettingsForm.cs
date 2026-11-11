@@ -27,6 +27,7 @@ internal sealed class SettingsForm : Form
     private readonly CheckBox _subfolders = NewCheck(Strings.CheckSubfolders);
     private readonly TextBox _pattern = NewText();
     private readonly CheckBox _parentFolder = NewCheck(Strings.CheckParentFolder);
+    private readonly CheckBox _infoFile = NewCheck(Strings.CheckInfoFile);
     private readonly CheckBox _sendOld = NewCheck(Strings.CheckSendOld);
     private readonly TextBox _binFolder = NewText();
     private readonly ComboBox _loader = new() { Width = 360, DropDownStyle = ComboBoxStyle.DropDown };
@@ -61,7 +62,7 @@ internal sealed class SettingsForm : Form
     {
         _token.UseSystemPasswordChar = true;
         _token.PlaceholderText = _settings.IsConfigured ? Strings.TokenKeepHint : string.Empty;
-        _loader.Items.AddRange(["VTE2Loader32.exe", "VTEzBridge.exe"]);
+        _loader.Items.AddRange(["VTE2Loader32.exe", "VTEzBridge32.exe"]);
 
         var test = new Button { Text = Strings.ButtonTest, AutoSize = true };
         test.Click += HandleTestClick;
@@ -74,6 +75,7 @@ internal sealed class SettingsForm : Form
         AddHeader(Strings.GroupPictures);
         AddRow(Strings.LabelWatchFolder, _watchFolder, BrowseFolderButton(_watchFolder));
         AddRow(string.Empty, _subfolders);
+        AddRow(string.Empty, _infoFile);
         AddRow(Strings.LabelPattern, _pattern);
         AddRow(string.Empty, _parentFolder);
         AddRow(string.Empty, _sendOld);
@@ -102,6 +104,7 @@ internal sealed class SettingsForm : Form
         _serverUrl.Text = _settings.ServerUrl;
         _watchFolder.Text = _settings.WatchFolder;
         _subfolders.Checked = _settings.IncludeSubfolders;
+        _infoFile.Checked = _settings.ReadEzdentInfoFile;
         _pattern.Text = _settings.FileNamePattern;
         _parentFolder.Checked = _settings.CodeFromParentFolder;
         // A fresh install starts from "now" unless the user asks for the old pictures too.
@@ -148,6 +151,7 @@ internal sealed class SettingsForm : Form
             _settings.WriteToken(_protector, _token.Text);
         _settings.WatchFolder = _watchFolder.Text.Trim();
         _settings.IncludeSubfolders = _subfolders.Checked;
+        _settings.ReadEzdentInfoFile = _infoFile.Checked;
         _settings.FileNamePattern = _pattern.Text;
         _settings.CodeFromParentFolder = _parentFolder.Checked;
         _settings.StartFrom = _sendOld.Checked ? null : _settings.StartFrom ?? DateTimeOffset.Now;
