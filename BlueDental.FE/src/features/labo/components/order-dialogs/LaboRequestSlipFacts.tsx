@@ -1,5 +1,7 @@
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
+import { asRichText } from "@/utils/sanitizeHtml";
+import { RichTextView } from "@/components/RichTextView";
 import { LABO_CASE_TYPE, laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import type { LaboPill } from "@/features/labo/api/laboStatus";
 import { Block, StatusPill } from "./LaboDetailFacts";
@@ -45,7 +47,7 @@ export function LaboRequestSlipFacts({ order, patient, pill }: Props) {
           [t("Patient:Labo:ProsthesisType"), laboWorkOf(order) ?? ""],
           [t("Labo:Slip:Shade"), laboShadeZonesText(tooth?.shadeZones)],
           [t("Labo:Slip:FinishLine"), laboFinishLinesText(order)],
-          [t("Labo:Slip:Request"), order.notes ?? ""],
+          [t("Labo:Slip:Request"), order.notes ? <RichTextView html={asRichText(order.notes)} /> : ""],
         ]}
       />
       <Block

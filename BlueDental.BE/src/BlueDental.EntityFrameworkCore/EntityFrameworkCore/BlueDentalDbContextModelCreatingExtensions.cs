@@ -888,7 +888,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.ToothNumbers).HasMaxLength(200);
             entity.Property(x => x.WorkDescription).HasMaxLength(1000);
-            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.Property(x => x.Notes).HasMaxLength(LaboOrder.NotesMaxLength);
             entity.Property(x => x.EstimatedCost).HasPrecision(18, 2);
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
             entity.Property(x => x.Kind).HasConversion<short>();

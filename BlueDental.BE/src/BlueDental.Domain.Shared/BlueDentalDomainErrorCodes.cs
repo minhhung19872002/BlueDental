@@ -668,6 +668,8 @@ public static class BlueDentalDomainErrorCodes
         public const string FormBlockTitleRequired = "BlueDental:Labo:0059";
         /// <summary>A custom section with no field; data "block".</summary>
         public const string FormBlockEmpty = "BlueDental:Labo:0060";
+        /// <summary>Yêu cầu longer than LaboOrder.NotesMaxLength once written as rich text (P1211, R-1212); data "max".</summary>
+        public const string NotesTooLong = "BlueDental:Labo:0061";
     }
 
     public static class Promotions

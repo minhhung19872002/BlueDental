@@ -291,6 +291,7 @@
     "BlueDental:Labo:0058": "Bố cục mẫu phiếu không hợp lệ: mỗi khối hệ thống có đúng một lần, tối đa 10 mục tự tạo và mọi trường nằm trong một mục.",
     "BlueDental:Labo:0059": "Mục thứ {index} của bố cục chưa có tiêu đề.",
     "BlueDental:Labo:0060": "Mục \"{block}\" chưa có trường nào.",
+    "BlueDental:Labo:0061": "Nội dung Yêu cầu quá dài (tối đa {max} ký tự kể cả định dạng). Hãy rút gọn hoặc bỏ bớt định dạng.",
     "BlueDental:Labo:0039": "R{tooth} không có mặt {surface}.",
     "BlueDental:Operations:0004": "Ảnh trong bài viết phải nhỏ hơn 5 MB.",
     "BlueDental:Promotions:0001": "Không tìm thấy voucher.",

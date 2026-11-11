@@ -455,7 +455,8 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
       const sent = await sentOrder(page, patientId, no);
       const order = await readExtra(page, sent.id);
       expect(shapeOf(order.extraForm!.blocks)).toEqual(shapeOf(template.blocks));
-      expect(order.notes).toBe("Làm sát nướu");
+      // Rich text since R-1212: Quill keeps the words in a paragraph, spaces as &nbsp;.
+      expect((order.notes ?? "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")).toBe("Làm sát nướu");
       expect(valuesOf(order, "Loại trụ")).toEqual(["Osstem"]);
       expect(order.teeth.every((tooth) => tooth.restorations.length === 1)).toBe(true);
     });

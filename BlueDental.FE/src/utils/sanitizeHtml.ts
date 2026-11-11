@@ -18,6 +18,26 @@ export function richTextForSave(html: string | null | undefined): string {
   return hasMedia || hasText ? html : "";
 }
 
+const HTML_TAG = /<\/?[a-z][^>]*>/i;
+
+const escapeHtml = (text: string) =>
+  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * A body as the rich-text editor should be handed it. Markup goes through as
+ * is; plain text written before the field became rich text (Yêu cầu on a Labo
+ * slip, R-1212) turns each line into a paragraph, or Quill would read it as
+ * one run and lose the line breaks.
+ */
+export function asRichText(text: string | null | undefined): string {
+  if (!text) return "";
+  if (HTML_TAG.test(text)) return text;
+  return text
+    .split(/\r?\n/)
+    .map((line) => `<p>${escapeHtml(line) || "<br>"}</p>`)
+    .join("");
+}
+
 /**
  * Truncates text to a maximum length, adding an ellipsis if truncated.
  */

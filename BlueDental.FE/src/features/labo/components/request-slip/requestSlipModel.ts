@@ -6,6 +6,7 @@ import {
   type LaboShadeZonesDto,
 } from "@/features/labo/api/laboApi";
 import { LABO_BLOCK_KIND, type LaboBlockKind } from "@/features/labo/api/laboFormTemplateApi";
+import { asRichText, richTextForSave } from "@/utils/sanitizeHtml";
 import { extraBody, extraFromOrder, extraMissing, type ExtraFormValues } from "./extraFormModel";
 import { hidesBlock, hidesRestorations } from "./slipLayout";
 
@@ -112,7 +113,7 @@ export function requestSlipSeed(
     })),
     shade: mapZones((zone) => zones[zone] ?? ""),
     finishLineIds: first?.finishLineIds ?? [],
-    notes: order.notes ?? "",
+    notes: asRichText(order.notes),
     extra: extraFromOrder(order.extraForm),
   };
 }
@@ -185,7 +186,7 @@ export function requestSlipBody(values: RequestSlipValues) {
     dentistId: values.dentistId,
     teeth: values.teeth,
     quantity: values.teeth.length,
-    notes: shown(LABO_BLOCK_KIND.Notes) ? blankToUndefined(values.notes) : undefined,
+    notes: shown(LABO_BLOCK_KIND.Notes) ? blankToUndefined(richTextForSave(values.notes)) : undefined,
     sentAt: dayOf(values.sentDate),
     dueAt: dayOf(values.dueDate),
     shadeZones: mapZones((zone) => (shown(LABO_BLOCK_KIND.Shade) ? blankToUndefined(values.shade[zone]) : undefined)),

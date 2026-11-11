@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
+import { asRichText } from "@/utils/sanitizeHtml";
+import { RichTextView } from "@/components/RichTextView";
 import { LABO_CASE_TYPE, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import {
   LABO_BLOCK_KIND,
@@ -76,7 +78,11 @@ function printParts(order: LaboOrderDto) {
     notes: (title: string) => (
       <>
         <h3>{title}</h3>
-        <p className="pd-slip-print-text pd-slip-print-notes">{dashed(order.notes ?? "")}</p>
+        {order.notes ? (
+          <RichTextView className="pd-slip-print-notes" html={asRichText(order.notes)} />
+        ) : (
+          <p className="pd-slip-print-text pd-slip-print-notes">{dashed("")}</p>
+        )}
       </>
     ),
   };

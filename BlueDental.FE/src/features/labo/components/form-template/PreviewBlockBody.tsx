@@ -64,7 +64,7 @@ const Teeth = ({ title }: { title: string }) => (
 const Notes = ({ title }: { title: string }) => (
   <section className="rs-sec">
     <div className="rs-sech">{title}</div>
-    <textarea className="rs-note" rows={3} readOnly tabIndex={-1} placeholder={t("Labo:Slip:RequestPlaceholder")} />
+    <p className="rs-note rs-note--preview">{t("Labo:Slip:RequestPlaceholder")}</p>
     <div className="rs-pictures">
       <p className="pd-labo-row-label">
         {t("Labo:Workflow:CommonImages")} <span className="pd-labo-row-hint">{t("Labo:Workflow:CommonImagesHint")}</span>

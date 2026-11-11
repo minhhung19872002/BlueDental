@@ -1,8 +1,11 @@
 import { t } from "@/lib/i18n";
+import { RichTextField } from "@/components/RichTextField";
+import { RichTextView } from "@/components/RichTextView";
 import { LaboPictureWell } from "../order-dialogs/LaboPictureWell";
 import type { LaboPictureTiles } from "../order-dialogs/useLaboPictureTiles";
 
 interface Props {
+  /** Rich text (HTML) since P1211 — {@link asRichText} already applied. */
   notes: string;
   editable: boolean;
   pictures: LaboPictureTiles;
@@ -12,21 +15,27 @@ interface Props {
   title?: string;
 }
 
-/** Yêu cầu: the lined note for the Labo, and Ảnh chung under it (kept at the BA's ask). */
+/**
+ * Yêu cầu: a text-only rich text box for the Labo (P1211, R-1212 — no ruled
+ * lines any more), and Ảnh chung under it (kept at the BA's ask). A sent slip
+ * reads the same body back without an editor.
+ */
 export function RequestNotes({ notes, editable, pictures, busy, onChange, title }: Props) {
   return (
     <section className="rs-sec">
       <div className="rs-sech">{title ?? t("Labo:Slip:Request")}</div>
-      <textarea
-        className="rs-note"
-        rows={3}
-        value={notes}
-        readOnly={!editable}
-        maxLength={1000}
-        placeholder={t("Labo:Slip:RequestPlaceholder")}
-        aria-label={t("Labo:Slip:Request")}
-        onChange={(event) => onChange(event.target.value)}
-      />
+      {editable ? (
+        <RichTextField
+          className="rs-note"
+          value={notes}
+          onChange={onChange}
+          placeholder={t("Labo:Slip:RequestPlaceholder")}
+          ariaLabel={t("Labo:Slip:Request")}
+          media={false}
+        />
+      ) : (
+        <RichTextView className="rs-note rs-note--view" html={notes} />
+      )}
       <div className="rs-pictures">
         <p className="pd-labo-row-label">
           {t("Labo:Workflow:CommonImages")} <span className="pd-labo-row-hint">{t("Labo:Workflow:CommonImagesHint")}</span>

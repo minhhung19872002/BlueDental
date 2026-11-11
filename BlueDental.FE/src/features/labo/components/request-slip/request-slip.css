@@ -443,24 +443,26 @@
 }
 
 /* ── Yêu cầu ──────────────────────────────────────────────── */
+/* A text-only rich text box since P1211 (R-1212): the ruled lines are gone. */
 .rs-note {
   display: block;
-  width: 100%;
-  min-height: 120px;
-  padding: 6px 16px 8px;
-  border: 0;
-  outline: none;
-  resize: none;
-  background: repeating-linear-gradient(180deg, transparent 0 31px, var(--rs-line) 31px 32px);
+  padding: 10px 16px 12px;
   color: var(--rs-ink);
-  font: inherit;
   font-size: 14px;
-  line-height: 32px;
 }
 
-.rs-note:focus {
-  outline: 2px solid var(--rs-accent-soft);
-  outline-offset: -2px;
+.rs-note .ql-editor {
+  min-height: 120px;
+}
+
+.rs-note--view,
+.rs-note--preview {
+  min-height: 120px;
+  margin: 0;
+}
+
+.rs-note--preview {
+  color: var(--bd-hint);
 }
 
 .rs-pictures {

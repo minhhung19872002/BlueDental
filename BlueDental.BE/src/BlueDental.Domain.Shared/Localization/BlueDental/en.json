@@ -341,6 +341,7 @@
     "BlueDental:Labo:0058": "The template layout is invalid: each system block exactly once, at most 10 custom sections, and every field inside a section.",
     "BlueDental:Labo:0059": "Section {index} of the layout has no title.",
     "BlueDental:Labo:0060": "Section \"{block}\" has no field.",
+    "BlueDental:Labo:0061": "The Request is too long (at most {max} characters, formatting included). Shorten it or drop some formatting.",
     "BlueDental:Operations:0004": "An article image must be smaller than 5 MB.",
     "BlueDental:Promotions:0001": "Voucher not found.",
     "BlueDental:Promotions:0002": "That discount is not valid.",

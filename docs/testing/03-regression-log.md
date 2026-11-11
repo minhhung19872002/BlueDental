@@ -15009,3 +15009,51 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - "today: checked-in" — giờ hẹn ~22:40 nằm ngoài giờ hiển thị.
   - Lần chạy đầu trên :8092 là bản build cũ của phiên khác — bỏ kết quả đó.
 - **Mức retest**: 3 (luật đặt lịch dùng chung).
+
+## R-1211 (2026-11-12, mức 1: Labo «Nhận hàng & kiểm tra», P1211 phần 1) Đạt / Lỗi thẳng cột giữa các răng
+- **Yêu cầu** (P1211.drawio): ở mục B, nút Đạt / Lỗi trên các dòng răng lệch nhau.
+- **Nguyên nhân**:
+  - Mỗi dòng là một grid riêng.
+  - Cột cuối là `auto`, và nội dung cột đó khác nhau:
+    - Dòng Đạt: «Tải ảnh».
+    - Dòng Lỗi: «Thu gọn».
+  - Hai nút khác bề rộng nên các cột phía trước bị đẩy lệch.
+- **Sửa**: `labo-check.css` `.pd-labo-tooth-line`: cột cuối cố định 112px, «Tải ảnh» / «Thu gọn» canh phải. Chỉ đổi CSS.
+- **Kiểm thử**:
+  - `labo-workflow` vòng 1 có assertion mới.
+  - Assertion so toạ độ x của Đạt, Lỗi, Đã trả và BH Labo giữa R21 (Lỗi) và R11 (Đạt).
+  - Kết quả: xanh.
+  - Chưa chạy đối chứng trên bản build trước khi sửa.
+
+## R-1212 (2026-11-12, mức 2: Labo Phiếu yêu cầu F-91, P1211 phần 2) Yêu cầu thành rich text
+- **Yêu cầu** (P1211.drawio): ô YÊU CẦU kẻ dòng → Rich Text box.
+- **Chủ dự án chốt**:
+  - Chỉ làm trên develop.
+  - Toolbar chỉ có chữ, không ảnh/video.
+  - Bỏ dòng kẻ.
+  - Nâng giới hạn độ dài. "5" được hiểu là 5000 ký tự, tính cả thẻ định dạng.
+- **Sửa BE**:
+  - `LaboOrder.NotesMaxLength = 5000`.
+  - Vượt giới hạn trả lỗi mới `BlueDental:Labo:0061` (vi/en).
+  - Migration `20261111225116_LaboRequestRichTextR1212`: varchar 2000 → 5000.
+- **Sửa FE**:
+  - `RequestNotes` dùng `RichTextField media={false}`.
+  - `RichTextField` có prop mới `ariaLabel`, đặt `role=textbox` cho vùng soạn.
+  - Phiếu đã gửi, Xem chi tiết và bản in hiển thị qua `RichTextView` (Quill dựng lại nội dung, không `dangerouslySetInnerHTML`).
+  - `asRichText` (sanitizeHtml.ts) đổi ghi chú cũ dạng chữ thường thành các đoạn `<p>`: giữ xuống dòng (CRLF/LF), escape `< >`.
+  - Lưu qua `richTextForSave`: editor trống thì lưu rỗng.
+  - Ô xem trước ở Mẫu phiếu bỏ textarea.
+  - Phiếu kiểu cũ (Classic) không đổi.
+- **Kiểm thử** (e2e thật: host :5000 + `vite preview` :8113 bản `dist-r1212`, đăng nhập thật, không chặn request):
+  - Spec mới `labo-request-rich-text` 4/4:
+    - Toolbar không có nút ảnh, không dòng kẻ.
+    - Ctrl+B → lưu `<strong>`.
+    - Đọc lại khi mở lại phiếu đã gửi, ở Xem chi tiết và bản in.
+    - Ghi chú cũ nhiều dòng có `<`.
+    - Payload `onerror` / `<script>` không chạy.
+    - 5000 ký tự OK, 5001 bị từ chối Labo:0061 và không tạo đơn.
+  - Assertion `notes` trong `labo-request-slip-ui` và `labo-form-layout` so phần chữ, vì Quill lưu dấu cách thành `&nbsp;`.
+  - Hồi quy Labo:
+    - Lần 1: workflow, request-slip-ui, form-layout, form-layout-dnd, api, form-template-* — 46 xanh, 2 skip, 1 đỏ. Đỏ do locator R-1211: tên nút là "check Đạt". Đã sửa, chạy lại xanh.
+    - Lần 2: detail, request-slip-api, tab-list, orders-actions, labo — 30/30 xanh.
+- **Mức retest**: 2 (Labo). `RichTextField` dùng chung nhưng prop mới là tuỳ chọn, chỗ khác không đổi hành vi.

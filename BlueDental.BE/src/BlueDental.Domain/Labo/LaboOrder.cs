@@ -29,6 +29,12 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// <summary>Thời hạn bảo hành "Khác" is capped so the end date stays a real date.</summary>
     public const int MaxWarrantyMonths = 600;
 
+    /// <summary>
+    /// Yêu cầu is rich text since P1211 (R-1212): the stored HTML, tags
+    /// included, fits in this many characters.
+    /// </summary>
+    public const int NotesMaxLength = 5000;
+
     public string OrderCode { get; private set; } = default!;
     public Guid PatientId { get; private set; }
     public Guid BranchId { get; private set; }
@@ -443,6 +449,8 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         Quantity = details.Quantity < 1 ? 1 : details.Quantity;
         WorkDescription = Blank(details.WorkDescription);
         Notes = Blank(details.Notes);
+        if (Notes?.Length > NotesMaxLength)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.NotesTooLong).WithData("max", NotesMaxLength);
         EstimatedCost = details.EstimatedCost;
         TreatmentServiceId = details.TreatmentServiceId;
         TreatmentStageId = details.TreatmentStageId;

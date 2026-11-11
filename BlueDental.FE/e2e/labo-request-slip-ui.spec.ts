@@ -118,7 +118,8 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
       expect(order.treatmentServiceId).toBeNull();
       expect(order.treatmentStageId).toBeNull();
       expect(order.supplierName ?? null).toBeNull();
-      expect(order.notes).toBe("Làm sát nướu");
+      // Rich text since R-1212: Quill keeps the words in a paragraph, spaces as &nbsp;.
+      expect((order.notes ?? "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")).toBe("Làm sát nướu");
       expect(order.teeth.map((tooth) => tooth.toothNumber).sort()).toEqual([16, 17]);
       for (const tooth of order.teeth) {
         expect(tooth.restorations.map((r) => [r.materialId, r.onImplant])).toEqual([

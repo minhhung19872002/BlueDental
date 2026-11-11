@@ -5,7 +5,7 @@ import type { LaboOrderFacts } from "./laboOrderFacts";
 
 interface BlockProps {
   title: string;
-  rows: [label: string, value: string][];
+  rows: [label: string, value: ReactNode][];
   children?: ReactNode;
 }
 
