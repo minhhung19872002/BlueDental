@@ -1,16 +1,16 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { DAY_OFF, setOwnDay } from "./fixtures/ownDayOff";
+import { OFF, setDayOff } from "./fixtures/lichNghi";
 import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/timekeepingStaff";
 
 /**
  * R-981 (BA 2026-10-17): in "Lịch đã hẹn" by doctor, a click on an empty slot
  * of a doctor's row fills Giờ hẹn and Chọn bác sĩ with that doctor. A doctor
- * the form cannot take is left out with a toast saying why (OFF on Chấm công
- * that day / no longer an active doctor); the time is still taken. The saved
- * booking is read back after a reload.
- * Real stack: throw-away dentists, their rows made by real bookings, the OFF
- * day written by the doctor themselves; nothing is intercepted.
+ * the form cannot take is left out with a toast saying why (nghỉ cả ngày on
+ * Lịch nghỉ that day, R-1210 / no longer an active doctor); the time is still
+ * taken. The saved booking is read back after a reload.
+ * Real stack: throw-away dentists, their rows made by real bookings, the day
+ * off saved through the real Lịch nghỉ board; nothing is intercepted.
  */
 
 const APPOINTMENTS = "/api/v1/app/appointments";
@@ -78,7 +78,7 @@ test.describe("Lịch đã hẹn theo bác sĩ — bấm ô trống điền gi�
   let workingName: string;
   let goneName: string;
 
-  test.beforeEach(async ({ page, browser }) => {
+  test.beforeEach(async ({ page }) => {
     test.setTimeout(150_000);
     await page.setViewportSize({ width: 1600, height: 900 });
     await login(page);
@@ -99,11 +99,11 @@ test.describe("Lịch đã hẹn theo bác sĩ — bấm ô trống điền gi�
     gone = await createRunStaff(page, branchId, `pg${run}`, { name: goneName, isDentist: true });
 
     // Each doctor gets a row in Lịch đã hẹn through a real booking, made
-    // before the OFF day is registered and before the third stops being a doctor.
+    // before the day off is marked and before the third stops being a doctor.
     await book(page, branchId, off.id, day, "09:00");
     await book(page, branchId, working.id, day, "14:00");
     await book(page, branchId, gone.id, day, "16:00");
-    await setOwnDay(browser, off, branchId, day, DAY_OFF);
+    await setDayOff(page, branchId, off.id, day, OFF.FullDay);
     const profile = await call<Record<string, unknown>>(page, `/api/v1/app/staff/${gone.id}`, { branchId });
     const demoted = await call(page, `/api/v1/app/staff/${gone.id}`, {
       method: "PUT",
@@ -130,9 +130,7 @@ test.describe("Lịch đã hẹn theo bác sĩ — bấm ô trống điền gi�
     for (const s of [off, working, gone]) if (s) await deleteStaff(page, s.id);
   });
 
-  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-  test.skip("Tạo lịch hẹn: OFF / ngừng hoạt động → chỉ điền giờ + toast lý do; bác sĩ làm việc → điền cả hai, lưu và đọc lại", async ({ page }) => {
+  test("Tạo lịch hẹn: OFF / ngừng hoạt động → chỉ điền giờ + toast lý do; bác sĩ làm việc → điền cả hai, lưu và đọc lại", async ({ page }) => {
     await page.getByRole("button", { name: /Tạo lịch hẹn/ }).first().click();
     const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
     await expect(dialog).toBeVisible();
@@ -143,11 +141,11 @@ test.describe("Lịch đã hẹn theo bác sĩ — bấm ô trống điền gi�
     await dialog.locator(".appt-mini-cal-menu-btn").click();
     await expect(dialog.locator(".mcal-day-doctor").filter({ hasText: offName })).toHaveCount(1);
 
-    // OFF on Chấm công that day: the time only, and the toast names the day.
+    // Nghỉ cả ngày on Lịch nghỉ that day: the time only, and the toast names the day.
     await dialog.getByRole("button", { name: `Chọn giờ hẹn 11:00 với ${offName}` }).click();
     await expect(time).toHaveValue("11:00");
     await expect(page.getByText(
-      `Bác sĩ ${offName} nghỉ ngày ${vnDate(day)} (đã đăng ký OFF trên Chấm công) nên chưa được chọn, chỉ điền giờ hẹn.`,
+      `Bác sĩ ${offName} nghỉ ngày ${vnDate(day)} (đã đăng ký nghỉ cả ngày trên Lịch nghỉ) nên chưa được chọn, chỉ điền giờ hẹn.`,
     )).toBeVisible();
     await expect(doctorField).not.toContainText(offName);
 
@@ -196,9 +194,7 @@ test.describe("Lịch đã hẹn theo bác sĩ — bấm ô trống điền gi�
     expect(starts).toEqual([at(day, "11:30"), at(day, "14:00")]);
   });
 
-  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-  test.skip("Tạo lịch tạm: bấm ô ở hàng bác sĩ điền giờ và bác sĩ, hàng bác sĩ nghỉ thì cảnh báo", async ({ page }) => {
+  test("Tạo lịch tạm: bấm ô ở hàng bác sĩ điền giờ và bác sĩ, hàng bác sĩ nghỉ thì cảnh báo", async ({ page }) => {
     await page.goto("/calendar");
     await page.locator(".cal-btn-temp").click();
     const dialog = page.getByRole("dialog", { name: "Tạo lịch tạm" });

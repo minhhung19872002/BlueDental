@@ -16,7 +16,7 @@ test.describe("Route smoke tests", () => {
     { path: "/report", marker: /doanh số|lượt khách|quản lý thu chi/i },
     { path: "/staff", marker: /nhân viên|staff/i },
     // Chấm công has no address of its own: it is the calendar's work tab.
-    { path: "/calendar?tab=timekeeping", marker: /chấm công|lịch làm việc/i },
+    { path: "/calendar?tab=timekeeping", marker: /chấm công|lịch nghỉ/i },
     { path: "/materials", marker: /vật tư|material/i },
     { path: "/billing", marker: /thanh toán|billing|hóa đơn/i },
     // The catalog screen follows the reference, which titles itself by the

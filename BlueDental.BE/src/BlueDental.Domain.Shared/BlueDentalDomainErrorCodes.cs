@@ -179,11 +179,17 @@ public static class BlueDentalDomainErrorCodes
         public const string PatientAlreadyBooked = "BlueDental:Appointment:0006";
         public const string NotTemporary = "BlueDental:Appointment:0007";
 
-        /// <summary>The slot is not inside the dentist's shifts that day; the booking is refused.</summary>
-        public const string OutsideWorkingHours = "BlueDental:Appointment:0008";
+        // 0008 (outside the dentist's working hours) is retired: since R-1210 a
+        // day with nothing off on the Lịch nghỉ board can be booked at any hour.
 
-        /// <summary>The dentist is registered off that whole day; refused like <see cref="OutsideWorkingHours"/>.</summary>
+        /// <summary>The dentist is registered off that whole day (Lịch nghỉ SC); the booking is refused.</summary>
         public const string DentistOffDuty = "BlueDental:Appointment:0009";
+
+        /// <summary>The dentist is off that morning (Lịch nghỉ S) and the slot starts before the afternoon shift.</summary>
+        public const string DentistOffMorning = "BlueDental:Appointment:0019";
+
+        /// <summary>The dentist is off that afternoon (Lịch nghỉ C) and the slot ends after the morning shift.</summary>
+        public const string DentistOffAfternoon = "BlueDental:Appointment:0020";
 
         /// <summary>
         /// A booking can only be received on its own day (bug list item 25). 0010

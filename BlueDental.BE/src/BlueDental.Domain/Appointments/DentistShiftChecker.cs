@@ -14,15 +14,15 @@ using Volo.Abp.Identity;
 namespace BlueDental.Appointments;
 
 /// <summary>
-/// Domain service: whether a slot sits inside the dentist's shifts that day.
+/// Domain service: whether the dentist has registered the slot's time off.
 ///
-/// The shifts are the dentist's Lịch làm việc at the branch: the planned
-/// morning and afternoon windows less any leave registered through "Đăng ký
-/// nghỉ". With no record that day the hours on the dentist's profile apply,
-/// as the Chấm công board shows them, and the clinic's default 08:00-12:00 and
-/// 13:00-17:00 only where the profile has none. A slot outside them is refused
-/// outright, with no override (QA bug row 3; BA: "ngoài giờ làm việc khóa luôn,
-/// không cho book").
+/// Time off comes from the Lịch nghỉ board (F-90, R-1210): S nghỉ sáng, C nghỉ
+/// chiều, SC nghỉ cả ngày — and, for a day from before the board, the old
+/// "Đăng ký nghỉ" (see <see cref="TimeKeepingRecord.OffShift"/>). The day splits
+/// at midday: nghỉ sáng refuses a slot starting before the afternoon shift
+/// starts, nghỉ chiều one ending after the morning shift ends, evenings
+/// included. A day with nothing off can be booked at any hour — the profile
+/// hours no longer fence a booking (owner, 2026-11-11).
 /// </summary>
 public class DentistShiftChecker : ITransientDependency
 {
@@ -38,50 +38,64 @@ public class DentistShiftChecker : ITransientDependency
     }
 
     /// <summary>
-    /// Throws Appointment:0008 (or 0009 on a day off) unless the slot fits.
-    /// Switched off by TEMP-DAYOFF-FILTER-OFF (R-1189): every slot passes, only
-    /// the overlap checks still apply to a booking.
+    /// Throws Appointment:0009 when the dentist is off that whole day, 0019
+    /// when off that morning and the slot starts before the afternoon, 0020
+    /// when off that afternoon and the slot ends after the morning.
     /// </summary>
-    public Task EnsureWithinShiftAsync(
-        Guid dentistId,
-        Guid branchId,
-        AppointmentSlot slot)
-    {
-        // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): a booking no longer
-        // checks the dentist's day off, registered shift or working hours while
-        // the BA rewrites the rule. Restore by deleting this return and the
-        // `#pragma` pair, and making the method async again.
-        return Task.CompletedTask;
-    }
-
-#pragma warning disable IDE0051 // kept for TEMP-DAYOFF-FILTER-OFF
-    private async Task EnsureWithinShiftCheckedAsync(
+    public async Task EnsureWithinShiftAsync(
         Guid dentistId,
         Guid branchId,
         AppointmentSlot slot)
     {
         var start = ClinicCalendar.ToLocal(slot.Start);
         var day = DateOnly.FromDateTime(start.DateTime);
-        var records = await _timeKeepingRepository.GetListAsync(r =>
-            r.StaffId == dentistId && r.ClinicBranchId == branchId && r.WorkDate == day);
-
-        var record = records.FirstOrDefault();
-        var dentist = record is null ? await _userRepository.FindAsync(dentistId, includeDetails: false) : null;
-        var windows = WorkingWindows(record, dentist);
-        if (Fits(windows, start, ClinicCalendar.ToLocal(slot.End)))
+        var record = (await _timeKeepingRepository.GetListAsync(r =>
+            r.StaffId == dentistId && r.ClinicBranchId == branchId && r.WorkDate == day)).FirstOrDefault();
+        if (record is null || record.OffShift == WorkScheduleShift.None)
         {
             return;
         }
 
-        if (windows.Count == 0)
+        var (morning, afternoon) = PlannedShifts(record);
+        switch (OffConflict(record, start, ClinicCalendar.ToLocal(slot.End)))
         {
-            throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.DentistOffDuty);
+            case WorkScheduleShift.FullDay:
+                throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.DentistOffDuty);
+            case WorkScheduleShift.Morning:
+                throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.DentistOffMorning)
+                    .WithData("From", $"{afternoon.Start:HH\\:mm}");
+            case WorkScheduleShift.Afternoon:
+                throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.DentistOffAfternoon)
+                    .WithData("Until", $"{morning.End:HH\\:mm}");
+        }
+    }
+
+    /// <summary>
+    /// The part of the day off that [<paramref name="localStart"/>, <paramref name="localEnd"/>)
+    /// runs into, or <see cref="WorkScheduleShift.None"/> when the slot is free to book.
+    /// The split is the record's planned shifts, which every record carries.
+    /// </summary>
+    public static WorkScheduleShift OffConflict(
+        TimeKeepingRecord? record, DateTimeOffset localStart, DateTimeOffset localEnd)
+    {
+        var off = record?.OffShift ?? WorkScheduleShift.None;
+        if (off == WorkScheduleShift.None)
+        {
+            return WorkScheduleShift.None;
         }
 
-        throw new BusinessException(BlueDentalDomainErrorCodes.Appointments.OutsideWorkingHours)
-            .WithData("Shifts", Describe(windows));
+        var (morning, afternoon) = PlannedShifts(record);
+        var blocked = off switch
+        {
+            WorkScheduleShift.FullDay => true,
+            WorkScheduleShift.Morning => ToMinute(localStart) < afternoon.Start,
+            WorkScheduleShift.Afternoon =>
+                DateOnly.FromDateTime(localEnd.DateTime) != DateOnly.FromDateTime(localStart.DateTime)
+                || ToMinute(localEnd) > morning.End,
+            _ => false
+        };
+        return blocked ? off : WorkScheduleShift.None;
     }
-#pragma warning restore IDE0051
 
     /// <summary>
     /// The dentist's working day for each date in [<paramref name="from"/>, <paramref name="to"/>]
@@ -121,51 +135,23 @@ public class DentistShiftChecker : ITransientDependency
     }
 
     /// <summary>
-    /// The hours the dentist works that day, earliest first, with touching
-    /// windows joined. Empty on a day off. <paramref name="dentist"/> supplies
-    /// the profile hours for a day with no record.
+    /// The planned hours the dentist is not off that day, earliest first, with
+    /// touching windows joined: both shifts, the afternoon on nghỉ sáng, the
+    /// morning on nghỉ chiều, none on nghỉ cả ngày. <paramref name="dentist"/>
+    /// supplies the profile hours for a day with no record.
     /// </summary>
     public static IReadOnlyList<ShiftWindow> WorkingWindows(TimeKeepingRecord? record, IHasExtraProperties? dentist = null)
     {
-        // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): a day off, the shift
-        // registered on the Lịch làm việc board and a leave window no longer take
-        // hours away — "Chọn lịch hẹn tiếp theo" and the series planner open the
-        // whole planned day. Uncomment the three blocks below to restore.
-        // if (record?.Registration == WorkRegistration.DayOff)
-        // {
-        //     return [];
-        // }
-
         var (morning, afternoon) = PlannedShifts(record, dentist);
-        IEnumerable<ShiftWindow> windows = [morning, afternoon];
-        // IEnumerable<ShiftWindow> windows = record?.ScheduledShift switch
-        // {
-        //     WorkScheduleShift.Morning => [morning],
-        //     WorkScheduleShift.Afternoon => [afternoon],
-        //     _ => [morning, afternoon]
-        // };
-
-        // if (record?.LeaveStart is { } leaveStart && record.LeaveEnd is { } leaveEnd)
-        // {
-        //     windows = windows.SelectMany(w => w.Without(leaveStart, leaveEnd));
-        // }
+        IEnumerable<ShiftWindow> windows = (record?.OffShift ?? WorkScheduleShift.None) switch
+        {
+            WorkScheduleShift.FullDay => [],
+            WorkScheduleShift.Morning => [afternoon],
+            WorkScheduleShift.Afternoon => [morning],
+            _ => [morning, afternoon]
+        };
 
         return Merge(windows.OrderBy(w => w.Start));
-    }
-
-    /// <summary>Whether [start, end) on the clinic's wall clock lies inside one window of its own day.</summary>
-    public static bool Fits(IReadOnlyList<ShiftWindow> windows, DateTimeOffset localStart, DateTimeOffset localEnd)
-    {
-        if (DateOnly.FromDateTime(localStart.DateTime) != DateOnly.FromDateTime(localEnd.DateTime))
-        {
-            return false;
-        }
-
-        // Shifts are whole minutes; a client stamp carrying stray seconds or
-        // milliseconds (18:30:00.4 → 19:00:00.4) must not miss a 19:00 end.
-        var start = ToMinute(localStart);
-        var end = ToMinute(localEnd);
-        return windows.Any(w => w.Start <= start && end <= w.End);
     }
 
     private static TimeOnly ToMinute(DateTimeOffset local)

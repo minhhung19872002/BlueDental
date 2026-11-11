@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
+import { OFF, setDayOff } from "./fixtures/lichNghi";
 import { DAY_OFF, NOT_REGISTERED, setOwnDay } from "./fixtures/ownDayOff";
 import {
   call,
@@ -11,12 +12,15 @@ import {
 } from "./fixtures/timekeepingStaff";
 
 /**
- * Feature: doctor pickers leave out staff registered OFF that day on Chấm công
- * (BA 2026-10-02). `GET /staff?AvailableOn=` is what every picker reads.
+ * Feature: doctor pickers leave out staff off the whole day (BA 2026-10-02;
+ * R-1210, owner 2026-11-11). `GET /staff?AvailableOn=` is what every picker
+ * reads. Off the whole day = SC (nghỉ cả ngày) on the Lịch nghỉ board, or a
+ * day off on the old Chấm công; S / C (nghỉ sáng / chiều) stay listed and are
+ * refused at save for the half they are off.
  *
- * Real HTTP from inside logged-in pages against the real database; the day off
- * is written through the real bulk-register endpoint by the doctor themselves,
- * since only a staff member may mark their own X.
+ * Real HTTP from inside logged-in pages against the real database; the board
+ * marks go through the real board save, the old day off through the real
+ * bulk-register endpoint by the doctor themselves (only they may mark their X).
  */
 
 const STAFF = "/api/v1/app/staff";
@@ -37,9 +41,7 @@ async function listedIds(page: Parameters<typeof call>[0], branchId: string, que
   return res.body.items.map((s) => s.id);
 }
 
-// TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-// limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-test.describe.skip("Bác sĩ nghỉ — /staff AvailableOn", () => {
+test.describe("Bác sĩ nghỉ — /staff AvailableOn", () => {
   let branchId: string;
   let otherBranchId: string | undefined;
   let off: RunStaff & { userName: string };
@@ -66,7 +68,25 @@ test.describe.skip("Bác sĩ nghỉ — /staff AvailableOn", () => {
     for (const s of [off, unregistered]) if (s) await deleteStaff(page, s.id);
   });
 
-  test("OFF on a day: left out that day only", async ({ page, browser }) => {
+  test("Lịch nghỉ: SC leaves the doctor out that day only, S and C keep them listed, clearing SC brings them back", async ({ page }) => {
+    const day = shiftDays(clinicToday(), 2);
+    await setDayOff(page, branchId, off.id, day, OFF.FullDay);
+    await setDayOff(page, branchId, unregistered.id, day, OFF.Morning);
+
+    const onDay = await listedIds(page, branchId, `AvailableOn=${day}`);
+    expect(onDay, "SC left out").not.toContain(off.id);
+    expect(onDay, "S still listed").toContain(unregistered.id);
+    expect(await listedIds(page, branchId, `AvailableOn=${shiftDays(day, 1)}`), "SC is per day").toContain(off.id);
+
+    await setDayOff(page, branchId, off.id, day, OFF.Afternoon);
+    expect(await listedIds(page, branchId, `AvailableOn=${day}`), "SC → C: listed again").toContain(off.id);
+    await setDayOff(page, branchId, off.id, day, OFF.FullDay);
+    expect(await listedIds(page, branchId, `AvailableOn=${day}`)).not.toContain(off.id);
+    await setDayOff(page, branchId, off.id, day, OFF.None);
+    expect(await listedIds(page, branchId, `AvailableOn=${day}`), "SC cleared: listed again").toContain(off.id);
+  });
+
+  test("old Chấm công X on a day: left out that day only", async ({ page, browser }) => {
     const day = shiftDays(clinicToday(), 3);
     await setOwnDay(browser, off, branchId, day, DAY_OFF);
 

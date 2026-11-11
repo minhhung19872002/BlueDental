@@ -1,11 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
+import { OFF, setDayOff } from "./fixtures/lichNghi";
 import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/timekeepingStaff";
 
 /**
  * Feature F-65: "Lặp lại lịch hẹn" on Tạo lịch hẹn. The server lays the rule
  * out from the booking's own date and marks every session that clashes. A
- * patient clash, a closed shift or a day off refuses the whole series; the
+ * patient clash or time off on Lịch nghỉ (R-1210) refuses the whole series; the
  * dentist already busy then is only a warning (0002, BA 2026-10-16) that the
  * user confirms with `allowDentistOverlap`. Afterwards each
  * session reads Đã hẹn / Đổi giờ / Đã đổi lịch / Đã huỷ hẹn / Kết thúc, and a
@@ -22,7 +23,7 @@ const SESSION_FINISHED = "BlueDental:Appointment:0015";
 const WEEKLY = 2;
 const AFTER_COUNT = 1;
 const State = { Free: 1, Conflict: 2, Booked: 3, TimeChanged: 4, Rescheduled: 5, Cancelled: 6, Finished: 7 } as const;
-const Reason = { DentistBusy: 1, PatientBusy: 2, OutsideShift: 3 } as const;
+const Reason = { DentistBusy: 1, PatientBusy: 2, OutsideShift: 3, DentistOff: 4 } as const;
 
 interface Session {
   index: number;
@@ -214,14 +215,17 @@ test.describe("Lặp lại lịch hẹn — API", () => {
     expect(stored.map((a) => a.id)).toEqual([single.body.id]);
   });
 
-  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-  test.skip("lunch time clashes with the shift on every session, and confirming does not get past it", async ({ page }) => {
+  test("Lịch nghỉ marks the sessions it falls on — nghỉ sáng / nghỉ cả ngày — and confirming does not get past them", async ({ page }) => {
     const day = farDay();
-    const input = weekly(day, "12:15", "12:45", 3);
+    // Lunch is bookable now (R-1210); the board's time off is what clashes.
+    await setDayOff(page, branchId, dentist.id, day, OFF.Morning);
+    await setDayOff(page, branchId, dentist.id, plusDays(day, 7), OFF.FullDay);
+    await setDayOff(page, branchId, dentist.id, plusDays(day, 14), OFF.Afternoon);
+    const input = weekly(day, "09:00", "09:30", 3);
     const preview = await call<Series>(page, `${SERIES}/preview`, { method: "POST", branchId, json: input });
     expect(preview.status).toBe(200);
-    expect(preview.body.sessions.map((s) => s.conflictReason)).toEqual(Array(3).fill(Reason.OutsideShift));
+    expect(preview.body.sessions.map((s) => s.state)).toEqual([State.Conflict, State.Conflict, State.Free]);
+    expect(preview.body.sessions.map((s) => s.conflictReason)).toEqual([Reason.OutsideShift, Reason.DentistOff, null]);
 
     const refused = await call<Series>(page, SERIES, {
       method: "POST", branchId, json: { ...input, allowDentistOverlap: true },

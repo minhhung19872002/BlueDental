@@ -10,7 +10,9 @@ import {
 } from "./fixtures/timekeepingStaff";
 
 /**
- * Feature F-90: Lịch làm việc board (BA P0911). Each person registers Ca sáng /
+ * Feature F-90: Lịch nghỉ board (BA P0911; renamed from Lịch làm việc and read
+ * as days off, R-1210). Each person marks Nghỉ sáng / Nghỉ chiều / Nghỉ cả ngày
+ * (S / C / SC) — stored as the old Ca sáng /
  * Ca chiều / Cả ngày per day; today and every day before it are locked, and a
  * saved day changed the day before is written to the change log. Whose days
  * show and may change come from the org chart: a Phòng ban member sees the
@@ -81,7 +83,7 @@ function cellName(staff: RunStaff, day: string): string {
   return `${staff.fullName}, ${DOW[date.getUTCDay()]} ${date.getUTCDate()}/${date.getUTCMonth() + 1}:`;
 }
 
-test.describe("Lịch làm việc (F-90)", () => {
+test.describe("Lịch nghỉ (F-90)", () => {
   test.describe.configure({ mode: "serial" });
 
   let admin: Page;
@@ -223,7 +225,7 @@ test.describe("Lịch làm việc (F-90)", () => {
     const board = await readBoard(admin, later);
     expect(shiftOn(board, staff.member.id, later)).toBe(SHIFT.FullDay);
     if (later.slice(0, 7) === tomorrow.slice(0, 7)) {
-      expect(shiftOn(board, staff.member.id, tomorrow), "a cancelled day reads Chưa đăng ký").toBe(SHIFT.None);
+      expect(shiftOn(board, staff.member.id, tomorrow), "a cancelled day reads Chưa đăng ký nghỉ").toBe(SHIFT.None);
     }
 
     // Today and yesterday are locked for everyone, admin included.
@@ -315,20 +317,20 @@ test.describe("Lịch làm việc (F-90)", () => {
 
     await open(target);
     const mine = cell(staff.member, target);
-    await expect(mine).toHaveAccessibleName(`${cellName(staff.member, target)} Chưa đăng ký`);
+    await expect(mine).toHaveAccessibleName(`${cellName(staff.member, target)} Chưa đăng ký nghỉ`);
 
-    await page.locator(".ws-brushbar").getByRole("button", { name: /Ca sáng/ }).click();
+    await page.locator(".ws-brushbar").getByRole("button", { name: /Nghỉ sáng/ }).click();
     await mine.click();
     await expect(mine).toHaveText("S");
     await expect(mine).toHaveClass(/ws-cell--pending/);
 
-    await page.getByRole("button", { name: "Lưu lịch" }).click();
+    await page.getByRole("button", { name: "Lưu lịch nghỉ" }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText(staff.member.fullName);
     const saved = page.waitForResponse((r) => r.url().endsWith(SAVE) && r.request().method() === "POST");
     await dialog.getByRole("button", { name: "Xác nhận lưu" }).click();
     expect((await saved).status()).toBe(200);
-    await expect(page.getByText("Đã lưu 1 thay đổi lịch làm việc.")).toBeVisible();
+    await expect(page.getByText("Đã lưu 1 thay đổi lịch nghỉ.")).toBeVisible();
 
     await page.reload();
     await page.locator(".ws-search input").fill(run);
@@ -341,8 +343,8 @@ test.describe("Lịch làm việc (F-90)", () => {
     const locked = cell(staff.member, today);
     await expect(locked).toHaveAttribute("aria-disabled", "true");
     await locked.click({ force: true });
-    await expect(page.getByText("Không thể đăng ký cho hôm nay hoặc ngày đã qua.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Lưu lịch" })).toBeDisabled();
+    await expect(page.getByText("Không thể đăng ký nghỉ cho hôm nay hoặc ngày đã qua.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Lưu lịch nghỉ" })).toBeDisabled();
 
     // The member sees the head's row read only.
     const asMember = await signIn(browser, "member");
@@ -351,7 +353,7 @@ test.describe("Lịch làm việc (F-90)", () => {
     const headCell = asMember.getByRole("button", { name: cellName(staff.head, target) });
     await expect(headCell).toHaveAttribute("aria-disabled", "true");
     await headCell.click({ force: true });
-    await expect(asMember.getByText("Bạn không có quyền sửa lịch làm việc của người này.")).toBeVisible();
+    await expect(asMember.getByText("Bạn không có quyền sửa lịch nghỉ của người này.")).toBeVisible();
     await expect(asMember.getByRole("button", { name: cellName(staff.member, target) })).toHaveAttribute("aria-disabled", "false");
   });
 });
