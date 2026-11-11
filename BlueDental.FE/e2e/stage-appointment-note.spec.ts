@@ -182,7 +182,6 @@ test.describe("Thêm công đoạn — Ghi chú lịch hẹn", () => {
     await expect(panel.locator(".pd-stage-colhead")).toHaveText([
       "Chi tiết",
       "Ngày - Nhân sự",
-      "Dịch vụ đã chọn",
       "Nội dung điều trị",
       "Ghi chú lịch hẹn",
     ]);

@@ -2228,7 +2228,7 @@
   color: var(--bd-blue-dark) !important;
 }
 
-/* ── Tab row: the ten tabs, and the two-way view switch on its right ─────── */
+/* ── Tab row: the ten tabs, and the Bệnh án tab on its right ─────────────── */
 .pd-tabrow {
   display: flex;
   flex-shrink: 0;
@@ -2247,14 +2247,20 @@
   background: transparent;
   box-shadow: none;
 }
-.pd-viewswitch {
-  flex-shrink: 0;
+/* Bệnh án: one more pill, pinned to the right end of the row where the old
+   "Chi tiết hồ sơ / Bệnh án" switch sat (R-1204). It takes only its own width
+   (the record's .bd-tabbar grows, flex: 1), so the ten tabs keep the rest of
+   the row and scroll under it, never past it. The row's padding-right is its
+   margin. */
+.pd-page .pd-tabrow > .pd-recordtab {
+  flex: none;
+  margin-left: auto;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: visible;
 }
-.pd-viewswitch .seg-tabs-item {
-  gap: 6px;
-}
-/* On a phone the switch would squeeze the ten tabs down to one visible pill
-   (BA 2026-11-05): the switch goes on its own line above, and the tabs get
+/* On a phone the Bệnh án pill would squeeze the ten tabs down to one visible
+   pill (BA 2026-11-05): it goes on its own line above, and the tabs get
    the strip's full width to scroll in. `flex: none` because a column flex
    item with basis 0 and its own scroller collapses to no height. */
 @media (max-width: 640px) {
@@ -2264,14 +2270,15 @@
     gap: 0;
     padding: 12px 0 0;
   }
-  .pd-viewswitch {
-    order: -1;
-    margin-left: 12px;
-  }
   .pd-page .pd-tabrow > .bd-tabbar {
     flex: none;
     width: 100%;
     padding: 10px 12px 12px;
+  }
+  .pd-page .pd-tabrow > .pd-recordtab {
+    order: -1;
+    width: auto;
+    padding: 0 12px;
   }
 }
 
@@ -4321,9 +4328,23 @@
   background: #fff;
 }
 /* The công đoạn form adds Ghi chú lịch hẹn as a fourth column (R-1056); the
-   Tạo bảo hành / tái khám dialog keeps three. */
+   Tạo bảo hành / tái khám dialog keeps three. Since "Dịch vụ đã chọn" went,
+   Nội dung điều trị takes its cell as well (owner, 2026-11-11, R-1206). */
 .pd-stage-form--four {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.pd-stage-form--four > .pd-stage-content,
+.pd-stage-colhead--wide {
+  grid-column: span 2;
+}
+/* The Răng line heads Nội dung điều trị, level with the other columns' tops. */
+.pd-stage-content > .pd-stage-teeth:first-child {
+  margin-top: 0;
+}
+/* A whole jaw is one name, not a row of chips (R-1206). */
+.pd-stage-teeth--jaw > p > strong {
+  color: var(--bd-ink);
+  font-weight: 600;
 }
 .pd-stage-form > div > .floating-field + .floating-field,
 .pd-stage-form > div > .pd-stage-error + .floating-field {
@@ -4804,7 +4825,8 @@
   margin: 0;
   color: var(--bd-ink);
   font-size: 14px;
-  font-weight: 500;
+  /* Bolder so the service stands out from its teeth and notes (owner, R-1205). */
+  font-weight: 600;
 }
 /* The jaw button under the service name — the row's teeth live behind it. */
 .pd-stage-histrow .pd-stage-chartbtn {
@@ -4952,6 +4974,12 @@
   .pd-stage-form:not(.pd-stage-form--four) > div:last-child {
     grid-column: span 2;
   }
+  /* Ngày - Nhân sự and Ghi chú lịch hẹn share the first row, Nội dung điều trị
+     the second. */
+  .pd-stage-form--four,
+  .pd-stage-colheads {
+    grid-auto-flow: row dense;
+  }
 }
 @media (max-width: 1024px) {
   .pd-stage-grid,
@@ -4959,7 +4987,9 @@
   .pd-stage-colheads {
     grid-template-columns: 1fr;
   }
-  .pd-stage-form:not(.pd-stage-form--four) > div:last-child {
+  .pd-stage-form:not(.pd-stage-form--four) > div:last-child,
+  .pd-stage-form--four > .pd-stage-content,
+  .pd-stage-colhead--wide {
     grid-column: auto;
   }
 }

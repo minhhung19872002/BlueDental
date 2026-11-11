@@ -19,18 +19,19 @@ interface Props {
   onPickSteps: (stepIds: string[]) => void;
   /** Shown in the empty box; when given, the label stays up so it can show. */
   placeholder?: string;
-  /** What goes above Nội dung điều trị — the Labo pick of a warranty form. */
+  /** What goes above Nội dung điều trị — the Răng line, a warranty form's card and Labo pick. */
   children?: ReactNode;
 }
 
 /**
  * "Nội dung điều trị": the note, then which of the service's steps this công
  * đoạn will cover. The steps save unticked — the history row is where they get
- * ticked off.
+ * ticked off. It takes two cells of the form, the one "Dịch vụ đã chọn" had
+ * among them (owner, 2026-11-11, R-1206).
  */
 export function StageContentColumn({ steps, draft, error, onChange, onPickSteps, placeholder, children }: Props) {
   return (
-    <div>
+    <div className="pd-stage-content">
       {children}
       <FloatingLabel
         label={t("Patient:Stage:TreatmentContent")}

@@ -45,9 +45,12 @@ const TAB_COPY: Record<StageTab, { label: string; empty: string; save: string }>
   },
 };
 
-/** "Ngày - Nhân sự" · "Dịch vụ đã chọn" · "Nội dung điều trị" · "Ghi chú lịch hẹn". */
-function ColumnHead({ children }: { children: string }) {
-  return <div className="pd-stage-colhead">{children}</div>;
+/**
+ * "Ngày - Nhân sự" · "Nội dung điều trị" · "Ghi chú lịch hẹn"; `wide` takes two
+ * cells, as Nội dung điều trị does since "Dịch vụ đã chọn" went (R-1206).
+ */
+function ColumnHead({ children, wide = false }: { children: string; wide?: boolean }) {
+  return <div className={wide ? "pd-stage-colhead pd-stage-colhead--wide" : "pd-stage-colhead"}>{children}</div>;
 }
 
 export interface StagePatient {
@@ -175,8 +178,7 @@ export function TreatmentStagePanel({
             <div>
               <div className="pd-stage-colheads">
                 <ColumnHead>{t("Patient:Debt:DateStaff")}</ColumnHead>
-                <ColumnHead>{t("Patient:Plan:SelectedService")}</ColumnHead>
-                <ColumnHead>{t("Patient:Stage:TreatmentContent")}</ColumnHead>
+                <ColumnHead wide>{t("Patient:Stage:TreatmentContent")}</ColumnHead>
                 <ColumnHead>{t("Patient:Stage:AppointmentNote")}</ColumnHead>
               </div>
 
