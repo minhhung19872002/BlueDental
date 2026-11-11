@@ -85,3 +85,33 @@ Chưa chạy: toàn bộ `appointment*` / `reception*`.
 - FE: `viewerFirst` (`features/timekeeping/utils/workScheduleOrder.ts`) đưa nhóm của người xem lên đầu, người xem lên đầu nhóm; chế độ "Từng bác sĩ / nhân viên" vì thế chọn sẵn chính họ. API không đổi.
 - `e2e/work-schedule-board.spec.ts` test mới "the viewer's own row comes first": thành viên thường thấy mình trên trưởng phòng (API vẫn để trưởng đầu); một nhân viên quyền admin làm trưởng phòng ban riêng thấy nhóm mình đầu tiên dù API xếp nhóm khác trước. Cả spec **5/5** trên stack riêng :5190/:8095, đăng nhập thật, không chặn request.
 - Mức retest 2 (chỉ màn Lịch làm việc).
+
+## R-1210 — Lịch nghỉ: S/C/SC là ngày nghỉ, bật lại chặn (2026-11-11)
+
+- Chủ dự án chốt 4 điểm:
+  - Chia ở giữa trưa.
+  - Đổi tên toàn bảng.
+  - Giữ dữ liệu cũ, đọc lại là ngày nghỉ.
+  - Picker chỉ ẩn người nghỉ cả ngày.
+- BE:
+  - `TimeKeepingRecord.OffShift`.
+  - `DentistShiftChecker.OffConflict` / `WorkingWindows`: ngày không nghỉ mở giờ hồ sơ, không chặn ngoài giờ.
+  - `StaffAppService.AvailableOn` chỉ ẩn nghỉ cả ngày.
+  - Lặp lịch hẹn: nửa ngày → `OutsideShift`, cả ngày → `DentistOff`.
+  - Mã mới `Appointment:0019` (nghỉ sáng) / `0020` (nghỉ chiều); bỏ `0008`.
+  - vi/en đổi tên sang "Lịch nghỉ".
+  - Bỏ hết `TEMP-DAYOFF-FILTER-OFF`.
+- e2e:
+  - Fixture mới `e2e/fixtures/lichNghi.ts` (`setDayOff` qua `work-schedules/save` thật).
+  - Spec mới `e2e/doctor-lich-nghi.spec.ts` 2/2.
+  - Xoá `doctor-day-off-ignored.spec.ts`.
+  - Viết lại / bật lại `appointment-working-hours`, `reception-follow-up-shifts`, `doctor-day-off-pickers`, `staff-day-off-api`, `appointment-slot-pick-doctor`, `appointment-series-api`, `appointment-day-timeline`.
+  - `work-schedule-board`, `timekeeping`, `routes` theo nhãn mới.
+- Kết quả trên bản build production (`vite preview` :8093 + host :5000, đăng nhập thật, không chặn request):
+  - 9 spec thay đổi: 37 xanh, 2 skip.
+  - Chạy lại sau sửa spec: 33 xanh.
+  - Còn 2 đỏ không thuộc luật này:
+    - `appointment-day-timeline` drag-scroll — đã đỏ từ R-1189.
+    - "today: checked-in" — chạy lúc ~22:40, ngoài giờ hiển thị của bảng.
+- Domain 1377 xanh.
+- Mức retest 3.

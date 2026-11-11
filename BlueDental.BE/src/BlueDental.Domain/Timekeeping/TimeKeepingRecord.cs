@@ -45,9 +45,10 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     public string? Note { get; private set; }
 
     /// <summary>
-    /// The half of the day signed up for on the Lịch làm việc board (BA P0911,
-    /// F-90) — Morning or Afternoon; FullDay for SC. Null for a day registered
-    /// before the board, or by the old toggles, which keeps its whole plan.
+    /// The half of the day registered off on the Lịch nghỉ board (BA P0911,
+    /// F-90; read as time off since R-1210) — Morning (S) or Afternoon (C);
+    /// FullDay for SC. Null for a day registered before the board, or by the
+    /// old toggles — see <see cref="OffShift"/>.
     /// </summary>
     public WorkScheduleShift? ScheduledShift { get; private set; }
 
@@ -169,9 +170,11 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// Đăng ký ca on the Lịch làm việc board (F-90): S, C or SC registers the day
-    /// as working that half or whole; <see cref="WorkScheduleShift.None"/> takes
-    /// the sign-up back. A leave or day off on the day is replaced.
+    /// Đăng ký on the Lịch nghỉ board (F-90, R-1210): S, C or SC registers that
+    /// half or the whole day off; <see cref="WorkScheduleShift.None"/> takes the
+    /// sign-up back. A leave or day off on the day is replaced. The record keeps
+    /// <see cref="WorkRegistration.Working"/>, as the board has stored it since
+    /// F-90; <see cref="OffShift"/> is what it means.
     /// </summary>
     public TimeKeepingRecord ScheduleShift(WorkScheduleShift shift)
     {
@@ -191,18 +194,24 @@ public class TimeKeepingRecord : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// The shift the board shows for the day. A day registered before the board
-    /// reads from its leave: working with the afternoon off is Ca sáng, with the
-    /// morning off Ca chiều, otherwise Cả ngày. A day off reads as none.
+    /// The part of the day registered off — what the Lịch nghỉ board shows (R-1210:
+    /// the board's S / C / SC mean nghỉ sáng / nghỉ chiều / nghỉ cả ngày). A day
+    /// from before the board reads from the old "Đăng ký nghỉ": a day off is
+    /// Cả ngày, a half-day leave its half. A day merely registered working, or
+    /// not registered at all, has nothing off.
     /// </summary>
-    public WorkScheduleShift CurrentScheduledShift => Registration != WorkRegistration.Working
-        ? WorkScheduleShift.None
-        : ScheduledShift ?? LeaveShift switch
+    public WorkScheduleShift OffShift => Registration switch
+    {
+        WorkRegistration.DayOff => WorkScheduleShift.FullDay,
+        WorkRegistration.Working => ScheduledShift ?? LeaveShift switch
         {
-            Timekeeping.LeaveShift.Afternoon => WorkScheduleShift.Morning,
-            Timekeeping.LeaveShift.Morning => WorkScheduleShift.Afternoon,
-            _ => WorkScheduleShift.FullDay
-        };
+            Timekeeping.LeaveShift.Morning => WorkScheduleShift.Morning,
+            Timekeeping.LeaveShift.Afternoon => WorkScheduleShift.Afternoon,
+            Timekeeping.LeaveShift.FullDay => WorkScheduleShift.FullDay,
+            _ => WorkScheduleShift.None
+        },
+        _ => WorkScheduleShift.None
+    };
 
     /// <summary>Vào ca.</summary>
     public TimeKeepingRecord CheckIn(WorkShiftKind shift, DateTimeOffset at, Guid? recordedByStaffId = null)

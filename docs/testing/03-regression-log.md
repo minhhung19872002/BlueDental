@@ -14976,3 +14976,36 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Build trước bản sửa (worktree HEAD 9bccf44e): đỏ ở `committed` = true (file 30.000.000 được nhận).
 - **Dữ liệu đã nhập**: không tự sửa. Dòng cả hàm nhập trước bản sửa mà để trống Số lượng đã lưu SL 16/32 — phải rà riêng nếu có.
 - **Mức retest**: 2.
+
+## R-1210 (2026-11-11, mức 3: F-90 thành "Lịch nghỉ", bật lại chặn bác sĩ nghỉ, thay TEMP-DAYOFF-FILTER-OFF của R-1189)
+
+- **Yêu cầu** (AnTran ↔ Danh Pham, chủ dự án chốt):
+  - Bảng `/calendar?tab=timekeeping` ghi ngày NGHỈ: S = nghỉ sáng, C = nghỉ chiều, SC = nghỉ cả ngày.
+  - Ngày không đánh dấu là đi làm, đặt được mọi giờ.
+  - Đổi tên "Lịch nghỉ".
+- **Quyết định**:
+  1. Chia ở giữa trưa:
+     - Nghỉ sáng chặn lịch bắt đầu trước giờ vào ca chiều.
+     - Nghỉ chiều chặn lịch kết thúc sau giờ hết ca sáng, kể cả tối.
+     - Ngày không nghỉ không chặn theo giờ hồ sơ.
+  2. Đổi tên đồng bộ toàn bảng.
+  3. Giữ dữ liệu cũ, đọc lại là ngày nghỉ (không migration).
+  4. Picker chỉ ẩn nghỉ cả ngày; nghỉ nửa ngày vẫn hiện, chặn khi lưu.
+- **Sửa**:
+  - BE `TimeKeepingRecord.OffShift`, `DentistShiftChecker`, `StaffAppService.AvailableOn`, `AppointmentSeriesPlanner`, `WorkScheduleAppService`.
+  - Mã `Appointment:0019` / `0020` mới.
+  - vi/en.
+  - Bỏ mọi `TEMP-DAYOFF-FILTER-OFF`.
+  - FE không đổi code (chữ qua i18n).
+- **Kiểm thử**:
+  - Domain 1377 xanh.
+  - e2e thật (host :5000 + `vite preview` :8093, đăng nhập thật, không chặn request):
+    - Spec mới `doctor-lich-nghi` 2/2.
+    - `appointment-working-hours` 8/8.
+    - `reception-follow-up-shifts`, `doctor-day-off-pickers`, `staff-day-off-api`, `appointment-slot-pick-doctor`, `appointment-series-api` xanh.
+    - `work-schedule-board` 5/5 với nhãn mới.
+  - 2 đỏ không thuộc luật này (cùng chạy lúc ~22:40, chưa đối chiếu HEAD):
+    - `appointment-day-timeline` drag-scroll — đã đỏ từ R-1189.
+    - "today: checked-in" — giờ hẹn ~22:40 nằm ngoài giờ hiển thị.
+  - Lần chạy đầu trên :8092 là bản build cũ của phiên khác — bỏ kết quả đó.
+- **Mức retest**: 3 (luật đặt lịch dùng chung).

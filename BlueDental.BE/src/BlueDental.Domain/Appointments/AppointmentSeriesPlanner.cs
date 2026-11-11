@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using BlueDental.Timekeeping;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Identity;
 
 namespace BlueDental.Appointments;
 
@@ -14,23 +13,20 @@ namespace BlueDental.Appointments;
 /// each one that cannot be booked ("Trùng lịch"). Every session keeps the
 /// first one's clinic wall-clock time and length. A session clashes on the
 /// same grounds a single booking is refused: the dentist or the patient is
-/// already booked then, or it falls outside the dentist's shifts that day.
+/// already booked then, or the dentist is off then (Lịch nghỉ, R-1210).
 /// The whole series is checked in three queries, not three per session.
 /// </summary>
 public class AppointmentSeriesPlanner : ITransientDependency
 {
     private readonly IRepository<Appointment, Guid> _appointmentRepository;
     private readonly IRepository<TimeKeepingRecord, Guid> _timeKeepingRepository;
-    private readonly IIdentityUserRepository _userRepository;
 
     public AppointmentSeriesPlanner(
         IRepository<Appointment, Guid> appointmentRepository,
-        IRepository<TimeKeepingRecord, Guid> timeKeepingRepository,
-        IIdentityUserRepository userRepository)
+        IRepository<TimeKeepingRecord, Guid> timeKeepingRepository)
     {
         _appointmentRepository = appointmentRepository;
         _timeKeepingRepository = timeKeepingRepository;
-        _userRepository = userRepository;
     }
 
     public async Task<IReadOnlyList<PlannedSession>> PlanAsync(
@@ -58,7 +54,6 @@ public class AppointmentSeriesPlanner : ITransientDependency
                 && r.WorkDate >= firstDay && r.WorkDate <= lastDay))
             .GroupBy(r => r.WorkDate)
             .ToDictionary(g => g.Key, g => g.First());
-        var dentist = await _userRepository.FindAsync(dentistId, includeDetails: false);
 
         // The minute already under way still counts, as for a single booking.
         var utcNow = DateTimeOffset.UtcNow;
@@ -66,7 +61,7 @@ public class AppointmentSeriesPlanner : ITransientDependency
         return sessions.Select((s, i) =>
         {
             var end = s.Start + length;
-            var reason = ReasonFor(s.Day, s.Start, end, nowMinute, records, dentist, busy, patientId, dentistId);
+            var reason = ReasonFor(s.Day, s.Start, end, nowMinute, records, busy, patientId, dentistId);
             return new PlannedSession(i + 1, s.Start, end, reason);
         }).ToList();
     }
@@ -77,21 +72,17 @@ public class AppointmentSeriesPlanner : ITransientDependency
         DateTimeOffset end,
         DateTimeOffset nowMinute,
         IReadOnlyDictionary<DateOnly, TimeKeepingRecord> records,
-        IdentityUser? dentist,
         IReadOnlyList<Appointment> busy,
         Guid patientId,
         Guid dentistId)
     {
         if (start < nowMinute) return SeriesConflictReason.InThePast;
 
-        // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): a session is no longer
-        // refused for the dentist's day off or hours, as a single booking is not.
-        // var windows = DentistShiftChecker.WorkingWindows(records.GetValueOrDefault(day), dentist);
-        // if (windows.Count == 0) return SeriesConflictReason.DentistOff;
-        // if (!DentistShiftChecker.Fits(windows, ClinicCalendar.ToLocal(start), ClinicCalendar.ToLocal(end)))
-        // {
-        //     return SeriesConflictReason.OutsideShift;
-        // }
+        // Lịch nghỉ (R-1210): the same midday split a single booking gets.
+        var off = DentistShiftChecker.OffConflict(
+            records.GetValueOrDefault(day), ClinicCalendar.ToLocal(start), ClinicCalendar.ToLocal(end));
+        if (off == WorkScheduleShift.FullDay) return SeriesConflictReason.DentistOff;
+        if (off != WorkScheduleShift.None) return SeriesConflictReason.OutsideShift;
 
         var overlapping = busy.Where(a => a.Slot.Start < end && a.Slot.End > start).ToList();
         // Patient first: a dentist overlap is only a warning the user may confirm

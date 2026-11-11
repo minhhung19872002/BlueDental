@@ -304,7 +304,7 @@ public class TimeKeepingRecordTests
     [InlineData(WorkScheduleShift.Morning)]
     [InlineData(WorkScheduleShift.Afternoon)]
     [InlineData(WorkScheduleShift.FullDay)]
-    public void Scheduling_A_Shift_Registers_The_Day_As_Working(WorkScheduleShift shift)
+    public void Scheduling_A_Shift_Registers_That_Part_Off(WorkScheduleShift shift)
     {
         var record = OpenDay();
 
@@ -312,7 +312,7 @@ public class TimeKeepingRecordTests
 
         Assert.Equal(WorkRegistration.Working, record.Registration);
         Assert.Equal(shift, record.ScheduledShift);
-        Assert.Equal(shift, record.CurrentScheduledShift);
+        Assert.Equal(shift, record.OffShift);
     }
 
     [Fact]
@@ -325,7 +325,7 @@ public class TimeKeepingRecordTests
 
         Assert.Equal(WorkRegistration.NotRegistered, record.Registration);
         Assert.Null(record.ScheduledShift);
-        Assert.Equal(WorkScheduleShift.None, record.CurrentScheduledShift);
+        Assert.Equal(WorkScheduleShift.None, record.OffShift);
     }
 
     [Fact]
@@ -338,19 +338,19 @@ public class TimeKeepingRecordTests
 
         Assert.Equal(AttendanceStatus.NotStarted, record.Status);
         Assert.Null(record.LeaveReason);
-        Assert.Equal(WorkScheduleShift.Afternoon, record.CurrentScheduledShift);
+        Assert.Equal(WorkScheduleShift.Afternoon, record.OffShift);
     }
 
     [Fact]
-    public void A_Legacy_Working_Day_Reads_As_Full_Day_And_A_Day_Off_As_None()
+    public void A_Legacy_Working_Day_Has_Nothing_Off_And_A_Day_Off_Is_Off_All_Day()
     {
         var working = OpenDay();
         working.RegisterWorking();
-        Assert.Equal(WorkScheduleShift.FullDay, working.CurrentScheduledShift);
+        Assert.Equal(WorkScheduleShift.None, working.OffShift);
 
         var dayOff = OpenDay();
         dayOff.RegisterDayOff();
-        Assert.Equal(WorkScheduleShift.None, dayOff.CurrentScheduledShift);
+        Assert.Equal(WorkScheduleShift.FullDay, dayOff.OffShift);
     }
 
     [Fact]
@@ -362,7 +362,7 @@ public class TimeKeepingRecordTests
         record.RegisterWorking();
 
         Assert.Null(record.ScheduledShift);
-        Assert.Equal(WorkScheduleShift.FullDay, record.CurrentScheduledShift);
+        Assert.Equal(WorkScheduleShift.None, record.OffShift);
     }
 
     [Fact]

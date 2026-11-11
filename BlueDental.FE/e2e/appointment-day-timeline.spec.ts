@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
-import { DAY_OFF, setOwnDay } from "./fixtures/ownDayOff";
+import { OFF, setDayOff } from "./fixtures/lichNghi";
 import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/timekeepingStaff";
 import { openShiftCovering } from "./fixtures/workShift";
 import { openBlockEditor } from "./fixtures/calendarBlock";
@@ -9,13 +9,13 @@ import { openBlockEditor } from "./fixtures/calendarBlock";
  * Feature: Lịch hẹn khách hàng — view Ngày as a doctor timeline (BA
  * 2026-10-03, turned round 2026-10-16): doctors are columns with a patient
  * count beside the name, time runs 07:00–20:00 top to bottom, a mouse drag
- * only scrolls the board sideways, a doctor registered OFF that day has no
+ * only scrolls the board sideways, a doctor off all day on Lịch nghỉ has no
  * column, a cancelled booking is neither drawn nor counted, a "Lịch tạm" with
  * no doctor sits in a last "Chưa chọn bác sĩ" column (walk-ins counted by
  * name), and a booking's colour follows its state.
  *
  * Real stack: the run's dentists and bookings are written through the real
- * API, the OFF doctor marks their own day off signed in as themselves, and the
+ * API, the day off is saved through the real Lịch nghỉ board, and the
  * board reads the real `/appointments` and `/staff` lists. Nothing is
  * intercepted.
  */
@@ -137,9 +137,9 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     for (const s of [working, off]) if (s) await deleteStaff(page, s.id);
   });
 
-  test("doctors are columns: an OFF doctor still has one (R-1189), a booking sits in its doctor's column, is counted and survives a reload", async ({ page, browser }) => {
+  test("doctors are columns: nghỉ cả ngày on Lịch nghỉ has none (R-1210), a booking sits in its doctor's column, is counted and survives a reload", async ({ page }) => {
     const day = shiftDays(clinicToday(), 6);
-    await setOwnDay(browser, off, branchId, day, DAY_OFF);
+    await setDayOff(page, branchId, off.id, day, OFF.FullDay);
     const booking = await book(page, branchId, working.id, at(day, "09:00"), at(day, "09:30"));
     bookings.push(booking.id);
     // BA: "đã hủy không hiện ở đây" — a cancelled booking leaves no block.
@@ -151,9 +151,8 @@ test.describe("Lịch hẹn — view Ngày dạng timeline bác sĩ theo cột",
     await openDay(page, day);
     const column = page.locator(".dtl-col").filter({ hasText: workingName });
     await expect(column).toHaveCount(1);
-    // TEMP-DAYOFF-FILTER-OFF (R-1189): a day off no longer takes the doctor's
-    // column away; restore toHaveCount(0) with the BA's new rule.
-    await expect(page.locator(".dtl-col").filter({ hasText: offName })).toHaveCount(1);
+    // Nghỉ cả ngày takes the doctor's column away (R-1210).
+    await expect(page.locator(".dtl-col").filter({ hasText: offName })).toHaveCount(0);
 
     // The time column shows the viewer's hours (R-977 default 08:00–18:45); the column is headed by the
     // doctor's full name (Tên + Họ, as the staff list returns it) and the

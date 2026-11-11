@@ -75,12 +75,12 @@ test.describe("Chấm công", () => {
 
   test("the tab lives in the URL so it survives a reload", async ({ page }) => {
     await page.goto("/calendar");
-    await page.getByRole("tab", { name: "Lịch làm việc" }).click();
+    await page.getByRole("tab", { name: "Lịch nghỉ" }).click();
 
     await expect(page).toHaveURL(/tab=timekeeping/);
 
     await page.reload();
-    await expect(page.getByRole("tab", { name: "Lịch làm việc" })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: "Lịch nghỉ" })).toHaveAttribute(
       "aria-selected",
       "true",
     );

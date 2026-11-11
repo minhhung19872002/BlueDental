@@ -1,5 +1,6 @@
 import { expect, test, type Locator } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
+import { OFF, setDayOff } from "./fixtures/lichNghi";
 import { DAY_OFF, setOwnDay } from "./fixtures/ownDayOff";
 import {
   call,
@@ -11,14 +12,17 @@ import {
 } from "./fixtures/timekeepingStaff";
 
 /**
- * Feature: a doctor registered OFF on Chấm công is not offered by the doctor
- * pickers for that day (BA 2026-10-02) — Tạo lịch hẹn, Tạo tiếp nhận and the
- * diagnosis form.
+ * Feature: a doctor off the whole day is not offered by the doctor pickers for
+ * that day — Tạo lịch hẹn, Tạo tiếp nhận and the diagnosis form. Since R-1210
+ * (owner 2026-11-11) "off" is SC (nghỉ cả ngày) on the Lịch nghỉ board, or a
+ * day off registered on the old Chấm công; a doctor off only the morning or
+ * the afternoon stays listed (the picker knows the day, not the hour) and is
+ * refused at save instead (`appointment-working-hours`).
  *
- * Real stack: the run's dentists are written through the real API, and the
- * OFF doctor marks their own day off signed in as themselves (nobody else may);
- * the pickers read the real `/staff` list.
- * Nothing is intercepted.
+ * Real stack: the run's dentists are written through the real API, the time
+ * off through the real board save; today is locked on the board, so the
+ * diagnosis test's day off is the doctor's own Chấm công X. The pickers read
+ * the real `/staff` list. Nothing is intercepted.
  */
 
 function shiftDays(day: string, days: number): string {
@@ -44,9 +48,7 @@ async function typeDate(input: Locator, day: string) {
   await expect(input).toHaveValue(typed(day));
 }
 
-// TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-// limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-test.describe.skip("Bác sĩ nghỉ — ẩn khỏi ô chọn bác sĩ", () => {
+test.describe("Bác sĩ nghỉ — ẩn khỏi ô chọn bác sĩ", () => {
   let branchId: string;
   let off: RunStaff & { userName: string };
   let working: RunStaff;
@@ -70,9 +72,11 @@ test.describe.skip("Bác sĩ nghỉ — ẩn khỏi ô chọn bác sĩ", () => {
     for (const s of [off, working]) if (s) await deleteStaff(page, s.id);
   });
 
-  test("Tạo lịch hẹn: OFF day leaves the doctor out, and moving a picked doctor onto it clears the field", async ({ page, browser }) => {
+  test("Tạo lịch hẹn: nghỉ cả ngày leaves the doctor out, and moving a picked doctor onto it clears the field", async ({ page }) => {
     const day = shiftDays(clinicToday(), 6);
-    await setOwnDay(browser, off, branchId, day, DAY_OFF);
+    await setDayOff(page, branchId, off.id, day, OFF.FullDay);
+    // Nghỉ sáng the same day: still offered.
+    await setDayOff(page, branchId, working.id, day, OFF.Morning);
 
     await page.goto("/calendar/list");
     await page.getByRole("button", { name: /Tạo lịch hẹn/ }).first().click();
@@ -109,9 +113,10 @@ test.describe.skip("Bác sĩ nghỉ — ẩn khỏi ô chọn bác sĩ", () => {
     await expect(doctorField).not.toContainText("Bác sĩ nghỉ vào ngày này");
   });
 
-  test("Tạo tiếp nhận: Bác sĩ điều trị follows the visit's day", async ({ page, browser }) => {
+  test("Tạo tiếp nhận: Bác sĩ điều trị follows the visit's day", async ({ page }) => {
     const day = shiftDays(clinicToday(), 7);
-    await setOwnDay(browser, off, branchId, day, DAY_OFF);
+    await setDayOff(page, branchId, off.id, day, OFF.FullDay);
+    await setDayOff(page, branchId, working.id, day, OFF.Afternoon);
 
     await page.goto("/reception");
     await page.getByRole("button", { name: "Tạo tiếp nhận" }).click();
@@ -139,7 +144,7 @@ test.describe.skip("Bác sĩ nghỉ — ẩn khỏi ô chọn bác sĩ", () => {
     await expect(option(workingName)).toHaveCount(1);
   });
 
-  test("Tạo chẩn đoán: a doctor OFF today is not offered", async ({ page, browser }) => {
+  test("Tạo chẩn đoán: a doctor OFF today (old Chấm công X, read as nghỉ cả ngày) is not offered", async ({ page, browser }) => {
     await setOwnDay(browser, off, branchId, clinicToday(), DAY_OFF);
     const patients = await call<{ items: { id: string }[] }>(page, "/api/v1/app/patients?MaxResultCount=1", { branchId });
     expect(patients.body.items.length, "the branch needs a patient").toBeGreaterThan(0);

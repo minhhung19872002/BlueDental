@@ -1,19 +1,25 @@
 import { expect, test, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+import { OFF, setDayOff } from "./fixtures/lichNghi";
 import { call, clinicToday, createRunStaff, deleteStaff, type RunStaff } from "./fixtures/timekeepingStaff";
 
 /**
- * Feature: Lịch hẹn — no booking outside the dentist's working hours (QA row 3,
- * R-742). BA: "Ngoài giờ làm việc khóa luôn, không cho book" — the server
- * refuses, there is no override.
+ * Feature: Lịch hẹn — a booking that runs into the dentist's time off on the
+ * Lịch nghỉ board is refused (F-90 / F-10, R-1210; owner 2026-11-11). The day
+ * splits at midday: nghỉ sáng refuses a slot starting before the afternoon
+ * shift starts (13:00 by default), nghỉ chiều one ending after the morning
+ * shift ends (12:00), evenings included; nghỉ cả ngày refuses the whole day.
+ * A day with nothing off books at any hour — the profile hours no longer fence
+ * a booking (R-742's rule is retired). The server refuses; there is no override.
  *
- * The hours are the dentist's shifts in Lịch làm việc for that day; with nothing
- * registered, the hours on the dentist's profile, else 08:00-12:00 and 13:00-17:00. Real stack: a throw-away
- * dentist, real bookings, a real shift opened through the timekeeping API.
+ * Real stack: a throw-away dentist, the time off saved through the real board
+ * API, real bookings read back through separate requests. Nothing intercepted.
  */
 
 const APPOINTMENTS = "/api/v1/app/appointments";
-const OUTSIDE_HOURS = "BlueDental:Appointment:0008";
+const OFF_DAY = "BlueDental:Appointment:0009";
+const OFF_MORNING = "BlueDental:Appointment:0019";
+const OFF_AFTERNOON = "BlueDental:Appointment:0020";
 
 interface Booking {
   id: string;
@@ -49,7 +55,7 @@ async function firstPatientId(page: Page, branchId: string): Promise<string> {
   return res.body.items[0].id;
 }
 
-test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", () => {
+test.describe("Lịch hẹn — chặn theo Lịch nghỉ của bác sĩ", () => {
   let branchId: string;
   let dentist: RunStaff;
   let patientId: string;
@@ -75,110 +81,103 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
       branchId,
       json: {
         patientId, dentistId: dentist.id, branchId, type: 2,
-        slotStart: at(day, from), slotEnd: at(day, to), chiefComplaint: `e2e-giolam-${runId()}`,
+        slotStart: at(day, from), slotEnd: at(day, to), chiefComplaint: `e2e-lichnghi-${runId()}`,
       },
     });
   }
 
-  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-  test.skip("the default shifts: lunch, evening and a slot running past 17:00 are refused, 09:00 is booked", async ({ page }) => {
-    const day = farDay();
+  async function expectBooked(page: Page, day: string, from: string, to: string) {
+    const res = await create(page, day, from, to);
+    expect(res.status, `${from}-${to}: ${JSON.stringify(res.body.error)}`).toBe(200);
+    bookings.push(res.body.id);
+    const stored = await call<Booking>(page, `${APPOINTMENTS}/${res.body.id}`, { branchId });
+    expect(new Date(stored.body.slotStart).toISOString()).toBe(at(day, from));
+    return res.body;
+  }
 
-    for (const [from, to] of [["12:15", "12:45"], ["19:00", "19:30"], ["16:45", "17:15"]]) {
-      const refused = await create(page, day, from, to);
-      expect(refused.status, `${from}-${to} must be refused`).not.toBe(200);
-      expect(refused.body.error?.code).toBe(OUTSIDE_HOURS);
-      expect(refused.body.error?.message).toContain("08:00-12:00, 13:00-17:00");
-    }
+  async function expectRefused(page: Page, day: string, from: string, to: string, code: string) {
+    const res = await create(page, day, from, to);
+    expect(res.status, `${from}-${to} must be refused`).not.toBe(200);
+    expect(res.body.error?.code, `${from}-${to}`).toBe(code);
+    return res.body.error?.message ?? "";
+  }
+
+  async function storedCount(page: Page, day: string): Promise<number> {
     const list = await call<{ items: unknown[] }>(
       page, `${APPOINTMENTS}?DentistId=${dentist.id}&date=${day}&MaxResultCount=50`, { branchId },
     );
-    expect(list.body.items, "nothing refused was stored").toHaveLength(0);
+    return list.body.items.length;
+  }
 
-    const booked = await create(page, day, "09:00", "09:30");
-    expect(booked.status, JSON.stringify(booked.body.error)).toBe(200);
-    bookings.push(booked.body.id);
-
-    // Moving it into the evening is refused just the same, and it stays put.
-    const moved = await call(page, `${APPOINTMENTS}/${booked.body.id}`, {
-      method: "PUT",
-      branchId,
-      json: { slotStart: at(day, "19:00"), slotEnd: at(day, "19:30"), dentistId: dentist.id, chiefComplaint: "moved" },
-    });
-    expect(moved.body.error?.code).toBe(OUTSIDE_HOURS);
-    const stored = await call<Booking>(page, `${APPOINTMENTS}/${booked.body.id}`, { branchId });
-    expect(new Date(stored.body.slotStart).toISOString()).toBe(at(day, "09:00"));
+  test("nothing off that day: lunch, the evening and past 17:00 all book", async ({ page }) => {
+    const day = farDay();
+    for (const [from, to] of [["12:15", "12:45"], ["19:00", "19:30"], ["16:45", "17:15"], ["06:30", "07:00"]]) {
+      await expectBooked(page, day, from, to);
+    }
   });
 
-  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-  test.skip("a shift opened in Lịch làm việc moves the limit: 19:00 is booked, 20:00 still refused", async ({ page }) => {
+  test("nghỉ cả ngày: every hour is refused and nothing is stored", async ({ page }) => {
     const day = farDay();
-    const opened = await call(page, "/api/v1/app/time-keepings/open-day", {
-      method: "POST",
+    await setDayOff(page, branchId, dentist.id, day, OFF.FullDay);
+    for (const [from, to] of [["09:00", "09:30"], ["15:00", "15:30"], ["20:00", "20:30"]]) {
+      await expectRefused(page, day, from, to, OFF_DAY);
+    }
+    expect(await storedCount(page, day), "nothing refused was stored").toBe(0);
+  });
+
+  test("nghỉ sáng: a slot starting before 13:00 is refused, from 13:00 it books; moving it into the morning is refused", async ({ page }) => {
+    const day = farDay();
+    await setDayOff(page, branchId, dentist.id, day, OFF.Morning);
+
+    for (const [from, to] of [["09:00", "09:30"], ["12:30", "13:00"], ["12:45", "13:15"]]) {
+      const message = await expectRefused(page, day, from, to, OFF_MORNING);
+      expect(message).toContain("13:00");
+    }
+    const booked = await expectBooked(page, day, "13:00", "13:30");
+    await expectBooked(page, day, "20:00", "20:30");
+
+    const moved = await call(page, `${APPOINTMENTS}/${booked.id}`, {
+      method: "PUT",
       branchId,
-      json: {
-        staffId: dentist.id, clinicBranchId: branchId, workDate: day,
-        morningStart: "08:00:00", morningEnd: "12:00:00", afternoonStart: "13:00:00", afternoonEnd: "20:00:00",
-      },
+      json: { slotStart: at(day, "10:00"), slotEnd: at(day, "10:30"), dentistId: dentist.id, chiefComplaint: "moved" },
     });
-    expect(opened.status, JSON.stringify(opened.body.error)).toBe(200);
+    expect(moved.body.error?.code).toBe(OFF_MORNING);
+    const stored = await call<Booking>(page, `${APPOINTMENTS}/${booked.id}`, { branchId });
+    expect(new Date(stored.body.slotStart).toISOString(), "the refused move left it put").toBe(at(day, "13:00"));
+  });
 
-    const evening = await create(page, day, "19:00", "19:30");
-    expect(evening.status, JSON.stringify(evening.body.error)).toBe(200);
-    bookings.push(evening.body.id);
+  test("nghỉ chiều: a slot ending by 12:00 books, one running past 12:00 or in the evening is refused", async ({ page }) => {
+    const day = farDay();
+    await setDayOff(page, branchId, dentist.id, day, OFF.Afternoon);
 
-    const late = await create(page, day, "20:00", "20:30");
-    expect(late.body.error?.code).toBe(OUTSIDE_HOURS);
-    expect(late.body.error?.message).toContain("08:00-12:00, 13:00-20:00");
+    // Refusals first: 11:45-12:15 would otherwise clash with the patient's own 11:30 booking.
+    for (const [from, to] of [["11:45", "12:15"], ["15:00", "15:30"], ["19:00", "19:30"]]) {
+      const message = await expectRefused(page, day, from, to, OFF_AFTERNOON);
+      expect(message).toContain("12:00");
+    }
+    await expectBooked(page, day, "07:00", "07:30");
 
-    // Bug 2026-10-13: a slot ending right on the shift end, stamped with stray
-    // milliseconds (Tạo tiếp nhận sent dayjs()'s), was refused.
+    // Ending right on 12:00 books — even stamped with stray milliseconds
+    // (bug 2026-10-13: Tạo tiếp nhận sent dayjs()'s and it was refused).
     const stamped = (time: string) => at(day, time).replace(".000Z", ".437Z");
     const lastSlot = await call<Booking>(page, APPOINTMENTS, {
       method: "POST",
       branchId,
       json: {
         patientId, dentistId: dentist.id, branchId, type: 2,
-        slotStart: stamped("19:30"), slotEnd: stamped("20:00"), chiefComplaint: `e2e-giolam-${runId()}`,
+        slotStart: stamped("11:30"), slotEnd: stamped("12:00"), chiefComplaint: `e2e-lichnghi-${runId()}`,
       },
     });
     expect(lastSlot.status, JSON.stringify(lastSlot.body.error)).toBe(200);
     bookings.push(lastSlot.body.id);
   });
 
-  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-  test.skip("no shift opened: the profile hours apply — 17:15 is booked against a 19:00 profile end, 19:15 refused", async ({ page }) => {
-    // Bug 2026-10-13: Bs Tới's profile ran to 19:00 and the Chấm công board
-    // showed it, yet a 17:15 booking was refused against the 17:00 default.
-    const run = `${runId()}${test.info().workerIndex}p`;
-    const late = await createRunStaff(page, branchId, `wh${run}`, {
-      name: `BSHoSo${run}`, isDentist: true, afternoonStartTime: "13:00", afternoonEndTime: "19:00",
-    });
-    try {
-      const day = farDay();
-      const book = (from: string, to: string) => call<Booking>(page, APPOINTMENTS, {
-        method: "POST",
-        branchId,
-        json: {
-          patientId, dentistId: late.id, branchId, type: 2,
-          slotStart: at(day, from), slotEnd: at(day, to), chiefComplaint: `e2e-giolam-${runId()}`,
-        },
-      });
-
-      const evening = await book("17:15", "17:45");
-      expect(evening.status, JSON.stringify(evening.body.error)).toBe(200);
-      bookings.push(evening.body.id);
-
-      const tooLate = await book("19:15", "19:45");
-      expect(tooLate.body.error?.code).toBe(OUTSIDE_HOURS);
-      expect(tooLate.body.error?.message).toContain("08:00-12:00, 13:00-19:00");
-    } finally {
-      for (const id of bookings.splice(0)) await call(page, `${APPOINTMENTS}/${id}`, { method: "DELETE", branchId });
-      await deleteStaff(page, late.id);
-    }
+  test("time off cleared on the board: the morning books again", async ({ page }) => {
+    const day = farDay();
+    await setDayOff(page, branchId, dentist.id, day, OFF.Morning);
+    await expectRefused(page, day, "09:00", "09:30", OFF_MORNING);
+    await setDayOff(page, branchId, dentist.id, day, OFF.None);
+    await expectBooked(page, day, "09:00", "09:30");
   });
 
   test("checked in today, then Cập nhật thông tin moves the afternoon end: the plan saves, the clock stays, bookings follow", async ({ page }) => {
@@ -218,21 +217,17 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
     bookings.push(evening.body.id);
   });
 
-  // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): day off / registered shift / working hours no longer
-  // limit the doctor pickers or a booking. Re-enable together with the BA's new rule.
-  test.skip("the editor: 12:15 is refused with the reason and the dialog stays open, 09:00 then saves", async ({ page }) => {
-    const reason = `Giờ làm E2E ${runId()}`;
-    const [year, month, date] = farDay().split("-");
+
+  test("the editor: 09:00 on nghỉ sáng is refused with the reason and the dialog stays open, 13:30 then saves", async ({ page }) => {
+    const reason = `Lịch nghỉ E2E ${runId()}`;
+    const day = farDay();
+    const [year, month, date] = day.split("-");
+    await setDayOff(page, branchId, dentist.id, day, OFF.Morning);
 
     await page.goto("/calendar/list");
     await assertRealApiTraffic(page, APPOINTMENTS);
     await page.getByRole("button", { name: /Tạo lịch hẹn/ }).first().click();
     const dialog = page.getByRole("dialog", { name: "Tạo lịch hẹn" });
-
-    await dialog.locator(".appt-field").filter({ hasText: /Chọn bệnh nhân/ }).first().getByRole("combobox").click();
-    await page.locator("#ss-portal-dropdown [role=option]").first().click();
-    await dialog.locator(".appt-field").filter({ hasText: /Chọn bác sĩ/ }).first().getByRole("combobox").click();
-    await page.locator("#ss-portal-dropdown [role=option]").filter({ hasText: dentist.fullName }).first().click();
 
     // Mask mode (DATE_INPUT_FORMAT): fill() is ignored, so type the digits from the day cell.
     const dateInput = dialog.getByPlaceholder("Chọn thời điểm");
@@ -240,16 +235,23 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
     await dateInput.pressSequentially(`${date}${month}${year}`);
     await dateInput.press("Enter");
     await expect(dateInput).toHaveValue(`${date}/${month}/${year}`);
+
+    await dialog.locator(".appt-field").filter({ hasText: /Chọn bệnh nhân/ }).first().getByRole("combobox").click();
+    await page.locator("#ss-portal-dropdown [role=option]").first().click();
+    // Nghỉ sáng only: still offered that day (the picker knows the date, not the hour).
+    await dialog.locator(".appt-field").filter({ hasText: /Chọn bác sĩ/ }).first().getByRole("combobox").click();
+    await page.locator("#ss-portal-dropdown [role=option]").filter({ hasText: dentist.fullName }).first().click();
+
     const time = dialog.getByPlaceholder("HH:mm");
-    await time.fill("12:15");
+    await time.fill("09:00");
     await time.press("Enter");
     await dialog.getByPlaceholder("Nội dung đặt lịch").fill(reason);
 
     await dialog.getByRole("button", { name: "Lưu" }).click();
-    await expect(page.getByText(/Không thể đặt lịch: giờ hẹn nằm ngoài ca làm của bác sĩ/)).toBeVisible();
+    await expect(page.getByText(/bác sĩ đã đăng ký nghỉ ca sáng hôm đó/)).toBeVisible();
     await expect(dialog).toBeVisible();
 
-    await time.fill("09:00");
+    await time.fill("13:30");
     await time.press("Enter");
     await dialog.getByRole("button", { name: "Lưu" }).click();
     await expect(dialog).toBeHidden();
@@ -266,5 +268,6 @@ test.describe("Lịch hẹn — chỉ đặt trong giờ làm của bác sĩ", (
       page, `${APPOINTMENTS}?Filter=${encodeURIComponent(reason)}&MaxResultCount=5`, { branchId },
     );
     bookings.push(...found.body.items.map((b) => b.id));
+    expect(found.body.items.map((b) => new Date(b.slotStart).toISOString())).toEqual([at(day, "13:30")]);
   });
 });

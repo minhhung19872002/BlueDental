@@ -14,8 +14,9 @@ public class ShiftWindowDto
 /// <summary>
 /// One day of a dentist's Lịch làm việc for "Chọn lịch hẹn tiếp theo": the
 /// planned morning and afternoon the timeline is drawn over, and the
-/// <see cref="Windows"/> a follow-up may be booked in — the shifts less any
-/// leave, empty on a day off. A booking outside them is refused (Appointment:0008/0009).
+/// <see cref="Windows"/> the dentist is not registered off on the Lịch nghỉ board —
+/// both shifts, one on nghỉ sáng / nghỉ chiều, none on nghỉ cả ngày. A booking
+/// running into the time off is refused (Appointment:0009/0019/0020, R-1210).
 /// </summary>
 public class DentistWorkDayDto
 {

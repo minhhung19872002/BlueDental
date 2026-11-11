@@ -59,8 +59,8 @@ public class WorkScheduleAppService(
                 r.ClinicBranchId == branchId
                 && r.WorkDate >= first && r.WorkDate <= last
                 && staffIds.Contains(r.StaffId)
-                && r.Registration == WorkRegistration.Working))
-            .Select(r => (r.StaffId, Day: new WorkScheduleDayDto { WorkDate = r.WorkDate, Shift = r.CurrentScheduledShift }))
+                && r.Registration != WorkRegistration.NotRegistered))
+            .Select(r => (r.StaffId, Day: new WorkScheduleDayDto { WorkDate = r.WorkDate, Shift = r.OffShift }))
             .Where(x => x.Day.Shift != WorkScheduleShift.None)
             .ToLookup(x => x.StaffId, x => x.Day);
 
@@ -123,7 +123,7 @@ public class WorkScheduleAppService(
         foreach (var item in items)
         {
             existing.TryGetValue((item.StaffId, item.WorkDate), out var record);
-            var from = record?.CurrentScheduledShift ?? WorkScheduleShift.None;
+            var from = record?.OffShift ?? WorkScheduleShift.None;
             if (from == item.Shift)
             {
                 continue;

@@ -2016,7 +2016,7 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Ignore(x => x.HasAnyAttendance);
             entity.Ignore(x => x.HasOpenShift);
             entity.Ignore(x => x.TotalWorkedMinutes);
-            entity.Ignore(x => x.CurrentScheduledShift);
+            entity.Ignore(x => x.OffShift);
 
             entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.StaffId }).IsUnique();
             entity.HasIndex(x => new { x.ClinicBranchId, x.WorkDate, x.Status });

@@ -62,20 +62,20 @@ public enum LeaveShift
 }
 
 /// <summary>
-/// The shift a staff member signs up for on a day of the new Lịch làm việc
-/// board (BA P0911, F-90): S Ca sáng, C Ca chiều, SC Cả ngày, or none.
+/// What a staff member registers off on a day of the Lịch nghỉ board (BA P0911,
+/// F-90; time off since R-1210): S nghỉ sáng, C nghỉ chiều, SC nghỉ cả ngày, or none.
 /// </summary>
 public enum WorkScheduleShift
 {
     /// <summary>Chưa đăng ký.</summary>
     None = 0,
 
-    /// <summary>Ca sáng (S).</summary>
+    /// <summary>Nghỉ sáng (S).</summary>
     Morning = 1,
 
-    /// <summary>Ca chiều (C).</summary>
+    /// <summary>Nghỉ chiều (C).</summary>
     Afternoon = 2,
 
-    /// <summary>Cả ngày (SC).</summary>
+    /// <summary>Nghỉ cả ngày (SC).</summary>
     FullDay = 3
 }

@@ -57,14 +57,9 @@ public class StaffAppService(
         // so "thu" would miss "Lê Thu Hà". The pickers search as the user types,
         // which makes that a real miss rather than a curiosity — so the term is
         // matched here instead, the way the catalog list matches its own.
-        // TEMP-DAYOFF-FILTER-OFF (R-1189, BA 2026-11-10): the pickers no longer
-        // leave out staff registered OFF that day — "trước hết gỡ logic ra đã",
-        // the BA is rewriting who counts as off around the Lịch làm việc board.
-        // `AvailableOn` is still accepted and ignored; uncomment to restore.
-        // var offStaffIds = input.AvailableOn.HasValue
-        //     ? await GetDayOffStaffIdsAsync(input.AvailableOn.Value, input.BranchId)
-        //     : null;
-        HashSet<Guid>? offStaffIds = null;
+        var offStaffIds = input.AvailableOn.HasValue
+            ? await GetDayOffStaffIdsAsync(input.AvailableOn.Value, input.BranchId)
+            : null;
 
         // Lịch làm việc / Chấm công rows follow the Sơ đồ tổ chức (F-67).
         var scheduleStaffIds = input.ScheduleScope == true
@@ -146,18 +141,20 @@ public class StaffAppService(
     }
 
     /// <summary>
-    /// Staff who pressed OFF on Chấm công for that clinic day. A day off is
-    /// recorded per branch, so it is read at the branch the form is booking
-    /// into — the explicit filter, else the branch on the request.
+    /// Staff off the whole of that clinic day — SC on the Lịch nghỉ board, or a
+    /// day off from before it (R-1210). A half day off leaves them listed: the
+    /// picker knows the date, not the time, so the save refuses the half. A
+    /// day off is recorded per branch, so it is read at the branch the form is
+    /// booking into — the explicit filter, else the branch on the request.
     /// </summary>
     private async Task<HashSet<Guid>> GetDayOffStaffIdsAsync(DateOnly day, Guid? branchId)
     {
         var branch = branchId ?? branchResolver.ClinicBranchId ?? branchResolver.OwnClinicBranchId;
         var records = await timeKeepingRepository.GetListAsync(r =>
             r.WorkDate == day
-            && r.Registration == WorkRegistration.DayOff
+            && r.Registration != WorkRegistration.NotRegistered
             && (branch == null || r.ClinicBranchId == branch));
-        return records.Select(r => r.StaffId).ToHashSet();
+        return records.Where(r => r.OffShift == WorkScheduleShift.FullDay).Select(r => r.StaffId).ToHashSet();
     }
 
     /// <summary>
