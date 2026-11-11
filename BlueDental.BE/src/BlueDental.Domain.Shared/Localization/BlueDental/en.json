@@ -6444,7 +6444,7 @@
     "DataMigration:Err:AccountNotFound": "Column \"{0}\": \"{1}\" is not among the branch's payment methods",
     "DataMigration:Err:AmbiguousAccount": "Column \"{0}\": \"{1}\" matches several accounts — write the account number",
     "DataMigration:Hint:planKey": "Plan name to group rows by: rows with the same Mã KH and Kế hoạch form one treatment plan. Blank = group by Mã phiếu.",
-    "DataMigration:Hint:quantity": "Whole number 1–1,000. Blank = number of teeth (at least 1).",
+    "DataMigration:Hint:quantity": "Whole number 1–1,000. Blank = number of teeth (at least 1); a whole jaw (Hàm trên, Hàm dưới, Hai hàm) counts as 1.",
     "DataMigration:Hint:originalPrice": "List price before discount. Blank or below Đơn giá = Đơn giá.",
     "DataMigration:Hint:price": "Selling unit price. A row with a price opens a new service; blank = one more visit on the earlier service, not charged.",
     "DataMigration:Hint:amount": "Line total after discount. Blank = Số lượng × Đơn giá; lower makes the difference a discount; it cannot be higher.",

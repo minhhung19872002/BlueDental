@@ -780,7 +780,7 @@ public class DataMigrationAppService : BlueDentalAppService, IDataMigrationAppSe
         var head = rows[0].Draft;
         var teeth = rows.SelectMany(r => r.Draft.Teeth).Distinct().ToList();
         var price = head.IsPriced ? head.Price!.Value : 0m;
-        var quantity = head.Quantity ?? Math.Max(1, (head.IsPriced ? head.Teeth : teeth).Count);
+        var quantity = TreatmentDraft.QuantityOf(head.Quantity, head.IsPriced ? head.Teeth : teeth);
         var originalPrice = Math.Max(head.OriginalPrice ?? 0m, price);
         var gross = price * quantity;
         var discount = head.IsPriced && head.Amount is { } amount && amount < gross ? gross - amount : 0m;

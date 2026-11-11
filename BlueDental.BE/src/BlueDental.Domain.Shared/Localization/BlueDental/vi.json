@@ -6343,7 +6343,7 @@
     "DataMigration:Err:AccountNotFound": "Cột \"{0}\": \"{1}\" không có trong Phương thức thanh toán của chi nhánh",
     "DataMigration:Err:AmbiguousAccount": "Cột \"{0}\": \"{1}\" trùng nhiều tài khoản — ghi số tài khoản",
     "DataMigration:Hint:planKey": "Tên kế hoạch dùng để gom dòng: các dòng cùng Mã KH và cùng Kế hoạch thành một kế hoạch điều trị. Trống = gom theo Mã phiếu.",
-    "DataMigration:Hint:quantity": "Số nguyên 1–1.000. Trống = số răng (ít nhất 1).",
+    "DataMigration:Hint:quantity": "Số nguyên 1–1.000. Trống = số răng (ít nhất 1); cả hàm (Hàm trên, Hàm dưới, Hai hàm) tính là 1.",
     "DataMigration:Hint:originalPrice": "Giá niêm yết trước giảm giá. Trống hoặc nhỏ hơn Đơn giá = bằng Đơn giá.",
     "DataMigration:Hint:price": "Đơn giá bán. Có Đơn giá thì dòng mở một dịch vụ mới; trống = lần điều trị tiếp của dịch vụ trước đó, không tính tiền.",
     "DataMigration:Hint:amount": "Thành tiền sau giảm giá. Trống = Số lượng × Đơn giá; nhỏ hơn thì phần chênh là giảm giá; không được lớn hơn.",

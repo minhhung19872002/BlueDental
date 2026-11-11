@@ -14950,3 +14950,29 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Sửa FE** (`treatmentRows.ts`): công đoạn có răng đúng bằng một hàm (`wholeJawOf`) → SL 1; răng lẻ vẫn đếm số răng; không răng → SL của dòng dịch vụ. Chỉ hiển thị — không phép tính tiền, xuất, in hay API nào đọc giá trị này.
 - **Kiểm thử**: `tsc` + eslint sạch. e2e `patient.spec.ts` chỉ kiểm tiêu đề cột "SL", không đổi. `e2e/convert-whole-jaw.spec.ts` kiểm SL = 1 trên công đoạn Hai hàm ở bảng điều trị hồ sơ: xanh trên HEAD, đỏ ("32") trên build cũ.
 - **Mức retest**: 1.
+
+## R-1209 (2026-11-11, mức 2: nhập dữ liệu cũ F-61) Số lượng trống tính cả hàm 1 lần
+
+- **Lỗi**: file Excel nhập dữ liệu cũ, dòng điều trị có Đơn giá, cột Răng ghi "Hai hàm", để trống Số lượng → Số lượng = 32 (số răng lưu), nên phải trả 32 × Đơn giá. Nếu Thành tiền có ghi (ví dụ 30.000.000 với Đơn giá 24.000.000), phần chênh so với 32 × ĐG thành giảm giá khổng lồ, và Thành tiền tới 32 × ĐG vẫn được nhận. Cùng gốc với R-1207/R-1208: bản gốc lưu cả hàm thành một mã răng, nên tính là 1.
+- **Sửa BE**:
+  - Thêm `ToothArch.WholeJawOfCodes` (dùng mã răng, không cần mặt răng); `WholeJawOf` gọi lại hàm này.
+  - Thêm `TreatmentDraft.QuantityOf(quantity, teeth)`: Số lượng ghi trong file thì giữ nguyên. Để trống thì răng đúng bằng một hàm → 1, còn lại → max(1, số răng).
+  - Dùng chung ở `MigrationRowReader.CheckAmount` (kiểm Thành tiền ≤ SL × ĐG) và `DataMigrationAppService.BuildLine` (dòng lưu).
+  - Sửa chữ gợi ý cột Số lượng (vi/en) và hai tài liệu nhập. Luật R-847 "SL trống = số răng" đổi thành "cả hàm tính 1".
+- **Kiểm thử**: e2e mới trong `e2e/data-migration-api.spec.ts`:
+  - Hai hàm, ĐG 24.000.000, Thành tiền 30.000.000 → từ chối ("lớn hơn Số lượng × Đơn giá = 24.000.000"), không tạo bệnh nhân.
+  - Nhập 6 phiếu, đọc lại bằng request riêng; tổng nợ 70.700.000:
+
+    | Dòng | Kết quả |
+    |---|---|
+    | Hai hàm, Thành tiền 22.000.000 | SL 1, giảm 2.000.000 |
+    | Hai hàm, Thành tiền trống | SL 1, phải trả 24.000.000 |
+    | Hàm trên | SL 1 |
+    | 17, 16, 15 | SL 3 |
+    | Hàm dưới + 11 | SL 17 (không phải cả hàm) |
+    | Hai hàm, ghi SL 2 | SL 2 |
+
+  - Stack thật riêng (host :5207 + `vite preview` :8317): test mới xanh, cả spec 20/20 xanh (không tính test hiệu năng).
+  - Build trước bản sửa (worktree HEAD 9bccf44e): đỏ ở `committed` = true (file 30.000.000 được nhận).
+- **Dữ liệu đã nhập**: không tự sửa. Dòng cả hàm nhập trước bản sửa mà để trống Số lượng đã lưu SL 16/32 — phải rà riêng nếu có.
+- **Mức retest**: 2.

@@ -108,6 +108,7 @@ Nếu để mỗi phiếu thành một kế hoạch, hồ sơ chỉ hiện đư�
 ### 3.2 Tiền
 
 - Dòng có **Đơn giá** mở một dịch vụ mới trong kế hoạch với giá đó.
+  - Số lượng trống thì bằng số răng ở cột Răng (ít nhất 1); ghi cả hàm (Hàm trên, Hàm dưới, Hai hàm) thì tính là 1.
   - Thành tiền trống thì bằng Số lượng × Đơn giá.
   - Thành tiền nhỏ hơn Số lượng × Đơn giá thì phần chênh là giảm giá.
   - Thành tiền lớn hơn Số lượng × Đơn giá là **lỗi**.
