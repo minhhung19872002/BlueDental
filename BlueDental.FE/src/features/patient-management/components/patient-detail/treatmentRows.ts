@@ -1,3 +1,4 @@
+import { wholeJawOf } from "@/components/ToothChart";
 import {
   STAGE_STATUS,
   type PatientReExaminationDto,
@@ -14,6 +15,12 @@ import {
   type ToothSelectionDto,
 } from "@/features/treatment-management/api/consultingApi";
 import { warrantyState, type WarrantyState } from "./stage/stageModel";
+
+/** SL of a công đoạn row: one per tooth, a whole jaw once, the line's own without teeth. */
+function stageQuantity(teeth: readonly ToothSelectionDto[], lineQuantity: number): number {
+  if (teeth.length === 0) return lineQuantity;
+  return wholeJawOf(teeth) ? 1 : teeth.length;
+}
 
 /**
  * One row of the profile tab's treatment table.
@@ -132,8 +139,10 @@ export function buildTreatmentRows(
         rows.push({
           ...base,
           // SL is the công đoạn's own count of teeth — staging's timeline
-          // prints 3 on a warranty of 11·21·22 whose line holds four.
-          quantity: stage.teeth.length > 0 ? stage.teeth.length : service.quantity,
+          // prints 3 on a warranty of 11·21·22 whose line holds four. A whole
+          // jaw counts once: the reference stores "Nguyên hàm" as one tooth
+          // code, while BlueDental keeps its 16/32 teeth (R-1208).
+          quantity: stageQuantity(stage.teeth, service.quantity),
           stageId: stage.id,
           stageDone: stage.status === STAGE_STATUS.Completed,
           isWarranty: stage.isGuarantee,

@@ -14939,3 +14939,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: build BE 0 lỗi, `tsc` FE sạch. Chưa chạy e2e `convert-*.spec.ts` trên stack thật, chưa có test mới cho ca cả hàm.
 - **Dữ liệu cũ**: dòng đã chuyển đổi từ dịch vụ cả hàm trước bản sửa đã lưu giá ×16/×32 — phải rà riêng.
 - **Mức retest**: 2.
+
+## R-1208 (2026-11-11, mức 1: hiển thị bảng điều trị hồ sơ) SL công đoạn cả hàm = 1
+
+- **Lỗi**: bảng điều trị tab Hồ sơ, dòng công đoạn của dịch vụ cả hàm hiện SL = 16 / 32 (đếm số răng lưu). Bản gốc hiện "Nguyên hàm" · SL 1 vì lưu cả hàm thành một mã răng. Cùng gốc với R-1207.
+- **Sửa FE** (`treatmentRows.ts`): công đoạn có răng đúng bằng một hàm (`wholeJawOf`) → SL 1; răng lẻ vẫn đếm số răng; không răng → SL của dòng dịch vụ. Chỉ hiển thị — không phép tính tiền, xuất, in hay API nào đọc giá trị này.
+- **Kiểm thử**: `tsc` + eslint sạch. e2e `patient.spec.ts` chỉ kiểm tiêu đề cột "SL", không đổi. Chưa chạy e2e trên stack thật.
+- **Mức retest**: 1.
