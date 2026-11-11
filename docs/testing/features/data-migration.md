@@ -30,7 +30,7 @@ Quyết định chủ dự án:
   nhân đã xoá → lỗi.
 - Dòng điều trị gộp phiếu theo (bệnh nhân, Mã phiếu), trống thì theo (bệnh nhân, ngày);
   mã DT01, DT02… theo ngày. Tiêu đề "Kế hoạch điều trị" (+ " (Mã phiếu)").
-  Số lượng = max(1, số răng), giá 0. Phiếu có mọi công đoạn Hoàn thành → trạng thái Hoàn thành.
+  Số lượng = max(1, số răng), cả hàm (đúng 16 / 32 răng của một hàm) = 1 (R-1209), giá 0. Phiếu có mọi công đoạn Hoàn thành → trạng thái Hoàn thành.
 - Thời gian lùi về ngày trong file theo giờ phòng khám (UTC+7): hồ sơ 08:00, công
   đoạn 09:00 + 1 phút mỗi dòng cùng ngày.
 - Bác sĩ khớp theo tên đăng nhập hoặc họ tên; trùng họ tên → lỗi "mơ hồ". Tài khoản bị
@@ -52,6 +52,7 @@ Quyết định chủ dự án:
   Khoá gom = (Mã KH, Kế hoạch) → (Mã KH, Mã phiếu) → (Mã KH, ngày); tên kế hoạch = chữ ở cột Kế hoạch.
 - Dòng có Đơn giá > 0 hoặc Thành tiền > 0 mở dòng dịch vụ mới (`AddService`): giá gốc = max(Đơn giá gốc, Đơn giá),
   Thành tiền < SL × ĐG → giảm giá tiền; lớn hơn → lỗi; Thành tiền mà thiếu Đơn giá → lỗi. Không VAT.
+  SL trống = số răng, cả hàm tính 1 (R-1209, 2026-11-11 — trước đó Hai hàm = 32, Thành tiền đến 32 × ĐG vẫn qua).
   Dòng không giá = công đoạn của dòng dịch vụ gần nhất cùng tên trong kế hoạch, chưa có thì dòng giá 0.
 - Sheet "Thanh toán" (9 cột, tìm theo tên, không có cũng được): Mã KH\*, Mã phiếu, Kế hoạch (cần một trong hai),
   Ngày thu\*, Số tiền\* (0 = bỏ qua), Hình thức (dropdown, trống = Tiền mặt), Tài khoản nhận (bắt buộc với

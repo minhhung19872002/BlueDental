@@ -1026,6 +1026,73 @@ test.describe("Chuyển dữ liệu hệ thống cũ (API)", () => {
     expect(stages.body.items.flatMap((s) => s.teeth).every((t) => t.selected)).toBe(true);
   });
 
+  test("a blank Số lượng counts a whole jaw once: Hai hàm at 24.000.000 owes 24.000.000, not ×32; single teeth still count each (R-1209)", async ({ page }) => {
+    const id = runId();
+    const code = `MIG${id}W`;
+    const visit = (patient: string, day: string, slip: string, teeth: string, money: TreatmentMoney) =>
+      treatmentRow(patient, day, slip, picks.service, null, teeth, null, picks.staff, null, money);
+
+    // Thành tiền above price × 1 on a Hai hàm row is refused now — it was let through as below 32 × price.
+    const over = `MIG${id}X`;
+    const refused = await post<MigrationResult>(page, "import", {
+      base64: fill(
+        template,
+        [patientRow({ code: over, fullName: `Đặng Quá Tiền ${id}`, phone: "0912000111" })],
+        [visit(over, "01/06/2023", "PX1", "Hai hàm", { price: 24_000_000, amount: 30_000_000 })],
+      ),
+      clinicBranchId: BRANCH_ONE,
+    });
+    expect(refused.status, JSON.stringify(refused.body)).toBe(200);
+    expect(refused.body.committed).toBe(false);
+    expect(refused.body.sheets[1].rows.map((r) => r.errors.join(" | "))).toEqual([
+      'Cột "Thành tiền": 30.000.000 lớn hơn Số lượng × Đơn giá = 24.000.000',
+    ]);
+    expect(await findPatient(page, over)).toHaveLength(0);
+
+    const res = await post<MigrationResult>(page, "import", {
+      base64: fill(
+        template,
+        [patientRow({ code, fullName: `Đặng Nguyên Hàm ${id}`, phone: "0912000222" })],
+        [
+          // Thành tiền given: sold at 22.000.000, a 2.000.000 discount — not 766.000.000.
+          visit(code, "01/06/2023", "PW1", "Hai hàm", { price: 24_000_000, amount: 22_000_000 }),
+          // Thành tiền blank: the price once.
+          visit(code, "02/06/2023", "PW2", "Hai hàm", { price: 24_000_000 }),
+          visit(code, "03/06/2023", "PW3", "Hàm trên", { price: 10_000_000 }),
+          // Single teeth: one each, as before.
+          visit(code, "04/06/2023", "PW4", "17, 16, 15", { price: 1_000_000 }),
+          // A jaw plus a tooth is no whole jaw: 17 teeth.
+          visit(code, "05/06/2023", "PW5", "Hàm dưới, 11", { price: 100_000 }),
+          // Số lượng given wins, jaw or not.
+          visit(code, "06/06/2023", "PW6", "Hai hàm", { quantity: 2, price: 5_000_000 }),
+        ],
+      ),
+      clinicBranchId: BRANCH_ONE,
+    });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body.errorCount, JSON.stringify(res.body.sheets)).toBe(0);
+    expect(res.body.committed).toBe(true);
+
+    // Read back on separate requests.
+    const [listed] = await findPatient(page, code);
+    const slips = new Map((await slipsOf(page, listed.id)).map((s) => [s.title, s]));
+    const line = (slip: string) => slips.get(`Kế hoạch điều trị (${slip})`)!.services[0];
+    expect(line("PW1")).toMatchObject({ price: 24_000_000, quantity: 1, discountAmount: 2_000_000, payableAmount: 22_000_000 });
+    expect(line("PW2")).toMatchObject({ price: 24_000_000, quantity: 1, discountAmount: 0, payableAmount: 24_000_000 });
+    expect(line("PW3")).toMatchObject({ price: 10_000_000, quantity: 1, payableAmount: 10_000_000 });
+    expect(line("PW4")).toMatchObject({ price: 1_000_000, quantity: 3, payableAmount: 3_000_000 });
+    expect(line("PW5")).toMatchObject({ price: 100_000, quantity: 17, payableAmount: 1_700_000 });
+    expect(line("PW6")).toMatchObject({ price: 5_000_000, quantity: 2, payableAmount: 10_000_000 });
+
+    // No payments: the debt is what the lines charge, the jaws once each.
+    const account = await getJson<{ payment: { debt: number } }>(
+      page,
+      `/api/v1/app/patient-payments/account?patientId=${listed.id}&clinicBranchId=${BRANCH_ONE}`,
+    );
+    expect(account.status).toBe(200);
+    expect(account.body.payment.debt).toBe(22_000_000 + 24_000_000 + 10_000_000 + 3_000_000 + 1_700_000 + 10_000_000);
+  });
+
   test("every bad cell is named on its own row and the file is refused whole", async ({ page }) => {
     const id = runId();
     const elsewhere = await getJson<{ items: PatientListItem[] }>(

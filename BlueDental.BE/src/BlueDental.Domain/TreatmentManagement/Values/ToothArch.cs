@@ -30,8 +30,19 @@ public static class ToothArch
     {
         if (teeth.Count == 0 || teeth.Any(tooth => !tooth.Selected)) return null;
 
-        var codes = teeth.Select(tooth => tooth.ToothCode).ToHashSet();
-        if (codes.Count != teeth.Count) return null;
+        return WholeJawOfCodes(teeth.Select(tooth => tooth.ToothCode).ToList());
+    }
+
+    /// <summary>
+    /// The jaw these tooth codes are, none twice; null when they are anything
+    /// else. For teeth that carry no surfaces, as the old-data import reads them.
+    /// </summary>
+    public static WholeJaw? WholeJawOfCodes(IReadOnlyCollection<int> toothCodes)
+    {
+        if (toothCodes.Count == 0) return null;
+
+        var codes = toothCodes.ToHashSet();
+        if (codes.Count != toothCodes.Count) return null;
 
         if (codes.SetEquals(Upper.Concat(Lower))) return WholeJaw.Full;
         if (codes.SetEquals(Upper)) return WholeJaw.Upper;

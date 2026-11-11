@@ -80,6 +80,14 @@ internal sealed record TreatmentDraft(
 {
     /// <summary>A row with a unit price opens a service line of its own; one without is a visit on an earlier line.</summary>
     public bool IsPriced => Price > 0m;
+
+    /// <summary>
+    /// The line's quantity: Số lượng when given; when blank, one per tooth, a
+    /// whole jaw once — the reference stores "Nguyên hàm" as one tooth code and
+    /// a line on it is one unit (R-1209, as R-1207 for "Chuyển đổi dịch vụ").
+    /// </summary>
+    public static int QuantityOf(int? quantity, IReadOnlyCollection<int> teeth) =>
+        quantity ?? (ToothArch.WholeJawOfCodes(teeth) is null ? Math.Max(1, teeth.Count) : 1);
 }
 
 /// <summary>One Thanh toán row: money the old system took against a slip or a Kế hoạch of the patient.</summary>
@@ -582,7 +590,7 @@ internal sealed class MigrationRowReader
         var originalPrice = Money(Col.OriginalPrice);
         var price = Money(Col.Price);
         var amount = Money(Col.Amount);
-        CheckAmount(price, quantity ?? Math.Max(1, teeth.Count), amount);
+        CheckAmount(price, TreatmentDraft.QuantityOf(quantity, teeth), amount);
 
         if (code == null || treatedOn == null || service == null || dentist == null)
         {
@@ -617,7 +625,7 @@ internal sealed class MigrationRowReader
         }
     }
 
-    /// <summary>Số lượng: a whole number of at least 1; blank lets the teeth count it.</summary>
+    /// <summary>Số lượng: a whole number of at least 1; blank lets the teeth count it (a whole jaw once).</summary>
     private int? Quantity()
     {
         var text = Cell(Col.Quantity);
