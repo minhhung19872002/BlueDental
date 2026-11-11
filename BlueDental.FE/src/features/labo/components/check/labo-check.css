@@ -246,11 +246,21 @@
 }
 
 /* Răng N · Mặt răng + Màu · Đạt/Lỗi · Đã trả · BH Labo · Thu gọn (Labo 2 v2 mock). */
+/*
+ * Each row is its own grid, so every column is a fixed width: an auto last
+ * column sized itself to «Tải ảnh» on a Đạt row and to «Mở rộng» on a Lỗi row,
+ * and Đạt / Lỗi, Đã trả and BH Labo slid sideways between rows (P1211, R-1211).
+ */
 .pd-labo-tooth-line {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto 110px 150px auto;
+  grid-template-columns: 72px minmax(0, 1fr) auto 110px 150px 112px;
   align-items: center;
   gap: 12px;
+}
+
+.pd-labo-tooth-line > .pd-labo-tooth-upload,
+.pd-labo-tooth-line > .pd-labo-tooth-fold {
+  justify-self: end;
 }
 
 .pd-labo-tooth-row--locked .pd-labo-tooth-line {

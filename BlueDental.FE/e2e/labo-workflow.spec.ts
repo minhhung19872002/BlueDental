@@ -296,6 +296,17 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(dialog.getByRole("region", { name: "Trả hàng cho Labo · lần 1" })).toBeVisible();
       await expect(dialog.getByRole("button", { name: "Trả toàn bộ (2 răng)" })).toBeEnabled();
       await expect(dialog.getByRole("button", { name: /^Xác nhận đạt/ })).toHaveCount(0);
+      // P1211 (R-1211): a Đạt row ends in «Tải ảnh», a Lỗi row in «Thu gọn» —
+      // Đạt / Lỗi, Đã trả and BH Labo still sit at the same x on both rows.
+      const leftOf = async (part: Locator) => Math.round((await part.boundingBox())?.x ?? -1);
+      for (const part of [
+        (row: Locator) => row.getByRole("button", { name: /Đạt$/ }),
+        (row: Locator) => row.getByRole("button", { name: /Lỗi$/ }),
+        (row: Locator) => row.locator(".pd-labo-tooth-returns"),
+        (row: Locator) => row.locator(".pd-labo-tooth-warranty"),
+      ]) {
+        expect(await leftOf(part(row21))).toBe(await leftOf(part(toothRow(11))));
+      }
       // Mặt bị lỗi (R-1151): only the faces the tooth was ordered on (Gần) can be marked.
       const faces21 = row21.locator(".pd-labo-fault-picker");
       await expect(row21.locator(".pd-labo-fault-line")).toHaveText("Mặt bị lỗi: chưa chọn — bấm trên sơ đồ");
