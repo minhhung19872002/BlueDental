@@ -21,7 +21,7 @@ export interface ConversionMoney {
 interface Input {
   /** List price of the service being converted to. */
   unitPrice: number;
-  /** One per tooth picked; a slip with no teeth still charges once. */
+  /** One per tooth picked, a whole jaw counts once; a slip with no teeth still charges once. */
   quantity: number;
   /** "Thanh toán" as typed; null means charge the full price. */
   charge: number | null;
