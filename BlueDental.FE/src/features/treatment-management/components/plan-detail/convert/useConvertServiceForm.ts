@@ -78,7 +78,9 @@ export function useConvertServiceForm(row: PlanDetailRow | null, onClose: () => 
   const unitPrice = replacing ? (service?.salePrice ?? service?.price ?? 0) : (line?.price ?? 0);
   const money = conversionMoney({
     unitPrice,
-    quantity: Math.max(toothDtos.length, 1),
+    // A whole jaw is one unit, as on the reference ("Nguyên hàm" is one tooth
+    // code there); toothDtos expands it to its 16/32 teeth.
+    quantity: teeth.kind === "jaw" ? 1 : Math.max(toothDtos.length, 1),
     charge,
     oldPaid: line?.paidAmount ?? 0,
   });

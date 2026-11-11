@@ -14777,3 +14777,12 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Xanh: stage-teeth-row, treatment-stage-chain, stage-appointment-note, warranty-stage, cskh-after-treatment, stage-date-lock, convert-line-lock; ảnh chụp form răng lẻ / Hàm trên / tab bảo hành.
   - `patient.spec.ts` + `patient-medical-record` :204/:1794: 51 xanh, 5 skip, 11 đỏ đều có từ trước — dòng không ở trang 1 của bảng điều trị (1796/1840/1929/2149/2207/2333; 1796/2207/2333 cũng đỏ trên bản build HEAD b9bf462c), DB demo thiếu dữ liệu seed (2768/2898/3974), "Tiếp nhận steps" (TEMP-BUG25-OFF), In chẩn đoán (dp-images chặn click).
 - **Mức retest**: 2.
+
+## R-1207 (2026-11-11, mức 2: Chuyển đổi dịch vụ) Cả hàm tính 1 lần khi chuyển đổi
+
+- **Lỗi** (chủ dự án, prod): "Chuyển đổi dịch vụ" một dòng Hai hàm giá 24.000.000 đ → Tổng tiền dịch vụ mới 768.000.000 đ (= 32 × 24.000.000). Bản gốc: Nguyên hàm 32.000.000 đ → 32.000.000 đ; răng lẻ 17, 16, 15 → 96.000.000 đ (3 ×).
+- **Nguyên nhân**: bản gốc lưu cả hàm thành **một** mã răng (`code: 10`, xem `docs/clone/api.md`), nên số lượng = 1. BlueDental lưu hàm thành đủ 16/32 răng, còn dialog (FE `useConvertServiceForm`) và BE (`PatientTreatmentAppService` convert) lấy số lượng = số răng → nhân 16/32. BE lưu thật dòng mới với giá đó.
+- **Sửa**: răng đúng bằng một hàm (Hàm trên / Hàm dưới / Hai hàm, `ToothArch.WholeJawOf` / `teeth.kind === "jaw"`) → số lượng 1; răng lẻ vẫn nhân theo số răng.
+- **Kiểm thử**: build BE 0 lỗi, `tsc` FE sạch. Chưa chạy e2e `convert-*.spec.ts` trên stack thật, chưa có test mới cho ca cả hàm.
+- **Dữ liệu cũ**: dòng đã chuyển đổi từ dịch vụ cả hàm trước bản sửa đã lưu giá ×16/×32 — phải rà riêng.
+- **Mức retest**: 2.

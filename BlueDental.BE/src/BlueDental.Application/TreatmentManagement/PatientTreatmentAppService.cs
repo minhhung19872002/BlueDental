@@ -648,7 +648,11 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             : old.Price;
 
         var teeth = PatientDiagnosisAppService.ToToothSelections(input.Teeth);
-        var quantity = Math.Max(teeth.Count, 1);
+        // One per tooth picked, but a whole jaw is one unit: the reference
+        // stores "Nguyên hàm" as a single tooth code, so 32.000.000 đ on
+        // "Nguyên hàm" stays 32.000.000 đ, while 17, 16, 15 is three times it.
+        // BlueDental stores the jaw as its 16/32 teeth, so it must be folded back.
+        var quantity = ToothArch.WholeJawOf(teeth) is null ? Math.Max(teeth.Count, 1) : 1;
         var gross = unitPrice * quantity;
         var charge = Math.Clamp(input.PaymentAmount ?? gross, 0m, gross);
         // "Thanh toán" below the price is a discount too (Cụm 11 mục 12), and
