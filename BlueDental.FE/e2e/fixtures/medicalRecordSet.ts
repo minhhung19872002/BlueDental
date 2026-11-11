@@ -103,8 +103,8 @@ export async function openBenhAn(page: Page, patientId: string): Promise<void> {
   );
   // The record settles its `?branch=` first; a click before that is lost.
   await expect(async () => {
-    await page.getByRole("button", { name: /(^|\s)Bệnh án$/ }).click();
-    await expect(page).toHaveURL(/view=medical-record/, { timeout: 2_000 });
+    await page.getByRole("link", { name: "Bệnh án", exact: true }).click();
+    await expect(page).toHaveURL(/tab=medical-record/, { timeout: 2_000 });
   }).toPass();
   for (const response of await listed) expect(response.ok()).toBeTruthy();
 }

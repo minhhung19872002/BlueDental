@@ -344,8 +344,8 @@ test.describe("Ẩn số điện thoại", () => {
 
       await masked.page.goto(`/patient/${seeded.id}`);
       await expect(async () => {
-        await masked.page.getByRole("button", { name: /(^|\s)Bệnh án$/ }).click();
-        await expect(masked.page).toHaveURL(/view=medical-record/, { timeout: 2_000 });
+        await masked.page.getByRole("link", { name: "Bệnh án", exact: true }).click();
+        await expect(masked.page).toHaveURL(/tab=medical-record/, { timeout: 2_000 });
       }).toPass();
       await masked.page
         .locator(".pd-medical-form", { hasText: "Bệnh án ngoại trú Răng Hàm Mặt" })

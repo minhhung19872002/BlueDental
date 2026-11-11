@@ -236,6 +236,8 @@ a.pdt-crumb:hover {
 }
 .pdt-service-name {
   color: var(--tp-ink);
+  /* Bolder so the service stands out from its date (owner, R-1205). */
+  font-weight: 600;
 }
 .pdt-service-date {
   color: var(--tp-label);

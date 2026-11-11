@@ -23,8 +23,6 @@ export interface StageDraft {
    * never a later one (BA, 2026-10-09). Empty once the picker is cleared.
    */
   treatmentDate: string;
-  /** Pictures chosen before the công đoạn exists; attached once it is saved. */
-  pending: File[];
   /** Step ids ticked under "Danh sách công đoạn". */
   steps: string[];
   /** Tooth codes the công đoạn will take. */
@@ -75,7 +73,6 @@ export function initialDraft(
     note: "",
     remark: "",
     treatmentDate: todayIsoDate(),
-    pending: [],
     steps: [],
     teeth: item.tab === "continueWarranty" && item.stages.length === 0 ? [] : toothCodes(item.teeth),
     warrantyKind: undefined,
@@ -147,7 +144,7 @@ export function keepEligibleStaff(
 
 /** Whether closing now would throw this form's work away — see the dialog. */
 export const isDraftDirty = (draft: StageDraft): boolean =>
-  draft.note.trim().length > 0 || draft.remark.trim().length > 0 || draft.pending.length > 0;
+  draft.note.trim().length > 0 || draft.remark.trim().length > 0;
 
 /**
  * A new warranty names its card, and under Labo the order (P3110 REQ-F3/F4);

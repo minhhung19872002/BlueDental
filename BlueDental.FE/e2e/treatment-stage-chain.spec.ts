@@ -340,7 +340,7 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     expect(doubled.text).toContain("BlueDental:Treatment:0031");
   });
 
-  test("a line picked as a whole jaw reads by the jaw's name on its card, the form still lists each tooth (R-1096)", async ({
+  test("a line picked as a whole jaw reads by the jaw's name on its card and in the form, with no tooth to pick (R-1096, R-1206)", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1700, height: 950 });
@@ -360,11 +360,17 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     await expect(card(both).locator("i")).toHaveText(["Hai hàm"]);
     await expect(card(some).locator("i")).toHaveText(["11", "12"]);
 
-    // The form beside the card still offers the jaw tooth by tooth, 11 taken.
+    // The form takes the jaw whole — no chips since the owner's 2026-11-11 rule
+    // (R-1206); with 11 already staged, its Răng line names the teeth left.
     await card(jaw).click();
     const form = dialog.locator(`.pd-stage-form[data-item-id="${jaw.lineId}"]`);
-    await expect(chips(form)).toHaveCount(16);
-    expect((await chipStates(form)).filter((state) => state.endsWith("!"))).toEqual(["11!"]);
+    await expect(chips(form)).toHaveCount(0);
+    const left = upper.filter((code) => code !== 11).sort((a, b) => a - b);
+    await expect(form.locator(".pd-stage-teeth--jaw")).toHaveText(`Răng: ${left.join(", ")}`);
+    await card(both).click();
+    const bothForm = dialog.locator(`.pd-stage-form[data-item-id="${both.lineId}"]`);
+    await expect(bothForm.locator(".pd-stage-teeth--jaw")).toHaveText("Răng: Hai hàm");
+    await expect(chips(bothForm)).toHaveCount(0);
 
     // Under TIẾP TỤC CÔNG ĐOẠN the same line's card names the jaw too.
     await dialog.getByRole("tab", { name: /TIẾP TỤC CÔNG ĐOẠN/ }).click();

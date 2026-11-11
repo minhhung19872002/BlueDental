@@ -88,9 +88,6 @@ function byDay(stages: TreatmentStageDto[]): StageDay[] {
   return [...days.values()].sort((a, b) => b.key.localeCompare(a.key));
 }
 
-/** Where a picture chosen in the OS dialog goes: a form's draft, or a saved row. */
-type UploadTarget = { form: string } | { stage: string };
-
 /**
  * Everything "Chi tiết phiếu" reads and writes.
  *
@@ -118,7 +115,8 @@ export function useStageComposer({
   const history = useStageHistoryActions();
 
   const fileInput = useRef<HTMLInputElement>(null);
-  const uploadTarget = useRef<UploadTarget | null>(null);
+  /** The saved row a picture chosen in the OS dialog goes on. */
+  const uploadTarget = useRef<string | null>(null);
 
   /**
    * Null until the user picks a tab, so the dialog can still land on the right
@@ -316,7 +314,7 @@ export function useStageComposer({
       // together, continued from the first of them.
       const [first, ...rest] = stagesToContinue(item, draft.teeth);
       if (!first) return;
-      const saved = await continueStage.mutateAsync({
+      await continueStage.mutateAsync({
         id: first.stage.id,
         toothCodes: first.toothCodes,
         alsoFrom: rest.map(({ stage, toothCodes }) => ({ stageId: stage.id, toothCodes })),
@@ -328,7 +326,6 @@ export function useStageComposer({
         treatmentDate: draft.treatmentDate,
         remark: draft.remark.trim() || undefined,
       });
-      if (draft.pending.length > 0) await uploadTo(saved.id, draft.pending);
       return;
     }
 
@@ -344,7 +341,7 @@ export function useStageComposer({
             warrantyLaboOrderId: draft.warrantyLaboOrderId ?? null,
           }
         : {};
-    const saved = await createStage.mutateAsync({
+    await createStage.mutateAsync({
       patientId,
       clinicBranchId: branchId,
       treatmentId: plan?.id,
@@ -363,10 +360,6 @@ export function useStageComposer({
       remark: draft.remark.trim() || undefined,
       ...warranty,
     });
-
-    // Pictures chosen in the form belong to a công đoạn that did not exist
-    // when they were picked, so they are attached now.
-    if (draft.pending.length > 0) await uploadTo(saved.id, draft.pending);
   };
 
   const save = async () => {
@@ -406,8 +399,8 @@ export function useStageComposer({
     }
   };
 
-  const pickFor = (target: UploadTarget) => {
-    uploadTarget.current = target;
+  const pickForStage = (stage: TreatmentStageDto) => {
+    uploadTarget.current = stage.id;
     fileInput.current?.click();
   };
 
@@ -422,16 +415,9 @@ export function useStageComposer({
     uploadTarget.current = null;
     if (files.length === 0 || !target) return;
 
-    if ("form" in target) {
-      // The form's picker: hold them until the công đoạn is saved.
-      const item = chosen.find((candidate) => candidate.id === target.form);
-      if (item) patchDraft(item, { pending: [...draftOf(item).pending, ...files] });
-      return;
-    }
-
-    setUploadingFor(target.stage);
+    setUploadingFor(target);
     try {
-      await uploadTo(target.stage, files);
+      await uploadTo(target, files);
       toast.success(t("Patient:Photo:Uploaded"));
     } catch (error) {
       notifyError(extractApiError(error));
@@ -501,8 +487,7 @@ export function useStageComposer({
     ...history,
     uploadingFor: uploadImage.isPending ? uploadingFor : null,
     fileInput,
-    pickForForm: (item: StageItem) => pickFor({ form: item.id }),
-    pickForStage: (stage: TreatmentStageDto) => pickFor({ stage: stage.id }),
+    pickForStage,
     handleFiles,
   };
 }

@@ -3,17 +3,15 @@ import {
   type WarrantyCardKind,
   type WarrantyServiceRowDto,
 } from "@/features/treatment-management/api/planWarrantyApi";
-import { teethCaption } from "@/components/ToothChart";
 import type { ToothSelectionDto } from "@/features/treatment-management/api/consultingApi";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { StageContentColumn } from "./StageContentColumn";
 import type { StageFormHandlers } from "./StageForm";
-import { StageImagesField } from "./StageImagesField";
 import { StageLaboWarrantySelect } from "./StageLaboWarrantySelect";
 import { StageRemarkColumn, type StageFormActions } from "./StageRemarkColumn";
 import { StageStaffColumn } from "./StageStaffColumn";
-import { StageTeethPicker } from "./StageTeethPicker";
+import { StageTeethRow } from "./StageTeethRow";
 import { StageWarrantyCardPick } from "./StageWarrantyCardPick";
 import type { StageDraft } from "./stageDraft";
 import type { StageFieldErrors } from "./stageFieldErrors";
@@ -40,13 +38,6 @@ interface Props {
   actions?: StageFormActions;
 }
 
-/** `Răng sứ Zirconia · R11, R21` — the teeth this visit takes; a whole jaw by its name (R-1098). */
-function serviceTitle(item: StageItem, teeth: number[]) {
-  const name = item.line.serviceName ?? item.line.code;
-  if (teeth.length === 0) return name;
-  return `${name} · ${teethCaption([...teeth].sort((a, b) => a - b), (tooth) => `R${tooth}`)}`;
-}
-
 /** `Hoàn thành 06/11/2026 · BS. Nguyễn Lan Chi`, each half only when known. */
 function finishedText(row: WarrantyServiceRowDto | undefined) {
   if (!row) return "";
@@ -60,9 +51,10 @@ function finishedText(row: WarrantyServiceRowDto | undefined) {
 
 /**
  * A TIẾP TỤC BẢO HÀNH form (P3110 REQ-F1…F6, m390/m394/m395/m412/m415): the
- * same four columns as every công đoạn form, with "Thẻ bảo hành áp dụng" under
- * Dịch vụ đã chọn and, for a Labo card, the order picked above Nội dung điều
- * trị. A chain already open keeps its card and order.
+ * same columns as every công đoạn form. Since "Dịch vụ đã chọn" went (owner,
+ * 2026-11-11, R-1206), Nội dung điều trị opens with when the line was finished,
+ * "Thẻ bảo hành áp dụng", the Răng line and, for a Labo card, the order picked.
+ * A chain already open keeps its card and order.
  */
 export function StageWarrantyForm({ item, draft, errors, handlers, warranty, actions }: Props) {
   const locked = item.stages.length > 0;
@@ -74,29 +66,6 @@ export function StageWarrantyForm({ item, draft, errors, handlers, warranty, act
     <div className="pd-stage-form pd-stage-form--four pd-stage-form--warranty" data-item-id={item.id}>
       <StageStaffColumn draft={draft} errors={errors} onChange={handlers.onChange} />
 
-      <div>
-        <p className="pd-wform-title">{serviceTitle(item, draft.teeth)}</p>
-        {finished && <p className="pd-wform-sub">{finished}</p>}
-        <StageWarrantyCardPick
-          cover={warranty.cover}
-          picked={draft.warrantyKind}
-          locked={locked}
-          error={errors.warranty}
-          onPick={(kind) => warranty.onPick(kind)}
-        />
-        <StageTeethPicker
-          candidates={warranty.offered}
-          shown={item.shownTeeth}
-          picked={draft.teeth}
-          locked={false}
-          error={errors.teeth}
-          onToggle={(code) => handlers.onChange({ teeth: toggleTooth(draft.teeth, code) })}
-          onChange={(teeth) => handlers.onChange({ teeth: teeth.filter((code) => offeredCodes.has(code)) })}
-        />
-        {errors.teeth && <p className="pd-stage-error">{errors.teeth}</p>}
-        <StageImagesField draft={draft} onChange={handlers.onChange} onPickImages={handlers.onPickImages} />
-      </div>
-
       <StageContentColumn
         steps={item.line.serviceSteps ?? []}
         draft={draft}
@@ -105,6 +74,22 @@ export function StageWarrantyForm({ item, draft, errors, handlers, warranty, act
         onPickSteps={handlers.onPickSteps}
         placeholder={t("Patient:Stage:WarrantyContentPlaceholder")}
       >
+        {finished && <p className="pd-wform-sub">{finished}</p>}
+        <StageWarrantyCardPick
+          cover={warranty.cover}
+          picked={draft.warrantyKind}
+          locked={locked}
+          error={errors.warranty}
+          onPick={(kind) => warranty.onPick(kind)}
+        />
+        <StageTeethRow
+          candidates={warranty.offered}
+          shown={item.shownTeeth}
+          picked={draft.teeth}
+          error={errors.teeth}
+          onToggle={(code) => handlers.onChange({ teeth: toggleTooth(draft.teeth, code) })}
+          onChange={(teeth) => handlers.onChange({ teeth: teeth.filter((code) => offeredCodes.has(code)) })}
+        />
         {isLabo && (
           <StageLaboWarrantySelect
             options={warranty.cover?.labo ?? []}

@@ -5,8 +5,8 @@ import { SETS_API, openRecordWithSet } from "./fixtures/medicalRecordSet";
 import { call, firstBranchId } from "./fixtures/timekeepingStaff";
 
 /**
- * Feature: Bệnh án — the record's second view, behind the header's
- * Chi tiết hồ sơ / Bệnh án switch.
+ * Feature: Bệnh án — the record's second view, a tab of its own on the right
+ * of the tab row (R-1204; before that a Chi tiết hồ sơ / Bệnh án switch).
  *
  * Every form is drawn from the blank it is printed on, filled through its
  * `data-medical-record-field` blanks, in its own document. So the assertions
@@ -232,10 +232,31 @@ test.describe("Bệnh án", () => {
     await expect(page.locator(".pd-medical-zoom")).toContainText("100%");
     await expect(page.locator(".pd-medical-canvas-head .ant-select")).toHaveCount(0);
 
-    // Switching back to the tabbed view drops the parameter again.
-    await page.getByRole("button", { name: "Chi tiết hồ sơ" }).click();
-    await expect(page).not.toHaveURL(/view=/);
+    // Bệnh án is a tab: it alone is current while open (R-1204).
+    const tabs = page.locator(".pd-tabrow");
+    const recordTab = tabs.getByRole("link", { name: "Bệnh án", exact: true });
+    // The pill, not aria-current: every tab shares /patient/:id and differs in
+    // ?tab= alone, which NavLink's own match ignores.
+    await expect(recordTab).toHaveClass(/pill-tab--active/);
+    await expect(tabs.locator(".pill-tab--active")).toHaveCount(1);
+
+    // Any tab on the left leaves it — no "Chi tiết hồ sơ" to press first.
+    await expect(page.getByRole("button", { name: "Chi tiết hồ sơ" })).toHaveCount(0);
+    await tabs.getByRole("link", { name: "Lịch hẹn", exact: true }).click();
+    await expect(page).toHaveURL(/tab=appointment/);
+    await expect(page).not.toHaveURL(/medical-record/);
+    await expect(page.locator(".pd-medical-form")).toHaveCount(0);
+    await tabs.getByRole("link", { name: "Hồ sơ", exact: true }).click();
     await expect(page.locator(".pd-profile-card")).toBeVisible();
+
+    // Back again through its own tab; the link from before R-1204 still opens it.
+    const profileUrl = page.url();
+    await recordTab.click();
+    await expect(page).toHaveURL(/tab=medical-record/);
+    await expect(page.locator(".pd-medical-form")).toHaveCount(forms.length);
+    await page.goto(profileUrl.replace(/tab=profile/, "view=medical-record"));
+    await expect(page.locator(".pd-medical-form")).toHaveCount(forms.length);
+    await expect(recordTab).toHaveClass(/pill-tab--active/);
   });
 
   /**
@@ -2300,14 +2321,14 @@ test.describe("Bệnh án", () => {
     await openSheet(page, "Bìa hồ sơ bệnh án");
     await expect(blank(page, "cover.text.1")).toHaveText(storageCode);
 
-    // Leaving the Bệnh án view: "Lưu" saves, then goes on — and it is there after a reload.
+    // Leaving the Bệnh án tab for another: "Lưu" saves, then goes on — and it is there after a reload.
     await blank(page, "cover.text.1").fill(`LT ${id}`);
-    await page.getByRole("button", { name: "Chi tiết hồ sơ" }).click();
+    await page.locator(".pd-tabrow").getByRole("link", { name: "Hồ sơ", exact: true }).click();
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
     await expect(dialog).toBeHidden();
-    await expect(page).not.toHaveURL(/view=medical-record/);
-    await page.goto(page.url().replace(/(\?|$)/, "?view=medical-record&").replace(/&$/, ""));
+    await expect(page).toHaveURL(/tab=profile/);
+    await page.goto(page.url().replace(/tab=profile/, "tab=medical-record"));
     await openLastSheet(page, "Bìa hồ sơ bệnh án");
     await expect(blank(page, "cover.text.1")).toHaveText(`LT ${id}`);
   });

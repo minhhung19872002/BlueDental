@@ -9,15 +9,8 @@
   --pd-w-labo-pale: #fbe8fb;
 }
 
-.pd-wform-title {
-  margin: 0;
-  color: var(--bd-ink);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.4;
-}
 .pd-wform-sub {
-  margin: 2px 0 0;
+  margin: 0;
   color: var(--bd-muted);
   font-size: 14px;
 }

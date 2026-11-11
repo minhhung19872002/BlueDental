@@ -2227,19 +2227,18 @@ test.describe("Bệnh nhân", () => {
     await expect(dialog.locator(".pd-stage-colhead")).toHaveText([
       "Chi tiết",
       "Ngày - Nhân sự",
-      "Dịch vụ đã chọn",
       "Nội dung điều trị",
       "Ghi chú lịch hẹn",
     ]);
     const historyBefore = await dialog.locator(".pd-stage-histrow").count();
 
-    // Dịch vụ is a read-out, as the reference disables it; the date beside it
-    // is Ngày điều trị, picked by the user since R-852. The card is this
-    // line's own: a slip lists all its lines, and the reference opens with
-    // none picked.
+    // No read-out Dịch vụ any more — the service is on its card (owner,
+    // 2026-11-11, R-1206); Ngày điều trị is picked by the user since R-852.
+    // The card is this line's own: a slip lists all its lines, and the
+    // reference opens with none picked.
     await dialog.locator(`.pd-stage-picks button[data-line-id="${serviceId}"]`).first().click();
     const form = dialog.locator(".pd-stage-form");
-    await expect(form.locator("input[disabled]")).toHaveCount(1);
+    await expect(form.locator("input[disabled]")).toHaveCount(0);
 
     const note = `e2e công đoạn ${runId()}`;
     const created = page.waitForResponse(
@@ -2322,9 +2321,9 @@ test.describe("Bệnh nhân", () => {
       expect(Math.abs(width - Math.round(widths.inner))).toBeLessThanOrEqual(1);
     }
 
-    // Tải Ảnh is live before the công đoạn exists — the reference keeps a file
-    // input inside the form card, not only on a saved row.
-    await expect(form.getByRole("button", { name: "Tải Ảnh" })).toBeEnabled();
+    // No pictures on the form: they go on from the saved row (owner,
+    // 2026-11-11, R-1206).
+    await expect(form.getByRole("button", { name: "Tải Ảnh" })).toHaveCount(0);
     // And the note is required, asterisk and all (c5b52d52).
     const noteLabel = form.locator(".floating-field-label", { hasText: "Nội dung điều trị" });
     await expect(noteLabel).toContainText("Nội dung điều trị");
@@ -3041,46 +3040,6 @@ test.describe("Bệnh nhân", () => {
         .locator(`.pd-stage-histrow[data-stage-id="${madeStage.id}"]`)
         .locator(".pd-stage-histstage li"),
     ).toHaveText(matching);
-  });
-
-  test("the công đoạn form lists the pictures it is holding, not just a count", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1700, height: 950 });
-    const { serviceId } = await openPatientWithTreatment(page, "stageable");
-
-    const dialog = await openStageDialog(page, serviceId);
-    await dialog.locator(".pd-stage-picks button").first().click();
-    const form = dialog.locator(".pd-stage-form");
-    await expect(form.locator(".pd-stage-images")).toContainText("(Trống)");
-
-    // The pictures are chosen before the công đoạn exists and attached once it
-    // is saved, so the form has to show which ones it is holding — a count
-    // alone cannot tell you that the wrong file went in.
-    const png = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAJUlEQVR42u3OMQEAAAgDoJnc6BpjDwmg2XCqAAAAAAAAAAAA4LcFvxYBAWfnQVUAAAAASUVORK5CYII=",
-      "base64",
-    );
-    // Through the form's own Tải Ảnh: every open form shares one hidden input,
-    // and the button is what says which form the files are for.
-    const chooser = page.waitForEvent("filechooser");
-    await form.getByRole("button", { name: "Tải Ảnh" }).click();
-    await (
-      await chooser
-    ).setFiles([
-      { name: "stage-a.png", mimeType: "image/png", buffer: png },
-      { name: "stage-b.png", mimeType: "image/png", buffer: png },
-    ]);
-
-    const shots = form.locator(".pd-stage-shots > div");
-    await expect(shots).toHaveCount(2);
-    await expect(shots.first().locator("img")).toBeVisible();
-    await expect(form.locator(".pd-stage-images")).toContainText("2 ảnh đã chọn");
-
-    // Each has its own remove, and the count follows it down.
-    await shots.first().getByRole("button").click();
-    await expect(shots).toHaveCount(1);
-    await expect(form.locator(".pd-stage-images")).toContainText("1 ảnh đã chọn");
   });
 
   test("finishing a công đoạn swaps its action for Bảo hành dịch vụ, inside and out", async ({ page }) => {

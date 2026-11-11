@@ -16,7 +16,6 @@ export function StageItemForm({ item, composer, actions }: Props) {
   const handlers: StageFormHandlers = {
     onChange: (patch) => composer.patchDraft(item, patch),
     onPickSteps: (stepIds) => composer.pickSteps(item, stepIds),
-    onPickImages: () => composer.pickForForm(item),
   };
 
   if (item.tab !== "continueWarranty") {

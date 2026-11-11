@@ -14739,3 +14739,41 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Tất cả đã để cấu hình được; cần thử với bộ cài Vatech hoặc tại phòng khám.
   - `--install` và named pipe chưa chạy trên máy dev (để không ghi HKCU).
 - **Trạng thái**: develop 9da2c66e, cherry-pick sang main (commit kế tiếp của main). Triển khai cần DbMigrator `XrayAgentF95` + build lại BE (i18n mới) + FE + nginx.
+
+## R-1204 (2026-11-11, mức 2: Hồ sơ bệnh nhân — "Bệnh án" thành tab, bỏ nút "Chi tiết hồ sơ")
+
+- **Yêu cầu (chủ phòng khám, 2026-11-11)**: nút "Bệnh án" bên phải hàng tab hoạt động như các tab bên trái, không phải bấm "Chi tiết hồ sơ" để quay lại. Giữ ở vị trí cũ, ghim sát mép phải hàng.
+- **Thay đổi FE** (`PatientProfilePage.tsx`, `patient-detail.css`):
+  - Bỏ công tắc `SegmentedTabs` "Chi tiết hồ sơ / Bệnh án". Bệnh án là một `PageTabBar` một pill (`.pd-recordtab`, link thật), `flex: none; margin-left: auto` → luôn sát phải, mười tab bên trái giữ phần còn lại và cuộn dưới nó.
+  - URL `?tab=medical-record`. Link cũ `?view=medical-record` vẫn mở Bệnh án. Bấm một tab bên trái là rời Bệnh án ngay.
+  - Màn ≤ 640px: pill Bệnh án lên một dòng riêng phía trên, bên phải.
+  - Chặn rời trang khi còn bản bệnh án chưa lưu vẫn hoạt động (bấm tab là điều hướng trong app).
+  - Chỉ hiện khi có quyền đọc bệnh án (như trước).
+- **Kiểm thử** (bản build production preview, BE thật :5000, DB thật, đăng nhập thật):
+  - Ảnh hàng tab ở 1917 / 1280: pill cách mép phải 20px; 390: dòng riêng.
+  - Sửa `e2e/fixtures/medicalRecordSet.ts`, `patient-hide-phone.spec.ts`, `patient-medical-record.spec.ts` theo link mới; test "the index lists…" kiểm thêm: chỉ một tab đang chọn, không còn nút "Chi tiết hồ sơ", Lịch hẹn ↔ Bệnh án qua lại, link `view=` cũ.
+- **Mức retest**: 2.
+
+## R-1205 (2026-11-11, mức 1: Phiếu điều trị — tên dịch vụ đậm hơn)
+
+- **Yêu cầu (chủ phòng khám, 2026-11-11)**: tên dịch vụ trên trang phiếu điều trị in đậm hơn.
+- **Thay đổi CSS**: `.pdt-service-name` (bảng dịch vụ đầu trang, `plan-detail.css`) và `.pd-stage-histservice` (cột "Dịch vụ & răng" của LỊCH SỬ ĐIỀU TRỊ, `patient-detail.css`) 500 → 600. Lịch sử công đoạn dùng chung nên dialog công đoạn trên hồ sơ cũng đậm theo.
+- **Kiểm thử**: computed `font-weight` = 600 cả hai chỗ trên bản build production, ảnh chụp bảng dịch vụ.
+- **Mức retest**: 1.
+
+## R-1206 (2026-11-11, mức 2: Dialog công đoạn — bỏ cột "Dịch vụ đã chọn", Răng vào Nội dung điều trị, hàm hiện chữ)
+
+- **Yêu cầu (chủ phòng khám, 2026-11-11)**: bỏ cột "Dịch vụ đã chọn" (ô Dịch vụ, lưới răng, Hình ảnh); "Nội dung điều trị" chiếm 2 ô, cả tiêu đề; dòng Răng lên đầu Nội dung điều trị — dịch vụ Hai hàm / Hàm trên / Hàm dưới hiện chữ, dịch vụ răng đơn lẻ hiện số răng.
+- **Thay đổi FE** (`stage/*`, `TreatmentStagePanel.tsx`, `patient-detail.css`, `stage-warranty.css`):
+  - Form 4 ô: Ngày - Nhân sự | Nội dung điều trị (span 2) | Ghi chú lịch hẹn. Tiêu đề cột cũng span 2 (`.pd-stage-colhead--wide`).
+  - `StageTeethRow` mới đứng đầu Nội dung điều trị: dịch vụ chọn cả hàm → "Răng: Hàm trên/Hàm dưới/Hai hàm" (chữ, không chip, không nút sơ đồ), lưu đủ mọi răng của hàm; răng lẻ → chip bật/tắt + nút sơ đồ răng như cũ.
+  - Hàm đã làm một phần răng ở công đoạn trước: dòng Răng liệt kê các răng còn lại bằng chữ (không chọn lẻ được).
+  - Tab "Tiếp tục bảo hành" theo cùng bố cục.
+  - Bỏ tải ảnh trên form (xoá `StageImagesField.tsx`, `pending` khỏi draft); ảnh vẫn tải từ dòng lịch sử đã lưu.
+  - ≤ 1280px: Ngày - Nhân sự + Ghi chú lịch hẹn hàng 1, Nội dung điều trị hàng 2; ≤ 1024px: một cột.
+- **Kiểm thử** (bản build production preview :8187, BE thật :5000, DB thật, đăng nhập thật):
+  - Mới `e2e/stage-teeth-row.spec.ts` (2 test): tiêu đề cột, span 2 (rộng > 1.9× cột Ngày - Nhân sự), không Dịch vụ/Tải Ảnh; răng lẻ bỏ 1 chip → POST chỉ còn răng kia; Hàm trên → chữ, không nút, POST đủ 16 răng.
+  - Sửa `patient.spec.ts` (tiêu đề cột, không còn input disabled / Tải Ảnh trên form, bỏ test danh sách ảnh trên form), `stage-appointment-note.spec.ts` (tiêu đề cột), `treatment-stage-chain.spec.ts` (test R-1096: hàm không còn chip, dòng Răng liệt kê răng còn lại / "Hai hàm").
+  - Xanh: stage-teeth-row, treatment-stage-chain, stage-appointment-note, warranty-stage, cskh-after-treatment, stage-date-lock, convert-line-lock; ảnh chụp form răng lẻ / Hàm trên / tab bảo hành.
+  - `patient.spec.ts` + `patient-medical-record` :204/:1794: 51 xanh, 5 skip, 11 đỏ đều có từ trước — dòng không ở trang 1 của bảng điều trị (1796/1840/1929/2149/2207/2333; 1796/2207/2333 cũng đỏ trên bản build HEAD b9bf462c), DB demo thiếu dữ liệu seed (2768/2898/3974), "Tiếp nhận steps" (TEMP-BUG25-OFF), In chẩn đoán (dp-images chặn click).
+- **Mức retest**: 2.

@@ -1,10 +1,9 @@
 import { useMemo } from "react";
 import { Spin } from "antd";
-import { ArrowLeftOutlined, FileTextOutlined, UserOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EmptyState } from "@/components/EmptyState";
 import { PageTabBar, type PageTab } from "@/components/PageTabBar";
-import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { useAbility } from "@/hooks/useAbility";
 import { readPatientOrigin } from "@/hooks/usePatientOrigin";
 import { t } from "@/lib/i18n";
@@ -48,23 +47,13 @@ const TAB_I18N: Record<PatientTab, string> = {
 };
 
 /**
- * The record has two whole views, switched from the right of the tab row:
- * "Chi tiết hồ sơ" is the ten tabs, "Bệnh án" is the patient's own stack of
- * printed sheets. The reference keeps the tab row visible in both.
+ * Bệnh án — the patient's own stack of printed sheets — is one more tab, kept
+ * where the old "Chi tiết hồ sơ / Bệnh án" switch sat on the right of the row
+ * (owner 2026-11-11, R-1204): any tab on the left leaves it, no way back
+ * through "Chi tiết hồ sơ". `?view=medical-record`, its link before that,
+ * still opens it.
  */
-type RecordView = "details" | "medical-record";
-
-const RECORD_VIEW_KEYS = ["details", "medical-record"] as const;
-
-const VIEW_I18N: Record<RecordView, string> = {
-  details: "Patient:View:Details",
-  "medical-record": "Patient:View:MedicalRecord",
-};
-
-const VIEW_ICON: Record<RecordView, React.ReactNode> = {
-  details: <UserOutlined />,
-  "medical-record": <FileTextOutlined />,
-};
+const MEDICAL_RECORD_TAB = "medical-record";
 
 const isPatientTab = (value: string | null): value is PatientTab =>
   PATIENT_TAB_KEYS.includes(value as PatientTab);
@@ -88,7 +77,9 @@ export function PatientProfilePage() {
   const diagnosisAbility = useAbility("treatmentDiagnosis");
   const stageAbility = useAbility("treatmentStage");
   const requestedTab = searchParams.get("tab");
-  const view: RecordView = searchParams.get("view") === "medical-record" ? "medical-record" : "details";
+  const onMedicalRecord =
+    medicalRecordAbility.canRead &&
+    (requestedTab === MEDICAL_RECORD_TAB || searchParams.get("view") === MEDICAL_RECORD_TAB);
   const listSearch = new URLSearchParams(searchParams);
   listSearch.delete("tab");
   listSearch.delete("view");
@@ -98,14 +89,6 @@ export function PatientProfilePage() {
     const origin = readPatientOrigin(id);
     if (origin) navigate(origin);
     else navigate({ pathname: "/patient", search: listSearch.toString() });
-  };
-
-  /** The view rides in the URL, so a bệnh án can be linked to. */
-  const openView = (next: RecordView) => {
-    const params = new URLSearchParams(searchParams);
-    if (next === "details") params.delete("view");
-    else params.set("view", next);
-    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
   };
 
   const visibleTabs = useMemo(() => {
@@ -142,15 +125,25 @@ export function PatientProfilePage() {
       ? requestedTab
       : defaultTab;
 
-  const tabs: PageTab[] = visibleTabs.map((key) => {
+  /** A tab's link: the default tab drops `tab`, and every tab drops the old `view`. */
+  const tabLink = (key: string) => {
     const next = new URLSearchParams(searchParams);
     next.delete("create");
+    next.delete("view");
     if (key === defaultTab) next.delete("tab");
     else next.set("tab", key);
     const query = next.toString();
+    return `${location.pathname}${query ? `?${query}` : ""}`;
+  };
+
+  const tabs: PageTab[] = visibleTabs.map((key) => {
     const badge = key === "invoice" ? invoiceRequestStats.data?.open : undefined;
-    return { key, label: t(TAB_I18N[key]), to: `${location.pathname}${query ? `?${query}` : ""}`, badge };
+    return { key, label: t(TAB_I18N[key]), to: tabLink(key), badge };
   });
+  const medicalRecordTabs: PageTab[] = [
+    { key: MEDICAL_RECORD_TAB, label: t("Patient:View:MedicalRecord"), to: tabLink(MEDICAL_RECORD_TAB) },
+  ];
+  const shownTab = onMedicalRecord ? MEDICAL_RECORD_TAB : activeTab;
 
   if (patientQuery.isLoading) {
     return (
@@ -188,26 +181,18 @@ export function PatientProfilePage() {
       </div>
 
       <div className="pd-tabrow">
-        <PageTabBar tabs={tabs} activeKey={activeTab} label={t("Patient:Profile:Detail")} />
+        <PageTabBar tabs={tabs} activeKey={shownTab} label={t("Patient:Profile:Detail")} />
         {medicalRecordAbility.canRead && (
-          <SegmentedTabs
-            className="pd-viewswitch"
-            items={RECORD_VIEW_KEYS.map((key) => ({
-              key,
-              label: (
-                <>
-                  {VIEW_ICON[key]}
-                  {t(VIEW_I18N[key])}
-                </>
-              ),
-            }))}
-            activeKey={view}
-            onChange={openView}
+          <PageTabBar
+            className="pd-recordtab"
+            tabs={medicalRecordTabs}
+            activeKey={shownTab}
+            label={t("Patient:View:MedicalRecord")}
           />
         )}
       </div>
 
-      {view === "medical-record" && medicalRecordAbility.canRead ? (
+      {onMedicalRecord ? (
         <PatientMedicalRecordTab patientId={patient.id} patient={patient} />
       ) : (
         <PatientDetailContent activeTab={activeTab} patient={patient} />
