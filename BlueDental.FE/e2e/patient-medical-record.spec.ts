@@ -1775,7 +1775,8 @@ test.describe("Bệnh án", () => {
     expect(layout.subjectLines, "9. Đối tượng with its four boxes on one line").toBeLessThan(1.6);
     expect(layout.titles, "the title, two 18px lines").toEqual(["18px", "18px"]);
 
-    // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
+    // On paper the margin is the page's, on every page: a page of its own — 15mm, 7mm at the foot since
+    // 2026-11-12 (`@page outpatient-dental`) — and no padding on the sheet.
     await page.evaluate(() => {
       window.print = () => undefined;
     });
@@ -1789,7 +1790,7 @@ test.describe("Bệnh án", () => {
     });
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
-    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+    expect(printed).toEqual({ page: "outpatient-dental", padding: "0px" });
   });
 
   /**

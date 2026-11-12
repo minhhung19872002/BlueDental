@@ -144,12 +144,13 @@ export const SHEET_CSS = String.raw`
 /* Mẫu 2 at 14px keeps 13px's line pitch (2026-11-10). */
 .nfc-tpl[data-form="2"] p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.2!important}
 /* Mẫu 2 opened up like the clinic's paper copy (2026-11-12): the title two
-   tight 18px lines, the section headings at 1.25, and what that frees goes to
-   the lines of the first two pages, now 1.4 (1.37 is the least that lifts a
-   line by a pixel; page 1 still has ~8mm to spare). The letterhead keeps its
-   1.2; the last page keeps 1.2 too — it has no room. "1. Toàn thân",
+   tight 18px lines, the section headings at 1.25, and with what that and a
+   7mm foot margin (SHEET_PRINT_CSS) free, the lines of the first two pages
+   at 1.5 and of the last at 1.35 — each page keeps ~7mm to spare. The
+   letterhead and the handover box keep their 1.2. "1. Toàn thân",
    "2. Bệnh chuyên khoa", "4. Tóm tắt…" were drawn at 10pt: body size now. */
-.nfc-tpl[data-form="2"] table:is([data-record-page="outpatient-main"],[data-record-page="outpatient-figure"]) p:not(table[data-record-section="layout"]:has(.record-ids) *){line-height:1.4!important}
+.nfc-tpl[data-form="2"] table:is([data-record-page="outpatient-main"],[data-record-page="outpatient-figure"]) p:not(table[data-record-section="layout"]:has(.record-ids) *){line-height:1.5!important}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] p:not(table[data-record-section="summary-files"] *){line-height:1.35!important}
 .nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h2{margin:6px 0 3px;line-height:1.25!important}
 .nfc-tpl[data-form="2"] table[data-record-page^="outpatient"]>tbody>tr>td>p span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1,.nfc-tpl[data-form="2"] table[data-record-section="outpatient-summary-title"] h1{font-size:18px;line-height:1.15!important;margin:0}
@@ -320,7 +321,9 @@ const SHEET_FIELD_CSS = String.raw`
  * 2026-10-29, R-1067, R-1068 and R-1073): 15mm on every edge of every page,
  * so their pages are a named page with that margin — the A4 and the page
  * number still come from the rule above — and the sheet itself adds none.
- * Mẫu 10, the clinic's contract, joined them (R-1079).
+ * Mẫu 10, the clinic's contract, joined them (R-1079). Mẫu 2 then gave up
+ * 8mm at the foot of each page for room to space its lines (2026-11-12): its
+ * own page, `outpatient-dental`, 15mm on three edges and 7mm at the bottom.
  *
  * Every other sheet is on a named page too, `margin-5mm`, which has no rule of
  * its own and so is exactly the page above (R-1070). Chrome starts a new page
@@ -338,9 +341,11 @@ const SHEET_FIELD_CSS = String.raw`
 const SHEET_PRINT_CSS = String.raw`
     @page{size:A4;margin:5mm;@bottom-right{content:counter(page);font-family:'Times New Roman',Times,serif;font-size:10pt;color:#000}}
     @page margin-15mm{margin:15mm}
+    @page outpatient-dental{margin:15mm 15mm 7mm}
     @media print{
       .nfc-tpl{page:margin-5mm;width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
       .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]){page:margin-15mm;width:auto;margin:0;padding:0}
+      .nfc-tpl[data-form="2"]{page:outpatient-dental}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
       .nfc-tpl .nfc-medical-record-checkbox{accent-color:#2671d8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
     }`;
