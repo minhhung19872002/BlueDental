@@ -630,7 +630,7 @@ public static class BlueDentalDomainErrorCodes
         public const string LabSlipNoTaken = "BlueDental:Labo:0043";
         /// <summary>Tạo phiếu Labo with no Loại phục hình ticked; data "tooth".</summary>
         public const string RestorationMissing = "BlueDental:Labo:0044";
-        /// <summary>A Loại phục hình that is not an active material of the branch, or "Trên implant" where the material has none.</summary>
+        /// <summary>A Loại phục hình that is not an active material of the branch, more than one (R-1216), or "Trên implant".</summary>
         public const string RestorationInvalid = "BlueDental:Labo:0045";
 
         // Vật liệu & loại phục hình (P1011).

@@ -82,6 +82,10 @@ export interface LaboRequestSlipFields {
   dueAt?: string;
   shadeZones: LaboShadeZonesDto;
   finishLineIds: string[];
+  /** Kiểu nhịp and Khớp cắn (R-1216): one each, for every tooth. */
+  rhythmId?: string;
+  biteId?: string;
+  /** One Dịch vụ → Vật liệu since R-1216; onImplant stays false. */
   restorations: { materialId: string; onImplant: boolean }[];
   /** Thông tin bổ sung (F-93): none sent clears it. */
   extraFormTemplateId?: string;

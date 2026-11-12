@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
 import {
+  LABO_TAXONOMY,
   useLaboFinishLineOptions,
   useLaboMaterialOptions,
   useLaboServiceOptions,
+  useLaboTaxonomyOptions,
   type PickerOption,
 } from "@/hooks/useLaboPickers";
 import { LABO_CASE_TYPE, laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
@@ -13,10 +15,9 @@ import { RequestNotes } from "./RequestNotes";
 import { RequestSlipInfo } from "./RequestSlipInfo";
 import { RequestToothChart } from "./RequestToothChart";
 import { chartOrder, type RequestSlipValues } from "./requestSlipModel";
-import { pickedNames, restorationGroups, toggleRestoration } from "./restorationGroups";
-import { RestorationCard, RestorationHeading } from "./RestorationSections";
+import { RestorationPicker } from "./RestorationPicker";
 import { ShadeZoneMap } from "./ShadeZoneMap";
-import type { RestorationCardKind } from "./slipLayout";
+import { SlipSpecSelects, withHeldOption } from "./SlipSpecSelects";
 import type { RequestSlipStep } from "./useRequestSlipStep";
 
 export interface SlipPartsSetup {
@@ -34,28 +35,23 @@ export interface SlipPartsSetup {
  */
 export interface SlipParts {
   info: (title?: string) => ReactNode;
-  restorationHeading: (title?: string) => ReactNode;
-  /**
-   * One card of Loại phục hình (R-1202). With `emptyTitle`, a card whose group
-   * has no material shows that heading over a note; without it, nothing.
-   */
-  restorationCard: (kind: RestorationCardKind, title?: string, emptyTitle?: string) => ReactNode;
-  /** The branch has any material to tick. */
-  hasRestorations: boolean;
+  /** Loại phục hình: one Dịch vụ, then one Vật liệu (R-1216). */
+  restoration: (title?: string) => ReactNode;
   shade: (title?: string) => ReactNode;
   teeth: (title?: string) => ReactNode;
+  /** Đường hoàn tất, with Kiểu nhịp and Khớp cắn under it (R-1216). */
   finishLines: (title?: string) => ReactNode;
   notes: (title?: string) => ReactNode;
-  /** "Ca mới · R18, R17 · Sứ Lava +1 · Vai 90°" — the footer's one line. */
+  /** "Ca mới · R18, R17 · Zirconia · Vai 90°" — the footer's one line. */
   summary: string;
 }
 
-function summaryOf(values: RequestSlipValues, names: string[], finishes: string[]): string {
+function summaryOf(values: RequestSlipValues, material: string | undefined, finishes: string[]): string {
   const teeth = chartOrder(values.teeth);
   return [
     t(values.caseType === LABO_CASE_TYPE.Redo ? "Labo:Slip:CaseRedo" : "Labo:Slip:CaseNew"),
     teeth.length ? teeth.map(toothLabel).join(", ") : t("Labo:Slip:NoTeeth"),
-    names.length ? names[0] + (names.length > 1 ? ` +${names.length - 1}` : "") : t("Labo:Slip:NoRestoration"),
+    material ?? t("Labo:Slip:NoRestoration"),
     ...(finishes.length ? [finishes.join(", ")] : []),
   ].join(" · ");
 }
@@ -65,16 +61,11 @@ export function useSlipParts({ branchId, patient, dentists, order, step }: SlipP
   const services = useLaboServiceOptions(branchId).data ?? [];
   const materials = useLaboMaterialOptions(branchId).data ?? [];
   const finishLines = useLaboFinishLineOptions(branchId).data ?? [];
+  const rhythms = useLaboTaxonomyOptions(LABO_TAXONOMY.rhythm, branchId).data ?? [];
+  const bites = useLaboTaxonomyOptions(LABO_TAXONOMY.bite, branchId).data ?? [];
 
-  const groups = restorationGroups(services, materials, values.restorations);
-  const names = pickedNames(groups, values.restorations);
+  const material = materials.find((one) => one.value === values.materialId)?.label;
   const finishes = finishLines.filter((line) => values.finishLineIds.includes(line.value)).map((line) => line.label);
-  const sectionProps = {
-    picked: values.restorations,
-    editable,
-    onToggle: (pick: RequestSlipValues["restorations"][number]) =>
-      change({ restorations: toggleRestoration(values.restorations, pick) }),
-  };
 
   return {
     info: (title) => (
@@ -88,13 +79,17 @@ export function useSlipParts({ branchId, patient, dentists, order, step }: SlipP
         onChange={change}
       />
     ),
-    restorationHeading: (title) => (
-      <RestorationHeading title={title ?? t("Labo:Slip:Restoration")} names={names} />
+    restoration: (title) => (
+      <RestorationPicker
+        services={services}
+        materials={materials}
+        serviceId={values.serviceId}
+        materialId={values.materialId}
+        editable={editable}
+        title={title}
+        onChange={change}
+      />
     ),
-    restorationCard: (kind, title, emptyTitle) => (
-      <RestorationCard kind={kind} groups={groups} title={title} emptyTitle={emptyTitle} {...sectionProps} />
-    ),
-    hasRestorations: groups.length > 0,
     shade: (title) => (
       <ShadeZoneMap shade={values.shade} editable={editable} title={title} onChange={(shade) => change({ shade })} />
     ),
@@ -116,7 +111,16 @@ export function useSlipParts({ branchId, patient, dentists, order, step }: SlipP
         editable={editable}
         title={title}
         onChange={(finishLineIds) => change({ finishLineIds })}
-      />
+      >
+        <SlipSpecSelects
+          rhythms={withHeldOption(rhythms, values.rhythmId, order?.rhythmName)}
+          bites={withHeldOption(bites, values.biteId, order?.biteName)}
+          rhythmId={values.rhythmId}
+          biteId={values.biteId}
+          editable={editable}
+          onChange={change}
+        />
+      </FinishLineChecks>
     ),
     notes: (title) => (
       <RequestNotes
@@ -128,6 +132,6 @@ export function useSlipParts({ branchId, patient, dentists, order, step }: SlipP
         onChange={(notes) => change({ notes })}
       />
     ),
-    summary: summaryOf(values, names, finishes),
+    summary: summaryOf(values, material, finishes),
   };
 }

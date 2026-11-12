@@ -1027,3 +1027,53 @@ FE:
 - A new template starts with the system blocks only — no default "Thông tin
   bổ sung" section (owner); Thêm mục adds one. An F-93 template without a
   layout still reads with its section.
+
+## 14. R-1216 — BA feedback on the Phiếu yêu cầu (2026-11-12, develop only)
+
+**BA requirement, not the reference.** BA Huỳnh Văn Định's notes on the
+F-91/F-92 slip: "trái để lại như trc chọn dịch vụ → chọn vật liệu", "phải
+thêm kiểu nhịp, khớp cắn", "tạo hình cho giống cái răng". Owner decisions
+(2026-11-12): exactly 1 Dịch vụ + 1 Vật liệu; drop "Trên implant" entirely;
+Kiểu nhịp / Khớp cắn as dropdowns "như cũ"; Màu răng drawn as an incisor
+crown. Kept on develop; **not merged to main**.
+
+What in §11–§13 no longer describes BlueDental (develop):
+
+- Loại phục hình:
+  - One picker, `RestorationPicker`: the classic Đặt hàng rows
+    (`LaboChoiceRow`, three chips + «Xem thêm» popup with recent / search).
+    Row 1 Dịch vụ = the three fixed groups of §11; row 2 Vật liệu = the
+    active materials of that group. Changing Dịch vụ lets go of a material it
+    does not offer.
+  - The three cards / columns and the "Trên implant" ticks are gone. The
+    server takes at most one restoration and never `onImplant`
+    (`Labo:0045`); none is still `Labo:0044`.
+  - Old orders keep what they saved; their read-back, Xem chi tiết and print
+    still say "(trên implant)" where an old tick had it.
+- Kiểu nhịp (`labo_rhythm`) and Khớp cắn (`labo_bite`):
+  - Two optional single-choice AntD Selects under Đường hoàn tất
+    (`SlipSpecSelects`), once per order, copied onto every tooth like the
+    rest of the spec. A value of a Danh mục row later removed is still shown.
+  - Server keeps an id only if it is a row of that group in this branch;
+    anything else is dropped silently. A Mẫu phiếu hiding Đường hoàn tất
+    drops them too.
+  - Shown on the sent slip, Xem chi tiết (`LaboRequestSlipFacts`) and the
+    print sheet.
+- Màu răng (`ShadeZoneMap`):
+  - An upper central incisor seen from the lip, crown only (220×260 SVG
+    path): narrow neck, flaring sides, broad incisal edge. The same path
+    clips the 2×3 grid (`--rs-crown: path(...)`), dashed lines split Cổ /
+    Thân / Rìa cắn × Gần / Xa, labels stay at the side and under it.
+  - Each input carries `data-zone`; per-zone padding centres the code in the
+    part of the cell the crown shows (the neck row is narrow).
+- Mẫu phiếu (F-94):
+  - Block kinds AllCeramic 7 / Alloy 8 / OtherOnImplant 9 are no longer
+    system blocks. A layout saved with them folds them back into Loại phục
+    hình, one column wide, shown if any card was shown
+    (`LaboFormLayout.WithoutCards`). No migration.
+  - New default order: Info 3, Restoration 1, Shade 1, Teeth 1, FinishLine 1,
+    [Thông tin bổ sung 3], Notes 3. The fixed slip without a template
+    (`LegacySlipLayout`) puts Đường hoàn tất (with Kiểu nhịp / Khớp cắn) in
+    column 3 under Chỉ định, while a template's default flows it into
+    column 1 under Loại phục hình (masonry): accepted difference.
+  - The builder's preview draws the same picker and the two Selects.

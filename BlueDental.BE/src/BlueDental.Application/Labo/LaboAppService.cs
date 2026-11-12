@@ -739,13 +739,12 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     }
 
     /// <summary>
-    /// The Phiếu yêu cầu (F-91): no supplier, Khớp cắn, Kiểu nhịp or per-tooth
-    /// spec. Each Loại phục hình must be an active material of this branch,
-    /// ticked in a column its group has (P1011, <see cref="LaboMaterialGroups"/>):
-    /// Toàn sứ and Hợp kim either way, Phục hình khác trên implant only on an
-    /// implant, a group from before P1011 by the material's own flag. Đường hoàn tất
-    /// keeps only this branch's rows, so another clinic's id never lands on a
-    /// tooth.
+    /// The Phiếu yêu cầu (F-91): no supplier or per-tooth spec. Loại phục hình
+    /// is one Dịch vụ → Vật liệu (R-1216): at most one restoration, an active
+    /// material of this branch, never "Trên implant". Đường hoàn tất, Kiểu
+    /// nhịp and Khớp cắn keep only this branch's rows of their group, so another
+    /// clinic's id never lands on a tooth; Kiểu nhịp and Khớp cắn are optional
+    /// and sit with Đường hoàn tất, so a Mẫu phiếu hiding it drops them too.
     /// </summary>
     private async Task<LaboOrderDetails> ToRequestSlipDetailsAsync(
         SaveLaboOrderDto input, Guid branchId, LaboExtraForm? current)
@@ -757,30 +756,18 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         var restorations = (extraForm?.HidesRestorations() == true ? [] : input.Restorations ?? [])
             .Select(r => new LaboToothRestoration(r.MaterialId, r.OnImplant))
             .ToList();
-        var materialIds = restorations.Select(r => r.MaterialId).Distinct().ToList();
-        var materials = materialIds.Count == 0
-            ? []
-            : (await _materialRepository.GetListAsync(m =>
-                    materialIds.Contains(m.Id) && m.ClinicBranchId == branchId && m.IsActive))
-                .ToDictionary(m => m.Id);
-        var groupIds = materials.Values.Select(m => m.TaxonomyId).Distinct().ToList();
-        var groupCodes = groupIds.Count == 0
-            ? new Dictionary<Guid, string?>()
-            : (await _taxonomyRepository.GetListAsync(t => groupIds.Contains(t.Id)))
-                .ToDictionary(t => t.Id, t => t.IsSystem ? t.SubGroup : null);
-        if (restorations.Any(r =>
-                !materials.TryGetValue(r.MaterialId, out var material) ||
-                !LaboMaterialGroups.Accepts(
-                    groupCodes.GetValueOrDefault(material.TaxonomyId), r.OnImplant, material.AllowOnImplant)))
-        {
+        if (restorations.Count > 1 || restorations.Any(r => r.OnImplant))
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
+        if (restorations.Count == 1)
+        {
+            var materialId = restorations[0].MaterialId;
+            if (!await _materialRepository.AnyAsync(m =>
+                    m.Id == materialId && m.ClinicBranchId == branchId && m.IsActive))
+                throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
         }
 
-        // R-1202: a tick on a card the Mẫu phiếu hides is not kept either.
-        if (extraForm is not null)
-            restorations.RemoveAll(r => extraForm.HidesGroup(groupCodes.GetValueOrDefault(materials[r.MaterialId].TaxonomyId)));
-
-        var requestedFinishLines = (Hidden(LaboFormBlockKind.FinishLine) ? [] : input.FinishLineIds ?? [])
+        var finishLineHidden = Hidden(LaboFormBlockKind.FinishLine);
+        var requestedFinishLines = (finishLineHidden ? [] : input.FinishLineIds ?? [])
             .Distinct()
             .ToList();
         var knownFinishLines = requestedFinishLines.Count == 0
@@ -791,6 +778,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     && t.Group == TaxonomyGroups.LaboFinishLine))
                 .Select(t => t.Id)
                 .ToHashSet();
+        var rhythmId = finishLineHidden ? null : await BranchTaxonomyOrNullAsync(input.RhythmId, branchId, TaxonomyGroups.LaboRhythm);
+        var biteId = finishLineHidden ? null : await BranchTaxonomyOrNullAsync(input.BiteId, branchId, TaxonomyGroups.LaboBite);
 
         var zones = Hidden(LaboFormBlockKind.Shade) ? null : input.ShadeZones;
         return new LaboOrderDetails
@@ -807,6 +796,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     zones.BodyMesial, zones.BodyDistal,
                     zones.IncisalMesial, zones.IncisalDistal),
             FinishLineIds = requestedFinishLines.Where(knownFinishLines.Contains).ToList(),
+            RhythmId = rhythmId,
+            BiteId = biteId,
             Restorations = restorations,
             ExtraForm = extraForm,
             SpecMode = LaboSpecMode.SharedAll,
@@ -821,6 +812,16 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             TreatmentServiceId = input.TreatmentServiceId,
             TreatmentStageId = input.TreatmentStageId,
         };
+    }
+
+    /// <summary>The id when it is a row of that Danh mục group in this branch; anything else is dropped.</summary>
+    private async Task<Guid?> BranchTaxonomyOrNullAsync(Guid? id, Guid branchId, string group)
+    {
+        if (id is not { } wanted)
+            return null;
+        var known = await _taxonomyRepository.AnyAsync(t =>
+            t.Id == wanted && t.ClinicBranchId == branchId && t.Group == group);
+        return known ? wanted : null;
     }
 
     /// <summary>

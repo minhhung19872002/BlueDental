@@ -8,21 +8,22 @@ import {
   Layout,
   newMaterial,
   newPatient,
-  post,
   readBack,
   save,
   slipCatalog,
   slipNo,
-  type SlipMaterial,
+  taxonomy,
+  type Restoration,
   type SlipOrderView,
 } from "./fixtures/laboSlipApi";
 
 /**
  * Feature F-91: the Labo Phiếu yêu cầu (BA mock "bản 2 nhập mã số, không kế
  * hoạch nhà cung cấp") — Mã số typed by hand and kept unique per branch,
- * Loại phục hình from Danh mục vật liệu (Trên implant only where the material
- * allows it), Màu răng in six zones, Đường hoàn tất several at once, all of
- * it entered once and stored on every tooth, no supplier and no slip link.
+ * Loại phục hình as one Dịch vụ and one Vật liệu of this branch (R-1216, no
+ * Trên implant), Màu răng in six zones, Đường hoàn tất several at once,
+ * Kiểu nhịp and Khớp cắn, all of it entered once and stored on every tooth,
+ * no supplier and no slip link.
  *
  * Every call is a real HTTP request from the logged-in page — cookie session,
  * antiforgery header, real database. Every write is read back with its own GET.
@@ -161,11 +162,9 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
         caseType: CaseType.Redo,
         zones: { cervicalMesial: "a3", bodyMesial: " a2 ", incisalDistal: "B1" },
         finishLineIds: c.finishLines.map((f) => f.id),
-        restorations: [
-          { materialId: c.ceramic.id, onImplant: true },
-          { materialId: c.alloy.id, onImplant: false },
-          { materialId: c.implantOther.id, onImplant: true },
-        ],
+        restorations: [{ materialId: c.alloy.id, onImplant: false }],
+        rhythmId: c.rhythm.id,
+        biteId: c.bite.id,
       }),
     );
     expect(made.status, made.text).toBe(200);
@@ -177,19 +176,22 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
     expect(order.labProviderName).toBe("");
     expect(order.toothShade).toBe("A3/A2/B1");
     expect(order.teeth.map((t) => t.toothNumber).sort()).toEqual([16, 17]);
+    expect([order.rhythmName, order.biteName]).toEqual([c.rhythm.name, c.bite.name]);
     for (const tooth of order.teeth) {
       expect(tooth.shadeZones).toMatchObject({ cervicalMesial: "A3", bodyMesial: "A2", incisalDistal: "B1" });
       expect(tooth.shadeZones?.bodyDistal ?? null).toBeNull();
       expect(tooth.shade).toBe("A3/A2/B1");
       expect(tooth.finishLineIds).toEqual(c.finishLines.map((f) => f.id));
       expect(tooth.finishLineNames).toEqual(c.finishLines.map((f) => f.name));
-      const line = (material: SlipMaterial, onImplant: boolean) => ({
-        materialId: material.id,
-        onImplant,
-        materialName: material.name,
-        groupName: material.groupName,
-      });
-      expect(tooth.restorations).toEqual([line(c.ceramic, true), line(c.alloy, false), line(c.implantOther, true)]);
+      expect(tooth.restorations).toEqual([
+        { materialId: c.alloy.id, onImplant: false, materialName: c.alloy.name, groupName: c.alloy.groupName },
+      ]);
+      expect([tooth.rhythmId, tooth.rhythmName, tooth.biteId, tooth.biteName]).toEqual([
+        c.rhythm.id,
+        c.rhythm.name,
+        c.bite.id,
+        c.bite.name,
+      ]);
     }
   });
 
@@ -224,34 +226,48 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
     expect(reused.status, reused.text).toBe(200);
   });
 
-  test("Phục hình khác trên implant is ticked only on an implant, and a material is of this branch", async ({ page }) => {
+  test("Loại phục hình is one active Vật liệu of this branch, never on an implant", async ({ page }) => {
     const c = await slipCatalog(page);
-    const patientId = await newPatient(page, "implant");
-    const plainOther = await save(
-      page,
-      fullSlip(c, patientId, slipNo("imp"), { restorations: [{ materialId: c.implantOther.id, onImplant: false }] }),
-    );
-    expect(plainOther.status).toBe(403);
-    expect(plainOther.body.error?.code).toBe(RESTORATION_INVALID);
-
-    // A group made before P1011 keeps the material's own Trên implant flag.
+    const patientId = await newPatient(page, "restoration");
     const id = runId();
-    const legacy = await post(page, "/api/v1/app/taxonomies", { group: "labo_material", name: `Cũ e2e ${id}`, clinicBranchId: BRANCH_ONE });
-    const legacyMaterial = await newMaterial(page, legacy, `Cũ vật liệu ${id}`);
-    const legacyOnImplant = await save(
-      page,
-      fullSlip(c, patientId, slipNo("old"), { restorations: [{ materialId: legacyMaterial.id, onImplant: true }] }),
-    );
-    expect(legacyOnImplant.status).toBe(403);
-    expect(legacyOnImplant.body.error?.code).toBe(RESTORATION_INVALID);
+    const refused = async (tag: string, restorations: Restoration[]) => {
+      const res = await save(page, fullSlip(c, patientId, slipNo(tag), { restorations }));
+      expect(res.status, `${tag}: ${res.text}`).toBe(403);
+      expect(res.body.error?.code).toBe(RESTORATION_INVALID);
+    };
+
+    await refused("two", [
+      { materialId: c.ceramic.id, onImplant: false },
+      { materialId: c.alloy.id, onImplant: false },
+    ]);
+    await refused("imp", [{ materialId: c.implantOther.id, onImplant: true }]);
 
     const foreign = await newMaterial(page, (await fixedGroups(page, BRANCH_TWO)).TOAN_SU, `CN2 vật liệu ${id}`, BRANCH_TWO);
-    const foreignRes = await save(
+    await refused("cn2", [{ materialId: foreign.id, onImplant: false }]);
+
+    const retired = await newMaterial(page, c.groups.HOP_KIM, `Ngưng e2e ${id}`);
+    const off = await call(page, `${MATERIALS}/${retired.id}/active`, { method: "PUT", branchId: BRANCH_ONE, json: { isActive: false } });
+    expect(off.status, off.text).toBe(200);
+    await refused("off", [{ materialId: retired.id, onImplant: false }]);
+
+    // Any group's material stands alone now, Khác trên implant included.
+    const other = await save(page, fullSlip(c, patientId, slipNo("oth"), { restorations: [{ materialId: c.implantOther.id, onImplant: false }] }));
+    expect(other.status, other.text).toBe(200);
+  });
+
+  test("Kiểu nhịp and Khớp cắn of another branch or another Danh mục are dropped", async ({ page }) => {
+    const c = await slipCatalog(page);
+    const patientId = await newPatient(page, "rhythm");
+    const id = runId();
+    const foreignRhythm = await taxonomy(page, "labo_rhythm", `CN2 nhịp ${id}`, BRANCH_TWO);
+    const made = await save(
       page,
-      fullSlip(c, patientId, slipNo("cn2"), { restorations: [{ materialId: foreign.id, onImplant: false }] }),
+      fullSlip(c, patientId, slipNo("rb"), { rhythmId: foreignRhythm.id, biteId: c.rhythm.id }),
     );
-    expect(foreignRes.status).toBe(403);
-    expect(foreignRes.body.error?.code).toBe(RESTORATION_INVALID);
+    expect(made.status, made.text).toBe(200);
+    const order = await readBack(page, made.body.id!);
+    expect([order.rhythmName, order.biteName]).toEqual([null, null]);
+    for (const tooth of order.teeth) expect([tooth.rhythmId, tooth.biteId]).toEqual([null, null]);
   });
 
   test("Gửi needs a Loại phục hình and a Màu răng", async ({ page }) => {

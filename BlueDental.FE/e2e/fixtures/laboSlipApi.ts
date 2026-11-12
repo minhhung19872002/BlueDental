@@ -26,6 +26,10 @@ export interface SlipToothView {
   finishLineIds: string[];
   finishLineNames: string[];
   restorations: (Restoration & { materialName: string | null; groupName: string | null })[];
+  rhythmId: string | null;
+  rhythmName: string | null;
+  biteId: string | null;
+  biteName: string | null;
 }
 
 export interface SlipOrderView extends Omit<LaboOrderView, "teeth"> {
@@ -33,6 +37,8 @@ export interface SlipOrderView extends Omit<LaboOrderView, "teeth"> {
   labSlipNo: string | null;
   notes: string | null;
   caseType: number;
+  rhythmName: string | null;
+  biteName: string | null;
   teeth: SlipToothView[];
 }
 
@@ -45,6 +51,9 @@ export interface SlipBody {
   zones?: Partial<Record<Zone, string>>;
   finishLineIds?: string[];
   restorations?: Restoration[];
+  /** Kiểu nhịp / Khớp cắn, one each for the whole order (R-1216). */
+  rhythmId?: string;
+  biteId?: string;
   notes?: string;
   submit: boolean;
 }
@@ -66,9 +75,9 @@ export interface SlipMaterial {
 }
 
 /**
- * What the Phiếu yêu cầu picks from: a material in each fixed group — Toàn sứ
- * and Hợp kim take a plain and a Trên implant tick, Phục hình khác trên implant
- * only the implant one — and two finish lines.
+ * What the Phiếu yêu cầu picks from: a material in each fixed group — the
+ * group is the Dịch vụ, the material the Vật liệu under it (R-1216) — two
+ * finish lines, and a Kiểu nhịp and a Khớp cắn.
  */
 export interface SlipCatalog {
   dentistId: string;
@@ -77,6 +86,8 @@ export interface SlipCatalog {
   alloy: SlipMaterial;
   implantOther: SlipMaterial;
   finishLines: { id: string; name: string }[];
+  rhythm: { id: string; name: string };
+  bite: { id: string; name: string };
 }
 
 let catalog: SlipCatalog | undefined;
@@ -119,6 +130,12 @@ export async function newMaterial(page: Page, group: SlipGroup, name: string, br
   return { id: made.id, name: made.name, code: made.code, groupName: group.name };
 }
 
+/** A Danh mục entry of `group` in branch 1 — Kiểu nhịp, Khớp cắn. */
+export async function taxonomy(page: Page, group: string, name: string, branchId = BRANCH_ONE) {
+  const made = await post(page, "/api/v1/app/taxonomies", { group, name, clinicBranchId: branchId }, branchId);
+  return { id: made.id, name: made.name };
+}
+
 export async function slipCatalog(page: Page): Promise<SlipCatalog> {
   if (catalog) return catalog;
   const id = runId();
@@ -135,6 +152,8 @@ export async function slipCatalog(page: Page): Promise<SlipCatalog> {
     alloy: await newMaterial(page, groups.HOP_KIM, `Titan e2e ${id}`),
     implantOther: await newMaterial(page, groups.KHAC_TREN_IMPLANT, `Abutment e2e ${id}`),
     finishLines: finishLines.map(({ id: lineId, name }) => ({ id: lineId, name })),
+    rhythm: await taxonomy(page, "labo_rhythm", `Nhịp cầu e2e ${id}`),
+    bite: await taxonomy(page, "labo_bite", `Cắn chéo e2e ${id}`),
   };
   return catalog;
 }
@@ -162,6 +181,8 @@ export function slipForm(body: SlipBody): Record<string, FormValue> {
     caseType: body.caseType ?? CaseType.New,
     teeth: body.teeth,
     finishLineIds: body.finishLineIds ?? [],
+    rhythmId: body.rhythmId,
+    biteId: body.biteId,
     quantity: Math.max(body.teeth.length, 1),
     notes: body.notes,
     sentAt: daysFromNow(0),

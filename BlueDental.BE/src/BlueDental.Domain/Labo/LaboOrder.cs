@@ -466,8 +466,9 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// The Phiếu yêu cầu (F-91): no supplier and no Khớp cắn / Kiểu nhịp; one
-    /// spec copied onto every tooth. The order-level Màu, Đường hoàn tất and
+    /// The Phiếu yêu cầu (F-91): no supplier; Khớp cắn and Kiểu nhịp once for the
+    /// order (R-1216), copied onto every tooth with the rest of the one
+    /// spec. The order-level Màu, Đường hoàn tất and
     /// Vật liệu mirror it (the first finish line, the first restoration) for
     /// the readers that predate the form. A Nháp that was written on the
     /// classic form and is saved again here becomes a Phiếu yêu cầu.
@@ -478,11 +479,11 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         CaseType = Enum.IsDefined(details.CaseType) ? details.CaseType : LaboCaseType.New;
         LabProviderName = string.Empty;
         SupplierId = null;
-        BiteId = null;
-        RhythmId = null;
+        BiteId = details.BiteId;
+        RhythmId = details.RhythmId;
         SpecMode = LaboSpecMode.SharedAll;
         foreach (var tooth in _teeth)
-            tooth.SetRequestSpec(details.ShadeZones, details.FinishLineIds, details.Restorations);
+            tooth.SetRequestSpec(details.ShadeZones, details.FinishLineIds, details.Restorations, details.RhythmId, details.BiteId);
 
         var zones = details.ShadeZones is { IsEmpty: false } ? details.ShadeZones : null;
         ToothShade = zones?.Summary;

@@ -1,23 +1,25 @@
 import type { ReactNode } from "react";
 import { t } from "@/lib/i18n";
-import { LABO_BLOCK_KIND, type LaboSystemBlockKind } from "../../api/laboFormTemplateApi";
+import type { PickerOption } from "@/hooks/useLaboPickers";
+import { LABO_BLOCK_KIND, type LaboBlockKind } from "../../api/laboFormTemplateApi";
 import { LaboPictureWell } from "../order-dialogs/LaboPictureWell";
 import { LaboToothRow } from "../order-dialogs/LaboToothRow";
 import type { LaboPriorTeeth } from "../order-dialogs/laboPriorTeeth";
 import { ExtraFieldInput } from "../request-slip/ExtraFieldInput";
 import { FinishLineChecks } from "../request-slip/FinishLineChecks";
 import type { ShadeValues } from "../request-slip/requestSlipModel";
-import { RestorationCard, RestorationHeading } from "../request-slip/RestorationSections";
+import { RestorationPicker } from "../request-slip/RestorationPicker";
 import { SectionBadge } from "../request-slip/SectionBadge";
 import { ShadeZoneMap } from "../request-slip/ShadeZoneMap";
-import { blockTitle, type RestorationCardKind } from "../request-slip/slipLayout";
+import { blockTitle } from "../request-slip/slipLayout";
+import { SlipSpecSelects } from "../request-slip/SlipSpecSelects";
 import type { BlockDraft } from "./formTemplateModel";
 import { PreviewSlipInfo } from "./PreviewSlipInfo";
 import type { PreviewCatalog } from "./usePreviewCatalog";
 
 /**
  * A block of the builder's preview as a new Phiếu yêu cầu draws it (R-1202):
- * the slip's own parts with the branch's Loại phục hình and Đường hoàn tất,
+ * the slip's own parts with the branch's Dịch vụ, Vật liệu and Đường hoàn tất,
  * and a section's fields as the inputs the slip gives them. The preview body is
  * inert — nothing in it takes input; a click reaches the block underneath.
  */
@@ -32,22 +34,8 @@ const NO_SHADE: ShadeValues = {
 };
 const NO_PRIORS: LaboPriorTeeth = new Map();
 const NO_ANSWERS: string[] = [];
+const NO_OPTIONS: PickerOption[] = [];
 const ignore = () => undefined;
-
-const NO_PICKS = { picked: [], editable: true, onToggle: ignore };
-
-/** A Loại phục hình card: its group from the branch catalog, or its heading over an empty note. */
-function card(kind: RestorationCardKind) {
-  return (title: string, catalog: PreviewCatalog, block: BlockDraft) => (
-    <RestorationCard
-      kind={kind}
-      groups={catalog.groups}
-      title={block.title.trim() || undefined}
-      emptyTitle={title}
-      {...NO_PICKS}
-    />
-  );
-}
 
 const Teeth = ({ title }: { title: string }) => (
   <section className="rs-sec">
@@ -76,16 +64,26 @@ const Notes = ({ title }: { title: string }) => (
 
 type SystemPart = (title: string, catalog: PreviewCatalog, block: BlockDraft) => ReactNode;
 
-const SYSTEM_PART: Record<LaboSystemBlockKind, SystemPart> = {
+// No card kinds (R-1202): a draft reads them folded into Restoration (withoutRestorationCards).
+const SYSTEM_PART: Partial<Record<LaboBlockKind, SystemPart>> = {
   [LABO_BLOCK_KIND.Info]: (title) => <PreviewSlipInfo title={title} />,
-  [LABO_BLOCK_KIND.Restoration]: (title) => <RestorationHeading title={title} names={[]} />,
-  [LABO_BLOCK_KIND.AllCeramic]: card(LABO_BLOCK_KIND.AllCeramic),
-  [LABO_BLOCK_KIND.Alloy]: card(LABO_BLOCK_KIND.Alloy),
-  [LABO_BLOCK_KIND.OtherOnImplant]: card(LABO_BLOCK_KIND.OtherOnImplant),
+  [LABO_BLOCK_KIND.Restoration]: (title, catalog) => (
+    <RestorationPicker
+      services={catalog.services}
+      materials={catalog.materials}
+      serviceId={undefined}
+      materialId={undefined}
+      editable
+      title={title}
+      onChange={ignore}
+    />
+  ),
   [LABO_BLOCK_KIND.Shade]: (title) => <ShadeZoneMap shade={NO_SHADE} editable title={title} onChange={ignore} />,
   [LABO_BLOCK_KIND.Teeth]: (title) => <Teeth title={title} />,
   [LABO_BLOCK_KIND.FinishLine]: (title, catalog) => (
-    <FinishLineChecks options={catalog.finishLines} value={NO_ANSWERS} editable title={title} onChange={ignore} />
+    <FinishLineChecks options={catalog.finishLines} value={NO_ANSWERS} editable title={title} onChange={ignore}>
+      <SlipSpecSelects rhythms={NO_OPTIONS} bites={NO_OPTIONS} rhythmId={undefined} biteId={undefined} editable onChange={ignore} />
+    </FinishLineChecks>
   ),
   [LABO_BLOCK_KIND.Notes]: (title) => <Notes title={title} />,
 };
@@ -127,5 +125,5 @@ function Section({ block, title }: { block: BlockDraft; title: string }) {
 export function PreviewBlockBody({ block, catalog }: { block: BlockDraft; catalog: PreviewCatalog }) {
   const title = blockTitle(block);
   if (block.kind === LABO_BLOCK_KIND.Custom) return <Section block={block} title={title} />;
-  return <>{SYSTEM_PART[block.kind](title, catalog, block)}</>;
+  return <>{SYSTEM_PART[block.kind]?.(title, catalog, block)}</>;
 }

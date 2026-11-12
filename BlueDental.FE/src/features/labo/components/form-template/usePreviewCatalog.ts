@@ -4,19 +4,21 @@ import {
   useLaboMaterialOptions,
   useLaboServiceOptions,
   type LaboFinishLineOption,
+  type LaboMaterialOption,
+  type LaboServiceOption,
 } from "@/hooks/useLaboPickers";
-import { restorationGroups, type RestorationGroup } from "../request-slip/restorationGroups";
 
 /** The branch's own lists the preview draws its blocks from (R-1202). */
 export interface PreviewCatalog {
-  groups: RestorationGroup[];
+  services: LaboServiceOption[];
+  materials: LaboMaterialOption[];
   finishLines: LaboFinishLineOption[];
 }
 
 /**
- * Loại phục hình and Đường hoàn tất as a new slip of the branch would list
- * them — the same catalog calls the Phiếu yêu cầu makes — whole, so each
- * card shows ten rows and scrolls as on the slip.
+ * Loại phục hình's Dịch vụ and Vật liệu (R-1216) and Đường hoàn tất as a new
+ * slip of the branch would list them — the same catalog calls the Phiếu yêu
+ * cầu makes.
  */
 export function usePreviewCatalog(branchId: string, enabled: boolean): PreviewCatalog {
   const services = useLaboServiceOptions(branchId, enabled).data;
@@ -24,10 +26,7 @@ export function usePreviewCatalog(branchId: string, enabled: boolean): PreviewCa
   const finishLines = useLaboFinishLineOptions(branchId, enabled).data;
 
   return useMemo(
-    () => ({
-      groups: restorationGroups(services ?? [], materials ?? [], []),
-      finishLines: finishLines ?? [],
-    }),
+    () => ({ services: services ?? [], materials: materials ?? [], finishLines: finishLines ?? [] }),
     [services, materials, finishLines],
   );
 }

@@ -48,15 +48,24 @@ export const LABO_BLOCK_KIND = {
   Teeth: 4,
   FinishLine: 5,
   Notes: 6,
-  /** Loại phục hình's cards (R-1202); Restoration is then only its heading with "Đã chọn". */
+  /**
+   * Loại phục hình's cards (R-1202). Gone since R-1216 made it one Dịch vụ →
+   * Vật liệu picker: only a layout saved in between holds them, and every
+   * reader folds them back into Restoration (withoutRestorationCards).
+   */
   AllCeramic: 7,
   Alloy: 8,
   OtherOnImplant: 9,
 } as const;
 export type LaboBlockKind = (typeof LABO_BLOCK_KIND)[keyof typeof LABO_BLOCK_KIND];
 
+type LaboCardKind =
+  | typeof LABO_BLOCK_KIND.AllCeramic
+  | typeof LABO_BLOCK_KIND.Alloy
+  | typeof LABO_BLOCK_KIND.OtherOnImplant;
+
 /** The system blocks a slip is made of; each comes once in every layout. */
-export type LaboSystemBlockKind = Exclude<LaboBlockKind, typeof LABO_BLOCK_KIND.Custom>;
+export type LaboSystemBlockKind = Exclude<LaboBlockKind, typeof LABO_BLOCK_KIND.Custom | LaboCardKind>;
 
 /** Thông tin phiếu and Chỉ định hold what every order needs, so they always show. */
 export const isLockedBlock = (kind: LaboBlockKind): boolean =>

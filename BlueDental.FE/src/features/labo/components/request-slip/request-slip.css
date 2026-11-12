@@ -183,36 +183,40 @@
 }
 
 /* ── Loại phục hình ───────────────────────────────────────── */
-.rs-heading {
+/* Dịch vụ → Vật liệu (R-1216): the classic Đặt hàng rows, without the
+   top margin they get in the order dialog. */
+.rs-restoration-rows {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
+  padding: 12px;
 }
 
-.rs-heading-title {
+.rs-restoration-rows > .ant-form-item {
   margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--rs-ink);
-  white-space: nowrap;
 }
 
-.rs-heading-rule {
-  flex: 1;
-  height: 1px;
-  background: var(--rs-line);
+.rs-restoration-rows .pd-labo-choice {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin: 0;
 }
 
-.rs-heading-picked {
-  max-width: 55%;
-  color: var(--rs-muted);
+/* The 340px column has no room for the dialog's 150px label column: it sits above its chips. */
+.rs-restoration-rows .pd-labo-choice-label {
+  width: auto;
+  color: var(--rs-label);
   font-size: 12px;
-  text-align: right;
 }
 
-.rs-heading-picked b {
-  color: var(--rs-ink);
+/* ── Kiểu nhịp / Khớp cắn (R-1216) ── */
+.rs-spec {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 10px 12px 12px;
+  border-top: 1px dashed var(--rs-line);
 }
 
 .rs-main {
@@ -229,61 +233,14 @@
   min-width: 0;
 }
 
-.rs-thead,
-.rs-trow {
-  display: grid;
-  grid-template-columns: 1fr 80px 80px;
-  align-items: center;
-}
-
-.rs-thead {
-  margin-bottom: 6px;
-  background: var(--rs-head-bg);
-  color: var(--rs-head-ink);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.rs-thead > span {
-  padding: 7px 10px;
-}
-
-.rs-thead > .rs-c {
-  padding: 7px 0;
-  text-align: center;
-}
-
-.rs-trow {
-  min-height: 30px;
-  margin: 0 8px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.rs-trow > span {
-  padding: 0 2px;
-}
-
-.rs-trow > .rs-c {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 30px;
-}
-
-.rs-trow:last-child,
 .rs-krow:last-child {
   margin-bottom: 8px;
 }
 
-.rs-trow:hover,
 .rs-krow:hover {
   background: var(--rs-hover);
 }
 
-.rs-trow.rs-on,
 .rs-krow.rs-on {
   background: var(--rs-head-bg);
 }
@@ -298,17 +255,6 @@
   border-radius: 8px;
   font-size: 13px;
   cursor: pointer;
-}
-
-.rs-sech + .rs-rows {
-  padding-top: 6px;
-}
-
-/* Ten 30px rows and the last one's margin, then the rows scroll under the
-   card's header (P1011) — an 11th row peeks in to say there is more. */
-.rs-rows {
-  max-height: 322px;
-  overflow-y: auto;
 }
 
 .rs-grow {
@@ -381,16 +327,60 @@
   text-align: right;
 }
 
+/* An incisor crown (R-1216): the six cells are clipped to the tooth drawn by
+   ShadeZoneMap's SVG, which lies on top and lets every click through. */
 .rs-toothmap {
+  --rs-enamel-neck: #eceffc;
+  --rs-enamel: #ffffff;
+  --rs-enamel-edge: #e6ebf8;
+  --rs-enamel-ink: #a5b4fc;
+
+  position: relative;
+  width: 220px;
+  height: 260px;
+  filter: drop-shadow(0 8px 14px rgb(79 70 229 / 0.12));
+}
+
+/* Enamel: a faint shade at the neck, white across the body, a cool clear
+   incisal edge. */
+.rs-toothmap-zones {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  width: 220px;
-  height: 260px;
-  overflow: hidden;
-  border: 2px solid var(--rs-accent);
-  border-radius: 48% 48% 34% 34% / 38% 38% 24% 24%;
-  background: #fff;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    var(--rs-enamel-neck) 0%,
+    var(--rs-enamel) 34%,
+    var(--rs-enamel) 70%,
+    var(--rs-enamel-edge) 100%
+  );
+  clip-path: var(--rs-crown);
+}
+
+.rs-toothmap-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.rs-toothmap-crown {
+  fill: none;
+  stroke: var(--rs-enamel-ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.rs-toothmap-lines {
+  fill: none;
+  stroke: var(--rs-enamel-ink);
+  stroke-opacity: 0.7;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
 }
 
 .rs-zone {
@@ -399,8 +389,6 @@
   height: 100%;
   padding: 0;
   border: 0;
-  border-right: 1px dashed var(--rs-accent-soft);
-  border-bottom: 1px dashed var(--rs-accent-soft);
   background: transparent;
   color: var(--rs-ink);
   font-size: 16px;
@@ -410,12 +398,34 @@
   outline: none;
 }
 
-.rs-zone:nth-child(even) {
-  border-right: 0;
+/* Each code sits in the middle of the part of its cell the crown shows: the
+   crown narrows to the neck, and the cervical line domes over the Cổ row. */
+.rs-zone[data-zone^="cervical"] {
+  padding-top: 14px;
 }
 
-.rs-zone:nth-child(n + 5) {
-  border-bottom: 0;
+.rs-zone[data-zone="cervicalMesial"] {
+  padding-left: 36px;
+}
+
+.rs-zone[data-zone="cervicalDistal"] {
+  padding-right: 36px;
+}
+
+.rs-zone[data-zone="bodyMesial"] {
+  padding-left: 18px;
+}
+
+.rs-zone[data-zone="bodyDistal"] {
+  padding-right: 18px;
+}
+
+.rs-zone[data-zone="incisalMesial"] {
+  padding-left: 10px;
+}
+
+.rs-zone[data-zone="incisalDistal"] {
+  padding-right: 10px;
 }
 
 .rs-zone::placeholder {
@@ -424,18 +434,19 @@
 }
 
 .rs-zone:hover:not(:disabled) {
-  background: #f5f6ff;
+  background: rgb(99 102 241 / 0.06);
 }
 
 .rs-zone:focus {
-  background: var(--rs-head-bg);
+  background: rgb(99 102 241 / 0.1);
   box-shadow: inset 0 0 0 2px var(--rs-focus);
 }
 
+/* Gần / Xa centred under the crown's two halves. */
 .rs-shade-cols {
   display: grid;
   grid-template-columns: repeat(2, 110px);
-  margin: 6px 0 0 calc(14px + 3.5em);
+  margin-top: 8px;
   color: var(--rs-muted);
   font-size: 12px;
   font-weight: 600;

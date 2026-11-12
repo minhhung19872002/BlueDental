@@ -109,15 +109,17 @@ public class LaboOrderTooth : Entity<Guid>
 
     /// <summary>
     /// The Phiếu yêu cầu's spec (F-91), entered once for the order and kept on
-    /// every tooth so a tooth can later be given its own. The classic spec
-    /// columns are cleared — the form has no Kiểu nhịp, Khớp cắn or Mặt răng —
-    /// except Màu and Đường hoàn tất, which mirror the new values for the
-    /// readers that predate them.
+    /// every tooth so a tooth can later be given its own: Kiểu nhịp and Khớp
+    /// cắn (R-1216) as they are, Màu and Đường hoàn tất also mirrored onto the
+    /// classic columns for the readers that predate them. The form has no Mặt
+    /// răng, so the surfaces are cleared.
     /// </summary>
     internal void SetRequestSpec(
         LaboShadeZones? zones,
         IReadOnlyCollection<Guid> finishLineIds,
-        IReadOnlyCollection<LaboToothRestoration> restorations)
+        IReadOnlyCollection<LaboToothRestoration> restorations,
+        Guid? rhythmId,
+        Guid? biteId)
     {
         // Each tooth gets its own copies: EF tracks an owned value per owner,
         // so one instance cannot sit on several rows.
@@ -130,8 +132,8 @@ public class LaboOrderTooth : Entity<Guid>
         Shade = ShadeZones?.Summary;
         FinishLineIds = finishLineIds.Distinct().ToList();
         FinishLineId = FinishLineIds.Count == 0 ? null : FinishLineIds[0];
-        RhythmId = null;
-        BiteId = null;
+        RhythmId = rhythmId;
+        BiteId = biteId;
         ShadeBySurface = false;
         _surfaces.Clear();
         _restorations.Clear();

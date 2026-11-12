@@ -11,7 +11,7 @@ import {
   type LaboExtraFormEntryDto,
   type LaboFormBlockDto,
 } from "@/features/labo/api/laboFormTemplateApi";
-import { blockTitle, isCard, sectionEntries, spanClass, withRestorationCards } from "../request-slip/slipLayout";
+import { blockTitle, sectionEntries, spanClass, withoutRestorationCards } from "../request-slip/slipLayout";
 import { PrintCaseBoxes, PrintShadeTable, PrintToothChart } from "./LaboRequestSlipPrintParts";
 import { dashed } from "./laboOrderFacts";
 import { laboFinishLinesText, laboWorkOf } from "./laboRequestSlipText";
@@ -73,6 +73,10 @@ function printParts(order: LaboOrderDto) {
       <>
         <h3>{title}</h3>
         <p className="pd-slip-print-text">{dashed(laboFinishLinesText(order))}</p>
+        <div className="pd-slip-print-line">
+          <Field label={t("Patient:DentalChart:RhythmType")}>{dashed(order.rhythmName ?? order.teeth[0]?.rhythmName ?? "")}</Field>
+          <Field label={t("Patient:DentalChart:Occlusion")}>{dashed(order.biteName ?? order.teeth[0]?.biteName ?? "")}</Field>
+        </div>
       </>
     ),
     notes: (title: string) => (
@@ -117,25 +121,18 @@ function PrintSection({ title, entries }: { title: string; entries: LaboExtraFor
 function BlockPrintBody({ order, blocks }: { order: LaboOrderDto; blocks: LaboFormBlockDto[] }) {
   const parts = printParts(order);
   const entries = order.extraForm?.entries ?? [];
-  const shown = withRestorationCards(blocks).filter((block) => block.visible);
-  // Loại phục hình prints as one line (R-1202): under its heading, or the first card shown without it.
-  const restorationAt =
-    shown.find((block) => block.kind === LABO_BLOCK_KIND.Restoration) ?? shown.find((block) => isCard(block.kind));
+  const shown = withoutRestorationCards(blocks).filter((block) => block.visible);
   return (
     <div className="pd-slip-print-blocks">
-      {shown
-        .filter((block) => !isCard(block.kind) || block === restorationAt)
-        .map((block, index) => (
-          <section key={block.key ?? `system-${block.kind}-${index}`} className={`pd-slip-print-block ${spanClass(block.span)}`}>
-            {block.kind === LABO_BLOCK_KIND.Custom ? (
-              <PrintSection title={blockTitle(block)} entries={sectionEntries(blocks, entries, block)} />
-            ) : block === restorationAt ? (
-              parts.restoration(blockTitle(block))
-            ) : (
-              SYSTEM_PRINT[block.kind]?.(parts, blockTitle(block))
-            )}
-          </section>
-        ))}
+      {shown.map((block, index) => (
+        <section key={block.key ?? `system-${block.kind}-${index}`} className={`pd-slip-print-block ${spanClass(block.span)}`}>
+          {block.kind === LABO_BLOCK_KIND.Custom ? (
+            <PrintSection title={blockTitle(block)} entries={sectionEntries(blocks, entries, block)} />
+          ) : (
+            SYSTEM_PRINT[block.kind]?.(parts, blockTitle(block))
+          )}
+        </section>
+      ))}
     </div>
   );
 }

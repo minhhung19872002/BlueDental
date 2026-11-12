@@ -15,7 +15,7 @@ import {
   SYSTEM_BLOCKS,
   isSystemKind,
   sectionEntries,
-  withRestorationCards,
+  withoutRestorationCards,
 } from "../request-slip/slipLayout";
 
 /** The server's limits (BlueDental.Labo.LaboFormTemplate / LaboFormField / LaboFormLayout). */
@@ -120,7 +120,7 @@ export function templateDraft(template: LaboFormTemplateDto | null): TemplateDra
     const blocks = SYSTEM_BLOCKS.map(({ kind, span }) => blockDraft({ kind, span, visible: true }, []));
     return { name: "", description: "", isActive: true, blocks };
   }
-  const layout = template.blocks?.length ? withRestorationCards(template.blocks) : defaultBlocks();
+  const layout = template.blocks?.length ? withoutRestorationCards(template.blocks) : defaultBlocks();
   return {
     name: template.name,
     description: template.description ?? "",

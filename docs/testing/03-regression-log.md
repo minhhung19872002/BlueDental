@@ -15112,3 +15112,25 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - "a blank that agrees with the record…" (mẫu 1, ô `cover.patient.code`) chập chờn: cùng một bản build chạy 2 lần thì 1 đỏ, 1 xanh; trên HEAD chưa sửa thì xanh. CSS mới chỉ tác động `data-form="2"`, nên không liên quan.
   - tsc + eslint sạch.
 - **Mức retest**: 2 (F-30 Bệnh án: mẫu 2, cùng tên trang in với mẫu 6/7/10). `/taxonomy` không bị ảnh hưởng.
+
+## R-1216 (2026-11-12, mức 3: Labo Phiếu yêu cầu — Loại phục hình về Dịch vụ → Vật liệu, thêm Kiểu nhịp / Khớp cắn, Màu răng vẽ thành răng cửa; F-91/F-92/F-94; CHỈ develop, không merge main)
+- **Yêu cầu** (BA Huỳnh Văn Định góp ý phiếu P1011): "trái để lại như trc chọn dịch vụ → chọn vật liệu", "phải thêm kiểu nhịp, khớp cắn", "tạo hình cho giống cái răng". Chủ dự án chốt: đúng 1 dịch vụ + 1 vật liệu; bỏ hẳn "Trên implant"; Kiểu nhịp / Khớp cắn là dropdown như cũ; Màu răng là thân răng cửa. Sau đó: "răng style lại cho đẹp hơn", "răng xấu quá" (vẽ lại), "canh giữa ở trên" (chữ ở hàng Cổ bị cắt).
+- **Sửa BE**:
+  - `LaboAppService.ToRequestSlipDetailsAsync`: nhiều hơn 1 Loại phục hình hoặc `onImplant` → `Labo:0045`; vật liệu phải đang dùng và thuộc chi nhánh. Không chọn → `Labo:0044` như cũ.
+  - Kiểu nhịp / Khớp cắn: lưu trên đơn và chép xuống từng răng (`LaboOrder`, `LaboOrderTooth.SetRequestSpec`). Id không thuộc chi nhánh hoặc không đúng nhóm Danh mục (`labo_rhythm` / `labo_bite`) thì bỏ im lặng (`BranchTaxonomyOrNullAsync`). Mẫu phiếu ẩn Đường hoàn tất thì bỏ cả hai.
+  - `LaboFormLayout`: 3 khối thẻ AllCeramic 7 / Alloy 8 / OtherOnImplant 9 (R-1202) không còn là khối hệ thống. Bố cục đã lưu có thẻ được gộp lại vào Loại phục hình, rộng 1 cột, hiện nếu có thẻ nào đang hiện (`WithoutCards`). Mặc định mới: Info 3, Restoration 1, Shade 1, Teeth 1, FinishLine 1, Notes 3. `LaboExtraForm.HidesRestorations` đọc được cả bản sao cũ có thẻ. Không migration.
+  - `LaboMaterialGroups`: bỏ `CardOf` / `Accepts`.
+- **Sửa FE**:
+  - `RestorationPicker` mới: 2 hàng `LaboChoiceRow` như Đặt hàng cũ (3 chip + «Xem thêm», có gần đây / tìm kiếm). Đổi dịch vụ thì bỏ vật liệu không thuộc dịch vụ đó. Xoá `RestorationSections.tsx`, `restorationGroups.ts`; thêm `restorationChoices.ts`.
+  - `SlipSpecSelects` mới: 2 Select Kiểu nhịp / Khớp cắn dưới Đường hoàn tất, không bắt buộc. Giá trị của dòng Danh mục đã xoá vẫn hiện.
+  - `ShadeZoneMap`: thân răng cửa hàm trên nhìn từ phía môi (SVG 220×260, chỉ phần thân), cùng path cắt lưới 2×3 (`--rs-crown: path(...)`), vạch đứt chia Cổ / Thân / Rìa cắn × Gần / Xa. Mỗi ô có `data-zone`, padding riêng để mã nằm giữa phần ô lộ ra trong răng (hàng Cổ hẹp). Sửa lệch nhãn Gần / Xa.
+  - Phiếu đã gửi, Xem chi tiết (`LaboRequestSlipFacts`), bản in và xem trước Mẫu phiếu hiện Dịch vụ / Vật liệu, Kiểu nhịp, Khớp cắn. Đơn cũ vẫn ghi "(trên implant)" nếu đã tích.
+  - Chữ qua i18n (`vi.json` / `en.json`), CSS trong `request-slip.css`, không hex trong .tsx.
+- **Khác biệt chấp nhận**: phiếu không mẫu (`LegacySlipLayout`) đặt Đường hoàn tất + Kiểu nhịp / Khớp cắn ở cột 3 dưới Chỉ định; bố cục mặc định của Mẫu phiếu xếp masonry nên khối này rơi vào cột 1 dưới Loại phục hình.
+- **Kiểm thử** (API :5000 Development + bản build production `vite preview` **:8090**, đăng nhập thật, không chặn request):
+  - Lưu ý môi trường: :8080 đang bị container `bluemeal-web-1` (dự án khác) chiếm, và shell có `E2E_PASSWORD` của môi trường khác → lần chạy đầu đỏ hết ở bước đăng nhập. Chạy lại với `E2E_BASE_URL=http://127.0.0.1:8090` và bỏ `E2E_PASSWORD`.
+  - `labo-request-slip-api` / `-ui`, `labo-form-layout`, `labo-form-layout-dnd`, `labo-request-rich-text`, `labo-form-template-api` / `-ui`: **43/43 xanh**. 2 ca sửa spec sau lần chạy đầu: mục mới của Mẫu phiếu giờ là "Khối 6" (6 khối hệ thống), và `getByText("Trên implant")` cần `exact` vì chip "Phục hình khác trên implant".
+  - Ca mới: "Loại phục hình is one active Vật liệu of this branch, never on an implant", "Kiểu nhịp and Khớp cắn of another branch or another Danh mục are dropped", "Loại phục hình picks one Dịch vụ, then one of its Vật liệu, with «Xem thêm» for the rest (R-1216)".
+  - Phần còn lại của Labo + `taxonomy-dental-material`: **45 xanh / 3 skip** (skip có sẵn từ F-91).
+  - tsc + eslint sạch. Cảnh báo `Form.Item.useStatus` còn lại đến từ `LaboToothRow` (có từ F-91), không thuộc phạm vi.
+- **Mức retest**: 3 (F-91/F-92/F-94 cùng dùng Phiếu yêu cầu, bố cục Mẫu phiếu và bản in). `/taxonomy` không bị ảnh hưởng.

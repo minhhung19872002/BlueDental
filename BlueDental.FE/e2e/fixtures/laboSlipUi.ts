@@ -80,13 +80,53 @@ export async function pickTeeth(page: Page, dialog: Locator, teeth: number[], de
   await expect(picker).toBeHidden();
 }
 
+/** Loại phục hình (R-1216): the Dịch vụ row, then the Vật liệu row, each a strip of chips. */
+export function restorationRows(dialog: Locator) {
+  const rows = dialog.locator(".rs-restoration .pd-labo-choice");
+  return {
+    services: rows.nth(0).locator(".pd-labo-choice-chip"),
+    material: rows.nth(1),
+    materials: rows.nth(1).locator(".pd-labo-choice-chip"),
+  };
+}
+
+/**
+ * Picks the material's group as the Dịch vụ, then the material — its chip
+ * when the row shows it, else through «Xem thêm vật liệu», since a branch
+ * that ran these specs before holds many materials per group.
+ */
+export async function pickRestoration(page: Page, dialog: Locator, material: { name: string; groupName: string }) {
+  const rows = restorationRows(dialog);
+  await rows.services.filter({ hasText: material.groupName }).click();
+  const chip = rows.materials.filter({ hasText: material.name });
+  if ((await chip.count()) > 0) {
+    await chip.click();
+  } else {
+    await rows.material.getByRole("button", { name: "Xem thêm vật liệu" }).click();
+    const popup = page.locator(".pd-labo-pick").filter({ hasText: "Chọn vật liệu" });
+    await popup.getByRole("textbox").fill(material.name);
+    await popup.getByRole("radio").filter({ hasText: material.name }).click();
+    await popup.getByRole("button", { name: "Chọn vật liệu" }).click();
+    await expect(popup).toBeHidden();
+  }
+  await expect(rows.materials.filter({ hasText: material.name })).toHaveAttribute("aria-pressed", "true");
+}
+
+/** An option of one of the slip's dropdowns (Kiểu nhịp, Khớp cắn), typed into its search. */
+export async function chooseOption(page: Page, dialog: Locator, label: string, option: string) {
+  const select = dialog.getByLabel(label, { exact: true });
+  await select.click();
+  await select.fill(option);
+  await page.locator(".ant-select-dropdown:visible .ant-select-item-option").filter({ hasText: option }).click();
+}
+
 /** Everything «Tạo phiếu Labo» waits on, the doctor picked from the real list. */
-export async function fillRequired(page: Page, dialog: Locator, no: string, implantName: string) {
+export async function fillRequired(page: Page, dialog: Locator, no: string, material: { name: string; groupName: string }) {
   await dialog.getByLabel("Màu thân gần").fill("a2");
   await dialog.getByLabel("Mã số", { exact: true }).fill(no);
   await dialog.getByLabel("Bác sĩ chỉ định").click();
   await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
   await typeDate(dialog.getByLabel("Ngày nhận dự kiến"), day(5));
   await pickTeeth(page, dialog, [16, 17]);
-  await dialog.getByLabel(`${implantName} – Trên implant`, { exact: true }).check();
+  await pickRestoration(page, dialog, material);
 }

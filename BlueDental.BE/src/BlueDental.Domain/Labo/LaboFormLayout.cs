@@ -27,26 +27,29 @@ public static class LaboFormLayout
         LaboFormBlockKind.Teeth,
         LaboFormBlockKind.FinishLine,
         LaboFormBlockKind.Notes,
-        LaboFormBlockKind.AllCeramic,
-        LaboFormBlockKind.Alloy,
-        LaboFormBlockKind.OtherOnImplant,
     ];
 
     /// <summary>
-    /// The fixed slip's look (R-1202): Thông tin phiếu and Loại phục hình's
-    /// heading across, then three columns read left to right and placed under
-    /// the block above in the same column — Toàn sứ, Phục hình khác, Chỉ định;
-    /// Hợp kim, Màu răng, Đường hoàn tất — then the fields and Yêu cầu.
+    /// Loại phục hình's three cards (R-1202), gone since R-1216 made it one
+    /// Dịch vụ → Vật liệu picker: only a layout saved in between still has them.
+    /// </summary>
+    public static readonly LaboFormBlockKind[] Cards =
+        [LaboFormBlockKind.AllCeramic, LaboFormBlockKind.Alloy, LaboFormBlockKind.OtherOnImplant];
+
+    public static bool HasCards(IEnumerable<LaboFormBlock> blocks) => blocks.Any(b => Cards.Contains(b.Kind));
+
+    /// <summary>
+    /// The fixed slip's look (R-1216): Thông tin phiếu across, then three
+    /// columns read left to right and placed under the block above in the same
+    /// column — Loại phục hình, Màu răng, Chỉ định, then Đường hoàn tất under
+    /// Loại phục hình — then the fields and Yêu cầu.
     /// </summary>
     public static List<LaboFormBlock> Default(bool withCustom) =>
     [
         LaboFormBlock.Create(null, LaboFormBlockKind.Info, null, true, 3),
-        LaboFormBlock.Create(null, LaboFormBlockKind.Restoration, null, true, 3),
-        LaboFormBlock.Create(null, LaboFormBlockKind.AllCeramic, null, true, 1),
-        LaboFormBlock.Create(null, LaboFormBlockKind.OtherOnImplant, null, true, 1),
-        LaboFormBlock.Create(null, LaboFormBlockKind.Teeth, null, true, 1),
-        LaboFormBlock.Create(null, LaboFormBlockKind.Alloy, null, true, 1),
+        LaboFormBlock.Create(null, LaboFormBlockKind.Restoration, null, true, 1),
         LaboFormBlock.Create(null, LaboFormBlockKind.Shade, null, true, 1),
+        LaboFormBlock.Create(null, LaboFormBlockKind.Teeth, null, true, 1),
         LaboFormBlock.Create(null, LaboFormBlockKind.FinishLine, null, true, 1),
         .. withCustom ? [LaboFormBlock.Create(DefaultCustomKey, LaboFormBlockKind.Custom, null, true, 3)] : Array.Empty<LaboFormBlock>(),
         LaboFormBlock.Create(null, LaboFormBlockKind.Notes, null, true, 3),
@@ -86,24 +89,26 @@ public static class LaboFormLayout
     }
 
     /// <summary>
-    /// A layout saved before Loại phục hình was split (R-1202) has its one block
-    /// and no cards: the three cards go right after it, shown as it was.
+    /// A layout with Loại phục hình's cards (R-1202) folds them back into its
+    /// one block (R-1216), one column wide where the heading stood: shown while
+    /// any card was, as a slip of it read.
     /// </summary>
-    private static IReadOnlyList<LaboFormBlock> WithCards(IReadOnlyList<LaboFormBlock> blocks)
+    private static IReadOnlyList<LaboFormBlock> WithoutCards(IReadOnlyList<LaboFormBlock> blocks)
     {
-        LaboFormBlockKind[] cards = [LaboFormBlockKind.AllCeramic, LaboFormBlockKind.Alloy, LaboFormBlockKind.OtherOnImplant];
-        var heading = blocks.Where(b => b.Kind == LaboFormBlockKind.Restoration).ToList();
-        if (heading.Count != 1 || blocks.Any(b => cards.Contains(b.Kind)))
+        if (!HasCards(blocks))
             return blocks;
-        var at = blocks.ToList().IndexOf(heading[0]) + 1;
-        var upgraded = blocks.ToList();
-        upgraded.InsertRange(at, cards.Select(kind => LaboFormBlock.Create(null, kind, null, heading[0].Visible, 1)));
-        return upgraded;
+        var shown = blocks.Any(b => Cards.Contains(b.Kind) && b.Visible);
+        return blocks
+            .Where(b => !Cards.Contains(b.Kind))
+            .Select(b => b.Kind == LaboFormBlockKind.Restoration
+                ? LaboFormBlock.Create(b.Key, b.Kind, b.Title, shown, 1)
+                : b)
+            .ToList();
     }
 
     private static List<LaboFormBlock> Check(IReadOnlyList<LaboFormBlock> sent)
     {
-        var blocks = WithCards(sent);
+        var blocks = WithoutCards(sent);
         if (blocks.Any(b => !Enum.IsDefined(b.Kind))
             || SystemKinds.Any(kind => blocks.Count(b => b.Kind == kind) != 1))
             throw Invalid();

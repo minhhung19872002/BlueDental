@@ -47,6 +47,8 @@ export function LaboRequestSlipFacts({ order, patient, pill }: Props) {
           [t("Patient:Labo:ProsthesisType"), laboWorkOf(order) ?? ""],
           [t("Labo:Slip:Shade"), laboShadeZonesText(tooth?.shadeZones)],
           [t("Labo:Slip:FinishLine"), laboFinishLinesText(order)],
+          [t("Patient:DentalChart:RhythmType"), order.rhythmName ?? tooth?.rhythmName ?? ""],
+          [t("Patient:DentalChart:Occlusion"), order.biteName ?? tooth?.biteName ?? ""],
           [t("Labo:Slip:Request"), order.notes ? <RichTextView html={asRichText(order.notes)} /> : ""],
         ]}
       />
