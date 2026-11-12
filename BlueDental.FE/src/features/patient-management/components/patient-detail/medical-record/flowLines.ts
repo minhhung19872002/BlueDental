@@ -44,6 +44,18 @@ function flowedLines(field: Element): Element[] {
   return Array.from(field.ownerDocument.querySelectorAll(`[${FLOW_OF}="${CSS.escape(id)}"]`));
 }
 
+/** The blank and the lines it flowed onto, in order: where its one value is drawn. */
+export function flowParts(field: Element): Element[] {
+  return [field, ...flowedLines(field)];
+}
+
+/** The blank a line belongs to: the blank itself, or the one a flowed line continues. */
+export function flowOwner(blank: Element): Element | null {
+  const continued = blank.getAttribute(FLOW_OF);
+  if (!continued) return blank;
+  return blank.ownerDocument.querySelector(`[data-medical-record-field="${CSS.escape(continued)}"]`);
+}
+
 /** The blank's whole text: its own line and the lines it flowed onto, joined as they broke. */
 export function flowedText(field: Element): string {
   return flowedLines(field).reduce(
