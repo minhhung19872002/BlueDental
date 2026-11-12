@@ -10,6 +10,7 @@ import { useLaboMaterialGroups } from "../api/laboMaterialGroups";
 import { LaboMaterialDialog } from "./LaboMaterialDialog";
 import { LaboMaterialHeader } from "./LaboMaterialHeader";
 import { LaboMaterialTable } from "./LaboMaterialTable";
+import { useServiceGroupEditor } from "./useServiceGroupEditor";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { GroupPanel } from "@/components/GroupPanel";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -24,10 +25,10 @@ interface LaboServiceMaterialScreenProps {
 }
 
 /**
- * Vật liệu & loại phục hình (BA P1011): the three fixed groups on the left —
- * each a table of the Phiếu yêu cầu — and the materials of the selected one
- * on the right. The groups cannot be created, renamed or deleted here; a group
- * made before P1011 stays in the database for old orders but is not listed.
+ * Dịch vụ Labo (BA P1011, P1311): the Dịch vụ on the left — the three fixed
+ * ones, locked, then those the branch adds, renames and deletes — and the
+ * Vật liệu of the selected one on the right. A group made before P1011 stays
+ * in the database for old orders but is not listed.
  */
 export function LaboServiceMaterialScreen({ canCreate, canUpdate, canDelete }: LaboServiceMaterialScreenProps) {
   const [pickedGroupId, setPickedGroupId] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export function LaboServiceMaterialScreen({ canCreate, canUpdate, canDelete }: L
     group !== undefined,
   );
   const commands = useLaboMaterialCommands();
+  const groupEditor = useServiceGroupEditor({ canCreate, canUpdate, canDelete });
 
   const selectGroup = (id: string) => {
     setPickedGroupId(id);
@@ -96,14 +98,18 @@ export function LaboServiceMaterialScreen({ canCreate, canUpdate, canDelete }: L
     <GroupPanel
       title={t("Labo:Material:PanelTitle")}
       subtitle={t("Labo:Material:PanelSubtitle")}
-      groups={groups.map(({ id, name }) => ({ id, name }))}
+      groups={groups.map((one) => ({ ...one, isSystem: one.code !== undefined }))}
       isLoading={groupsQuery.isLoading}
       isSearching={groupsQuery.isFetching && !groupsQuery.isLoading}
       keyword={groupKeyword}
       onKeywordChange={setGroupKeyword}
       selectedId={group?.id ?? null}
       onSelect={selectGroup}
-      // The three groups keep the order of the Phiếu yêu cầu.
+      onCreate={groupEditor.onCreate}
+      onRename={groupEditor.onRename}
+      onDelete={groupEditor.onDelete}
+      createLabel={t("Labo:MaterialGroup:CreateTitle")}
+      // Order comes from the fixed groups, then each Dịch vụ's priority.
       onReorder={() => undefined}
       searchPlaceholder={t("Labo:Material:SearchGroup")}
       emptyText={t("Labo:Material:NoGroup")}
@@ -172,6 +178,7 @@ export function LaboServiceMaterialScreen({ canCreate, canUpdate, canDelete }: L
         onConfirm={() => void confirmDelete()}
         onClose={() => setPendingDelete(null)}
       />
+      {groupEditor.dialogs}
     </div>
   );
 }

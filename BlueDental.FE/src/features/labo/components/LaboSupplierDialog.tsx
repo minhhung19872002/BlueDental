@@ -20,6 +20,8 @@ interface Props {
   open: boolean;
   supplier: LaboSupplierDto | null;
   onClose: () => void;
+  /** The record as saved, just before the dialog closes: the Phiếu yêu cầu picks the supplier it created (P1311). */
+  onSaved?: (saved: LaboSupplierDto) => void;
 }
 
 interface FormValues {
@@ -56,7 +58,7 @@ const EMPTY: FormValues = {
  * The save stays disabled until both name and email are filled — the reference
  * greys its own out on exactly those two.
  */
-export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
+export function LaboSupplierDialog({ open, supplier, onClose, onSaved }: Props) {
   const [form] = Form.useForm<FormValues>();
   const name = Form.useWatch("name", form) ?? "";
   const email = Form.useWatch("email", form) ?? "";
@@ -158,6 +160,7 @@ export function LaboSupplierDialog({ open, supplier, onClose }: Props) {
       }
 
       toast.success(supplier ? t("Common:Updated") : t("Common:Added"));
+      onSaved?.(saved);
       onClose();
     } catch {
       // queryClient reports the failure; the dialog stays open to retry.

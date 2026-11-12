@@ -51,7 +51,10 @@ async function drag(page: Page, from: Locator, to: Locator) {
   await page.mouse.up();
 }
 
-test.describe("Labo Mẫu phiếu builder drag and drop + preview (R-1202)", () => {
+// HIDDEN-FORM-TEMPLATE (BA P1311, 2026-11-13): tab Mẫu phiếu and the slip's Mẫu phiếu picker are hidden on
+// develop as on main (laboTabs HIDDEN_LABO_TABS, useRequestSlipStep OFFERS_TEMPLATES); code and data are kept.
+// The API describes above still run. Un-skip when the BA brings the screens back.
+test.describe.skip("Labo Mẫu phiếu builder drag and drop + preview (R-1202)", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });

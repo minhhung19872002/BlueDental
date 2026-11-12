@@ -45,6 +45,8 @@ export interface SlipOrderView extends Omit<LaboOrderView, "teeth"> {
 export interface SlipBody {
   patientId: string;
   dentistId?: string;
+  /** Nhà cung cấp (P1311): required to send, optional on a draft. */
+  supplierId?: string;
   teeth: number[];
   labSlipNo?: string;
   caseType?: number;
@@ -81,6 +83,8 @@ export interface SlipMaterial {
  */
 export interface SlipCatalog {
   dentistId: string;
+  /** An active supplier of branch 1 (P1311). */
+  supplier: { id: string; name: string };
   groups: Record<MaterialGroupCode, SlipGroup>;
   ceramic: SlipMaterial;
   alloy: SlipMaterial;
@@ -118,6 +122,17 @@ export async function fixedGroups(page: Page, branchId = BRANCH_ONE): Promise<Re
   };
 }
 
+/** Every Dịch vụ of the branch's Dịch vụ Labo — the three fixed groups and those a branch added (P1311). */
+export async function laboServices(page: Page, branchId = BRANCH_ONE): Promise<SlipGroup[]> {
+  const res = await call<Paged<SlipGroup>>(
+    page,
+    `/api/v1/app/taxonomies?ClinicBranchId=${branchId}&Group=labo_material&MaxResultCount=1000`,
+    { branchId },
+  );
+  expect(res.status, res.text).toBe(200);
+  return (res.body.items ?? []).map((one) => ({ id: one.id, name: one.name }));
+}
+
 /** A material with a fresh Mã in one group, as Tạo vật liệu saves it. */
 export async function newMaterial(page: Page, group: SlipGroup, name: string, branchId = BRANCH_ONE): Promise<SlipMaterial> {
   const code = `E2E-${runId()}${Math.floor(Math.random() * 1000)}`.slice(0, 50);
@@ -139,7 +154,7 @@ export async function taxonomy(page: Page, group: string, name: string, branchId
 export async function slipCatalog(page: Page): Promise<SlipCatalog> {
   if (catalog) return catalog;
   const id = runId();
-  const { dentistId } = await laboCatalog(page, BRANCH_ONE, id);
+  const { dentistId, supplierId, supplierName } = await laboCatalog(page, BRANCH_ONE, id);
   const groups = await fixedGroups(page);
   const finishLines = [
     await post(page, "/api/v1/app/taxonomies", { group: "labo_finish_line", name: `Chamfer e2e ${id}`, clinicBranchId: BRANCH_ONE }),
@@ -147,6 +162,7 @@ export async function slipCatalog(page: Page): Promise<SlipCatalog> {
   ];
   catalog = {
     dentistId,
+    supplier: { id: supplierId, name: supplierName },
     groups,
     ceramic: await newMaterial(page, groups.TOAN_SU, `Zirconia e2e ${id}`),
     alloy: await newMaterial(page, groups.HOP_KIM, `Titan e2e ${id}`),
@@ -177,6 +193,7 @@ export function slipForm(body: SlipBody): Record<string, FormValue> {
     patientId: body.patientId,
     branchId: BRANCH_ONE,
     dentistId: body.dentistId,
+    supplierId: body.supplierId,
     labSlipNo: body.labSlipNo,
     caseType: body.caseType ?? CaseType.New,
     teeth: body.teeth,
@@ -211,11 +228,12 @@ export async function readBack(page: Page, id: string): Promise<SlipOrderView> {
   return res.body as SlipOrderView;
 }
 
-/** A full Phiếu yêu cầu: Mã số, doctor, two teeth, a restoration, a shade and a finish line. */
+/** A full Phiếu yêu cầu: Mã số, supplier, doctor, two teeth, a restoration, a shade and a finish line. */
 export function fullSlip(c: SlipCatalog, patientId: string, labSlipNo: string, extra: Partial<SlipBody> = {}): SlipBody {
   return {
     patientId,
     dentistId: c.dentistId,
+    supplierId: c.supplier.id,
     teeth: [16, 17],
     labSlipNo,
     zones: { bodyMesial: "a2" },

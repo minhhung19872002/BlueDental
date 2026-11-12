@@ -237,13 +237,15 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
 
     /// <summary>
     /// Tạo phiếu Labo on the Phiếu yêu cầu (F-91), in the form's own order:
-    /// Mã số, Bác sĩ chỉ định, both days, Răng, Loại phục hình, then Màu răng
-    /// (any of the six zones). No supplier, material, plan line or Mặt răng.
+    /// Mã số, Nhà cung cấp (P1311), Bác sĩ chỉ định, both days, Răng, Loại
+    /// phục hình, then Màu răng (any of the six zones). No plan line or Mặt răng.
     /// </summary>
     private void EnsureRequestSlipComplete()
     {
         if (LabSlipNo is null)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.LabSlipNoRequired);
+        if (!SupplierId.HasValue)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.SupplierRequired);
         if (!DentistId.HasValue || !SentAt.HasValue || !DueAt.HasValue || _teeth.Count == 0)
             throw new BusinessException(BlueDentalDomainErrorCodes.Labo.OrderIncomplete);
 
@@ -466,7 +468,7 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// The Phiếu yêu cầu (F-91): no supplier; Khớp cắn and Kiểu nhịp once for the
+    /// The Phiếu yêu cầu (F-91): the supplier as Apply set it (P1311); Khớp cắn and Kiểu nhịp once for the
     /// order (R-1216), copied onto every tooth with the rest of the one
     /// spec. The order-level Màu, Đường hoàn tất and
     /// Vật liệu mirror it (the first finish line, the first restoration) for
@@ -477,8 +479,6 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     {
         LabSlipNo = details.LabSlipNo is { } slipNo && !string.IsNullOrWhiteSpace(slipNo) ? slipNo.Trim() : null;
         CaseType = Enum.IsDefined(details.CaseType) ? details.CaseType : LaboCaseType.New;
-        LabProviderName = string.Empty;
-        SupplierId = null;
         BiteId = details.BiteId;
         RhythmId = details.RhythmId;
         SpecMode = LaboSpecMode.SharedAll;

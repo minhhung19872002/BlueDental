@@ -4,7 +4,13 @@ import { LaboFormTemplateScreen } from "../components/form-template/LaboFormTemp
 import { LaboOrdersScreen } from "../components/LaboOrdersScreen";
 import { LaboServiceMaterialScreen } from "../components/LaboServiceMaterialScreen";
 import { LaboSupplierScreen } from "../components/LaboSupplierScreen";
-import { DEFAULT_LABO_TAB, findLaboTab, laboTabs, type LaboTab } from "../laboTabs";
+import {
+  DEFAULT_LABO_TAB,
+  findLaboTab,
+  HIDDEN_LABO_TABS,
+  laboTabs,
+  type LaboTab,
+} from "../laboTabs";
 import { PageHeader } from "@/components/PageHeader";
 import { PageTabBar } from "@/components/PageTabBar";
 import { useAbility } from "@/hooks/useAbility";
@@ -95,12 +101,15 @@ export function LaboPage() {
     abilityFormTemplate,
   ];
 
-  const tabs = allTabs.filter((_, i) => abilitiesByIndex[i].canRead);
+  const shownTabs = allTabs.filter((item) => !HIDDEN_LABO_TABS.has(item.key));
+  const tabs = allTabs.filter(
+    (item, i) => !HIDDEN_LABO_TABS.has(item.key) && abilitiesByIndex[i].canRead,
+  );
 
   const { section } = useParams();
-  // Fall back to all tabs if every tab is hidden (permissions not yet loaded)
-  // so findLaboTab can still return a sensible default.
-  const tab = findLaboTab(tabs.length > 0 ? tabs : allTabs, section ?? DEFAULT_LABO_TAB);
+  // Fall back to the shown tabs if every tab is hidden (permissions not yet
+  // loaded) so findLaboTab can still return a sensible default.
+  const tab = findLaboTab(tabs.length > 0 ? tabs : shownTabs, section ?? DEFAULT_LABO_TAB);
 
   return (
     <div className="bd-shell-page">

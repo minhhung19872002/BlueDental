@@ -1,67 +1,64 @@
-import { t } from "@/lib/i18n";
 import {
   laboMaterialGroupRank,
   type LaboMaterialOption,
   type LaboServiceOption,
 } from "@/hooks/useLaboPickers";
-import type { LaboChoiceItem } from "../order-dialogs/laboChoice";
 
 /**
- * Loại phục hình of the Phiếu yêu cầu as the classic Đặt hàng tab picks it
- * (R-1216): one Dịch vụ — a group of Vật liệu & loại phục hình — then one of
- * its Vật liệu. No "Trên implant".
+ * Dịch vụ & vật liệu of the Phiếu yêu cầu (P1311): one Dịch vụ — a group of
+ * Dịch vụ Labo — then any of its Vật liệu. No "Trên implant".
  */
 
-const rankOf = (service: LaboServiceOption) => (service.code ? laboMaterialGroupRank(service.code) : 99);
-
-/**
- * The materials a slip may pick from: active ones, and the one it already
- * holds even if it was switched off in Danh mục since.
- */
-const usable = (materials: LaboMaterialOption[], materialId: string | undefined) =>
-  materials.filter((material) => material.isActive || material.value === materialId);
-
-/** The Dịch vụ the picked material belongs to. */
-export const serviceOfMaterial = (
-  materials: LaboMaterialOption[],
-  materialId: string | undefined,
-): string | undefined => materials.find((material) => material.value === materialId)?.serviceId;
-
-/**
- * The Dịch vụ chips: the three fixed groups in their order, each with a
- * material to pick, counted and searchable by its materials' names. A group
- * made before P1011 shows only while the slip already holds one of its
- * materials, so an old order still reads as written.
- */
-export function restorationServices(
-  services: LaboServiceOption[],
-  materials: LaboMaterialOption[],
-  materialId: string | undefined,
-): LaboChoiceItem[] {
-  const shown = usable(materials, materialId);
-  const held = serviceOfMaterial(materials, materialId);
-  return [...services]
-    .sort((a, b) => rankOf(a) - rankOf(b))
-    .filter((service) => service.code !== undefined || service.value === held)
-    .map((service) => ({ service, own: shown.filter((material) => material.serviceId === service.value) }))
-    .filter(({ service, own }) => own.length > 0 || service.value === held)
-    .map(({ service, own }) => ({
-      value: service.value,
-      label: service.label,
-      description: service.description,
-      extra: t("Labo:Choice:MaterialCount", own.length),
-      keywords: own.map((material) => material.label),
-    }));
+export interface SlipServiceItem {
+  value: string;
+  label: string;
 }
 
-/** The Vật liệu chips of the picked Dịch vụ, in the catalog's order. */
-export function restorationMaterials(
+const rankOf = (service: LaboServiceOption) =>
+  service.code ? laboMaterialGroupRank(service.code) : Number.MAX_SAFE_INTEGER;
+
+/**
+ * The materials a slip may pick from: active ones, and those it already holds
+ * even if they were switched off in Danh mục since.
+ */
+const usable = (materials: LaboMaterialOption[], held: readonly string[]) =>
+  materials.filter((material) => material.isActive || held.includes(material.value));
+
+/** The Dịch vụ the held materials belong to — the first one's, as a slip holds one. */
+export const serviceOfMaterials = (
+  materials: LaboMaterialOption[],
+  held: readonly string[],
+): string | undefined => materials.find((material) => held.includes(material.value))?.serviceId;
+
+/**
+ * The Dịch vụ rows: the three fixed groups in their order, then the ones the
+ * branch added (P1311) in the catalog's order. A group made before P1011
+ * shows only while the slip already holds one of its materials, so an old
+ * order still reads as written.
+ */
+export function slipServices(
+  services: LaboServiceOption[],
+  materials: LaboMaterialOption[],
+  held: readonly string[],
+): SlipServiceItem[] {
+  const heldService = serviceOfMaterials(materials, held);
+  return [...services]
+    .sort((a, b) => rankOf(a) - rankOf(b))
+    .filter((service) => service.code !== undefined || service.added || service.value === heldService)
+    .map(({ value, label }) => ({ value, label }));
+}
+
+/** The Vật liệu of one Dịch vụ, in the catalog's order. */
+export function slipMaterials(
   materials: LaboMaterialOption[],
   serviceId: string | undefined,
-  materialId: string | undefined,
-): LaboChoiceItem[] {
+  held: readonly string[],
+): LaboMaterialOption[] {
   if (!serviceId) return [];
-  return usable(materials, materialId)
-    .filter((material) => material.serviceId === serviceId)
-    .map(({ value, label }) => ({ value, label }));
+  return usable(materials, held).filter((material) => material.serviceId === serviceId);
+}
+
+/** The names of the held materials, in the order they were picked; unknown ids are left out. */
+export function pickedNames(materials: LaboMaterialOption[], held: readonly string[]): string[] {
+  return held.flatMap((id) => materials.filter((material) => material.value === id).map((material) => material.label));
 }

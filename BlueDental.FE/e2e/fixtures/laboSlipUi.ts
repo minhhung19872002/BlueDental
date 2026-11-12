@@ -80,36 +80,49 @@ export async function pickTeeth(page: Page, dialog: Locator, teeth: number[], de
   await expect(picker).toBeHidden();
 }
 
-/** Loại phục hình (R-1216): the Dịch vụ row, then the Vật liệu row, each a strip of chips. */
+/**
+ * Dịch vụ & vật liệu (P1311): the Dịch vụ radio list, then the Vật liệu
+ * checkbox list with its search, picked chips and Tất cả / Đã chọn filter.
+ */
 export function restorationRows(dialog: Locator) {
-  const rows = dialog.locator(".rs-restoration .pd-labo-choice");
+  const box = dialog.locator(".rs-restoration");
   return {
-    services: rows.nth(0).locator(".pd-labo-choice-chip"),
-    material: rows.nth(1),
-    materials: rows.nth(1).locator(".pd-labo-choice-chip"),
+    box,
+    services: box.locator(".rs-klist .rs-krow"),
+    service: (name: string) => box.getByRole("radio", { name, exact: true }),
+    search: box.getByRole("textbox", { name: "Tìm vật liệu" }),
+    materials: box.locator(".rs-mlist .rs-krow"),
+    material: (name: string) => box.locator(".rs-mlist .rs-krow").filter({ hasText: name }).getByRole("checkbox"),
+    chips: box.locator(".rs-mchip"),
+    filter: box.getByRole("group", { name: "Lọc vật liệu" }),
+    empty: box.locator(".rs-mlist .rs-empty"),
   };
 }
 
 /**
- * Picks the material's group as the Dịch vụ, then the material — its chip
- * when the row shows it, else through «Xem thêm vật liệu», since a branch
- * that ran these specs before holds many materials per group.
+ * Picks the material's group as the Dịch vụ, then ticks the material, found
+ * through the search since a branch that ran these specs before holds many
+ * materials per group. Other materials already ticked stay ticked.
  */
 export async function pickRestoration(page: Page, dialog: Locator, material: { name: string; groupName: string }) {
   const rows = restorationRows(dialog);
-  await rows.services.filter({ hasText: material.groupName }).click();
-  const chip = rows.materials.filter({ hasText: material.name });
-  if ((await chip.count()) > 0) {
-    await chip.click();
-  } else {
-    await rows.material.getByRole("button", { name: "Xem thêm vật liệu" }).click();
-    const popup = page.locator(".pd-labo-pick").filter({ hasText: "Chọn vật liệu" });
-    await popup.getByRole("textbox").fill(material.name);
-    await popup.getByRole("radio").filter({ hasText: material.name }).click();
-    await popup.getByRole("button", { name: "Chọn vật liệu" }).click();
-    await expect(popup).toBeHidden();
-  }
-  await expect(rows.materials.filter({ hasText: material.name })).toHaveAttribute("aria-pressed", "true");
+  const service = rows.service(material.groupName);
+  if (!(await service.isChecked())) await service.check();
+  await rows.search.fill(material.name);
+  await rows.material(material.name).check();
+  await expect(rows.material(material.name)).toBeChecked();
+  await rows.search.fill("");
+  await expect(rows.chips.filter({ hasText: material.name })).toHaveCount(1);
+}
+
+/** Nhà cung cấp (Labo) *, typed into its search and picked. */
+export async function pickSupplier(page: Page, dialog: Locator, name: string) {
+  const select = dialog.getByLabel("Nhà cung cấp (Labo)", { exact: true });
+  await select.click();
+  await select.fill(name);
+  await page.locator(".ant-select-dropdown:visible .ant-select-item-option").filter({ hasText: name }).first().click();
+  // Its list closes before the next dropdown opens, or `:visible` would still find it.
+  await expect(page.locator(".ant-select-dropdown:visible")).toHaveCount(0);
 }
 
 /** An option of one of the slip's dropdowns (Kiểu nhịp, Khớp cắn), typed into its search. */
@@ -121,7 +134,14 @@ export async function chooseOption(page: Page, dialog: Locator, label: string, o
 }
 
 /** Everything «Tạo phiếu Labo» waits on, the doctor picked from the real list. */
-export async function fillRequired(page: Page, dialog: Locator, no: string, material: { name: string; groupName: string }) {
+export async function fillRequired(
+  page: Page,
+  dialog: Locator,
+  no: string,
+  material: { name: string; groupName: string },
+  supplier: { name: string },
+) {
+  await pickSupplier(page, dialog, supplier.name);
   await dialog.getByLabel("Màu thân gần").fill("a2");
   await dialog.getByLabel("Mã số", { exact: true }).fill(no);
   await dialog.getByLabel("Bác sĩ chỉ định").click();

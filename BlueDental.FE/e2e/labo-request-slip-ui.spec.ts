@@ -4,6 +4,7 @@ import { BRANCH_ONE, call, LaboStatus, type Paged } from "./fixtures/laboApi";
 import {
   CaseType,
   fullSlip,
+  laboServices,
   Layout,
   MaterialGroup,
   newMaterial,
@@ -63,6 +64,9 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
       await expect(dialog.getByRole("radio", { name: "Ca mới" })).toBeChecked();
       await expect(dialog.getByRole("textbox", { name: "Bệnh nhân" })).toContainText("Phiếu YC ui");
       await expect(dialog.getByRole("button", { name: "Tạo phiếu Labo" })).toBeDisabled();
+      // P1311: no supplier yet, so its address waits for one.
+      await expect(dialog.getByRole("textbox", { name: "Địa chỉ nhà cung cấp" })).toHaveText("Chọn nhà cung cấp trước");
+      await expect(dialog.getByRole("status")).toContainText("Chưa chọn nhà cung cấp");
     });
 
     await test.step("the sheet scrolls with the wheel under a pinned footer", async () => {
@@ -105,7 +109,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     });
 
     await test.step("fill the slip", async () => {
-      await fillRequired(page, dialog, no, c.ceramic);
+      await fillRequired(page, dialog, no, c.ceramic, c.supplier);
       await dialog.getByLabel("Màu thân gần").fill("a2");
       await expect(dialog.getByLabel("Màu thân gần")).toHaveValue("A2");
       await dialog.getByRole("checkbox", { name: c.finishLines[0].name }).check();
@@ -124,7 +128,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     await expect(row).not.toContainText("trên implant");
     await expect(row).toContainText("Đã gửi");
 
-    await test.step("stored once per tooth, no plan, no supplier", async () => {
+    await test.step("stored once per tooth, no plan, the supplier picked", async () => {
       const [made] = await ordersOf(page, patientId);
       const order = await readBack(page, made.id);
       expect(order.layout).toBe(Layout.RequestSlip);
@@ -133,7 +137,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
       expect(order.status).toBe(LaboStatus.Sent);
       expect(order.treatmentServiceId).toBeNull();
       expect(order.treatmentStageId).toBeNull();
-      expect(order.supplierName ?? null).toBeNull();
+      expect(order.supplierName).toBe(c.supplier.name);
       // Rich text since R-1212: Quill keeps the words in a paragraph, spaces as &nbsp;.
       expect((order.notes ?? "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ")).toBe("Làm sát nướu");
       expect(order.teeth.map((tooth) => tooth.toothNumber).sort()).toEqual([16, 17]);
@@ -190,7 +194,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
 
     const patientId = await newPatient(page, "dup-b");
     const dialog = await startSlip(page, patientId);
-    await fillRequired(page, dialog, no, c.ceramic);
+    await fillRequired(page, dialog, no, c.ceramic, c.supplier);
     await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
 
     await expect(
@@ -212,7 +216,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
 
     const dialog = await startSlip(page, patientId);
     const no = slipNo("prior-b");
-    await fillRequired(page, dialog, no, c.ceramic);
+    await fillRequired(page, dialog, no, c.ceramic, c.supplier);
 
     // R16 sits on the earlier order: the box names it, R17 is not in it.
     const warning = dialog.locator(".pd-labo-prior");
@@ -266,10 +270,10 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
       await expect(dialog.getByLabel("Mã số", { exact: true })).toHaveValue("");
       await expect(dialog.locator(".rs-teeth .pd-labo-toothchip")).toHaveText(["R21"]);
       await expect(dialog.getByLabel("Màu rìa cắn xa")).toHaveValue("B1");
-      await expect(dialog.locator(".rs-restoration .pd-labo-choice-chip--on")).toHaveText([
-        c.alloy.groupName,
-        c.alloy.name,
-      ]);
+      const rows = restorationRows(dialog);
+      await expect(rows.service(c.alloy.groupName)).toBeChecked();
+      await expect(rows.chips).toHaveText([`${c.alloy.name}×`]);
+      await expect(dialog.getByRole("textbox", { name: "Địa chỉ nhà cung cấp" })).toHaveText("Chọn nhà cung cấp trước");
       await expect(dialog.getByRole("button", { name: "Lưu nháp" })).toBeEnabled();
       await dialog.getByRole("button", { name: "Huỷ", exact: true }).click();
       await expect(dialog).toBeHidden();
@@ -293,69 +297,188 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     });
   });
 
-  test("Loại phục hình picks one Dịch vụ, then one of its Vật liệu, with «Xem thêm» for the rest (R-1216)", async ({
+  test("Dịch vụ is one radio, Vật liệu any of its materials: searched, chipped, filtered, let go with another Dịch vụ (P1311)", async ({
     page,
   }) => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "pick");
-    // Past three materials the row stops at three chips and «Xem thêm» opens.
-    for (let i = 0; i < 3; i++) await newMaterial(page, c.groups.TOAN_SU, `Thêm e2e ${runId()}${i}`);
+    const id = runId();
+    const second = await newMaterial(page, c.groups.TOAN_SU, `Emax e2e ${id}`);
     const dialog = await startSlip(page, patientId);
     const rows = restorationRows(dialog);
 
-    await test.step("Dịch vụ lists the three fixed groups; Vật liệu waits for one", async () => {
-      await expect(dialog.locator(".rs-restoration .pd-labo-choice-label")).toHaveText(["Dịch vụ*", "Vật liệu*"]);
-      await expect(rows.services).toHaveText([c.groups.TOAN_SU.name, c.groups.HOP_KIM.name, c.groups.KHAC_TREN_IMPLANT.name]);
+    await test.step("the three fixed groups lead the Dịch vụ list; Vật liệu waits for one", async () => {
+      await expect(rows.services.nth(0)).toHaveText(c.groups.TOAN_SU.name);
+      await expect(rows.services.nth(1)).toHaveText(c.groups.HOP_KIM.name);
+      await expect(rows.services.nth(2)).toHaveText(c.groups.KHAC_TREN_IMPLANT.name);
       await expect(rows.materials).toHaveCount(0);
-      await expect(rows.material).toContainText("Chọn dịch vụ trước");
-      // exact: the Dịch vụ chip "Phục hình khác trên implant" holds the words too.
+      await expect(rows.empty).toHaveText("Chọn dịch vụ trước");
+      await expect(rows.search).toBeDisabled();
       await expect(dialog.getByText("Trên implant", { exact: true })).toHaveCount(0);
     });
 
-    await test.step("a Vật liệu is picked from its Dịch vụ, another Dịch vụ lets it go", async () => {
-      await pickRestoration(page, dialog, c.alloy);
-      await expect(dialog.locator(".rs-restoration .pd-labo-choice-chip--on")).toHaveText([c.alloy.groupName, c.alloy.name]);
-      await rows.services.filter({ hasText: c.groups.TOAN_SU.name }).click();
-      await expect(dialog.locator(".rs-restoration .pd-labo-choice-chip--on")).toHaveText([c.groups.TOAN_SU.name]);
+    await test.step("two materials of one Dịch vụ, found by an accent-blind search, shown as chips", async () => {
+      await pickRestoration(page, dialog, c.ceramic);
+      await rows.search.fill(`emax E2E ${id}`.toUpperCase());
+      await expect(rows.materials).toHaveCount(1);
+      await rows.material(second.name).check();
+      await rows.search.fill(`khong co ${id}`);
+      await expect(rows.empty).toHaveText(`Không tìm thấy vật liệu "khong co ${id}".`);
+      await rows.search.fill("");
+      await expect(rows.chips).toHaveText([`${c.ceramic.name}×`, `${second.name}×`]);
     });
 
-    await test.step("«Xem thêm vật liệu» searches the group once it holds more than three", async () => {
-      await expect(rows.materials).toHaveCount(3);
-      await rows.material.getByRole("button", { name: "Xem thêm vật liệu" }).click();
-      const popup = page.locator(".pd-labo-pick").filter({ hasText: "Chọn vật liệu" });
-      await popup.getByRole("textbox").fill(c.ceramic.name);
-      await expect(popup.getByRole("radio")).toHaveCount(1);
-      await popup.getByRole("radio").filter({ hasText: c.ceramic.name }).click();
-      await popup.getByRole("button", { name: "Chọn vật liệu" }).click();
-      await expect(popup).toBeHidden();
-      await expect(rows.materials.filter({ hasText: c.ceramic.name })).toHaveAttribute("aria-pressed", "true");
+    await test.step("Đã chọn lists only the picks; a chip's × lets one go; Bỏ chọn tất cả all of them", async () => {
+      await rows.filter.getByRole("button", { name: "Đã chọn (2)" }).click();
+      // In the catalog's order, not the order they were picked.
+      await expect(rows.materials).toHaveCount(2);
+      await expect(rows.materials.filter({ hasText: c.ceramic.name })).toHaveCount(1);
+      await expect(rows.materials.filter({ hasText: second.name })).toHaveCount(1);
+      await rows.box.getByRole("button", { name: `Bỏ ${second.name}` }).click();
+      await expect(rows.materials).toHaveText([c.ceramic.name]);
+      await rows.box.getByRole("button", { name: "Bỏ chọn tất cả" }).click();
+      await expect(rows.chips).toHaveCount(0);
+      await expect(rows.empty).toHaveText("Chưa chọn vật liệu nào.");
+      await rows.filter.getByRole("button", { name: /^Tất cả/ }).click();
+    });
 
+    await test.step("another Dịch vụ lets every pick go", async () => {
+      await pickRestoration(page, dialog, c.ceramic);
+      await pickRestoration(page, dialog, second);
+      await rows.service(c.groups.HOP_KIM.name).check();
+      await expect(rows.chips).toHaveCount(0);
+      await expect(rows.materials.filter({ hasText: c.ceramic.name })).toHaveCount(0);
+      await rows.service(c.groups.TOAN_SU.name).check();
+      await pickRestoration(page, dialog, c.ceramic);
+      await pickRestoration(page, dialog, second);
+    });
+
+    await test.step("sent with both on every tooth, both read back on the reopened slip", async () => {
       const no = slipNo("pick");
-      await fillRequired(page, dialog, no, c.ceramic);
+      // fillRequired ticks the ceramic again, which it already holds.
+      await fillRequired(page, dialog, no, c.ceramic, c.supplier);
+      await expect(rows.chips).toHaveCount(2);
       await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
-      // The slip was opened from this very tab, so the URL says nothing: wait for the order.
       const made = await sentOrder(page, patientId, no);
       const order = await readBack(page, made.id);
-      expect(order.teeth[0].restorations.map((r) => [r.materialId, r.onImplant])).toEqual([[c.ceramic.id, false]]);
+      for (const tooth of order.teeth)
+        expect(tooth.restorations.map((r) => r.materialId).sort()).toEqual([c.ceramic.id, second.id].sort());
       expect([order.rhythmName, order.biteName]).toEqual([null, null]);
+
+      await patientRow(page, no).getByRole("button", { name: "Xem chi tiết" }).click();
+      await page.getByRole("dialog").getByRole("tab", { name: "Đặt hàng" }).click();
+      const again = restorationRows(slipDialog(page));
+      await expect(again.chips).toHaveText([c.ceramic.name, second.name], { useInnerText: true });
+      await expect(slipDialog(page).getByRole("textbox", { name: "Địa chỉ nhà cung cấp" })).not.toHaveText(
+        "Chọn nhà cung cấp trước",
+      );
     });
   });
 
-  test("Vật liệu & loại phục hình lists the three fixed groups; a material takes a unique Mã and its Trạng thái is switched in the table (P1011)", async ({
+  test("Nhà cung cấp (Labo) is required; its + makes one, picks it and shows its address and Liên hệ (P1311)", async ({
+    page,
+  }) => {
+    const c = await slipCatalog(page);
+    const patientId = await newPatient(page, "sup");
+    const dialog = await startSlip(page, patientId);
+    const no = slipNo("sup");
+    await fillRequired(page, dialog, no, c.ceramic, c.supplier);
+    await expect(dialog.getByRole("status")).toHaveText("Phiếu đã đủ thông tin.");
+
+    const name = `NCC slip e2e ${runId()}`;
+    await dialog.getByRole("button", { name: "Thêm nhà cung cấp mới" }).click();
+    const create = page.getByRole("dialog").filter({ hasNot: page.locator(".rs-slip") }).last();
+    await create.getByRole("textbox", { name: /^Tên nhà cung cấp/ }).fill(name);
+    await create.getByRole("textbox", { name: /^Email/ }).fill("ncc-slip@example.com");
+    await create.getByRole("textbox", { name: /^Số điện thoại/ }).fill("0912345678");
+    await create.getByRole("textbox", { name: /^Địa chỉ/ }).fill("12 Lê Lợi");
+    await create.getByRole("button", { name: /Lưu/ }).click();
+    await expect(create).toBeHidden({ timeout: 10_000 });
+
+    const select = dialog.locator(".rs-supplier .ant-select");
+    await expect(select).toContainText(name);
+    await expect(dialog.getByRole("textbox", { name: "Địa chỉ nhà cung cấp" })).toContainText("12 Lê Lợi");
+    await expect(dialog.locator(".rs-contact")).toHaveText("Liên hệ: 0912345678");
+
+    await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
+    const made = await sentOrder(page, patientId, no);
+    expect(made.supplierName).toBe(name);
+  });
+
+  test("Dịch vụ Labo: a Dịch vụ is added, renamed, refused deletion while it holds a material, then deleted; the fixed three stay locked (P1311)", async ({
+    page,
+  }) => {
+    const c = await slipCatalog(page);
+    await page.goto(`/labo/service-material?branchId=${BRANCH_ONE}`);
+    await assertRealApiTraffic(page, "/labo-materials");
+    await expect(page.getByRole("link", { name: "Dịch vụ Labo", exact: true })).toBeVisible();
+    const nav = page.getByRole("navigation", { name: "Danh mục dịch vụ" });
+    const id = runId();
+    const first = `Veneer UI ${id}`;
+    const renamed = `Veneer sứ UI ${id}`;
+
+    await test.step("the fixed three lead the list and offer no commands", async () => {
+      const buttons = nav.locator(".bd-group-btn");
+      await expect(buttons.nth(0)).toHaveText(c.groups.TOAN_SU.name);
+      await expect(buttons.nth(1)).toHaveText(c.groups.HOP_KIM.name);
+      await expect(buttons.nth(2)).toHaveText(c.groups.KHAC_TREN_IMPLANT.name);
+      for (const name of [c.groups.TOAN_SU.name, c.groups.HOP_KIM.name, c.groups.KHAC_TREN_IMPLANT.name]) {
+        const row = nav.locator(".bd-group-row").filter({ hasText: name });
+        await expect(row.getByRole("button", { name: "Thêm thao tác" })).toHaveCount(0);
+      }
+    });
+
+    await test.step("+ adds a Dịch vụ, Chỉnh sửa renames it", async () => {
+      await page.getByRole("button", { name: "Thêm dịch vụ" }).click();
+      const dialog = page.getByRole("dialog");
+      await dialog.getByRole("textbox", { name: /^Tên dịch vụ/ }).fill(first);
+      await dialog.getByRole("button", { name: /Lưu/ }).click();
+      await expect(dialog).toBeHidden({ timeout: 10_000 });
+      const row = nav.locator(".bd-group-row").filter({ hasText: first });
+      await expect(row).toHaveCount(1);
+
+      await row.getByRole("button", { name: "Thêm thao tác" }).click();
+      await page.getByRole("menuitem", { name: "Chỉnh sửa" }).click();
+      await dialog.getByRole("textbox", { name: /^Tên dịch vụ/ }).fill(renamed);
+      await dialog.getByRole("button", { name: /Lưu/ }).click();
+      await expect(dialog).toBeHidden({ timeout: 10_000 });
+      await page.reload();
+      await expect(nav.locator(".bd-group-row").filter({ hasText: renamed })).toHaveCount(1);
+    });
+
+    await test.step("Xoá is refused while the Dịch vụ holds a material, done once it is empty", async () => {
+      const service = (await laboServices(page)).find((one) => one.name === renamed);
+      expect(service, renamed).toBeTruthy();
+      const material = await newMaterial(page, { id: service!.id, name: renamed }, `Lithium UI ${id}`);
+      const row = nav.locator(".bd-group-row").filter({ hasText: renamed });
+      const remove = async () => {
+        await row.getByRole("button", { name: "Thêm thao tác" }).click();
+        await page.getByRole("menuitem", { name: "Xoá" }).click();
+        await page.getByRole("dialog", { name: "Xác nhận xoá dịch vụ" }).getByRole("button", { name: /Xoá$/ }).click();
+      };
+      await remove();
+      await expect(page.getByText("Dịch vụ còn vật liệu, hãy xoá hoặc chuyển các vật liệu trước khi xoá dịch vụ.")).toBeVisible();
+      await expect(row).toHaveCount(1);
+      await page.keyboard.press("Escape");
+
+      const gone = await call(page, `/api/v1/app/labo-materials/${material.id}`, { method: "DELETE", branchId: BRANCH_ONE });
+      expect(gone.status, gone.text).toBeLessThan(300);
+      await page.reload();
+      await remove();
+      await expect(row).toHaveCount(0);
+      expect((await laboServices(page)).some((one) => one.name === renamed)).toBe(false);
+    });
+  });
+
+  test("a material of Dịch vụ Labo takes a unique Mã and its Trạng thái is switched in the table (P1011)", async ({
     page,
   }) => {
     const c = await slipCatalog(page);
     await page.goto(`/labo/service-material?branchId=${BRANCH_ONE}`);
     await assertRealApiTraffic(page, "/labo-materials");
 
-    await test.step("three fixed groups, no group can be added, the code shown in the head", async () => {
-      const nav = page.getByRole("navigation", { name: "Danh mục vật liệu" });
-      await expect(nav.locator(".bd-group-btn")).toHaveText([
-        c.groups.TOAN_SU.name,
-        c.groups.HOP_KIM.name,
-        c.groups.KHAC_TREN_IMPLANT.name,
-      ]);
-      await expect(page.getByRole("button", { name: "Thêm nhóm phân loại" })).toHaveCount(0);
+    await test.step("the code shown in the head", async () => {
+      const nav = page.getByRole("navigation", { name: "Danh mục dịch vụ" });
       await nav.getByText(c.groups.HOP_KIM.name, { exact: true }).click();
       await expect(page.locator(".bd-labo-material-title")).toContainText(MaterialGroup.Alloy);
       await expect(page.locator(".bd-labo-material-hint")).toHaveText(
@@ -392,7 +515,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
       await expect(row).toContainText("Ngừng");
 
       await page.reload();
-      await page.getByRole("navigation", { name: "Danh mục vật liệu" }).getByText(c.groups.HOP_KIM.name, { exact: true }).click();
+      await page.getByRole("navigation", { name: "Danh mục dịch vụ" }).getByText(c.groups.HOP_KIM.name, { exact: true }).click();
       await page.getByRole("textbox", { name: "Tìm kiếm vật liệu" }).fill(code);
       const again = page.locator("tbody tr.ant-table-row").filter({ hasText: name });
       await expect(again.getByRole("switch", { name: `Trạng thái ${name}` })).not.toBeChecked();
@@ -426,15 +549,12 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
 
     const dialog = await startSlip(page, await newPatient(page, "stop"));
     const rows = restorationRows(dialog);
-    await rows.services.filter({ hasText: c.groups.TOAN_SU.name }).click();
+    await rows.service(c.groups.TOAN_SU.name).check();
+    await expect(rows.materials.filter({ hasText: c.ceramic.name })).toHaveCount(1);
     await expect(rows.materials.filter({ hasText: stopped.name })).toHaveCount(0);
-    const more = rows.material.getByRole("button", { name: "Xem thêm vật liệu" });
-    if ((await more.count()) === 0) return;
-    await more.click();
-    const popup = page.locator(".pd-labo-pick").filter({ hasText: "Chọn vật liệu" });
-    await popup.getByRole("textbox").fill(stopped.name);
-    await expect(popup.getByRole("radio")).toHaveCount(0);
-    await popup.getByRole("textbox").fill(c.ceramic.name);
-    await expect(popup.getByRole("radio")).toHaveCount(1);
+    await rows.search.fill(stopped.name);
+    await expect(rows.materials).toHaveCount(0);
+    await rows.search.fill(c.ceramic.name);
+    await expect(rows.materials).toHaveCount(1);
   });
 });

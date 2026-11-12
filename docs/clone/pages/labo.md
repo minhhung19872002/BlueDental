@@ -1077,3 +1077,62 @@ What in §11–§13 no longer describes BlueDental (develop):
     column 3 under Chỉ định, while a template's default flows it into
     column 1 under Loại phục hình (masonry): accepted difference.
   - The builder's preview draws the same picker and the two Selects.
+
+## 15. P1311 — Phiếu yêu cầu bản 2 (F-96, R-1225, 2026-11-13, develop only)
+
+**BA requirement, not the reference.** BA AnTran's P1311 drawio plus the
+mockup "Labo - Phiếu yêu cầu (bản 2 nhập mã số, không kế hoạch nhà cung
+cấp)". The owner approved the plan on 2026-11-13. It is kept on develop and
+is **not merged to main**. "Chuyển đổi dịch vụ" is postponed while the BA is
+still analysing it.
+
+What in §11–§14 no longer describes BlueDental (develop):
+
+- **Mẫu phiếu is hidden.**
+  - The tab is hidden on develop as on main, through `HIDDEN_LABO_TABS` in
+    `laboTabs.ts`.
+  - The slip's Mẫu phiếu bổ sung picker is hidden too, through
+    `OFFERS_TEMPLATES` in `useRequestSlipStep.ts`.
+  - Code, routes, API and saved templates are kept. The F-93/F-94 UI e2e
+    describes are `describe.skip` with a HIDDEN-FORM-TEMPLATE note, and their
+    API describes still run.
+- **"Vật liệu & loại phục hình" is now "Dịch vụ Labo".**
+  - The group panel is titled "Danh mục dịch vụ".
+  - "+" (Thêm dịch vụ) adds a Dịch vụ. The server stamps `SubGroup =
+    "DICH_VU"` (`LaboMaterialGroups.Added`), never the caller, so the tab can
+    tell it apart from a group made before P1011, which stays hidden.
+  - An added Dịch vụ can be renamed and given a priority (Chỉnh sửa).
+  - Xoá is refused with `Labo:0063` while any Vật liệu is filed under the
+    Dịch vụ, a stopped (Ngừng) one included. A deleted one does not count.
+  - The three fixed groups stay locked (`Catalogs:0007`, no menu, info icon).
+  - This reverses F-92's "no group CRUD".
+- **Nhà cung cấp (Labo)\* is required** (`SupplierField`).
+  - The send is refused with `Labo:0062` without a supplier, or with a
+    supplier of another branch.
+  - The footer lists "Chưa chọn nhà cung cấp".
+  - "+" (Thêm nhà cung cấp mới) opens `LaboSupplierDialog` (Tên + Email
+    required, as on the supplier tab) and picks the new supplier.
+  - Địa chỉ is read-only, with the placeholder "Chọn nhà cung cấp trước".
+    The line "Liên hệ: {SĐT}" sits under it.
+  - The order keeps `SupplierId` and copies the name into `LabProviderName`,
+    as Đặt hàng does. A draft keeps the supplier too.
+- **Loại phục hình is one Dịch vụ, then any of its Vật liệu**
+  (`RestorationPicker`). This replaces R-1216's 1 + 1 chips.
+  - Dịch vụ is a radio list (`ServiceRadioList`): the three fixed groups
+    first, then the added ones.
+  - Vật liệu is a checkbox list (`MaterialMultiPicker`).
+    - Its search box "Tìm vật liệu" ignores accents and case, and is disabled
+      until a Dịch vụ is picked.
+    - A filter switches between "Tất cả (n)" and "Đã chọn (n)". "Đã chọn"
+      lists the picks in catalog order.
+    - Picks also show as chips (`MaterialChips`), each with ×, plus "Bỏ chọn
+      tất cả".
+    - The empty texts are "Chọn dịch vụ trước", "Chưa chọn vật liệu nào." and
+      `Không tìm thấy vật liệu "{q}".`
+  - Changing the Dịch vụ lets go of every pick.
+  - The server takes any number of active materials of this branch, all of
+    one Dịch vụ, never `onImplant` (`Labo:0045`). None is still `Labo:0044`.
+    Each tooth stores every picked material.
+- The Danh mục tab "Vật liệu nha khoa" (`/taxonomy`, group `dental_material`)
+  is a different list. Only Bệnh án mẫu 5 uses it; Labo never reads it. This
+  was answered to the BA.

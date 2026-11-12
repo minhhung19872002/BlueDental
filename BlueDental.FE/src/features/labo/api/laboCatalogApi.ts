@@ -107,6 +107,25 @@ export const laboSupplierLogoApi = {
     api.delete(`${SUPPLIER_BASE}/${id}/logo`).then(() => undefined),
 };
 
+/**
+ * Every supplier of one branch with its address and phone, for the Nhà cung
+ * cấp (Labo) picker of the Phiếu yêu cầu (P1311). Under laboSupplierKeys.all,
+ * so a supplier made or edited anywhere refreshes it.
+ */
+export function useLaboSupplierPicks(clinicBranchId: string, enabled = true) {
+  return useQuery({
+    queryKey: [...laboSupplierKeys.all, "picks", clinicBranchId],
+    queryFn: async (): Promise<LaboSupplierDto[]> => {
+      const response = await api.get<PagedResult<LaboSupplierDto>>(SUPPLIER_BASE, {
+        params: { ClinicBranchId: clinicBranchId, MaxResultCount: 200 },
+      });
+      return response.data.items;
+    },
+    enabled: enabled && Boolean(clinicBranchId),
+    staleTime: 60_000,
+  });
+}
+
 export function useLaboSupplierCommands() {
   const queryClient = useQueryClient();
   const clinicBranchId = useCurrentBranchId();

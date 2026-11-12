@@ -114,6 +114,55 @@
   grid-column: span 2;
 }
 
+.rs-span4 {
+  grid-column: span 4;
+}
+
+/* Nhà cung cấp (Labo) (P1311): the picker with its 38px + beside it. */
+.rs-supplier {
+  display: flex;
+  gap: 8px;
+}
+
+.rs-supplier > .ant-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.rs-addsup {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--rs-accent);
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.rs-addsup:hover {
+  background: var(--rs-accent-strong);
+}
+
+.rs-addsup:focus-visible {
+  outline: 2px solid var(--rs-focus);
+  outline-offset: 2px;
+}
+
+.rs-ph {
+  color: var(--rs-muted);
+}
+
+.rs-contact {
+  margin-top: 4px;
+  color: var(--rs-muted);
+  font-size: 12px;
+}
+
 .rs-lbl {
   display: block;
   margin-bottom: 4px;
@@ -182,32 +231,146 @@
   font-size: 11px;
 }
 
-/* ── Loại phục hình ───────────────────────────────────────── */
-/* Dịch vụ → Vật liệu (R-1216): the classic Đặt hàng rows, without the
-   top margin they get in the order dialog. */
-.rs-restoration-rows {
+/* ── Dịch vụ & vật liệu (P1311) ───────────────────────────── */
+.rs-band {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.rs-band-title {
+  margin: 0;
+  color: var(--rs-ink);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.rs-band-rule {
+  flex: 1;
+  height: 1px;
+  background: var(--rs-line);
+}
+
+.rs-band-picked {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--rs-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rs-band-picked b {
+  color: var(--rs-ink);
+}
+
+.rs-restoration {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 14px;
+  min-width: 0;
 }
 
-.rs-restoration-rows > .ant-form-item {
-  margin: 0;
-}
-
-.rs-restoration-rows .pd-labo-choice {
+/* Dịch vụ: one radio row each. */
+.rs-slip .rs-klist {
+  display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  margin: 0;
+  padding-top: 8px;
 }
 
-/* The 340px column has no room for the dialog's 150px label column: it sits above its chips. */
-.rs-restoration-rows .pd-labo-choice-label {
-  width: auto;
-  color: var(--rs-label);
+/* Vật liệu: search, chips, Tất cả / Đã chọn, then the list. */
+.rs-mtools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 6px;
+}
+
+.rs-slip .rs-msearch.ant-input-affix-wrapper {
+  height: 36px;
+  border-color: var(--rs-field);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.rs-mchips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.rs-mchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: var(--rs-accent);
+  color: #fff;
   font-size: 12px;
+  font-weight: 600;
+}
+
+.rs-mchipx {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rs-mlink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rs-accent-strong);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rs-mfilter {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: #f1f2f7;
+}
+
+.rs-mfilter > button {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--rs-sub);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rs-mfilter > button.rs-on {
+  background: #fff;
+  color: var(--rs-accent-strong);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.rs-mlist {
+  max-height: 320px;
+  padding-top: 6px;
+  overflow-y: auto;
+  border-top: 1px solid #f1f2f6;
 }
 
 /* ── Kiểu nhịp / Khớp cắn (R-1216) ── */
@@ -544,7 +707,8 @@
     grid-column: span 1;
   }
 
-  .rs-info > .rs-span2 {
+  .rs-info > .rs-span2,
+  .rs-info > .rs-span4 {
     grid-column: 1 / -1;
   }
 }
@@ -560,8 +724,17 @@
   }
 
   .rs-info > *,
-  .rs-info > .rs-span2 {
+  .rs-info > .rs-span2,
+  .rs-info > .rs-span4 {
     grid-column: 1 / -1;
+  }
+
+  .rs-band {
+    flex-wrap: wrap;
+  }
+
+  .rs-band-rule {
+    display: none;
   }
 
   .rs-footer {

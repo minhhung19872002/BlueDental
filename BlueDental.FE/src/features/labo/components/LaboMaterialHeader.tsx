@@ -24,7 +24,7 @@ export function LaboMaterialHeader({ group, keyword, onKeywordChange, onOpenGrou
         <div className="bd-labo-material-head">
           <h2 className="bd-labo-material-title">
             {group.name}
-            <span className="bd-labo-material-groupcode">{group.code}</span>
+            {group.code && <span className="bd-labo-material-groupcode">{group.code}</span>}
           </h2>
           <p className="bd-labo-material-hint">{t("Labo:Material:SlipHint")}</p>
         </div>

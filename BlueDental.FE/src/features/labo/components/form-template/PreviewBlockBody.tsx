@@ -72,7 +72,7 @@ const SYSTEM_PART: Partial<Record<LaboBlockKind, SystemPart>> = {
       services={catalog.services}
       materials={catalog.materials}
       serviceId={undefined}
-      materialId={undefined}
+      materialIds={NO_ANSWERS}
       editable
       title={title}
       onChange={ignore}

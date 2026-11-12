@@ -78,7 +78,10 @@ async function searchTemplates(page: Page, text: string) {
   await page.getByRole("textbox", { name: "Tìm mẫu phiếu" }).fill(text);
 }
 
-test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
+// HIDDEN-FORM-TEMPLATE (BA P1311, 2026-11-13): tab Mẫu phiếu and the slip's Mẫu phiếu picker are hidden on
+// develop as on main (laboTabs HIDDEN_LABO_TABS, useRequestSlipStep OFFERS_TEMPLATES); code and data are kept.
+// The API describes above still run. Un-skip when the BA brings the screens back.
+test.describe.skip("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
@@ -259,7 +262,7 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
       // Nothing picked yet: the fixed slip, the picker at its top (F-94).
       await expect(section(dialog)).toHaveCount(0);
       await expect(dialog.getByLabel("Mẫu phiếu", { exact: true })).toBeVisible();
-      await fillRequired(page, dialog, no, c.ceramic);
+      await fillRequired(page, dialog, no, c.ceramic, c.supplier);
       await expect(status(dialog)).toHaveText("Phiếu đã đủ thông tin.");
 
       const picker = dialog.getByLabel("Mẫu phiếu", { exact: true });

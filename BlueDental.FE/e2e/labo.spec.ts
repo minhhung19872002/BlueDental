@@ -18,7 +18,7 @@ const TABS = [
   { label: "Khớp cắn Labo", path: "/labo/bite" },
   { label: "Đường hoàn tất", path: "/labo/finish-line" },
   { label: "Kiểu nhịp Labo", path: "/labo/nhip" },
-  { label: "Vật liệu & loại phục hình", path: "/labo/service-material" },
+  { label: "Dịch vụ Labo", path: "/labo/service-material" },
 ];
 
 /** Row of the catalog table carrying the given name. */
@@ -53,6 +53,8 @@ test.describe("Labo", () => {
       await expect(page).toHaveURL(new RegExp(`${tab.path}(\\?|$)`));
       await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
     }
+    // P1311: Mẫu phiếu is hidden on develop as on main.
+    await expect(page.getByRole("link", { name: "Mẫu phiếu", exact: true })).toHaveCount(0);
   });
 
   test("a sub-route can be opened directly and comes back after a reload", async ({ page }) => {
@@ -299,13 +301,13 @@ test.describe("Labo", () => {
     await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
   });
 
-  test("Vật liệu & loại phục hình puts its three groups beside its materials", async ({ page }) => {
+  test("Dịch vụ Labo puts its Dịch vụ beside their materials", async ({ page }) => {
     await page.goto("/labo/service-material");
 
     await assertRealApiTraffic(page, "/labo-materials");
 
-    // The group panel (P1011: the three fixed groups), and the materials of the selected one.
-    await expect(page.getByRole("navigation", { name: "Danh mục vật liệu" }).locator("[data-group-row]")).toHaveCount(3);
+    // The Dịch vụ panel (the three fixed groups first, then any a branch added, P1311), and the materials of the selected one.
+    await expect(page.getByRole("navigation", { name: "Danh mục dịch vụ" }).locator("[data-group-row]").nth(2)).toBeVisible();
     await expect(page.getByRole("columnheader", { name: "Vật liệu" })).toBeVisible();
 
     const requests: string[] = [];

@@ -15,6 +15,7 @@ import { RequestNotes } from "./RequestNotes";
 import { RequestSlipInfo } from "./RequestSlipInfo";
 import { RequestToothChart } from "./RequestToothChart";
 import { chartOrder, type RequestSlipValues } from "./requestSlipModel";
+import { pickedNames, serviceOfMaterials } from "./restorationChoices";
 import { RestorationPicker } from "./RestorationPicker";
 import { ShadeZoneMap } from "./ShadeZoneMap";
 import { SlipSpecSelects, withHeldOption } from "./SlipSpecSelects";
@@ -35,15 +36,23 @@ export interface SlipPartsSetup {
  */
 export interface SlipParts {
   info: (title?: string) => ReactNode;
-  /** Loại phục hình: one Dịch vụ, then one Vật liệu (R-1216). */
+  /** Dịch vụ & vật liệu: one Dịch vụ, then any of its Vật liệu (P1311). */
   restoration: (title?: string) => ReactNode;
   shade: (title?: string) => ReactNode;
   teeth: (title?: string) => ReactNode;
   /** Đường hoàn tất, with Kiểu nhịp and Khớp cắn under it (R-1216). */
   finishLines: (title?: string) => ReactNode;
   notes: (title?: string) => ReactNode;
-  /** "Ca mới · R18, R17 · Zirconia · Vai 90°" — the footer's one line. */
+  /** "Ca mới · R18, R17 · Zirconia +1 · Vai 90°" — the footer's one line. */
   summary: string;
+  /** "Toàn sứ · Zirconia, Emax" — the Dịch vụ & vật liệu heading's Đã chọn; empty while none is picked. */
+  picked: string;
+}
+
+/** "Zirconia +1": the first material picked, and how many more. */
+function shortNames(names: string[]): string | undefined {
+  if (names.length === 0) return undefined;
+  return names.length === 1 ? names[0] : `${names[0]} +${names.length - 1}`;
 }
 
 function summaryOf(values: RequestSlipValues, material: string | undefined, finishes: string[]): string {
@@ -64,7 +73,10 @@ export function useSlipParts({ branchId, patient, dentists, order, step }: SlipP
   const rhythms = useLaboTaxonomyOptions(LABO_TAXONOMY.rhythm, branchId).data ?? [];
   const bites = useLaboTaxonomyOptions(LABO_TAXONOMY.bite, branchId).data ?? [];
 
-  const material = materials.find((one) => one.value === values.materialId)?.label;
+  const names = pickedNames(materials, values.materialIds);
+  const serviceId = values.serviceId ?? serviceOfMaterials(materials, values.materialIds);
+  const service = services.find((one) => one.value === serviceId)?.label;
+  const picked = service ? [service, ...(names.length ? [names.join(", ")] : [])].join(" · ") : "";
   const finishes = finishLines.filter((line) => values.finishLineIds.includes(line.value)).map((line) => line.label);
 
   return {
@@ -84,7 +96,7 @@ export function useSlipParts({ branchId, patient, dentists, order, step }: SlipP
         services={services}
         materials={materials}
         serviceId={values.serviceId}
-        materialId={values.materialId}
+        materialIds={values.materialIds}
         editable={editable}
         title={title}
         onChange={change}
@@ -132,6 +144,7 @@ export function useSlipParts({ branchId, patient, dentists, order, step }: SlipP
         onChange={(notes) => change({ notes })}
       />
     ),
-    summary: summaryOf(values, material, finishes),
+    summary: summaryOf(values, shortNames(names), finishes),
+    picked,
   };
 }

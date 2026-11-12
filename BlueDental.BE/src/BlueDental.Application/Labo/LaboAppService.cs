@@ -739,9 +739,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     }
 
     /// <summary>
-    /// The Phiếu yêu cầu (F-91): no supplier or per-tooth spec. Loại phục hình
-    /// is one Dịch vụ → Vật liệu (R-1216): at most one restoration, an active
-    /// material of this branch, never "Trên implant". Đường hoàn tất, Kiểu
+    /// The Phiếu yêu cầu (F-91): no per-tooth spec. The supplier (P1311) must
+    /// be one of this branch's; its name is copied as on the Đặt hàng tab.
+    /// Loại phục hình is one Dịch vụ → any of its Vật liệu (P1311): active
+    /// materials of this branch, all of one Dịch vụ, never "Trên implant".
+    /// Đường hoàn tất, Kiểu
     /// nhịp and Khớp cắn keep only this branch's rows of their group, so another
     /// clinic's id never lands on a tooth; Kiểu nhịp and Khớp cắn are optional
     /// and sit with Đường hoàn tất, so a Mẫu phiếu hiding it drops them too.
@@ -755,16 +757,15 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
 
         var restorations = (extraForm?.HidesRestorations() == true ? [] : input.Restorations ?? [])
             .Select(r => new LaboToothRestoration(r.MaterialId, r.OnImplant))
+            .DistinctBy(r => r.MaterialId)
             .ToList();
-        if (restorations.Count > 1 || restorations.Any(r => r.OnImplant))
-            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
-        if (restorations.Count == 1)
-        {
-            var materialId = restorations[0].MaterialId;
-            if (!await _materialRepository.AnyAsync(m =>
-                    m.Id == materialId && m.ClinicBranchId == branchId && m.IsActive))
-                throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
-        }
+        await EnsureSlipMaterialsAsync(restorations, branchId);
+
+        var supplier = input.SupplierId.HasValue
+            ? await _supplierRepository.FindAsync(input.SupplierId.Value)
+            : null;
+        if (input.SupplierId.HasValue && supplier?.ClinicBranchId != branchId)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.SupplierRequired);
 
         var finishLineHidden = Hidden(LaboFormBlockKind.FinishLine);
         var requestedFinishLines = (finishLineHidden ? [] : input.FinishLineIds ?? [])
@@ -788,6 +789,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             LabSlipNo = input.LabSlipNo,
             CaseType = input.CaseType,
             DentistId = input.DentistId,
+            LabProviderName = supplier?.Name,
+            SupplierId = supplier?.Id,
             Teeth = input.Teeth,
             ShadeZones = zones is null
                 ? null
@@ -812,6 +815,26 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             TreatmentServiceId = input.TreatmentServiceId,
             TreatmentStageId = input.TreatmentStageId,
         };
+    }
+
+    /// <summary>
+    /// Vật liệu of the Phiếu yêu cầu (P1311): active materials of this branch,
+    /// all filed under one Dịch vụ, none "Trên implant".
+    /// </summary>
+    private async Task EnsureSlipMaterialsAsync(IReadOnlyList<LaboToothRestoration> restorations, Guid branchId)
+    {
+        if (restorations.Count == 0)
+            return;
+        if (restorations.Any(r => r.OnImplant))
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
+
+        var ids = restorations.Select(r => r.MaterialId).ToList();
+        var services = (await _materialRepository.GetListAsync(m =>
+                ids.Contains(m.Id) && m.ClinicBranchId == branchId && m.IsActive))
+            .Select(m => m.TaxonomyId)
+            .ToList();
+        if (services.Count != ids.Count || services.Distinct().Count() != 1)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
     }
 
     /// <summary>The id when it is a row of that Danh mục group in this branch; anything else is dropped.</summary>

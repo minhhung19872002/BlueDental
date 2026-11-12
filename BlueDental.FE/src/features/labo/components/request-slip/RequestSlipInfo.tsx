@@ -7,6 +7,7 @@ import { PATIENT_GENDER_CODE, usePatientBrief, type PatientBrief } from "@/hooks
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import { LABO_CASE_TYPE } from "@/features/labo/api/laboApi";
 import { isDueBad, type RequestSlipValues } from "./requestSlipModel";
+import { SupplierField } from "./SupplierField";
 
 interface Props {
   branchId: string;
@@ -54,7 +55,7 @@ const ReadOnly = ({ label, text }: { label: string; text: string }) => (
   </div>
 );
 
-/** Thông tin phiếu: what the Labo needs to know about the order, the clinic, patient and doctor. */
+/** Thông tin phiếu: what the Labo needs to know about the order, the clinic, patient, doctor and supplier (P1311). */
 export function RequestSlipInfo({ branchId, patient, dentists, values, editable, onChange, title }: Props) {
   const clinic = useBranchInfo(branchId).data;
   const brief = usePatientBrief(patient.id).data;
@@ -130,6 +131,12 @@ export function RequestSlipInfo({ branchId, patient, dentists, values, editable,
           />
           {editable && dueBad && <div className="rs-ferr">{t("Labo:Slip:DueAfterSent")}</div>}
         </Field>
+        <SupplierField
+          branchId={branchId}
+          value={values.supplierId}
+          editable={editable}
+          onChange={(supplierId) => onChange({ supplierId })}
+        />
       </div>
     </section>
   );

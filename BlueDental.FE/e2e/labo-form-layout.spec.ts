@@ -309,7 +309,10 @@ test.describe("Labo Mẫu phiếu layout API (F-94)", () => {
   });
 });
 
-test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
+// HIDDEN-FORM-TEMPLATE (BA P1311, 2026-11-13): tab Mẫu phiếu and the slip's Mẫu phiếu picker are hidden on
+// develop as on main (laboTabs HIDDEN_LABO_TABS, useRequestSlipStep OFFERS_TEMPLATES); code and data are kept.
+// The API describes above still run. Un-skip when the BA brings the screens back.
+test.describe.skip("Labo Mẫu phiếu layout UI (F-94)", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
@@ -448,8 +451,8 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
       );
       expect(order).toEqual(["1", "4", "2", "section:Kỹ thuật", "6"]);
       await expect(blocks.nth(1)).toContainText("Răng làm");
-      // Loại phục hình is one Dịch vụ → Vật liệu picker (R-1216).
-      await expect(blocks.nth(2).locator(".pd-labo-choice-label")).toHaveText(["Dịch vụ*", "Vật liệu*"]);
+      // Dịch vụ & vật liệu: one Dịch vụ radio list, then the Vật liệu checklist (P1311).
+      await expect(blocks.nth(2).locator(".rs-restoration .rs-sec")).toHaveCount(2);
       await expect(blocks.nth(4)).toContainText("Dặn dò");
       await expect(dialog.locator(".rs-shade")).toHaveCount(0);
       await expect(dialog.getByText("Đường hoàn tất", { exact: true })).toHaveCount(0);
@@ -491,7 +494,7 @@ test.describe("Labo Mẫu phiếu layout UI (F-94)", () => {
       await page.getByRole("dialog").getByRole("tab", { name: "Đặt hàng" }).click();
       const dialog = slipDialog(page);
       await expect(dialog.locator(".rs-blocks > .rs-block")).toHaveCount(5);
-      await expect(dialog.locator(".rs-restoration .pd-labo-choice-chip--on")).toHaveText([c.ceramic.groupName, c.ceramic.name]);
+      await expect(dialog.locator(".rs-restoration .rs-mchip")).toHaveText([c.ceramic.name]);
       await expect(dialog.getByRole("region", { name: "Kỹ thuật" })).toContainText("Osstem");
       await expect(dialog.getByLabel("Mẫu phiếu", { exact: true })).toBeDisabled();
     });

@@ -12,8 +12,9 @@ interface Props {
 }
 
 /**
- * The fixed Phiếu yêu cầu (F-91, R-1216): Thông tin phiếu, then three columns
- * — Loại phục hình (Dịch vụ → Vật liệu), Màu răng, then Chỉ định with Đường
+ * The fixed Phiếu yêu cầu (F-91, R-1216, P1311): Thông tin phiếu, the Dịch vụ &
+ * vật liệu heading with what is picked, then three columns — Dịch vụ over its
+ * Vật liệu, Màu răng, then Chỉ định with Đường
  * hoàn tất, Kiểu nhịp and Khớp cắn — then Thông tin bổ sung when the slip
  * holds a template copy without a layout, and Yêu cầu.
  */
@@ -21,6 +22,13 @@ export function LegacySlipLayout({ parts, extra, editable, onAnswer }: Props) {
   return (
     <>
       {parts.info()}
+      <div className="rs-band">
+        <h3 className="rs-band-title">{t("Labo:Slip:Restoration")}</h3>
+        <span className="rs-band-rule" aria-hidden="true" />
+        <span className="rs-band-picked">
+          {t("Labo:Slip:PickedSummary")} <b>{parts.picked || t("Labo:Slip:NoMaterialPicked")}</b>
+        </span>
+      </div>
       <div className="rs-main">
         <div className="rs-col">{parts.restoration()}</div>
         <div className="rs-col">{parts.shade()}</div>

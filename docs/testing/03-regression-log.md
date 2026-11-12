@@ -15288,3 +15288,44 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `taxonomy-import-api` "an account without the tab's create right gets 403…": không có option chi nhánh "Nha Khoa Đức Hạnh Premium" trên dữ liệu local.
     - `taxonomy-service-sync` "a new service is given a five-character code…": sandbox đồng bộ local trả `failed`.
 - **Mức retest**: 1–2 (chỉ thanh tab).
+
+## R-1225 (2026-11-13, mức 3: Labo Phiếu yêu cầu bản 2 — Dịch vụ Labo, Nhà cung cấp bắt buộc, Vật liệu chọn nhiều, ẩn Mẫu phiếu; F-96, đổi một phần F-92/F-94/R-1216; CHỈ develop, không merge main)
+- **Yêu cầu** (BA AnTran P1311, drawio + mockup "Labo - Phiếu yêu cầu (bản 2 nhập mã số, không kế hoạch nhà cung cấp)"; chủ dự án duyệt 2026-11-13):
+  - Ẩn tab Mẫu phiếu và ô chọn Mẫu phiếu bổ sung trên develop. Giữ code và dữ liệu.
+  - "Vật liệu & loại phục hình" đổi tên thành "Dịch vụ Labo". Chi nhánh được thêm, sửa, xoá Dịch vụ.
+  - Nhà cung cấp bắt buộc.
+  - Dịch vụ chọn một (radio), Vật liệu chọn nhiều (checkbox).
+  - Tab Danh mục "Vật liệu nha khoa" chỉ Bệnh án mẫu 5 dùng, Labo không dùng. Đã trả lời BA.
+  - "Chuyển đổi dịch vụ" hoãn lại, BA đang phân tích.
+- **BE**:
+  - `TaxonomyAppService`:
+    - Dịch vụ tạo trong nhóm `labo_material` được server gán `SubGroup = "DICH_VU"` (`LaboMaterialGroups.Added`).
+    - Xoá Dịch vụ còn vật liệu (kể cả vật liệu Ngừng) bị chặn bằng `Labo:0063`.
+  - `LaboAppService`:
+    - Gửi phiếu thiếu nhà cung cấp, hoặc nhà cung cấp của chi nhánh khác, bị chặn bằng `Labo:0062`. Tên được chép vào `LabProviderName`. Bản nháp giữ nhà cung cấp.
+    - Vật liệu: nhận nhiều vật liệu đang hoạt động, cùng một Dịch vụ, không "Trên implant". Sai thì `Labo:0045`.
+  - `LaboOrder.EnsureRequestSlipComplete` kiểm `SupplierId`.
+  - i18n vi/en. Không migration.
+- **FE**:
+  - `HIDDEN_LABO_TABS` ẩn Mẫu phiếu. `OFFERS_TEMPLATES` tắt ô chọn mẫu trên phiếu.
+  - Tab "Dịch vụ Labo" (`useServiceGroupEditor`):
+    - Panel "Danh mục dịch vụ", nút + Thêm dịch vụ.
+    - Menu Chỉnh sửa / Xoá chỉ có trên Dịch vụ do chi nhánh thêm.
+  - `SupplierField`: Nhà cung cấp, nút +, Địa chỉ chỉ đọc, Liên hệ.
+  - `RestorationPicker` gồm `ServiceRadioList`, `MaterialMultiPicker` và `MaterialChips`.
+  - Chân phiếu liệt kê "Chưa chọn nhà cung cấp".
+- **Kiểm thử** (host :5152 + `vite preview` :8091 bản build production, đăng nhập thật, không chặn request):
+  - `labo-request-slip-api` 13/13, có 2 ca mới (Nhà cung cấp, Dịch vụ Labo).
+  - `labo-request-slip-ui` + `labo-request-rich-text` 13/13, có 3 ca mới: Dịch vụ radio / Vật liệu chọn nhiều; Nhà cung cấp bắt buộc + nút +; Dịch vụ Labo thêm / sửa / xoá.
+  - `labo.spec` 14/14.
+  - 13 spec Labo còn lại: 57 xanh, 8 skip.
+    - 3 skip có sẵn từ F-91.
+    - 5 ca UI Mẫu phiếu bị `describe.skip` vì tab đã ẩn. Phần API của các spec này vẫn chạy.
+    - `labo-orders-permissions` :75 đỏ một lần (chờ dòng vai trò ở trang Phân quyền). Chạy riêng 1/1 xanh, không liên quan.
+  - Hồi quy Danh mục (TaxonomyAppService đổi, CLAUDE.md §17): `taxonomy*` 13 spec + `payment-qr` + `branch-isolation` / `branch-list` / `branch-switcher` 78/82. 4 ca đỏ đều ngoài phần sửa:
+    - `taxonomy-dialogs` :104 và :256: `currentBranchId()` lấy chi nhánh đầu theo tên ("DANHTEST01" tạo tay ngày 2026-10-06), không phải BD-001.
+    - `taxonomy-dialogs` :456: `getByLabel('Khác')` khớp cả nút "Khách đã đến".
+    - `taxonomy-import-api` :708: hỏng ở bước tạo nhân viên thử trong dialog Nhân viên (ô Chi nhánh).
+  - BE Domain Labo 82/82, Application Labo + Taxonomy 55/55.
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (LaboAppService + TaxonomyAppService dùng chung, toàn bộ spec Labo).

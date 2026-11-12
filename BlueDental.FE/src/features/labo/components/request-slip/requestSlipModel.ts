@@ -27,16 +27,18 @@ export interface RequestSlipValues {
   labSlipNo: string;
   caseType: LaboCaseType;
   dentistId: string | undefined;
+  /** Nhà cung cấp (P1311): required to send, optional on a draft. */
+  supplierId: string | undefined;
   sentDate: Dayjs | null;
   dueDate: Dayjs | null;
   /** FDI, ascending. */
   teeth: number[];
   /**
-   * Loại phục hình (R-1216): one Dịch vụ, then one of its Vật liệu. The
-   * service of a saved material is read off the catalog, so it stays unset here.
+   * Dịch vụ & vật liệu (P1311): one Dịch vụ, then any of its Vật liệu. The
+   * service of saved materials is read off the catalog, so it stays unset here.
    */
   serviceId: string | undefined;
-  materialId: string | undefined;
+  materialIds: string[];
   shade: ShadeValues;
   finishLineIds: string[];
   /** Kiểu nhịp and Khớp cắn (R-1216): one each, optional, for every tooth. */
@@ -89,11 +91,12 @@ export function requestSlipSeed(
       labSlipNo: "",
       caseType: LABO_CASE_TYPE.New,
       dentistId: start.dentistId,
+      supplierId: undefined,
       sentDate: dayjs(),
       dueDate: null,
       teeth: [...start.teeth].sort((a, b) => a - b),
       serviceId: undefined,
-      materialId: undefined,
+      materialIds: [],
       shade: { ...EMPTY_SHADE },
       finishLineIds: [],
       rhythmId: undefined,
@@ -108,12 +111,13 @@ export function requestSlipSeed(
     labSlipNo: order.labSlipNo ?? "",
     caseType: order.caseType ?? LABO_CASE_TYPE.New,
     dentistId: order.dentistId,
+    supplierId: order.supplierId ?? undefined,
     sentDate: order.sentAt ? dayjs(order.sentAt) : dayjs(),
     dueDate: order.dueAt ? dayjs(order.dueAt) : null,
     teeth: order.teeth.map((tooth) => tooth.toothNumber).sort((a, b) => a - b),
-    // A slip from before R-1216 may hold several picks or a "Trên implant" one: its first material is kept.
+    // Every material of the first tooth, each once; a slip from before P1311 may mix Dịch vụ — the picker keeps them until one is chosen.
     serviceId: undefined,
-    materialId: first?.restorations?.[0]?.materialId,
+    materialIds: [...new Set((first?.restorations ?? []).map((one) => one.materialId))],
     shade: mapZones((zone) => zones[zone] ?? ""),
     finishLineIds: first?.finishLineIds ?? [],
     rhythmId: order.rhythmId ?? first?.rhythmId ?? undefined,
@@ -157,10 +161,11 @@ const hidden = (values: Pick<RequestSlipValues, "extra">, kind: LaboBlockKind): 
 export function requestSlipErrors(values: RequestSlipValues): string[] {
   const errors: string[] = [];
   if (!values.labSlipNo.trim()) errors.push("Labo:Slip:Err:SlipNo");
+  if (!values.supplierId) errors.push("Labo:Slip:Err:Supplier");
   if (!values.dentistId) errors.push("Labo:Slip:Err:Dentist");
   if (isDueBad(values)) errors.push("Labo:Slip:Err:Due");
   if (values.teeth.length === 0) errors.push("Labo:Slip:Err:Teeth");
-  if (!hidesRestorations(values.extra?.blocks) && !values.materialId)
+  if (!hidesRestorations(values.extra?.blocks) && values.materialIds.length === 0)
     errors.push("Labo:Slip:Err:Restoration");
   if (!hidden(values, LABO_BLOCK_KIND.Shade) && !hasShade(values.shade)) errors.push("Labo:Slip:Err:Shade");
   if (extraMissing(values.extra)) errors.push("Labo:Slip:Err:Extra");
@@ -186,6 +191,7 @@ export function requestSlipBody(values: RequestSlipValues) {
     labSlipNo: blankToUndefined(values.labSlipNo),
     caseType: values.caseType,
     dentistId: values.dentistId,
+    supplierId: values.supplierId,
     teeth: values.teeth,
     quantity: values.teeth.length,
     notes: shown(LABO_BLOCK_KIND.Notes) ? blankToUndefined(richTextForSave(values.notes)) : undefined,
@@ -196,10 +202,9 @@ export function requestSlipBody(values: RequestSlipValues) {
     // Kiểu nhịp and Khớp cắn sit with Đường hoàn tất (R-1216): hidden with it.
     rhythmId: shown(LABO_BLOCK_KIND.FinishLine) ? values.rhythmId : undefined,
     biteId: shown(LABO_BLOCK_KIND.FinishLine) ? values.biteId : undefined,
-    restorations:
-      hidesRestorations(values.extra?.blocks) || !values.materialId
-        ? []
-        : [{ materialId: values.materialId, onImplant: false }],
+    restorations: hidesRestorations(values.extra?.blocks)
+      ? []
+      : values.materialIds.map((materialId) => ({ materialId, onImplant: false })),
     ...extraBody(values.extra),
   };
 }
