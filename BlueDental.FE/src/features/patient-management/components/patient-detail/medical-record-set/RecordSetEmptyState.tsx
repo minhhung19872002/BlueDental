@@ -35,7 +35,7 @@ export function RecordSetEmptyState({ freeSlips, loading, onCreate }: Props) {
     setSelected(checked ? new Set(freeSlips.map((plan) => plan.treatmentPlanId)) : new Set());
 
   return (
-    <section className="pd-pane pd-pane--fill rs-empty">
+    <section className="pd-pane pd-pane--fill rs-empty-pane">
       <div className="rs-free">
         <header className="rs-free-head">
           <div>
