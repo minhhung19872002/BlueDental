@@ -1747,6 +1747,12 @@ test.describe("Bệnh án", () => {
             const line = root.querySelector('[data-medical-record-field="outpatient-dental.checkbox.6"]')!.closest("p")!;
             return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
           })(),
+          // "9. Đối tượng" with all four boxes on its line, and the title two 18px lines (2026-11-12).
+          subjectLines: (() => {
+            const line = root.querySelector('[data-medical-record-field="outpatient-dental.checkbox.4"]')!.closest("p")!;
+            return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
+          })(),
+          titles: Array.from(root.querySelectorAll('table[data-record-page="outpatient-main"] h1')).map((node) => getComputedStyle(node).fontSize),
         };
       });
 
@@ -1766,6 +1772,8 @@ test.describe("Bệnh án", () => {
     expect(layout.flowed.length, "Chẩn đoán goes on to lines of its own").toBeGreaterThanOrEqual(1);
     for (const right of layout.flowed) expect(Math.abs(right), "a line of its own reaches the right margin").toBeLessThan(1);
     expect(layout.referralLines, "line 13 with its Tự đến box on one line").toBeLessThan(1.6);
+    expect(layout.subjectLines, "9. Đối tượng with its four boxes on one line").toBeLessThan(1.6);
+    expect(layout.titles, "the title, two 18px lines").toEqual(["18px", "18px"]);
 
     // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
     await page.evaluate(() => {

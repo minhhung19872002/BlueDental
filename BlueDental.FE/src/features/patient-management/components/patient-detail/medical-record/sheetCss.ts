@@ -143,6 +143,18 @@ export const SHEET_CSS = String.raw`
 .nfc-tpl p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.3!important}
 /* Mẫu 2 at 14px keeps 13px's line pitch (2026-11-10). */
 .nfc-tpl[data-form="2"] p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.2!important}
+/* Mẫu 2 opened up like the clinic's paper copy (2026-11-12): the title two
+   tight 18px lines, the section headings at 1.25, and what that frees goes to
+   the lines of the first two pages, now 1.4 (1.37 is the least that lifts a
+   line by a pixel; page 1 still has ~8mm to spare). The letterhead keeps its
+   1.2; the last page keeps 1.2 too — it has no room. "1. Toàn thân",
+   "2. Bệnh chuyên khoa", "4. Tóm tắt…" were drawn at 10pt: body size now. */
+.nfc-tpl[data-form="2"] table:is([data-record-page="outpatient-main"],[data-record-page="outpatient-figure"]) p:not(table[data-record-section="layout"]:has(.record-ids) *){line-height:1.4!important}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h2{margin:6px 0 3px;line-height:1.25!important}
+.nfc-tpl[data-form="2"] table[data-record-page^="outpatient"]>tbody>tr>td>p span[style*="font-size"]{font-size:inherit!important}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1,.nfc-tpl[data-form="2"] table[data-record-section="outpatient-summary-title"] h1{font-size:18px;line-height:1.15!important;margin:0}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1:has(+h1){margin-top:6px}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1+h1{margin-bottom:6px}
 /* Mẫu 2's MS / Số ngoại trú / Số lưu trữ (clinic, 2026-10-28, R-1067), and mẫu
    7's MS / Mã người bệnh (2026-10-29, R-1073): the labels in one column, the
    blanks lined up after the ":", the block against the right margin. After the
