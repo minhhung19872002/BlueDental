@@ -84,13 +84,12 @@ export function laboTabs(): LaboTab[] {
       group: LABO_GROUP.Material,
       noun: t("Labo:Noun:Material"),
     },
-    {
-      // F-93: the branch's Mẫu phiếu bổ sung, a catalog like the one before it.
-      key: "form-template",
-      label: t("Labo:Tab:FormTemplate"),
-      subject: "laboMaterial",
-      screen: "form-template",
-    },
+    // PROD-HIDE-FORM-TEMPLATE (main only, owner 2026-11-12: "trên prod ẩn tab
+    // Mẫu phiếu"): F-93's Mẫu phiếu tab is left out on production; develop and
+    // staging keep it. /labo/form-template falls back to the first tab through
+    // findLaboTab. To show it again, put this entry back:
+    // { key: "form-template", label: t("Labo:Tab:FormTemplate"),
+    //   subject: "laboMaterial", screen: "form-template" },
   ];
 }
 
