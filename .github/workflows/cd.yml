@@ -26,15 +26,15 @@ jobs:
     if: ${{ !inputs.skip_ci }}
     uses: ./.github/workflows/ci.yml
 
-  # develop only: build both images here and push them to GHCR, so the staging
-  # VM just pulls. That VM is shared with ~10 other apps, has 11 GB RAM and no
+  # Build both images here and push them to GHCR, so the target
+  # VM just pulls. The staging VM is shared with ~10 other apps, has 11 GB RAM and no
   # swap; `dotnet publish` inside `docker compose build` took 3.5 GB there and
-  # froze the whole machine twice on 2026-11-11. main is untouched: production
-  # still builds on its own VM (deploy.sh without API_IMAGE).
+  # froze the whole machine twice on 2026-11-11; the same build hung the
+  # production VM on 2026-11-12 (run 43131543516), so main pulls too.
   images:
     name: Build and push images
     needs: [ci]
-    if: ${{ always() && github.ref_name == 'develop' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -162,7 +162,7 @@ jobs:
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/home/hung/BlueDental' }}
           DEPLOY_SHA: ${{ github.sha }}
           DEPLOY_BRANCH: ${{ github.ref_name }}
-          # Empty on main (images job skipped) -> deploy.sh builds on the VM.
+          # Pre-built on Actions for both branches; deploy.sh only pulls.
           API_IMAGE: ${{ needs.images.outputs.api }}
           FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
         run: |
