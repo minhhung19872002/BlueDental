@@ -1,3 +1,4 @@
+import { eraseSelection } from "./eraseSelection";
 import { holdBlanks, releaseBlanks } from "./heldBlanks";
 import { copiedText } from "./sheetCopy";
 
@@ -16,10 +17,13 @@ import { copiedText } from "./sheetCopy";
  *   - a drag that leaves the blank it started in selects up to the pointer;
  *   - Ctrl+A in a blank selects its whole entry: the label's blank and every
  *     line under it that holds only writing, down to the next label;
- *   - the next click, or any key but Ctrl+C, gives the blanks back. The key
- *     itself is spent on that, so a Delete never wipes lines it cannot see.
+ *   - Delete or Backspace erases what is selected (owner, 2026-11-12, R-1221 —
+ *     before, it was spent on giving the blanks back and wiped nothing; see
+ *     eraseSelection), and that is reported as an edit;
+ *   - the next click, or any other key but Ctrl+C, gives the blanks back. The
+ *     key itself is spent on that.
  *
- * Nothing written changes, so nothing is reported as an edit.
+ * Selecting writes nothing, so it is not reported as an edit.
  */
 
 const EDITABLE = '[contenteditable="true"]';
@@ -168,9 +172,15 @@ export function attachMultiLineSelect(doc: Document): () => void {
       return;
     }
     if (MODIFIER_KEYS.has(event.key) || (command && key === "c")) return;
-    // Not passed on: Enter or Delete must not act on blanks the selection spans.
+    // Not passed on: Enter, or lineEditing's Delete on an empty line, must not act on blanks the selection spans.
     event.preventDefault();
     event.stopPropagation();
+    const selection = doc.getSelection();
+    const erase = (event.key === "Delete" || event.key === "Backspace") && !command;
+    if (erase && selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+      eraseSelection(doc, selection.getRangeAt(0), release);
+      return;
+    }
     releaseToCaret();
   };
 

@@ -15223,3 +15223,25 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - Câu riêng của 1 bệnh nhân không hiện, kể cả khi ấn Ctrl + Space.
   - tsc + eslint sạch. Chưa chạy lại toàn bộ spec bệnh án (đã chạy ở R-1219), vì thay đổi chỉ chạm vào Ctrl + Space và ngưỡng so khớp.
 - **Mức retest**: 2.
+
+## R-1221 (2026-11-12, mức 2: Bệnh án — Ctrl+A rồi Delete/Backspace xoá được cả mục nhiều dòng, F-30; đổi một phần R-1179)
+- **Lỗi** (chủ dự án, ảnh mục "2. Bệnh chuyên khoa"): Ctrl+A rồi xoá thì không xoá được.
+- **Nguyên nhân** (có từ R-1179, không do R-1219):
+  - Ctrl+A trong ô của một mục có các dòng kẻ bên dưới sẽ chọn cả mục. Để chọn được qua nhiều dòng, `multiLineSelect` tạm khoá các ô (`heldBlanks`).
+  - Phím bấm tiếp theo bị **nuốt** để mở khoá ô, theo ý "a Delete never wipes lines it cannot see". Vì vậy Delete không xoá gì.
+- **Sửa (chỉ FE)**:
+  - `eraseSelection.ts` mới: khi đang giữ vùng chọn nhiều dòng, Delete/Backspace (không kèm Ctrl/Cmd) xoá phần đã chọn trong các ô chữ. Chữ in sẵn của mẫu và ô tick giữ nguyên.
+  - Mỗi ô bị đụng tới được ghi lại nguyên giá trị (`writeFlowed`, chữ dài chảy lại dòng, dòng đã trống bị bỏ). Con trỏ về đúng chỗ bắt đầu vùng chọn. Phát sự kiện `input` để phiếu ghi nhận là đã sửa.
+  - Phím khác ngoài Ctrl+C vẫn chỉ mở khoá ô như R-1179.
+  - `flowLines` export thêm `flowParts` / `flowOwner`.
+- **Kiểm thử** (API Docker :5000 + `vite preview` :8080, đăng nhập thật, không chặn request):
+  - Ca mới "Ctrl+A then Delete or Backspace erases a written entry, over all its lines":
+    - Mục 2 có một dòng: Ctrl+A → Delete → ô trống, chữ "2. Bệnh chuyên khoa:" vẫn còn, gõ tiếp vào được.
+    - Mục 37 chảy qua nhiều dòng cùng dòng 38 bên dưới: Ctrl+A → Backspace → cả hai trống, không còn dòng chảy.
+    - Lưu, tải lại vẫn đúng.
+  - Ca R-1179 đổi "Delete wipes nothing" thành "ArrowRight" (phím khác vẫn không ghi gì). **Xanh**.
+  - Toàn bộ `patient-medical-record` + `medical-record-sheet-facts` + `medical-record-drawing` + `medical-record-field-suggestions` + `cskh-message-template`: **55/58** (1 skip là ca Zalo cần giả lập).
+    - "picking the day…" đỏ có từ trước.
+    - "…print their MS, which nobody can change" đỏ một lần (nhận `99/SỬA TAY` thay vì mã mẫu, race lúc đồng bộ giá trị đã lưu). Chạy riêng 2/2 xanh; trước khi sửa cũng xanh.
+  - tsc + eslint sạch.
+- **Mức retest**: 2.

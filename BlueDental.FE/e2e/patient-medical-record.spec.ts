@@ -1551,7 +1551,8 @@ test.describe("Bệnh án", () => {
    * first one's edge. A drag across lines, or Ctrl+A in a blank, now takes the
    * whole entry; the copy joins the lines the width broke with a space and keeps
    * the ones the writer broke. The next key or click gives the blanks back, and
-   * what is written is untouched.
+   * what is written is untouched — all but Delete / Backspace, which erase the
+   * selection (R-1221, the test after this one).
    */
   test("a summary written over several lines can be selected and copied whole", async ({ page }) => {
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -1591,8 +1592,8 @@ test.describe("Bệnh án", () => {
     await page.keyboard.press("Control+c");
     expect(await clipboard()).toBe(`${summary}\n${below}`);
 
-    // A key gives the blanks back, and is spent on that: Delete wipes nothing.
-    await page.keyboard.press("Delete");
+    // Any other key gives the blanks back, and is spent on that: nothing is written.
+    await page.keyboard.press("ArrowRight");
     expect(await editable("outpatient-dental.text.38")).toBe("true");
     await expect(blank(page, "outpatient-dental.text.38")).toHaveText(below);
 
@@ -1620,6 +1621,59 @@ test.describe("Bệnh án", () => {
       .locator('[data-medical-record-field="outpatient-dental.text.37"], [data-flow-of="outpatient-dental.text.37"]')
       .evaluateAll((nodes) => nodes.map((node) => node.textContent).join(" "));
     expect(written).toBe(summary);
+  });
+
+  /**
+   * Ctrl+A then Delete erases (owner, 2026-11-12, R-1221): in "2. Bệnh chuyên
+   * khoa" Ctrl+A takes the label's blank and the lines under it, and Delete
+   * used to be spent on giving them back, so nothing could be wiped that way.
+   * Now Delete / Backspace erase what is selected — only the writing, the
+   * printed words stay — and the caret is left there to write on.
+   */
+  test("Ctrl+A then Delete or Backspace erases a written entry, over all its lines", async ({ page }) => {
+    const specialty = "Viêm lợi mạn toàn hàm";
+    const summary =
+      "Bệnh nhân nam 35t, đến khám do răng khôn hàm dưới mọc lệch, gây sưng đau, và mắc thức ăn. Bệnh nhân đã uống thuốc nhiều lần nhưng bị tái đi tái lại. Qua thăm khám hỏi bệnh thấy: R38 lệch gần 90 độ, chân răng xòe, sát ống thần kinh";
+    const below = "Nướu nề nhẹ, không sưng, không có dịch, há ngậm miệng bình thường";
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt", {
+      "outpatient-dental.text.30": specialty,
+      "outpatient-dental.text.37": summary,
+      "outpatient-dental.text.38": below,
+    });
+    const document = sheet(page);
+    const editable = (field: string) => blank(page, field).getAttribute("contenteditable");
+
+    // The screenshot's case: one line written, Ctrl+A holds the entry, Delete wipes it.
+    await blank(page, "outpatient-dental.text.30").click();
+    await page.keyboard.press("Control+a");
+    expect(await editable("outpatient-dental.text.31"), "the entry runs over the lines under it").toBe("false");
+    await page.keyboard.press("Delete");
+    await expect(blank(page, "outpatient-dental.text.30")).toHaveText("");
+    expect(await editable("outpatient-dental.text.30")).toBe("true");
+    await expect(document.getByText("2. Bệnh chuyên khoa:")).toBeVisible();
+    // The caret stays in the blank, to write on.
+    await page.keyboard.type("Viêm nha chu");
+    await expect(blank(page, "outpatient-dental.text.30")).toHaveText("Viêm nha chu");
+
+    // A summary flowed over lines of its own, and the line under it: Backspace wipes them all.
+    const flowed = document.locator('[data-flow-of="outpatient-dental.text.37"]');
+    expect(await flowed.count()).toBeGreaterThanOrEqual(1);
+    await flowed.first().click();
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Backspace");
+    await expect(blank(page, "outpatient-dental.text.37")).toHaveText("");
+    await expect(blank(page, "outpatient-dental.text.38")).toHaveText("");
+    await expect(flowed).toHaveCount(0);
+    await page.keyboard.type("Răng 38 mọc lệch");
+    await expect(blank(page, "outpatient-dental.text.37")).toHaveText("Răng 38 mọc lệch");
+
+    await save(page);
+    await page.reload();
+    await openLastSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+    await expect(blank(page, "outpatient-dental.text.30")).toHaveText("Viêm nha chu");
+    await expect(blank(page, "outpatient-dental.text.37")).toHaveText("Răng 38 mọc lệch");
+    await expect(blank(page, "outpatient-dental.text.38")).toHaveText("");
   });
 
   /**
