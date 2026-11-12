@@ -319,10 +319,10 @@
   --ant-color-border: var(--bd-dim);
   border-width: 1.5px;
 }
-.rs-slip--checked td {
+.rs-slip-row--checked td {
   background: var(--bd-blue-pale);
 }
-.rs-slip--locked td {
+.rs-slip-row--locked td {
   color: var(--bd-muted);
 }
 .rs-slip-code {
@@ -344,7 +344,7 @@
 .rs-slip-diagnosis {
   font-weight: 600;
 }
-.rs-slip--locked .rs-slip-diagnosis {
+.rs-slip-row--locked .rs-slip-diagnosis {
   font-weight: 500;
 }
 

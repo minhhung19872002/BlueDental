@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BRANCH2_USER, login } from "./fixtures/auth";
 import { call } from "./fixtures/timekeepingStaff";
 import {
@@ -23,6 +23,30 @@ import {
  */
 
 const picker = (page: Page) => page.locator(".rs-picker-trigger");
+
+/**
+ * Each slip is one table row, its cells side by side left to right. R-1213:
+ * the Labo Phiếu yêu cầu's `.rs-slip` (a flex column) once matched the row
+ * class here too and stacked every cell under the tick box.
+ */
+async function expectSlipRowsLaidOut(scope: Locator) {
+  const rows = scope.locator("tbody tr");
+  await expect(rows.first()).toBeVisible();
+  for (const row of await rows.all()) {
+    await expect(row).toHaveCSS("display", "table-row");
+    const boxes = await row.locator("> td").evaluateAll((cells) =>
+      cells.map((cell) => {
+        const box = cell.getBoundingClientRect();
+        return { top: box.top, left: box.left };
+      }),
+    );
+    expect(boxes.length).toBeGreaterThanOrEqual(5);
+    for (let i = 1; i < boxes.length; i++) {
+      expect(Math.abs(boxes[i].top - boxes[0].top)).toBeLessThan(2);
+      expect(boxes[i].left).toBeGreaterThan(boxes[i - 1].left);
+    }
+  }
+}
 
 /** Opens the set dialog from the picker's "+ Tạo bộ hồ sơ mới", or the pencil of a set. */
 async function openFromPicker(page: Page, action: string) {
@@ -57,6 +81,7 @@ test.describe("Bộ hồ sơ bệnh án", () => {
       await expect(free.getByRole("checkbox", { name: slip.code })).toBeVisible();
     }
     await expect(free.getByText(patient.diagnosisName).first()).toBeVisible();
+    await expectSlipRowsLaidOut(free);
     const create = free.getByRole("button", { name: "Tạo hồ sơ" });
     await expect(create).toBeDisabled();
 
@@ -68,6 +93,7 @@ test.describe("Bộ hồ sơ bệnh án", () => {
     for (const slip of patient.slips) {
       await expect(dialog.getByRole("checkbox", { name: slip.code })).toBeChecked();
     }
+    await expectSlipRowsLaidOut(dialog.locator(".rs-slips"));
     await dialog.getByRole("checkbox", { name: "9. Phiếu chăm sóc" }).uncheck();
     // The reference's nine forms and the clinic's mẫu 10.
     await expect(dialog).toContainText(
@@ -305,7 +331,7 @@ test.describe("Bộ hồ sơ bệnh án", () => {
     // No reload: the dialog was opened on this page before the slip started,
     // and opening it again reads the slips afresh — the status is today's.
     dialog = await openFromPicker(page, `Sửa bộ hồ sơ ${second.code}`);
-    const startedRow = dialog.locator(".rs-slip", {
+    const startedRow = dialog.locator(".rs-slip-row", {
       has: page.getByRole("checkbox", { name: c.code }),
     });
     await expect(startedRow).toContainText("Hoàn thành");

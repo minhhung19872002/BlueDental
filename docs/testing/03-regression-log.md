@@ -15057,3 +15057,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - Lần 1: workflow, request-slip-ui, form-layout, form-layout-dnd, api, form-template-* — 46 xanh, 2 skip, 1 đỏ. Đỏ do locator R-1211: tên nút là "check Đạt". Đã sửa, chạy lại xanh.
     - Lần 2: detail, request-slip-api, tab-list, orders-actions, labo — 30/30 xanh.
 - **Mức retest**: 2 (Labo). `RichTextField` dùng chung nhưng prop mới là tuỳ chọn, chỗ khác không đổi hành vi.
+
+## R-1213 (2026-11-12, mức 2: Bộ hồ sơ bệnh án) Bảng "Phiếu điều trị chưa thuộc bộ nào" dồn hết ô vào cột đầu
+- **Hiện tượng** (ảnh chủ dự án gửi, tab Bệnh án của bệnh nhân chưa có bộ hồ sơ): mỗi phiếu điều trị bị xếp dọc trong cột tick (ô tick → DT01 + ngày → chẩn đoán → điều trị → bác sĩ), các cột PHIẾU / CHẨN ĐOÁN / ĐIỀU TRỊ / BÁC SĨ trống. Dialog Tạo / Sửa bộ hồ sơ dùng chung bảng nên cũng vỡ y hệt.
+- **Nguyên nhân**: trùng tên class giữa hai tính năng, CSS gộp chung một bundle.
+  - Dòng bảng (`SlipPickTable`) mang class `rs-slip` (rs = record set).
+  - Phiếu yêu cầu Labo F-91 (R-1198) định nghĩa `.rs-slip` (rs = request slip): `display: flex; flex-direction: column`, nền `#f8f9fc`. `<tr>` thành cột dọc.
+  - Trùng thứ hai: khung trống mang `rs-empty`, Labo có `.rs-empty { margin; color; font-size }`.
+  - Đã so mọi tên `.rs-*` hai bên: chỉ hai tên trên trùng.
+- **Sửa** (chỉ phía Bộ hồ sơ, không đụng Labo):
+  - `rs-slip` / `--checked` / `--locked` → `rs-slip-row` / `rs-slip-row--checked` / `rs-slip-row--locked` (`SlipPickTable.tsx`, `record-set.css`).
+  - `rs-empty` → `rs-empty-pane` (`RecordSetEmptyState.tsx`; không có CSS riêng).
+  - `e2e/medical-record-set.spec.ts`: helper `expectSlipRowsLaidOut` — mỗi dòng `display: table-row`, các ô cùng hàng (lệch top < 2px) và lần lượt trái → phải; gọi ở khung trống và ở dialog Tạo bộ hồ sơ. Locator `.rs-slip` → `.rs-slip-row`.
+- **Kiểm thử** (e2e thật: host :5000 + `vite preview` bản build production, đăng nhập thật, không chặn request):
+  - Bản sửa (:8213, `dist-r1213`): `medical-record-set` 3/3 xanh.
+  - Đối chứng bản HEAD 7255ddbd chưa sửa (:8214): test 1 đỏ đúng chỗ mới — `toHaveCSS("display", "table-row")` nhận `flex`.
+  - Ảnh trước / sau (khung trống + dialog) trong scratchpad của phiên, không commit.
+- **Mức retest**: 2 (Bộ hồ sơ bệnh án). Labo không đổi file nào nên không chạy lại.

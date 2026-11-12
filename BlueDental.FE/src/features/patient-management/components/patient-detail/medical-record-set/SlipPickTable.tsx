@@ -82,7 +82,7 @@ function SlipRow({ plan, checked, columns, setId, onToggle }: RowProps) {
 
   return (
     <tr
-      className={["rs-slip", checked && "rs-slip--checked", !enabled && "rs-slip--locked"]
+      className={["rs-slip-row", checked && "rs-slip-row--checked", !enabled && "rs-slip-row--locked"]
         .filter(Boolean)
         .join(" ")}
     >
