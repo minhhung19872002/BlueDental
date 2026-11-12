@@ -5,12 +5,12 @@ import type { LaboOrderFacts } from "./laboOrderFacts";
 
 interface BlockProps {
   title: string;
-  rows: [label: string, value: string][];
+  rows: [label: string, value: ReactNode][];
   children?: ReactNode;
 }
 
 /** One titled block of label/value rows, the modal's four quarters. */
-function Block({ title, rows, children }: BlockProps) {
+export function Block({ title, rows, children }: BlockProps) {
   return (
     <section className="pd-labo-detail-block">
       <h3>{title}</h3>
@@ -31,7 +31,7 @@ function Block({ title, rows, children }: BlockProps) {
 const noteRow = (note: string): [label: string, value: string][] => (note ? [[t("Labo:Spec:Note"), note]] : []);
 
 /** The status pill under the fourth block, in the same tone as the table's. */
-function StatusPill({ tone }: { tone: LaboPill }) {
+export function StatusPill({ tone }: { tone: LaboPill }) {
   return (
     <span
       className="pd-labo-detail-pill"

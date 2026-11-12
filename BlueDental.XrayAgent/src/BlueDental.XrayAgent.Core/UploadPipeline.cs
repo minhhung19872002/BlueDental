@@ -28,9 +28,10 @@ public enum UploadOutcome
 public sealed record PipelineResult(UploadOutcome Outcome, TimeSpan? RetryAfter = null);
 
 /// <summary>
-/// Sends one picture: reads what its name says, sends it, and records the
-/// answer in the ledger. The log line names the customer code and the first
-/// 12 hex of the file's SHA-256 — never the file name, which may hold a name.
+/// Sends one picture: reads what its EzDent-i information file and its name
+/// say, sends it, and records the answer in the ledger. The log line names the
+/// customer code and the first 12 hex of the file's SHA-256 — never the file
+/// name or the information file, which hold a name and a birthday.
 /// </summary>
 public sealed class UploadPipeline(
     AgentSettings settings,
@@ -46,6 +47,14 @@ public sealed class UploadPipeline(
         [".jpeg"] = "image/jpeg",
         [".png"] = "image/png",
     };
+
+    /// <summary>
+    /// EzDent-i may finish the information file a moment after the picture;
+    /// a fresh picture without one waits this long before going up without it.
+    /// </summary>
+    public static readonly TimeSpan InfoFileGrace = TimeSpan.FromSeconds(20);
+
+    private static readonly TimeSpan MinInfoRetry = TimeSpan.FromSeconds(2);
 
     private int _paused;
 
@@ -94,7 +103,15 @@ public sealed class UploadPipeline(
         var file = new FileInfo(path);
         var key = KeyOf(file);
         var now = time.GetUtcNow();
-        var hints = parser.Parse(file.FullName, now.Year);
+        var info = ReadInfo(file, now.Year);
+        if (info is null && WaitForInfo(file, now) is { } infoWait)
+            return new PipelineResult(UploadOutcome.Skipped, infoWait);
+
+        var named = parser.Parse(file.FullName, now.Year);
+        var hints = info is null
+            ? named
+            : new FileNameHints(info.Code ?? named.Code, info.Name ?? named.Name, info.BirthYear ?? named.BirthYear);
+        var capturedAt = info?.AcquiredAt ?? new DateTimeOffset(file.LastWriteTimeUtc);
         var codeTag = hints.Code ?? "-";
 
         string shaTag;
@@ -105,7 +122,7 @@ public sealed class UploadPipeline(
             shaTag = Convert.ToHexStringLower(await SHA256.HashDataAsync(stream, ct))[..12];
             stream.Position = 0;
             result = await station.UploadAsync(
-                new StationUpload(stream, file.Name, ContentTypes[file.Extension], hints, new DateTimeOffset(file.LastWriteTimeUtc)),
+                new StationUpload(stream, file.Name, ContentTypes[file.Extension], hints, capturedAt),
                 ct);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -115,7 +132,7 @@ public sealed class UploadPipeline(
             return new PipelineResult(UploadOutcome.Retrying, wait);
         }
 
-        var tag = $"code={codeTag} sha={shaTag}";
+        var tag = $"code={codeTag} sha={shaTag} info={(info is null ? "no" : "yes")}";
         if (result.Value is { } receipt)
         {
             ledger.MarkSent(key, now, receipt.Duplicate ? "duplicate" : $"status {receipt.Status}");
@@ -141,6 +158,25 @@ public sealed class UploadPipeline(
                 log.Warn($"not sent {tag}: {result.Detail}; retry in {wait.TotalSeconds:0}s");
                 return new PipelineResult(UploadOutcome.Retrying, wait);
         }
+    }
+
+    /// <summary>The picture's information file, when reading it is on and it says anything.</summary>
+    private EzdentInfo? ReadInfo(FileInfo picture, int currentYear)
+    {
+        if (!settings.ReadEzdentInfoFile || EzdentInfoFile.FindFor(picture.FullName) is not { } path)
+            return null;
+        return EzdentInfoFile.TryRead(path, currentYear) is { IsEmpty: false } info ? info : null;
+    }
+
+    /// <summary>How long to hold a fresh picture whose information file has not appeared; null = send now.</summary>
+    private TimeSpan? WaitForInfo(FileInfo picture, DateTimeOffset now)
+    {
+        if (!settings.ReadEzdentInfoFile)
+            return null;
+        var left = InfoFileGrace - (now.UtcDateTime - picture.LastWriteTimeUtc);
+        if (left <= TimeSpan.Zero)
+            return null;
+        return left < MinInfoRetry ? MinInfoRetry : left;
     }
 
     private static string KeyOf(FileInfo file) =>

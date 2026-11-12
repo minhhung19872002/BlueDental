@@ -774,3 +774,256 @@ What in §1–§9 no longer describes BlueDental:
   doc).
 - The order form fields, chip strips (Vật liệu search R-1062), supplier label
   colour (R-1072) and print sheet are kept as cloned.
+
+## 11. P1011 — Vật liệu & loại phục hình (F-92, R-1199, 2026-11-11)
+
+**BA requirement, not the reference.** BA `P1011.drawio` reworks §5 and the
+F-91 Phiếu yêu cầu. app.nfcdental.com still has the §5 screen.
+
+What in §5 no longer describes BlueDental:
+
+- The tab `/labo/service-material` is named **Vật liệu & loại phục hình**.
+- Groups:
+  - There are exactly three fixed groups per branch, seeded the first time the
+    list is read: `TOAN_SU` Toàn sứ, `HOP_KIM` Hợp kim and `KHAC_TREN_IMPLANT`
+    Phục hình khác trên implant.
+  - Each is a `labo_material` taxonomy row with `IsSystem` and `SubGroup` = the
+    code (`LaboMaterialGroups`, `TaxonomyAppService.EnsureFixedGroupsAsync`).
+  - There is no "Thêm" button, and no pencil or bin on a group.
+  - Groups made before P1011 stay in the database, because old orders still
+    name their materials, but neither the screen nor the slip lists them.
+  - The right pane's head shows the group name with its code chip and the
+    hint "Vật liệu = dòng trên phiếu · Loại phục hình = cột ô tích trên phiếu".
+- Material dialog (kept as a modal; the owner, 2026-11-11):
+  - Fields: Mã\*, Tên vật liệu\*, Nhóm vật liệu\* and Trạng thái (Đang dùng /
+    Ngừng).
+  - Mã is unique within the branch, ignoring case and outer spaces:
+    `Labo:0046` when missing, `Labo:0047` "Mã vật liệu {code} đã tồn tại."
+  - Materials made before P1011 have no Mã until someone edits them.
+  - The F-91 "Có lựa chọn Trên implant" checkbox is gone; the group now decides
+    the columns.
+- Material table:
+  - Columns: Mã (mono) + Vật liệu, Trạng thái, Cập nhật gần nhất, Thao tác.
+  - Trạng thái is a switch in the row (`PUT labo-materials/{id}/active`).
+  - The search matches Mã as well as the name, on the server.
+- Phiếu yêu cầu, Loại phục hình:
+  - The three groups sit side by side in three columns.
+  - Toàn sứ and Hợp kim each have a plain column and a Trên implant column.
+  - Phục hình khác trên implant has one column, and each tick is stored with
+    `onImplant: true`.
+  - A card shows at most 10 rows and then scrolls (`.rs-rows`).
+  - A Ngừng material is not offered on a new slip.
+  - An old order keeps the rows of the old group it ticked.
+- The Phiếu điều trị column is removed from `/labo`, the patient Labo tab and
+  the Excel export (the owner chose to drop it everywhere, 2026-11-11).
+- Not built, by decision: "Xem trước trên phiếu", the "Loại phục hình (n)" tab
+  and an inline tooth chart in the material screen.
+
+### 11.1 Other suppliers — how the form can grow (proposal, not built)
+
+The BA asks only that the DB can take other suppliers' forms later. Today's
+Phiếu yêu cầu is one supplier's form. F-91 took the supplier off the order;
+`LaboOrder.SupplierId` is still a nullable column and stays empty on
+`layout = 2`.
+
+**Option A — one template per supplier (recommended).**
+
+- `LaboOrder.Layout` already versions the form: 1 = Classic, 2 = RequestSlip.
+  A supplier with its own paper form becomes a new layout value.
+- `LaboSupplier` gets a `FormLayout` field. The slip picks the supplier again
+  and opens that supplier's layout.
+- Each layout has its own pieces:
+  - an FE step component and print sheet;
+  - a BE validator chosen by layout (strategy pattern, CLAUDE.md §15.6).
+- The fields every form shares stay as columns: Mã số, dates, dentist, teeth,
+  shade, finish lines. A supplier's own extra fields go in a jsonb column
+  validated by its layout.
+- The material groups get a nullable `LaboSupplierId` (null = the default
+  form), and the rules in `LaboMaterialGroups.Accepts` become per layout.
+- For: typed data, a print that can match each supplier's paper, a clear test
+  per layout, and the hook already exists.
+- Against: each new supplier is development work.
+
+**Option B — dynamic form.**
+
+- A `LaboFormTemplate` table holds the supplier, a version and a JSON schema
+  of sections, fields and options.
+- An order stores its template id, the version and an answers jsonb.
+- The FE renders the form from the schema, and the print is generic.
+- For: a new supplier needs no code.
+- Against:
+  - validation, the print and reports over jsonb are generic and weaker;
+  - a supplier's paper is hard to match 1:1;
+  - it is much more to build now.
+
+**Recommendation:** A. There are only a few suppliers, each one has its own
+paper slip to match, and `Layout` is already the switch. Move to B only if
+suppliers start to multiply.
+
+**Update 2026-11-11 (F-93, R-1200).** The owner compared A and B and chose a
+**hybrid**, which is now built (§12). The fixed Phiếu yêu cầu (layout 2) stays
+as typed columns. A supplier's extra questions are added as data, with no code
+change. Option A is still the path if a supplier needs its own printed paper.
+
+## 12. F-93 — Mẫu phiếu bổ sung (hybrid of §11.1, R-1200, 2026-11-11)
+
+Owner decisions (2026-11-11):
+
+- **"Chọn mẫu, không cần NCC".** The slip gets a **Mẫu bổ sung** picker. A
+  template has no supplier link.
+- **"Tab riêng 'Mẫu phiếu'".** A new /labo tab, `/labo/form-template`.
+- **"Không in phần riêng".** The print sheet is unchanged; the extra section
+  appears on screen only.
+- **Picker visibility.** The picker shows only when the branch has at least one
+  active template, or when the slip already holds a copy. Otherwise the section
+  is hidden and the slip reads exactly as before.
+
+Data:
+
+- **`bd_labo_form_templates`.** Each row has a branch, a Name (≤200 characters,
+  unique per branch, ignoring case and outer spaces) and a Description (≤500).
+  It also has `IsActive`, a `Version`, and a jsonb list of fields. There are 1–30
+  fields.
+- **Each field** has:
+  - a Key: generated, kept stable across edits, ≤40 characters;
+  - a Label: required and unique within the template;
+  - a Type: Text ≤500 · LongText ≤4000 · Number · Date · Select · MultiSelect · YesNo;
+  - a Bắt buộc flag;
+  - Options, for choice fields only: 1–50 of them, each ≤100 characters,
+    with no duplicates.
+- **`LaboOrder.ExtraForm`** (jsonb) holds a *copy*: the template id, name and
+  version, plus each field together with its answer. The order reads back from
+  that copy alone, so later edits, a stop or a delete of the template never
+  change an order that was already written.
+
+Rules (BE):
+
+- **Saving the same template again** keeps the copy and changes only the
+  answers.
+- **Picking a different template** takes a fresh copy. It must be active and
+  belong to the order's branch, otherwise the save fails with
+  `Labo:0057 TemplateUnavailable`.
+- **Picking none** clears the section.
+- **Answers are cleaned:**
+  - blanks are dropped;
+  - CRLF line breaks become `\n`;
+  - Number is stored in invariant form;
+  - Date is stored as yyyy-MM-dd;
+  - YesNo is stored as "true" / "false";
+  - MultiSelect is stored in the options' order;
+  - anything that does not fit its field fails with `Labo:0049`.
+- **Lưu nháp** keeps a blank Bắt buộc field. **Tạo phiếu Labo** refuses it with
+  `Labo:0048`.
+- **Template errors:** `0050` name required · `0051` name taken · `0052` field
+  count · `0053` label required · `0054` duplicate label · `0055` options ·
+  `0056` type.
+- **A Classic (layout 1) order** never keeps an extra section.
+- **Permissions:** `Catalogs.*`, the same as Vật liệu Labo and the other Labo
+  catalogs. A user who needs the list must hold a catalog read leaf. The
+  `laboMaterial` leaf alone does not open it; that bridge gap was already there
+  for Vật liệu.
+
+Endpoints, `api/v1/app/labo-form-templates`:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/` | List; filters `ClinicBranchId`, `IsActive`, `Filter` |
+| GET | `/{id}` | One template |
+| POST | `/` | Create |
+| PUT | `/{id}` | Edit |
+| PUT | `/{id}/active` | Switch on or off |
+| DELETE | `/{id}` | Soft delete |
+
+The order form takes `ExtraFormTemplateId` and `ExtraFormAnswers[]`.
+
+FE:
+
+- `components/form-template/*` holds the table, the dialog with its field rows,
+  and the model.
+- `request-slip/ExtraFormSection` + `ExtraFieldInput` render "Thông tin bổ
+  sung" under the slip. The picker is searchable without accents. A slip that
+  is sent is locked and shows its answers read-only.
+
+## 13. F-94 — Mẫu phiếu dựng cả Phiếu yêu cầu (R-1201, 2026-11-11)
+
+The owner widened F-93: "ý ba mở rộng là làm chức năng custom toàn bộ form
+đó". Their answers (2026-11-11):
+
+- **"Khối hệ thống khóa".** The slip's own blocks — Thông tin phiếu, Loại phục
+  hình, Màu răng, Chỉ định, Đường hoàn tất, Yêu cầu — stay as they are inside.
+  A template can only rename them, set their width (1/3, 2/3 or the whole row),
+  move them, and hide them. Thông tin phiếu and Chỉ định are always shown.
+  Around them a template adds its own titled sections (at most 10), each
+  holding fields (at most 30 in the whole template). Kiểm tra, Bảo hành and
+  the Excel export are unchanged.
+- **"Theo chi nhánh, chọn khi tạo phiếu".** As in F-93: the template belongs to
+  a branch and is picked on the slip ("Mẫu phiếu"); there is no supplier link.
+- **"In tự sinh theo mẫu".** The print follows the order's layout: the shown
+  blocks in order, at their width, under their headings, each section's fields
+  printed as «Nhãn: câu trả lời». This replaces F-93's "Không in phần riêng".
+
+Data:
+
+- `LaboFormTemplate.Blocks` (jsonb): an ordered list of `{key, kind, title,
+  visible, span}`. Kind: Custom 0, Info 1, Restoration 2, Shade 3, Teeth 4,
+  FinishLine 5, Notes 6. Each field gains a `blockKey` naming its section.
+- A template written before F-94 has no blocks. It reads as the slip's own
+  layout (Info 3, Restoration 2, Teeth 1, Shade 1, FinishLine 2, one untitled
+  section `extra` of width 3, Notes 3), with every field in `extra`.
+- `LaboOrder.ExtraForm` copies the blocks with the fields, so an order keeps
+  the layout it was written with.
+- Migration `LaboFormLayoutF94` (needs DbMigrator).
+
+Rules (BE):
+
+- Every system kind appears exactly once; an unknown kind, more than 10
+  sections, or two sections sharing a key → `Labo:0058 FormLayoutInvalid`.
+- A section with no title → `0059` (data: its 1-based place); a section with
+  no field → `0060`. No blocks and no fields → `0052` as before.
+- A width is held to 1–3; Info and Teeth are forced shown. A section key must
+  match `^[A-Za-z0-9_-]+$`, else a new one is made. A field naming no section
+  of the layout is filed under the first section.
+- A layout of system blocks only, with no field, is a valid template.
+- A block the order's layout hides is not kept: restorations, shade zones,
+  finish lines and notes the form sends for it are dropped, and Tạo phiếu Labo
+  no longer asks for Loại phục hình (`0044`) or Màu răng (`0034`) when that
+  block is hidden.
+
+FE:
+
+- Builder (`form-template/LaboFormBlockRow`, `LaboFormSectionFields`,
+  `useTemplateDraft`): one card per block — heading, width, Hiện switch (or
+  "Luôn hiện"), up/down arrows, and for a section its fields and Xoá; "Thêm
+  mục" adds a section before Yêu cầu. The footer names what still stops Lưu
+  ("Khối N chưa có tiêu đề", "Mục … chưa có trường", …).
+- Slip: picking a Mẫu phiếu lays the sheet out on a 3-column grid
+  (`SlipBlockLayout`); without one the fixed form stays (`LegacySlipLayout`).
+- Print: `LaboRequestSlipPrintBody` prints the order's blocks, or the fixed
+  sheet when the order holds no layout.
+
+### 13.x R-1202 — kéo thả và xem trước (2026-11-11)
+
+- Builder: blocks and fields drag by their grip (`@dnd-kit`, keyboard too);
+  a field may go to another section. The ↑/↓ buttons stay.
+- Preview beside the builder: the slip's own parts (Thông tin phiếu, Loại phục
+  hình with the branch's groups, Chỉ định, Màu răng, Đường hoàn tất, Yêu cầu,
+  and each section as its Thông tin bổ sung card) at their spans on the
+  3-column grid, zoomed and inert. Drag a block there to reorder; click it to
+  reach its card.
+- Modal up to 1600px wide; ≤ 1100px the preview goes under the builder;
+  ≤ 640px blocks stack, as on the slip itself.
+- Slip with a template and its preview pack blocks without row gaps
+  (`useMasonryRows`: 2px grid rows, each block spans its own height + gap),
+  so a block sits right under a shorter one; order stays the template's.
+  The no-template slip keeps its fixed layout.
+- Loại phục hình split (owner): block 2 is the heading only; its cards are
+  system blocks AllCeramic 7, Alloy 8, OtherOnImplant 9, each renamed /
+  resized / moved / hidden on its own. Default order = the no-template slip:
+  Info 3, Restoration 3, AllCeramic 1, OtherOnImplant 1, Teeth 1, Alloy 1,
+  Shade 1, FinishLine 1, Notes 3. A layout saved before the split gets the
+  three cards right after Restoration with its visibility. Restorations are
+  required while any card shows; picks on a hidden card are dropped by the
+  server. No migration.
+- A new template starts with the system blocks only — no default "Thông tin
+  bổ sung" section (owner); Thêm mục adds one. An F-93 template without a
+  layout still reads with its section.

@@ -1,3 +1,4 @@
+using System.Text;
 using BlueDental.XrayAgent.Core;
 
 namespace BlueDental.XrayAgent.Tests;
@@ -113,6 +114,68 @@ public sealed class UploadPipelineTests : IDisposable
         _ledger.IsFinished(UploadLedger.Fingerprint(first, Jpeg.Length, Written)).ShouldBeFalse();
     }
 
+    private const string InfoText =
+        "Chart No : 123456\r\nName : NGUYEN VAN A^\r\nBirthday : 1990-05-17\r\nImage Type : Panorama\r\n" +
+        "Acquisition Date : 2026-11-11T11:01:06+07:00\r\n";
+
+    [Fact]
+    public async Task The_ezdent_information_file_gives_the_code_and_capture_time()
+    {
+        var path = _temp.Write("PX20261111_110106_1_1.png", Jpeg, Written);
+        _temp.Write("PX20261111_110106_1_1.txt", Encoding.UTF8.GetBytes(InfoText), Written);
+
+        var result = await Pipeline().ProcessAsync(path, CancellationToken.None);
+
+        result.Outcome.ShouldBe(UploadOutcome.Sent);
+        var upload = _station.Uploads.Single();
+        upload.Hints.ShouldBe(new FileNameHints("123456", "NGUYEN VAN A", 1990));
+        upload.CapturedAt.ShouldBe(new DateTimeOffset(2026, 11, 11, 11, 1, 6, TimeSpan.FromHours(7)));
+        _log.Lines.ShouldContain(line => line.Contains("code=123456") && line.Contains("info=yes"));
+        _log.Lines.ShouldAllBe(line => !line.Contains("NGUYEN") && !line.Contains("1990") && !line.Contains("PX2026"));
+    }
+
+    [Fact]
+    public async Task The_information_file_code_wins_over_the_file_name()
+    {
+        var path = _temp.Write("DH260052.jpg", Jpeg, Written);
+        _temp.Write("DH260052.txt", Encoding.UTF8.GetBytes(InfoText), Written);
+
+        await Pipeline().ProcessAsync(path, CancellationToken.None);
+
+        _station.Uploads.Single().Hints.Code.ShouldBe("123456");
+    }
+
+    [Fact]
+    public async Task A_fresh_picture_waits_for_its_information_file_then_goes_without_it()
+    {
+        var written = _time.Now.UtcDateTime.AddSeconds(-5);
+        var path = _temp.Write("PX20261111_110106_1_1.png", Jpeg, written);
+        var pipeline = Pipeline();
+
+        var early = await pipeline.ProcessAsync(path, CancellationToken.None);
+        _time.Now += UploadPipeline.InfoFileGrace;
+        var later = await pipeline.ProcessAsync(path, CancellationToken.None);
+
+        early.ShouldBe(new PipelineResult(UploadOutcome.Skipped, TimeSpan.FromSeconds(15)));
+        later.Outcome.ShouldBe(UploadOutcome.Sent);
+        _station.Uploads.Single().Hints.Code.ShouldBeNull();
+        _station.Uploads.Single().CapturedAt.ShouldBe(new DateTimeOffset(written));
+        _log.Lines.ShouldContain(line => line.Contains("info=no"));
+    }
+
+    [Fact]
+    public async Task With_reading_off_the_information_file_is_ignored_and_nothing_waits()
+    {
+        _settings.ReadEzdentInfoFile = false;
+        var fresh = _temp.Write("PX20261111_110106_1_1.png", Jpeg, _time.Now.UtcDateTime.AddSeconds(-1));
+        _temp.Write("PX20261111_110106_1_1.txt", Encoding.UTF8.GetBytes(InfoText), Written);
+
+        var result = await Pipeline().ProcessAsync(fresh, CancellationToken.None);
+
+        result.Outcome.ShouldBe(UploadOutcome.Sent);
+        _station.Uploads.Single().Hints.Code.ShouldBeNull();
+    }
+
     [Fact]
     public async Task Duplicate_counts_as_done()
     {
@@ -132,21 +195,43 @@ public sealed class FolderWatcherTests
     {
         using var temp = new TempFolder();
         var station = new FakeStation();
-        var settings = new AgentSettings();
-        var pipeline = new UploadPipeline(
-            settings, new HintParser(settings.FileNamePattern, false), UploadLedger.Load(null, DateTimeOffset.UtcNow),
-            station, new RecordingLog(), TimeProvider.System);
-        var done = new TaskCompletionSource<UploadOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using var watcher = new FolderWatcher(
-            temp.Path, includeSubfolders: true, pipeline, new RecordingLog(),
-            rescanEvery: TimeSpan.FromSeconds(1), quiet: TimeSpan.FromMilliseconds(100));
-        watcher.Processed += outcome => done.TrySetResult(outcome);
+        var settings = new AgentSettings { ReadEzdentInfoFile = false };
+        await using var watcher = StartWatcher(temp, station, settings, out var done);
 
-        watcher.Start();
         temp.Write(Path.Combine("sub", "DH260052.jpg"), [0xFF, 0xD8, 0xFF, 9]);
 
         (await done.Task.WaitAsync(TimeSpan.FromSeconds(15))).ShouldBe(UploadOutcome.Sent);
         station.Uploads.Single().Hints.Code.ShouldBe("DH260052");
+    }
+
+    [Fact]
+    public async Task An_exported_picture_with_its_information_file_goes_up_at_once()
+    {
+        using var temp = new TempFolder();
+        var station = new FakeStation();
+        await using var watcher = StartWatcher(temp, station, new AgentSettings(), out var done);
+
+        temp.Write("PX20261111_110106_1_1.txt", Encoding.UTF8.GetBytes("Chart No : 4321\r\n"));
+        temp.Write("PX20261111_110106_1_1.png", [0x89, 0x50, 0x4E, 0x47]);
+
+        (await done.Task.WaitAsync(TimeSpan.FromSeconds(10))).ShouldBe(UploadOutcome.Sent);
+        station.Uploads.Single().Hints.Code.ShouldBe("4321");
+    }
+
+    private static FolderWatcher StartWatcher(
+        TempFolder temp, FakeStation station, AgentSettings settings, out TaskCompletionSource<UploadOutcome> done)
+    {
+        var pipeline = new UploadPipeline(
+            settings, new HintParser(settings.FileNamePattern, false), UploadLedger.Load(null, DateTimeOffset.UtcNow),
+            station, new RecordingLog(), TimeProvider.System);
+        var finished = new TaskCompletionSource<UploadOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var watcher = new FolderWatcher(
+            temp.Path, includeSubfolders: true, pipeline, new RecordingLog(),
+            rescanEvery: TimeSpan.FromSeconds(1), quiet: TimeSpan.FromMilliseconds(100));
+        watcher.Processed += outcome => finished.TrySetResult(outcome);
+        watcher.Start();
+        done = finished;
+        return watcher;
     }
 
     [Fact]

@@ -622,6 +622,54 @@ public static class BlueDentalDomainErrorCodes
         public const string FaultSurfaceMissing = "BlueDental:Labo:0040";
         /// <summary>A Mặt bị lỗi the tooth was not ordered on (R-1151); data "tooth", "surface".</summary>
         public const string FaultSurfaceInvalid = "BlueDental:Labo:0041";
+
+        // Phiếu yêu cầu (F-91).
+        /// <summary>Tạo phiếu Labo on the Phiếu yêu cầu without a Mã số.</summary>
+        public const string LabSlipNoRequired = "BlueDental:Labo:0042";
+        /// <summary>The Mã số is on another order of the branch that is not cancelled (case-sensitive); data "code".</summary>
+        public const string LabSlipNoTaken = "BlueDental:Labo:0043";
+        /// <summary>Tạo phiếu Labo with no Loại phục hình ticked; data "tooth".</summary>
+        public const string RestorationMissing = "BlueDental:Labo:0044";
+        /// <summary>A Loại phục hình that is not an active material of the branch, or "Trên implant" where the material has none.</summary>
+        public const string RestorationInvalid = "BlueDental:Labo:0045";
+
+        // Vật liệu & loại phục hình (P1011).
+        /// <summary>A material saved without its Mã.</summary>
+        public const string MaterialCodeRequired = "BlueDental:Labo:0046";
+        /// <summary>The Mã is on another material of the branch (case-insensitive); data "code".</summary>
+        public const string MaterialCodeTaken = "BlueDental:Labo:0047";
+
+        // Mẫu phiếu bổ sung (F-93).
+        /// <summary>Tạo phiếu Labo with a required Thông tin bổ sung field left blank; data "field".</summary>
+        public const string ExtraFieldRequired = "BlueDental:Labo:0048";
+        /// <summary>A Thông tin bổ sung answer that does not fit its field; data "field".</summary>
+        public const string ExtraAnswerInvalid = "BlueDental:Labo:0049";
+        /// <summary>A Mẫu phiếu saved without a name.</summary>
+        public const string FormTemplateNameRequired = "BlueDental:Labo:0050";
+        /// <summary>The name is on another Mẫu phiếu of the branch (case-insensitive); data "name".</summary>
+        public const string FormTemplateNameTaken = "BlueDental:Labo:0051";
+        /// <summary>A Mẫu phiếu with no field, or more than the cap; data "max".</summary>
+        public const string FormTemplateFieldCount = "BlueDental:Labo:0052";
+        /// <summary>A field without a label; data "index" (1-based).</summary>
+        public const string FormFieldLabelRequired = "BlueDental:Labo:0053";
+        /// <summary>Two fields with the same label (case-insensitive); data "field".</summary>
+        public const string FormFieldLabelDuplicate = "BlueDental:Labo:0054";
+        /// <summary>A choice field with no option, too many, a repeated or too long one; data "field".</summary>
+        public const string FormFieldOptionsInvalid = "BlueDental:Labo:0055";
+        /// <summary>A field of an unknown kind; data "field".</summary>
+        public const string FormFieldTypeInvalid = "BlueDental:Labo:0056";
+        /// <summary>The Mẫu bổ sung picked is not an active template of the branch.</summary>
+        public const string FormTemplateUnavailable = "BlueDental:Labo:0057";
+
+        // Mẫu phiếu tuỳ biến (F-94).
+        /// <summary>A layout missing or repeating a system block, an unknown block, two sections with one key, too many sections, or fields with no section.</summary>
+        public const string FormLayoutInvalid = "BlueDental:Labo:0058";
+        /// <summary>A custom section without a title; data "index" (1-based, in the layout).</summary>
+        public const string FormBlockTitleRequired = "BlueDental:Labo:0059";
+        /// <summary>A custom section with no field; data "block".</summary>
+        public const string FormBlockEmpty = "BlueDental:Labo:0060";
+        /// <summary>Yêu cầu longer than LaboOrder.NotesMaxLength once written as rich text (P1211, R-1212); data "max".</summary>
+        public const string NotesTooLong = "BlueDental:Labo:0061";
     }
 
     public static class Promotions

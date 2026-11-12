@@ -46,6 +46,18 @@ public class LaboOrderDto : FullAuditedEntityDto<Guid>
     /// <summary>The order an old child order continued or guaranteed; null on every order since P2910_03.</summary>
     public Guid? ParentOrderId { get; set; }
 
+    /// <summary>The form that wrote the order (F-91): Phiếu yêu cầu prints and reads back its own way.</summary>
+    public LaboOrderLayout Layout { get; set; }
+
+    /// <summary>Mã số (F-91); shown in place of <see cref="OrderCode"/> wherever it is set.</summary>
+    public string? LabSlipNo { get; set; }
+
+    /// <summary>Ca mới / Sửa - làm lại (F-91).</summary>
+    public LaboCaseType CaseType { get; set; }
+
+    /// <summary>Thông tin bổ sung (F-93): the Mẫu phiếu copied onto the order, with its answers; null when none.</summary>
+    public LaboExtraFormDto? ExtraForm { get; set; }
+
     public string? SupplierName { get; set; }
 
     /// <summary>The supplier's badge colour, "#RRGGBB"; null reads grey (R-1072).</summary>
@@ -151,6 +163,46 @@ public class LaboOrderToothDto
 
     /// <summary>The card ran out before today's clinic date.</summary>
     public bool IsWarrantyExpired { get; set; }
+
+    /// <summary>Phiếu yêu cầu (F-91): Màu răng by zone, Đường hoàn tất and Loại phục hình of this tooth.</summary>
+    public LaboShadeZonesDto? ShadeZones { get; set; }
+    public List<Guid> FinishLineIds { get; set; } = [];
+
+    /// <summary>Names of <see cref="FinishLineIds"/>, same order; a removed row is left out.</summary>
+    public List<string> FinishLineNames { get; set; } = [];
+    public List<LaboOrderToothRestorationDto> Restorations { get; set; } = [];
+}
+
+/// <summary>Màu răng of the Phiếu yêu cầu: Cổ / Thân / Rìa cắn, each gần and xa.</summary>
+public class LaboShadeZonesDto
+{
+    [StringLength(20)]
+    public string? CervicalMesial { get; set; }
+    [StringLength(20)]
+    public string? CervicalDistal { get; set; }
+    [StringLength(20)]
+    public string? BodyMesial { get; set; }
+    [StringLength(20)]
+    public string? BodyDistal { get; set; }
+    [StringLength(20)]
+    public string? IncisalMesial { get; set; }
+    [StringLength(20)]
+    public string? IncisalDistal { get; set; }
+}
+
+/// <summary>One Loại phục hình ticked: a Dịch vụ - vật liệu row, plain or Trên implant.</summary>
+public class LaboToothRestorationDto
+{
+    public Guid MaterialId { get; set; }
+    public bool OnImplant { get; set; }
+}
+
+public class LaboOrderToothRestorationDto : LaboToothRestorationDto
+{
+    public string? MaterialName { get; set; }
+
+    /// <summary>The material's Dịch vụ - vật liệu group.</summary>
+    public string? GroupName { get; set; }
 }
 
 public class LaboOrderRoundDto
@@ -273,6 +325,32 @@ public class SaveLaboOrderDto
     /// <summary>True on "Tạo phiếu Labo": the order goes to Đã gửi Labo.</summary>
     public bool Submit { get; set; }
 
+    /// <summary>
+    /// The form posting (F-91). <see cref="LaboOrderLayout.RequestSlip"/> reads
+    /// the Phiếu yêu cầu fields below and ignores the supplier, Khớp cắn, Kiểu
+    /// nhịp and <see cref="ToothSpecs"/>.
+    /// </summary>
+    public LaboOrderLayout Layout { get; set; } = LaboOrderLayout.Classic;
+
+    /// <summary>Mã số, typed by hand; required to send, kept exactly as typed (trimmed).</summary>
+    [StringLength(50)]
+    public string? LabSlipNo { get; set; }
+    public LaboCaseType CaseType { get; set; } = LaboCaseType.New;
+
+    /// <summary>Phiếu yêu cầu: entered once, stored on every tooth of <see cref="Teeth"/>.</summary>
+    public LaboShadeZonesDto? ShadeZones { get; set; }
+    public List<Guid>? FinishLineIds { get; set; }
+    public List<LaboToothRestorationDto>? Restorations { get; set; }
+
+    /// <summary>
+    /// Mẫu bổ sung (F-93): null for none. The same template as the order
+    /// already holds keeps its copied fields; another one is copied afresh.
+    /// </summary>
+    public Guid? ExtraFormTemplateId { get; set; }
+
+    /// <summary>The answers of Thông tin bổ sung, by field key; a key the form does not have is ignored.</summary>
+    public List<LaboExtraFormAnswerDto>? ExtraFormAnswers { get; set; }
+
     /// <summary>Ảnh đính kèm chung picked in the dialog — at most five with those kept, none required.</summary>
     public List<IRemoteStreamContent>? Pictures { get; set; }
 
@@ -281,6 +359,39 @@ public class SaveLaboOrderDto
 
     /// <summary>The tooth of each <see cref="ToothPictures"/> entry, same order: FDI, or 0 for the "Dùng chung" row.</summary>
     public List<int>? ToothPictureTeeth { get; set; }
+}
+
+/// <summary>One answer of Thông tin bổ sung (F-93): several values only for a MultiSelect field.</summary>
+public class LaboExtraFormAnswerDto
+{
+    [StringLength(40)]
+    public string Key { get; set; } = default!;
+    public List<string>? Values { get; set; }
+}
+
+/// <summary>The Mẫu phiếu as the order copied it (F-93).</summary>
+public class LaboExtraFormDto
+{
+    public Guid TemplateId { get; set; }
+    public string TemplateName { get; set; } = default!;
+    public int Version { get; set; }
+    public List<LaboExtraFormEntryDto> Entries { get; set; } = [];
+
+    /// <summary>The layout as copied (F-94); empty on a copy made before layouts.</summary>
+    public List<LaboFormBlockDto> Blocks { get; set; } = [];
+}
+
+public class LaboExtraFormEntryDto
+{
+    public string Key { get; set; } = default!;
+    public string Label { get; set; } = default!;
+    public LaboFormFieldType Type { get; set; }
+    public bool Required { get; set; }
+    public List<string> Options { get; set; } = [];
+    public List<string> Values { get; set; } = [];
+
+    /// <summary>The section of <see cref="LaboExtraFormDto.Blocks"/> it sits in; null on a copy made before layouts.</summary>
+    public string? BlockKey { get; set; }
 }
 
 /// <summary>One row of the Thông số từng răng table.</summary>

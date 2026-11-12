@@ -1,98 +1,68 @@
-import { useMemo, useState } from "react";
-import { Button, Drawer, Input, Tooltip } from "antd";
+import { useState } from "react";
+import { Drawer } from "antd";
 import { toast } from "sonner";
-import {
-  DeleteOutlined,
-  EditOutlined,
-  MenuOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
 import {
   useLaboMaterialCommands,
   useLaboMaterialList,
   type LaboMaterialDto,
 } from "../api/laboCatalogApi";
-import {
-  useLaboCatalogCommands,
-  useLaboCatalogOptions,
-  type LaboCatalogItem,
-} from "../api/laboCatalogListApi";
+import { useLaboMaterialGroups } from "../api/laboMaterialGroups";
 import { LaboMaterialDialog } from "./LaboMaterialDialog";
-import { LaboMaterialGroupDialog } from "./LaboMaterialGroupDialog";
-import { LABO_GROUP } from "../laboTabs";
+import { LaboMaterialHeader } from "./LaboMaterialHeader";
+import { LaboMaterialTable } from "./LaboMaterialTable";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { DataTable } from "@/components/DataTable";
 import { GroupPanel } from "@/components/GroupPanel";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useTablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
 import { countedTotal } from "@/utils/countedTotal";
-import { formatDateTime } from "@/utils/format";
 
-/** Either a group or a material queued for the shared confirmation. */
-type PendingDelete =
-  | { kind: "group"; id: string; name: string }
-  | { kind: "material"; id: string; name: string };
-
-/**
- * Dịch vụ - vật liệu.
- *
- * Two panes, as the reference has them: the classification groups on the left
- * and the materials of the selected group on the right. A material belongs to
- * a group, not to a supplier — the reference's own groups are named after labs
- * but are separate records from the supplier list.
- */
 interface LaboServiceMaterialScreenProps {
   canCreate?: boolean;
   canUpdate?: boolean;
   canDelete?: boolean;
 }
 
-export function LaboServiceMaterialScreen({
-  canCreate,
-  canUpdate,
-  canDelete,
-}: LaboServiceMaterialScreenProps) {
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+/**
+ * Vật liệu & loại phục hình (BA P1011): the three fixed groups on the left —
+ * each a table of the Phiếu yêu cầu — and the materials of the selected one
+ * on the right. The groups cannot be created, renamed or deleted here; a group
+ * made before P1011 stays in the database for old orders but is not listed.
+ */
+export function LaboServiceMaterialScreen({ canCreate, canUpdate, canDelete }: LaboServiceMaterialScreenProps) {
+  const [pickedGroupId, setPickedGroupId] = useState<string | null>(null);
   const [groupKeyword, setGroupKeyword] = useState("");
   const [keyword, setKeyword] = useState("");
   const [groupsOpen, setGroupsOpen] = useState(false);
-
-  const [groupDialog, setGroupDialog] = useState<{ open: boolean; group: LaboCatalogItem | null }>({
+  const [dialog, setDialog] = useState<{ open: boolean; material: LaboMaterialDto | null }>({
     open: false,
-    group: null,
+    material: null,
   });
-  const [materialDialog, setMaterialDialog] = useState<{
-    open: boolean;
-    material: LaboMaterialDto | null;
-  }>({ open: false, material: null });
-  const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<LaboMaterialDto | null>(null);
 
   const pagination = useTablePagination(20);
   const debouncedGroupKeyword = useDebounce(groupKeyword, 400);
   const debouncedKeyword = useDebounce(keyword, 400);
 
-  const groupsQuery = useLaboCatalogOptions(LABO_GROUP.Material, debouncedGroupKeyword);
-  const groups = useMemo(() => groupsQuery.data ?? [], [groupsQuery.data]);
+  const groupsQuery = useLaboMaterialGroups(debouncedGroupKeyword);
+  const { groups } = groupsQuery;
+  // A group is always selected: the one picked while it is still listed,
+  // otherwise the first.
+  const group = groups.find((one) => one.id === pickedGroupId) ?? groups[0];
 
-  const materialsQuery = useLaboMaterialList({
-    taxonomyId: selectedGroupId ?? undefined,
-    filter: debouncedKeyword,
-    skipCount: pagination.skipCount,
-    maxResultCount: pagination.maxResultCount,
-  });
-
-  const groupCommands = useLaboCatalogCommands(LABO_GROUP.Material);
-  const materialCommands = useLaboMaterialCommands();
-
-  const totalCount = materialsQuery.data?.totalCount ?? 0;
+  const materialsQuery = useLaboMaterialList(
+    {
+      taxonomyId: group?.id,
+      filter: debouncedKeyword,
+      skipCount: pagination.skipCount,
+      maxResultCount: pagination.maxResultCount,
+    },
+    group !== undefined,
+  );
+  const commands = useLaboMaterialCommands();
 
   const selectGroup = (id: string) => {
-    // Clicking the selected group clears it and shows every material again,
-    // the way the reference's own panel toggles.
-    setSelectedGroupId((current) => (current === id ? null : id));
+    setPickedGroupId(id);
     pagination.resetToFirstPage();
     setGroupsOpen(false);
   };
@@ -102,16 +72,19 @@ export function LaboServiceMaterialScreen({
     pagination.resetToFirstPage();
   };
 
+  const handleToggleActive = async (row: LaboMaterialDto, isActive: boolean) => {
+    try {
+      await commands.setActive.mutateAsync({ id: row.id, isActive });
+      toast.success(t("Common:Updated"));
+    } catch {
+      // queryClient reports the failure; the switch falls back to the stored value.
+    }
+  };
+
   const confirmDelete = async () => {
     if (!pendingDelete) return;
-
     try {
-      if (pendingDelete.kind === "group") {
-        await groupCommands.remove.mutateAsync(pendingDelete.id);
-        if (selectedGroupId === pendingDelete.id) setSelectedGroupId(null);
-      } else {
-        await materialCommands.remove.mutateAsync(pendingDelete.id);
-      }
+      await commands.remove.mutateAsync(pendingDelete.id);
       toast.success(t("Common:Deleted"));
       setPendingDelete(null);
     } catch {
@@ -119,116 +92,37 @@ export function LaboServiceMaterialScreen({
     }
   };
 
-  const columns: ColumnsType<LaboMaterialDto> = [
-    {
-      key: "name",
-      title: t("Labo:Material:Title"),
-      render: (_, row) => (
-        <p className="bd-cat-name">{row.name}</p>
-      ),
-    },
-    {
-      key: "taxonomyName",
-      title: t("Labo:Material:GroupTitle"),
-      width: 150,
-      render: (_, row) =>
-        row.taxonomyName ? (
-          <span className="bd-cat-chip">{row.taxonomyName}</span>
-        ) : (
-          <span className="bd-cat-num">—</span>
-        ),
-    },
-    {
-      key: "updatedAt",
-      title: t("Common:LastUpdated"),
-      width: 144,
-      render: (_, row) => (
-        <span className="bd-cat-num">
-          {formatDateTime(row.lastModificationTime ?? row.creationTime)}
-        </span>
-      ),
-    },
-    ...(canUpdate || canDelete
-      ? [
-          {
-            key: "actions",
-            title: t("Common:Actions"),
-            width: 84,
-            align: "center" as const,
-            fixed: "right" as const,
-            render: (_: unknown, row: LaboMaterialDto) => (
-              <div className="bd-cat-rowactions">
-                {canUpdate && (
-                  <Tooltip title={t("Common:Edit")}>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<EditOutlined />}
-                      aria-label={t("Common:EditAriaLabel", row.name)}
-                      onClick={() => setMaterialDialog({ open: true, material: row })}
-                    />
-                  </Tooltip>
-                )}
-                {canDelete && (
-                  <Tooltip title={t("Common:Delete")}>
-                    <Button
-                      type="text"
-                      size="small"
-                      danger
-                      icon={<DeleteOutlined />}
-                      aria-label={t("Common:DeleteAriaLabel", row.name)}
-                      onClick={() =>
-                        setPendingDelete({ kind: "material", id: row.id, name: row.name })
-                      }
-                    />
-                  </Tooltip>
-                )}
-              </div>
-            ),
-          },
-        ]
-      : []),
-  ];
-
   const groupPanel = (
-    <GroupPanel<LaboCatalogItem & { entryCount?: number }>
-      title={t("Labo:Material:GroupTitle")}
-      subtitle={t("Labo:Material:GroupSubtitle")}
-      groups={groups.map((group) => ({ ...group, entryCount: group.itemCount }))}
+    <GroupPanel
+      title={t("Labo:Material:PanelTitle")}
+      subtitle={t("Labo:Material:PanelSubtitle")}
+      groups={groups.map(({ id, name }) => ({ id, name }))}
       isLoading={groupsQuery.isLoading}
       isSearching={groupsQuery.isFetching && !groupsQuery.isLoading}
       keyword={groupKeyword}
       onKeywordChange={setGroupKeyword}
-      selectedId={selectedGroupId}
+      selectedId={group?.id ?? null}
       onSelect={selectGroup}
-      onCreate={canCreate ? () => setGroupDialog({ open: true, group: null }) : undefined}
-      onRename={canUpdate ? (group) => setGroupDialog({ open: true, group }) : undefined}
-      onDelete={
-        canDelete
-          ? (group) => setPendingDelete({ kind: "group", id: group.id, name: group.name })
-          : undefined
-      }
-      // The reference orders these groups by the priority its own dialog
-      // collects, and offers no drag — so there is nothing to persist here.
+      // The three groups keep the order of the Phiếu yêu cầu.
       onReorder={() => undefined}
       searchPlaceholder={t("Labo:Material:SearchGroup")}
-      createLabel={t("Labo:Material:AddGroup")}
       emptyText={t("Labo:Material:NoGroup")}
       notFoundText={t("Labo:Material:NoGroupFound")}
     />
   );
 
+  const togglingId = commands.setActive.isPending ? commands.setActive.variables?.id : undefined;
+
   return (
     <div className="bd-labo-screen">
       <div className="bd-labo-shell">
         <aside className="bd-labo-aside">{groupPanel}</aside>
-
         <Drawer
           open={groupsOpen}
           onClose={() => setGroupsOpen(false)}
           placement="left"
           size={288}
-          title={t("Labo:Material:GroupTitle")}
+          title={t("Labo:Material:PanelTitle")}
           className="bd-group-drawer"
           styles={{ body: { padding: 0 } }}
         >
@@ -236,82 +130,45 @@ export function LaboServiceMaterialScreen({
         </Drawer>
 
         <div className="bd-labo-main">
-          <div className="bd-labo-header">
-            <div className="bd-labo-headgroup">
-              <Button
-                type="link"
-                icon={<MenuOutlined />}
-                className="bd-labo-groupbtn"
-                onClick={() => setGroupsOpen(true)}
-              >
-                {t("Common:SelectGroup")}
-              </Button>
-
-              <Input
-                className="bd-labo-search"
-                prefix={<SearchOutlined />}
-                placeholder={t("Common:SearchPlaceholder")}
-                aria-label={t("Labo:Material:SearchMaterial")}
-                value={keyword}
-                maxLength={100}
-                allowClear
-                onChange={(event) => handleSearch(event.target.value)}
-              />
-            </div>
-
-            {canCreate && (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                disabled={groups.length === 0}
-                onClick={() => setMaterialDialog({ open: true, material: null })}
-              >
-                {t("Labo:Material:Create")}
-              </Button>
-            )}
-          </div>
-
+          <LaboMaterialHeader
+            group={group}
+            keyword={keyword}
+            onKeywordChange={handleSearch}
+            onOpenGroups={() => setGroupsOpen(true)}
+            onCreate={canCreate ? () => setDialog({ open: true, material: null }) : undefined}
+          />
           <div className="bd-cat-body">
             <div className="bd-cat-card">
-              <DataTable<LaboMaterialDto>
-                columns={columns}
-                dataSource={materialsQuery.data?.items ?? []}
-                rowKey="id"
+              <LaboMaterialTable
+                rows={group ? (materialsQuery.data?.items ?? []) : []}
                 loading={materialsQuery.isFetching}
-                locale={{
-                  emptyText:
-                    groups.length === 0
-                      ? t("Labo:Material:NeedGroupFirst")
-                      : debouncedKeyword
-                        ? t("Common:NoResultsMatch")
-                        : t("Common:NoData"),
-                }}
-                pagination={pagination.buildConfig(totalCount, countedTotal(t("Labo:Noun:Material")))}
+                emptyText={debouncedKeyword ? t("Common:NoResultsMatch") : t("Common:NoData")}
+                pagination={pagination.buildConfig(
+                  group ? (materialsQuery.data?.totalCount ?? 0) : 0,
+                  countedTotal(t("Labo:Noun:Material")),
+                )}
+                togglingId={togglingId}
+                onToggleActive={canUpdate ? (row, active) => void handleToggleActive(row, active) : undefined}
+                onEdit={canUpdate ? (material) => setDialog({ open: true, material }) : undefined}
+                onDelete={canDelete ? setPendingDelete : undefined}
               />
             </div>
           </div>
         </div>
       </div>
 
-      <LaboMaterialGroupDialog
-        open={groupDialog.open}
-        group={groupDialog.group}
-        onClose={() => setGroupDialog({ open: false, group: null })}
-      />
-
       <LaboMaterialDialog
-        open={materialDialog.open}
-        material={materialDialog.material}
+        open={dialog.open}
+        material={dialog.material}
         groups={groups}
-        defaultTaxonomyId={selectedGroupId ?? undefined}
-        onClose={() => setMaterialDialog({ open: false, material: null })}
+        defaultTaxonomyId={group?.id}
+        onClose={() => setDialog({ open: false, material: null })}
       />
-
       <ConfirmDeleteDialog
         open={pendingDelete !== null}
-        noun={pendingDelete?.kind === "group" ? t("Labo:Noun:Group") : t("Labo:Noun:Material")}
+        noun={t("Labo:Noun:Material")}
         name={pendingDelete?.name ?? ""}
-        pending={groupCommands.remove.isPending || materialCommands.remove.isPending}
+        pending={commands.remove.isPending}
         onConfirm={() => void confirmDelete()}
         onClose={() => setPendingDelete(null)}
       />

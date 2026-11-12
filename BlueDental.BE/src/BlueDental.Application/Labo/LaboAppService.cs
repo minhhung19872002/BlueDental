@@ -42,6 +42,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     private readonly IBlobContainer _blobContainer;
     private readonly BranchAccessChecker _branchAccess;
     private readonly IRepository<TreatmentStage, Guid> _stageRepository;
+    private readonly IRepository<LaboFormTemplate, Guid> _formTemplateRepository;
 
     public LaboAppService(
         IRepository<LaboOrder, Guid> repository,
@@ -57,7 +58,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         IRepository<PatientImage, Guid> imageRepository,
         IBlobContainer blobContainer,
         BranchAccessChecker branchAccess,
-        IRepository<TreatmentStage, Guid> stageRepository)
+        IRepository<TreatmentStage, Guid> stageRepository,
+        IRepository<LaboFormTemplate, Guid> formTemplateRepository)
     {
         _repository = repository;
         _patientRepository = patientRepository;
@@ -73,6 +75,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         _blobContainer = blobContainer;
         _branchAccess = branchAccess;
         _stageRepository = stageRepository;
+        _formTemplateRepository = formTemplateRepository;
     }
 
     /// <summary>One service line of a plan, as the order form names it.</summary>
@@ -211,9 +214,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                 .ToDictionary(s => s.Id);
         }
 
+        // The order's material, and every Loại phục hình ticked on a Phiếu yêu cầu tooth.
         var materialIds = entities
             .Where(o => o.MaterialId.HasValue)
             .Select(o => o.MaterialId!.Value)
+            .Concat(entities.SelectMany(o => o.Teeth.SelectMany(t => t.Restorations.Select(r => r.MaterialId))))
             .Distinct()
             .ToList();
         var materials = new Dictionary<Guid, LaboMaterial>();
@@ -233,6 +238,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     .Concat(t.Surfaces.Select(s => s.FinishLineId)))))
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
+            .Concat(entities.SelectMany(o => o.Teeth.SelectMany(t => t.FinishLineIds)))
             .Concat(materials.Values.Select(m => m.TaxonomyId))
             .Distinct()
             .ToList();
@@ -301,6 +307,16 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
                     surface.FinishLineName = surface.FinishLineId.HasValue
                         ? taxonomies.GetValueOrDefault(surface.FinishLineId.Value)
                         : null;
+                tooth.FinishLineNames = tooth.FinishLineIds
+                    .Select(id => taxonomies.GetValueOrDefault(id))
+                    .OfType<string>()
+                    .ToList();
+                foreach (var restoration in tooth.Restorations)
+                {
+                    var picked = materials.GetValueOrDefault(restoration.MaterialId);
+                    restoration.MaterialName = picked?.Name;
+                    restoration.GroupName = picked is null ? null : taxonomies.GetValueOrDefault(picked.TaxonomyId);
+                }
             }
 
             if (entity.TreatmentServiceId.HasValue &&
@@ -417,7 +433,9 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         if (input.Status.HasValue)
             query = query.Where(o => o.Status == input.Status.Value);
         foreach (var term in SearchTerms.From(input.Filter))
-            query = query.Where(o => o.OrderCode.ToLower().Contains(term) || DbText.Unaccent(o.LabProviderName.ToLower()).Contains(DbText.Unaccent(term)));
+            query = query.Where(o => o.OrderCode.ToLower().Contains(term)
+                || (o.LabSlipNo != null && o.LabSlipNo.ToLower().Contains(term))
+                || DbText.Unaccent(o.LabProviderName.ToLower()).Contains(DbText.Unaccent(term)));
 
         // The window is named in whole days, so the upper bound covers all of
         // the day it names rather than stopping at its midnight.
@@ -582,9 +600,11 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         await EnsureServiceLineOpenAsync(input.PatientId, input.TreatmentServiceId);
         await EnsureStageNotDateLockedAsync(input.TreatmentStageId);
 
+        await EnsureLabSlipNoFreeAsync(input, branchId, exceptOrderId: null);
+
         var code = await ResolveOrderCodeAsync(input.OrderCode);
         var order = new LaboOrder(
-            GuidGenerator.Create(), code, input.PatientId, branchId, await ToDetailsAsync(input));
+            GuidGenerator.Create(), code, input.PatientId, branchId, await ToDetailsAsync(input, branchId, current: null));
         var pictures = OrderPicturesOf(input, order);
         EnsurePictureSets(pictures.Select(p => p.ToothNumber));
         if (input.Submit)
@@ -602,7 +622,8 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     {
         var order = await GetInBranchAsync(id);
         await EnsureServiceLineOpenAsync(order.PatientId, input.TreatmentServiceId);
-        order.UpdateDraft(await ToDetailsAsync(input));
+        await EnsureLabSlipNoFreeAsync(input, order.BranchId, exceptOrderId: order.Id);
+        order.UpdateDraft(await ToDetailsAsync(input, order.BranchId, order.ExtraForm));
 
         // Only the pictures sent to the lab are on the Đặt hàng tab; a
         // round's Ảnh kiểm tra are never touched from here. A tooth taken off
@@ -678,8 +699,13 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     /// from the supplier picked, so the list, print and Excel keep showing it
     /// even if the supplier is later renamed or removed.
     /// </summary>
-    private async Task<LaboOrderDetails> ToDetailsAsync(SaveLaboOrderDto input)
+    private async Task<LaboOrderDetails> ToDetailsAsync(SaveLaboOrderDto input, Guid branchId, LaboExtraForm? current)
     {
+        if (input.Layout == LaboOrderLayout.RequestSlip)
+        {
+            return await ToRequestSlipDetailsAsync(input, branchId, current);
+        }
+
         var supplier = input.SupplierId.HasValue
             ? await _supplierRepository.FindAsync(input.SupplierId.Value)
             : null;
@@ -710,6 +736,150 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             TreatmentServiceId = input.TreatmentServiceId,
             TreatmentStageId = input.TreatmentStageId,
         };
+    }
+
+    /// <summary>
+    /// The Phiếu yêu cầu (F-91): no supplier, Khớp cắn, Kiểu nhịp or per-tooth
+    /// spec. Each Loại phục hình must be an active material of this branch,
+    /// ticked in a column its group has (P1011, <see cref="LaboMaterialGroups"/>):
+    /// Toàn sứ and Hợp kim either way, Phục hình khác trên implant only on an
+    /// implant, a group from before P1011 by the material's own flag. Đường hoàn tất
+    /// keeps only this branch's rows, so another clinic's id never lands on a
+    /// tooth.
+    /// </summary>
+    private async Task<LaboOrderDetails> ToRequestSlipDetailsAsync(
+        SaveLaboOrderDto input, Guid branchId, LaboExtraForm? current)
+    {
+        // F-94: a part the Mẫu phiếu hides is not kept, whatever the form sent.
+        var extraForm = await ResolveExtraFormAsync(input, branchId, current);
+        bool Hidden(LaboFormBlockKind kind) => extraForm?.Hides(kind) == true;
+
+        var restorations = (extraForm?.HidesRestorations() == true ? [] : input.Restorations ?? [])
+            .Select(r => new LaboToothRestoration(r.MaterialId, r.OnImplant))
+            .ToList();
+        var materialIds = restorations.Select(r => r.MaterialId).Distinct().ToList();
+        var materials = materialIds.Count == 0
+            ? []
+            : (await _materialRepository.GetListAsync(m =>
+                    materialIds.Contains(m.Id) && m.ClinicBranchId == branchId && m.IsActive))
+                .ToDictionary(m => m.Id);
+        var groupIds = materials.Values.Select(m => m.TaxonomyId).Distinct().ToList();
+        var groupCodes = groupIds.Count == 0
+            ? new Dictionary<Guid, string?>()
+            : (await _taxonomyRepository.GetListAsync(t => groupIds.Contains(t.Id)))
+                .ToDictionary(t => t.Id, t => t.IsSystem ? t.SubGroup : null);
+        if (restorations.Any(r =>
+                !materials.TryGetValue(r.MaterialId, out var material) ||
+                !LaboMaterialGroups.Accepts(
+                    groupCodes.GetValueOrDefault(material.TaxonomyId), r.OnImplant, material.AllowOnImplant)))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationInvalid);
+        }
+
+        // R-1202: a tick on a card the Mẫu phiếu hides is not kept either.
+        if (extraForm is not null)
+            restorations.RemoveAll(r => extraForm.HidesGroup(groupCodes.GetValueOrDefault(materials[r.MaterialId].TaxonomyId)));
+
+        var requestedFinishLines = (Hidden(LaboFormBlockKind.FinishLine) ? [] : input.FinishLineIds ?? [])
+            .Distinct()
+            .ToList();
+        var knownFinishLines = requestedFinishLines.Count == 0
+            ? []
+            : (await _taxonomyRepository.GetListAsync(t =>
+                    requestedFinishLines.Contains(t.Id)
+                    && t.ClinicBranchId == branchId
+                    && t.Group == TaxonomyGroups.LaboFinishLine))
+                .Select(t => t.Id)
+                .ToHashSet();
+
+        var zones = Hidden(LaboFormBlockKind.Shade) ? null : input.ShadeZones;
+        return new LaboOrderDetails
+        {
+            Layout = LaboOrderLayout.RequestSlip,
+            LabSlipNo = input.LabSlipNo,
+            CaseType = input.CaseType,
+            DentistId = input.DentistId,
+            Teeth = input.Teeth,
+            ShadeZones = zones is null
+                ? null
+                : new LaboShadeZones(
+                    zones.CervicalMesial, zones.CervicalDistal,
+                    zones.BodyMesial, zones.BodyDistal,
+                    zones.IncisalMesial, zones.IncisalDistal),
+            FinishLineIds = requestedFinishLines.Where(knownFinishLines.Contains).ToList(),
+            Restorations = restorations,
+            ExtraForm = extraForm,
+            SpecMode = LaboSpecMode.SharedAll,
+            Quantity = input.Quantity,
+            WorkDescription = input.WorkDescription,
+            Notes = Hidden(LaboFormBlockKind.Notes) ? null : input.Notes,
+            SentAt = input.SentAt,
+            DueAt = input.DueAt,
+            EstimatedCost = input.EstimatedCost,
+            // New orders carry no link (owner, F-91); an old draft refilled on
+            // the new form sends its own back and keeps it.
+            TreatmentServiceId = input.TreatmentServiceId,
+            TreatmentStageId = input.TreatmentStageId,
+        };
+    }
+
+    /// <summary>
+    /// Thông tin bổ sung (F-93). The template the order already holds keeps
+    /// its copy, even if it was edited, switched off or deleted since; a newly
+    /// picked one must be an active template of the order's branch and is
+    /// copied as it is now.
+    /// </summary>
+    private async Task<LaboExtraForm?> ResolveExtraFormAsync(
+        SaveLaboOrderDto input, Guid branchId, LaboExtraForm? current)
+    {
+        if (input.ExtraFormTemplateId is not { } templateId)
+        {
+            return null;
+        }
+
+        var answers = (input.ExtraFormAnswers ?? [])
+            .Where(a => !string.IsNullOrWhiteSpace(a.Key))
+            .GroupBy(a => a.Key.Trim(), StringComparer.Ordinal)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<string>)g.SelectMany(a => a.Values ?? []).ToList(),
+                StringComparer.Ordinal);
+        if (current is not null && current.TemplateId == templateId)
+        {
+            return current.WithAnswers(answers);
+        }
+
+        var template = await _formTemplateRepository.FindAsync(templateId);
+        if (template is null || template.ClinicBranchId != branchId || !template.IsActive)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.FormTemplateUnavailable);
+        }
+
+        return LaboExtraForm.From(template, answers);
+    }
+
+    /// <summary>
+    /// Mã số is unique within the branch among orders that are not cancelled,
+    /// matched exactly as typed (case-sensitive). A blank one is allowed on a
+    /// draft; sending is refused by the aggregate.
+    /// </summary>
+    private async Task EnsureLabSlipNoFreeAsync(SaveLaboOrderDto input, Guid branchId, Guid? exceptOrderId)
+    {
+        if (input.Layout != LaboOrderLayout.RequestSlip || string.IsNullOrWhiteSpace(input.LabSlipNo))
+        {
+            return;
+        }
+
+        var code = input.LabSlipNo.Trim();
+        var taken = await _repository.AnyAsync(o =>
+            o.BranchId == branchId
+            && o.LabSlipNo == code
+            && o.Status != LaboStatus.Cancelled
+            && (exceptOrderId == null || o.Id != exceptOrderId));
+        if (taken)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.LabSlipNoTaken).WithData("code", code);
+        }
     }
 
     /// <summary>
@@ -984,16 +1154,35 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
             L["BE:LaboField:LaboModels"],
             new List<ExcelColumn<LaboOrderDto>>
             {
-                new(L["BE:Field:RecordNo"], row => row.OrderCode, 18),
+                // F-91: Mã số stands for Số phiếu; an order written before it has only its code.
+                new(L["BE:LaboField:LabSlipNo"], row => row.LabSlipNo ?? row.OrderCode, 18),
                 new(L["BE:Perm:Customers"], row => row.PatientName, 26),
-                new(L["BE:Common:Supplier"], row => row.LabProviderName, 24),
                 new(L["BE:Field:Tooth"], row => row.ToothNumbers, 12),
+                new(L["BE:LaboField:Restoration"], RestorationLabel, 30),
                 new(L["BE:LaboField:DueBack"], row => row.DueAt?.ToOffset(ClinicUtcOffset).DateTime, 14),
                 new(L["BE:Col:Expenses"], row => row.EstimatedCost, 16),
                 new(L["BE:Field:Status"], row => StatusLabel(row), 16),
                 new(L["BE:Status:LateArrival"], row => row.IsOverdue ? L["BE:Common:Yes"].Value : L["BE:Common:No"].Value, 12)
             },
             page.Items);
+    }
+
+    /// <summary>
+    /// Loại phục hình of a Phiếu yêu cầu — every tooth's, once each, "(Trên implant)"
+    /// where ticked so; a classic order names its one material.
+    /// </summary>
+    private string? RestorationLabel(LaboOrderDto row)
+    {
+        if (row.Layout != LaboOrderLayout.RequestSlip)
+            return row.MaterialName;
+        var onImplant = L["BE:LaboField:OnImplant"].Value;
+        var names = row.Teeth
+            .SelectMany(t => t.Restorations)
+            .Select(r => r.OnImplant ? $"{r.MaterialName} ({onImplant})" : r.MaterialName)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .ToList();
+        return names.Count == 0 ? null : string.Join(", ", names);
     }
 
     /// <summary>Hết hạn bảo hành is read, not stored, so it is named here rather than by the enum.</summary>

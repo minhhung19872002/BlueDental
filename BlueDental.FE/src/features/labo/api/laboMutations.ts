@@ -3,6 +3,9 @@ import type { WarrantyCardSide } from "@/components/WarrantyCardPhotos";
 import { api } from "@/lib/axios";
 import {
   LABO_ORDERS_URL,
+  type LABO_ORDER_LAYOUT,
+  type LaboCaseType,
+  type LaboShadeZonesDto,
   type LaboCheckConclusion,
   type LaboOrderDto,
   type LaboSpecMode,
@@ -63,10 +66,43 @@ export interface LaboToothPicture {
   file: File;
 }
 
+/**
+ * The Phiếu yêu cầu (F-91): one spec for the whole order, which the server
+ * copies onto every tooth. No supplier, and no plan link on a new order.
+ */
+export interface LaboRequestSlipFields {
+  layout: typeof LABO_ORDER_LAYOUT.RequestSlip;
+  labSlipNo?: string;
+  caseType: LaboCaseType;
+  dentistId?: string;
+  teeth: number[];
+  quantity: number;
+  notes?: string;
+  sentAt?: string;
+  dueAt?: string;
+  shadeZones: LaboShadeZonesDto;
+  finishLineIds: string[];
+  restorations: { materialId: string; onImplant: boolean }[];
+  /** Thông tin bổ sung (F-93): none sent clears it. */
+  extraFormTemplateId?: string;
+  extraFormAnswers: { key: string; values: string[] }[];
+  /** Only an old draft re-saved on this form sends its links back. */
+  treatmentServiceId?: string;
+  treatmentStageId?: string;
+  submit: boolean;
+  pictures: File[];
+}
+
 /** Lưu nháp / Tạo phiếu Labo on a new order, or on a Nháp already saved. */
 export type SaveLaboOrderInput =
-  | { id?: undefined; patientId: string; branchId: string; orderCode?: string; fields: LaboOrderFields }
-  | { id: string; keepImageIds: string[]; fields: LaboOrderFields };
+  | {
+      id?: undefined;
+      patientId: string;
+      branchId: string;
+      orderCode?: string;
+      fields: LaboOrderFields | LaboRequestSlipFields;
+    }
+  | { id: string; keepImageIds: string[]; fields: LaboOrderFields | LaboRequestSlipFields };
 
 type FormValue = string | number | boolean | undefined | null | readonly (string | number)[];
 
@@ -106,9 +142,39 @@ function appendToothPictures(form: FormData, pictures: LaboToothPicture[]): Form
   return form;
 }
 
+/** The Phiếu yêu cầu's values: the zones and restorations bound as ABP binds nested objects. */
+function requestSlipValues({
+  shadeZones,
+  restorations,
+  extraFormAnswers,
+  ...fields
+}: Omit<LaboRequestSlipFields, "pictures">) {
+  const values: Record<string, FormValue> = { ...fields, estimatedCost: 0 };
+  for (const [key, value] of Object.entries(shadeZones)) values[`shadeZones.${key}`] = value;
+  restorations.forEach((restoration, i) => {
+    values[`restorations[${i}].materialId`] = restoration.materialId;
+    values[`restorations[${i}].onImplant`] = restoration.onImplant;
+  });
+  extraFormAnswers.forEach((answer, i) => {
+    values[`extraFormAnswers[${i}].key`] = answer.key;
+    answer.values.forEach((value, j) => {
+      values[`extraFormAnswers[${i}].values[${j}]`] = value;
+    });
+  });
+  return values;
+}
+
+function splitFields(fields: LaboOrderFields | LaboRequestSlipFields) {
+  if ("layout" in fields) {
+    const { pictures, ...rest } = fields;
+    return { values: requestSlipValues(rest), pictures, toothPictures: [] };
+  }
+  const { pictures, toothPictures, ...rest } = fields;
+  return { values: orderValues(rest), pictures, toothPictures };
+}
+
 function saveRequest(input: SaveLaboOrderInput): Promise<LaboOrderDto> {
-  const { pictures, toothPictures, ...fields } = input.fields;
-  const values = orderValues(fields);
+  const { values, pictures, toothPictures } = splitFields(input.fields);
   if (input.id === undefined) {
     const { patientId, branchId, orderCode } = input;
     const form = toForm({ ...values, patientId, branchId, orderCode }, pictures);

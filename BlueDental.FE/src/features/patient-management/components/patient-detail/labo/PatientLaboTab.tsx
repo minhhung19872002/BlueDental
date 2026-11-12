@@ -43,15 +43,12 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
     pagination.resetToFirstPage();
   };
 
-  const columns = buildPatientLaboColumns(
-    {
-      onDetail: (order) => dialog.openOrder(order.id),
-      onCheck: ability.canUpdate ? (order) => dialog.openOrder(order.id, "check") : undefined,
-      onWarranty: ability.canUpdate ? (order) => dialog.openOrder(order.id, "warranty") : undefined,
-      onDelete: ability.canDelete ? setDeleting : undefined,
-    },
-    { patientId: patient.id, branchId },
-  );
+  const columns = buildPatientLaboColumns({
+    onDetail: (order) => dialog.openOrder(order.id),
+    onCheck: ability.canUpdate ? (order) => dialog.openOrder(order.id, "check") : undefined,
+    onWarranty: ability.canUpdate ? (order) => dialog.openOrder(order.id, "warranty") : undefined,
+    onDelete: ability.canDelete ? setDeleting : undefined,
+  });
 
   return (
     <section className="pd-pane pd-pane--fill">

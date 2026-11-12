@@ -4341,13 +4341,92 @@ namespace BlueDental.Migrations
                     b.ToTable("bd_material_allocation_items", (string)null);
                 });
 
-            modelBuilder.Entity("BlueDental.Labo.LaboMaterial", b =>
+            modelBuilder.Entity("BlueDental.Labo.LaboFormTemplate", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ClinicBranchId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId");
+
+                    b.ToTable("bd_labo_form_templates", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.Labo.LaboMaterial", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("AllowOnImplant")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -4407,6 +4486,8 @@ namespace BlueDental.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClinicBranchId", "Code");
+
                     b.HasIndex("ClinicBranchId", "TaxonomyId");
 
                     b.ToTable("bd_labo_materials", (string)null);
@@ -4426,6 +4507,11 @@ namespace BlueDental.Migrations
 
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
+
+                    b.Property<short>("CaseType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1);
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -4482,6 +4568,10 @@ namespace BlueDental.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("LabSlipNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime?>("LastModificationTime")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("LastModificationTime");
@@ -4489,6 +4579,11 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("LastModifierId")
                         .HasColumnType("uuid")
                         .HasColumnName("LastModifierId");
+
+                    b.Property<short>("Layout")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1);
 
                     b.Property<Guid?>("MaterialId")
                         .HasColumnType("uuid");
@@ -4565,6 +4660,10 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("TreatmentStageId");
 
+                    b.HasIndex("BranchId", "LabSlipNo")
+                        .IsUnique()
+                        .HasFilter("\"LabSlipNo\" IS NOT NULL AND \"Status\" <> 6 AND \"IsDeleted\" = false");
+
                     b.HasIndex("BranchId", "Status");
 
                     b.ToTable("bd_labo_orders", (string)null);
@@ -4631,6 +4730,10 @@ namespace BlueDental.Migrations
 
                     b.Property<Guid?>("FinishLineId")
                         .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<List<Guid>>("FinishLineIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]");
 
                     b.Property<string>("LabNote")
                         .HasMaxLength(1000)
@@ -12099,6 +12202,197 @@ namespace BlueDental.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BlueDental.Labo.LaboFormTemplate", b =>
+                {
+                    b.OwnsMany("BlueDental.Labo.LaboFormField", "Fields", b1 =>
+                        {
+                            b1.Property<Guid>("LaboFormTemplateId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("BlockKey")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Key")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("Label")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.PrimitiveCollection<List<string>>("Options")
+                                .IsRequired()
+                                .HasColumnType("text[]");
+
+                            b1.Property<bool>("Required")
+                                .HasColumnType("boolean");
+
+                            b1.Property<short>("Type")
+                                .HasColumnType("smallint");
+
+                            b1.HasKey("LaboFormTemplateId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_labo_form_templates");
+
+                            b1.ToJson("Fields");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboFormTemplateId");
+                        });
+
+                    b.OwnsMany("BlueDental.Labo.LaboFormBlock", "Blocks", b1 =>
+                        {
+                            b1.Property<Guid>("LaboFormTemplateId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Key")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<short>("Kind")
+                                .HasColumnType("smallint");
+
+                            b1.Property<int>("Span")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("Title")
+                                .HasColumnType("text");
+
+                            b1.Property<bool>("Visible")
+                                .HasColumnType("boolean");
+
+                            b1.HasKey("LaboFormTemplateId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_labo_form_templates");
+
+                            b1.ToJson("Blocks");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboFormTemplateId");
+                        });
+
+                    b.Navigation("Blocks");
+
+                    b.Navigation("Fields");
+                });
+
+            modelBuilder.Entity("BlueDental.Labo.LaboOrder", b =>
+                {
+                    b.OwnsOne("BlueDental.Labo.LaboExtraForm", "ExtraForm", b1 =>
+                        {
+                            b1.Property<Guid>("LaboOrderId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("TemplateId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("TemplateName")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<int>("Version")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("LaboOrderId");
+
+                            b1.ToTable("bd_labo_orders");
+
+                            b1.ToJson("ExtraForm");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboOrderId");
+
+                            b1.OwnsMany("BlueDental.Labo.LaboFormBlock", "Blocks", b2 =>
+                                {
+                                    b2.Property<Guid>("LaboExtraFormLaboOrderId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("integer");
+
+                                    b2.Property<string>("Key")
+                                        .IsRequired()
+                                        .HasColumnType("text");
+
+                                    b2.Property<short>("Kind")
+                                        .HasColumnType("smallint");
+
+                                    b2.Property<int>("Span")
+                                        .HasColumnType("integer");
+
+                                    b2.Property<string>("Title")
+                                        .HasColumnType("text");
+
+                                    b2.Property<bool>("Visible")
+                                        .HasColumnType("boolean");
+
+                                    b2.HasKey("LaboExtraFormLaboOrderId", "__synthesizedOrdinal");
+
+                                    b2.ToTable("bd_labo_orders");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("LaboExtraFormLaboOrderId");
+                                });
+
+                            b1.OwnsMany("BlueDental.Labo.LaboExtraFormEntry", "Entries", b2 =>
+                                {
+                                    b2.Property<Guid>("LaboExtraFormLaboOrderId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<int>("__synthesizedOrdinal")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("integer");
+
+                                    b2.Property<string>("BlockKey")
+                                        .HasColumnType("text");
+
+                                    b2.Property<string>("Key")
+                                        .IsRequired()
+                                        .HasColumnType("text");
+
+                                    b2.Property<string>("Label")
+                                        .IsRequired()
+                                        .HasColumnType("text");
+
+                                    b2.PrimitiveCollection<List<string>>("Options")
+                                        .IsRequired()
+                                        .HasColumnType("text[]");
+
+                                    b2.Property<bool>("Required")
+                                        .HasColumnType("boolean");
+
+                                    b2.Property<short>("Type")
+                                        .HasColumnType("smallint");
+
+                                    b2.PrimitiveCollection<List<string>>("Values")
+                                        .IsRequired()
+                                        .HasColumnType("text[]");
+
+                                    b2.HasKey("LaboExtraFormLaboOrderId", "__synthesizedOrdinal");
+
+                                    b2.ToTable("bd_labo_orders");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("LaboExtraFormLaboOrderId");
+                                });
+
+                            b1.Navigation("Blocks");
+
+                            b1.Navigation("Entries");
+                        });
+
+                    b.Navigation("ExtraForm");
+                });
+
             modelBuilder.Entity("BlueDental.Labo.LaboOrderRound", b =>
                 {
                     b.HasOne("BlueDental.Labo.LaboOrder", null)
@@ -12151,6 +12445,64 @@ namespace BlueDental.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.OwnsOne("BlueDental.Labo.LaboShadeZones", "ShadeZones", b1 =>
+                        {
+                            b1.Property<Guid>("LaboOrderToothId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("BodyDistal")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("BodyMesial")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("CervicalDistal")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("CervicalMesial")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("IncisalDistal")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("IncisalMesial")
+                                .HasColumnType("text");
+
+                            b1.HasKey("LaboOrderToothId");
+
+                            b1.ToTable("bd_labo_order_teeth");
+
+                            b1.ToJson("ShadeZones");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboOrderToothId");
+                        });
+
+                    b.OwnsMany("BlueDental.Labo.LaboToothRestoration", "Restorations", b1 =>
+                        {
+                            b1.Property<Guid>("LaboOrderToothId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<Guid>("MaterialId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<bool>("OnImplant")
+                                .HasColumnType("boolean");
+
+                            b1.HasKey("LaboOrderToothId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_labo_order_teeth");
+
+                            b1.ToJson("Restorations");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LaboOrderToothId");
+                        });
+
                     b.OwnsMany("BlueDental.Labo.LaboToothSurface", "Surfaces", b1 =>
                         {
                             b1.Property<Guid>("LaboOrderToothId")
@@ -12181,6 +12533,10 @@ namespace BlueDental.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("LaboOrderToothId");
                         });
+
+                    b.Navigation("Restorations");
+
+                    b.Navigation("ShadeZones");
 
                     b.Navigation("Surfaces");
                 });

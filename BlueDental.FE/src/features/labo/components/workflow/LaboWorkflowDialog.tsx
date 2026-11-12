@@ -8,9 +8,11 @@ import {
   useTreatmentPlans,
   type TreatmentPlanSlipDto,
 } from "@/features/treatment-management/api/treatmentPlanApi";
-import { useLaboOrder, type LaboOrderDto } from "@/features/labo/api/laboApi";
+import { isRequestSlip, LABO_STATUS, useLaboOrder, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { laboStatusPill } from "@/features/labo/api/laboStatus";
 import type { LaboOrderSource } from "../order-dialogs/laboOrderSource";
+import { LaboRequestSlipStep } from "../request-slip/LaboRequestSlipStep";
+import { requestSlipStart } from "../request-slip/requestSlipModel";
 import { LaboCheckStep } from "./LaboCheckStep";
 import { LaboOrderStep } from "./LaboOrderStep";
 import { LaboStepTabs } from "./LaboStepTabs";
@@ -60,9 +62,21 @@ interface StepProps {
   onClose: () => void;
 }
 
+/**
+ * A new order, a Phiếu yêu cầu and any Nháp open as the Phiếu yêu cầu (F-91);
+ * an old-form order already sent keeps the form it was made with.
+ */
+const usesRequestSlip = (order: LaboOrderDto | undefined) =>
+  !order || isRequestSlip(order) || order.status === LABO_STATUS.Draft;
+
 /** One body per tab; tabs 2 and 3 only ever open on a saved order. */
 const STEP_BODY: Record<LaboStep, (props: StepProps) => ReactNode> = {
-  order: (props) => <LaboOrderStep {...props} />,
+  order: (props) =>
+    usesRequestSlip(props.order) ? (
+      <LaboRequestSlipStep {...props} start={requestSlipStart(props.source)} />
+    ) : (
+      <LaboOrderStep {...props} />
+    ),
   check: ({ order, ...props }) => order && <LaboCheckStep {...props} order={order} />,
   warranty: ({ order, ...props }) => order && <LaboWarrantyStep {...props} order={order} />,
 };

@@ -1,23 +1,13 @@
 import { createPortal } from "react-dom";
 import { t } from "@/lib/i18n";
 import type { BranchInfo } from "@/hooks/useBranchInfo";
-import { dashed, type LaboDetailPatient, type LaboOrderFacts } from "./laboOrderFacts";
+import { dashed, longDate, type LaboDetailPatient, type LaboOrderFacts } from "./laboOrderFacts";
 
 interface Props {
   clinic: BranchInfo;
   patient: LaboDetailPatient;
   orderCode: string;
   facts: LaboOrderFacts;
-}
-
-/** "Ngày 8 tháng 9 năm 2026", the wording under the sheet's title. */
-function longDate(value: Date): string {
-  return t(
-    "Patient:Labo:LongDate",
-    value.getDate(),
-    value.getMonth() + 1,
-    value.getFullYear(),
-  );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
@@ -28,7 +18,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+export function Fact({ label, value }: { label: string; value: string }) {
   return (
     <p>
       <span>{label}:</span> <span>{dashed(value)}</span>

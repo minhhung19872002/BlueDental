@@ -29,6 +29,12 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// <summary>Thời hạn bảo hành "Khác" is capped so the end date stays a real date.</summary>
     public const int MaxWarrantyMonths = 600;
 
+    /// <summary>
+    /// Yêu cầu is rich text since P1211 (R-1212): the stored HTML, tags
+    /// included, fits in this many characters.
+    /// </summary>
+    public const int NotesMaxLength = 5000;
+
     public string OrderCode { get; private set; } = default!;
     public Guid PatientId { get; private set; }
     public Guid BranchId { get; private set; }
@@ -94,6 +100,25 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     /// from. No new order has one; the old ones still read back with it.
     /// </summary>
     public Guid? ParentOrderId { get; private set; }
+
+    /// <summary>The form that wrote the order (F-91). Every order before it is Classic.</summary>
+    public LaboOrderLayout Layout { get; private set; } = LaboOrderLayout.Classic;
+
+    /// <summary>
+    /// Mã số of the Phiếu yêu cầu (F-91), typed by hand and kept as typed:
+    /// "ab1" and "AB1" are two numbers. Shown in place of <see cref="OrderCode"/>
+    /// wherever it is set.
+    /// </summary>
+    public string? LabSlipNo { get; private set; }
+
+    /// <summary>Ca mới / Sửa - làm lại (F-91); recorded only.</summary>
+    public LaboCaseType CaseType { get; private set; } = LaboCaseType.New;
+
+    /// <summary>
+    /// Thông tin bổ sung (F-93): the Mẫu phiếu picked on the Phiếu yêu cầu,
+    /// copied with its answers. Null when none was picked, and always on Classic.
+    /// </summary>
+    public LaboExtraForm? ExtraForm { get; private set; }
 
     private readonly List<LaboOrderTooth> _teeth = [];
     public IReadOnlyCollection<LaboOrderTooth> Teeth => _teeth.AsReadOnly();
@@ -182,6 +207,13 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
     public LaboOrder Submit()
     {
         EnsureStatus(LaboStatus.Draft);
+        if (Layout == LaboOrderLayout.RequestSlip)
+        {
+            EnsureRequestSlipComplete();
+            Status = LaboStatus.Sent;
+            return this;
+        }
+
         if (!TreatmentServiceId.HasValue || !DentistId.HasValue || !SupplierId.HasValue
             || !MaterialId.HasValue || !SentAt.HasValue || !DueAt.HasValue
             || _teeth.Count == 0 || string.IsNullOrWhiteSpace(LabProviderName))
@@ -201,6 +233,39 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
 
         Status = LaboStatus.Sent;
         return this;
+    }
+
+    /// <summary>
+    /// Tạo phiếu Labo on the Phiếu yêu cầu (F-91), in the form's own order:
+    /// Mã số, Bác sĩ chỉ định, both days, Răng, Loại phục hình, then Màu răng
+    /// (any of the six zones). No supplier, material, plan line or Mặt răng.
+    /// </summary>
+    private void EnsureRequestSlipComplete()
+    {
+        if (LabSlipNo is null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.LabSlipNoRequired);
+        if (!DentistId.HasValue || !SentAt.HasValue || !DueAt.HasValue || _teeth.Count == 0)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.OrderIncomplete);
+
+        // F-94: a part the order's Mẫu phiếu hides is not asked for.
+        var noRestoration = ExtraForm?.HidesRestorations() == true
+            ? null
+            : _teeth.FirstOrDefault(t => t.Restorations.Count == 0);
+        if (noRestoration is not null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.RestorationMissing)
+                .WithData("tooth", noRestoration.ToothNumber);
+
+        var noShade = ExtraForm?.Hides(LaboFormBlockKind.Shade) == true
+            ? null
+            : _teeth.FirstOrDefault(t => !t.HasShadeZones);
+        if (noShade is not null)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ToothSpecIncomplete)
+                .WithData("tooth", noShade.ToothNumber);
+
+        // F-93: Thông tin bổ sung comes last, as it sits under the fixed form.
+        if (ExtraForm?.FirstMissing() is { } missing)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.ExtraFieldRequired)
+                .WithData("field", missing.Label);
     }
 
     /// <summary>A set of the order's pictures — the shared ones, or one tooth's: never more than five.</summary>
@@ -384,13 +449,45 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         Quantity = details.Quantity < 1 ? 1 : details.Quantity;
         WorkDescription = Blank(details.WorkDescription);
         Notes = Blank(details.Notes);
+        if (Notes?.Length > NotesMaxLength)
+            throw new BusinessException(BlueDentalDomainErrorCodes.Labo.NotesTooLong).WithData("max", NotesMaxLength);
         EstimatedCost = details.EstimatedCost;
         TreatmentServiceId = details.TreatmentServiceId;
         TreatmentStageId = details.TreatmentStageId;
         SentAt = DayOf(details.SentAt);
         SetDueAt(DayOf(details.DueAt));
         SetTeeth(details.Teeth);
-        SetToothSpecs(details);
+        Layout = Enum.IsDefined(details.Layout) ? details.Layout : LaboOrderLayout.Classic;
+        ExtraForm = Layout == LaboOrderLayout.RequestSlip ? details.ExtraForm : null;
+        if (Layout == LaboOrderLayout.RequestSlip)
+            SetRequestSlip(details);
+        else
+            SetToothSpecs(details);
+    }
+
+    /// <summary>
+    /// The Phiếu yêu cầu (F-91): no supplier and no Khớp cắn / Kiểu nhịp; one
+    /// spec copied onto every tooth. The order-level Màu, Đường hoàn tất and
+    /// Vật liệu mirror it (the first finish line, the first restoration) for
+    /// the readers that predate the form. A Nháp that was written on the
+    /// classic form and is saved again here becomes a Phiếu yêu cầu.
+    /// </summary>
+    private void SetRequestSlip(LaboOrderDetails details)
+    {
+        LabSlipNo = details.LabSlipNo is { } slipNo && !string.IsNullOrWhiteSpace(slipNo) ? slipNo.Trim() : null;
+        CaseType = Enum.IsDefined(details.CaseType) ? details.CaseType : LaboCaseType.New;
+        LabProviderName = string.Empty;
+        SupplierId = null;
+        BiteId = null;
+        RhythmId = null;
+        SpecMode = LaboSpecMode.SharedAll;
+        foreach (var tooth in _teeth)
+            tooth.SetRequestSpec(details.ShadeZones, details.FinishLineIds, details.Restorations);
+
+        var zones = details.ShadeZones is { IsEmpty: false } ? details.ShadeZones : null;
+        ToothShade = zones?.Summary;
+        FinishLineId = details.FinishLineIds.Count == 0 ? null : details.FinishLineIds[0];
+        MaterialId = details.Restorations.Count == 0 ? null : details.Restorations[0].MaterialId;
     }
 
     /// <summary>

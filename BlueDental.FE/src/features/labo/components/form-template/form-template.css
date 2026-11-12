@@ -1,0 +1,231 @@
+/* Mẫu phiếu (F-93): the template list and its builder dialog. */
+
+.ft-intro {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--bd-hint);
+}
+
+.ft-summary {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+
+.ft-dialog { display: flex; flex-direction: column; gap: 12px; }
+
+.ft-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 12px;
+}
+
+.ft-label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--bd-sub); }
+.ft-req { font-style: normal; color: var(--bd-red); }
+
+.ft-fields-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-weight: 600;
+  color: var(--bd-title);
+}
+
+.ft-count { font-weight: 400; font-size: 12px; color: var(--bd-muted); }
+.ft-hint { margin: 0; font-size: 12px; color: var(--bd-hint); }
+
+.ft-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ft-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 8px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: var(--bd-bg-soft);
+}
+
+.ft-row-no {
+  padding-top: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--bd-muted);
+}
+
+.ft-row-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ft-row-line { display: flex; align-items: center; gap: 8px; }
+.ft-row-label { flex: 1 1 auto; min-width: 0; }
+.ft-row-type { flex: 0 0 150px; }
+.ft-row-options { width: 100%; }
+.ft-row-actions { display: flex; gap: 2px; }
+
+.ft-problem { font-size: 13px; color: var(--bd-red); }
+
+/* F-94: the layout, one card per block; a section holds its field rows. */
+.ft-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--bd-line);
+  border-radius: 8px;
+  background: var(--bd-card);
+}
+
+.ft-block--section { border-color: var(--bd-table-head-line); background: var(--bd-row-alt); }
+.ft-block--hidden .ft-block-title,
+.ft-block--hidden .ft-block-kind { opacity: 0.55; }
+
+.ft-block-head { display: flex; align-items: center; gap: 8px; }
+.ft-block-kind { flex: 0 0 auto; margin: 0; }
+.ft-block-title { flex: 1 1 auto; min-width: 0; }
+.ft-block-span { flex: 0 0 110px; }
+.ft-block-always { flex: 0 0 auto; font-size: 12px; color: var(--bd-muted); }
+
+.ft-section-fields { display: flex; flex-direction: column; gap: 6px; padding-left: 8px; }
+.ft-add-field { align-self: flex-start; }
+
+@media (max-width: 640px) {
+  .ft-head { grid-template-columns: 1fr; }
+  .ft-row-line { flex-wrap: wrap; }
+  .ft-row-type { flex: 1 1 100%; }
+  .ft-block-head { flex-wrap: wrap; }
+  .ft-block-title { flex: 1 1 100%; }
+}
+
+/* R-1202: drag by the grip, and the preview beside the builder. */
+.ft-body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.2fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.ft-builder { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ft-body .ft-fields { max-height: 60vh; }
+.ft-add-section { align-self: flex-start; }
+
+.ft-sortable {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  transform: var(--ft-drag-transform, none);
+  transition: var(--ft-drag-transition, none);
+}
+
+.ft-sortable.is-dragging { z-index: 2; opacity: 0.85; }
+.ft-sortable.is-dragging > .ft-sortable-body > * { box-shadow: var(--bd-shadow-lift); }
+.ft-sortable-body { flex: 1 1 auto; min-width: 0; }
+
+.ft-grip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 32px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bd-faint);
+  cursor: grab;
+  touch-action: none;
+}
+
+.ft-sortable--field > .ft-grip { margin-top: 6px; }
+.ft-grip:hover { color: var(--bd-primary); background: var(--bd-hover-tint); }
+.ft-grip:focus-visible { outline: 2px solid var(--bd-primary); outline-offset: 1px; color: var(--bd-primary); }
+.ft-sortable.is-dragging > .ft-grip { cursor: grabbing; color: var(--bd-primary); }
+
+.ft-block:focus-within { border-color: var(--bd-blue-light); }
+
+.ft-section-fields {
+  min-height: 36px;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.ft-section-fields.is-over { border-color: var(--bd-primary); background: var(--bd-blue-pale); }
+.ft-drop-hint { margin: 0; padding: 8px; font-size: 12px; text-align: center; color: var(--bd-faint); }
+
+/* The preview: the slip itself — its own parts on its three-column grid — drawn small. */
+.ftp {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ftp-head { display: flex; flex-direction: column; gap: 2px; }
+.ftp-head-title { font-weight: 600; color: var(--bd-title); }
+
+/* .rs-slip brings the slip tokens and paper; the grid is the preview's own. */
+.ftp-sheet.rs-slip {
+  display: grid;
+  flex: none;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  column-gap: 8px;
+  align-items: start;
+  max-height: 64vh;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-radius);
+}
+
+/* The slip card inside is the look; the block only takes the drag and its outline. */
+.ftp-block {
+  min-width: 0;
+  border-radius: 12px;
+  cursor: grab;
+  transform: var(--ft-drag-transform, none);
+  transition: outline-color 0.15s, box-shadow 0.15s;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  touch-action: none;
+}
+
+.ftp-block:hover { outline-color: var(--bd-blue-light); }
+.ftp-block:focus-visible { outline-color: var(--bd-primary); }
+.ftp-block.is-dragging { z-index: 2; cursor: grabbing; opacity: 0.9; box-shadow: var(--bd-shadow-lift); }
+.ftp-block.is-over { outline-color: var(--bd-primary); outline-style: dashed; }
+
+/* Zoom on the content, never on the block: dnd-kit measures and moves the block. */
+.ftp-zoom { zoom: 0.6; pointer-events: none; }
+
+/* The slip's own rules for a narrow block, keyed on the preview span. */
+.ftp-block.is-span-1 .rs-extra-grid { grid-template-columns: minmax(0, 1fr); }
+.ftp-block.is-span-2 .rs-extra-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ftp-block.is-span-3 .rs-extra-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.ftp-empty { margin: 0; font-style: italic; color: var(--bd-faint); }
+.ftp-hidden { margin: 0; font-size: 12px; color: var(--bd-muted); }
+
+@media (max-width: 1100px) {
+  .ft-body { grid-template-columns: 1fr; }
+  .ftp { position: static; }
+  .ftp-sheet.rs-slip { max-height: none; }
+}
+
+/* A phone stacks the blocks one under another, as the slip itself does there. */
+@media (max-width: 640px) {
+  .ftp-sheet.rs-slip { grid-template-columns: minmax(0, 1fr); }
+}

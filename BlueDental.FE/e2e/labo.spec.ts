@@ -18,7 +18,7 @@ const TABS = [
   { label: "Khớp cắn Labo", path: "/labo/bite" },
   { label: "Đường hoàn tất", path: "/labo/finish-line" },
   { label: "Kiểu nhịp Labo", path: "/labo/nhip" },
-  { label: "Dịch vụ - vật liệu", path: "/labo/service-material" },
+  { label: "Vật liệu & loại phục hình", path: "/labo/service-material" },
 ];
 
 /** Row of the catalog table carrying the given name. */
@@ -181,7 +181,7 @@ test.describe("Labo", () => {
     const first = page.getByRole("row").nth(1);
     await expect(first).toBeVisible();
 
-    for (const column of [2, 6, 7]) {
+    for (const column of [2, 5, 6]) {
       await expect(first.getByRole("cell").nth(column)).not.toHaveText("—");
     }
   });
@@ -299,13 +299,13 @@ test.describe("Labo", () => {
     await expect(page.getByRole("dialog")).toBeHidden({ timeout: 10_000 });
   });
 
-  test("Dịch vụ - vật liệu puts its groups beside its materials", async ({ page }) => {
+  test("Vật liệu & loại phục hình puts its three groups beside its materials", async ({ page }) => {
     await page.goto("/labo/service-material");
 
     await assertRealApiTraffic(page, "/labo-materials");
 
-    // The group panel, and a material carrying the group it is filed under.
-    await expect(page.getByRole("columnheader", { name: "Nhóm phân loại" })).toBeVisible();
+    // The group panel (P1011: the three fixed groups), and the materials of the selected one.
+    await expect(page.getByRole("navigation", { name: "Danh mục vật liệu" }).locator("[data-group-row]")).toHaveCount(3);
     await expect(page.getByRole("columnheader", { name: "Vật liệu" })).toBeVisible();
 
     const requests: string[] = [];
@@ -314,7 +314,7 @@ test.describe("Labo", () => {
     });
 
     // Picking a group narrows the table through the server, not in the browser.
-    await page.locator("[data-group-row]").first().locator("button").first().click();
+    await page.locator("[data-group-row]").nth(1).locator("button").first().click();
 
     await expect.poll(() => requests.some((url) => url.includes("TaxonomyId="))).toBeTruthy();
   });

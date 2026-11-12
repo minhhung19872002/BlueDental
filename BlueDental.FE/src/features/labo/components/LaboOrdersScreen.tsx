@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Select } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import {
+  laboOrderNo,
   useLaboOrderList,
   LABO_SAMPLE_FILTER,
   type LaboOrderDto,
@@ -24,6 +25,7 @@ import { foldFilterOption } from "@/utils/foldForSearch";
 import { laboStatusPill } from "../api/laboStatus";
 import { buildLaboOrderColumns } from "./laboOrderColumns";
 import { LaboDetailDialog } from "./order-dialogs/LaboDetailDialog";
+import { laboWorkOf } from "./order-dialogs/laboRequestSlipText";
 
 /**
  * Mẫu Labo.
@@ -56,32 +58,28 @@ function sampleTabs() {
 /** The reference exports the paired columns split apart — labo.md §2.8. */
 function exportOrders(items: LaboOrderDto[]) {
   const rows = items.map((row) => ({
-    orderCode: row.orderCode,
-    supplier: row.supplierName ?? row.labProviderName,
+    orderCode: laboOrderNo(row),
     createdAt: formatDate(row.creationTime),
     patientName: row.patientName ?? "",
-    treatmentPlan: row.treatmentPlanCode ?? "",
     sentDate: row.sentAt ? formatDate(row.sentAt) : "",
     deliveryDate: row.dueAt ? formatDate(row.dueAt) : "",
     status: t(laboStatusPill(row).label),
     dentistName: row.dentistName ?? "",
-    materialName: row.materialName ?? "",
+    materialName: laboWorkOf(row) ?? "",
     teeth: row.toothNumbers ?? "",
   }));
 
   exportToExcel(
     rows,
     [
-      { header: t("Patient:Labo:Code"), key: "orderCode" },
-      { header: t("Labo:Orders:Supplier"), key: "supplier" },
+      { header: t("Labo:Slip:SlipNo"), key: "orderCode" },
       { header: t("Common:CreatedAt"), key: "createdAt" },
       { header: t("Labo:Orders:CustomerName"), key: "patientName" },
-      { header: t("Labo:Orders:TreatmentSlip"), key: "treatmentPlan" },
       { header: t("Labo:Orders:SentDate"), key: "sentDate" },
       { header: t("Labo:Orders:DeliveryDate"), key: "deliveryDate" },
       { header: t("Common:Status"), key: "status" },
       { header: t("Labo:Orders:DentistAssigned"), key: "dentistName" },
-      { header: t("Labo:Orders:Material"), key: "materialName" },
+      { header: t("Patient:Labo:ProsthesisType"), key: "materialName" },
       { header: t("Labo:Orders:Teeth"), key: "teeth" },
     ],
     "mau-labo",

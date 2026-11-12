@@ -107,6 +107,7 @@ async function seedCatalog(page: Page, branchId: string): Promise<Seeded> {
       for (const name of materials) {
         if (existing.items.some((row) => row.name === name)) continue;
         await post("/api/v1/app/labo-materials", {
+          code: name.slice(0, 50),
           name,
           taxonomyId: taxonomy.id,
           clinicBranchId: branchId,
@@ -201,7 +202,10 @@ test.describe("Labo dialog — Vật liệu search (R-1062)", () => {
     await login(page);
   });
 
-  test("finds the material accent-blind in the popup, keeps the pick, saves the draft", async ({
+  // F-91 (R-1198): tab Đặt hàng is now the Phiếu yêu cầu, which lists every
+  // material of its groups as checkboxes — no Dịch vụ row, no Vật liệu popup to
+  // search. Kept for the old form's history.
+  test.skip("finds the material accent-blind in the popup, keeps the pick, saves the draft", async ({
     page,
   }) => {
     const target = await findStageablePatient(page);

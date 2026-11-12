@@ -1,25 +1,18 @@
 import type { TableColumnsType } from "antd";
-import { Link } from "react-router-dom";
 import { StatusBadge } from "@/components/StatusBadge";
-import { withBranch } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import type { LaboOrderDto } from "@/features/labo/api/laboApi";
+import { laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
 import { laboStatusPill } from "@/features/labo/api/laboStatus";
 import { LaboSendDueCell } from "@/features/labo/components/order-dialogs/LaboSendDueCell";
 import { LaboTeethChartButton } from "@/features/labo/components/order-dialogs/LaboTeethChartButton";
 import {
   LaboImagesButton,
   LaboRowActions,
-  LaboSupplierBadge,
   type LaboRowActionHandlers,
 } from "@/features/labo/components/order-dialogs/laboOrderCells";
+import { laboWorkOf } from "@/features/labo/components/order-dialogs/laboRequestSlipText";
 
 const dash = (value: string | undefined) => value ?? "—";
-
-interface ColumnContext {
-  patientId: string;
-  branchId: string;
-}
 
 /** Status pill: the stored status, or Hết hạn bảo hành once every card has run out. */
 function StatusCell({ order }: { order: LaboOrderDto }) {
@@ -28,36 +21,19 @@ function StatusCell({ order }: { order: LaboOrderDto }) {
 }
 
 /**
- * The patient's Labo table as the BA drew it (P2910_03): Phiếu ĐT opens the
- * treatment slip, Gửi → Hẹn giao carries the due tag, Trạng thái the status
- * pill, and Thao tác the one step the status waits on beside Xem.
+ * The patient's Labo table as the BA drew it (P2910_03), less Phiếu ĐT (P1011:
+ * a Labo order no longer belongs to a treatment slip): Gửi → Hẹn giao carries
+ * the due tag, Trạng thái the status pill, and Thao tác the one step the status waits on beside Xem. Since F-91
+ * the first column is the Mã số (the order code on old orders), Loại phục hình
+ * replaces Vật liệu and the supplier is gone, as on Mẫu Labo.
  */
-export function buildPatientLaboColumns(
-  actions: LaboRowActionHandlers,
-  { patientId, branchId }: ColumnContext,
-): TableColumnsType<LaboOrderDto> {
+export function buildPatientLaboColumns(actions: LaboRowActionHandlers): TableColumnsType<LaboOrderDto> {
   return [
     {
-      title: t("Patient:Labo:Code"),
-      dataIndex: "orderCode",
+      title: t("Labo:Slip:SlipNo"),
+      key: "orderCode",
       width: 140,
-      render: (value: string) => <span className="pd-labo-code">{value}</span>,
-    },
-    {
-      title: t("Labo:Column:Plan"),
-      dataIndex: "treatmentPlanCode",
-      width: 96,
-      render: (value: string | undefined, row) =>
-        value && row.treatmentPlanId ? (
-          <Link
-            className="pd-labo-plan-link"
-            to={withBranch(`/patient/${patientId}/treatment-plan/${row.treatmentPlanId}`, branchId)}
-          >
-            {value}
-          </Link>
-        ) : (
-          "—"
-        ),
+      render: (_, row) => <span className="pd-labo-code">{laboOrderNo(row)}</span>,
     },
     {
       title: t("Labo:Column:SentDue"),
@@ -73,14 +49,11 @@ export function buildPatientLaboColumns(
       render: (_, row) => <StatusCell order={row} />,
     },
     {
-      title: t("Patient:Labo:Supplier"),
-      dataIndex: "labProviderName",
-      width: 170,
-      render: (value: string | undefined, row) => (
-        <LaboSupplierBadge name={value} color={row.supplierLabelColor} />
-      ),
+      title: t("Patient:Labo:ProsthesisType"),
+      key: "work",
+      width: 200,
+      render: (_, row) => dash(laboWorkOf(row) || undefined),
     },
-    { title: t("Patient:Labo:Material"), dataIndex: "materialName", width: 170, render: dash },
     {
       title: t("Patient:DentalChart:ToothNumber"),
       key: "teeth",

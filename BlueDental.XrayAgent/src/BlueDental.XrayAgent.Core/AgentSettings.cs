@@ -39,9 +39,16 @@ public sealed class AgentSettings
     /// <summary>When the file name carries no code, read the folder holding it.</summary>
     public bool CodeFromParentFolder { get; set; }
 
+    /// <summary>
+    /// Read the information file EzDent-i writes beside an exported picture
+    /// ("Thêm Tệp Thông tin Hình ảnh"): its Chart No, name, birthday and
+    /// acquisition time win over what the file name says. See <see cref="EzdentInfoFile"/>.
+    /// </summary>
+    public bool ReadEzdentInfoFile { get; set; } = true;
+
     public string EzdentBinFolder { get; set; } = DefaultEzdentBinFolder;
 
-    /// <summary><c>VTE2Loader32.exe</c> or <c>VTEzBridge.exe</c> — a bare file name inside the Bin folder.</summary>
+    /// <summary><c>VTE2Loader32.exe</c> or <c>VTEzBridge32.exe</c> — a bare file name inside the Bin folder.</summary>
     public string LoaderName { get; set; } = DefaultLoaderName;
 
     /// <summary>Arguments for the loader; <c>{linkage}</c> becomes the linkage file's full path.</summary>

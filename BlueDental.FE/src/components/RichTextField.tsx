@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ interface Props {
    * bảo hành). Defaults to true.
    */
   media?: boolean;
+  /** Names the editable body for assistive tech and getByLabel (R-1212). */
+  ariaLabel?: string;
 }
 
 const TOOLBAR_HEAD = [
@@ -92,8 +94,18 @@ export function RichTextField({
   className,
   onUploadImage,
   media = true,
+  ariaLabel,
 }: Props) {
   const quillRef = useRef<ReactQuill>(null);
+
+  // Quill owns its editable div, so the name is set on it after mount.
+  useEffect(() => {
+    const root = quillRef.current?.getEditor().root;
+    if (!root || !ariaLabel) return;
+    root.setAttribute("role", "textbox");
+    root.setAttribute("aria-multiline", "true");
+    root.setAttribute("aria-label", ariaLabel);
+  }, [ariaLabel]);
 
   // Read through a ref so the toolbar is not rebuilt on every keystroke —
   // Quill rebuilds its whole toolbar when `modules` changes identity.

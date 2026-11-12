@@ -11,8 +11,15 @@ public class LaboMaterialDto : FullAuditedEntityDto<Guid>
     public Guid ClinicBranchId { get; set; }
     public Guid TaxonomyId { get; set; }
     public string Name { get; set; } = default!;
+
+    /// <summary>Mã (P1011); null on materials made before it.</summary>
+    public string? Code { get; set; }
+
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
+
+    /// <summary>"Có lựa chọn Trên implant" (F-91).</summary>
+    public bool AllowOnImplant { get; set; }
 
     /// <summary>"BE:Field:CategoryGroup" — filled from the group so the table needs no join of its own.</summary>
     public string? TaxonomyName { get; set; }
@@ -20,6 +27,11 @@ public class LaboMaterialDto : FullAuditedEntityDto<Guid>
 
 public class LaboMaterialInputDto
 {
+    /// <summary>Mã (P1011), unique within the branch.</summary>
+    [Required]
+    [MaxLength(50)]
+    public string Code { get; set; } = default!;
+
     [Required]
     [MaxLength(200)]
     public string Name { get; set; } = default!;
@@ -29,6 +41,21 @@ public class LaboMaterialInputDto
     public Guid TaxonomyId { get; set; }
 
     public Guid? ClinicBranchId { get; set; }
+
+    /// <summary>Trạng thái: Đang dùng (true) / Ngừng. Omitted keeps the material as it is; a new one starts Đang dùng.</summary>
+    public bool? IsActive { get; set; }
+
+    /// <summary>
+    /// "Có lựa chọn Trên implant" (F-91). Since P1011 the group decides the
+    /// columns and the dialog no longer sends it; omitted keeps what is stored.
+    /// </summary>
+    public bool? AllowOnImplant { get; set; }
+}
+
+/// <summary>The Trạng thái switch of the table (P1011): only the flag, so a material saved before Mã still toggles.</summary>
+public class SetLaboMaterialActiveDto
+{
+    public bool IsActive { get; set; }
 }
 
 public class CreateLaboMaterialDto : LaboMaterialInputDto;
@@ -50,5 +77,6 @@ public interface ILaboMaterialAppService : IApplicationService
     Task<PagedResultDto<LaboMaterialDto>> GetListAsync(GetLaboMaterialListInput input);
     Task<LaboMaterialDto> CreateAsync(CreateLaboMaterialDto input);
     Task<LaboMaterialDto> UpdateAsync(Guid id, UpdateLaboMaterialDto input);
+    Task<LaboMaterialDto> SetActiveAsync(Guid id, SetLaboMaterialActiveDto input);
     Task DeleteAsync(Guid id);
 }

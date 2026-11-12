@@ -43,6 +43,21 @@ public record LaboOrderDetails
     public decimal EstimatedCost { get; init; }
     public Guid? TreatmentServiceId { get; init; }
     public Guid? TreatmentStageId { get; init; }
+
+    /// <summary>Which form wrote it (F-91); the Phiếu yêu cầu fields below are read only on <see cref="LaboOrderLayout.RequestSlip"/>.</summary>
+    public LaboOrderLayout Layout { get; init; } = LaboOrderLayout.Classic;
+
+    /// <summary>Mã số — typed by hand from the lab's paper slip; unique in the branch among orders not cancelled.</summary>
+    public string? LabSlipNo { get; init; }
+    public LaboCaseType CaseType { get; init; } = LaboCaseType.New;
+
+    /// <summary>The Phiếu yêu cầu spec, entered once and stored on every tooth.</summary>
+    public LaboShadeZones? ShadeZones { get; init; }
+    public IReadOnlyList<Guid> FinishLineIds { get; init; } = [];
+    public IReadOnlyList<LaboToothRestoration> Restorations { get; init; } = [];
+
+    /// <summary>Thông tin bổ sung (F-93), already copied from its template and checked; read only on the Phiếu yêu cầu.</summary>
+    public LaboExtraForm? ExtraForm { get; init; }
 }
 
 /// <summary>

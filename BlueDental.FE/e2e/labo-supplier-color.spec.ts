@@ -1,17 +1,17 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
-import { findLaboPatient, type LaboTarget } from "./fixtures/laboSeed";
+import { findLaboPatient } from "./fixtures/laboSeed";
 
 /**
  * Feature: Màu nhãn on Nhà cung cấp Labo (R-1072, a BlueDental addition the
  * reference does not have). The dialog picks Mặc định (grey), one of eight
  * presets or any colour; the supplier's name then reads as a solid badge in
- * that colour on its own table, on Mẫu Labo and on the patient's Labo tab.
+ * that colour on its own table. Mẫu Labo and the patient's Labo tab showed it
+ * too until F-91 (R-1198) took the supplier out of the Labo lists.
  *
  * Real stack: login through the screen, the supplier is created and edited
  * through the dialog, every reading comes from the real API and a reload reads
- * it back. The only shortcut is the one order that carries the supplier, posted
- * the way the order dialog posts it with the browser's own cookie.
+ * it back.
  */
 
 const BLUE = { hex: "#2671D8", rgb: "rgb(38, 113, 216)" };
@@ -28,15 +28,6 @@ function supplierBadge(page: Page, name: string) {
   return page.getByRole("row").filter({ hasText: name }).locator(".bd-label-badge").first();
 }
 
-/** The badge in the Labo row whose Mã phiếu cell is exactly this code. */
-function orderBadge(page: Page, scope: string, code: string) {
-  return page
-    .locator(`${scope} tbody tr.ant-table-row`)
-    .filter({ has: page.locator("td", { hasText: new RegExp(`^${code}$`) }) })
-    .first()
-    .locator(".bd-label-badge");
-}
-
 /** Opens the supplier's edit dialog, runs `pick` in it and saves. */
 async function editColour(page: Page, name: string, pick: (dialog: Locator) => Promise<void>) {
   await page.getByRole("button", { name: `Chỉnh sửa ${name}` }).click();
@@ -50,64 +41,17 @@ async function editColour(page: Page, name: string, pick: (dialog: Locator) => P
   await expect(dialog).toBeHidden({ timeout: 10_000 });
 }
 
-/** The supplier's id, then one Đặt mới order on the patient carrying it. */
-async function seedOrderWithSupplier(page: Page, target: LaboTarget, supplierName: string, id: string) {
-  return page.evaluate(
-    async ({ target, supplierName, id }) => {
-      const xsrf = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("XSRF-TOKEN="))
-        ?.substring("XSRF-TOKEN=".length);
-      const headers = {
-        "content-type": "application/json",
-        "X-Clinic-Branch-Id": target.branchId,
-        ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
-      };
-      const list = (await (
-        await fetch(
-          `/api/v1/app/labo-suppliers?ClinicBranchId=${target.branchId}&Filter=${encodeURIComponent(supplierName)}&MaxResultCount=5`,
-          { credentials: "include", headers },
-        )
-      ).json()) as { items: { id: string; name: string }[] };
-      const supplier = list.items.find((row) => row.name === supplierName);
-      if (!supplier) throw new Error(`supplier ${supplierName} not found in branch ${target.branchId}`);
-
-      const res = await fetch("/api/v1/app/labo-orders", {
-        method: "POST",
-        credentials: "include",
-        headers,
-        body: JSON.stringify({
-          patientId: target.patientId,
-          branchId: target.branchId,
-          supplierId: supplier.id,
-          labProviderName: supplierName,
-          kind: 1,
-          estimatedCost: 0,
-          quantity: 1,
-          toothNumbers: "21",
-          workDescription: `Màu nhãn e2e ${id}`,
-          sentAt: new Date().toISOString(),
-        }),
-      });
-      if (!res.ok) throw new Error(`POST labo-orders → ${res.status} ${await res.text()}`);
-      return ((await res.json()) as { orderCode: string }).orderCode;
-    },
-    { target, supplierName, id },
-  );
-}
-
 test.describe("Nhà cung cấp Labo — Màu nhãn (R-1072)", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await login(page);
   });
 
-  test("the chosen colour paints the supplier badge everywhere, and Mặc định brings back grey", async ({
+  test("the chosen colour paints the supplier badge on its table, and Mặc định brings back grey", async ({
     page,
   }) => {
     const id = runId();
     const name = `Labo màu e2e ${id}`;
-    const target = await findLaboPatient(page);
 
     // ── Create with a preset: the preview follows the name and the colour ──
     await page.goto("/labo/supplier");
@@ -146,24 +90,7 @@ test.describe("Nhà cung cấp Labo — Màu nhãn (R-1072)", () => {
     expect(await background(badge)).toBe(BLUE.rgb);
     expect(await textColor(badge)).toBe(WHITE_RGB);
 
-    // ── An order carrying the supplier shows the same badge on both Labo tables ─
-    const orderCode = await seedOrderWithSupplier(page, target, name, id);
-
-    await page.goto("/labo/mau-labo");
-    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
-    const sampleBadge = orderBadge(page, ".bd-labo-screen", orderCode);
-    await expect(sampleBadge).toHaveText(name);
-    expect(await background(sampleBadge)).toBe(BLUE.rgb);
-
-    await page.goto(`/patient/${target.patientId}?branchId=${target.branchId}&tab=labo`);
-    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
-    const tabBadge = orderBadge(page, ".pd-pane--fill", orderCode);
-    await expect(tabBadge).toHaveText(name);
-    expect(await background(tabBadge)).toBe(BLUE.rgb);
-
-    // ── Mặc định clears it: grey on the table and on Mẫu Labo ─────────────
-    await page.goto("/labo/supplier");
-    await assertRealApiTraffic(page, "/labo-suppliers");
+    // ── Mặc định clears it: grey again after a reload ─────────────────────
     await editColour(page, name, async (edit) => {
       await expect(edit.getByRole("radio", { name: `Chọn màu ${BLUE.hex}` })).toHaveAttribute("aria-checked", "true");
       await edit.getByRole("radio", { name: "Mặc định (xám)" }).click();
@@ -171,11 +98,6 @@ test.describe("Nhà cung cấp Labo — Màu nhãn (R-1072)", () => {
     await page.reload();
     await assertRealApiTraffic(page, "/labo-suppliers");
     expect(await background(supplierBadge(page, name))).toBe(GREY_RGB);
-
-    await page.goto("/labo/mau-labo");
-    await assertRealApiTraffic(page, "/api/v1/app/labo-orders");
-    await expect(orderBadge(page, ".bd-labo-screen", orderCode)).toHaveText(name);
-    expect(await background(orderBadge(page, ".bd-labo-screen", orderCode))).toBe(GREY_RGB);
   });
 
   test("a custom pale colour is kept and turns the text dark", async ({ page }) => {

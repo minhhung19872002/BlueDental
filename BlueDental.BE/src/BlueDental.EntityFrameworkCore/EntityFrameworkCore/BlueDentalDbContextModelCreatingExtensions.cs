@@ -888,13 +888,21 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Status).HasConversion<short>();
             entity.Property(x => x.ToothNumbers).HasMaxLength(200);
             entity.Property(x => x.WorkDescription).HasMaxLength(1000);
-            entity.Property(x => x.Notes).HasMaxLength(2000);
+            entity.Property(x => x.Notes).HasMaxLength(LaboOrder.NotesMaxLength);
             entity.Property(x => x.EstimatedCost).HasPrecision(18, 2);
             entity.Property(x => x.RejectionReason).HasMaxLength(500);
             entity.Property(x => x.Kind).HasConversion<short>();
             entity.Property(x => x.SpecMode).HasConversion<short>().HasDefaultValue(LaboSpecMode.PerTooth);
             entity.Property(x => x.AttachmentUrl).HasMaxLength(500);
             entity.Property(x => x.ToothShade).HasMaxLength(100);
+            // F-91 Phiếu yêu cầu: every order written before it is the classic form.
+            entity.Property(x => x.Layout).HasConversion<short>().HasDefaultValue(LaboOrderLayout.Classic);
+            entity.Property(x => x.CaseType).HasConversion<short>().HasDefaultValue(LaboCaseType.New);
+            entity.Property(x => x.LabSlipNo).HasMaxLength(50);
+            // Mã số is the branch's own, among orders not cancelled (6), exact case.
+            entity.HasIndex(x => new { x.BranchId, x.LabSlipNo })
+                .IsUnique()
+                .HasFilter("\"LabSlipNo\" IS NOT NULL AND \"Status\" <> 6 AND \"IsDeleted\" = false");
             // A child (Làm tiếp công đoạn / Bảo hành) keeps its parent's code,
             // so only the orders without a parent hold the code uniquely.
             entity.HasIndex(x => x.OrderCode).IsUnique().HasFilter("\"ParentOrderId\" IS NULL");
@@ -902,6 +910,14 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => x.TreatmentStageId);
             entity.HasIndex(x => x.TreatmentServiceId);
             entity.HasIndex(x => x.ParentOrderId);
+            // F-93: Thông tin bổ sung, the Mẫu phiếu copied with its answers.
+            entity.OwnsOne(x => x.ExtraForm, f =>
+            {
+                f.ToJson();
+                f.OwnsMany(x => x.Entries);
+                // F-94: the layout copied with it.
+                f.OwnsMany(x => x.Blocks, b => b.Ignore(x => x.IsCustom).Ignore(x => x.IsLocked));
+            });
 
             // P2910_03: each tooth carries its check result and warranty card,
             // each Nhận hàng · lần N its own row.
@@ -936,6 +952,17 @@ public static class BlueDentalDbContextModelCreatingExtensions
                 s.Property(x => x.Shade).HasMaxLength(100);
             });
             entity.Navigation(x => x.Surfaces).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // F-91 Phiếu yêu cầu: Màu răng by zone, Đường hoàn tất and Loại phục hình.
+            entity.OwnsOne(x => x.ShadeZones, z =>
+            {
+                z.ToJson();
+                z.Ignore(x => x.Zones);
+                z.Ignore(x => x.IsEmpty);
+                z.Ignore(x => x.Summary);
+            });
+            entity.Property(x => x.FinishLineIds);
+            entity.OwnsMany(x => x.Restorations, r => r.ToJson());
+            entity.Navigation(x => x.Restorations).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.LaboOrderId, x.ToothNumber }).IsUnique();
         });
 
@@ -955,6 +982,25 @@ public static class BlueDentalDbContextModelCreatingExtensions
             });
             entity.Navigation(x => x.ToothResults).UsePropertyAccessMode(PropertyAccessMode.Field);
             entity.HasIndex(x => new { x.LaboOrderId, x.RoundNo }).IsUnique();
+        });
+
+        builder.Entity<LaboFormTemplate>(entity =>
+        {
+            entity.ToTable("bd_labo_form_templates");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(LaboFormTemplate.MaxNameLength).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(LaboFormTemplate.MaxDescriptionLength);
+            entity.OwnsMany(x => x.Fields, f => f.ToJson());
+            entity.Navigation(x => x.Fields).UsePropertyAccessMode(PropertyAccessMode.Field);
+            // F-94: the slip's layout; null on a template saved before it.
+            entity.OwnsMany(x => x.Blocks, b =>
+            {
+                b.ToJson();
+                b.Ignore(x => x.IsCustom);
+                b.Ignore(x => x.IsLocked);
+            });
+            entity.Navigation(x => x.Blocks).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.HasIndex(x => x.ClinicBranchId);
         });
 
         builder.Entity<LaboSupplier>(entity =>
@@ -1093,6 +1139,10 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.ToTable("bd_labo_materials");
             entity.ConfigureByConvention();
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Code).HasMaxLength(50);
+            // Mã is unique per branch among live rows (P1011); the service checks
+            // it, since a soft-deleted row keeps its code.
+            entity.HasIndex(x => new { x.ClinicBranchId, x.Code });
             // The table is read one branch at a time, and usually one group too.
             entity.HasIndex(x => new { x.ClinicBranchId, x.TaxonomyId });
         });

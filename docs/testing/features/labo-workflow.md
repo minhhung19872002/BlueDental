@@ -387,9 +387,235 @@ Tests (round 2): `e2e/stage-backfill-log-api.spec.ts` (6, real HTTP),
     width.
 - Tests: `e2e/labo-workflow.spec.ts` (Bảo hành + Dùng chung), `plan-warranty-tab`.
 
+## F-91 — Phiếu yêu cầu Labo (BA mock "bản 2 nhập mã số, không kế hoạch nhà cung cấp", R-1198)
+
+Step 1 Đặt hàng of a **new** order is now the Labo's own Phiếu yêu cầu
+(`request-slip/LaboRequestSlipStep`). Orders made before keep the old form
+(`layout` 1 = Classic, 2 = RequestSlip).
+
+- Thông tin phiếu:
+  - Mã số is typed by hand and required to send, not to save a draft.
+  - It is unique per branch, case-sensitive, and cancelled orders do not count:
+    `Labo:0042` (missing) and `Labo:0043` (taken).
+  - Loại phiếu is Ca mới or Sửa / làm lại. It is a stored flag only.
+  - Phòng khám, Bệnh nhân and Tuổi · Giới tính are read-only.
+  - Bác sĩ chỉ định.
+  - Ngày gửi defaults to today. Ngày nhận dự kiến must come after it.
+- Loại phục hình comes from Danh mục vật liệu (`labo_material` groups):
+  - A group that has a material ticked "Có lựa chọn Trên implant" shows as a
+    2-column table (Thường / Trên implant).
+  - Other groups show as a list.
+  - `Labo:0044` means none is picked; `Labo:0045` means the pick is not in the
+    catalog, or Trên implant was picked on a material that does not allow it.
+- Màu răng has 6 zones (Cổ / Thân / Rìa cắn × Gần / Xa).
+- Chỉ định is the system's "Răng *" row (`LaboToothRow`):
+  - The purple tooth button opens the shared Chọn răng dialog (Răng vĩnh viễn
+    / Răng sữa).
+  - The picked teeth follow as chips, with Số lượng.
+  - It sits in column 3, above Đường hoàn tất (owner, 2026-11-10).
+  - The prior-tooth warning covers every order of the patient that is Nháp,
+    Đã gửi, Chờ kiểm tra or Labo trả lại.
+- Đường hoàn tất comes from the `labo_finish_line` taxonomy. Several can be
+  picked, and each one's tooltip is its description.
+- Yêu cầu and Ảnh chung.
+- Everything is entered once and stored on **every** tooth
+  (`bd_labo_order_teeth`: restorations jsonb, shade zones, finish line ids).
+- No supplier, no plan, no line and no công đoạn link.
+- "Tạo phiếu Labo" waits for the footer to show "Phiếu đã đủ thông tin.", sends
+  the order, then goes to the patient's Labo tab (`/patient/:id?tab=labo`).
+  It went to `/labo` until the owner changed it on 2026-11-10.
+- A sent order shows the same sheet locked, with Hủy phiếu and In Phiếu Labo.
+- An old draft reopens with its saved values filled in.
+- Print: "PHIẾU YÊU CẦU LABO" (`LaboRequestSlipSheet`) uses the app font, with
+  the Màu răng grid and the tooth chart with the picked teeth boxed. Old orders
+  keep "PHIẾU ĐẶT HÀNG LABO".
+- In Phiếu Labo puts `@page { size: A4; margin: 0 }` on the page while it
+  prints (`useLaboPrint`, both sheets). Without it the page took the
+  printer's default paper: on a PDF printer's small default the letterhead ran
+  together, the type looked oversized and one order filled three sheets.
+- The sheet scrolls under a pinned footer (`.rs-slip-scroll`; its children
+  are `flex: none` or the clipped sections collapse to a line) and folds to
+  2 columns at 1280px, then 1 column at 640px, with no sideways scroll.
+- Lists:
+  - Mã số replaces Mã phiếu on `/labo`, on the patient Labo tab and on the
+    workflow card. Old orders show the order code.
+  - Loại phục hình replaces Vật liệu.
+  - The supplier column and its colour badge are gone from both lists.
+  - The supplier master data (`/labo/supplier`) stays.
+- Accepted for now (owner, 2026-11-10):
+  - No công đoạn lock.
+  - No service-completion block.
+  - No Phiếu Labo cell on the slip.
+  - No warranty activation until the Bảo hành step is reworked.
+  - The Kiểm tra step reads the old fields ("làm sau").
+- Tests:
+  - `e2e/labo-request-slip-api.spec.ts` (8).
+  - `e2e/labo-request-slip-ui.spec.ts` (5):
+    - Create from the patient tab: scroll by wheel, Chọn răng with Răng sữa,
+      widths 1100 / 800 / 390.
+    - Land back on the patient's Labo tab.
+    - Read each tooth back; Xem and the print sheet print as one A4 page when
+      the paper defaults to 105×148mm.
+    - A duplicate Mã số is refused.
+    - A tooth on another open order is flagged but not blocked (R-1106 carried
+      over).
+    - A draft refills; a sent sheet is locked.
+    - The Trên implant checkbox in the material dialog.
+  - Older specs brought in line:
+    - `labo-workflow:182` now starts from an old-form order already sent
+      through the API.
+    - `labo-supplier-color` no longer looks for the badge on the two Labo
+      lists.
+    - `test.skip` with a note: `labo-workflow` R-1106 and R-1150 (old-form
+      editing) and `labo-material-search:204` (no Vật liệu popup any more).
+    - The Labo specs ran 24 passed / 3 skipped.
+
+## F-92 — Vật liệu & loại phục hình (BA P1011, R-1199)
+
+The screen and the slip are described in `docs/clone/pages/labo.md` §11. The
+proposal for other suppliers' forms is in §11.1.
+
+- Owner's answers, 2026-11-11:
+  1. Multi-supplier: write a proposal only (Option A recommended).
+  2. Drop the Phiếu điều trị column everywhere: `/labo`, the patient Labo tab
+     and the Excel export.
+  3. Keep the material dialog as a modal.
+  4. Leave out "Xem trước trên phiếu", the "Loại phục hình (n)" tab and the
+     inline tooth chart.
+- Data:
+  - `LaboMaterial.Code` is unique per branch, case-insensitive. The error
+    codes are `Labo:0046` (missing) and `Labo:0047` (taken).
+  - `IsActive` is edited through the dialog or `PUT {id}/active`.
+  - Migration `LaboMaterialCodeP1011`.
+- Fixed groups:
+  - Defined in `LaboMaterialGroups` and seeded per branch by
+    `TaxonomyAppService.EnsureFixedGroupsAsync`.
+  - The same helper now also seeds the Vật liệu nha khoa groups; the existing
+    check is limited to `IsSystem` rows.
+- Slip rule (`LaboMaterialGroups.Accepts`, `Labo:0045`):
+  - Toàn sứ and Hợp kim accept either column.
+  - KHAC accepts only `onImplant`.
+  - An old group keeps the material's F-91 `AllowOnImplant` flag.
+- Tests:
+  - `e2e/labo-request-slip-api.spec.ts` (10) adds:
+    - the three groups are seeded once per branch;
+    - Mã: required, unique per branch, free in another branch, found by
+      search;
+    - the `/active` switch;
+    - the KHAC and old-group rules.
+  - `e2e/labo-request-slip-ui.spec.ts` (7) adds:
+    - the columns and the 10-row scroll;
+    - the master screen: three groups, no add, code chip, Mã dialog,
+      duplicate toast, search by Mã, switch survives a reload;
+    - a Ngừng material is not offered on the slip.
+  - Older specs brought in line:
+    - `labo-orders-actions`: the plan cell is gone and the indexes shift by
+      one. After the image preview the list is reloaded before the eye is
+      clicked, because AntD's leave motion now and then stalls headless and
+      its mask stays over the table.
+    - `labo-tab-list`: Trạng thái is now the 4th column.
+    - `labo.spec`: the new tab name, the three groups, and the column indexes
+      of the "names, not ids" check.
+  - The Labo specs ran 60 passed / 3 skipped (the F-91 skips).
+    `taxonomy-dental-material` ran 2/2.
+
 ## Not built / open
 
 - Tiếp nhận bảo hành (Lần BH, phiếu BH1) — later round.
 - "Tạo Labo" still shows on the other công đoạn of a line that already has a
   live order (a second order is allowed).
 - Assumptions taken without the BA: `docs/clone/unknowns.md` (P2910_03).
+
+## F-93 — Mẫu phiếu bổ sung (hybrid, R-1200, 2026-11-11)
+
+What was built and the rules: `docs/clone/pages/labo.md` §12.
+
+Tests: stack :5152/:8098, real login, no interception.
+
+- **`e2e/labo-form-template-api.spec.ts` (14).** It covers:
+  - CRUD with stable keys;
+  - name rules;
+  - field-list checks;
+  - branch isolation;
+  - 401 for a caller who is not signed in;
+  - permissions: no leaf → 403, `catalogService.read` → reads only, every
+    write still 403;
+  - every answer kind, cleaned;
+  - invalid answers;
+  - a draft against a sent slip with a required field;
+  - the copy surviving an edit, a stop and a delete;
+  - a stopped or unknown template refused;
+  - switching templates and clearing them;
+  - a Classic order.
+- **`e2e/labo-form-template-ui.spec.ts` (2).**
+  - The Mẫu phiếu tab builds a template field by field. It checks:
+    - the footer messages that block Lưu;
+    - search without accents;
+    - edit in place;
+    - Ngừng;
+    - Xoá.
+  - The slip:
+    - the section is hidden when the branch has no active template;
+    - the section appears once one exists, marked "Không in trên phiếu";
+    - Tạo phiếu Labo stays disabled while a Bắt buộc field is blank;
+    - a draft keeps its answers, read back from the API;
+    - after the template is renamed, edited and stopped, the slip keeps its own
+      copy, which is offered next to the live templates;
+    - a sent slip shows its answers locked;
+    - the print leaves the section out.
+- **Shared helpers** for the Phiếu yêu cầu UI were moved to
+  `e2e/fixtures/laboSlipUi.ts`.
+
+## F-94 — Mẫu phiếu dựng cả Phiếu yêu cầu (R-1201, 2026-11-11)
+
+What was built and the rules: `docs/clone/pages/labo.md` §13.
+
+Tests: host :5000 + production build preview :8080, real login, no
+interception.
+
+- **`e2e/labo-form-layout.spec.ts` (5).**
+  - API, refusals: a system block missing, twice, or of an unknown kind;
+    eleven sections; two sections with one key (`0058`); an untitled section
+    (`0059`); a section with no field (`0060`); nothing at all (`0052`).
+  - API, kept as sent: order, headings, widths and hidden flags read back with
+    their own GET; Info/Teeth forced shown; widths held to 1–3; a field naming
+    no section goes to the first; a system-only layout needs no field; an
+    F-93-style template reads as the default layout with its fields in
+    `extra`.
+  - API, orders: a layout that shows them still asks for Loại phục hình and
+    Màu răng; a layout hiding Loại phục hình, Màu răng, Đường hoàn tất and Yêu
+    cầu sends the slip and keeps none of them; the order's copy of the layout
+    survives an edit of the template.
+  - UI, builder: rename / resize / hide system blocks, locked blocks show
+    "Luôn hiện", Thêm mục with its footer message, move Yêu cầu up, save and
+    read back; Sửa reloads it, removing a section removes its fields, version
+    2, keys kept.
+  - UI, slip and print: the picked layout orders the sheet with its headings
+    and widths, Màu răng and Đường hoàn tất absent; filled by hand and sent;
+    reopened after a reload, locked; In Phiếu Labo prints the same headings in
+    the same order with the section's answers.
+- **`e2e/labo-form-template-ui.spec.ts`** now picks "Mẫu phiếu" and expects
+  the section on paper (F-93's "Không in" replaced by F-94's print).
+
+## F-94 — kéo thả và xem trước (R-1202, 2026-11-11)
+
+- **`e2e/labo-form-layout-dnd.spec.ts`.**
+  - The preview lists the shown blocks in order (read from each block's
+    `aria-label`; the slip part inside draws its own heading) at their spans.
+  - A block moves from the keyboard by its grip; a field dragged into another
+    section moves there and the emptied section blocks Lưu until a field lands
+    in it; a block dragged in the preview moves in the builder too.
+  - A hidden block leaves the preview and is named under it; a click on a
+    preview block focuses its card; the saved layout is read back by GET.
+- The preview draws the slip's own parts (inert, zoomed), so a change to the
+  Phiếu yêu cầu parts shows up in the builder as well.
+- Both the slip with a template and the preview pack blocks without row
+  gaps (`useMasonryRows`); the Labo suite covers the slip with a template.
+- **Loại phục hình split into cards 7 / 8 / 9** — `labo-form-layout.spec.ts`:
+  the stored layout reads back with the cards after the heading; an F-93
+  template reads as the default; API step: heading hidden alone still asks
+  for Loại phục hình, a hidden card's ticks are dropped per tooth, a pick only
+  on a hidden card → `RESTORATION_MISSING`; the slip draws each card as its
+  own block in the template's order.
+- **No default section** — the builder opens with 9 system blocks and
+  "0/10 mục"; both specs add their sections through Thêm mục.

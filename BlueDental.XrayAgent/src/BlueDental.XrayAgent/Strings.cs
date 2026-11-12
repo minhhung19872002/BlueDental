@@ -51,6 +51,7 @@ internal static class Strings
     public const string CheckSubfolders = "Quét cả thư mục con";
     public const string LabelPattern = "Mẫu tên tệp (regex)";
     public const string CheckParentFolder = "Không có mã trong tên tệp thì lấy tên thư mục chứa ảnh";
+    public const string CheckInfoFile = "Đọc Chart No từ tệp thông tin ảnh EzDent-i (tick \"Thêm Tệp Thông tin Hình ảnh\" khi xuất)";
     public const string CheckSendOld = "Gửi cả ảnh cũ đã có sẵn trong thư mục";
     public const string LabelBinFolder = "Thư mục Bin của EzDent-i";
     public const string LabelLoader = "Chương trình nạp";

@@ -26,15 +26,77 @@ jobs:
     if: ${{ !inputs.skip_ci }}
     uses: ./.github/workflows/ci.yml
 
+  # develop only: build both images here and push them to GHCR, so the staging
+  # VM just pulls. That VM is shared with ~10 other apps, has 11 GB RAM and no
+  # swap; `dotnet publish` inside `docker compose build` took 3.5 GB there and
+  # froze the whole machine twice on 2026-11-11. main is untouched: production
+  # still builds on its own VM (deploy.sh without API_IMAGE).
+  images:
+    name: Build and push images
+    needs: [ci]
+    if: ${{ always() && github.ref_name == 'develop' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      api: ${{ steps.names.outputs.api }}
+      frontend: ${{ steps.names.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image names
+        id: names
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"   # GHCR wants lowercase
+          echo "api=ghcr.io/$owner/bluedental-api:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "frontend=ghcr.io/$owner/bluedental-frontend:$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Same cache scopes as the "Docker images build" job in ci.yml, which
+      # has just built these exact contexts, so this is mostly a cache hit.
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: BlueDental.BE
+          push: true
+          tags: ${{ steps.names.outputs.api }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          provenance: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: BlueDental.FE
+          push: true
+          tags: ${{ steps.names.outputs.frontend }}
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          provenance: false
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
   deploy:
     name: Deploy to VM
-    needs: [ci]
+    needs: [ci, images]
     # `always()` so a skip_ci dispatch (which skips the ci job) still deploys,
     # while a genuine CI failure still blocks.
     if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read   # the VM pulls the images with this job's token
 
     steps:
       # Without this the run dies inside ssh with "no argument after keyword
@@ -83,14 +145,30 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
+      # The GHCR packages are private. Log the VM in with this job's token,
+      # into a throwaway docker config (not ~/.docker, which other apps on the
+      # VM use). The token goes over stdin, never argv, and dies with the job.
+      - name: Log the VM in to GHCR
+        if: ${{ needs.images.result == 'success' }}
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s\n' "$GHCR_TOKEN" | ssh deploy-target \
+            "umask 077; mkdir -p ~/.cache/bluedental-ghcr && docker --config ~/.cache/bluedental-ghcr login ghcr.io -u '$GHCR_USER' --password-stdin"
+
       - name: Deploy
         env:
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/home/hung/BlueDental' }}
           DEPLOY_SHA: ${{ github.sha }}
           DEPLOY_BRANCH: ${{ github.ref_name }}
+          # Empty on main (images job skipped) -> deploy.sh builds on the VM.
+          API_IMAGE: ${{ needs.images.outputs.api }}
+          FRONTEND_IMAGE: ${{ needs.images.outputs.frontend }}
         run: |
           ssh deploy-target \
             DEPLOY_PATH="$DEPLOY_PATH" DEPLOY_SHA="$DEPLOY_SHA" DEPLOY_BRANCH="$DEPLOY_BRANCH" \
+            API_IMAGE="$API_IMAGE" FRONTEND_IMAGE="$FRONTEND_IMAGE" \
             'bash -s' <<'REMOTE'
           set -euo pipefail
           cd "$DEPLOY_PATH"
@@ -105,6 +183,10 @@ jobs:
 
           bash deploy.sh
           REMOTE
+
+      - name: Log the VM out of GHCR
+        if: ${{ always() && needs.images.result == 'success' }}
+        run: ssh deploy-target 'rm -rf "$HOME/.cache/bluedental-ghcr"'
 
       - name: Smoke test
         env:

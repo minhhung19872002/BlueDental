@@ -216,3 +216,45 @@
     max-width: calc(100vw - 80px);
   }
 }
+
+/* ── Vật liệu & loại phục hình (BA P1011) ─────────────────────────────────
+   The group name with its code chip, and the line that says how the
+   catalog reads on the Phiếu yêu cầu. */
+.bd-labo-material-head { display: flex; flex-direction: column; gap: 2px; }
+
+.bd-labo-material-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--bd-title);
+}
+
+.bd-labo-material-groupcode,
+.bd-labo-material-code,
+.bd-labo-material-codeinput {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.bd-labo-material-groupcode,
+.bd-labo-material-code {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bd-labo-material-groupcode {
+  border-radius: 4px;
+  background: var(--bd-blue-pale);
+  padding: 1px 6px;
+  color: var(--bd-blue-dark);
+}
+
+.bd-labo-material-hint { margin: 0; font-size: 12px; color: var(--bd-hint); }
+
+/* Mã before the name, in a column of its own width so the names line up. */
+.bd-labo-material-name { display: flex; align-items: baseline; gap: 10px; }
+.bd-labo-material-code { flex-shrink: 0; min-width: 72px; color: var(--bd-muted); }
+
+.bd-labo-material-status { display: inline-flex; align-items: center; gap: 8px; }

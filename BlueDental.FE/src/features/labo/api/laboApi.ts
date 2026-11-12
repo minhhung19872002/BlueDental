@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { PagedResult } from "@/types";
 import type { WarrantyCardSide } from "@/components/WarrantyCardPhotos";
+import type { LaboExtraFormDto } from "./laboFormTemplateApi";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,17 @@ export type LaboRoundOutcome = (typeof LABO_ROUND_OUTCOME)[keyof typeof LABO_ROU
  */
 export const LABO_SPEC_MODE = { SharedAll: 1, SharedSpecOwnShade: 2, PerTooth: 3 } as const;
 export type LaboSpecMode = (typeof LABO_SPEC_MODE)[keyof typeof LABO_SPEC_MODE];
+
+/**
+ * Which form the order was written on: the classic Đặt hàng or the Phiếu yêu
+ * cầu (F-91). Mirrors BlueDental.Labo.LaboOrderLayout.
+ */
+export const LABO_ORDER_LAYOUT = { Classic: 1, RequestSlip: 2 } as const;
+export type LaboOrderLayout = (typeof LABO_ORDER_LAYOUT)[keyof typeof LABO_ORDER_LAYOUT];
+
+/** Loại phiếu: Ca mới or Sửa / làm lại — stored only (F-91). Mirrors BlueDental.Labo.LaboCaseType. */
+export const LABO_CASE_TYPE = { New: 1, Redo: 2 } as const;
+export type LaboCaseType = (typeof LABO_CASE_TYPE)[keyof typeof LABO_CASE_TYPE];
 
 /** Kết luận of a check. Mirrors BlueDental.Labo.LaboCheckConclusion. */
 export const LABO_CHECK_CONCLUSION = { Pass: 1, ReturnAll: 2, ReturnDefective: 3 } as const;
@@ -102,6 +114,24 @@ export interface LaboOrderToothSurfaceDto {
   finishLineName?: string | null;
 }
 
+/** Màu răng of the Phiếu yêu cầu: Cổ / Thân / Rìa cắn × Gần / Xa. Mirrors BlueDental.Labo.LaboShadeZonesDto. */
+export interface LaboShadeZonesDto {
+  cervicalMesial?: string | null;
+  cervicalDistal?: string | null;
+  bodyMesial?: string | null;
+  bodyDistal?: string | null;
+  incisalMesial?: string | null;
+  incisalDistal?: string | null;
+}
+
+/** One Loại phục hình ticked on the Phiếu yêu cầu. Mirrors BlueDental.Labo.LaboOrderToothRestorationDto. */
+export interface LaboToothRestorationDto {
+  materialId: string;
+  onImplant: boolean;
+  materialName?: string | null;
+  groupName?: string | null;
+}
+
 /** One tooth of the order, with its check result and warranty card. */
 export interface LaboOrderToothDto {
   toothNumber: number;
@@ -119,6 +149,11 @@ export interface LaboOrderToothDto {
   shadeBySurface: boolean;
   /** Mặt răng, in the tooth's order; none on an order made before R-1150. */
   surfaces: LaboOrderToothSurfaceDto[];
+  /** Phiếu yêu cầu (F-91): the order's values, kept on every tooth. */
+  shadeZones?: LaboShadeZonesDto | null;
+  finishLineIds?: string[];
+  finishLineNames?: string[];
+  restorations?: LaboToothRestorationDto[];
   checkResult: LaboToothResult;
   defectNote?: string | null;
   /** Đã trả n lần: the returns where this tooth was Lỗi (P3110 REQ-D5). */
@@ -163,6 +198,13 @@ export interface LaboOrderRoundDto {
 export interface LaboOrderDto {
   id: string;
   orderCode: string;
+  /** Classic or Phiếu yêu cầu (F-91); absent reads Classic. */
+  layout?: LaboOrderLayout;
+  /** Mã số typed on the Phiếu yêu cầu; it stands for the order wherever it is set. */
+  labSlipNo?: string | null;
+  caseType?: LaboCaseType | null;
+  /** Thông tin bổ sung (F-93): the Mẫu phiếu copied when picked, with the answers; not printed. */
+  extraForm?: LaboExtraFormDto | null;
   patientId: string;
   branchId: string;
   patientName?: string;
@@ -276,6 +318,13 @@ export interface LaboStatsParams {
 }
 
 export const LABO_ORDERS_URL = "/v1/app/labo-orders";
+
+/** The number an order is known by: its Mã số when one was typed (F-91), else Số phiếu. */
+export const laboOrderNo = (order: Pick<LaboOrderDto, "orderCode" | "labSlipNo">): string =>
+  order.labSlipNo?.trim() || order.orderCode;
+
+export const isRequestSlip = (order: Pick<LaboOrderDto, "layout"> | null | undefined): boolean =>
+  order?.layout === LABO_ORDER_LAYOUT.RequestSlip;
 
 export const laboApi = {
   list: (params: LaboOrderListParams): Promise<PagedResult<LaboOrderDto>> =>

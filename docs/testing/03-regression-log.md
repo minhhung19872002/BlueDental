@@ -14684,6 +14684,159 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - tsc + eslint sạch.
 - **Mức retest**: 2 (F-30 Bệnh án, mẫu 3).
 
+## R-1198 (2026-11-10, mức 3: Labo — Phiếu yêu cầu thay bước Đặt hàng, F-91)
+
+- **Yêu cầu** (BA, mock "Labo - Phiếu yêu cầu (bản 2 nhập mã số, không kế hoạch nhà cung cấp)", chủ dự án chốt 2026-11-10): bước 1 Đặt hàng của phiếu Labo mới là Phiếu yêu cầu của Labo. Mã số nhập tay, kiểm trùng phân biệt hoa thường theo chi nhánh (bỏ phiếu đã huỷ). Không còn nhà cung cấp, kế hoạch, dòng dịch vụ hay công đoạn. Loại phục hình lấy từ Danh mục vật liệu, có thêm ô "Có lựa chọn Trên implant". Đường hoàn tất lấy từ taxonomy `labo_finish_line`, chọn được nhiều. Nhập một lần nhưng lưu trên từng răng. Giữ Ảnh chung và cảnh báo răng đã có phiếu (Nháp / Đã gửi / Chờ kiểm tra / Labo trả lại). Bỏ Khớp cắn và Kiểu nhịp. "Sửa / làm lại" chỉ lưu cờ. Gửi xong thì về tab Labo của hồ sơ bệnh nhân (`/patient/:id?tab=labo`; ban đầu là `/labo`, chủ dự án đổi 2026-11-10). Phiếu đã gửi hiện cùng tờ nhưng khoá, có Hủy phiếu và In phiếu. Có mẫu in mới; phiếu cũ in mẫu cũ.
+- **Sửa**:
+  - BE:
+    - `LaboOrder.Layout` (Classic 1 / RequestSlip 2), `LabSlipNo`, `CaseType`.
+    - `LaboOrderTooth`: `Restorations` (jsonb), `ShadeZones` (6 ô) và `FinishLineIds`.
+    - `LaboMaterial.AllowOnImplant`.
+    - Lỗi `Labo:0042..0045`.
+    - Migration `LaboRequestSlipF91`.
+  - FE:
+    - `features/labo/components/request-slip/*` thay bước Đặt hàng khi `layout = 2`.
+    - Có thêm `LaboRequestSlipFacts`, `LaboRequestSlipSheet` (mẫu in "PHIẾU YÊU CẦU LABO") và `laboRequestSlipText`.
+    - Cột Mã phiếu trên `/labo` và tab Labo của hồ sơ nay hiện Mã số (phiếu cũ vẫn hiện mã phiếu). Cột Vật liệu thành Loại phục hình. Bỏ cột nhà cung cấp và nhãn màu ở cả hai danh sách; danh mục nhà cung cấp vẫn giữ.
+    - Chỉnh theo phản hồi 2026-11-10:
+      - Tờ cuộn bằng con lăn, footer ghim; con của `.rs-slip-scroll` đặt `flex: none` để các mục không bị ép thành một vạch.
+      - Ô Yêu cầu có viền khi focus.
+      - Chỉ định dùng hàng "Răng *" của hệ thống (`LaboToothRow`); nút răng mở dialog Chọn răng (có Răng sữa). Hàng này nằm ở cột 3, trên Đường hoàn tất.
+      - Responsive: 2 cột ở 1280px, 1 cột ở 640px, không cuộn ngang.
+      - In Phiếu Labo: `useLaboPrint` gắn `@page { size: A4; margin: 0 }` trong lúc in, cho cả mẫu cũ. Trước đó, máy in PDF có khổ mặc định nhỏ làm header chồng chữ, chữ to và một phiếu ra 3 tờ.
+- **Kiểm thử** (stack riêng: host :5152 + bản build production preview :8097, đăng nhập thật, không chặn request):
+  - `e2e/labo-request-slip-api.spec.ts` 8/8: lưu từng răng; Mã số trùng / phân biệt hoa thường / được nhả khi Hủy phiếu; nháp không cần Mã số; Gửi thiếu Mã số, Loại phục hình hay Màu răng bị chặn; Trên implant chỉ với vật liệu cho phép và cùng chi nhánh; tìm theo Mã số trên `/labo`. Quyền Labo dùng lại quyền cũ, chạy lại bằng `labo-orders-permissions`.
+  - `e2e/labo-request-slip-ui.spec.ts` 5/5: tạo từ tab Labo (cuộn bằng con lăn, Chọn răng có Răng sữa, các khổ 1100 / 800 / 390) → về lại tab Labo của hồ sơ → in ra đúng 1 trang A4 khi khổ mặc định là 105×148mm → đọc lại từng răng, Xem + tờ in; trùng Mã số; răng đã có trên phiếu khác chỉ cảnh báo, vẫn gửi được (R-1106 mang sang); nháp mở lại đúng giá trị và phiếu đã gửi bị khoá; ô Trên implant ở dialog vật liệu.
+  - Spec Labo cũ: `labo-workflow:182` giờ bắt đầu từ đơn kiểu cũ đã gửi qua API; `labo-supplier-color` bỏ phần nhãn trên hai danh sách Labo. `test.skip` có ghi chú: `labo-workflow` R-1106 / R-1150 (sửa form cũ) và `labo-material-search:204` (không còn popup Vật liệu). `labo-orders-actions:141` chỉ đỏ khi chạy sau spec khác, chạy riêng 3/3 xanh. Toàn bộ spec Labo: 24 xanh / 3 skip.
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (`LaboOrder` / `LaboAppService`, mọi lối vào popup Labo).
+- **Mở** (chủ dự án chấp nhận tạm):
+  - Bước Kiểm tra và Bảo hành vẫn đọc trường cũ ("làm sau").
+  - Phiếu mới chưa khoá công đoạn, chưa chặn Hoàn thành dịch vụ, chưa có ô Phiếu Labo trên phiếu điều trị, chưa kích hoạt thẻ bảo hành.
+
+## R-1199 (2026-11-11, mức 3: Labo — Vật liệu & loại phục hình, F-92)
+
+- **Yêu cầu** (BA `P1011.drawio`; chủ dự án trả lời 2026-11-11: "1. đề xuất 2. bỏ luôn cho đồng bộ 3. giữ modal 4. ok"):
+  - Tab "Dịch vụ - vật liệu" đổi tên thành **Vật liệu & loại phục hình**.
+  - Mỗi chi nhánh có đúng 3 nhóm cố định: Toàn sứ / Hợp kim / Phục hình khác trên implant.
+  - Vật liệu có Mã (không trùng trong chi nhánh) và Trạng thái.
+  - Phiếu yêu cầu chia 3 cột; mỗi thẻ hiện tối đa 10 dòng rồi cuộn.
+  - Bỏ cột Phiếu điều trị ở mọi nơi.
+  - DB phải ghi chú được cách mở rộng cho nhà cung cấp khác. Chỉ viết đề xuất: `docs/clone/pages/labo.md` §11.1, khuyên phương án A (mỗi nhà cung cấp một mẫu theo `LaboOrder.Layout`).
+- **Sửa**:
+  - BE:
+    - `LaboMaterialGroups` (TOAN_SU / HOP_KIM / KHAC_TREN_IMPLANT, quy tắc `Accepts`).
+    - `TaxonomyAppService.EnsureFixedGroupsAsync`: dùng chung cho Vật liệu nha khoa; chỉ xét các dòng `IsSystem`.
+    - `LaboMaterial.Code` / `SetActive`.
+    - `PUT labo-materials/{id}/active`.
+    - Tìm kiếm khớp cả Mã.
+    - Lỗi `Labo:0046` / `0047`.
+    - Migration `LaboMaterialCodeP1011`.
+  - FE:
+    - Thêm `LaboMaterialHeader` (tên nhóm + chip mã + gợi ý) và `LaboMaterialTable` (Mã + tên, công tắc Trạng thái, Cập nhật gần nhất, Thao tác).
+    - Không còn nút thêm / sửa / xoá nhóm.
+    - Dialog gồm Mã\*, Tên vật liệu\*, Nhóm vật liệu\*, Trạng thái; bỏ ô Trên implant.
+    - `RestorationSections`: Toàn sứ và Hợp kim có cột thường + cột Trên implant; KHAC một cột, lưu `onImplant: true`; `.rs-rows` tối đa 322px.
+    - Bỏ cột Phiếu điều trị ở `/labo`, tab Labo của hồ sơ và file Excel xuất.
+- **Kiểm thử** (stack riêng: host :5152 + bản build production preview :8098, đăng nhập thật, không chặn request):
+  - `labo-request-slip-api` 10/10.
+  - `labo-request-slip-ui` 7/7.
+  - Spec Labo cũ đã chỉnh vị trí cột: `labo-orders-actions`, `labo-tab-list`, `labo.spec`.
+  - `labo-orders-actions:137`: chập chờn có sẵn, đã xử lý. Hiệu ứng đóng ảnh xem trước của AntD thỉnh thoảng kẹt ở `fade-leave-active` khi chạy headless, và mask đè lên bảng → test tải lại danh sách rồi mới bấm mắt. Lặp 3 lần đều xanh.
+  - Toàn bộ spec Labo 60 xanh / 3 skip (skip có sẵn từ F-91); `taxonomy-dental-material` 2/2.
+  - tsc sạch.
+- **Mức retest**: 3 (seeding taxonomy dùng chung với Vật liệu nha khoa; `LaboAppService` kiểm tra phục hình).
+- **Triển khai**: phải chạy DbMigrator cho `LaboMaterialCodeP1011`.
+- **Mở**:
+  - Vật liệu cũ chưa có Mã cho tới khi được sửa.
+  - Nhóm cũ bị ẩn, không xoá.
+  - Mẫu cho nhà cung cấp khác mới là đề xuất.
+
+## R-1200 (2026-11-11, mức 3: Labo — Mẫu phiếu bổ sung, phương án lai, F-93)
+
+- **Yêu cầu**:
+  - Chủ dự án chọn phương án lai thay cho A/B ở `labo.md` §11.1.
+  - Trả lời ngày 2026-11-11:
+    - "Chọn mẫu, không cần NCC".
+    - "Tab riêng 'Mẫu phiếu'".
+    - "Không in phần riêng".
+    - Ô chọn mẫu chỉ hiện khi có mẫu; không có thì phiếu giữ nguyên như hiện tại.
+    - "Nhớ test kỹ các case".
+- **Sửa**:
+  - BE:
+    - `LaboFormTemplate` + `LaboFormField` (7 kiểu, tối đa 30 trường, Key cố định khi sửa).
+    - `LaboExtraForm` là bản sao jsonb trên `LaboOrder`.
+    - Câu trả lời được làm sạch: CRLF đổi thành `\n`, số và ngày theo dạng invariant, MultiSelect giữ thứ tự lựa chọn.
+    - `LaboFormTemplateAppService`: dùng quyền `Catalogs.*`; endpoint `api/v1/app/labo-form-templates` (danh sách / xem / tạo / sửa / bật tắt / xoá mềm).
+    - `LaboAppService`: lưu nháp giữ bản sao; khi gửi kiểm tra đủ trường Bắt buộc (`Labo:0048`).
+    - Mẫu đã ngừng hoặc của chi nhánh khác thì không chọn mới được (`0057`).
+    - Thêm các mã lỗi `0049`–`0056`.
+    - Migration `LaboFormTemplateF93`.
+  - FE:
+    - Tab "Mẫu phiếu" (`form-template/*`): bảng, dialog dựng từng trường, chân dialog báo lý do chưa lưu được.
+    - `ExtraFormSection` + `ExtraFieldInput` trong Phiếu yêu cầu: ô chọn mẫu tìm được không dấu; phần này ẩn khi không có mẫu đang dùng và phiếu chưa giữ bản sao.
+    - Phiếu đã gửi chỉ xem; không đưa vào bản in.
+- **Kiểm thử** (stack riêng: host :5152 + bản build production preview :8098, đăng nhập thật, không chặn request):
+  - `labo-form-template-api` 14/14, trong đó có test quyền: bác sĩ không có leaf bị 403; có `catalogService.read` thì đọc được, mọi lệnh ghi vẫn 403.
+  - `labo-form-template-ui` 2/2.
+  - Helper UI của Phiếu yêu cầu tách ra `e2e/fixtures/laboSlipUi.ts`; `labo-request-slip-ui` vẫn xanh.
+  - Toàn bộ spec Labo + `taxonomy-dental-material`: 63 xanh / 3 skip (skip có sẵn từ F-91).
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (đụng `LaboAppService` lưu/gửi đơn và DbContext).
+- **Triển khai**: phải chạy DbMigrator cho `LaboFormTemplateF93`.
+- **Mở**:
+  - Leaf `laboMaterial` chưa mở được các endpoint `Catalogs.*`. Lỗ hổng bridge này có sẵn từ trước, Vật liệu Labo cũng bị.
+  - Nhà cung cấp cần bản in riêng thì vẫn theo phương án A.
+
+## R-1201 (2026-11-11, mức 3: Labo — Mẫu phiếu dựng cả Phiếu yêu cầu, F-94)
+
+- **Yêu cầu**:
+  - Chủ dự án: "ý ba mở rộng là làm chức năng custom toàn bộ form đó".
+  - Chốt: khối hệ thống khoá (đổi tên / độ rộng / thứ tự / ẩn, Thông tin và Răng luôn hiện), thêm mục riêng (≤ 10 mục, ≤ 30 trường); mẫu theo chi nhánh, chọn khi tạo phiếu; bản in tự sinh theo mẫu. Kiểm tra, Bảo hành, Excel không đổi.
+  - "làm xong đừng push develop".
+- **Sửa**:
+  - BE:
+    - `LaboFormLayout` + `LaboFormBlock` (`LaboFormBlockKind` Custom/Info/Restoration/Shade/Teeth/FinishLine/Notes, Span 1–3, Visible); mẫu F-93 không có bố cục đọc ra bố cục mặc định.
+    - `LaboExtraForm` giữ bản sao bố cục; khối ẩn trên đơn thì không bắt Loại phục hình (`0044`) / màu (`0034`).
+    - Lỗi mới `0058` (bố cục sai: thiếu/trùng khối hệ thống, ẩn Thông tin/Răng, span ngoài 1–3), `0059` (khối không tiêu đề), `0060` (mục không trường); `0052` đếm trường mọi mục.
+    - Migration `LaboFormLayoutF94`.
+  - FE:
+    - Dialog Mẫu phiếu dựng theo khối (`LaboFormBlockRow`, `LaboFormSectionFields`, `useTemplateDraft`).
+    - Phiếu yêu cầu: ô "Mẫu phiếu" ở đầu; có mẫu thì `SlipBlockLayout` (lưới 3 cột, `is-span-N`), không thì `LegacySlipLayout` như cũ.
+    - Bản in `LaboRequestSlipPrintBody` theo bố cục của đơn; đơn không có bố cục in mẫu cố định F-91.
+- **Kiểm thử** (host :5000 Development + bản build production preview :8080, đăng nhập thật, không chặn request):
+  - `labo-form-layout` 5/5 (từ chối 0058/0059/0060/0052; bố cục giữ nguyên + mặc định cho mẫu F-93; đơn ẩn khối, 0044/0034 khi khối hiện, bản sao không đổi khi sửa mẫu; dialog dựng mẫu; phiếu + bản in qua /labo "Xem").
+  - `labo-form-template-api` / `-ui` đã chỉnh theo bố cục.
+  - Toàn bộ spec Labo: 80 xanh / 3 skip (skip có sẵn từ F-91).
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (đụng `LaboAppService` lưu/gửi đơn và DbContext).
+- **Triển khai**: phải chạy DbMigrator cho `LaboFormLayoutF94`.
+- **Trạng thái**: commit develop, push origin/develop 2026-11-11 (chủ dự án: "commit và push lên develop đi"), cùng F-94 5e9b0e31.
+
+## R-1202 (2026-11-11, mức 2: Labo — Mẫu phiếu kéo thả + xem trước, F-94)
+
+- **Yêu cầu** (chủ dự án):
+  - "hiện tại modal tạo mẫu là chọn layout field đó, có cách nào kéo thả cho trực quan k và có preview nữa".
+  - "cho modal rộng ra đi"; "có handle responsive chưa".
+  - "Chỗ Thông tin phiếu t thấy hiện k giống lúc UI form tạo"; "check các box hệ thống kia để làm cho giống".
+  - "hình như nó đang bị responsive chứ k phải ở view desktop à"; "ở màn hình t k lệch này" (so với phiếu không dùng mẫu).
+- **Sửa** (chỉ FE, không đổi API / DB):
+  - Kéo thả bằng `@dnd-kit` (`useLayoutDnd`, `SortableShell`, `layoutDnd.ts`): khối kéo bằng tay nắm (cả bàn phím: Space, ↑/↓, Space); trường kéo trong mục hoặc sang mục khác; mục rỗng hiện "Kéo trường vào đây". Nút ↑/↓ cũ giữ nguyên.
+  - Xem trước (`LaboFormLayoutPreview`) bên phải: các khối đang hiện theo thứ tự, đúng độ rộng trên lưới 3 cột; kéo khối ở đây cũng đổi thứ tự bên trái; bấm khối thì cuộn tới thẻ của nó; khối ẩn ghi "Đang ẩn: …".
+  - Xem trước vẽ **đúng các phần của Phiếu yêu cầu**: dùng lại `ShadeZoneMap`, `FinishLineChecks`, `RestorationTable` / `RestorationList`, `LaboToothRow`, `SectionBadge`, `ExtraFieldInput`, `LaboPictureWell`; Thông tin phiếu chép markup của `RequestSlipInfo`. Loại phục hình / Đường hoàn tất lấy từ danh mục thật của chi nhánh (`usePreviewCatalog`, đủ danh sách: mỗi thẻ 10 dòng rồi cuộn như phiếu).
+  - **Xếp khối không chừa hàng trống** (đổi cả phiếu thật dùng mẫu, `SlipBlockLayout`): trước đây lưới xếp theo hàng nên khối thấp (Chỉ định) để trống bên dưới và Màu răng bị đẩy xuống hàng mới. Nay lưới chạy trên hàng 2px, mỗi khối chiếm số hàng bằng chiều cao của nó + khoảng cách (`useMasonryRows` + `.rs-masonry`, đo lại khi khối đổi cỡ), nên khối sau nằm ngay dưới khối ngắn; thứ tự khối vẫn theo mẫu. Khối rộng 2/3 vẫn phải chờ cả hai cột trống (Đường hoàn tất 2/3 nằm dưới Loại phục hình). Phiếu không dùng mẫu (bố cục cố định) không đổi.
+  - Nội dung mỗi khối thu nhỏ bằng `zoom` trên lớp bên trong (không đặt lên khối kéo, để dnd-kit đo đúng) và `inert` (bấm rơi xuống khối; ô nhập không lọt vào cây a11y).
+  - Modal rộng `min(1600px, 100vw - 48px)`; ≤ 1100px xem trước xuống dưới; ≤ 640px khối xếp một cột như phiếu thật. Không tràn ngang ở 390 / 1024 / 1280 / 1600.
+  - **Tách Loại phục hình** ("b tách riêng ra từng cái được k"; chủ dự án chọn: tiêu đề là khối riêng, mặc định giống phiếu không dùng mẫu): khối Loại phục hình (2) nay chỉ còn tiêu đề; ba thẻ thành ba khối hệ thống mới — Toàn sứ (7), Hợp kim (8), Phục hình khác trên implant (9) — đổi tên / độ rộng / thứ tự / ẩn như khối khác. Mặc định: Thông tin 3, Loại phục hình 3, Toàn sứ 1, Phục hình khác 1, Chỉ định 1, Hợp kim 1, Màu răng 1, Đường hoàn tất 1, Yêu cầu 3. Bố cục lưu trước khi tách (không có thẻ) đọc ra ba thẻ ngay sau Loại phục hình, ẩn/hiện theo nó (FE `withRestorationCards`, BE `LaboFormLayout.WithCards`). Loại phục hình chỉ bắt nhập khi còn ít nhất một thẻ hiện; lựa chọn thuộc thẻ đang ẩn bị server bỏ (`LaboExtraForm.HidesGroup`, `LaboMaterialGroups.CardOf`). BE đổi enum + i18n `Labo:Slip:Card:*`, `Labo:Slip:CardEmpty`; **không migration mới**.
+  - **Mẫu mới không còn mục "Thông tin bổ sung" mặc định** ("mặc định bỏ cái box Thông tin bổ sung đi"): Tạo mẫu phiếu mở ra chỉ có các khối hệ thống, "0/10 mục"; Thêm mục mới thêm. Mẫu F-93 cũ (không có bố cục) vẫn đọc ra mục Thông tin bổ sung chứa các trường của nó.
+- **Kiểm thử** (host :5000 Development + bản build production preview :8080, đăng nhập thật, không chặn request):
+  - Mới `e2e/labo-form-layout-dnd.spec.ts`: thứ tự / độ rộng khối trong xem trước; kéo khối bằng bàn phím; kéo trường sang mục khác, mục rỗng báo lỗi và chặn Lưu; kéo khối trong xem trước; ẩn khối; bấm khối mở thẻ; lưu rồi đọc lại bằng GET riêng.
+  - `labo-form-layout*` + `labo-form-template*`: 21/21.
+  - Toàn bộ spec Labo: 81 xanh / 3 skip (skip có sẵn từ F-91). `labo-form-template-ui` sửa theo mẫu mới không có mục mặc định (thêm qua Thêm mục).
+  - tsc + eslint sạch. Ảnh so với phiếu thật ở 1600 / 1024 / 390.
+- **Mức retest**: 2 (dialog Mẫu phiếu + phiếu yêu cầu dùng mẫu).
+- **Trạng thái**: commit develop, push origin/develop 2026-11-11 (chủ dự án: "commit và push lên develop đi"), cùng F-94 5e9b0e31. Chuỗi i18n mới cần build lại BE khi triển khai.
+
 ## R-1203 (2026-11-11, mức 3: Liên kết máy X-quang Vatech EzDent-i, F-95)
 
 - **Yêu cầu** (chủ dự án, qua ảnh Zalo của phòng khám):
@@ -14856,3 +15009,51 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - "today: checked-in" — giờ hẹn ~22:40 nằm ngoài giờ hiển thị.
   - Lần chạy đầu trên :8092 là bản build cũ của phiên khác — bỏ kết quả đó.
 - **Mức retest**: 3 (luật đặt lịch dùng chung).
+
+## R-1211 (2026-11-12, mức 1: Labo «Nhận hàng & kiểm tra», P1211 phần 1) Đạt / Lỗi thẳng cột giữa các răng
+- **Yêu cầu** (P1211.drawio): ở mục B, nút Đạt / Lỗi trên các dòng răng lệch nhau.
+- **Nguyên nhân**:
+  - Mỗi dòng là một grid riêng.
+  - Cột cuối là `auto`, và nội dung cột đó khác nhau:
+    - Dòng Đạt: «Tải ảnh».
+    - Dòng Lỗi: «Thu gọn».
+  - Hai nút khác bề rộng nên các cột phía trước bị đẩy lệch.
+- **Sửa**: `labo-check.css` `.pd-labo-tooth-line`: cột cuối cố định 112px, «Tải ảnh» / «Thu gọn» canh phải. Chỉ đổi CSS.
+- **Kiểm thử**:
+  - `labo-workflow` vòng 1 có assertion mới.
+  - Assertion so toạ độ x của Đạt, Lỗi, Đã trả và BH Labo giữa R21 (Lỗi) và R11 (Đạt).
+  - Kết quả: xanh.
+  - Chưa chạy đối chứng trên bản build trước khi sửa.
+
+## R-1212 (2026-11-12, mức 2: Labo Phiếu yêu cầu F-91, P1211 phần 2) Yêu cầu thành rich text
+- **Yêu cầu** (P1211.drawio): ô YÊU CẦU kẻ dòng → Rich Text box.
+- **Chủ dự án chốt**:
+  - Chỉ làm trên develop.
+  - Toolbar chỉ có chữ, không ảnh/video.
+  - Bỏ dòng kẻ.
+  - Nâng giới hạn độ dài. "5" được hiểu là 5000 ký tự, tính cả thẻ định dạng.
+- **Sửa BE**:
+  - `LaboOrder.NotesMaxLength = 5000`.
+  - Vượt giới hạn trả lỗi mới `BlueDental:Labo:0061` (vi/en).
+  - Migration `20261111225116_LaboRequestRichTextR1212`: varchar 2000 → 5000.
+- **Sửa FE**:
+  - `RequestNotes` dùng `RichTextField media={false}`.
+  - `RichTextField` có prop mới `ariaLabel`, đặt `role=textbox` cho vùng soạn.
+  - Phiếu đã gửi, Xem chi tiết và bản in hiển thị qua `RichTextView` (Quill dựng lại nội dung, không `dangerouslySetInnerHTML`).
+  - `asRichText` (sanitizeHtml.ts) đổi ghi chú cũ dạng chữ thường thành các đoạn `<p>`: giữ xuống dòng (CRLF/LF), escape `< >`.
+  - Lưu qua `richTextForSave`: editor trống thì lưu rỗng.
+  - Ô xem trước ở Mẫu phiếu bỏ textarea.
+  - Phiếu kiểu cũ (Classic) không đổi.
+- **Kiểm thử** (e2e thật: host :5000 + `vite preview` :8113 bản `dist-r1212`, đăng nhập thật, không chặn request):
+  - Spec mới `labo-request-rich-text` 4/4:
+    - Toolbar không có nút ảnh, không dòng kẻ.
+    - Ctrl+B → lưu `<strong>`.
+    - Đọc lại khi mở lại phiếu đã gửi, ở Xem chi tiết và bản in.
+    - Ghi chú cũ nhiều dòng có `<`.
+    - Payload `onerror` / `<script>` không chạy.
+    - 5000 ký tự OK, 5001 bị từ chối Labo:0061 và không tạo đơn.
+  - Assertion `notes` trong `labo-request-slip-ui` và `labo-form-layout` so phần chữ, vì Quill lưu dấu cách thành `&nbsp;`.
+  - Hồi quy Labo:
+    - Lần 1: workflow, request-slip-ui, form-layout, form-layout-dnd, api, form-template-* — 46 xanh, 2 skip, 1 đỏ. Đỏ do locator R-1211: tên nút là "check Đạt". Đã sửa, chạy lại xanh.
+    - Lần 2: detail, request-slip-api, tab-list, orders-actions, labo — 30/30 xanh.
+- **Mức retest**: 2 (Labo). `RichTextField` dùng chung nhưng prop mới là tuỳ chọn, chỗ khác không đổi hành vi.
