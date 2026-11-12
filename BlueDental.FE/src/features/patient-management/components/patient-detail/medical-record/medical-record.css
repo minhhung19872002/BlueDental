@@ -255,3 +255,50 @@
 .pd-medical-canvas--fullscreen .pd-medical-canvas-head {
   border-radius: 0;
 }
+
+/* "Gợi ý khi nhập" (R-1219): pinned under the line being written, on the page
+   rather than in the sheet, so printing never takes it along. */
+.mr-suggest {
+  position: fixed;
+  left: var(--mr-suggest-left);
+  top: var(--mr-suggest-top);
+  z-index: 1060;
+  min-width: var(--mr-suggest-width);
+  max-width: min(640px, calc(100vw - 32px));
+  padding: 4px 0;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-pop);
+  color: var(--bd-ink);
+  font-size: 14px;
+}
+
+.mr-suggest-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mr-suggest-option {
+  overflow: hidden;
+  padding: 6px 12px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mr-suggest-option strong {
+  font-weight: 600;
+}
+
+.mr-suggest-option--active {
+  background: var(--bd-hover-tint);
+}
+
+.mr-suggest-hint {
+  padding: 4px 12px 2px;
+  border-top: 1px solid var(--bd-border);
+  color: var(--bd-ink-4);
+  font-size: 12px;
+}

@@ -15177,3 +15177,49 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - tsc sạch. Lỗi eslint `react-hooks/exhaustive-deps` ở `CskhGroupingPage.tsx:65` có từ trước.
 - **Chưa xử lý**: `ToolsAppService.DeleteMessageTemplateAsync` (màn Công cụ cũ, FE không còn gọi) xoá theo id mà không lọc chi nhánh và không chặn khi có lượt gửi đang chờ.
 - **Mức retest**: 2 (F-76). Có đổi quyền nhưng chỉ thêm, không sửa quyền cũ.
+
+## R-1219 (2026-11-12, mức 3: Bệnh án — "Gợi ý khi nhập" ở mẫu 2, F-30; BlueDental-local)
+- **Yêu cầu** (bác sĩ, 2026-11-12): khi nhập hồ sơ thì tự gợi ý như Google Autocomplete. Chủ dự án chọn nguồn gợi ý là "câu chi nhánh từng gõ vào đúng ô đó ở các phiếu trước, chỉ gợi ý câu đã dùng từ 2 lần trở lên".
+- **Phạm vi**: mẫu 2, hai ô "2. Bệnh chuyên khoa" (`outpatient-dental.text.30`) và "5. Chẩn đoán của khoa khám bệnh" (`outpatient-dental.text.43`). Danh sách ô được phép nằm ở BE (`MedicalRecordFieldSuggestions`), FE hỏi ô khác cũng không có.
+- **Bảo vệ thông tin bệnh nhân**:
+  - Chỉ gợi ý câu đã ghi cho **≥ 2 bệnh nhân khác nhau**: một bệnh nhân ghi cùng câu trên 2 phiếu vẫn chỉ tính 1.
+  - Câu dài quá 300 ký tự không gợi ý.
+  - Chỉ lấy phiếu chưa xoá, chưa huỷ, cùng chi nhánh đang làm việc (`BranchAccessChecker`).
+  - Cần quyền `patientMedicalRecord.update`.
+  - Không ghi log nội dung phiếu.
+- **Sửa**:
+  - BE: `GET /api/v1/app/patient-medical-records/field-suggestions?form=2` trả `[{ field, values[] }]`, câu dùng nhiều nhất đứng đầu, tối đa 200 câu mỗi ô.
+  - Đọc thẳng bằng SQL jsonb (`EfCoreMedicalRecordFieldHistory`, `Content -> 'fieldValues' ->> id`), có LIKE lọc trước.
+  - Migration `MedicalRecordFieldSuggestionsR1219` (chỉ SQL) thêm `bd_try_jsonb(text)`: phiếu có content không phải JSON thì đọc thành NULL, không làm hỏng cả câu truy vấn (PG15 chưa có `IS JSON`). Trên DB local: 55 phiếu mẫu 2, khoảng 7ms.
+  - FE: `suggestions/` gồm `matchSuggestions` (bỏ dấu và hoa thường; ưu tiên câu bắt đầu bằng chữ đã gõ, sau đó câu có một từ bắt đầu bằng chữ đã gõ; tối đa 8; từ 2 ký tự), `useSheetSuggestions` và `SheetSuggestions`.
+  - Danh sách vẽ ở trang cha (portal `position: fixed`, tính theo zoom của khung), **không** nằm trong document của phiếu, vì "In biểu mẫu" clone chính document đó.
+  - Phím: ↑/↓ chọn, Enter/Tab điền (bắt ở pha capture, trước `lineEditing`; chưa chọn mục nào thì Enter vẫn xuống dòng như cũ), Esc đóng. Chọn bằng chuột dùng `mousedown` + `preventDefault` nên con trỏ không rời ô.
+  - Điền xong thì `writeFlowed` chảy chữ lại, con trỏ về cuối, phát sự kiện `input` để phiếu ghi nhận thay đổi.
+- **Kiểm thử** (API Docker :5000 + `vite preview` :8080, đăng nhập thật, không chặn request):
+  - BE contract: 27/27, gồm quyền Update và danh sách ô.
+  - e2e mới `medical-record-field-suggestions` **2/2 xanh**:
+    - A và B cùng ghi một câu → có gợi ý. C ghi câu riêng trên 2 phiếu → không có.
+    - Header BD-002 không thấy câu của BD-001. Mẫu 1 trả rỗng.
+    - Gõ không dấu từng từ vẫn ra gợi ý; phần đã gõ chữ thường, phần còn lại in đậm.
+    - Esc đóng, gõ tiếp thì mở lại; ↓ + Enter điền câu và không xuống dòng; bấm chuột điền câu, gõ tiếp nối vào sau.
+    - Lưu, đọc API và tải lại đều còn.
+    - Nhân viên chỉ có quyền Read gọi API → 403.
+  - Hồi quy `patient-medical-record` + `medical-record-sheet-facts` + `medical-record-drawing`: **46/47**. Ca đỏ "picking the day prints it on the sheet…" vốn đỏ trên HEAD sạch.
+  - Đã chụp ảnh thật danh sách dưới ô mục 5.
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (`MedicalRecordDocument` dùng chung cho 10 mẫu; có thêm migration).
+
+## R-1220 (2026-11-12, mức 2: Bệnh án — gợi ý khi nhập từ 1 chữ, Ctrl + Space, F-30; sau R-1219)
+- **Yêu cầu** (chủ dự án): gõ 1 chữ là gợi ý luôn; ô trống mà ấn Ctrl + Space cũng phải gợi ý.
+- **Sửa (chỉ FE, cộng 1 chuỗi i18n)**:
+  - `matchSuggestions`: bỏ ngưỡng 2 ký tự, chỉ cần 1 chữ. Thêm `whenEmpty`: ô trống trả về tối đa 8 câu dùng nhiều nhất, theo thứ tự server đã xếp, cả câu in đậm.
+  - `useSheetSuggestions`: bắt Ctrl + Space ở pha capture, chỉ khi con trỏ đang ở trong một ô. Ô trống thì hiện các câu dùng nhiều nhất, ô có chữ thì hiện các câu khớp. Không chèn dấu cách. Ô không có câu nào khớp thì không mở danh sách.
+  - Dòng hướng dẫn thêm "Ctrl+Space mở gợi ý".
+- **Kiểm thử** (API Docker :5000 + `vite preview` :8080, đăng nhập thật, không chặn request):
+  - `medical-record-field-suggestions` **2/2 xanh**.
+  - Ca chính kiểm thêm:
+    - Ctrl + Space ở ô trống hiện đúng các mục server trả (tối đa 8, đúng thứ tự), ô vẫn trống.
+    - Gõ 1 chữ là có danh sách.
+    - Câu riêng của 1 bệnh nhân không hiện, kể cả khi ấn Ctrl + Space.
+  - tsc + eslint sạch. Chưa chạy lại toàn bộ spec bệnh án (đã chạy ở R-1219), vì thay đổi chỉ chạm vào Ctrl + Space và ngưỡng so khớp.
+- **Mức retest**: 2.

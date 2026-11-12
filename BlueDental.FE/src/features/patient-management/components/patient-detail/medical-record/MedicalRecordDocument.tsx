@@ -23,6 +23,8 @@ import { attachSections } from "./sheetSections";
 import { fitBlanksToLines } from "./fitBlanks";
 import { flowLongBlanks, flowedText, isPartOf, writeFlowed } from "./flowLines";
 import { attachMultiLineSelect } from "./multiLineSelect";
+import { SheetSuggestions } from "./suggestions/SheetSuggestions";
+import { useSheetSuggestions } from "./suggestions/useSheetSuggestions";
 
 /** A4 at 96dpi, plus the 20px margin the sheet's own page leaves around it. */
 const PAGE_WIDTH = 834;
@@ -171,6 +173,8 @@ export function MedicalRecordDocument({
   const attachDrawing = drawing.attach;
   const materials = useSheetMaterials(frame, () => report.current?.(collect()));
   const attachMaterials = materials.attach;
+  const suggestions = useSheetSuggestions(frame, form, editable);
+  const attachSuggestions = suggestions.attach;
 
   const handleLoad = useCallback(() => {
     const doc = frame.current?.contentDocument;
@@ -227,6 +231,8 @@ export function MedicalRecordDocument({
 
     // A selection can run across the sheet's lines, for copying; see multiLineSelect.
     const detachSelect = editable ? attachMultiLineSelect(doc) : () => undefined;
+    // Typing in some blanks offers what the branch wrote there before; see useSheetSuggestions.
+    const detachSuggestions = editable ? attachSuggestions(doc) : () => undefined;
 
     frame.current?.addEventListener(
       "beforeunload",
@@ -238,12 +244,13 @@ export function MedicalRecordDocument({
         detachDrawing();
         detachLines();
         detachSelect();
+        detachSuggestions();
         detachMaterials();
         detachSections();
       },
       { once: true },
     );
-  }, [collect, editable, canAddRows, canDeleteRows, attachDrawing, attachMaterials]);
+  }, [collect, editable, canAddRows, canDeleteRows, attachDrawing, attachMaterials, attachSuggestions]);
 
   // A page swapped out while its observers are live would keep measuring a
   // document nobody can see.
@@ -304,6 +311,9 @@ export function MedicalRecordDocument({
       />
       {editable && <SheetDrawingDialogs drawing={drawing} />}
       {editable && <MaterialTypeDialog materials={materials} />}
+      {editable && (
+        <SheetSuggestions open={suggestions.open} onPick={suggestions.pick} onHighlight={suggestions.highlight} />
+      )}
     </div>
   );
 }

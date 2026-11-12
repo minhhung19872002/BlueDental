@@ -34,6 +34,8 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
     private readonly IRepository<MedicalRecordSet, Guid> _setRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly BranchAccessChecker _branchAccess;
+    private readonly ICurrentClinicBranchResolver _branchResolver;
+    private readonly IMedicalRecordFieldHistory _fieldHistory;
     private readonly IBlobContainer _blobContainer;
 
     public PatientMedicalRecordAppService(
@@ -42,6 +44,8 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         IRepository<MedicalRecordSet, Guid> setRepository,
         IIdentityUserRepository userRepository,
         BranchAccessChecker branchAccess,
+        ICurrentClinicBranchResolver branchResolver,
+        IMedicalRecordFieldHistory fieldHistory,
         IBlobContainer blobContainer)
     {
         _repository = repository;
@@ -49,6 +53,8 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         _setRepository = setRepository;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
+        _branchResolver = branchResolver;
+        _fieldHistory = fieldHistory;
         _blobContainer = blobContainer;
     }
 
@@ -114,6 +120,30 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
             PatientPhone = patient.Contact?.PhoneNumber,
             GuardianPhones = patient.Guardians.ToDictionary(guardian => guardian.Id, guardian => guardian.Phone),
         };
+    }
+
+    /// <summary>
+    /// Only someone who may write on a sheet is offered what to write; the
+    /// branch is the one being worked in, checked against the caller's own.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
+    public async Task<List<MedicalRecordFieldSuggestionsDto>> GetFieldSuggestionsAsync(MedicalRecordForm form)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        await _branchAccess.CheckAsync(branchId);
+
+        var result = new List<MedicalRecordFieldSuggestionsDto>();
+        foreach (var field in MedicalRecordFieldSuggestions.FieldsOf(form))
+        {
+            var values = await _fieldHistory.GetCommonValuesAsync(
+                branchId, form, field,
+                MedicalRecordFieldSuggestions.MinPatients,
+                MedicalRecordFieldSuggestions.MaxTextLength,
+                MedicalRecordFieldSuggestions.MaxPerField);
+            result.Add(new MedicalRecordFieldSuggestionsDto { Field = field, Values = values });
+        }
+
+        return result;
     }
 
     [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Create)]

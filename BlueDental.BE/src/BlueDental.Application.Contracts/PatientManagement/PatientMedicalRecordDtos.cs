@@ -61,6 +61,15 @@ public class MedicalRecordPhonesDto
     public Dictionary<Guid, string> GuardianPhones { get; set; } = new();
 }
 
+/// <summary>"Gợi ý khi nhập": one blank and what the branch has written in it before, most used first.</summary>
+public class MedicalRecordFieldSuggestionsDto
+{
+    /// <summary>The blank's <c>data-medical-record-field</c> id.</summary>
+    public string Field { get; set; } = string.Empty;
+
+    public List<string> Values { get; set; } = new();
+}
+
 /// <summary>"Hủy phiếu": the reason is required.</summary>
 public class CancelPatientMedicalRecordDto
 {
@@ -90,6 +99,13 @@ public interface IPatientMedicalRecordAppService : IApplicationService
 
     /// <summary>The patient's and guardians' phones as the sheets print them — whole.</summary>
     Task<MedicalRecordPhonesDto> GetPhonesAsync(Guid patientId);
+
+    /// <summary>
+    /// "Gợi ý khi nhập" for the current branch's sheets of <paramref name="form"/>:
+    /// every blank of the form that offers suggestions, each with the texts
+    /// written there for at least two patients. A form with none answers empty.
+    /// </summary>
+    Task<List<MedicalRecordFieldSuggestionsDto>> GetFieldSuggestionsAsync(MedicalRecordForm form);
 
     Task<PatientMedicalRecordDto> CreateAsync(CreatePatientMedicalRecordDto input);
 

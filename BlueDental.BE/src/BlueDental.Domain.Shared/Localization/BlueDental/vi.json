@@ -5596,6 +5596,8 @@
     "Patient:MedRecord:EmptyHint": "Chưa có phiếu bệnh án. Chọn \"Thêm\" ở mục lục để tạo phiếu mới.",
     "Patient:MedicalRecord:AddSuccess": "Đã thêm phiếu bệnh án",
     "Patient:MedicalRecord:SaveSuccess": "Đã lưu phiếu bệnh án",
+    "Patient:MedicalRecord:Suggestions": "Gợi ý từ các phiếu trước",
+    "Patient:MedicalRecord:SuggestionsHint": "↑↓ chọn · Enter điền · Esc đóng · Ctrl+Space mở gợi ý",
     "Patient:MedicalRecord:RenameSuccess": "Đã đổi tên phiếu",
     "Patient:MedicalRecord:DeleteSuccess": "Đã xoà phiếu bệnh án",
     "Patient:MedicalRecord:SingleSheet": "Từng phiếu",
