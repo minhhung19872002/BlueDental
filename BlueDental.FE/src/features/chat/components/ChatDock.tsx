@@ -15,11 +15,12 @@ import "./chat.css";
  * The owner moved it up from the bottom-right corner (R-1172) — it is used too
  * rarely to hold the corner, which "Mời lên" has back. A click opens the chat
  * docked to the right edge over the current page; the page itself does not
- * reflow. New messages also show as toasts top right (R-1165); a click on one
- * opens its thread here.
+ * reflow. New messages also show as toasts in the shared top-right column
+ * (R-1165, R-1217); a click on one opens its thread here.
  *
- * The panel and toasts render into <body>: the header's backdrop-filter would
- * otherwise become their containing block and trap them inside the bar.
+ * The panel renders into <body> and the toasts into that column: the header's
+ * backdrop-filter would otherwise become their containing block and trap them
+ * inside the bar.
  */
 export const ChatDock: React.FC = () => {
   const branchId = useBranchFilter();
@@ -56,21 +57,18 @@ export const ChatDock: React.FC = () => {
   return (
     <>
       <ChatDockButton open={open} unreadCount={unread.data?.count ?? 0} onToggle={handleToggle} />
-      {createPortal(
-        <>
-          <ChatToastStack alerts={alerts.alerts} onOpen={openConversation} onDismiss={alerts.dismiss} />
-          {open && (
-            <ChatPanel
-              key={branchId ?? "all"}
-              branchId={branchId}
-              activeId={activeId}
-              onActiveChange={setActiveId}
-              onClose={handleClose}
-            />
-          )}
-        </>,
-        document.body,
-      )}
+      <ChatToastStack alerts={alerts.alerts} onOpen={openConversation} onDismiss={alerts.dismiss} />
+      {open &&
+        createPortal(
+          <ChatPanel
+            key={branchId ?? "all"}
+            branchId={branchId}
+            activeId={activeId}
+            onActiveChange={setActiveId}
+            onClose={handleClose}
+          />,
+          document.body,
+        )}
     </>
   );
 };

@@ -4287,6 +4287,8 @@
     "Appointment:LateToast:Slot": "Booked for {0}, has not arrived",
     "Appointment:LateToast:SlotWithDoctor": "Booked for {0} with {1}, has not arrived",
     "Appointment:LateToast:More": "and {0} more",
+    "Appointment:LateToast:Region": "Late appointment alerts",
+    "Appointment:LateToast:Dismiss": "Dismiss",
     "Appointment:Status:Temporary": "Temporary",
     "Appointment:Status:Revisit": "Rebooked",
     "Appointment:Status:Done": "Done",

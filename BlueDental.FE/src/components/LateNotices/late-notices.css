@@ -1,0 +1,121 @@
+/* ── R-1217 — Trễ hẹn cards, top right with the chat toasts (.corner-notices
+   in index.css places them). Same card as a chat toast, amber so the two
+   kinds read apart; the bar along the foot runs 10 s and its end removes the
+   card, pointing at it or tabbing to its × pauses the bar. */
+.late-notice {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  overflow: hidden;
+  padding: 12px 4px 14px 12px;
+  border: 1px solid var(--bd-orange-line);
+  border-left: 4px solid var(--bd-amber);
+  border-radius: var(--bd-radius-card);
+  background: var(--bd-card);
+  box-shadow: var(--bd-shadow-pop);
+  animation: late-notice-in 0.18s ease-out;
+}
+
+.late-notice-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bd-amber-pale);
+  color: var(--bd-orange);
+}
+
+.late-notice-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.late-notice-title {
+  color: var(--bd-orange);
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.late-notice-line {
+  color: var(--bd-ink);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.late-notice-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -4px 4px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bd-radius-sm);
+  background: transparent;
+  color: var(--bd-muted);
+  cursor: pointer;
+}
+
+.late-notice-close:hover,
+.late-notice-close:focus-visible {
+  background: var(--bd-bg-soft);
+  color: var(--bd-ink);
+}
+
+.late-notice-close:focus-visible {
+  outline: 2px solid var(--bd-accent);
+  outline-offset: 1px;
+}
+
+.late-notice-timer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--bd-amber);
+  transform-origin: left center;
+  animation: late-notice-timer 10s linear forwards;
+}
+
+.late-notice:hover .late-notice-timer,
+.late-notice:focus-within .late-notice-timer {
+  animation-play-state: paused;
+}
+
+@keyframes late-notice-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes late-notice-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .late-notice {
+    animation: none;
+  }
+}

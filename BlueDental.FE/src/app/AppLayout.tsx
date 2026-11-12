@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { LateNotices } from "@/components/LateNotices";
 import { authApi } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { ChatDock } from "@/features/chat/components/ChatDock";
@@ -483,6 +484,8 @@ export function AppLayout() {
 
       {!branchPending && <ArrivalCallDock />}
       {!branchPending && user && <ZaloMessageChime />}
+      {/* Trễ hẹn cards, top right with the chat toasts (R-1217). */}
+      {user && <LateNotices />}
 
       <MobileNavDrawer
         open={drawerOpen}

@@ -15112,3 +15112,28 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - "a blank that agrees with the record…" (mẫu 1, ô `cover.patient.code`) chập chờn: cùng một bản build chạy 2 lần thì 1 đỏ, 1 xanh; trên HEAD chưa sửa thì xanh. CSS mới chỉ tác động `data-form="2"`, nên không liên quan.
   - tsc + eslint sạch.
 - **Mức retest**: 2 (F-30 Bệnh án: mẫu 2, cùng tên trang in với mẫu 6/7/10). `/taxonomy` không bị ảnh hưởng.
+
+## R-1217 (2026-11-12, mức 3: thông báo Trễ hẹn dời sang góc phải, chung cột với toast tin nhắn; F-89 + Lịch hẹn)
+- **Yêu cầu** (chủ dự án): "dời cái thông báo trễ lịch hẹn qua góc phải (giống bên tin nhắn luôn nha => cùng thông báo thì đẩy xuống)", push lên cả main và develop. Đã chốt plan trước khi làm:
+  - **Thứ tự**: trộn theo thời gian. Cái mới nhất của cả hai loại nằm trên, cái cũ bị đẩy xuống.
+  - **Thời gian**: thẻ giữ 10 s, rê chuột hoặc focus vào thì dừng đếm.
+  - **Bấm vào thẻ**: không làm gì, chỉ có nút × để đóng.
+  - Các toast sonner khác (lưu thành công, lỗi) vẫn ở giữa trên. Tiếng ting và thông báo Windows của chat không đổi.
+- **Sửa FE**:
+  - `lib/cornerNotices.ts` (mới): một host cố định `.corner-notices` gắn vào body, góc phải dưới header. Hai loại thông báo cùng portal vào host này. Mỗi `<section>` dùng `display: contents`, nên các thẻ là flex item của cùng một cột. Bộ đếm giảm dần `nextNoticeOrder()` đặt `order` qua `--notice-order`, nhờ vậy cái mới nhất luôn ở trên dù thuộc loại nào.
+  - `index.css`: CSS của host (rộng 340px; ≤ 640px giãn đủ ngang). `chat.css` bỏ phần định vị riêng của `.chat-toasts`. Khi panel chat mở, host lùi sang trái (`body:has(.chat-panel) .corner-notices { right: 412px }`).
+  - Chat: `ChatToastStack` tự portal vào host; mỗi toast mang `order` từ `useNewMessageAlerts`. `ChatDock` chỉ còn portal `ChatPanel`.
+  - Trễ hẹn:
+    - `lateAppointmentNotice.ts` không dùng sonner nữa mà đẩy vào store Zustand `hooks/lateNoticeStore.ts`, giữ tối đa 3 thẻ.
+    - `components/LateNotices/` (container + presenter + `late-notices.css`) dựng thẻ: viền trái màu hổ phách, icon đồng hồ, tiêu đề cam, dòng "Hẹn lúc HH:mm, chưa đến", nút × và thanh đếm 10 s. Hết thanh thì thẻ tự đóng (animation dừng khi hover / focus-within). Tắt chuyển động khi người dùng bật reduced motion.
+    - Gắn trong `AppLayout` khi đã đăng nhập.
+- **Sửa BE**: chỉ thêm 2 key i18n `Appointment:LateToast:Region` ("Thông báo trễ hẹn" / "Late appointment alerts") và `Appointment:LateToast:Dismiss` ("Đóng thông báo" / "Dismiss"). Không migration. **Cần build lại / khởi động lại BE** thì FE mới có chữ; nếu chưa, FE hiện tên key.
+- **Kiểm thử** (bản build production `vite preview` :8217, API thật :5000 với DB thật, SignalR và worker Trễ hẹn thật, không chặn request):
+  - Lưu ý môi trường: :5000 do phiên khác chạy và chưa có key mới. Endpoint `/api/abp/application-localization` được proxy sang một host build từ cây này trên :5217. Host đó trỏ vào DB không tồn tại, nên worker của nó không thể tranh đánh dấu trễ hẹn với :5000.
+  - `late-notice-corner-r1217.spec.ts` (mới, 2 ca):
+    - Ca 1: Lịch tạm đặt trước 20 s, worker đánh dấu Trễ hẹn. Thẻ hiện trong vùng "Thông báo trễ hẹn", dưới header, sát mép phải trong 32px, không có toast sonner nào. Thẻ tự đóng sau 7,5–13 s.
+    - Ca 2: toast chat đến trước, thẻ trễ hẹn đến sau và nằm trên, đẩy toast xuống, mép phải thẳng hàng. Tin chat mới hơn lại nằm trên thẻ. Bấm × "Đóng thông báo" thì thẻ đóng.
+  - `chat-r1165-toast` 8/8. Tổng **10/10 xanh**.
+  - Ảnh chụp: toast chat và thẻ trễ hẹn xếp chung một cột góc phải.
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (host góc phải dùng chung cho toast chat F-89 và thông báo Trễ hẹn của Lịch hẹn; AppLayout). `/taxonomy` không bị ảnh hưởng.

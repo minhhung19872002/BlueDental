@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { nextNoticeOrder } from "@/lib/cornerNotices";
 import { useConversationFetcher } from "../api/chatQueries";
 import { CHAT_KIND, type ChatConversationDto, type ChatMessageDto } from "../types";
 import { playChatTing } from "../utils/chatSound";
@@ -14,6 +15,8 @@ export interface ChatAlert {
   title: string;
   preview: string;
   unreadCount: number;
+  /** Its place in the shared top-right column, newest first (R-1217). */
+  order: number;
 }
 
 const MAX_ALERTS = 3;
@@ -52,6 +55,7 @@ function toAlert(conversation: ChatConversationDto, message: ChatMessageDto): Ch
     title: isGroup ? `${message.senderName} · ${conversation.title}` : message.senderName,
     preview: previewMessage(message),
     unreadCount: conversation.unreadCount,
+    order: nextNoticeOrder(),
   };
 }
 

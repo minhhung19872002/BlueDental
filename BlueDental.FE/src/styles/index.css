@@ -9162,3 +9162,40 @@ html:has(.ant-modal-wrap) {
     animation: none;
   }
 }
+
+/* ── R-1217 — one column of notices top right under the header
+   (src/lib/cornerNotices.ts). New chat messages and bookings that just turned
+   Trễ hẹn share it, so neither covers the other: each stack is a
+   `display: contents` region in here, every card is an item of this column,
+   and --notice-order sorts the newest on top, older ones pushed down. */
+.corner-notices {
+  position: fixed;
+  top: calc(var(--bd-topbar-height) + 12px);
+  right: 16px;
+  z-index: 960;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+.corner-notices > section {
+  display: contents;
+}
+
+.corner-notices > section > * {
+  order: var(--notice-order, 0);
+  pointer-events: auto;
+}
+
+@media (max-width: 640px) {
+  .corner-notices {
+    top: calc(var(--bd-header-height) + 8px);
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-width: none;
+  }
+}

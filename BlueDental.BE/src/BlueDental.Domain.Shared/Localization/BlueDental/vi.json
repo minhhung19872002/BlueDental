@@ -4542,6 +4542,8 @@
     "Appointment:LateToast:Slot": "Hẹn lúc {0}, chưa đến",
     "Appointment:LateToast:SlotWithDoctor": "Hẹn lúc {0} với {1}, chưa đến",
     "Appointment:LateToast:More": "và {0} lịch khác",
+    "Appointment:LateToast:Region": "Thông báo trễ hẹn",
+    "Appointment:LateToast:Dismiss": "Đóng thông báo",
     "Appointment:Status:Temporary": "Lịch tạm",
     "Appointment:Status:Revisit": "Đã hẹn lại",
     "Appointment:Status:Done": "Hoàn tất",
