@@ -1,14 +1,12 @@
 import dayjs from "dayjs";
-import { toast } from "sonner";
 import { api } from "@/lib/axios";
 import { t } from "@/lib/i18n";
+import { useLateNoticeStore } from "./lateNoticeStore";
 
-/** Bookings named one by one in the toast; the rest are counted. */
+/** Bookings named one by one on the card; the rest are counted. */
 const NAMED_LIMIT = 5;
-/** Long enough to be noticed by someone busy at the chair. */
-const TOAST_DURATION_MS = 10_000;
 
-/** The fields the toast needs out of `BlueDental.Appointments.AppointmentDto`. */
+/** The fields the card needs out of `BlueDental.Appointments.AppointmentDto`. */
 interface LateAppointmentRow {
   patientName: string;
   dentistName: string | null;
@@ -24,9 +22,10 @@ function slotLine(row: LateAppointmentRow): string {
 
 /**
  * Says which bookings just turned Trễ hẹn (owner 2026-10-07: the clinic has to
- * know, not only see a row move). The push carries ids only, so each booking is
- * read back through the API; one the viewer may not open is left out, and a
- * viewer who may open none of them gets no toast.
+ * know, not only see a row move), as a card top right with the chat toasts
+ * (R-1217). The push carries ids only, so each booking is read back through
+ * the API; one the viewer may not open is left out, and a viewer who may open
+ * none of them gets no card.
  */
 export async function announceLateAppointments(appointmentIds: readonly string[]): Promise<void> {
   const reads = await Promise.allSettled(
@@ -36,20 +35,15 @@ export async function announceLateAppointments(appointmentIds: readonly string[]
   );
   const rows = reads.flatMap((read) => (read.status === "fulfilled" ? [read.value] : []));
   if (rows.length === 0) return;
+  const { push } = useLateNoticeStore.getState();
 
   if (appointmentIds.length === 1) {
-    toast.warning(t("Appointment:LateToast:One", rows[0].patientName), {
-      description: slotLine(rows[0]),
-      duration: TOAST_DURATION_MS,
-    });
+    push(t("Appointment:LateToast:One", rows[0].patientName), [slotLine(rows[0])]);
     return;
   }
 
   const lines = rows.map((row) => `${dayjs(row.slotStart).format("HH:mm")} · ${row.patientName}`);
   const unnamed = appointmentIds.length - rows.length;
   if (unnamed > 0) lines.push(t("Appointment:LateToast:More", unnamed));
-  toast.warning(t("Appointment:LateToast:Many", appointmentIds.length), {
-    description: lines.join("\n"),
-    duration: TOAST_DURATION_MS,
-  });
+  push(t("Appointment:LateToast:Many", appointmentIds.length), lines);
 }

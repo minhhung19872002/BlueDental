@@ -1385,24 +1385,12 @@ body:has(.chat-panel) .scroll-top-button {
   font-weight: 600;
 }
 
-/* ── R-1165 — new-message toasts, top right under the header (BA 2026-11-06:
-   "thông báo để xem nhanh, 5s"). The bar along the foot runs 5 s and its end
-   removes the toast; pointing at it or tabbing into it pauses the bar. While
-   the panel is open the stack sits to its left. */
-.chat-toasts {
-  position: fixed;
-  top: calc(var(--bd-topbar-height) + 12px);
-  right: 16px;
-  z-index: 960;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 340px;
-  max-width: calc(100vw - 32px);
-  pointer-events: none;
-}
-
-body:has(.chat-panel) .chat-toasts {
+/* ── R-1165 — new-message toasts (BA 2026-11-06: "thông báo để xem nhanh,
+   5s"). The bar along the foot runs 5 s and its end removes the toast;
+   pointing at it or tabbing into it pauses the bar. The stack is a region of
+   the shared top-right column (.corner-notices, R-1217), which sits to the
+   left of the panel while it is open. */
+body:has(.chat-panel) .corner-notices {
   right: 412px;
 }
 
@@ -1415,7 +1403,6 @@ body:has(.chat-panel) .chat-toasts {
   border-radius: var(--bd-radius-card);
   background: var(--bd-card);
   box-shadow: var(--bd-shadow-pop);
-  pointer-events: auto;
   animation: chat-toast-in 0.18s ease-out;
 }
 
@@ -1526,13 +1513,8 @@ body:has(.chat-panel) .chat-toasts {
 }
 
 @media (max-width: 640px) {
-  .chat-toasts,
-  body:has(.chat-panel) .chat-toasts {
-    top: calc(var(--bd-header-height) + 8px);
+  body:has(.chat-panel) .corner-notices {
     right: 8px;
-    left: 8px;
-    width: auto;
-    max-width: none;
   }
 }
 

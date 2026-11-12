@@ -1,5 +1,7 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { cornerNoticeHost, noticeOrderStyle } from "@/lib/cornerNotices";
 import { t } from "@/lib/i18n";
 import type { ChatAlert } from "../hooks/useNewMessageAlerts";
 import { initialsOf } from "../utils/chatFormat";
@@ -26,7 +28,7 @@ const ChatToast: React.FC<ChatToastProps> = ({ alert, onOpen, onDismiss }) => {
   const handleDismiss = () => onDismiss(alert.conversationId);
 
   return (
-    <div className="chat-toast">
+    <div className="chat-toast" style={noticeOrderStyle(alert.order)}>
       <button type="button" className="chat-toast-body" onClick={handleOpen}>
         <span className="chat-avatar chat-toast-avatar" aria-hidden>
           {initialsOf(alert.senderName)}
@@ -53,11 +55,16 @@ const ChatToast: React.FC<ChatToastProps> = ({ alert, onOpen, onDismiss }) => {
   );
 };
 
-/** The new-message toasts, top right under the header, newest on top. */
-export const ChatToastStack: React.FC<ChatToastStackProps> = ({ alerts, onOpen, onDismiss }) => (
-  <section className="chat-toasts" aria-label={t("Chat:NewMessages")} aria-live="polite">
-    {alerts.map((alert) => (
-      <ChatToast key={alert.conversationId} alert={alert} onOpen={onOpen} onDismiss={onDismiss} />
-    ))}
-  </section>
-);
+/**
+ * The new-message toasts, newest on top, in the shared column top right under
+ * the header (R-1217) — a Trễ hẹn notice that comes later goes above them.
+ */
+export const ChatToastStack: React.FC<ChatToastStackProps> = ({ alerts, onOpen, onDismiss }) =>
+  createPortal(
+    <section className="chat-toasts" aria-label={t("Chat:NewMessages")} aria-live="polite">
+      {alerts.map((alert) => (
+        <ChatToast key={alert.conversationId} alert={alert} onOpen={onOpen} onDismiss={onDismiss} />
+      ))}
+    </section>,
+    cornerNoticeHost(),
+  );
