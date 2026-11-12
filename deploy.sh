@@ -4,8 +4,8 @@
 #        sudo bash deploy.sh     (neu chay bang root)
 #
 # Mac dinh build image ngay tren may nay. Neu co API_IMAGE + FRONTEND_IMAGE
-# (CD cua nhanh develop truyen vao) thi KHONG build: keo image da build san
-# tren GitHub Actions ve. VM staging dung chung, 11 GB RAM, khong swap --
+# (CD truyen vao cho ca main va develop) thi KHONG build: keo image da build san
+# tren GitHub Actions ve. Ca VM staging lan production deu thieu RAM --
 # `dotnet publish` trong luc build an 3.5 GB va lam treo ca may.
 set -euo pipefail
 
