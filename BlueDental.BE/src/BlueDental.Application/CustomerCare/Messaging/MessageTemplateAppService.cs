@@ -33,7 +33,12 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
         MessageTemplateStatus.Disabled,
     ];
 
+    /// <summary>A send still waiting or going out: the job reads its template only when it runs.</summary>
+    private static readonly MessageSendBatchStatus[] PendingSend =
+        [MessageSendBatchStatus.Queued, MessageSendBatchStatus.Sending];
+
     private readonly IRepository<MessageTemplate, Guid> _templates;
+    private readonly IRepository<MessageSendBatch, Guid> _batches;
     private readonly MessageTemplateUsageReader _usage;
     private readonly IRepository<Patient, Guid> _patients;
     private readonly IRepository<Appointment, Guid> _appointments;
@@ -45,6 +50,7 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
 
     public MessageTemplateAppService(
         IRepository<MessageTemplate, Guid> templates,
+        IRepository<MessageSendBatch, Guid> batches,
         MessageTemplateUsageReader usage,
         IRepository<Patient, Guid> patients,
         IRepository<Appointment, Guid> appointments,
@@ -55,6 +61,7 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
         ICurrentClinicBranchResolver branchResolver)
     {
         _templates = templates;
+        _batches = batches;
         _usage = usage;
         _patients = patients;
         _appointments = appointments;
@@ -146,6 +153,24 @@ public class MessageTemplateAppService : BlueDentalAppService, IMessageTemplateA
         var copy = source.Duplicate(GuidGenerator.Create(), L["CSKH:Template:CopyName", source.Name]);
         await _templates.InsertAsync(copy, autoSave: true);
         return ToDto(copy, null);
+    }
+
+    /// <summary>
+    /// "Xoá" (soft). What was sent with the template keeps its own copy of the
+    /// name and text, so history, campaigns and statistics read on ("… (đã xoá)").
+    /// A send still waiting or going out would fail every customer once the
+    /// template is gone, so it has to be cancelled or stopped first.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.CskhTemplate.Delete)]
+    public async Task DeleteAsync(Guid id)
+    {
+        var template = await GetTemplateAsync(id);
+        if (await _batches.AnyAsync(b => b.TemplateId == template.Id && PendingSend.Contains(b.Status)))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Tools.TemplateHasPendingSend);
+        }
+
+        await _templates.DeleteAsync(template, autoSave: true);
     }
 
     public Task<List<MessageVariableDto>> GetVariablesAsync() =>

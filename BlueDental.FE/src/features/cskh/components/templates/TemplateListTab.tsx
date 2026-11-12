@@ -3,12 +3,15 @@ import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { notifyApiError, notifyError } from "@/lib/notify";
 import { useDebounce } from "@/hooks/useDebounce";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import type { CareType } from "../../api/careApi";
 import {
+  useDeleteTemplate,
   useDuplicateTemplate,
   useMessageTemplates,
   useSyncZaloStatus,
   type MessageChannel,
+  type MessageTemplateDto,
 } from "../../api/templateApi";
 import { TemplateFilterBar } from "./TemplateFilterBar";
 import { TemplatePreviewCard } from "./TemplatePreviewCard";
@@ -17,6 +20,7 @@ import { TemplateTable } from "./TemplateTable";
 interface TemplateListTabProps {
   canCreate: boolean;
   canUpdate: boolean;
+  canDelete: boolean;
   onEdit: (id: string) => void;
   onUseToSend?: (id: string) => void;
 }
@@ -34,8 +38,28 @@ function useZaloStatusOnOpen() {
   }, [mutate]);
 }
 
+/** "Xoá" on a row: asks first; a send still waiting on the template makes the server refuse. */
+function useTemplateDelete(onDeleted: (id: string) => void) {
+  const [target, setTarget] = useState<MessageTemplateDto | null>(null);
+  const remove = useDeleteTemplate();
+
+  const confirm = () => {
+    if (!target) return;
+    remove.mutate(target.id, {
+      onSuccess: (id) => {
+        onDeleted(id);
+        toast.success(t("CSKH:Template:Deleted"));
+      },
+      onError: notifyApiError,
+      onSettled: () => setTarget(null),
+    });
+  };
+
+  return { target, pending: remove.isPending, ask: setTarget, close: () => setTarget(null), confirm };
+}
+
 /** CSKH ▸ Template tin nhắn: filters on top, the list left, the picked template's preview right. */
-export function TemplateListTab({ canCreate, canUpdate, onEdit, onUseToSend }: TemplateListTabProps) {
+export function TemplateListTab({ canCreate, canUpdate, canDelete, onEdit, onUseToSend }: TemplateListTabProps) {
   const [channel, setChannel] = useState<MessageChannel | null>(null);
   const [purpose, setPurpose] = useState<CareType | null>(null);
   const [search, setSearch] = useState("");
@@ -45,6 +69,7 @@ export function TemplateListTab({ canCreate, canUpdate, onEdit, onUseToSend }: T
   useZaloStatusOnOpen();
   const list = useMessageTemplates({ channel, purpose, filter });
   const duplicate = useDuplicateTemplate();
+  const deletion = useTemplateDelete((id) => setSelectedId((current) => (current === id ? null : current)));
 
   const items = list.data?.items ?? [];
   const selected = items.find((item) => item.id === selectedId) ?? items[0] ?? null;
@@ -74,7 +99,13 @@ export function TemplateListTab({ canCreate, canUpdate, onEdit, onUseToSend }: T
         />
       </div>
       <div className="tpl-body">
-        <TemplateTable items={items} loading={list.isLoading} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
+        <TemplateTable
+          items={items}
+          loading={list.isLoading}
+          selectedId={selected?.id ?? null}
+          onSelect={setSelectedId}
+          onDelete={canDelete ? deletion.ask : undefined}
+        />
         <TemplatePreviewCard
           template={selected}
           duplicating={duplicate.isPending}
@@ -83,6 +114,15 @@ export function TemplateListTab({ canCreate, canUpdate, onEdit, onUseToSend }: T
           onUseToSend={onUseToSend && selected ? () => onUseToSend(selected.id) : undefined}
         />
       </div>
+      <ConfirmDeleteDialog
+        open={deletion.target !== null}
+        noun={t("CSKH:Template:Noun")}
+        name={deletion.target?.name}
+        note={t("CSKH:Template:DeleteNote")}
+        pending={deletion.pending}
+        onConfirm={deletion.confirm}
+        onClose={deletion.close}
+      />
     </div>
   );
 }

@@ -34,6 +34,9 @@ public sealed class MessageTemplateController(IMessageTemplateAppService service
     [HttpPost("{id:guid}/duplicate")]
     public Task<MessageTemplateDto> DuplicateAsync(Guid id) => service.DuplicateAsync(id);
 
+    [HttpDelete("{id:guid}")]
+    public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
     [HttpGet("variables")]
     public Task<List<MessageVariableDto>> GetVariablesAsync() => service.GetVariablesAsync();
 

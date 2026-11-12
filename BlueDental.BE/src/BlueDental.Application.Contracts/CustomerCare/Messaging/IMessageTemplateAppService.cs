@@ -25,6 +25,9 @@ public interface IMessageTemplateAppService : IApplicationService
     /// <summary>"Nhân bản": a draft copy named "… - bản sao".</summary>
     Task<MessageTemplateDto> DuplicateAsync(Guid id);
 
+    /// <summary>"Xoá" (soft); refused while a send of the template is waiting or going out.</summary>
+    Task DeleteAsync(Guid id);
+
     Task<List<MessageVariableDto>> GetVariablesAsync();
 
     /// <summary>A random customer of the branch, preferring one with a visit ahead; never <paramref name="exceptPatientId"/>.</summary>

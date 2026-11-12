@@ -6,12 +6,13 @@ import { call } from "./fixtures/timekeepingStaff";
 /**
  * Feature: CSKH ▸ Template tin nhắn (F-76, BA P2110 img_07/img_08). The list
  * tab, the full-page editor (Lưu nháp / Lưu mẫu, `{` suggestions, Biến hay
- * dùng, Thư viện biến, the leave guard), Nhân bản, branch scope and the
- * cskhTemplate read / create / update grants.
+ * dùng, Thư viện biến, the leave guard), Nhân bản, Xoá, branch scope and the
+ * cskhTemplate read / create / update / delete grants.
  *
  * Real login screen, real API, real PostgreSQL; nothing is intercepted. Each
- * run names its templates with a run id. There is no delete endpoint, so they
- * stay behind, harmlessly.
+ * run names its templates with a run id; those not deleted by the Xoá case
+ * stay behind, harmlessly. Xoá while a send is booked is in
+ * cskh-message-send.spec (it needs the Zalo stub).
  *
  * The Zalo cases need a host whose Zalo endpoints point at the local stub
  * (e2e/fixtures/zalo-stub.mjs, started with the host's Zalo:OaId) — never
@@ -89,8 +90,8 @@ async function znsSendCount(): Promise<number> {
   return calls.filter((c) => c.path === "/message/template").length;
 }
 
-/** A throw-away role holding just `grants`, and a staff member of BD-001 in it. */
-async function makeStaff(page: Page, grants: string[]) {
+/** A throw-away role holding just `grants`, and a staff member of `branchIds` (BD-001 by default) in it. */
+async function makeStaff(page: Page, grants: string[], branchIds: string[] = [BRANCH_ONE]) {
   const id = runId();
   const roleName = `Mẫu tin ${id}`;
   const role = await call<{ id: string }>(page, "/api/identity/roles", {
@@ -113,7 +114,7 @@ async function makeStaff(page: Page, grants: string[]) {
       name: `Nhân viên mẫu tin ${id}`,
       email: `${userName}@bluedental.local`,
       roleNames: [roleName],
-      branchIds: [BRANCH_ONE],
+      branchIds,
       isActive: true,
     },
   });
@@ -342,6 +343,80 @@ test.describe("CSKH — Template tin nhắn", () => {
       await reader.tearDown();
       await creator.tearDown();
     }
+  });
+
+  test("Xoá: hỏi lại, mẫu rời danh sách và không còn sau khi tải lại; chỉ xem hoặc chi nhánh khác thì không xoá được", async ({ page, browser }) => {
+    const name = `E2E Xoá ${runId()}`;
+    await page.goto(LIST);
+    const template = await createViaApi(page, name);
+    const deleteButton = (p: Page) => p.getByRole("button", { name: `Xoá mẫu ${name}` });
+
+    const grantsToDelete = ["BlueDental.cskhTemplate.read", "BlueDental.cskhTemplate.delete"];
+    const reader = await makeStaff(page, ["BlueDental.cskhTemplate.read"]);
+    const deleter = await makeStaff(page, grantsToDelete);
+    // Holds the delete grant, but only in BD-002: its own branch cannot see the row, BD-001 is not its to ask.
+    const outsider = await makeStaff(page, grantsToDelete, [BRANCH_TWO]);
+    try {
+      const other = await openSession(browser, { userName: outsider.userName, password: PASSWORD });
+      try {
+        const del = (branchId: string) => call(other.page, `${TEMPLATES}/${template.id}`, { method: "DELETE", branchId });
+        expect((await del(BRANCH_TWO)).status).toBe(404);
+        expect((await del(BRANCH_ONE)).status).toBe(403);
+      } finally {
+        await other.context.close();
+      }
+      expect((await call(page, `${TEMPLATES}/${template.id}`, asBranchOne)).status).toBe(200);
+
+      const readOnly = await openSession(browser, { userName: reader.userName, password: PASSWORD });
+      try {
+        await readOnly.page.goto(LIST);
+        await searchList(readOnly.page, name);
+        await expect(templateRow(readOnly.page, name)).toBeVisible();
+        await expect(readOnly.page.getByRole("columnheader", { name: "Thao tác" })).toHaveCount(0);
+        await expect(deleteButton(readOnly.page)).toHaveCount(0);
+        const refused = await call(readOnly.page, `${TEMPLATES}/${template.id}`, { method: "DELETE", ...asBranchOne });
+        expect(refused.status).toBe(403);
+      } finally {
+        await readOnly.context.close();
+      }
+
+      const remover = await openSession(browser, { userName: deleter.userName, password: PASSWORD });
+      try {
+        const p = remover.page;
+        await p.goto(LIST);
+        await searchList(p, name);
+        await expect(p.getByRole("columnheader", { name: "Thao tác" })).toBeVisible();
+
+        const dialog = p.getByRole("dialog", { name: "Xác nhận xoá mẫu tin nhắn" });
+        await deleteButton(p).click();
+        await expect(dialog).toContainText(`Bạn có chắc muốn xoá mẫu tin nhắn ${name} không?`);
+        await expect(dialog).toContainText("Tin đã gửi, chiến dịch và thống kê của mẫu vẫn được giữ lại.");
+        await dialog.getByRole("button", { name: "Huỷ" }).click();
+        await expect(dialog).toBeHidden();
+        await expect(templateRow(p, name)).toBeVisible();
+
+        await deleteButton(p).click();
+        const deleted = p.waitForResponse((res) => res.request().method() === "DELETE" && res.url().includes(template.id));
+        await dialog.getByRole("button", { name: "Xoá" }).click();
+        expect((await deleted).status()).toBe(204);
+        await expect(toast(p, "Đã xoá mẫu tin nhắn")).toBeVisible();
+        await expect(templateRow(p, name)).toHaveCount(0);
+        await expect(p.getByText("Chưa có mẫu tin nhắn nào")).toBeVisible();
+
+        await p.reload();
+        await searchList(p, name);
+        await expect(templateRow(p, name)).toHaveCount(0);
+      } finally {
+        await remover.context.close();
+      }
+    } finally {
+      await reader.tearDown();
+      await deleter.tearDown();
+      await outsider.tearDown();
+    }
+
+    expect((await call(page, `${TEMPLATES}/${template.id}`, asBranchOne)).status).toBe(404);
+    expect(await listNames(page, name, BRANCH_ONE)).toEqual([]);
   });
 
   test.describe("mẫu Zalo (Zalo giả lập)", () => {

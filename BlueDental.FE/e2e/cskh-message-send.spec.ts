@@ -436,6 +436,44 @@ test.describe("CSKH — Gửi tin nhắn (Zalo giả lập)", () => {
     expect(await znsSendsTo(patient.phone)).toEqual([]);
   });
 
+  test("R-1218: mẫu có lượt hẹn giờ chưa gửi thì không xoá được; huỷ hẹn rồi xoá được, lượt gửi vẫn còn", async ({ page, browser }) => {
+    const name = `E2E Xoá chờ ${runId()}`;
+    const template = await zaloTemplate(page, name);
+    const patient = await newPatient(page);
+    await book(page, patient.id, tomorrowAt(10));
+    const queued = await scheduleSend(page, template.id, [patient.id], tomorrowAt(8));
+
+    const deleter = await makeStaff(page, ["BlueDental.cskhTemplate.read", "BlueDental.cskhTemplate.delete"]);
+    const session = await openSession(browser, deleter.credentials);
+    try {
+      const p = session.page;
+      await p.goto("/cskh-grouping?tab=template&branch=BD-001");
+      await p.getByLabel("Tìm theo tên mẫu hoặc nội dung").fill(name);
+      const row = p.locator("tr.tpl-row", { hasText: name });
+      await row.getByRole("button", { name: `Xoá mẫu ${name}` }).click();
+      await p.getByRole("dialog", { name: "Xác nhận xoá mẫu tin nhắn" }).getByRole("button", { name: "Xoá" }).click();
+      await expect(toast(p, /Mẫu đang có lượt gửi chờ đến giờ hoặc đang gửi/)).toBeVisible();
+      await expect(row).toBeVisible();
+
+      const refused = await call<{ error: { code: string } }>(p, `${TEMPLATES}/${template.id}`, { ...asBranchOne, method: "DELETE" });
+      expect(refused.body.error.code).toBe("BlueDental:Tools:0028");
+      expect((await call(p, `${TEMPLATES}/${template.id}`, asBranchOne)).status).toBe(200);
+
+      expect((await call(page, `${SENDS}/${queued.id}/cancel`, { ...asBranchOne, method: "POST" })).status).toBe(200);
+      expect((await call(p, `${TEMPLATES}/${template.id}`, { ...asBranchOne, method: "DELETE" })).status).toBe(204);
+      expect((await call(p, `${TEMPLATES}/${template.id}`, asBranchOne)).status).toBe(404);
+    } finally {
+      await session.context.close();
+      await deleter.tearDown();
+    }
+
+    // The cancelled send is still there to read, under its own copy of the template's name.
+    const kept = await call<{ templateName: string; status: number }>(page, `${SENDS}/${queued.id}`, asBranchOne);
+    expect(kept.status).toBe(200);
+    expect(kept.body).toMatchObject({ templateName: name, status: BATCH.Cancelled });
+    expect(await znsSendsTo(patient.phone)).toEqual([]);
+  });
+
   test("R-1014 / R-1024: Gửi Zalo từ nút trên dòng CSKH đánh dấu đã gửi Zalo và chuyển Chưa liên hệ → Đã liên hệ", async ({ page }) => {
     const template = await zaloTemplate(page, `E2E Gửi dòng ${runId()}`);
     const patient = await newPatient(page);

@@ -211,6 +211,7 @@ public static class BlueDentalAbilityPermissions
         public const string Read = "BlueDental.cskhTemplate.read";
         public const string Create = "BlueDental.cskhTemplate.create";
         public const string Update = "BlueDental.cskhTemplate.update";
+        public const string Delete = "BlueDental.cskhTemplate.delete";
     }
 
     /// <summary>
