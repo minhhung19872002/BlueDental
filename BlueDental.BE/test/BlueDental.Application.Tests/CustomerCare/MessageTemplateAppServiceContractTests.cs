@@ -11,7 +11,7 @@ namespace BlueDental.Application.Tests.CustomerCare;
 /// <summary>
 /// CSKH ▸ Template tin nhắn (F-76): reading needs cskhTemplate.read, "Tạo mẫu
 /// mới" and "Nhân bản" need create, saving an existing template needs update,
-/// and the branch comes through the access checker, not the raw header.
+/// "Xoá" needs delete, and the branch comes through the access checker, not the raw header.
 /// </summary>
 public class MessageTemplateAppServiceContractTests
 {
@@ -35,6 +35,7 @@ public class MessageTemplateAppServiceContractTests
     [InlineData(nameof(MessageTemplateAppService.CreateAsync), BlueDentalAbilityPermissions.CskhTemplate.Create)]
     [InlineData(nameof(MessageTemplateAppService.DuplicateAsync), BlueDentalAbilityPermissions.CskhTemplate.Create)]
     [InlineData(nameof(MessageTemplateAppService.UpdateAsync), BlueDentalAbilityPermissions.CskhTemplate.Update)]
+    [InlineData(nameof(MessageTemplateAppService.DeleteAsync), BlueDentalAbilityPermissions.CskhTemplate.Delete)]
     public void Writing_Needs_Its_Own_Permission(string method, string policy)
     {
         _serviceType.GetMethod(method)!.GetCustomAttribute<AuthorizeAttribute>()!.Policy.ShouldBe(policy);

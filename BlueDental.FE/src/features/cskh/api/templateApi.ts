@@ -166,6 +166,7 @@ const templateApi = {
   update: (id: string, input: SaveTemplateInput) =>
     api.put<MessageTemplateDto>(`${BASE}/${id}`, input).then((r) => r.data),
   duplicate: (id: string) => api.post<MessageTemplateDto>(`${BASE}/${id}/duplicate`).then((r) => r.data),
+  remove: (id: string) => api.delete(`${BASE}/${id}`).then(() => id),
   variables: () => api.get<MessageVariable[]>(`${BASE}/variables`).then((r) => r.data),
   sampleCustomer: (exceptPatientId: string | null) =>
     api
@@ -269,6 +270,18 @@ export function useUpdateTemplate() {
 
 export function useDuplicateTemplate() {
   return useTemplateMutation(templateApi.duplicate);
+}
+
+/** "Xoá": the server refuses while a send of the template is waiting or going out. */
+export function useDeleteTemplate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: templateApi.remove,
+    onSuccess: (id) => {
+      queryClient.removeQueries({ queryKey: templateKeys.detail(id) });
+      invalidateTemplateLists(queryClient);
+    },
+  });
 }
 
 /** Reads Zalo's review status into the list; refreshes the list when something changed. */

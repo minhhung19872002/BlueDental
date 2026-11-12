@@ -179,7 +179,7 @@ public static class BlueDentalAbilities
         ["cskhCare"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Export],
         ["cskhGroup"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Export],
         // BlueDental-local: CSKH ▸ Template tin nhắn (BA P2110, F-76).
-        ["cskhTemplate"] = [Actions.Read, Actions.Create, Actions.Update],
+        ["cskhTemplate"] = [Actions.Read, Actions.Create, Actions.Update, Actions.Delete],
         // BlueDental-local: CSKH ▸ Gửi tin nhắn (BA P2110, F-77).
         ["cskhSend"] = [Actions.Read, Actions.Create],
         // BlueDental-local: Tổng quan ▸ Thống kê CSKH (BA P2110, F-78).

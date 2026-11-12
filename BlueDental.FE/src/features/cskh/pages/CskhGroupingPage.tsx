@@ -155,6 +155,7 @@ export function CskhGroupingPage() {
           <TemplateListTab
             canCreate={templateAbility.canCreate}
             canUpdate={templateAbility.canUpdate}
+            canDelete={templateAbility.canDelete}
             onEdit={openTemplate}
             onUseToSend={canSend ? sendWithTemplate : undefined}
           />

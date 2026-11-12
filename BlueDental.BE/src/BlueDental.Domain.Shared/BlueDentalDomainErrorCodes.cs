@@ -941,6 +941,9 @@ public static class BlueDentalDomainErrorCodes
         // Tổng quan ▸ Thống kê CSKH (BA P2110, F-78).
         public const string StatsPeriodReversed = "BlueDental:Tools:0026";
         public const string StatsPeriodTooLong = "BlueDental:Tools:0027";
+
+        // CSKH ▸ Template tin nhắn ▸ Xoá (P1211).
+        public const string TemplateHasPendingSend = "BlueDental:Tools:0028";
     }
 
     public static class ClinicIntegration

@@ -1,5 +1,8 @@
+import { Button } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import { DeleteOutlined } from "@ant-design/icons";
 import { getLocale, t } from "@/lib/i18n";
+import { ActionTooltip } from "@/components/ActionTooltip";
 import { DataTable } from "@/components/DataTable";
 import { channelLabels, type MessageTemplateDto } from "../../api/templateApi";
 import { purposeLabel } from "./templateLook";
@@ -10,11 +13,38 @@ interface TemplateTableProps {
   loading: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Without cskhTemplate.delete there is no Thao tác column. */
+  onDelete?: (template: MessageTemplateDto) => void;
 }
 
-function buildColumns(): ColumnsType<MessageTemplateDto> {
+function actionColumn(onDelete: (template: MessageTemplateDto) => void): ColumnsType<MessageTemplateDto>[number] {
+  return {
+    key: "actions",
+    title: t("Common:Actions"),
+    width: 90,
+    align: "center",
+    render: (_, row) => (
+      <ActionTooltip title={t("Common:Delete")}>
+        <Button
+          type="text"
+          danger
+          size="small"
+          icon={<DeleteOutlined />}
+          aria-label={t("CSKH:Template:DeleteAria", row.name)}
+          onClick={(event) => {
+            // The row's own click picks it for the preview; deleting is not picking.
+            event.stopPropagation();
+            onDelete(row);
+          }}
+        />
+      </ActionTooltip>
+    ),
+  };
+}
+
+function buildColumns(onDelete?: (template: MessageTemplateDto) => void): ColumnsType<MessageTemplateDto> {
   const channels = channelLabels();
-  return [
+  const columns: ColumnsType<MessageTemplateDto> = [
     {
       key: "name",
       title: t("CSKH:Template:Col:Name"),
@@ -57,16 +87,17 @@ function buildColumns(): ColumnsType<MessageTemplateDto> {
       render: (_, row) => <TemplateStatusBadge status={row.status} />,
     },
   ];
+  return onDelete ? [...columns, actionColumn(onDelete)] : columns;
 }
 
 /** The whole list on one page — a branch keeps tens of templates, not thousands. */
-export function TemplateTable({ items, loading, selectedId, onSelect }: TemplateTableProps) {
+export function TemplateTable({ items, loading, selectedId, onSelect, onDelete }: TemplateTableProps) {
   return (
     <div className="cskh-table-card tpl-table-card">
       <DataTable<MessageTemplateDto>
         className="cskh-table"
         rowKey="id"
-        columns={buildColumns()}
+        columns={buildColumns(onDelete)}
         dataSource={items}
         loading={loading}
         pagination={false}

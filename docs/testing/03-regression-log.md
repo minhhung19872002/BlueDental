@@ -15137,3 +15137,21 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Ảnh chụp: toast chat và thẻ trễ hẹn xếp chung một cột góc phải.
   - tsc + eslint sạch.
 - **Mức retest**: 3 (host góc phải dùng chung cho toast chat F-89 và thông báo Trễ hẹn của Lịch hẹn; AppLayout). `/taxonomy` không bị ảnh hưởng.
+
+## R-1218 (2026-11-12, mức 2: CSKH ▸ Template tin nhắn — cột Thao tác, nút Xoá, F-76)
+- **Yêu cầu**: thêm cột Thao tác có nút Xoá vào bảng mẫu tin nhắn, và kiểm tra xoá mẫu thì ảnh hưởng tới đâu.
+- **Ảnh hưởng khi xoá** (đọc code):
+  - Mẫu bị xoá mềm (`FullAuditedEntity`). Không bảng nào có khoá ngoại trỏ vào mẫu.
+  - `MessageSendBatch` / `MessageLog` đã lưu sẵn tên và nội dung mẫu, nên Chiến dịch đã gửi và lịch sử gửi không bị ảnh hưởng. Thống kê CSKH đã đọc được mẫu đã xoá từ trước, hiện "… (đã xoá)".
+  - Mẫu trên Zalo OA (ZNS) không bị đụng tới.
+  - Lỗi phát hiện được: một lượt gửi Queued (hẹn giờ) hoặc Sending trỏ tới mẫu đã xoá sẽ làm `MessageSendJob` không tìm thấy mẫu (`FindAsync` → null), và cả lượt thất bại với lý do "mẫu chưa sẵn sàng". Vì vậy server **chặn xoá** trong trường hợp này (`BlueDental:Tools:0028`).
+- **Sửa**:
+  - BE: `DELETE /api/v1/app/message-templates/{id}`. Quyền mới `cskhTemplate.delete` (có trong catalog và cây phân quyền; role tĩnh được cấp khi seed). Phạm vi chi nhánh đi qua `BranchAccessChecker`.
+  - FE: cột Thao tác chỉ hiện khi có quyền xoá. Xác nhận bằng `ConfirmDeleteDialog`, ghi chú "Tin đã gửi, chiến dịch và thống kê của mẫu vẫn được giữ lại.". Bấm nút xoá không chọn dòng để xem trước.
+- **Kiểm thử** (API Docker :5000 + `vite preview` :8080, đăng nhập thật, không chặn request):
+  - BE: `MessageTemplateAppServiceContractTests` 15/15, `Domain.Tests` Permissions 31/31.
+  - `cskh-message-template` **8/8 xanh** (ca Zalo chạy với `E2E_ZALO_STUB=1`). Ca mới "Xoá": hỏi lại / Huỷ / Xoá → 204, mẫu rời danh sách, tải lại vẫn không còn, GET → 404. Chỉ xem: không có cột, DELETE → 403. Nhân viên BD-002 có quyền xoá: header BD-002 → 404, header BD-001 → 403, mẫu vẫn còn.
+  - `cskh-message-send` R-1218 (Zalo giả lập): lượt hẹn giờ còn chờ thì Xoá báo lỗi, dòng vẫn còn, mã lỗi `Tools:0028`. Huỷ hẹn rồi xoá → 204. Lượt gửi vẫn đọc được với tên mẫu cũ, trạng thái Cancelled, không tin nào được gửi đi. R-1013 làm đối chứng: lần đầu đỏ vì liên kết OA giả lập chạy ngay khi container vừa khởi động; chạy lại → xanh.
+  - tsc sạch. Lỗi eslint `react-hooks/exhaustive-deps` ở `CskhGroupingPage.tsx:65` có từ trước.
+- **Chưa xử lý**: `ToolsAppService.DeleteMessageTemplateAsync` (màn Công cụ cũ, FE không còn gọi) xoá theo id mà không lọc chi nhánh và không chặn khi có lượt gửi đang chờ.
+- **Mức retest**: 2 (F-76). Có đổi quyền nhưng chỉ thêm, không sửa quyền cũ.
