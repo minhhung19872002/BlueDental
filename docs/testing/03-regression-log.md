@@ -15093,3 +15093,22 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Ca "every form shares…": mẫu 2 vẫn 14px, in qua "In biểu mẫu" → `page.pdf` ra **3 trang** → **xanh**.
   - `patient-medical-record` + `medical-record-sheet-facts`: **39 xanh / 3 đỏ**. Cả 3 ca đỏ đã đỏ từ trước: "the index lists…", "the open sheet's card wears…", "picking the day…".
 - **Mức retest**: 2 (F-30 Bệnh án, mẫu 2: màn hình + bản in). `/taxonomy` không bị ảnh hưởng, vì chỉ tab hồ sơ import `sheetCss.ts`.
+
+## R-1215 (2026-11-12, mức 2: Bệnh án mẫu 2 — lề dưới 7mm, giãn dòng thêm, vẫn in 3 trang, F-30)
+- **Yêu cầu** (sau R-1214, cùng ngày): giảm lề dưới để các dòng giãn thêm, sau đó push lên main và develop.
+- **Sửa (chỉ FE)**:
+  - `sheetCss.ts`:
+    - Thêm trang in riêng `@page outpatient-dental{margin:15mm 15mm 7mm}`. Mẫu 2 dùng trang này, không dùng `margin-15mm` nữa; mẫu 6, 7, 10 không đổi. Vùng in mỗi trang tăng từ 267mm lên 275mm.
+    - Dòng chữ trang 1–2 từ 1.4 lên **1.5**, trang 3 từ 1.2 lên **1.35**. Khối tiêu đề công ty / MS và ô "Hồ sơ, phim, ảnh" giữ 1.2.
+  - `medical-record.css`: phiếu cuối của bản sao in là mẫu 2 thì `html` dùng trang `outpatient-dental`. Nhờ vậy khối do extension chèn vào cũng nằm cùng tên trang, không sinh trang trắng (R-1070).
+  - Khung trên màn hình vẫn padding 15mm. Lề dưới 7mm chỉ có tác dụng khi in.
+- **Kết quả đo** (khung phiếu, khổ viết 680px, vùng in 275mm): trang 1 / 2 / 3 = **267,1 / 240,9 / 266,4mm**. Trang 2 đo trên phiếu có chẩn đoán dài, chảy xuống dòng riêng. Mỗi trang còn dư khoảng 7–8mm, ngang mức dư của trang 1 trước R-1214.
+- **Kiểm thử** (API Docker :5000 + bản build production `vite preview` :8080, đăng nhập thật, không chặn request):
+  - Ca "mẫu 2: 15mm margins…": tên trang in mong đợi đổi thành `outpatient-dental`.
+  - Ca "every form shares…" và "a browser extension's block…": mẫu 2 in qua "In biểu mẫu" → `page.pdf` vẫn ra 3 trang → **xanh**. Ca "mẫu 2: 15mm margins…" → **xanh**.
+  - `patient-medical-record` + `medical-record-sheet-facts`: **38 xanh / 4 đỏ**.
+    - 2 ca đỏ có từ trước: "the open sheet's card wears…", "picking the day…".
+    - "every form shares…" đỏ vì `Failed to fetch` khi đang ghi phiếu; chạy lại → xanh.
+    - "a blank that agrees with the record…" (mẫu 1, ô `cover.patient.code`) chập chờn: cùng một bản build chạy 2 lần thì 1 đỏ, 1 xanh; trên HEAD chưa sửa thì xanh. CSS mới chỉ tác động `data-form="2"`, nên không liên quan.
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (F-30 Bệnh án: mẫu 2, cùng tên trang in với mẫu 6/7/10). `/taxonomy` không bị ảnh hưởng.

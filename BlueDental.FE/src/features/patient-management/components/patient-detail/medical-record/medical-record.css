@@ -231,8 +231,13 @@
     page: margin-5mm;
   }
 
-  html:has(.mr-print-copy > .nfc-tpl:last-child:is([data-form="2"], [data-form="6"], [data-form="7"], [data-form="10"])) {
+  html:has(.mr-print-copy > .nfc-tpl:last-child:is([data-form="6"], [data-form="7"], [data-form="10"])) {
     page: margin-15mm;
+  }
+
+  /* Mẫu 2 is on a page of its own: a 7mm foot margin (2026-11-12). */
+  html:has(.mr-print-copy > .nfc-tpl:last-child[data-form="2"]) {
+    page: outpatient-dental;
   }
 }
 
