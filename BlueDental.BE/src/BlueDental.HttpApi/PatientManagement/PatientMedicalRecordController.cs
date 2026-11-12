@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using BlueDental.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -33,6 +34,10 @@ public sealed class PatientMedicalRecordController(IPatientMedicalRecordAppServi
     [HttpGet("phones")]
     public Task<MedicalRecordPhonesDto> GetPhonesAsync([FromQuery] Guid patientId) =>
         service.GetPhonesAsync(patientId);
+
+    [HttpGet("field-suggestions")]
+    public Task<List<MedicalRecordFieldSuggestionsDto>> GetFieldSuggestionsAsync([FromQuery] MedicalRecordForm form) =>
+        service.GetFieldSuggestionsAsync(form);
 
     [HttpPost]
     public Task<PatientMedicalRecordDto> CreateAsync(

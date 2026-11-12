@@ -37,6 +37,8 @@ public class PatientMedicalRecordAppServiceContractTests
     [InlineData("GetListAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
     [InlineData("GetAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
     [InlineData("GetPhonesAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]
+    // Offered only to someone who may write on a sheet (R-1219).
+    [InlineData("GetFieldSuggestionsAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
     [InlineData("CreateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Create)]
     [InlineData("UpdateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
     [InlineData("CancelAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Delete)]
@@ -46,5 +48,14 @@ public class PatientMedicalRecordAppServiceContractTests
     {
         typeof(PatientMedicalRecordAppService).GetMethods().Single(m => m.Name == method)
             .GetCustomAttribute<AuthorizeAttribute>()!.Policy.ShouldBe(permission);
+    }
+
+    [Fact]
+    public void Only_The_Listed_Blanks_Offer_Suggestions()
+    {
+        MedicalRecordFieldSuggestions.FieldsOf(MedicalRecordForm.OutpatientDental)
+            .ShouldBe(["outpatient-dental.text.30", "outpatient-dental.text.43"]);
+        MedicalRecordFieldSuggestions.FieldsOf(MedicalRecordForm.Cover).ShouldBeEmpty();
+        MedicalRecordFieldSuggestions.MinPatients.ShouldBe(2);
     }
 }

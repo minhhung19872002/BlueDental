@@ -57,6 +57,16 @@ export interface MedicalRecordPhonesDto {
   guardianPhones: Record<string, string>;
 }
 
+/**
+ * "Gợi ý khi nhập" (R-1219): a blank of the form and what the branch has
+ * written in it for at least two patients, most used first. Mirrors
+ * BlueDental.PatientManagement.MedicalRecordFieldSuggestionsDto.
+ */
+export interface MedicalRecordFieldSuggestionsDto {
+  field: string;
+  values: string[];
+}
+
 const BASE = "/v1/app/patient-medical-records";
 
 const medicalRecordApi = {
@@ -84,6 +94,11 @@ const medicalRecordApi = {
   phones: (patientId: string): Promise<MedicalRecordPhonesDto> =>
     api
       .get<MedicalRecordPhonesDto>(`${BASE}/phones`, { params: { patientId } })
+      .then((r) => r.data),
+
+  fieldSuggestions: (form: number): Promise<MedicalRecordFieldSuggestionsDto[]> =>
+    api
+      .get<MedicalRecordFieldSuggestionsDto[]>(`${BASE}/field-suggestions`, { params: { form } })
       .then((r) => r.data),
 
   /** "Hủy phiếu" — a sheet is never deleted, only marked Đã hủy with a reason. */
@@ -139,6 +154,7 @@ export const medicalRecordKeys = {
   all: ["patient-medical-records"] as const,
   list: (patientId: string) => [...medicalRecordKeys.all, patientId] as const,
   phones: (patientId: string) => [...medicalRecordKeys.all, "phones", patientId] as const,
+  suggestions: (form: number) => [...medicalRecordKeys.all, "suggestions", form] as const,
 };
 
 export function usePatientMedicalRecords(patientId: string) {
@@ -154,6 +170,18 @@ export function useMedicalRecordPhones(patientId: string | undefined) {
     queryKey: medicalRecordKeys.phones(patientId ?? ""),
     queryFn: () => medicalRecordApi.phones(patientId ?? ""),
     enabled: Boolean(patientId),
+  });
+}
+
+/** Read once per form and kept a while: what a branch writes changes slowly. */
+const SUGGESTIONS_STALE_MS = 5 * 60_000;
+
+export function useMedicalRecordFieldSuggestions(form: number | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: medicalRecordKeys.suggestions(form ?? 0),
+    queryFn: () => medicalRecordApi.fieldSuggestions(form ?? 0),
+    enabled: enabled && form !== undefined,
+    staleTime: SUGGESTIONS_STALE_MS,
   });
 }
 

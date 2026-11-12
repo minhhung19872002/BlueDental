@@ -5705,6 +5705,8 @@
     "Patient:MedRecord:EmptyHint": "No medical record slips yet. Click \"Add\" in the index to create a new slip.",
     "Patient:MedicalRecord:AddSuccess": "Medical record sheet added",
     "Patient:MedicalRecord:SaveSuccess": "Medical record sheet saved",
+    "Patient:MedicalRecord:Suggestions": "Suggestions from earlier sheets",
+    "Patient:MedicalRecord:SuggestionsHint": "↑↓ choose · Enter fill in · Esc close · Ctrl+Space suggest",
     "Patient:MedicalRecord:RenameSuccess": "Sheet renamed",
     "Patient:MedicalRecord:DeleteSuccess": "Medical record sheet deleted",
     "Patient:MedicalRecord:SingleSheet": "Single sheet",
