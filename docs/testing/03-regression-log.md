@@ -15074,3 +15074,22 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Đối chứng bản HEAD 7255ddbd chưa sửa (:8214): test 1 đỏ đúng chỗ mới — `toHaveCSS("display", "table-row")` nhận `flex`.
   - Ảnh trước / sau (khung trống + dialog) trong scratchpad của phiên, không commit.
 - **Mức retest**: 2 (Bộ hồ sơ bệnh án). Labo không đổi file nào nên không chạy lại.
+
+## R-1214 (2026-11-12, mức 2: Bệnh án mẫu 2 — tiêu đề gọn lại, giãn dòng trang 1–2, vẫn in 3 trang, F-30)
+- **Yêu cầu** (ảnh chụp hai tờ in, 2026-11-12): phần từ "BỆNH ÁN NGOẠI TRÚ / CHUYÊN KHOA RĂNG HÀM MẶT" trở xuống in ra chật, cần thoáng và dễ nhìn như tờ giấy mẫu của phòng khám. Chỉ chỉnh cỡ chữ và khoảng cách.
+- **Đo trước khi sửa**: muốn thoáng như tờ giấy thì phải giãn dòng lên khoảng 1.5. Khi đó trang 1 dài 288mm và trang 3 dài 287mm, vượt vùng in 267mm. Đã hỏi lại, người dùng chốt: **giữ 3 trang, chỉ giãn nhẹ**; lấy chỗ bằng cách giảm cỡ chữ và chiều cao dòng của tiêu đề.
+- **Sửa (chỉ FE)**:
+  - `sheetCss.ts`:
+    - Tiêu đề hai dòng (và "TỔNG KẾT BỆNH ÁN:") từ 21px còn 18px, line-height 1.15. Lề quanh tiêu đề: 6px phía trên, 6px phía dưới, không có khoảng giữa hai dòng.
+    - Tiêu đề mục I–IV: line-height 1.25, margin 6px 0 3px.
+    - Dòng chữ trang 1–2 từ 1.2 lên 1.4. Bước dòng tăng từ 21/23px lên 23/25px. Dưới 1.37 thì dòng không cao thêm pixel nào.
+    - Khối tiêu đề công ty / MS và trang 3 giữ 1.2, vì trang 3 không còn chỗ.
+    - Các nhãn trước đây vẽ ở 10pt ("1. Toàn thân", "2. Bệnh chuyên khoa", "4. Tóm tắt bệnh án", "5.", "6.", "7.") nay dùng cỡ chữ thường, 14px. `fitBlanks` vẫn giữ mỗi dòng trên một dòng.
+  - `templates/outpatientDental.ts`: dòng "8. Nơi làm việc | 9. Đối tượng" đổi cột 360/320 thành 270/410, ô Nơi làm việc từ 266px còn 140px. Trước đây ô "4. Khác ☐" bị rớt xuống dòng; nay cả bốn ô nằm trên một dòng như tờ giấy.
+- **Kết quả đo** (khung phiếu, khổ viết 680px): trang 1 / 2 / 3 = **256,8 / 221,1 / 256,0mm**. Trước khi sửa là 259,0 / 207,6 / 257,2mm. Trang 1 và trang 3 nay còn dư khoảng 10–11mm.
+  - Phiếu có địa chỉ rất dài (khoảng 140 ký tự) thì trang 1 vẫn tràn: bản cũ 268,9mm, bản mới 268,0mm. Ô địa chỉ nhảy xuống dòng riêng. Lỗi này có từ trước, không do lần sửa này.
+- **Kiểm thử** (API Docker :5000 + bản build production `vite preview` :8080, đăng nhập thật, không chặn request):
+  - Ca "mẫu 2: 15mm margins…" thêm hai kiểm tra: "9. Đối tượng" nằm trên một dòng, tiêu đề là hai dòng 18px → **xanh**.
+  - Ca "every form shares…": mẫu 2 vẫn 14px, in qua "In biểu mẫu" → `page.pdf` ra **3 trang** → **xanh**.
+  - `patient-medical-record` + `medical-record-sheet-facts`: **39 xanh / 3 đỏ**. Cả 3 ca đỏ đã đỏ từ trước: "the index lists…", "the open sheet's card wears…", "picking the day…".
+- **Mức retest**: 2 (F-30 Bệnh án, mẫu 2: màn hình + bản in). `/taxonomy` không bị ảnh hưởng, vì chỉ tab hồ sơ import `sheetCss.ts`.
