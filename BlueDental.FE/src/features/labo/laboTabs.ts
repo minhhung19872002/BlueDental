@@ -84,14 +84,23 @@ export function laboTabs(): LaboTab[] {
       group: LABO_GROUP.Material,
       noun: t("Labo:Noun:Material"),
     },
-    // PROD-HIDE-FORM-TEMPLATE (main only, owner 2026-11-12: "trên prod ẩn tab
-    // Mẫu phiếu"): F-93's Mẫu phiếu tab is left out on production; develop and
-    // staging keep it. /labo/form-template falls back to the first tab through
-    // findLaboTab. To show it again, put this entry back:
-    // { key: "form-template", label: t("Labo:Tab:FormTemplate"),
-    //   subject: "laboMaterial", screen: "form-template" },
+    {
+      // F-93: the branch's Mẫu phiếu bổ sung, a catalog like the one before it.
+      key: "form-template",
+      label: t("Labo:Tab:FormTemplate"),
+      subject: "laboMaterial",
+      screen: "form-template",
+    },
   ];
 }
+
+/**
+ * PROD-HIDE-FORM-TEMPLATE (main only, owner 2026-11-12: "trên prod ẩn tab Mẫu
+ * phiếu"): tabs kept in laboTabs() — LaboPage reads its abilities by position —
+ * but never shown on production; /labo/form-template falls back to the first
+ * tab. develop and staging keep the tab. To show it again, empty this set.
+ */
+export const HIDDEN_LABO_TABS: ReadonlySet<string> = new Set(["form-template"]);
 
 export function findLaboTab(tabs: LaboTab[], key: string | undefined): LaboTab {
   return tabs.find((tab) => tab.key === key) ?? tabs[0];
