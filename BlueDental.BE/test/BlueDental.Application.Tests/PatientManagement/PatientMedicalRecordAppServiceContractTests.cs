@@ -53,9 +53,11 @@ public class PatientMedicalRecordAppServiceContractTests
     [Fact]
     public void Only_The_Listed_Blanks_Offer_Suggestions()
     {
-        MedicalRecordFieldSuggestions.FieldsOf(MedicalRecordForm.OutpatientDental)
-            .ShouldBe(["outpatient-dental.text.30", "outpatient-dental.text.43"]);
-        MedicalRecordFieldSuggestions.FieldsOf(MedicalRecordForm.Cover).ShouldBeEmpty();
+        var groups = MedicalRecordFieldSuggestions.GroupsOf(MedicalRecordForm.OutpatientDental);
+        groups.Select(g => g.Field).ShouldBe(["outpatient-dental.text.30", "outpatient-dental.text.43"]);
+        groups[0].Lines.ShouldBe([.. Enumerable.Range(30, 6).Select(n => $"outpatient-dental.text.{n}")]);
+        groups[1].Lines.ShouldBe(["outpatient-dental.text.43", "outpatient-dental.text.44"]);
+        MedicalRecordFieldSuggestions.GroupsOf(MedicalRecordForm.Cover).ShouldBeEmpty();
         MedicalRecordFieldSuggestions.MinPatients.ShouldBe(2);
     }
 }

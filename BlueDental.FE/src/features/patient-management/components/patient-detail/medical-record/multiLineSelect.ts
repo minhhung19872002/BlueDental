@@ -1,4 +1,5 @@
 import { eraseSelection } from "./eraseSelection";
+import { flowOwner, flowParts } from "./flowLines";
 import { holdBlanks, releaseBlanks } from "./heldBlanks";
 import { copiedText } from "./sheetCopy";
 
@@ -15,11 +16,17 @@ import { copiedText } from "./sheetCopy";
  * the page, for Ctrl+C or the context menu's Copy:
  *
  *   - a drag that leaves the blank it started in selects up to the pointer;
- *   - Ctrl+A in a blank selects its whole entry: the label's blank and every
- *     line under it that holds only writing, down to the next label;
+ *   - Ctrl+A selects the blank the caret is in, and nothing else (owner,
+ *     2026-11-13, R-1223 — it used to take the label's whole entry, every line
+ *     under it too): one that fits its line is left to the browser, which
+ *     keeps it to that blank; one whose text flowed onto lines of its own is
+ *     selected over them, held;
  *   - Delete or Backspace erases what is selected (owner, 2026-11-12, R-1221 —
  *     before, it was spent on giving the blanks back and wiped nothing; see
  *     eraseSelection), and that is reported as an edit;
+ *   - a letter typed over it erases it too and is written in its place
+ *     (R-1223 — it used to be spent on giving the blanks back, so the first
+ *     letter of a word went missing: "dòng" came out "òng");
  *   - the next click, or any other key but Ctrl+C, gives the blanks back. The
  *     key itself is spent on that.
  *
@@ -27,7 +34,6 @@ import { copiedText } from "./sheetCopy";
  */
 
 const EDITABLE = '[contenteditable="true"]';
-const BLOCK_SELECTOR = "p, h1, h2, h3, h4, li";
 const MODIFIER_KEYS = new Set(["Control", "Meta", "Shift", "Alt", "AltGraph", "CapsLock"]);
 
 interface Point {
@@ -59,48 +65,9 @@ function pointAt(doc: Document, x: number, y: number): Point | null {
   return range ? { node: range.startContainer, offset: range.startOffset } : null;
 }
 
-function blanksIn(block: Element): Element[] {
-  return Array.from(block.querySelectorAll(EDITABLE));
-}
-
-/** The words a block prints itself, leaving out what is written in its blanks. */
-function printedText(block: Element, after: Element | null = null): string {
-  const range = block.ownerDocument.createRange();
-  range.selectNodeContents(block);
-  if (after) range.setStartAfter(after);
-  const fragment = range.cloneContents();
-  fragment.querySelectorAll(EDITABLE).forEach((blank) => blank.remove());
-  return fragment.textContent ?? "";
-}
-
-/** A line of writing only — a flowed line, an added one, or a printed blank line under a label. */
-function isWritingLine(block: Element | null): block is Element {
-  if (!block?.matches(BLOCK_SELECTOR)) return false;
-  return blanksIn(block).length > 0 && !printedText(block).trim();
-}
-
-/** The block's last blank, if nothing printed follows it: the one a label's writing starts in. */
-function trailingBlank(block: Element | null): Element | null {
-  if (!block?.matches(BLOCK_SELECTOR)) return null;
-  const last = blanksIn(block).at(-1) ?? null;
-  return last && !printedText(block, last).trim() ? last : null;
-}
-
-/** The first and last blank of the entry `host` is written in. */
-function entryOf(host: Element): [Element, Element] {
-  const block = host.closest(BLOCK_SELECTOR);
-  if (!block) return [host, host];
-  const writing = isWritingLine(block);
-  // "Họ tên" with "Ngày sinh" after it on its line is an entry of its own.
-  if (!writing && trailingBlank(block) !== host) return [host, host];
-
-  let top = block;
-  while (writing && isWritingLine(top.previousElementSibling)) top = top.previousElementSibling;
-  let bottom = block;
-  while (isWritingLine(bottom.nextElementSibling)) bottom = bottom.nextElementSibling;
-
-  const first = writing ? (trailingBlank(top.previousElementSibling) ?? blanksIn(top)[0]) : host;
-  return [first, blanksIn(bottom).at(-1) ?? host];
+/** Text typed over a selection: one character, no command key. */
+function isTyping(event: KeyboardEvent): boolean {
+  return event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
 }
 
 export function attachMultiLineSelect(doc: Document): () => void {
@@ -154,10 +121,14 @@ export function attachMultiLineSelect(doc: Document): () => void {
     if (holding && doc.getSelection()?.isCollapsed) releaseToCaret();
   };
 
-  const selectEntry = (event: KeyboardEvent) => {
+  /** Ctrl+A over a blank whose text flowed onto lines of its own: all of them, as one. */
+  const selectBlank = (event: KeyboardEvent) => {
     const host = hostOf(event.target as Node | null);
-    if (!host) return;
-    const [first, last] = entryOf(host);
+    const owner = host ? flowOwner(host) : null;
+    if (!owner) return;
+    const parts = flowParts(owner);
+    const first = parts[0];
+    const last = parts[parts.length - 1];
     if (first === last) return;
     event.preventDefault();
     hold();
@@ -168,17 +139,24 @@ export function attachMultiLineSelect(doc: Document): () => void {
     const command = event.ctrlKey || event.metaKey;
     const key = event.key.toLowerCase();
     if (!holding) {
-      if (command && key === "a" && !event.isComposing) selectEntry(event);
+      if (command && key === "a" && !event.isComposing) selectBlank(event);
       return;
     }
     if (MODIFIER_KEYS.has(event.key) || (command && key === "c")) return;
+    const selection = doc.getSelection();
+    const selected = selection && selection.rangeCount > 0 && !selection.isCollapsed ? selection.getRangeAt(0) : null;
+    // A letter over the selection: erased, then the key goes on to write where the caret was left.
+    if (selected && isTyping(event) && !event.isComposing) {
+      event.stopPropagation();
+      eraseSelection(doc, selected, release);
+      return;
+    }
     // Not passed on: Enter, or lineEditing's Delete on an empty line, must not act on blanks the selection spans.
     event.preventDefault();
     event.stopPropagation();
-    const selection = doc.getSelection();
     const erase = (event.key === "Delete" || event.key === "Backspace") && !command;
-    if (erase && selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-      eraseSelection(doc, selection.getRangeAt(0), release);
+    if (erase && selected) {
+      eraseSelection(doc, selected, release);
       return;
     }
     releaseToCaret();

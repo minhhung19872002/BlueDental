@@ -312,7 +312,12 @@ export function MedicalRecordDocument({
       {editable && <SheetDrawingDialogs drawing={drawing} />}
       {editable && <MaterialTypeDialog materials={materials} />}
       {editable && (
-        <SheetSuggestions open={suggestions.open} onPick={suggestions.pick} onHighlight={suggestions.highlight} />
+        <SheetSuggestions
+          open={suggestions.open}
+          onPick={suggestions.pick}
+          onHighlight={suggestions.highlight}
+          onMore={suggestions.more}
+        />
       )}
     </div>
   );
