@@ -177,6 +177,12 @@ public class TreatmentServiceDto : EntityDto<Guid>
     /// </summary>
     public decimal PaidAmount { get; set; }
 
+    /// <summary>
+    /// Hoàn tiền trên dòng này — the refunds that named it. "Khôi phục dịch vụ"
+    /// warns with it: the line charges again, so that money is owed again (R-1230).
+    /// </summary>
+    public decimal RefundedAmount { get; set; }
+
     /// <summary>Còn nợ của dòng — what the payment dialog offers to collect.</summary>
     public decimal OutstandingAmount { get; set; }
 
@@ -832,6 +838,9 @@ public interface IPatientTreatmentAppService : IApplicationService
         Guid id, Guid serviceLineId, UpdateTreatmentServiceDto input);
     Task<TreatmentPlanSlipDto> CompleteServiceAsync(Guid id, Guid serviceLineId);
     Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId);
+
+    /// <summary>"Khôi phục dịch vụ" — brings a cancelled line back (R-1230).</summary>
+    Task<TreatmentPlanSlipDto> RestoreServiceAsync(Guid id, Guid serviceLineId);
 
     /// <summary>"Xóa" — takes a line still "Đã tạo" off the slip (R-953).</summary>
     Task<TreatmentPlanSlipDto> DeleteServiceAsync(Guid id, Guid serviceLineId);

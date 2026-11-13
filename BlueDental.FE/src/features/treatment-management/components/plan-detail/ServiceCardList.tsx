@@ -1,5 +1,5 @@
 import { Pagination } from "antd";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { RecordCard, type RecordCardRow } from "@/components/RecordCard";
 import type { TablePagination } from "@/hooks/useTablePagination";
 import { t } from "@/lib/i18n";
@@ -11,6 +11,7 @@ import {
   diagnosisOf,
   isLineDeletable,
   isLineEditable,
+  isLineRestorable,
   isOwnLine,
   LineStatusMenu,
   NetAmountCell,
@@ -53,8 +54,9 @@ function cardRows(row: PlanDetailRow, actions: ServiceRowActions) {
 
 /**
  * The card head: the eye, "Đổi trạng thái" on a line still open, the pencil on
- * a line still editable, and "Xóa" on a line still "Đã tạo" (R-953) — the
- * last three on the viewer's own lines only (BA bug 40).
+ * a line still editable, "Xóa" on a line still "Đã tạo" (R-953) and "Khôi
+ * phục" on a "Hủy dịch vụ" one (R-1230) — the last four on the viewer's own
+ * lines only (BA bug 40).
  */
 function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
   const own = isOwnLine(row);
@@ -87,6 +89,16 @@ function CardActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
           onClick={() => actions.onDelete?.(row)}
         >
           <Trash2 size={16} aria-hidden="true" />
+        </button>
+      )}
+      {own && actions.onRestore && isLineRestorable(row) && (
+        <button
+          type="button"
+          className="bd-rc-action"
+          aria-label={t("Treatment:Service:RestoreService")}
+          onClick={() => actions.onRestore?.(row)}
+        >
+          <RotateCcw size={16} aria-hidden="true" />
         </button>
       )}
     </span>

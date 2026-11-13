@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
 import type { TableColumnsType } from "antd";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { ActionTooltip } from "@/components/ActionTooltip";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { formatToothCodes } from "../../api/consultingApi";
 import type { WarrantyServiceRowDto } from "../../api/planWarrantyApi";
-import { SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
+import { PLAN_STATUS, SERVICE_LINE_STATUS } from "../../api/treatmentPlanApi";
 import { LineMoney } from "../plan/LineMoney";
 import { DiscountBreakdown } from "./DiscountBreakdown";
 import { PlanLaboCell } from "./PlanLaboCell";
@@ -30,6 +30,8 @@ export interface ServiceRowActions {
   onEdit?: (row: PlanDetailRow) => void;
   /** "Xóa". Left out without treatmentConsultation.delete; shown only on lines still "Đã tạo". */
   onDelete?: (row: PlanDetailRow) => void;
+  /** "Khôi phục" (R-1230). Left out without treatmentConsultation.update; see {@link isLineRestorable}. */
+  onRestore?: (row: PlanDetailRow) => void;
   /** The LABO code under "Phiếu Labo": opens the shared Labo dialog on that order. */
   onLabo?: (orderId: string) => void;
 }
@@ -71,6 +73,13 @@ export function isOwnLine(row: PlanDetailRow): boolean {
 /** Owner 2026-10-15 (R-953): only a line nobody has started on can be taken off the slip. */
 export function isLineDeletable(row: PlanDetailRow): boolean {
   return row.service.status === SERVICE_LINE_STATUS.Created;
+}
+
+/** Owner 2026-11-13 (R-1230): a "Hủy dịch vụ" line can come back, unless its slip was cancelled. */
+export function isLineRestorable(row: PlanDetailRow): boolean {
+  return (
+    row.service.status === SERVICE_LINE_STATUS.Cancelled && row.plan.status !== PLAN_STATUS.Cancelled
+  );
 }
 
 /**
@@ -151,13 +160,14 @@ function column(
 
 /**
  * Thao tác: the eye, "Đổi trạng thái" on a line still open, the pencil on a
- * line still editable, and "Xóa" on a line still "Đã tạo" — the last three on
- * the viewer's own lines only.
+ * line still editable, "Xóa" on a line still "Đã tạo" and "Khôi phục" on a
+ * "Hủy dịch vụ" one — the last four on the viewer's own lines only.
  */
 function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRowActions }) {
   const own = isOwnLine(row);
   const editable = own && actions.onEdit && isLineEditable(row);
   const deletable = own && actions.onDelete && isLineDeletable(row);
+  const restorable = own && actions.onRestore && isLineRestorable(row);
   return (
     <span className="pdt-line-actions">
       <ActionTooltip title={t("Treatment:Service:ViewDetail")}>
@@ -182,6 +192,18 @@ function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
             onClick={() => actions.onDelete?.(row)}
           >
             <Trash2 size={16} aria-hidden="true" />
+          </button>
+        </ActionTooltip>
+      )}
+      {restorable && (
+        <ActionTooltip title={t("Treatment:Service:RestoreService")}>
+          <button
+            type="button"
+            className="tp-eye pdt-line-restore"
+            aria-label={t("Treatment:Service:RestoreService")}
+            onClick={() => actions.onRestore?.(row)}
+          >
+            <RotateCcw size={16} aria-hidden="true" />
           </button>
         </ActionTooltip>
       )}

@@ -627,6 +627,23 @@ public class TreatmentPlan : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
+    /// "Khôi phục dịch vụ" on a cancelled line (owner 2026-11-13, R-1230). A
+    /// slip that was cancelled whole keeps its lines closed. The caller moves
+    /// the line on by its công đoạn and re-opens a slip the cancel had closed.
+    /// </summary>
+    public TreatmentService RestoreService(Guid serviceLineId)
+    {
+        if (Status == TreatmentPlanStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceRestorePlanCancelled,
+                "No service line can be restored on a cancelled plan.");
+        }
+
+        return GetService(serviceLineId).Restore();
+    }
+
+    /// <summary>
     /// "DT05-03": the slip code and the line's place among every line the slip
     /// has ever held, removed ones included — see <see cref="RemovedServiceCount"/>.
     /// </summary>
