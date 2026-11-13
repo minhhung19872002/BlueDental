@@ -5622,7 +5622,7 @@
     "Patient:MedicalRecord:AddSuccess": "Đã thêm phiếu bệnh án",
     "Patient:MedicalRecord:SaveSuccess": "Đã lưu phiếu bệnh án",
     "Patient:MedicalRecord:Suggestions": "Gợi ý từ các phiếu trước",
-    "Patient:MedicalRecord:SuggestionsHint": "↑↓ chọn · Enter điền · Esc đóng · Ctrl+Space mở gợi ý",
+    "Patient:MedicalRecord:SuggestionsHint": "Tab điền gợi ý đang chọn · ↑↓ chọn khác · Esc đóng · Ctrl+Space mở gợi ý",
     "Patient:MedicalRecord:RenameSuccess": "Đã đổi tên phiếu",
     "Patient:MedicalRecord:DeleteSuccess": "Đã xoà phiếu bệnh án",
     "Patient:MedicalRecord:SingleSheet": "Từng phiếu",

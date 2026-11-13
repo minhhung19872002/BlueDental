@@ -12,7 +12,7 @@ export interface OpenSuggestions {
   items: Suggestion[];
   /** Whether scrolling on loads more. */
   hasMore: boolean;
-  /** -1 until ↑/↓ or the pointer picks one: Enter then keeps its usual meaning. */
+  /** The one Tab writes in: the first, until ↑/↓ or the pointer picks another. */
   active: number;
   anchor: SuggestAnchor;
 }
@@ -22,6 +22,12 @@ interface Target {
   matches: Suggestion[];
   shown: number;
   active: number;
+  /**
+   * Whether `active` was picked with ↑/↓ or the pointer. Only then does Enter
+   * write it in; until then Enter keeps its meaning — the next line — so a
+   * line typed in full is never swapped for a longer one.
+   */
+  chosen: boolean;
   anchor: SuggestAnchor;
 }
 
@@ -30,8 +36,10 @@ interface Target {
  * suggestions lists what the branch wrote on that part of the form before,
  * from the first letter; Ctrl + Space lists them in an empty blank too
  * (R-1220). Every printed line of the part offers the same list, and so does a
- * line added under it with Enter (R-1222). ↑/↓ choose, Enter or Tab or a click
- * writes the choice in, Esc closes; a long list loads on as it is scrolled.
+ * line added under it with Enter (R-1222). As in a browser's address bar, the
+ * first match stands ready and Tab writes it in (R-1229); ↑/↓ choose another,
+ * then Enter or Tab or a click writes the choice in, Esc closes; a long list
+ * loads on as it is scrolled.
  * The list lives on the page, not in the sheet's own document — printing
  * copies that document, and the list must never reach paper.
  */
@@ -74,7 +82,7 @@ export function useSheetSuggestions(
   }, [frame]);
 
   const highlight = useCallback((index: number) => {
-    setTarget((open) => (open ? { ...open, active: index } : open));
+    setTarget((open) => (open ? { ...open, active: index, chosen: true } : open));
   }, []);
 
   const more = useCallback(() => {
@@ -87,10 +95,10 @@ export function useSheetSuggestions(
     setTarget((open) => {
       if (!open) return open;
       const next = open.active + by;
-      if (next < 0) return { ...open, active: open.shown - 1 };
-      if (next >= open.matches.length) return { ...open, active: 0 };
+      if (next < 0) return { ...open, active: open.shown - 1, chosen: true };
+      if (next >= open.matches.length) return { ...open, active: 0, chosen: true };
       const shown = next >= open.shown ? open.shown + SUGGESTION_PAGE : open.shown;
-      return { ...open, active: next, shown };
+      return { ...open, active: next, shown, chosen: true };
     });
   }, []);
 
@@ -109,7 +117,8 @@ export function useSheetSuggestions(
         field: at.field,
         matches,
         shown: SUGGESTION_PAGE,
-        active: -1,
+        active: 0,
+        chosen: false,
         anchor: anchorUnder(iframe, doc, at.line),
       });
     };
@@ -141,10 +150,10 @@ export function useSheetSuggestions(
       } else if (event.key === "Escape") {
         take();
         setTarget(null);
-      } else if ((event.key === "Enter" || event.key === "Tab") && open.active >= 0) {
+      } else if (event.key === "Tab" || (event.key === "Enter" && open.chosen)) {
         take();
         pick(open.active);
-      } else if (event.key === "Enter" || event.key === "Tab") {
+      } else if (event.key === "Enter") {
         setTarget(null);
       }
     };
