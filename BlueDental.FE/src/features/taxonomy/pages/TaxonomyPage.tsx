@@ -573,11 +573,13 @@ export function TaxonomyPage() {
           className="taxonomy-tabs"
           label={t("Taxonomy:Page:Title")}
           activeKey={tab.key}
-          tabs={visibleTabs.map((item) => ({
-            key: item.key,
-            label: item.label,
-            to: `/taxonomy/${item.key}`,
-          }))}
+          tabs={visibleTabs
+            .filter((item) => !item.hidden)
+            .map((item) => ({
+              key: item.key,
+              label: item.label,
+              to: `/taxonomy/${item.key}`,
+            }))}
         />
 
         <div className="bd-min0h bd-flex1">
