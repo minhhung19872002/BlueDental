@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlueDental.Labo;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
@@ -20,17 +21,20 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
 {
     private readonly IRepository<Taxonomy, Guid> _repository;
     private readonly IRepository<CatalogEntry, Guid> _entryRepository;
+    private readonly IRepository<LaboMaterial, Guid> _laboMaterialRepository;
     private readonly ICurrentClinicBranchResolver _branchResolver;
     private readonly BranchAccessChecker _branchAccess;
 
     public TaxonomyAppService(
         IRepository<Taxonomy, Guid> repository,
         IRepository<CatalogEntry, Guid> entryRepository,
+        IRepository<LaboMaterial, Guid> laboMaterialRepository,
         ICurrentClinicBranchResolver branchResolver,
         BranchAccessChecker branchAccess)
     {
         _repository = repository;
         _entryRepository = entryRepository;
+        _laboMaterialRepository = laboMaterialRepository;
         _branchResolver = branchResolver;
         _branchAccess = branchAccess;
     }
@@ -120,7 +124,9 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
             input.Alias,
             input.Color,
             input.Description,
-            input.SubGroup,
+            // A Dịch vụ Labo the branch adds is marked by the server, never by
+            // the caller, so the tab can tell it from a group made before P1011.
+            input.Group == TaxonomyGroups.LaboMaterial ? LaboMaterialGroups.Added : input.SubGroup,
             isSystem: false,
             input.SortOrder);
 
@@ -226,6 +232,17 @@ public class TaxonomyAppService : ApplicationService, ITaxonomyAppService
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.Catalogs.TaxonomyNotEmpty,
                 "Move or delete the entries of this group before deleting it.");
+        }
+
+        if (taxonomy.Group == TaxonomyGroups.LaboMaterial)
+        {
+            var materialQuery = await _laboMaterialRepository.GetQueryableAsync();
+            if (materialQuery.Any(x => x.TaxonomyId == id))
+            {
+                throw new BusinessException(
+                    BlueDentalDomainErrorCodes.Labo.ServiceHasMaterials,
+                    "Delete or move the materials of this service before deleting it.");
+            }
         }
 
         await _repository.DeleteAsync(id, autoSave: true);

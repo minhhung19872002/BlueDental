@@ -619,3 +619,43 @@ interception.
   own block in the template's order.
 - **No default section** — the builder opens with 9 system blocks and
   "0/10 mục"; both specs add their sections through Thêm mục.
+
+## F-96 — Phiếu yêu cầu bản 2 (BA P1311, R-1225, 2026-11-13, develop only)
+
+- **`e2e/labo-request-slip-api.spec.ts`**:
+  - A send without a supplier, or with another branch's supplier, gets
+    `Labo:0062`. A draft without a supplier still saves.
+  - Several materials of one Dịch vụ are stored on every tooth. Materials of
+    two Dịch vụ get `Labo:0045`.
+  - A Dịch vụ created through the taxonomy API is stamped `DICH_VU`. Deleting
+    it while it holds a material gets `Labo:0063`; once the material is gone
+    the delete succeeds. The fixed groups stay locked (`Catalogs:0007`).
+- **`e2e/labo-request-slip-ui.spec.ts`**:
+  - The first case picks the supplier, checks the address placeholder and
+    "Chưa chọn nhà cung cấp", and reads `supplierName` back.
+  - New "Dịch vụ is one radio, Vật liệu any of its materials":
+    - Before a Dịch vụ is picked: the empty text shows and the search box is
+      disabled.
+    - Accent-blind search, the not-found text and chips.
+    - "Đã chọn (2)", × on a chip, "Bỏ chọn tất cả".
+    - Switching the Dịch vụ lets go of the picks.
+    - The slip is sent and reopened through Xem chi tiết → Đặt hàng.
+  - New "Nhà cung cấp (Labo) is required; its + makes one": a supplier made
+    in LaboSupplierDialog (Tên, Email, SĐT, Địa chỉ) is picked, its address
+    and "Liên hệ" are shown, and the sent order names it.
+  - New "Dịch vụ Labo: a Dịch vụ is added, renamed, refused deletion…":
+    - The fixed rows have no menu.
+    - A Dịch vụ is added, then renamed, and the new name survives a reload.
+    - Xoá is refused while it holds a material, with the `Labo:0063` text.
+    - Once the material is deleted, Xoá removes the Dịch vụ, checked by GET.
+  - "Ngừng" case: a stopped material is neither listed nor found by search.
+- **Fixtures**:
+  - `laboSlipUi.ts`: `restorationRows` matches the new DOM. `pickSupplier`
+    waits for its dropdown to close, so the next `:visible` dropdown is the
+    right one. `fillRequired` takes a supplier.
+  - `laboSlipApi.ts`: the catalog includes a `supplier`. `laboServices` lists
+    the Dịch vụ.
+- **Mẫu phiếu hidden**: the UI describes of `labo-form-layout`,
+  `labo-form-layout-dnd` and `labo-form-template-ui` are `describe.skip`,
+  marked HIDDEN-FORM-TEMPLATE. Their API describes still run. `labo.spec`
+  asserts the "Mẫu phiếu" link is absent.

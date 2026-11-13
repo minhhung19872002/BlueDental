@@ -10,6 +10,7 @@ import {
 } from "@/features/labo/api/laboApi";
 import { useSaveLaboOrder } from "@/features/labo/api/laboMutations";
 import { useActiveLaboFormTemplates, type LaboFormTemplateDto } from "@/features/labo/api/laboFormTemplateApi";
+import { HIDDEN_LABO_TABS } from "../../laboTabs";
 import { priorLaboTeeth, type LaboPriorTeeth } from "../order-dialogs/laboPriorTeeth";
 import { useLaboPictureTiles, type LaboPictureTiles } from "../order-dialogs/useLaboPictureTiles";
 import {
@@ -50,6 +51,11 @@ export interface RequestSlipStep {
 
 const NO_PRIORS: LaboPriorTeeth = new Map();
 const NO_TEMPLATES: LaboFormTemplateDto[] = [];
+/**
+ * Mẫu phiếu is offered on the slip only while its tab shows (BA P1311 hid
+ * both). A slip that already holds a copy still shows it, and may clear it.
+ */
+const OFFERS_TEMPLATES = !HIDDEN_LABO_TABS.has("form-template");
 
 /**
  * The Phiếu yêu cầu (F-91): one spec for the whole order, entered once and
@@ -71,7 +77,7 @@ export function useRequestSlipStep({ branchId, patientId, order, start, readOnly
   // Every order of the patient still on its way, not only the plan's (F-91).
   const patientOrders = usePatientLaboOrders({ patientId, maxResultCount: 1000 }, editable).data?.items;
   const priors = editable ? priorLaboTeeth(patientOrders ?? [], order?.id) : NO_PRIORS;
-  const templates = useActiveLaboFormTemplates(branchId, editable).data ?? NO_TEMPLATES;
+  const templates = useActiveLaboFormTemplates(branchId, editable && OFFERS_TEMPLATES).data ?? NO_TEMPLATES;
 
   const change = (patch: Partial<RequestSlipValues>) => setValues((current) => ({ ...current, ...patch }));
 
@@ -107,7 +113,7 @@ export function useRequestSlipStep({ branchId, patientId, order, start, readOnly
     editable,
     errors,
     priors,
-    templates: editable ? templates : NO_TEMPLATES,
+    templates: editable && OFFERS_TEMPLATES ? templates : NO_TEMPLATES,
     pictures,
     saving: save.isPending,
     saveDraft: () => persist(false),

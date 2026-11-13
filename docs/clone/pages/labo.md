@@ -1027,3 +1027,120 @@ FE:
 - A new template starts with the system blocks only — no default "Thông tin
   bổ sung" section (owner); Thêm mục adds one. An F-93 template without a
   layout still reads with its section.
+
+## 14. R-1216 — BA feedback on the Phiếu yêu cầu (2026-11-12, develop only)
+
+**BA requirement, not the reference.** BA Huỳnh Văn Định's notes on the
+F-91/F-92 slip: "trái để lại như trc chọn dịch vụ → chọn vật liệu", "phải
+thêm kiểu nhịp, khớp cắn", "tạo hình cho giống cái răng". Owner decisions
+(2026-11-12): exactly 1 Dịch vụ + 1 Vật liệu; drop "Trên implant" entirely;
+Kiểu nhịp / Khớp cắn as dropdowns "như cũ"; Màu răng drawn as an incisor
+crown. Kept on develop; **not merged to main**.
+
+What in §11–§13 no longer describes BlueDental (develop):
+
+- Loại phục hình:
+  - One picker, `RestorationPicker`: the classic Đặt hàng rows
+    (`LaboChoiceRow`, three chips + «Xem thêm» popup with recent / search).
+    Row 1 Dịch vụ = the three fixed groups of §11; row 2 Vật liệu = the
+    active materials of that group. Changing Dịch vụ lets go of a material it
+    does not offer.
+  - The three cards / columns and the "Trên implant" ticks are gone. The
+    server takes at most one restoration and never `onImplant`
+    (`Labo:0045`); none is still `Labo:0044`.
+  - Old orders keep what they saved; their read-back, Xem chi tiết and print
+    still say "(trên implant)" where an old tick had it.
+- Kiểu nhịp (`labo_rhythm`) and Khớp cắn (`labo_bite`):
+  - Two optional single-choice AntD Selects under Đường hoàn tất
+    (`SlipSpecSelects`), once per order, copied onto every tooth like the
+    rest of the spec. A value of a Danh mục row later removed is still shown.
+  - Server keeps an id only if it is a row of that group in this branch;
+    anything else is dropped silently. A Mẫu phiếu hiding Đường hoàn tất
+    drops them too.
+  - Shown on the sent slip, Xem chi tiết (`LaboRequestSlipFacts`) and the
+    print sheet.
+- Màu răng (`ShadeZoneMap`):
+  - An upper central incisor seen from the lip, crown only (220×260 SVG
+    path): narrow neck, flaring sides, broad incisal edge. The same path
+    clips the 2×3 grid (`--rs-crown: path(...)`), dashed lines split Cổ /
+    Thân / Rìa cắn × Gần / Xa, labels stay at the side and under it.
+  - Each input carries `data-zone`; per-zone padding centres the code in the
+    part of the cell the crown shows (the neck row is narrow).
+- Mẫu phiếu (F-94):
+  - Block kinds AllCeramic 7 / Alloy 8 / OtherOnImplant 9 are no longer
+    system blocks. A layout saved with them folds them back into Loại phục
+    hình, one column wide, shown if any card was shown
+    (`LaboFormLayout.WithoutCards`). No migration.
+  - New default order: Info 3, Restoration 1, Shade 1, Teeth 1, FinishLine 1,
+    [Thông tin bổ sung 3], Notes 3. The fixed slip without a template
+    (`LegacySlipLayout`) puts Đường hoàn tất (with Kiểu nhịp / Khớp cắn) in
+    column 3 under Chỉ định, while a template's default flows it into
+    column 1 under Loại phục hình (masonry): accepted difference.
+  - The builder's preview draws the same picker and the two Selects.
+
+## 15. P1311 — Phiếu yêu cầu bản 2 (F-96, R-1225, 2026-11-13, develop only)
+
+**BA requirement, not the reference.** BA AnTran's P1311 drawio plus the
+mockup "Labo - Phiếu yêu cầu (bản 2 nhập mã số, không kế hoạch nhà cung
+cấp)". The owner approved the plan on 2026-11-13. It is kept on develop and
+is **not merged to main**. "Chuyển đổi dịch vụ" is postponed while the BA is
+still analysing it.
+
+What in §11–§14 no longer describes BlueDental (develop):
+
+- **Mẫu phiếu is hidden.**
+  - The tab is hidden on develop as on main, through `HIDDEN_LABO_TABS` in
+    `laboTabs.ts`.
+  - The slip's Mẫu phiếu bổ sung picker is hidden too, through
+    `OFFERS_TEMPLATES` in `useRequestSlipStep.ts`.
+  - Code, routes, API and saved templates are kept. The F-93/F-94 UI e2e
+    describes are `describe.skip` with a HIDDEN-FORM-TEMPLATE note, and their
+    API describes still run.
+- **"Vật liệu & loại phục hình" is now "Dịch vụ Labo".**
+  - The group panel is titled "Danh mục dịch vụ".
+  - "+" (Thêm dịch vụ) adds a Dịch vụ. The server stamps `SubGroup =
+    "DICH_VU"` (`LaboMaterialGroups.Added`), never the caller, so the tab can
+    tell it apart from a group made before P1011, which stays hidden.
+  - An added Dịch vụ can be renamed and given a priority (Chỉnh sửa).
+  - Xoá is refused with `Labo:0063` while any Vật liệu is filed under the
+    Dịch vụ, a stopped (Ngừng) one included. A deleted one does not count.
+  - The three fixed groups stay locked (`Catalogs:0007`, no menu, info icon).
+  - This reverses F-92's "no group CRUD".
+- **Nhà cung cấp (Labo)\* is required** (`SupplierField`).
+  - The send is refused with `Labo:0062` without a supplier, or with a
+    supplier of another branch.
+  - The footer lists "Chưa chọn nhà cung cấp".
+  - "+" (Thêm nhà cung cấp mới) opens `LaboSupplierDialog` (Tên + Email
+    required, as on the supplier tab) and picks the new supplier.
+  - Địa chỉ is read-only, with the placeholder "Chọn nhà cung cấp trước".
+    No phone line under it (the "Liên hệ: {SĐT}" line was dropped in R-1228:
+    the BA never asked for it).
+  - **Địa chỉ nha khoa** (R-1227, moved in R-1228, BA 2026-11-13) sits right
+    under Nha khoa (row 2: Bệnh nhân | Bác sĩ chỉ định | Tuổi · Giới tính | Địa
+    chỉ nha khoa). Row 3 is Nhà cung cấp | Địa chỉ nhà cung cấp | Ngày gửi |
+    Ngày nhận dự kiến. Both addresses stay read-only (BA: "Ko"). It is read-only and
+    comes from the branch's Cấu hình › Thông tin phòng khám (street, ward,
+    province), the same source as "Nha khoa". It is shown before a supplier is
+    picked. A long address ends in "…", and the full text is in its tooltip.
+  - The order keeps `SupplierId` and copies the name into `LabProviderName`,
+    as Đặt hàng does. A draft keeps the supplier too.
+- **Loại phục hình is one Dịch vụ, then any of its Vật liệu**
+  (`RestorationPicker`). This replaces R-1216's 1 + 1 chips.
+  - Dịch vụ is a radio list (`ServiceRadioList`): the three fixed groups
+    first, then the added ones.
+  - Vật liệu is a checkbox list (`MaterialMultiPicker`).
+    - Its search box "Tìm vật liệu" ignores accents and case, and is disabled
+      until a Dịch vụ is picked.
+    - A filter switches between "Tất cả (n)" and "Đã chọn (n)". "Đã chọn"
+      lists the picks in catalog order.
+    - Picks also show as chips (`MaterialChips`), each with ×, plus "Bỏ chọn
+      tất cả".
+    - The empty texts are "Chọn dịch vụ trước", "Chưa chọn vật liệu nào." and
+      `Không tìm thấy vật liệu "{q}".`
+  - Changing the Dịch vụ lets go of every pick.
+  - The server takes any number of active materials of this branch, all of
+    one Dịch vụ, never `onImplant` (`Labo:0045`). None is still `Labo:0044`.
+    Each tooth stores every picked material.
+- The Danh mục tab "Vật liệu nha khoa" (`/taxonomy`, group `dental_material`)
+  is a different list. Only Bệnh án mẫu 5 uses it; Labo never reads it. This
+  was answered to the BA.

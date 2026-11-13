@@ -78,7 +78,10 @@ async function searchTemplates(page: Page, text: string) {
   await page.getByRole("textbox", { name: "Tìm mẫu phiếu" }).fill(text);
 }
 
-test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
+// HIDDEN-FORM-TEMPLATE (BA P1311, 2026-11-13): tab Mẫu phiếu and the slip's Mẫu phiếu picker are hidden on
+// develop as on main (laboTabs HIDDEN_LABO_TABS, useRequestSlipStep OFFERS_TEMPLATES); code and data are kept.
+// The API describes above still run. Un-skip when the BA brings the screens back.
+test.describe.skip("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
@@ -104,8 +107,9 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
       // A new template holds no section of its own (owner, 2026-11-11); Thêm mục adds one.
       await expect(dialog.getByTestId("form-field-row")).toHaveCount(0);
       await dialog.getByRole("button", { name: "Thêm mục" }).click();
-      await expect(problem).toHaveText("Khối 9 chưa có tiêu đề");
-      await dialog.getByLabel("Tiêu đề khối 9").fill("Thông tin bổ sung");
+      // Six system blocks since R-1216 folded Loại phục hình's cards; the section goes in before Yêu cầu.
+      await expect(problem).toHaveText("Khối 6 chưa có tiêu đề");
+      await dialog.getByLabel("Tiêu đề khối 6").fill("Thông tin bổ sung");
       await expect(dialog.getByRole("button", { name: "Xoá trường 1" })).toBeDisabled();
       await expect(problem).toHaveText("Trường 1 chưa có tên");
       await dialog.getByLabel("Tên trường 1").fill("Mã labo");
@@ -258,7 +262,7 @@ test.describe("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
       // Nothing picked yet: the fixed slip, the picker at its top (F-94).
       await expect(section(dialog)).toHaveCount(0);
       await expect(dialog.getByLabel("Mẫu phiếu", { exact: true })).toBeVisible();
-      await fillRequired(page, dialog, no, c.ceramic.name);
+      await fillRequired(page, dialog, no, c.ceramic, c.supplier);
       await expect(status(dialog)).toHaveText("Phiếu đã đủ thông tin.");
 
       const picker = dialog.getByLabel("Mẫu phiếu", { exact: true });

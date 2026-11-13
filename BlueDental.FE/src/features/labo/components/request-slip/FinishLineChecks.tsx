@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Checkbox } from "antd";
 import { t } from "@/lib/i18n";
 import type { LaboFinishLineOption } from "@/hooks/useLaboPickers";
@@ -10,13 +11,15 @@ interface Props {
   onChange: (ids: string[]) => void;
   /** The heading a Mẫu phiếu gives this part (F-94); none keeps its own name. */
   title?: string;
+  /** Kiểu nhịp and Khớp cắn (R-1216), shown and hidden with it. */
+  children?: ReactNode;
 }
 
 /**
  * Đường hoàn tất: the labo_finish_line rows of Danh mục, several at once, each
  * row's description on hover. Not required.
  */
-export function FinishLineChecks({ options, value, editable, onChange, title }: Props) {
+export function FinishLineChecks({ options, value, editable, onChange, title, children }: Props) {
   const toggle = (id: string) => onChange(value.includes(id) ? value.filter((one) => one !== id) : [...value, id]);
 
   return (
@@ -42,6 +45,7 @@ export function FinishLineChecks({ options, value, editable, onChange, title }: 
           })}
         </div>
       )}
+      {children}
     </section>
   );
 }

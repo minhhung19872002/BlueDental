@@ -68,13 +68,15 @@ export interface LaboToothPicture {
 
 /**
  * The Phiếu yêu cầu (F-91): one spec for the whole order, which the server
- * copies onto every tooth. No supplier, and no plan link on a new order.
+ * copies onto every tooth. A Nhà cung cấp since P1311; no plan link on a new order.
  */
 export interface LaboRequestSlipFields {
   layout: typeof LABO_ORDER_LAYOUT.RequestSlip;
   labSlipNo?: string;
   caseType: LaboCaseType;
   dentistId?: string;
+  /** Nhà cung cấp (P1311): required to send, optional on a draft. */
+  supplierId?: string;
   teeth: number[];
   quantity: number;
   notes?: string;
@@ -82,6 +84,10 @@ export interface LaboRequestSlipFields {
   dueAt?: string;
   shadeZones: LaboShadeZonesDto;
   finishLineIds: string[];
+  /** Kiểu nhịp and Khớp cắn (R-1216): one each, for every tooth. */
+  rhythmId?: string;
+  biteId?: string;
+  /** Any Vật liệu of one Dịch vụ (P1311); onImplant stays false. */
   restorations: { materialId: string; onImplant: boolean }[];
   /** Thông tin bổ sung (F-93): none sent clears it. */
   extraFormTemplateId?: string;

@@ -1035,6 +1035,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             .ToList();
         var serviceNames = catalogRows.ToDictionary(c => c.Id, c => c.Name);
         var catalogPrices = catalogRows.ToDictionary(c => c.Id, c => c.Price);
+        var serviceUnits = catalogRows.ToDictionary(c => c.Id, c => c.Unit);
         var serviceGroups = catalogRows.ToDictionary(c => c.Id, c => c.TaxonomyId);
         var warrantyDays = catalogRows.ToDictionary(
             c => c.Id,
@@ -1154,6 +1155,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                     Code = line.Code,
                     OriginalPrice = line.OriginalPrice,
                     CatalogPrice = catalogPrices.GetValueOrDefault(line.ServiceId),
+                    Unit = serviceUnits.GetValueOrDefault(line.ServiceId),
                     ServiceGroupId = serviceGroups.TryGetValue(line.ServiceId, out var group) ? group : null,
                     Price = line.Price,
                     Quantity = line.Quantity,

@@ -23,24 +23,27 @@ export const SHADE_ZONES = [
 export type ShadeZone = (typeof SHADE_ZONES)[number];
 export type ShadeValues = Record<ShadeZone, string>;
 
-/** One ticked Loại phục hình: the material, and whether it is the "Trên implant" column. */
-export interface RestorationPick {
-  materialId: string;
-  onImplant: boolean;
-}
-
 export interface RequestSlipValues {
   labSlipNo: string;
   caseType: LaboCaseType;
   dentistId: string | undefined;
+  /** Nhà cung cấp (P1311): required to send, optional on a draft. */
+  supplierId: string | undefined;
   sentDate: Dayjs | null;
   dueDate: Dayjs | null;
   /** FDI, ascending. */
   teeth: number[];
-  /** In the order they were ticked: the summary names the first. */
-  restorations: RestorationPick[];
+  /**
+   * Dịch vụ & vật liệu (P1311): one Dịch vụ, then any of its Vật liệu. The
+   * service of saved materials is read off the catalog, so it stays unset here.
+   */
+  serviceId: string | undefined;
+  materialIds: string[];
   shade: ShadeValues;
   finishLineIds: string[];
+  /** Kiểu nhịp and Khớp cắn (R-1216): one each, optional, for every tooth. */
+  rhythmId: string | undefined;
+  biteId: string | undefined;
   notes: string;
   /** Thông tin bổ sung (F-93); null while no Mẫu bổ sung is picked. */
   extra: ExtraFormValues | null;
@@ -88,12 +91,16 @@ export function requestSlipSeed(
       labSlipNo: "",
       caseType: LABO_CASE_TYPE.New,
       dentistId: start.dentistId,
+      supplierId: undefined,
       sentDate: dayjs(),
       dueDate: null,
       teeth: [...start.teeth].sort((a, b) => a - b),
-      restorations: [],
+      serviceId: undefined,
+      materialIds: [],
       shade: { ...EMPTY_SHADE },
       finishLineIds: [],
+      rhythmId: undefined,
+      biteId: undefined,
       notes: "",
       extra: null,
     };
@@ -104,15 +111,17 @@ export function requestSlipSeed(
     labSlipNo: order.labSlipNo ?? "",
     caseType: order.caseType ?? LABO_CASE_TYPE.New,
     dentistId: order.dentistId,
+    supplierId: order.supplierId ?? undefined,
     sentDate: order.sentAt ? dayjs(order.sentAt) : dayjs(),
     dueDate: order.dueAt ? dayjs(order.dueAt) : null,
     teeth: order.teeth.map((tooth) => tooth.toothNumber).sort((a, b) => a - b),
-    restorations: (first?.restorations ?? []).map(({ materialId, onImplant }) => ({
-      materialId,
-      onImplant,
-    })),
+    // Every material of the first tooth, each once; a slip from before P1311 may mix Dịch vụ — the picker keeps them until one is chosen.
+    serviceId: undefined,
+    materialIds: [...new Set((first?.restorations ?? []).map((one) => one.materialId))],
     shade: mapZones((zone) => zones[zone] ?? ""),
     finishLineIds: first?.finishLineIds ?? [],
+    rhythmId: order.rhythmId ?? first?.rhythmId ?? undefined,
+    biteId: order.biteId ?? first?.biteId ?? undefined,
     notes: asRichText(order.notes),
     extra: extraFromOrder(order.extraForm),
   };
@@ -144,9 +153,6 @@ export const chartOrder = (teeth: number[]): number[] =>
 export const hasShade = (shade: ShadeValues): boolean =>
   SHADE_ZONES.some((zone) => shade[zone].trim() !== "");
 
-export const sameRestoration = (a: RestorationPick, b: RestorationPick): boolean =>
-  a.materialId === b.materialId && a.onImplant === b.onImplant;
-
 /** True when the picked Mẫu phiếu hides that part of the slip (F-94): it is neither asked for nor sent. */
 const hidden = (values: Pick<RequestSlipValues, "extra">, kind: LaboBlockKind): boolean =>
   hidesBlock(values.extra?.blocks, kind);
@@ -155,10 +161,11 @@ const hidden = (values: Pick<RequestSlipValues, "extra">, kind: LaboBlockKind): 
 export function requestSlipErrors(values: RequestSlipValues): string[] {
   const errors: string[] = [];
   if (!values.labSlipNo.trim()) errors.push("Labo:Slip:Err:SlipNo");
+  if (!values.supplierId) errors.push("Labo:Slip:Err:Supplier");
   if (!values.dentistId) errors.push("Labo:Slip:Err:Dentist");
   if (isDueBad(values)) errors.push("Labo:Slip:Err:Due");
   if (values.teeth.length === 0) errors.push("Labo:Slip:Err:Teeth");
-  if (!hidesRestorations(values.extra?.blocks) && values.restorations.length === 0)
+  if (!hidesRestorations(values.extra?.blocks) && values.materialIds.length === 0)
     errors.push("Labo:Slip:Err:Restoration");
   if (!hidden(values, LABO_BLOCK_KIND.Shade) && !hasShade(values.shade)) errors.push("Labo:Slip:Err:Shade");
   if (extraMissing(values.extra)) errors.push("Labo:Slip:Err:Extra");
@@ -184,6 +191,7 @@ export function requestSlipBody(values: RequestSlipValues) {
     labSlipNo: blankToUndefined(values.labSlipNo),
     caseType: values.caseType,
     dentistId: values.dentistId,
+    supplierId: values.supplierId,
     teeth: values.teeth,
     quantity: values.teeth.length,
     notes: shown(LABO_BLOCK_KIND.Notes) ? blankToUndefined(richTextForSave(values.notes)) : undefined,
@@ -191,8 +199,12 @@ export function requestSlipBody(values: RequestSlipValues) {
     dueAt: dayOf(values.dueDate),
     shadeZones: mapZones((zone) => (shown(LABO_BLOCK_KIND.Shade) ? blankToUndefined(values.shade[zone]) : undefined)),
     finishLineIds: shown(LABO_BLOCK_KIND.FinishLine) ? values.finishLineIds : [],
-    // A tick on a hidden card the server drops itself, knowing each material's group (R-1202).
-    restorations: hidesRestorations(values.extra?.blocks) ? [] : values.restorations,
+    // Kiểu nhịp and Khớp cắn sit with Đường hoàn tất (R-1216): hidden with it.
+    rhythmId: shown(LABO_BLOCK_KIND.FinishLine) ? values.rhythmId : undefined,
+    biteId: shown(LABO_BLOCK_KIND.FinishLine) ? values.biteId : undefined,
+    restorations: hidesRestorations(values.extra?.blocks)
+      ? []
+      : values.materialIds.map((materialId) => ({ materialId, onImplant: false })),
     ...extraBody(values.extra),
   };
 }

@@ -15113,6 +15113,28 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - tsc + eslint sạch.
 - **Mức retest**: 2 (F-30 Bệnh án: mẫu 2, cùng tên trang in với mẫu 6/7/10). `/taxonomy` không bị ảnh hưởng.
 
+## R-1216 (2026-11-12, mức 3: Labo Phiếu yêu cầu — Loại phục hình về Dịch vụ → Vật liệu, thêm Kiểu nhịp / Khớp cắn, Màu răng vẽ thành răng cửa; F-91/F-92/F-94; CHỈ develop, không merge main)
+- **Yêu cầu** (BA Huỳnh Văn Định góp ý phiếu P1011): "trái để lại như trc chọn dịch vụ → chọn vật liệu", "phải thêm kiểu nhịp, khớp cắn", "tạo hình cho giống cái răng". Chủ dự án chốt: đúng 1 dịch vụ + 1 vật liệu; bỏ hẳn "Trên implant"; Kiểu nhịp / Khớp cắn là dropdown như cũ; Màu răng là thân răng cửa. Sau đó: "răng style lại cho đẹp hơn", "răng xấu quá" (vẽ lại), "canh giữa ở trên" (chữ ở hàng Cổ bị cắt).
+- **Sửa BE**:
+  - `LaboAppService.ToRequestSlipDetailsAsync`: nhiều hơn 1 Loại phục hình hoặc `onImplant` → `Labo:0045`; vật liệu phải đang dùng và thuộc chi nhánh. Không chọn → `Labo:0044` như cũ.
+  - Kiểu nhịp / Khớp cắn: lưu trên đơn và chép xuống từng răng (`LaboOrder`, `LaboOrderTooth.SetRequestSpec`). Id không thuộc chi nhánh hoặc không đúng nhóm Danh mục (`labo_rhythm` / `labo_bite`) thì bỏ im lặng (`BranchTaxonomyOrNullAsync`). Mẫu phiếu ẩn Đường hoàn tất thì bỏ cả hai.
+  - `LaboFormLayout`: 3 khối thẻ AllCeramic 7 / Alloy 8 / OtherOnImplant 9 (R-1202) không còn là khối hệ thống. Bố cục đã lưu có thẻ được gộp lại vào Loại phục hình, rộng 1 cột, hiện nếu có thẻ nào đang hiện (`WithoutCards`). Mặc định mới: Info 3, Restoration 1, Shade 1, Teeth 1, FinishLine 1, Notes 3. `LaboExtraForm.HidesRestorations` đọc được cả bản sao cũ có thẻ. Không migration.
+  - `LaboMaterialGroups`: bỏ `CardOf` / `Accepts`.
+- **Sửa FE**:
+  - `RestorationPicker` mới: 2 hàng `LaboChoiceRow` như Đặt hàng cũ (3 chip + «Xem thêm», có gần đây / tìm kiếm). Đổi dịch vụ thì bỏ vật liệu không thuộc dịch vụ đó. Xoá `RestorationSections.tsx`, `restorationGroups.ts`; thêm `restorationChoices.ts`.
+  - `SlipSpecSelects` mới: 2 Select Kiểu nhịp / Khớp cắn dưới Đường hoàn tất, không bắt buộc. Giá trị của dòng Danh mục đã xoá vẫn hiện.
+  - `ShadeZoneMap`: thân răng cửa hàm trên nhìn từ phía môi (SVG 220×260, chỉ phần thân), cùng path cắt lưới 2×3 (`--rs-crown: path(...)`), vạch đứt chia Cổ / Thân / Rìa cắn × Gần / Xa. Mỗi ô có `data-zone`, padding riêng để mã nằm giữa phần ô lộ ra trong răng (hàng Cổ hẹp). Sửa lệch nhãn Gần / Xa.
+  - Phiếu đã gửi, Xem chi tiết (`LaboRequestSlipFacts`), bản in và xem trước Mẫu phiếu hiện Dịch vụ / Vật liệu, Kiểu nhịp, Khớp cắn. Đơn cũ vẫn ghi "(trên implant)" nếu đã tích.
+  - Chữ qua i18n (`vi.json` / `en.json`), CSS trong `request-slip.css`, không hex trong .tsx.
+- **Khác biệt chấp nhận**: phiếu không mẫu (`LegacySlipLayout`) đặt Đường hoàn tất + Kiểu nhịp / Khớp cắn ở cột 3 dưới Chỉ định; bố cục mặc định của Mẫu phiếu xếp masonry nên khối này rơi vào cột 1 dưới Loại phục hình.
+- **Kiểm thử** (API :5000 Development + bản build production `vite preview` **:8090**, đăng nhập thật, không chặn request):
+  - Lưu ý môi trường: :8080 đang bị container `bluemeal-web-1` (dự án khác) chiếm, và shell có `E2E_PASSWORD` của môi trường khác → lần chạy đầu đỏ hết ở bước đăng nhập. Chạy lại với `E2E_BASE_URL=http://127.0.0.1:8090` và bỏ `E2E_PASSWORD`.
+  - `labo-request-slip-api` / `-ui`, `labo-form-layout`, `labo-form-layout-dnd`, `labo-request-rich-text`, `labo-form-template-api` / `-ui`: **43/43 xanh**. 2 ca sửa spec sau lần chạy đầu: mục mới của Mẫu phiếu giờ là "Khối 6" (6 khối hệ thống), và `getByText("Trên implant")` cần `exact` vì chip "Phục hình khác trên implant".
+  - Ca mới: "Loại phục hình is one active Vật liệu of this branch, never on an implant", "Kiểu nhịp and Khớp cắn of another branch or another Danh mục are dropped", "Loại phục hình picks one Dịch vụ, then one of its Vật liệu, with «Xem thêm» for the rest (R-1216)".
+  - Phần còn lại của Labo + `taxonomy-dental-material`: **45 xanh / 3 skip** (skip có sẵn từ F-91).
+  - tsc + eslint sạch. Cảnh báo `Form.Item.useStatus` còn lại đến từ `LaboToothRow` (có từ F-91), không thuộc phạm vi.
+- **Mức retest**: 3 (F-91/F-92/F-94 cùng dùng Phiếu yêu cầu, bố cục Mẫu phiếu và bản in). `/taxonomy` không bị ảnh hưởng.
+
 ## R-1217 (2026-11-12, mức 3: thông báo Trễ hẹn dời sang góc phải, chung cột với toast tin nhắn; F-89 + Lịch hẹn)
 - **Yêu cầu** (chủ dự án): "dời cái thông báo trễ lịch hẹn qua góc phải (giống bên tin nhắn luôn nha => cùng thông báo thì đẩy xuống)", push lên cả main và develop. Đã chốt plan trước khi làm:
   - **Thứ tự**: trộn theo thời gian. Cái mới nhất của cả hai loại nằm trên, cái cũ bị đẩy xuống.
@@ -15266,3 +15288,97 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `taxonomy-import-api` "an account without the tab's create right gets 403…": không có option chi nhánh "Nha Khoa Đức Hạnh Premium" trên dữ liệu local.
     - `taxonomy-service-sync` "a new service is given a five-character code…": sandbox đồng bộ local trả `failed`.
 - **Mức retest**: 1–2 (chỉ thanh tab).
+
+## R-1225 (2026-11-13, mức 3: Labo Phiếu yêu cầu bản 2 — Dịch vụ Labo, Nhà cung cấp bắt buộc, Vật liệu chọn nhiều, ẩn Mẫu phiếu; F-96, đổi một phần F-92/F-94/R-1216; CHỈ develop, không merge main)
+- **Yêu cầu** (BA AnTran P1311, drawio + mockup "Labo - Phiếu yêu cầu (bản 2 nhập mã số, không kế hoạch nhà cung cấp)"; chủ dự án duyệt 2026-11-13):
+  - Ẩn tab Mẫu phiếu và ô chọn Mẫu phiếu bổ sung trên develop. Giữ code và dữ liệu.
+  - "Vật liệu & loại phục hình" đổi tên thành "Dịch vụ Labo". Chi nhánh được thêm, sửa, xoá Dịch vụ.
+  - Nhà cung cấp bắt buộc.
+  - Dịch vụ chọn một (radio), Vật liệu chọn nhiều (checkbox).
+  - Tab Danh mục "Vật liệu nha khoa" chỉ Bệnh án mẫu 5 dùng, Labo không dùng. Đã trả lời BA.
+  - "Chuyển đổi dịch vụ" hoãn lại, BA đang phân tích.
+- **BE**:
+  - `TaxonomyAppService`:
+    - Dịch vụ tạo trong nhóm `labo_material` được server gán `SubGroup = "DICH_VU"` (`LaboMaterialGroups.Added`).
+    - Xoá Dịch vụ còn vật liệu (kể cả vật liệu Ngừng) bị chặn bằng `Labo:0063`.
+  - `LaboAppService`:
+    - Gửi phiếu thiếu nhà cung cấp, hoặc nhà cung cấp của chi nhánh khác, bị chặn bằng `Labo:0062`. Tên được chép vào `LabProviderName`. Bản nháp giữ nhà cung cấp.
+    - Vật liệu: nhận nhiều vật liệu đang hoạt động, cùng một Dịch vụ, không "Trên implant". Sai thì `Labo:0045`.
+  - `LaboOrder.EnsureRequestSlipComplete` kiểm `SupplierId`.
+  - i18n vi/en. Không migration.
+- **FE**:
+  - `HIDDEN_LABO_TABS` ẩn Mẫu phiếu. `OFFERS_TEMPLATES` tắt ô chọn mẫu trên phiếu.
+  - Tab "Dịch vụ Labo" (`useServiceGroupEditor`):
+    - Panel "Danh mục dịch vụ", nút + Thêm dịch vụ.
+    - Menu Chỉnh sửa / Xoá chỉ có trên Dịch vụ do chi nhánh thêm.
+  - `SupplierField`: Nhà cung cấp, nút +, Địa chỉ chỉ đọc, Liên hệ.
+  - `RestorationPicker` gồm `ServiceRadioList`, `MaterialMultiPicker` và `MaterialChips`.
+  - Chân phiếu liệt kê "Chưa chọn nhà cung cấp".
+- **Kiểm thử** (host :5152 + `vite preview` :8091 bản build production, đăng nhập thật, không chặn request):
+  - `labo-request-slip-api` 13/13, có 2 ca mới (Nhà cung cấp, Dịch vụ Labo).
+  - `labo-request-slip-ui` + `labo-request-rich-text` 13/13, có 3 ca mới: Dịch vụ radio / Vật liệu chọn nhiều; Nhà cung cấp bắt buộc + nút +; Dịch vụ Labo thêm / sửa / xoá.
+  - `labo.spec` 14/14.
+  - 13 spec Labo còn lại: 57 xanh, 8 skip.
+    - 3 skip có sẵn từ F-91.
+    - 5 ca UI Mẫu phiếu bị `describe.skip` vì tab đã ẩn. Phần API của các spec này vẫn chạy.
+    - `labo-orders-permissions` :75 đỏ một lần (chờ dòng vai trò ở trang Phân quyền). Chạy riêng 1/1 xanh, không liên quan.
+  - Hồi quy Danh mục (TaxonomyAppService đổi, CLAUDE.md §17): `taxonomy*` 13 spec + `payment-qr` + `branch-isolation` / `branch-list` / `branch-switcher` 78/82. 4 ca đỏ đều ngoài phần sửa:
+    - `taxonomy-dialogs` :104 và :256: `currentBranchId()` lấy chi nhánh đầu theo tên ("DANHTEST01" tạo tay ngày 2026-10-06), không phải BD-001.
+    - `taxonomy-dialogs` :456: `getByLabel('Khác')` khớp cả nút "Khách đã đến".
+    - `taxonomy-import-api` :708: hỏng ở bước tạo nhân viên thử trong dialog Nhân viên (ô Chi nhánh).
+  - BE Domain Labo 82/82, Application Labo + Taxonomy 55/55.
+  - tsc + eslint sạch.
+- **Mức retest**: 3 (LaboAppService + TaxonomyAppService dùng chung, toàn bộ spec Labo).
+
+## R-1226 (2026-11-13, mức 2: Kế hoạch điều trị — "Chuyển đổi dịch vụ" thêm Đơn giá + Số lượng ở dịch vụ hiện tại, "Còn lại" → "Cần thanh toán thêm" ở dịch vụ mới, F-38, CHỈ develop)
+
+- **Yêu cầu** (BA, 2 ảnh dialog, 2026-11-13; khối này hoãn ở F-96):
+  - Cột trái "THÔNG TIN THANH TOÁN HIỆN TẠI": thêm Đơn giá (vd 600.000 đ) và Số lượng (vd "5 Răng") của dịch vụ đang chuyển đổi, đặt trên Tổng tiền.
+  - Cột phải (Dịch vụ mới) "THÔNG TIN THANH TOÁN": đổi tên "Còn lại" thành "Cần thanh toán thêm". Số tiền giữ nguyên.
+  - Đơn giá lấy theo giá bán trên dòng (`price`), để Đơn giá × Số lượng = Tổng tiền trước giảm (`GrossAmount`). Không lấy Giá gốc (`originalPrice`).
+- **BE**:
+  - `TreatmentServiceDto.Unit` là "Đơn vị" của dịch vụ trong Danh mục (`CatalogEntry.Unit`).
+  - `PatientTreatmentAppService` đọc giá trị này từ `catalogRows` đã nạp sẵn, không thêm truy vấn. Null khi dịch vụ không có đơn vị hoặc mục Danh mục đã mất.
+  - Key mới `Treatment:Convert:AdditionalPayment` (vi "Cần thanh toán thêm" / en "Additional payment due").
+  - Không đụng `Treatment:Pricing:Remaining`, vì nhiều màn khác dùng chung. Không migration.
+- **FE**:
+  - `ConvertCurrentService`: hai dòng Đơn giá / Số lượng. Số lượng in `"<số> <đơn vị>"`, hoặc chỉ số khi không có đơn vị.
+  - `ConvertNewService`: dòng cuối dùng key mới.
+  - `treatmentPlanApi.TreatmentServiceDto.unit` và `treatmentRows` (dòng giả của phiếu Labo) thêm `unit: null`.
+- **Kiểm thử**: host riêng :5152 (build vào scratchpad) + bản build production `vite preview` :8091, đăng nhập thật, không chặn request.
+  - Spec mới `e2e/convert-current-price.spec.ts`:
+    - Tạo dịch vụ 600.000 đ, đơn vị "Răng", và phiếu 3 răng qua API thật.
+    - Đọc lại phiếu: `unit` = "Răng", `quantity` 3, `price` 600.000.
+    - Dialog: Đơn giá 600.000 đ / Số lượng "3 Răng" / Tổng tiền 1.800.000 đ, theo đúng thứ tự.
+    - Dòng cuối cột phải là "Cần thanh toán thêm", không còn "Còn lại".
+    - Chỉ đọc, không lưu chuyển đổi.
+    - 1/1 xanh.
+  - `convert-sale-price`, `convert-line-lock`, `convert-whole-jaw` 4/4 xanh. `treatment-plan-detail.spec.ts` 13/13 xanh.
+  - BE Application.Tests PatientTreatment 5/5. tsc + eslint sạch.
+- **Mức retest**: 2 (một feature; DTO chỉ thêm field).
+
+## R-1227 (2026-11-13, mức 2: Labo Phiếu yêu cầu — thêm Địa chỉ nha khoa; F-96, CHỈ develop)
+- **Yêu cầu** (BA AnTran, nhóm chat 2026-11-13, sau góp ý của bác sĩ): ngoài Địa chỉ nhà cung cấp, phiếu phải có **địa chỉ nha khoa**, lấy theo cấu hình công ty.
+- **FE**:
+  - `RequestSlipInfo`: thêm ô chỉ đọc "Địa chỉ nha khoa" (`Labo:Slip:ClinicAddress`). Hàng Nhà cung cấp chia ba ô bằng nhau: Nhà cung cấp (Labo)* | Địa chỉ nhà cung cấp | Địa chỉ nha khoa.
+  - Nguồn: chi nhánh đang làm việc, Cấu hình › Thông tin phòng khám, đọc qua `clinic-branches/accessible` (cùng nguồn với ô "Nha khoa"). Địa chỉ ghép từ đường + tên phường/xã + tên tỉnh/thành.
+  - `useBranchInfo` trả thêm `provinceId` / `wardId`.
+  - Hook chung mới `hooks/useFullAddress` ghép địa chỉ. `SupplierField` dùng lại hook này thay cho hàm riêng.
+  - `.rs-ro` đổi từ flex sang block (line-height 36px), để chữ quá dài hiện "…" thay vì bị cắt ngang.
+  - Phiếu in "In Phiếu Labo" đã có dòng địa chỉ phòng khám từ trước, không đổi.
+  - BE: chỉ thêm i18n vi/en. Không đổi API, không migration.
+- **Kiểm thử** (host :5152 + `vite preview` :8091 bản build production, đăng nhập thật, không chặn request):
+  - Ca mới trong `labo-request-slip-ui`: đọc địa chỉ BD-001 qua API. Ô Địa chỉ nha khoa đã hiện đường + phường/tỉnh trước khi chọn nhà cung cấp, và giữ nguyên sau khi chọn.
+  - `labo-request-slip-ui` 10/10, `labo-request-rich-text` 4/4, `labo.spec` 14/14. Ảnh chụp đã đối chiếu bố cục ba ô và dấu "…".
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (một màn của Labo). `useBranchInfo` chỉ thêm trường, các phiếu in khác không đọc trường mới.
+
+## R-1228 (2026-11-13, mức 1: Labo Phiếu yêu cầu — dời Địa chỉ nha khoa, Ngày gửi / Ngày nhận lên hàng Nhà cung cấp, bỏ dòng Liên hệ; F-96, CHỈ develop)
+- **Yêu cầu** (BA 2026-11-13, sau R-1227):
+  - Hai ô địa chỉ không cho sửa ("Ko e"), giữ chỉ đọc.
+  - "Đưa địa chỉ nha khoa ở dưới cái nha khoa": hàng 2 = Bệnh nhân | Bác sĩ chỉ định | Tuổi · Giới tính | Địa chỉ nha khoa.
+  - "Ngày gửi ngày nhận ngang hàng với nhà cung cấp": hàng 3 = Nhà cung cấp | Địa chỉ nhà cung cấp | Ngày gửi | Ngày nhận dự kiến.
+  - Chủ dự án: bỏ dòng "Liên hệ: SĐT" dưới Địa chỉ nhà cung cấp (R-1225 tự thêm, BA không yêu cầu). Xoá khoá i18n `Labo:Slip:Contact` và class `.rs-contact`.
+- **FE**: chỉ đổi thứ tự ô trong `RequestSlipInfo` (lưới 6 cột giữ nguyên), `SupplierField` bỏ dòng Liên hệ. Không đổi API, không migration.
+- **Kiểm thử**: tsc + eslint sạch, build production OK. Ca `labo-request-slip-ui` R-1227 thêm kiểm tra vị trí (Địa chỉ nha khoa thẳng cột dưới Nha khoa, Ngày gửi / Ngày nhận cùng hàng Địa chỉ nhà cung cấp, hai ô aria-readonly) và ca "+ Nhà cung cấp" kiểm không còn SĐT — **CHƯA CHẠY**: chủ dự án cho push không cần chạy e2e (chỉ đổi bố cục).
+- **Mức retest**: 1 (bố cục), e2e chưa chạy.

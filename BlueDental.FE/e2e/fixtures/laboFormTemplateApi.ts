@@ -42,7 +42,10 @@ export const BlockKind = {
   Teeth: 4,
   FinishLine: 5,
   Notes: 6,
-  /** Loại phục hình's cards (R-1202); Restoration is then its heading alone. */
+  /**
+   * Loại phục hình's cards (R-1202), gone since R-1216: a layout that still
+   * sends them is stored with them folded into Restoration.
+   */
   AllCeramic: 7,
   Alloy: 8,
   OtherOnImplant: 9,
@@ -65,19 +68,16 @@ export interface BlockView {
 }
 
 /**
- * The slip's own blocks as a new template lays them out (R-1202), every one
- * shown: Loại phục hình's heading, then its three cards in the fixed slip's
- * columns — a layout to edit from.
+ * The slip's own blocks as a new template lays them out (R-1216), every one
+ * shown: Thông tin phiếu across, then Loại phục hình, Màu răng and Chỉ định
+ * side by side, Đường hoàn tất under Loại phục hình — a layout to edit from.
  */
 export function systemBlocks(): BlockInput[] {
   return [
     { kind: BlockKind.Info, span: 3 },
-    { kind: BlockKind.Restoration, span: 3 },
-    { kind: BlockKind.AllCeramic, span: 1 },
-    { kind: BlockKind.OtherOnImplant, span: 1 },
-    { kind: BlockKind.Teeth, span: 1 },
-    { kind: BlockKind.Alloy, span: 1 },
+    { kind: BlockKind.Restoration, span: 1 },
     { kind: BlockKind.Shade, span: 1 },
+    { kind: BlockKind.Teeth, span: 1 },
     { kind: BlockKind.FinishLine, span: 1 },
     { kind: BlockKind.Notes, span: 3 },
   ];

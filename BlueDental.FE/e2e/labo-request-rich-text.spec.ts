@@ -61,7 +61,7 @@ test.describe("Labo Phiếu yêu cầu — Yêu cầu as rich text (P1211, R-121
     });
 
     await test.step("typed with Ctrl+B, the bold part is marked", async () => {
-      await fillRequired(page, dialog, no, c.ceramic.name);
+      await fillRequired(page, dialog, no, c.ceramic, c.supplier);
       await body.click();
       await page.keyboard.press("Control+B");
       await page.keyboard.type("Gấp");

@@ -51,7 +51,10 @@ async function drag(page: Page, from: Locator, to: Locator) {
   await page.mouse.up();
 }
 
-test.describe("Labo Mẫu phiếu builder drag and drop + preview (R-1202)", () => {
+// HIDDEN-FORM-TEMPLATE (BA P1311, 2026-11-13): tab Mẫu phiếu and the slip's Mẫu phiếu picker are hidden on
+// develop as on main (laboTabs HIDDEN_LABO_TABS, useRequestSlipStep OFFERS_TEMPLATES); code and data are kept.
+// The API describes above still run. Un-skip when the BA brings the screens back.
+test.describe.skip("Labo Mẫu phiếu builder drag and drop + preview (R-1202)", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
@@ -80,18 +83,18 @@ test.describe("Labo Mẫu phiếu builder drag and drop + preview (R-1202)", () 
       await page.getByRole("button", { name: "Tạo mẫu phiếu" }).click();
       await dialog.getByLabel("Tên mẫu").fill(name);
       // A new template holds the slip's own blocks alone (owner, 2026-11-11).
-      await expect(previewBlocks).toHaveCount(9);
+      await expect(previewBlocks).toHaveCount(6);
       expect(await previewTitles()).not.toContain("thông tin bổ sung");
       await dialog.getByRole("button", { name: "Thêm mục" }).click();
-      await titleField(9).fill("Thông tin bổ sung");
+      await titleField(6).fill("Thông tin bổ sung");
       await dialog.getByLabel("Tên trường 1").fill("Mã labo");
-      await expect(previewBlocks).toHaveCount(10);
+      await expect(previewBlocks).toHaveCount(7);
       expect(await previewTitles()).toEqual([
-        "thông tin phiếu", "loại phục hình", "toàn sứ", "phục hình khác trên implant", "chỉ định",
-        "hợp kim", "màu răng", "đường hoàn tất", "thông tin bổ sung", "yêu cầu",
+        "thông tin phiếu", "loại phục hình", "màu răng", "chỉ định", "đường hoàn tất",
+        "thông tin bổ sung", "yêu cầu",
       ]);
       const spans = await previewBlocks.evaluateAll((blocks) => blocks.map((b) => /is-span-(\d)/.exec(b.className)?.[1]));
-      expect(spans).toEqual(["3", "3", "1", "1", "1", "1", "1", "1", "3", "3"]);
+      expect(spans).toEqual(["3", "1", "1", "1", "1", "3", "3"]);
       await expect(previewBlock("Thông tin bổ sung")).toContainText("Mã labo");
     });
 
@@ -103,32 +106,32 @@ test.describe("Labo Mẫu phiếu builder drag and drop + preview (R-1202)", () 
       await expect(async () => {
         await page.keyboard.press("ArrowUp");
         // The block it passes slides down to make room.
-        await expect(dialog.locator(".ft-sortable--block").nth(8)).toHaveAttribute("style", /--ft-drag-transform: translate3d\(0px, [1-9]/, { timeout: 500 });
+        await expect(dialog.locator(".ft-sortable--block").nth(5)).toHaveAttribute("style", /--ft-drag-transform: translate3d\(0px, [1-9]/, { timeout: 500 });
       }).toPass({ timeout: 5000 });
       await page.keyboard.press("Space");
       await expect(dialog.locator(".ft-sortable--block.is-dragging")).toHaveCount(0);
-      await expect(titleField(10)).toHaveValue("Thông tin bổ sung");
-      expect((await blockOrder()).slice(8)).toEqual(["Kéo khối Yêu cầu", "Kéo khối 10"]);
-      await expect(previewBlocks.nth(8)).toHaveAttribute("aria-label", "Yêu cầu");
+      await expect(titleField(7)).toHaveValue("Thông tin bổ sung");
+      expect((await blockOrder()).slice(5)).toEqual(["Kéo khối Yêu cầu", "Kéo khối 7"]);
+      await expect(previewBlocks.nth(5)).toHaveAttribute("aria-label", "Yêu cầu");
     });
 
     await test.step("a field dragged into another section moves there; the emptied one waits for a field", async () => {
       await dialog.getByRole("button", { name: "Thêm mục" }).click();
-      await titleField(11).fill("Kỹ thuật");
+      await titleField(8).fill("Kỹ thuật");
       await dialog.getByLabel("Tên trường 2").fill("Loại trụ");
       await expect(problem).toHaveCount(0);
 
-      await drag(page, dialog.getByRole("button", { name: "Kéo trường 2" }), sectionAt(10).getByRole("button", { name: "Thêm trường" }));
-      await expect(sectionAt(10).getByTestId("form-field-row")).toHaveCount(2);
-      await expect(sectionAt(11).getByText("Kéo trường vào đây")).toBeVisible();
+      await drag(page, dialog.getByRole("button", { name: "Kéo trường 2" }), sectionAt(7).getByRole("button", { name: "Thêm trường" }));
+      await expect(sectionAt(7).getByTestId("form-field-row")).toHaveCount(2);
+      await expect(sectionAt(8).getByText("Kéo trường vào đây")).toBeVisible();
       await expect(problem).toHaveText('Mục "Kỹ thuật" chưa có trường');
       await expect(saveButton).toBeDisabled();
       await expect(previewBlock("Kỹ thuật")).toContainText("Chưa có trường");
 
-      await drag(page, dialog.getByRole("button", { name: "Kéo trường 1" }), sectionAt(11).getByText("Kéo trường vào đây"));
+      await drag(page, dialog.getByRole("button", { name: "Kéo trường 1" }), sectionAt(8).getByText("Kéo trường vào đây"));
       await expect(dialog.getByLabel("Tên trường 1")).toHaveValue("Loại trụ");
       await expect(dialog.getByLabel("Tên trường 2")).toHaveValue("Mã labo");
-      await expect(sectionAt(11).getByTestId("form-field-row")).toHaveCount(1);
+      await expect(sectionAt(8).getByTestId("form-field-row")).toHaveCount(1);
       await expect(previewBlock("Kỹ thuật")).toContainText("Mã labo");
       await expect(problem).toHaveCount(0);
     });
@@ -141,10 +144,10 @@ test.describe("Labo Mẫu phiếu builder drag and drop + preview (R-1202)", () 
 
     await test.step("a hidden block leaves the preview and is named under it; a click on a block opens its card", async () => {
       await dialog.getByRole("switch", { name: "Hiện khối Đường hoàn tất" }).click();
-      await expect(previewBlocks).toHaveCount(10);
+      await expect(previewBlocks).toHaveCount(7);
       await expect(preview.getByRole("note")).toHaveText("Đang ẩn: Đường hoàn tất");
       await previewBlock("Kỹ thuật").click();
-      await expect(titleField(11)).toBeFocused();
+      await expect(titleField(8)).toBeFocused();
     });
 
     await test.step("Lưu keeps the layout as dragged", async () => {
@@ -155,11 +158,8 @@ test.describe("Labo Mẫu phiếu builder drag and drop + preview (R-1202)", () 
       expect(made.blocks.map((b) => [b.kind, b.title, b.visible, b.span])).toEqual([
         [BlockKind.Info, null, true, 3],
         [BlockKind.Shade, null, true, 1],
-        [BlockKind.Restoration, null, true, 3],
-        [BlockKind.AllCeramic, null, true, 1],
-        [BlockKind.OtherOnImplant, null, true, 1],
+        [BlockKind.Restoration, null, true, 1],
         [BlockKind.Teeth, null, true, 1],
-        [BlockKind.Alloy, null, true, 1],
         [BlockKind.FinishLine, null, false, 1],
         [BlockKind.Notes, null, true, 3],
         [BlockKind.Custom, "Thông tin bổ sung", true, 3],

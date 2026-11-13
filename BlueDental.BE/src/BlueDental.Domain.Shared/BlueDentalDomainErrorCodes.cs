@@ -630,7 +630,7 @@ public static class BlueDentalDomainErrorCodes
         public const string LabSlipNoTaken = "BlueDental:Labo:0043";
         /// <summary>Tạo phiếu Labo with no Loại phục hình ticked; data "tooth".</summary>
         public const string RestorationMissing = "BlueDental:Labo:0044";
-        /// <summary>A Loại phục hình that is not an active material of the branch, or "Trên implant" where the material has none.</summary>
+        /// <summary>A Vật liệu that is not an active material of the branch, materials of more than one Dịch vụ (P1311), or "Trên implant".</summary>
         public const string RestorationInvalid = "BlueDental:Labo:0045";
 
         // Vật liệu & loại phục hình (P1011).
@@ -670,6 +670,12 @@ public static class BlueDentalDomainErrorCodes
         public const string FormBlockEmpty = "BlueDental:Labo:0060";
         /// <summary>Yêu cầu longer than LaboOrder.NotesMaxLength once written as rich text (P1211, R-1212); data "max".</summary>
         public const string NotesTooLong = "BlueDental:Labo:0061";
+
+        // Phiếu yêu cầu bản 2 (P1311).
+        /// <summary>Tạo phiếu Labo on the Phiếu yêu cầu without a Nhà cung cấp, or one that is not the branch's.</summary>
+        public const string SupplierRequired = "BlueDental:Labo:0062";
+        /// <summary>A Dịch vụ Labo deleted while Vật liệu are still filed under it.</summary>
+        public const string ServiceHasMaterials = "BlueDental:Labo:0063";
     }
 
     public static class Promotions

@@ -124,7 +124,7 @@ export function ConvertNewService({ form }: { form: Form }) {
             { label: t("Treatment:Pricing:Discount"), value: moneyText(form.money.discount) },
             { label: t("Treatment:Receipt:TotalPaid"), value: moneyText(form.money.paid) },
             { label: t("Treatment:Refund:ReturnDifference"), value: moneyText(form.money.refund) },
-            { label: t("Treatment:Pricing:Remaining"), value: moneyText(form.money.remaining) },
+            { label: t("Treatment:Convert:AdditionalPayment"), value: moneyText(form.money.remaining) },
           ]}
         />
       </section>

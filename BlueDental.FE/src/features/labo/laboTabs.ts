@@ -95,10 +95,11 @@ export function laboTabs(): LaboTab[] {
 }
 
 /**
- * PROD-HIDE-FORM-TEMPLATE (main only, owner 2026-11-12: "trên prod ẩn tab Mẫu
- * phiếu"): tabs kept in laboTabs() — LaboPage reads its abilities by position —
- * but never shown on production; /labo/form-template falls back to the first
- * tab. develop and staging keep the tab. To show it again, empty this set.
+ * PROD-HIDE-FORM-TEMPLATE: tabs kept in laboTabs() — LaboPage reads its
+ * abilities by position — but never shown; /labo/form-template falls back to
+ * the first tab. main has hidden Mẫu phiếu since 2026-11-12; develop follows
+ * since BA P1311 ("bỏ luôn 2 chức năng này": Mẫu phiếu bổ sung F-93 and Bố cục
+ * phiếu F-94 — hidden, code and data kept). To show it again, empty this set.
  */
 export const HIDDEN_LABO_TABS: ReadonlySet<string> = new Set(["form-template"]);
 

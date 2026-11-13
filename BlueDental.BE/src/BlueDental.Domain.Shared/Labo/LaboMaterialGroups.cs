@@ -1,23 +1,24 @@
 namespace BlueDental.Labo;
 
 /// <summary>
-/// The groups of "Vật liệu &amp; loại phục hình" (BA P1011): three fixed groups
-/// per branch, each one table of the Phiếu yêu cầu. A group is told by its code,
-/// kept in the taxonomy row's <c>SubGroup</c>; the code also decides which
-/// columns the slip offers for the materials filed under it.
+/// The groups of "Dịch vụ Labo" (BA P1011, renamed P1311): three fixed groups
+/// per branch, plus the ones the branch adds (P1311), each a Dịch vụ of the
+/// Phiếu yêu cầu — one Dịch vụ, then any of its Vật liệu, no "Trên implant".
+/// A group is told by its code, kept in the taxonomy row's <c>SubGroup</c>:
+/// a fixed code, or <see cref="Added"/> for one the branch made.
 ///
 /// Groups made before P1011 stay in the database — orders of the old form
 /// still name their materials — but neither the catalog nor the slip lists them.
 /// </summary>
 public static class LaboMaterialGroups
 {
-    /// <summary>Toàn sứ: a plain column and a "Trên implant" column.</summary>
+    /// <summary>Toàn sứ.</summary>
     public const string AllCeramic = "TOAN_SU";
 
-    /// <summary>Hợp kim: a plain column and a "Trên implant" column.</summary>
+    /// <summary>Hợp kim.</summary>
     public const string Alloy = "HOP_KIM";
 
-    /// <summary>Phục hình khác trên implant: one column, every tick is on an implant.</summary>
+    /// <summary>Phục hình khác trên implant — a Dịch vụ like the other two since R-1216.</summary>
     public const string OtherOnImplant = "KHAC_TREN_IMPLANT";
 
     /// <summary>The fixed groups, in their order: code, name.</summary>
@@ -28,29 +29,13 @@ public static class LaboMaterialGroups
         (OtherOnImplant, "Phục hình khác trên implant"),
     ];
 
+    /// <summary>
+    /// A Dịch vụ the branch added on the Dịch vụ Labo tab (P1311). The server
+    /// stamps it on create, so it is how the tab tells such a group from one
+    /// made before P1011.
+    /// </summary>
+    public const string Added = "DICH_VU";
+
     public static bool IsFixed(string? code) =>
         code is AllCeramic or Alloy or OtherOnImplant;
-
-    /// <summary>
-    /// The card of the Phiếu yêu cầu a group's materials sit on (R-1202): a
-    /// group made before P1011 shares Phục hình khác trên implant.
-    /// </summary>
-    public static LaboFormBlockKind CardOf(string? code) => code switch
-    {
-        AllCeramic => LaboFormBlockKind.AllCeramic,
-        Alloy => LaboFormBlockKind.Alloy,
-        _ => LaboFormBlockKind.OtherOnImplant,
-    };
-
-    /// <summary>
-    /// Whether a material of the group may be ticked as it is, or on an implant.
-    /// A group made before P1011 keeps the material's own "Có lựa chọn Trên
-    /// implant" flag, so an old order still saves the way it was written.
-    /// </summary>
-    public static bool Accepts(string? code, bool onImplant, bool legacyAllowOnImplant) => code switch
-    {
-        AllCeramic or Alloy => true,
-        OtherOnImplant => onImplant,
-        _ => !onImplant || legacyAllowOnImplant,
-    };
 }

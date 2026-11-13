@@ -49,21 +49,14 @@ public class LaboExtraForm
     public bool Hides(LaboFormBlockKind kind) => (Blocks ?? []).Any(b => b.Kind == kind && !b.Visible);
 
     /// <summary>
-    /// True when no card of Loại phục hình is shown (R-1202), so the order holds
-    /// none and Tạo phiếu Labo does not ask for one. Hiding the heading alone
-    /// hides nothing to pick. A copy made before the cards hides them all with
-    /// its one Loại phục hình block.
+    /// True when the layout hides Loại phục hình, so the order holds none and
+    /// Tạo phiếu Labo does not ask for one: its block (R-1216, one Dịch vụ →
+    /// Vật liệu picker). A copy taken while the slip had cards (R-1202) hid it
+    /// with all three cards — its heading alone hid nothing.
     /// </summary>
-    public bool HidesRestorations() => RestorationCards.All(Hides);
-
-    /// <summary>True when the card a material group sits on is hidden, so its ticks are not kept.</summary>
-    public bool HidesGroup(string? groupCode) => Hides(LaboMaterialGroups.CardOf(groupCode)) || HidesRestorations();
-
-    private static readonly LaboFormBlockKind[] Cards =
-        [LaboFormBlockKind.AllCeramic, LaboFormBlockKind.Alloy, LaboFormBlockKind.OtherOnImplant];
-
-    private IEnumerable<LaboFormBlockKind> RestorationCards =>
-        (Blocks ?? []).Any(b => Cards.Contains(b.Kind)) ? Cards : [LaboFormBlockKind.Restoration];
+    public bool HidesRestorations() => LaboFormLayout.HasCards(Blocks ?? [])
+        ? LaboFormLayout.Cards.All(Hides)
+        : Hides(LaboFormBlockKind.Restoration);
 
     /// <summary>The same template saved again: the copied fields stay, only the answers change.</summary>
     public LaboExtraForm WithAnswers(IReadOnlyDictionary<string, IReadOnlyList<string>> answers)

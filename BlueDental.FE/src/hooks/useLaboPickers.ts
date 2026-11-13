@@ -50,6 +50,17 @@ export function laboMaterialGroupCode(row: {
 export const laboMaterialGroupRank = (code: LaboMaterialGroupCode): number =>
   FIXED_GROUP_ORDER.indexOf(code);
 
+/**
+ * The sub-group the server stamps on a Dịch vụ the branch adds in Dịch vụ Labo
+ * (P1311) — BlueDental.Labo.LaboMaterialGroups.Added. It tells such a group
+ * from one made before P1011, which the tab and the slip no longer list.
+ */
+export const LABO_MATERIAL_GROUP_ADDED = "DICH_VU";
+
+/** A Dịch vụ the branch added (P1311), not one of the three fixed ones. */
+export const isAddedLaboService = (row: { subGroup?: string | null; isSystem?: boolean }): boolean =>
+  !row.isSystem && row.subGroup === LABO_MATERIAL_GROUP_ADDED;
+
 export interface PickerOption {
   value: string;
   label: string;
@@ -109,12 +120,17 @@ export interface LaboServiceOption extends PickerOption {
   description?: string;
   /** One of the three fixed groups (P1011); undefined for an older group. */
   code?: LaboMaterialGroupCode;
+  /** A Dịch vụ the branch added in Dịch vụ Labo (P1311). */
+  added?: boolean;
+  /** The catalog's priority: the order added Dịch vụ follow the fixed three in. */
+  sortOrder?: number;
 }
 
 interface ServiceRow extends NamedRow {
   subGroup?: string | null;
   isSystem?: boolean;
   description?: string | null;
+  sortOrder?: number;
 }
 
 /** Dịch vụ Labo — the Lựa chọn dịch vụ groups, with their sub-group and description. */
@@ -129,13 +145,16 @@ export function useLaboServiceOptions(clinicBranchId: string, enabled = true) {
         .then((r) =>
           r.data.items.map((row) => {
             const code = laboMaterialGroupCode(row);
+            const added = isAddedLaboService(row);
             return {
               value: row.id,
               label: row.name,
-              // A fixed group's sub-group is its code, not a section of the popup.
-              group: code ? undefined : row.subGroup?.trim() || undefined,
+              // A fixed or added group's sub-group is its marker, not a section of the popup.
+              group: code || added ? undefined : row.subGroup?.trim() || undefined,
               description: row.description?.trim() || undefined,
               code,
+              added,
+              sortOrder: row.sortOrder,
             };
           }),
         ),
