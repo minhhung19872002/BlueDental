@@ -25,6 +25,7 @@ import type { PrescriptionPatientSummary } from "../../types/prescription";
 import { PrescriptionDialog } from "../PrescriptionDialog";
 import { CancelServiceDialog } from "./CancelServiceDialog";
 import { DeleteServiceDialog } from "./DeleteServiceDialog";
+import { RestoreServiceDialog } from "./RestoreServiceDialog";
 import { ConvertServiceDialog } from "./convert/ConvertServiceDialog";
 import { CreatePlanDialog } from "../plan/CreatePlanDialog";
 import type { LineEditTarget } from "../plan/lineEditing";
@@ -105,6 +106,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
   const [viewing, setViewing] = useState<PlanDetailRow | null>(null);
   const [cancelling, setCancelling] = useState<PlanDetailRow | null>(null);
   const [deleting, setDeleting] = useState<PlanDetailRow | null>(null);
+  const [restoring, setRestoring] = useState<PlanDetailRow | null>(null);
   const [editing, setEditing] = useState<PlanDetailRow | null>(null);
   const [converting, setConverting] = useState<PlanDetailRow | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -159,6 +161,8 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
       // "Xóa" is the consulting chain's delete right, as on the server (R-953).
       onDelete: consultation.canDelete ? setDeleting : undefined,
       onLabo: canReadLabo ? setLaboOrderId : undefined,
+      // "Khôi phục" takes the cancel's own right (owner 2026-11-13, R-1230).
+      onRestore: canEditLines ? setRestoring : undefined,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers close over stable mutations
     [plan.id, canEditLines, consultation.canDelete, canReadLabo],
@@ -253,6 +257,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
         onClose={() => setCancelling(null)}
       />
       <DeleteServiceDialog planId={plan.id} service={deleting?.service ?? null} onClose={() => setDeleting(null)} />
+      <RestoreServiceDialog planId={plan.id} service={restoring?.service ?? null} onClose={() => setRestoring(null)} />
       <CreatePlanDialog
         open={addOpen}
         patientId={patient.id}

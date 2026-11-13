@@ -427,6 +427,12 @@ public static class BlueDentalDomainErrorCodes
         /// cancelled: the line is closed, its history read-only (BA 2026-11-10, R-1186).
         /// </summary>
         public const string StageLineClosed = "BlueDental:Treatment:0066";
+
+        /// <summary>"Khôi phục dịch vụ" on a line that is not "Hủy dịch vụ" (owner 2026-11-13, R-1230).</summary>
+        public const string ServiceNotCancelled = "BlueDental:Treatment:0067";
+
+        /// <summary>"Khôi phục dịch vụ" on a slip that was itself cancelled (R-1230).</summary>
+        public const string ServiceRestorePlanCancelled = "BlueDental:Treatment:0068";
     }
 
     public static class Billing

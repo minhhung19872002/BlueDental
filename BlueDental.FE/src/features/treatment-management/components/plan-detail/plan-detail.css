@@ -1165,6 +1165,11 @@ a.pdt-crumb:hover {
 .pdt-confirm-text + .pdt-confirm-text {
   margin-top: 8px;
 }
+/* "Khôi phục dịch vụ" on a line refunded after its cancel (R-1230). */
+.pdt-confirm-text.pdt-confirm-warn {
+  color: var(--bd-red);
+  font-weight: 500;
+}
 
 /* Thao tác on a line: the eye, "Đổi trạng thái", the pencil and "Xóa" — gap-4 on the reference. */
 .pdt-line-actions {
@@ -1179,6 +1184,10 @@ a.pdt-crumb:hover {
 }
 .tp-eye.pdt-line-delete:hover {
   color: var(--bd-red-dark);
+}
+/* "Khôi phục" on a "Hủy dịch vụ" line (R-1230). */
+.tp-eye.pdt-line-restore {
+  color: var(--tp-blue);
 }
 /* The receipt code on the Thanh toán tab opens its Phiếu thu page. */
 .pdt-code-link {

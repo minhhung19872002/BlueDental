@@ -296,6 +296,8 @@ export interface TreatmentServiceDto {
   stagedTeeth: number[];
   /** Đã thu on this line alone — slip-wide payments are not counted here. */
   paidAmount: number;
+  /** Hoàn tiền on this line — the refunds that named it; "Khôi phục dịch vụ" warns with it (R-1230). */
+  refundedAmount: number;
   /** Còn nợ of the line; what the payment dialog offers to collect. */
   outstandingAmount: number;
   /**
@@ -655,6 +657,12 @@ const treatmentApi = {
       .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}/cancel`)
       .then((r) => r.data),
 
+  /** "Khôi phục" — takes a "Hủy dịch vụ" line back to work (R-1230). */
+  restoreService: (planId: string, lineId: string): Promise<TreatmentPlanSlipDto> =>
+    api
+      .post<TreatmentPlanSlipDto>(`${PLANS}/${planId}/services/${lineId}/restore`)
+      .then((r) => r.data),
+
   /** "Xóa" — takes a line still "Đã tạo" off the slip (R-953). */
   deleteService: (planId: string, lineId: string): Promise<TreatmentPlanSlipDto> =>
     api
@@ -868,6 +876,13 @@ export function useCompleteServiceLine() {
 export function useCancelServiceLine() {
   return useTreatmentMutation((input: { planId: string; lineId: string }) =>
     treatmentApi.cancelService(input.planId, input.lineId),
+  );
+}
+
+/** "Khôi phục" on a "Hủy dịch vụ" line (R-1230). */
+export function useRestoreServiceLine() {
+  return useTreatmentMutation((input: { planId: string; lineId: string }) =>
+    treatmentApi.restoreService(input.planId, input.lineId),
   );
 }
 

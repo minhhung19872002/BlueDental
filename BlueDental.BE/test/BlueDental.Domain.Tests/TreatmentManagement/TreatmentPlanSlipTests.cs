@@ -640,6 +640,61 @@ public class TreatmentPlanSlipTests
         plan.Status.ShouldBe(TreatmentPlanStatus.Completed);
     }
 
+    /// <summary>R-1230 (owner 2026-11-13): "Khôi phục" takes a "Hủy dịch vụ" line back to work, so it charges again.</summary>
+    [Fact]
+    public void A_restored_line_is_charged_again()
+    {
+        var plan = OpenPlan();
+        AddLine(plan, 1_000_000m);
+        var dropped = AddLine(plan, 4_000_000m);
+        dropped.Cancel();
+        plan.ServicesTotal.ShouldBe(1_000_000m);
+
+        plan.RestoreService(dropped.Id);
+
+        dropped.Status.ShouldBe(TreatmentServiceStatus.Created);
+        plan.ServicesTotal.ShouldBe(5_000_000m);
+    }
+
+    [Fact]
+    public void Only_a_cancelled_line_can_be_restored()
+    {
+        var plan = OpenPlan();
+        var line = AddLine(plan, 1_000_000m);
+
+        Should.Throw<BusinessException>(() => plan.RestoreService(line.Id))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceNotCancelled);
+    }
+
+    [Fact]
+    public void A_cancelled_slip_restores_none_of_its_lines()
+    {
+        var plan = OpenPlan();
+        var line = AddLine(plan, 1_000_000m);
+        line.Cancel();
+        plan.Cancel();
+
+        Should.Throw<BusinessException>(() => plan.RestoreService(line.Id))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceRestorePlanCancelled);
+    }
+
+    [Fact]
+    public void A_slip_closed_by_a_cancel_re_opens_when_the_line_is_restored()
+    {
+        var plan = OpenPlan();
+        var done = AddLine(plan, 1_000_000m);
+        var dropped = AddLine(plan, 500_000m);
+        done.Complete();
+        dropped.Cancel();
+        plan.CloseIfAllServicesDone();
+        plan.Status.ShouldBe(TreatmentPlanStatus.Completed);
+
+        plan.RestoreService(dropped.Id);
+        plan.ReopenIfAnyServiceActive();
+
+        plan.Status.ShouldBe(TreatmentPlanStatus.InProgress);
+    }
+
     [Fact]
     public void A_new_line_is_born_without_a_slot()
     {

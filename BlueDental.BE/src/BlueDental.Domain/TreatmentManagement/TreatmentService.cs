@@ -442,6 +442,27 @@ public class TreatmentService : FullAuditedEntity<Guid>
         return this;
     }
 
+    /// <summary>
+    /// "Khôi phục dịch vụ" — undoes <see cref="Cancel"/> (owner 2026-11-13,
+    /// R-1230). The line comes back as "Đã tạo"; its công đoạn, if any, move it
+    /// on from there (<see cref="ServiceLineProgress"/>). Every amount on the
+    /// slip is derived from the status, so the line charges again and the
+    /// receipts and refunds that name it count against it again. A converted
+    /// line does not come back: another line already took its place.
+    /// </summary>
+    public TreatmentService Restore()
+    {
+        if (Status != TreatmentServiceStatus.Cancelled)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceNotCancelled,
+                $"A service line in status {Status} is not cancelled.");
+        }
+
+        Status = TreatmentServiceStatus.Created;
+        return this;
+    }
+
     private void GuardOpen()
     {
         if (Status is TreatmentServiceStatus.Done or TreatmentServiceStatus.Cancelled

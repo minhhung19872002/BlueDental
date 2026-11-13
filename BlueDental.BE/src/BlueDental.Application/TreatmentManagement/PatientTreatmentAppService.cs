@@ -47,6 +47,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
     private readonly AfterTreatmentCareRecorder _afterTreatmentCare;
     private readonly TreatmentPlanDeletion _deletion;
     private readonly OrgChartScopeResolver _orgChartScope;
+    private readonly ServiceLineProgress _lineProgress;
 
     public PatientTreatmentAppService(
         IRepository<TreatmentPlan, Guid> planRepository,
@@ -64,8 +65,10 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         StageTeethPolicy teethPolicy,
         AfterTreatmentCareRecorder afterTreatmentCare,
         TreatmentPlanDeletion deletion,
-        OrgChartScopeResolver orgChartScope)
+        OrgChartScopeResolver orgChartScope,
+        ServiceLineProgress lineProgress)
     {
+        _lineProgress = lineProgress;
         _afterTreatmentCare = afterTreatmentCare;
         _deletion = deletion;
         _orgChartScope = orgChartScope;
@@ -452,6 +455,31 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         plan.GetService(serviceLineId).Cancel();
         plan.CloseIfAllServicesDone();
         // A VNĐ slip discount over fewer services is a bigger share (Cụm 11 mục 12).
+        await EnsurePlanDiscountAsync(plan, slipBefore);
+
+        await _planRepository.UpdateAsync(plan, autoSave: true);
+        return (await MapManyAsync([plan])).Single();
+    }
+
+    /// <summary>
+    /// "Khôi phục dịch vụ" — the ↺ on a "Hủy dịch vụ" line (owner 2026-11-13,
+    /// R-1230), under the same right as cancelling it. The line comes back as
+    /// "Đã tạo" and its công đoạn move it on as they would have (in treatment,
+    /// or done once every one is ticked); a slip the cancel had closed re-opens.
+    /// Nothing about money is written: every figure is derived from the line's
+    /// status, so receipts and refunds that name the line count against it again.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentConsultation.Update)]
+    public async Task<TreatmentPlanSlipDto> RestoreServiceAsync(Guid id, Guid serviceLineId)
+    {
+        var plan = await LoadAsync(id);
+        var slipBefore = PlanDiscountOf(plan);
+        var line = plan.RestoreService(serviceLineId);
+
+        var lineStages = await _stageRepository.GetListAsync(s => s.TreatmentServiceId == line.Id);
+        _lineProgress.Move(plan, line, lineStages);
+        plan.ReopenIfAnyServiceActive();
+        // The line's share of the slip discount comes back with it.
         await EnsurePlanDiscountAsync(plan, slipBefore);
 
         await _planRepository.UpdateAsync(plan, autoSave: true);
@@ -1015,6 +1043,13 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         var settledByPlan = plans.ToDictionary(plan => plan.Id, plan => LineSettlement.Of(plan, payments));
         LineSettlement SettledOn(TreatmentPlan plan, TreatmentService line) =>
             settledByPlan[plan.Id].GetValueOrDefault(line.Id, LineSettlement.None);
+        // Hoàn tiền per line, for the "Khôi phục dịch vụ" warning (R-1230).
+        var refundedByLine = payments
+            .Where(p => p.Kind == PatientPaymentKind.Refund
+                && p.TreatmentPlanId.HasValue && planIds.Contains(p.TreatmentPlanId.Value))
+            .SelectMany(p => p.Lines)
+            .GroupBy(l => l.TreatmentServiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(l => l.Amount));
 
         var lines = plans.SelectMany(p => p.Services).ToList();
         var serviceIds = lines
@@ -1196,6 +1231,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
                         .Select(s => s.Note!)
                         .ToList(),
                     PaidAmount = SettledOn(plan, line).Cash,
+                    RefundedAmount = refundedByLine.GetValueOrDefault(line.Id),
                     // Còn nợ is what the line is charged after the slip discount
                     // (voucher included), so the lines' Còn nợ add up to Thành tiền
                     // and a receipt can never collect the pre-voucher price (R-585).
@@ -1307,6 +1343,7 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         line.TaxAmount = 0m;
         line.PayableAmount = 0m;
         line.PaidAmount = 0m;
+        line.RefundedAmount = 0m;
         line.OutstandingAmount = 0m;
         line.ReliefAmount = 0m;
         line.PreTaxOutstandingAmount = 0m;

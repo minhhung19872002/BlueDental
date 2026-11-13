@@ -15392,3 +15392,41 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `patient-medical-record` **38/40**: "picking the day…" đỏ có từ trước; "…print their MS" chập chờn khi chạy cả bộ (như R-1221/R-1223, chạy riêng xanh).
   - tsc + eslint sạch. Không đổi API, không migration; chỉ đổi chuỗi i18n dòng nhắc.
 - **Mức retest**: 2.
+
+## R-1230 (2026-11-13, mức 2: Kế hoạch điều trị — "Khôi phục dịch vụ" cho dòng "Hủy dịch vụ"; develop + main)
+
+- **Yêu cầu** (owner, 2026-11-13, ảnh dòng "Hủy dịch vụ" chỉ còn 👁 ở Thao tác):
+  - Cần thao tác khôi phục lại dịch vụ đã hủy.
+  - Owner chốt ba điểm:
+    1. Quyền khôi phục giống quyền hủy: `treatmentConsultation.update`.
+    2. Vẫn cho khôi phục khi dòng đã có phiếu hoàn tiền sau lúc hủy. Hộp xác nhận hiện một dòng cảnh báo đỏ: "Đã hoàn X đ cho dịch vụ này — khôi phục sẽ phát sinh nợ lại."
+    3. Đẩy lên cả develop và main.
+- **Ảnh hưởng đã kiểm**:
+  - Tiền không lưu theo trạng thái dòng; mọi con số đều tính lại. Dòng hủy tính 0đ. Khôi phục xong, dòng được tính tiền lại, và các phiếu thu / phiếu hoàn ghi tên dòng lại tính vào dòng đó.
+  - Giảm giá VNĐ trên phiếu được chia lại qua `EnsurePlanDiscountAsync`, giống lúc hủy.
+  - Phiếu đã "Hoàn thành" vì lần hủy sẽ mở lại (`ReopenIfAnyServiceActive`).
+  - Trạng thái dòng đi lại theo công đoạn (`ServiceLineProgress.Move`). Dòng chưa có công đoạn về "Đã tạo"; dòng có công đoạn về "Đang điều trị" / "Hoàn thành".
+  - Phiếu điều trị đã hủy thì không khôi phục dòng nào: lỗi Treatment:0068.
+  - Phiếu Labo đã hủy lúc hủy dịch vụ vẫn ở trạng thái hủy. Muốn làm lại Labo thì đặt phiếu mới.
+- **BE**:
+  - `TreatmentService.Restore()`: Cancelled → Created, trạng thái khác báo Treatment:0067.
+  - `TreatmentPlan.RestoreService(lineId)`: báo 0068 khi phiếu đã hủy.
+  - `PatientTreatmentAppService.RestoreServiceAsync` và `POST /api/v1/app/patient-treatments/{id}/services/{lineId}/restore`.
+  - `TreatmentServiceDto.RefundedAmount`: tổng phiếu hoàn đã thanh toán ghi tên dòng. Dùng cùng bộ lọc ISettleable với `LineSettlement`. Bị ẩn (0) khi người xem không được xem tiền.
+  - Bỏ câu "Thao tác này không thể hoàn tác." khỏi `Treatment:Service:CancelQuestion` (vi/en), vì hủy giờ khôi phục được.
+  - Không migration.
+- **FE**:
+  - Nút ↺ (`RotateCcw`, tooltip "Khôi phục dịch vụ") ở Thao tác của bảng và thẻ dịch vụ. Chỉ hiện khi dòng "Hủy dịch vụ", phiếu chưa hủy và người dùng được sửa dòng (`isLineRestorable`).
+  - `RestoreServiceDialog` có nút xác nhận khoá và quay spinner khi đang gọi; toast chỉ hiện sau khi API trả về.
+  - `useRestoreServiceLine`, `refundedAmount` trong DTO và `treatmentRows`.
+- **Kiểm thử**: host :5000 + bản build production `vite preview` :8091, đăng nhập thật, không chặn request.
+  - Spec mới `e2e/service-restore.spec.ts`, 2/2 xanh:
+    - Hủy dòng qua API → ↺ → hộp xác nhận không có cảnh báo → "Đã khôi phục dịch vụ".
+      - API trả trạng thái Created, `servicesTotal` về như trước khi hủy.
+      - Tải lại trang vẫn giữ kết quả.
+      - Khôi phục lần hai bị từ chối 403 Treatment:0067.
+    - Thu đủ (phiếu thu đã thanh toán) → hủy dòng → hoàn một nửa → ↺ → cảnh báo đỏ đúng số tiền hoàn.
+      - Sau khôi phục: `paidAmount` = đã thu − đã hoàn, `outstandingAmount` = số đã hoàn.
+  - Hồi quy xanh 40/40: `convert-*`, `treatment-plan-detail`, `plan-treating-scope`, `discount-limit`.
+  - Domain.Tests `TreatmentPlanSlipTests` có thêm 4 test, 49/49. Application.Tests PatientTreatment 5/5. tsc + eslint sạch.
+- **Mức retest**: 2 (một feature; DTO chỉ thêm field, thêm endpoint).

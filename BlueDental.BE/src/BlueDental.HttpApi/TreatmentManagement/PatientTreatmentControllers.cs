@@ -51,6 +51,10 @@ public sealed class PatientTreatmentController(IPatientTreatmentAppService servi
     public Task<TreatmentPlanSlipDto> CancelServiceAsync(Guid id, Guid serviceLineId) =>
         service.CancelServiceAsync(id, serviceLineId);
 
+    [HttpPost("{id:guid}/services/{serviceLineId:guid}/restore")]
+    public Task<TreatmentPlanSlipDto> RestoreServiceAsync(Guid id, Guid serviceLineId) =>
+        service.RestoreServiceAsync(id, serviceLineId);
+
     [HttpDelete("{id:guid}/services/{serviceLineId:guid}")]
     public Task<TreatmentPlanSlipDto> DeleteServiceAsync(Guid id, Guid serviceLineId) =>
         service.DeleteServiceAsync(id, serviceLineId);

@@ -283,6 +283,7 @@ function diagnosisRow(slip: PatientDiagnosisDto): TreatmentRow {
     stageNotes: [],
     stagedTeeth: [],
     paidAmount: 0,
+    refundedAmount: 0,
     outstandingAmount: 0,
     reliefAmount: 0,
     preTaxOutstandingAmount: 0,
