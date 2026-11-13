@@ -28,6 +28,19 @@ test.describe("Danh mục — màn hình phẳng", () => {
     await expect(page.getByRole("columnheader", { name: "Nhóm phân loại" })).toBeVisible();
   });
 
+  /** Hidden by the owner (2026-11-13, R-1224) — only hidden: the page itself still opens. */
+  test("Bệnh án mẫu is off the tab bar, and its page still opens", async ({ page }) => {
+    await page.goto("/taxonomy/service");
+    const tabBar = page.locator(".taxonomy-tabs");
+    await expect(tabBar.getByRole("link", { name: "Đơn thuốc mẫu" })).toBeVisible();
+    await expect(tabBar.getByRole("link", { name: "Thẻ hồ sơ" })).toBeVisible();
+    await expect(tabBar.getByText("Bệnh án mẫu", { exact: true })).toHaveCount(0);
+
+    await page.goto("/taxonomy/medical-record-template");
+    await expect(page.getByRole("columnheader", { name: "Tên bệnh án mẫu" })).toBeVisible();
+    await expect(tabBar.getByText("Bệnh án mẫu", { exact: true })).toHaveCount(0);
+  });
+
   test("creates a coloured Thẻ hồ sơ that survives a reload", async ({ page }) => {
     const name = `Thẻ E2E ${runId()}`;
 

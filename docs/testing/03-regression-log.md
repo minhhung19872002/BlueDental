@@ -15254,3 +15254,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Toàn bộ `patient-medical-record` + `medical-record-field-suggestions`: **40/43**. "picking the day…" đỏ có từ trước; "…print their MS" và "picking a sheet from the folded index…" đỏ khi chạy cả bộ, chạy riêng mỗi ca 2/2 xanh.
   - Review bảo mật: không có phát hiện (SQL vẫn tham số hoá, danh sách ô từ server, quyền + chi nhánh giữ nguyên, ngưỡng ≥ 2 bệnh nhân áp cho từng dòng).
 - **Mức retest**: 2.
+
+## R-1224 — Danh mục: ẩn tab "Bệnh án mẫu" (2026-11-13)
+
+- **Yêu cầu** (owner): ẩn tab Bệnh án mẫu ở Danh mục — **chỉ ẩn**. Lý do: không nghiệp vụ nào đọc các mẫu này; phiếu Bệnh án của bệnh nhân dựng từ mẫu riêng của từng loại phiếu (nút "Bắt đầu từ mẫu" đã gỡ ở `c5db3ab2`).
+- **Sửa**: `TaxonomyTab.hidden` (mới) bật cho `medical-record-template`; `TaxonomyPage` bỏ tab ẩn khỏi thanh tab. Route `/taxonomy/medical-record-template`, dữ liệu, dialog và quyền giữ nguyên — bỏ cờ là tab hiện lại. Không đụng phần nào khác của màn Danh mục (mục 17).
+- **Kiểm thử** (`vite preview` :8080 + API Docker :5000, đăng nhập thật):
+  - Ca mới `taxonomy-flat` "Bệnh án mẫu is off the tab bar, and its page still opens". **Xanh**.
+  - `taxonomy*` + `payment-qr` + `branch-*`: **86/89**. 3 ca đỏ cũng đỏ y hệt trên bản build HEAD chưa sửa (có từ trước, không liên quan):
+    - `taxonomy-dialogs` "\"Khác\" asks for the usage in words…": `getByLabel('Khác')` khớp 2 phần tử.
+    - `taxonomy-import-api` "an account without the tab's create right gets 403…": không có option chi nhánh "Nha Khoa Đức Hạnh Premium" trên dữ liệu local.
+    - `taxonomy-service-sync` "a new service is given a five-character code…": sandbox đồng bộ local trả `failed`.
+- **Mức retest**: 1–2 (chỉ thanh tab).

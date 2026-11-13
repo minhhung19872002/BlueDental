@@ -54,6 +54,11 @@ export interface TaxonomyTab {
   screen?: "tags" | "payment-method";
   /** Explains why a tab has no data source yet. */
   pendingNote?: string;
+  /**
+   * Left out of the tab bar, nothing else (owner, 2026-11-13, R-1224): its
+   * route, data and dialog stay, and dropping the flag brings the tab back.
+   */
+  hidden?: boolean;
 }
 
 export const DEFAULT_TAXONOMY_TAB = "service";
@@ -132,8 +137,14 @@ export function taxonomyTabs(): TaxonomyTab[] {
       templated: true,
       dialog: "prescription",
     },
+    /*
+     * Hidden (owner, 2026-11-13, R-1224): no flow reads these templates — a
+     * patient's Bệnh án sheets are drawn from their own forms — so the tab is
+     * off the bar. Only hidden: /taxonomy/medical-record-template still opens.
+     */
     {
       key: "medical-record-template",
+      hidden: true,
       label: t("Taxonomy:Tab:MedicalRecordTemplate"),
       subject: "catalogTemplate",
       group: TAXONOMY_GROUP.MedicalRecordTemplate,
