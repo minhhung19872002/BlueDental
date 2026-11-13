@@ -1114,6 +1114,11 @@ What in §11–§14 no longer describes BlueDental (develop):
     required, as on the supplier tab) and picks the new supplier.
   - Địa chỉ is read-only, with the placeholder "Chọn nhà cung cấp trước".
     The line "Liên hệ: {SĐT}" sits under it.
+  - **Địa chỉ nha khoa** (R-1227, BA 2026-11-13) is the third cell of the row:
+    Nhà cung cấp | Địa chỉ nhà cung cấp | Địa chỉ nha khoa. It is read-only and
+    comes from the branch's Cấu hình › Thông tin phòng khám (street, ward,
+    province), the same source as "Nha khoa". It is shown before a supplier is
+    picked. A long address ends in "…", and the full text is in its tooltip.
   - The order keeps `SupplierId` and copies the name into `LabProviderName`,
     as Đặt hàng does. A draft keeps the supplier too.
 - **Loại phục hình is one Dịch vụ, then any of its Vật liệu**

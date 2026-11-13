@@ -22,6 +22,7 @@ import {
   ordersOf,
   patientRow,
   pickRestoration,
+  pickSupplier,
   pickTeeth,
   restorationRows,
   sentOrder,
@@ -403,6 +404,31 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
     const made = await sentOrder(page, patientId, no);
     expect(made.supplierName).toBe(name);
+  });
+
+  test("Địa chỉ nha khoa reads the branch's Thông tin phòng khám, beside the supplier's own address (P1311, R-1227)", async ({
+    page,
+  }) => {
+    const res = await call<{ items: { id: string; address: string | null; provinceId: string | null }[] }>(
+      page,
+      "/api/v1/app/clinic-branches/accessible",
+    );
+    expect(res.status).toBe(200);
+    const branch = res.body.items?.find((one) => one.id === BRANCH_ONE);
+    const street = branch?.address?.trim();
+    expect(street, "BD-001 needs an address in Cấu hình › Thông tin phòng khám").toBeTruthy();
+
+    const c = await slipCatalog(page);
+    const dialog = await startSlip(page, await newPatient(page, "addr"));
+    const clinicAddress = dialog.getByRole("textbox", { name: "Địa chỉ nha khoa" });
+    // Shown before any supplier is picked: it is the clinic's, not the supplier's.
+    await expect(clinicAddress).toContainText(street ?? "");
+    if (branch?.provinceId) await expect(clinicAddress).toContainText(`${street}, `);
+    const shown = (await clinicAddress.textContent()) ?? "";
+
+    await pickSupplier(page, dialog, c.supplier.name);
+    await expect(dialog.getByRole("textbox", { name: "Địa chỉ nhà cung cấp" })).not.toHaveText("Chọn nhà cung cấp trước");
+    await expect(clinicAddress).toHaveText(shown);
   });
 
   test("Dịch vụ Labo: a Dịch vụ is added, renamed, refused deletion while it holds a material, then deleted; the fixed three stay locked (P1311)", async ({

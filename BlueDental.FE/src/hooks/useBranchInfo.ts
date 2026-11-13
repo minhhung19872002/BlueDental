@@ -5,6 +5,9 @@ import { api } from "@/lib/axios";
 export interface BranchInfo {
   name: string;
   address: string | null;
+  /** Tỉnh / thành and phường / xã codes of Thông tin phòng khám, for the full address (R-1227). */
+  provinceId: string | null;
+  wardId: string | null;
   phone: string | null;
   email: string | null;
 }
@@ -13,6 +16,8 @@ interface BranchResponse {
   id: string;
   name?: string;
   address?: string;
+  provinceId?: string | null;
+  wardId?: string | null;
   phoneNumber?: string;
   email?: string;
 }
@@ -21,6 +26,8 @@ function toBranchInfo(branch: BranchResponse): BranchInfo {
   return {
     name: branch.name ?? "",
     address: branch.address ?? null,
+    provinceId: branch.provinceId ?? null,
+    wardId: branch.wardId ?? null,
     phone: branch.phoneNumber ?? null,
     email: branch.email ?? null,
   };

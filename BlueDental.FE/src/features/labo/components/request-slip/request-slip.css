@@ -197,11 +197,12 @@
   background: var(--rs-danger-bg);
 }
 
+/* Block, not flex: text-overflow only ellipsizes a block's own line (a long Địa chỉ nha khoa, R-1227). */
 .rs-ro {
-  display: flex;
-  align-items: center;
+  display: block;
   height: 38px;
   padding: 0 10px;
+  line-height: 36px;
   overflow: hidden;
   border: 1px solid var(--rs-field);
   border-radius: 10px;

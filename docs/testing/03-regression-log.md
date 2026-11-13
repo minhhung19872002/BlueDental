@@ -15356,3 +15356,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `convert-sale-price`, `convert-line-lock`, `convert-whole-jaw` 4/4 xanh. `treatment-plan-detail.spec.ts` 13/13 xanh.
   - BE Application.Tests PatientTreatment 5/5. tsc + eslint sạch.
 - **Mức retest**: 2 (một feature; DTO chỉ thêm field).
+
+## R-1227 (2026-11-13, mức 2: Labo Phiếu yêu cầu — thêm Địa chỉ nha khoa; F-96, CHỈ develop)
+- **Yêu cầu** (BA AnTran, nhóm chat 2026-11-13, sau góp ý của bác sĩ): ngoài Địa chỉ nhà cung cấp, phiếu phải có **địa chỉ nha khoa**, lấy theo cấu hình công ty.
+- **FE**:
+  - `RequestSlipInfo`: thêm ô chỉ đọc "Địa chỉ nha khoa" (`Labo:Slip:ClinicAddress`). Hàng Nhà cung cấp chia ba ô bằng nhau: Nhà cung cấp (Labo)* | Địa chỉ nhà cung cấp | Địa chỉ nha khoa.
+  - Nguồn: chi nhánh đang làm việc, Cấu hình › Thông tin phòng khám, đọc qua `clinic-branches/accessible` (cùng nguồn với ô "Nha khoa"). Địa chỉ ghép từ đường + tên phường/xã + tên tỉnh/thành.
+  - `useBranchInfo` trả thêm `provinceId` / `wardId`.
+  - Hook chung mới `hooks/useFullAddress` ghép địa chỉ. `SupplierField` dùng lại hook này thay cho hàm riêng.
+  - `.rs-ro` đổi từ flex sang block (line-height 36px), để chữ quá dài hiện "…" thay vì bị cắt ngang.
+  - Phiếu in "In Phiếu Labo" đã có dòng địa chỉ phòng khám từ trước, không đổi.
+  - BE: chỉ thêm i18n vi/en. Không đổi API, không migration.
+- **Kiểm thử** (host :5152 + `vite preview` :8091 bản build production, đăng nhập thật, không chặn request):
+  - Ca mới trong `labo-request-slip-ui`: đọc địa chỉ BD-001 qua API. Ô Địa chỉ nha khoa đã hiện đường + phường/tỉnh trước khi chọn nhà cung cấp, và giữ nguyên sau khi chọn.
+  - `labo-request-slip-ui` 10/10, `labo-request-rich-text` 4/4, `labo.spec` 14/14. Ảnh chụp đã đối chiếu bố cục ba ô và dấu "…".
+  - tsc + eslint sạch.
+- **Mức retest**: 2 (một màn của Labo). `useBranchInfo` chỉ thêm trường, các phiếu in khác không đọc trường mới.

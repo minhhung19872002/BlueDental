@@ -3,6 +3,7 @@ import { DatePicker, Input, Radio, Select } from "antd";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
+import { useFullAddress } from "@/hooks/useFullAddress";
 import { PATIENT_GENDER_CODE, usePatientBrief, type PatientBrief } from "@/hooks/usePatientBrief";
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import { LABO_CASE_TYPE } from "@/features/labo/api/laboApi";
@@ -58,6 +59,12 @@ const ReadOnly = ({ label, text }: { label: string; text: string }) => (
 /** Thông tin phiếu: what the Labo needs to know about the order, the clinic, patient, doctor and supplier (P1311). */
 export function RequestSlipInfo({ branchId, patient, dentists, values, editable, onChange, title }: Props) {
   const clinic = useBranchInfo(branchId).data;
+  // Địa chỉ nha khoa: Cấu hình › Thông tin phòng khám of the branch, like its name (R-1227).
+  const clinicAddress = useFullAddress({
+    street: clinic?.address,
+    provinceCode: clinic?.provinceId,
+    wardCode: clinic?.wardId,
+  });
   const brief = usePatientBrief(patient.id).data;
   const dueBad = isDueBad(values);
 
@@ -137,6 +144,9 @@ export function RequestSlipInfo({ branchId, patient, dentists, values, editable,
           editable={editable}
           onChange={(supplierId) => onChange({ supplierId })}
         />
+        <Field label={t("Labo:Slip:ClinicAddress")} wide>
+          <ReadOnly label={t("Labo:Slip:ClinicAddress")} text={clinicAddress} />
+        </Field>
       </div>
     </section>
   );
