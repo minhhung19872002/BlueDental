@@ -15382,3 +15382,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **FE**: chỉ đổi thứ tự ô trong `RequestSlipInfo` (lưới 6 cột giữ nguyên), `SupplierField` bỏ dòng Liên hệ. Không đổi API, không migration.
 - **Kiểm thử**: tsc + eslint sạch, build production OK. Ca `labo-request-slip-ui` R-1227 thêm kiểm tra vị trí (Địa chỉ nha khoa thẳng cột dưới Nha khoa, Ngày gửi / Ngày nhận cùng hàng Địa chỉ nhà cung cấp, hai ô aria-readonly) và ca "+ Nhà cung cấp" kiểm không còn SĐT — **CHƯA CHẠY**: chủ dự án cho push không cần chạy e2e (chỉ đổi bố cục).
 - **Mức retest**: 1 (bố cục), e2e chưa chạy.
+
+## R-1229 — Gợi ý khi nhập: gợi ý đầu tiên chọn sẵn, Tab điền (2026-11-13)
+
+- **Yêu cầu** (owner, ảnh thanh địa chỉ Chrome): như Google — câu phù hợp đầu tiên trong danh sách hiện sẵn, đúng thì bấm Tab là xong.
+- **Sửa** (`useSheetSuggestions.ts`): danh sách mở ra với câu đầu tiên được chọn sẵn (tô nền, `aria-selected`); **Tab** điền câu đang chọn; ↑/↓ hoặc rê chuột chọn câu khác. **Enter** chỉ điền khi đã chủ động chọn bằng ↑/↓ hoặc chuột — chưa chọn thì Enter vẫn xuống dòng và giữ nguyên chữ đã gõ, để một dòng gõ đủ không bị thay bằng câu dài hơn. Dòng nhắc: "Tab điền gợi ý đang chọn · ↑↓ chọn khác · Esc đóng · Ctrl+Space mở gợi ý" (vi/en).
+- **Kiểm thử** (`vite preview` :8080 + API Docker :5000, đăng nhập thật):
+  - `medical-record-field-suggestions` **3/3**: câu đầu được chọn sẵn khi gõ và khi Ctrl+Space; Enter chưa chọn → xuống dòng, chữ gõ giữ nguyên; dòng 2 mục 5: Tab điền câu đầu, con trỏ ở cuối gõ tiếp được; ↓ 10 lần tới câu thứ 11 tải trang sau.
+  - `patient-medical-record` **38/40**: "picking the day…" đỏ có từ trước; "…print their MS" chập chờn khi chạy cả bộ (như R-1221/R-1223, chạy riêng xanh).
+  - tsc + eslint sạch. Không đổi API, không migration; chỉ đổi chuỗi i18n dòng nhắc.
+- **Mức retest**: 2.

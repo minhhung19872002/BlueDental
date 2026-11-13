@@ -208,7 +208,8 @@ test.describe("Bệnh án mẫu 2 — gợi ý khi nhập", () => {
       [DIAGNOSIS]: diagnosisLine,
     });
     const title = `E2E dòng viết ${id}`;
-    await writeSheet(page, c, title, {});
+    // "5. Chẩn đoán" emptied, not answered by the record's own diagnosis.
+    await writeSheet(page, c, title, { [DIAGNOSIS]: "" });
 
     const offered = await suggestionsFor(page, branchId);
     expect(offered.status).toBe(200);
@@ -249,24 +250,38 @@ test.describe("Bệnh án mẫu 2 — gợi ý khi nhập", () => {
     await expect(blank("outpatient-dental.text.31")).toHaveText(line(12));
     await expect(blank(SPECIALTY)).toHaveText(`2e${id} dong them`);
 
-    // A lower line reached by clicking: ↓ past the tenth loads the next page and keeps it in sight.
+    // A lower line reached by clicking: the first stands ready; ↓ past the tenth loads the next page and keeps it in sight.
     await blank("outpatient-dental.text.34").click();
     await page.keyboard.press("Control+Space");
     await expect(options).toHaveCount(Math.min(10, specialty.values.length));
+    await expect(options.first()).toHaveAttribute("aria-selected", "true");
     if (specialty.values.length > 10) {
-      for (let i = 0; i < 11; i += 1) await page.keyboard.press("ArrowDown");
+      for (let i = 0; i < 10; i += 1) await page.keyboard.press("ArrowDown");
       await expect(options).toHaveCount(Math.min(20, specialty.values.length));
       await expect(options.nth(10)).toHaveAttribute("aria-selected", "true");
       await expect(options.nth(10)).toBeInViewport();
     }
     await page.keyboard.press("Escape");
 
-    // "5. Chẩn đoán": its second line offers what was written on either of its lines.
-    await blank("outpatient-dental.text.44").click();
+    // "5. Chẩn đoán". The first match stands ready, as in an address bar (R-1229) — but Enter
+    // without a choice still goes to the next line, and leaves what was typed as it is.
+    await blank(DIAGNOSIS).click();
     await page.keyboard.type(`e2e${id} mat`);
-    await page.keyboard.press("ArrowDown");
+    await expect(options.first()).toHaveText(diagnosisLine);
+    await expect(options.first()).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("Enter");
+    await expect(list).toHaveCount(0);
+    await expect(blank(DIAGNOSIS)).toHaveText(`e2e${id} mat`);
+    // Its second line offers what was written on either of its lines: Tab writes the first in.
+    await page.keyboard.type(`e2e${id} mat`);
+    await expect(blank("outpatient-dental.text.44")).toHaveText(`e2e${id} mat`);
+    await expect(options.first()).toHaveAttribute("aria-selected", "true");
+    await page.keyboard.press("Tab");
+    await expect(list).toHaveCount(0);
     await expect(blank("outpatient-dental.text.44")).toHaveText(diagnosisLine);
+    // The caret stays at its end, to write on.
+    await page.keyboard.type(" hàm dưới");
+    await expect(blank("outpatient-dental.text.44")).toHaveText(`${diagnosisLine} hàm dưới`);
 
     await page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" }).click();
     await expect(page.getByText("Đã lưu phiếu bệnh án").first()).toBeVisible();
@@ -274,7 +289,7 @@ test.describe("Bệnh án mẫu 2 — gợi ý khi nhập", () => {
     await page.locator(".pd-medical-form", { hasText: FORM_ROW }).locator(".pd-sheet-card", { hasText: title })
       .locator(".pd-sheet-open").click();
     await expect(blank("outpatient-dental.text.31")).toHaveText(line(12));
-    await expect(blank("outpatient-dental.text.44")).toHaveText(diagnosisLine);
+    await expect(blank("outpatient-dental.text.44")).toHaveText(`${diagnosisLine} hàm dưới`);
   });
 
   test("không có quyền sửa bệnh án thì không được hỏi gợi ý", async ({ page, browser }) => {
