@@ -116,6 +116,16 @@ export function RequestSlipInfo({ branchId, patient, dentists, values, editable,
         <Field label={t("Labo:Slip:AgeGender")}>
           <ReadOnly label={t("Labo:Slip:AgeGender")} text={ageAndGender(brief)} />
         </Field>
+        {/* Under Nha khoa, read-only like it (BA 2026-11-13, R-1228). */}
+        <Field label={t("Labo:Slip:ClinicAddress")} wide>
+          <ReadOnly label={t("Labo:Slip:ClinicAddress")} text={clinicAddress} />
+        </Field>
+        <SupplierField
+          branchId={branchId}
+          value={values.supplierId}
+          editable={editable}
+          onChange={(supplierId) => onChange({ supplierId })}
+        />
         <Field label={t("Labo:Slip:SentAt")} required>
           <DatePicker
             className="rs-inp"
@@ -137,15 +147,6 @@ export function RequestSlipInfo({ branchId, patient, dentists, values, editable,
             onChange={(dueDate) => onChange({ dueDate })}
           />
           {editable && dueBad && <div className="rs-ferr">{t("Labo:Slip:DueAfterSent")}</div>}
-        </Field>
-        <SupplierField
-          branchId={branchId}
-          value={values.supplierId}
-          editable={editable}
-          onChange={(supplierId) => onChange({ supplierId })}
-        />
-        <Field label={t("Labo:Slip:ClinicAddress")} wide>
-          <ReadOnly label={t("Labo:Slip:ClinicAddress")} text={clinicAddress} />
         </Field>
       </div>
     </section>

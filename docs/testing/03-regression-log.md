@@ -15372,3 +15372,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `labo-request-slip-ui` 10/10, `labo-request-rich-text` 4/4, `labo.spec` 14/14. Ảnh chụp đã đối chiếu bố cục ba ô và dấu "…".
   - tsc + eslint sạch.
 - **Mức retest**: 2 (một màn của Labo). `useBranchInfo` chỉ thêm trường, các phiếu in khác không đọc trường mới.
+
+## R-1228 (2026-11-13, mức 1: Labo Phiếu yêu cầu — dời Địa chỉ nha khoa, Ngày gửi / Ngày nhận lên hàng Nhà cung cấp, bỏ dòng Liên hệ; F-96, CHỈ develop)
+- **Yêu cầu** (BA 2026-11-13, sau R-1227):
+  - Hai ô địa chỉ không cho sửa ("Ko e"), giữ chỉ đọc.
+  - "Đưa địa chỉ nha khoa ở dưới cái nha khoa": hàng 2 = Bệnh nhân | Bác sĩ chỉ định | Tuổi · Giới tính | Địa chỉ nha khoa.
+  - "Ngày gửi ngày nhận ngang hàng với nhà cung cấp": hàng 3 = Nhà cung cấp | Địa chỉ nhà cung cấp | Ngày gửi | Ngày nhận dự kiến.
+  - Chủ dự án: bỏ dòng "Liên hệ: SĐT" dưới Địa chỉ nhà cung cấp (R-1225 tự thêm, BA không yêu cầu). Xoá khoá i18n `Labo:Slip:Contact` và class `.rs-contact`.
+- **FE**: chỉ đổi thứ tự ô trong `RequestSlipInfo` (lưới 6 cột giữ nguyên), `SupplierField` bỏ dòng Liên hệ. Không đổi API, không migration.
+- **Kiểm thử**: tsc + eslint sạch, build production OK. Ca `labo-request-slip-ui` R-1227 thêm kiểm tra vị trí (Địa chỉ nha khoa thẳng cột dưới Nha khoa, Ngày gửi / Ngày nhận cùng hàng Địa chỉ nhà cung cấp, hai ô aria-readonly) và ca "+ Nhà cung cấp" kiểm không còn SĐT — **CHƯA CHẠY**: chủ dự án cho push không cần chạy e2e (chỉ đổi bố cục).
+- **Mức retest**: 1 (bố cục), e2e chưa chạy.

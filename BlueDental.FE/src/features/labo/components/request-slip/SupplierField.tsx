@@ -17,9 +17,9 @@ interface Props {
 
 /**
  * Nhà cung cấp (Labo) * of the Phiếu yêu cầu (P1311): the branch's suppliers,
- * a + that makes one and picks it, and the picked one's address and phone,
- * read only. Two cells of the Thông tin phiếu grid; Địa chỉ nha khoa takes the
- * third one of the row.
+ * a + that makes one and picks it, and the picked one's address,
+ * read only. Two cells of the Thông tin phiếu grid; Ngày gửi and Ngày nhận dự
+ * kiến fill the rest of the row (R-1228).
  */
 export function SupplierField({ branchId, value, editable, onChange }: Props) {
   const [creating, setCreating] = useState(false);
@@ -74,7 +74,6 @@ export function SupplierField({ branchId, value, editable, onChange }: Props) {
         <div className="rs-ro" role="textbox" aria-readonly="true" aria-label={t("Labo:Slip:SupplierAddress")} title={address}>
           {supplier ? address : <span className="rs-ph">{t("Labo:Slip:ChooseSupplierFirst")}</span>}
         </div>
-        {supplier?.phone && <div className="rs-contact">{t("Labo:Slip:Contact", supplier.phone)}</div>}
       </div>
       {creating && (
         <LaboSupplierDialog

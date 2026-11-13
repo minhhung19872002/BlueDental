@@ -1113,9 +1113,12 @@ What in §11–§14 no longer describes BlueDental (develop):
   - "+" (Thêm nhà cung cấp mới) opens `LaboSupplierDialog` (Tên + Email
     required, as on the supplier tab) and picks the new supplier.
   - Địa chỉ is read-only, with the placeholder "Chọn nhà cung cấp trước".
-    The line "Liên hệ: {SĐT}" sits under it.
-  - **Địa chỉ nha khoa** (R-1227, BA 2026-11-13) is the third cell of the row:
-    Nhà cung cấp | Địa chỉ nhà cung cấp | Địa chỉ nha khoa. It is read-only and
+    No phone line under it (the "Liên hệ: {SĐT}" line was dropped in R-1228:
+    the BA never asked for it).
+  - **Địa chỉ nha khoa** (R-1227, moved in R-1228, BA 2026-11-13) sits right
+    under Nha khoa (row 2: Bệnh nhân | Bác sĩ chỉ định | Tuổi · Giới tính | Địa
+    chỉ nha khoa). Row 3 is Nhà cung cấp | Địa chỉ nhà cung cấp | Ngày gửi |
+    Ngày nhận dự kiến. Both addresses stay read-only (BA: "Ko"). It is read-only and
     comes from the branch's Cấu hình › Thông tin phòng khám (street, ward,
     province), the same source as "Nha khoa". It is shown before a supplier is
     picked. A long address ends in "…", and the full text is in its tooltip.

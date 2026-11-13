@@ -157,12 +157,6 @@
   color: var(--rs-muted);
 }
 
-.rs-contact {
-  margin-top: 4px;
-  color: var(--rs-muted);
-  font-size: 12px;
-}
-
 .rs-lbl {
   display: block;
   margin-bottom: 4px;

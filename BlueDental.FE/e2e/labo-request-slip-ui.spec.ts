@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { BRANCH_ONE, call, LaboStatus, type Paged } from "./fixtures/laboApi";
 import {
@@ -399,14 +399,15 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     const select = dialog.locator(".rs-supplier .ant-select");
     await expect(select).toContainText(name);
     await expect(dialog.getByRole("textbox", { name: "Địa chỉ nhà cung cấp" })).toContainText("12 Lê Lợi");
-    await expect(dialog.locator(".rs-contact")).toHaveText("Liên hệ: 0912345678");
+    // No phone line under the address: the BA never asked for one (R-1228).
+    await expect(dialog.getByText("0912345678")).toHaveCount(0);
 
     await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
     const made = await sentOrder(page, patientId, no);
     expect(made.supplierName).toBe(name);
   });
 
-  test("Địa chỉ nha khoa reads the branch's Thông tin phòng khám, beside the supplier's own address (P1311, R-1227)", async ({
+  test("Địa chỉ nha khoa reads the branch's Thông tin phòng khám under Nha khoa; Ngày gửi / Ngày nhận share the supplier's row (P1311, R-1227, R-1228)", async ({
     page,
   }) => {
     const res = await call<{ items: { id: string; address: string | null; provinceId: string | null }[] }>(
@@ -429,6 +430,29 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     await pickSupplier(page, dialog, c.supplier.name);
     await expect(dialog.getByRole("textbox", { name: "Địa chỉ nhà cung cấp" })).not.toHaveText("Chọn nhà cung cấp trước");
     await expect(clinicAddress).toHaveText(shown);
+
+    // BA 2026-11-13 (R-1228): both addresses stay read-only; Địa chỉ nha khoa sits
+    // right under Nha khoa, and Ngày gửi / Ngày nhận dự kiến share the supplier's row.
+    const supplierAddress = dialog.getByRole("textbox", { name: "Địa chỉ nhà cung cấp" });
+    await expect(clinicAddress).toHaveAttribute("aria-readonly", "true");
+    await expect(supplierAddress).toHaveAttribute("aria-readonly", "true");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const boxOf = async (target: Locator, name: string) => {
+      const found = await target.boundingBox();
+      expect(found, name).not.toBeNull();
+      return found ?? { x: 0, y: 0, width: 0, height: 0 };
+    };
+    const clinic = await boxOf(dialog.getByRole("textbox", { name: "Nha khoa", exact: true }), "Nha khoa");
+    const under = await boxOf(clinicAddress, "Địa chỉ nha khoa");
+    const supplierRow = await boxOf(supplierAddress, "Địa chỉ nhà cung cấp");
+    expect(Math.abs(under.x - clinic.x)).toBeLessThan(2);
+    expect(Math.abs(under.width - clinic.width)).toBeLessThan(2);
+    expect(under.y).toBeGreaterThan(clinic.y + clinic.height);
+    expect(under.y + under.height).toBeLessThan(supplierRow.y);
+    for (const day of ["Ngày gửi", "Ngày nhận dự kiến"]) {
+      const at = await boxOf(dialog.getByLabel(day, { exact: true }).first(), day);
+      expect(Math.abs(at.y + at.height / 2 - (supplierRow.y + supplierRow.height / 2)), day).toBeLessThan(6);
+    }
   });
 
   test("Dịch vụ Labo: a Dịch vụ is added, renamed, refused deletion while it holds a material, then deleted; the fixed three stay locked (P1311)", async ({
