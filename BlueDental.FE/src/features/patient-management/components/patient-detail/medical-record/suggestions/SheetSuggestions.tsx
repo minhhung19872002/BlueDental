@@ -1,4 +1,4 @@
-import type { CSSProperties, MouseEvent } from "react";
+import { useEffect, useRef, type CSSProperties, type MouseEvent, type UIEvent } from "react";
 import { createPortal } from "react-dom";
 import { t } from "@/lib/i18n";
 import type { Suggestion } from "./matchSuggestions";
@@ -8,7 +8,11 @@ interface Props {
   open: OpenSuggestions | null;
   onPick: (index: number) => void;
   onHighlight: (index: number) => void;
+  onMore: () => void;
 }
+
+/** How close to the end of the list, in pixels, scrolling loads the next page. */
+const LOAD_MORE_EDGE = 40;
 
 /** A text of several lines is shown on one. */
 const oneLine = (text: string) => text.replace(/\n+/g, " · ");
@@ -25,19 +29,41 @@ function SuggestionText({ item }: { item: Suggestion }) {
   );
 }
 
+/** Holds the press back, so the focus never leaves the blank — on an option, or on the list's scrollbar. */
+function keepFocus(event: MouseEvent) {
+  event.preventDefault();
+}
+
 /**
  * The list under the line being written. Pressing an option writes it in
- * before the sheet loses the caret: `mousedown`, with the default held back,
- * so the focus never leaves the blank.
+ * before the sheet loses the caret: `mousedown`, with the default held back.
+ * It shows a page at a time; scrolling to its end loads the next (R-1222).
  */
-export function SheetSuggestions({ open, onPick, onHighlight }: Props) {
+export function SheetSuggestions({ open, onPick, onHighlight, onMore }: Props) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const active = open?.active ?? -1;
+
+  // The one chosen with ↑/↓ stays in sight, also when ↓ has just loaded it.
+  useEffect(() => {
+    if (active < 0) return;
+    listRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+  }, [active]);
+
   if (!open) return null;
 
+  const { anchor } = open;
   const position = {
-    "--mr-suggest-left": `${open.anchor.left}px`,
-    "--mr-suggest-top": `${open.anchor.top}px`,
-    "--mr-suggest-width": `${open.anchor.width}px`,
+    "--mr-suggest-left": `${anchor.left}px`,
+    "--mr-suggest-top": anchor.top === null ? "auto" : `${anchor.top}px`,
+    "--mr-suggest-bottom": anchor.bottom === null ? "auto" : `${anchor.bottom}px`,
+    "--mr-suggest-width": `${anchor.width}px`,
+    "--mr-suggest-room": `${anchor.room}px`,
   } as CSSProperties;
+
+  const handleScroll = (event: UIEvent<HTMLUListElement>) => {
+    const list = event.currentTarget;
+    if (open.hasMore && list.scrollTop + list.clientHeight >= list.scrollHeight - LOAD_MORE_EDGE) onMore();
+  };
 
   const handleMouseDown = (index: number) => (event: MouseEvent) => {
     event.preventDefault();
@@ -45,8 +71,14 @@ export function SheetSuggestions({ open, onPick, onHighlight }: Props) {
   };
 
   return createPortal(
-    <div className="mr-suggest" style={position}>
-      <ul className="mr-suggest-list" role="listbox" aria-label={t("Patient:MedicalRecord:Suggestions")}>
+    <div className="mr-suggest" style={position} onMouseDown={keepFocus}>
+      <ul
+        ref={listRef}
+        className="mr-suggest-list"
+        role="listbox"
+        aria-label={t("Patient:MedicalRecord:Suggestions")}
+        onScroll={handleScroll}
+      >
         {open.items.map((item, index) => (
           <li
             key={item.text}

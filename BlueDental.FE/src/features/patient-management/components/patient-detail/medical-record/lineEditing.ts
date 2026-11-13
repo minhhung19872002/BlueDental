@@ -50,7 +50,7 @@ interface LineKey {
   at: number;
 }
 
-function parseLineKey(id: string): LineKey | null {
+export function parseLineKey(id: string): LineKey | null {
   const match = id.match(LINE_KEY);
   return match ? { anchor: match[1], at: Number(match[2]) } : null;
 }

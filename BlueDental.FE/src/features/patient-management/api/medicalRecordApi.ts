@@ -58,12 +58,14 @@ export interface MedicalRecordPhonesDto {
 }
 
 /**
- * "Gợi ý khi nhập" (R-1219): a blank of the form and what the branch has
- * written in it for at least two patients, most used first. Mirrors
+ * "Gợi ý khi nhập" (R-1219): a part of the form and the lines the branch has
+ * written on it for at least two patients, most used first. `fields` is every
+ * printed line of the part — each offers the same `values` (R-1222). Mirrors
  * BlueDental.PatientManagement.MedicalRecordFieldSuggestionsDto.
  */
 export interface MedicalRecordFieldSuggestionsDto {
   field: string;
+  fields: string[];
   values: string[];
 }
 

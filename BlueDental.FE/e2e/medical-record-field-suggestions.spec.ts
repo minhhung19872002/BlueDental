@@ -9,7 +9,8 @@ import { call, firstBranchId } from "./fixtures/timekeepingStaff";
  * bệnh" (text.43) lists what the branch wrote in that blank before, from the
  * first letter; Ctrl + Space lists it in an empty blank too (R-1220) — only
  * texts written for at least two patients, so one patient's own note is
- * never offered on another's sheet.
+ * never offered on another's sheet. Every printed line of the part offers the
+ * same list, line by line, a page at a time as it is scrolled (R-1222).
  *
  * Real login, real API, real PostgreSQL: the history is written through the
  * sheets API for patients of the run's own, then the clinic's side is driven
@@ -67,7 +68,7 @@ async function seedWithSet(page: Page) {
 }
 
 async function suggestionsFor(page: Page, branchId: string) {
-  return call<{ field: string; values: string[] }[]>(
+  return call<{ field: string; fields: string[]; values: string[] }[]>(
     page,
     `${SHEETS_API}/field-suggestions?form=${FORM_OUTPATIENT_DENTAL}`,
     { branchId },
@@ -123,7 +124,7 @@ test.describe("Bệnh án mẫu 2 — gợi ý khi nhập", () => {
     await blank(DIAGNOSIS).click();
     await page.keyboard.press("Control+Space");
     await expect(list).toBeVisible();
-    const top = (byField.get(DIAGNOSIS) ?? []).slice(0, 8).map((text) => text.replace(/\n+/g, " · "));
+    const top = (byField.get(DIAGNOSIS) ?? []).slice(0, 10);
     await expect(list.getByRole("option")).toHaveText(top);
     await expect(blank(DIAGNOSIS)).toHaveText("");
     await page.keyboard.press("Escape");
@@ -181,6 +182,99 @@ test.describe("Bệnh án mẫu 2 — gợi ý khi nhập", () => {
     await page.locator(".pd-medical-form", { hasText: FORM_ROW }).locator(".pd-sheet-card", { hasText: title })
       .locator(".pd-sheet-open").click();
     await expect(blank(DIAGNOSIS)).toHaveText(sharedDiagnosis);
+  });
+
+  test("mọi dòng của mục đều gợi ý như dòng đầu; danh sách dài cuộn tới cuối thì tải thêm", async ({ page }) => {
+    const id = runId();
+    const line = (n: number) => `E2E${id} Mục ${String(n).padStart(2, "0")}`;
+    const many = Array.from({ length: 12 }, (_, n) => line(n + 1));
+    const added = `E2E${id} Dòng thêm`;
+    const diagnosisLine = `E2E${id} Mất răng 36`;
+
+    await login(page);
+    const [a, b, c] = [await seedWithSet(page), await seedWithSet(page), await seedWithSet(page)];
+    const branchId = a.branchId;
+    // Written on different lines of the part, several to a blank, one on a line added with Enter:
+    // each line counts on its own, wherever in the part it was written.
+    await writeSheet(page, a, `E2E dòng A ${id}`, {
+      "outpatient-dental.text.32": many.join("\n"),
+      "custom.line.outpatient-dental.text.35.1": added,
+      "outpatient-dental.text.44": diagnosisLine,
+    });
+    await writeSheet(page, b, `E2E dòng B ${id}`, {
+      "outpatient-dental.text.31": many.slice(0, 6).join("\n"),
+      "outpatient-dental.text.34": many.slice(6).join("\n"),
+      [SPECIALTY]: added,
+      [DIAGNOSIS]: diagnosisLine,
+    });
+    const title = `E2E dòng viết ${id}`;
+    await writeSheet(page, c, title, {});
+
+    const offered = await suggestionsFor(page, branchId);
+    expect(offered.status).toBe(200);
+    const [specialty, diagnosis] = offered.body;
+    expect(specialty.fields).toEqual([30, 31, 32, 33, 34, 35].map((n) => `outpatient-dental.text.${n}`));
+    expect(diagnosis.fields).toEqual([DIAGNOSIS, "outpatient-dental.text.44"]);
+    expect(specialty.values).toEqual(expect.arrayContaining([...many, added]));
+    expect(diagnosis.values).toContain(diagnosisLine);
+
+    await openBenhAn(page, c.id);
+    await page.locator(".pd-medical-form", { hasText: FORM_ROW }).locator(".pd-sheet-card", { hasText: title })
+      .locator(".pd-sheet-open").click();
+    const sheet = page.frameLocator(".mr-doc-frame");
+    const blank = (field: string) => sheet.locator(`[data-medical-record-field="${field}"]`);
+    await expect(blank(SPECIALTY)).toBeAttached();
+    const list = page.getByRole("listbox", { name: "Gợi ý từ các phiếu trước" });
+    const options = list.getByRole("option");
+
+    // Full text, trimmed (R-1223): a piece from inside a word, a space after it, still finds the line.
+    await blank(SPECIALTY).click();
+    await page.keyboard.type(`2e${id} dong them `);
+    await expect(options).toHaveText([added]);
+    // Only what the choice adds is bold: here the "E" before the piece typed.
+    await expect(options.first().locator("strong")).toHaveText(["E"]);
+
+    // The first line, then Enter to the line under it: that line offers the same list.
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type(`e2e${id} muc`);
+    await expect(options).toHaveCount(10);
+    await expect(options.first()).toHaveText(line(1));
+
+    // Scrolled to its end, the list loads the rest.
+    await list.evaluate((node) => node.scrollTo({ top: node.scrollHeight }));
+    await expect(options).toHaveCount(12);
+    await options.last().click();
+    await expect(list).toHaveCount(0);
+    await expect(blank("outpatient-dental.text.31")).toHaveText(line(12));
+    await expect(blank(SPECIALTY)).toHaveText(`2e${id} dong them`);
+
+    // A lower line reached by clicking: ↓ past the tenth loads the next page and keeps it in sight.
+    await blank("outpatient-dental.text.34").click();
+    await page.keyboard.press("Control+Space");
+    await expect(options).toHaveCount(Math.min(10, specialty.values.length));
+    if (specialty.values.length > 10) {
+      for (let i = 0; i < 11; i += 1) await page.keyboard.press("ArrowDown");
+      await expect(options).toHaveCount(Math.min(20, specialty.values.length));
+      await expect(options.nth(10)).toHaveAttribute("aria-selected", "true");
+      await expect(options.nth(10)).toBeInViewport();
+    }
+    await page.keyboard.press("Escape");
+
+    // "5. Chẩn đoán": its second line offers what was written on either of its lines.
+    await blank("outpatient-dental.text.44").click();
+    await page.keyboard.type(`e2e${id} mat`);
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await expect(blank("outpatient-dental.text.44")).toHaveText(diagnosisLine);
+
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "Lưu" }).click();
+    await expect(page.getByText("Đã lưu phiếu bệnh án").first()).toBeVisible();
+    await page.reload();
+    await page.locator(".pd-medical-form", { hasText: FORM_ROW }).locator(".pd-sheet-card", { hasText: title })
+      .locator(".pd-sheet-open").click();
+    await expect(blank("outpatient-dental.text.31")).toHaveText(line(12));
+    await expect(blank("outpatient-dental.text.44")).toHaveText(diagnosisLine);
   });
 
   test("không có quyền sửa bệnh án thì không được hỏi gợi ý", async ({ page, browser }) => {

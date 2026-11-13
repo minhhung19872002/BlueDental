@@ -133,14 +133,14 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         await _branchAccess.CheckAsync(branchId);
 
         var result = new List<MedicalRecordFieldSuggestionsDto>();
-        foreach (var field in MedicalRecordFieldSuggestions.FieldsOf(form))
+        foreach (var group in MedicalRecordFieldSuggestions.GroupsOf(form))
         {
             var values = await _fieldHistory.GetCommonValuesAsync(
-                branchId, form, field,
+                branchId, form, group.Lines,
                 MedicalRecordFieldSuggestions.MinPatients,
                 MedicalRecordFieldSuggestions.MaxTextLength,
                 MedicalRecordFieldSuggestions.MaxPerField);
-            result.Add(new MedicalRecordFieldSuggestionsDto { Field = field, Values = values });
+            result.Add(new MedicalRecordFieldSuggestionsDto { Field = group.Field, Fields = [.. group.Lines], Values = values });
         }
 
         return result;

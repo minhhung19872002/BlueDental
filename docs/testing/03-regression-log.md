@@ -15223,3 +15223,34 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - "…print their MS, which nobody can change" đỏ một lần (nhận `99/SỬA TAY` thay vì mã mẫu, race lúc đồng bộ giá trị đã lưu). Chạy riêng 2/2 xanh; trước khi sửa cũng xanh.
   - tsc + eslint sạch.
 - **Mức retest**: 2.
+
+## R-1222 — Gợi ý khi nhập: mọi dòng của mục đều gợi ý, danh sách cuộn để tải thêm (2026-11-13)
+
+- **Yêu cầu** (owner, ảnh "2. Bệnh chuyên khoa"): xuống dòng khác thì không gợi ý nữa — các dòng dưới phải giống dòng đầu; danh sách nhiều lịch sử thì cuộn để tải thêm.
+- **Nguyên nhân**: mỗi dòng kẻ của một mục là một ô riêng (`text.30`…`text.35` cho mục 2, `text.43`/`text.44` cho mục 5), danh sách cho phép chỉ có ô đầu.
+- **Sửa**:
+  - BE: `MedicalRecordFieldSuggestions` khai báo theo **mục** (`SuggestionGroup`: ô đầu + mọi dòng in sẵn). Lịch sử đọc mọi ô của mục và các dòng thêm bằng Enter dưới chúng (`custom.line.<ô>.<n>`), **từng dòng một** (giá trị nhiều dòng tách theo xuống dòng), vẫn ≥ 2 bệnh nhân, ≤ 300 ký tự, cùng chi nhánh. DTO thêm `fields`.
+  - FE: mọi dòng của mục (kể cả dòng thêm bằng Enter) dùng chung danh sách; hiện 10 mục, cuộn tới cuối hoặc ↓ qua mục cuối thì tải thêm 10; mục đang chọn luôn trong tầm nhìn.
+  - Dòng ở sát chân cửa sổ: danh sách mở lên trên dòng (hoặc thu ngắn cho vừa) thay vì tràn ra ngoài màn hình — test phát hiện lỗi này.
+- **Kiểm thử** (API Docker :5000 + `vite preview` :8080, đăng nhập thật, không chặn request):
+  - `medical-record-field-suggestions` **3/3**: ca mới ghi lịch sử trên nhiều dòng của mục (nhiều dòng trong một ô, dòng thêm bằng Enter), kiểm API `fields`/`values`; trên phiếu: dòng đầu → Enter → dòng 2 gợi ý; cuộn tải 10 → 12; bấm chọn; dòng 4 Ctrl+Space + ↓ qua mục 10 tải thêm; mục 5 dòng 2; lưu, tải lại.
+  - BE `PatientMedicalRecord` contract tests 12/12.
+  - `patient-medical-record` **38/40**: "picking the day…" đỏ có từ trước; "…print their MS" đỏ một lần (như R-1221), chạy riêng 2/2 xanh.
+  - tsc + eslint sạch.
+- **Mức retest**: 2.
+
+## R-1223 — Ctrl+A chỉ chọn ô đang gõ; gõ đè không mất chữ đầu; gợi ý tìm toàn văn (2026-11-13)
+
+- **Yêu cầu** (owner, ảnh "2. Bệnh chuyên khoa" với dòng "oòng"): Ctrl+A chỉ tô đen đúng ô input đó; gợi ý phải tìm dạng full text, có trim.
+- **Nguyên nhân "oòng"**: Ctrl+A (R-1179) giữ cả mục — ô đầu và mọi dòng dưới — và phím kế tiếp chỉ dùng để thả các ô ra, nên chữ cái đầu của từ gõ đè bị mất ("dòng" → "òng").
+- **Sửa** (`multiLineSelect.ts`, `matchSuggestions.ts`):
+  - Ctrl+A: ô vừa một dòng để trình duyệt tự chọn (chỉ trong ô đó); ô có chữ chảy qua nhiều dòng thì chọn đủ các dòng của chính ô đó, không lan sang ô dưới.
+  - Đang giữ vùng chọn mà gõ một chữ: xoá vùng chọn rồi để phím viết vào chỗ con trỏ — không còn mất chữ đầu. Kéo chọn nhiều dòng (R-1179) và Delete/Backspace (R-1221) giữ nguyên.
+  - Gợi ý: cụm gõ (bỏ khoảng trắng hai đầu) khớp ở bất kỳ đâu trong câu, kể cả giữa từ; xếp: đầu câu → đầu từ → giữa câu, trong mỗi nhóm theo thứ tự server.
+- **Kiểm thử** (API Docker :5000 + `vite preview` :8080, đăng nhập thật, không chặn request):
+  - Ca mới "Ctrl+A selects only the blank it is pressed in; Delete, Backspace or typing replace it" (thay ca R-1221): Ctrl+A ở mục 2 không giữ dòng dưới, gõ "dòng" ra đúng "dòng"; Delete; ô chảy nhiều dòng: Backspace chỉ xoá ô đó, gõ đè giữ chữ đầu; lưu, tải lại.
+  - Ca R-1179: Ctrl+A trên dòng chảy của tóm tắt chỉ chép tóm tắt.
+  - `medical-record-field-suggestions` 3/3 (thêm: gõ `2e<id> dong them ` giữa từ, có dấu cách cuối, vẫn ra đúng dòng).
+  - Toàn bộ `patient-medical-record` + `medical-record-field-suggestions`: **40/43**. "picking the day…" đỏ có từ trước; "…print their MS" và "picking a sheet from the folded index…" đỏ khi chạy cả bộ, chạy riêng mỗi ca 2/2 xanh.
+  - Review bảo mật: không có phát hiện (SQL vẫn tham số hoá, danh sách ô từ server, quyền + chi nhánh giữ nguyên, ngưỡng ≥ 2 bệnh nhân áp cho từng dòng).
+- **Mức retest**: 2.

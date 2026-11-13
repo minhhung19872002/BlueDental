@@ -61,11 +61,14 @@ public class MedicalRecordPhonesDto
     public Dictionary<Guid, string> GuardianPhones { get; set; } = new();
 }
 
-/// <summary>"Gợi ý khi nhập": one blank and what the branch has written in it before, most used first.</summary>
+/// <summary>"Gợi ý khi nhập": one part of a form and what the branch has written on its lines before, most used first.</summary>
 public class MedicalRecordFieldSuggestionsDto
 {
-    /// <summary>The blank's <c>data-medical-record-field</c> id.</summary>
+    /// <summary>The <c>data-medical-record-field</c> id of the blank the part starts on.</summary>
     public string Field { get; set; } = string.Empty;
+
+    /// <summary>Every printed line of the part, <see cref="Field"/> first; each offers <see cref="Values"/>.</summary>
+    public List<string> Fields { get; set; } = new();
 
     public List<string> Values { get; set; } = new();
 }

@@ -2,78 +2,38 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import { useMedicalRecordFieldSuggestions } from "../../../../api/medicalRecordApi";
 import { flowedText, writeFlowed } from "../flowLines";
 import { matchSuggestions, type Suggestion } from "./matchSuggestions";
+import { anchorUnder, blankAtCaret, caretToEnd, listedBlankOf, type SuggestAnchor } from "./sheetCaret";
 
-const FIELD_ATTR = "data-medical-record-field";
-const FLOW_OF = "data-flow-of";
-/** Never narrower than this, whatever the blank. */
-const MIN_LIST_WIDTH = 280;
-
-/** Where the list hangs, in the page's own pixels: under the line being written. */
-export interface SuggestAnchor {
-  left: number;
-  top: number;
-  width: number;
-}
+/** How many the list shows at first, and how many more each time it is scrolled to its end (R-1222). */
+export const SUGGESTION_PAGE = 10;
 
 export interface OpenSuggestions {
+  /** The ones loaded so far. */
   items: Suggestion[];
+  /** Whether scrolling on loads more. */
+  hasMore: boolean;
   /** -1 until ↑/↓ or the pointer picks one: Enter then keeps its usual meaning. */
   active: number;
   anchor: SuggestAnchor;
 }
 
-interface Target extends OpenSuggestions {
+interface Target {
   field: Element;
-}
-
-/** By node type: the sheet is another document, with its own copy of every DOM class. */
-function isElement(node: Node): node is Element {
-  return node.nodeType === Node.ELEMENT_NODE;
-}
-
-/** The blank the caret is in — the blank itself when the caret is on a line it flowed onto. */
-function blankAtCaret(doc: Document): { field: Element; line: Element } | null {
-  const node = doc.getSelection()?.anchorNode ?? null;
-  const element = node && isElement(node) ? node : (node?.parentElement ?? null);
-  const line = element?.closest(`[${FIELD_ATTR}], [${FLOW_OF}]`) ?? null;
-  if (!line) return null;
-  const continued = line.getAttribute(FLOW_OF);
-  const field = continued ? doc.querySelector(`[${FIELD_ATTR}="${CSS.escape(continued)}"]`) : line;
-  return field ? { field, line } : null;
-}
-
-/** The sheet's pixels to the page's: the frame is drawn at the zoom picked in the toolbar. */
-function anchorUnder(frame: HTMLIFrameElement, doc: Document, line: Element): SuggestAnchor {
-  const box = frame.getBoundingClientRect();
-  const scale = box.width / (doc.documentElement.clientWidth || box.width);
-  const at = line.getBoundingClientRect();
-  return {
-    left: box.left + at.left * scale,
-    top: box.top + at.bottom * scale + 2,
-    width: Math.max(MIN_LIST_WIDTH, at.width * scale),
-  };
-}
-
-/** The caret after the last letter of the blank, on whichever line that now is. */
-function caretToEnd(doc: Document, field: Element) {
-  const id = field.getAttribute(FIELD_ATTR) ?? "";
-  const lines = doc.querySelectorAll(`[${FLOW_OF}="${CSS.escape(id)}"]`);
-  const last = lines.length > 0 ? lines[lines.length - 1] : field;
-  const range = doc.createRange();
-  range.selectNodeContents(last);
-  range.collapse(false);
-  const selection = doc.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
+  matches: Suggestion[];
+  shown: number;
+  active: number;
+  anchor: SuggestAnchor;
 }
 
 /**
  * "Gợi ý khi nhập" on a sheet (R-1219): typing in a blank that offers
- * suggestions lists what the branch wrote there before, from the first letter;
- * Ctrl + Space lists them in an empty blank too (R-1220); ↑/↓ choose, Enter or
- * Tab or a click writes the choice in, Esc closes. The list lives on the page,
- * not in the sheet's own document — printing copies that document, and the
- * list must never reach paper.
+ * suggestions lists what the branch wrote on that part of the form before,
+ * from the first letter; Ctrl + Space lists them in an empty blank too
+ * (R-1220). Every printed line of the part offers the same list, and so does a
+ * line added under it with Enter (R-1222). ↑/↓ choose, Enter or Tab or a click
+ * writes the choice in, Esc closes; a long list loads on as it is scrolled.
+ * The list lives on the page, not in the sheet's own document — printing
+ * copies that document, and the list must never reach paper.
  */
 export function useSheetSuggestions(
   frame: RefObject<HTMLIFrameElement | null>,
@@ -82,7 +42,8 @@ export function useSheetSuggestions(
 ) {
   const query = useMedicalRecordFieldSuggestions(form, editable);
   const lists = useMemo(
-    () => new Map((query.data ?? []).map((item) => [item.field, item.values] as const)),
+    () => new Map((query.data ?? []).flatMap((item) =>
+      (item.fields?.length ? item.fields : [item.field]).map((id) => [id, item.values] as const))),
     [query.data],
   );
   const listsRef = useRef(lists);
@@ -100,7 +61,7 @@ export function useSheetSuggestions(
   const pick = useCallback((index: number) => {
     const open = targetRef.current;
     const doc = frame.current?.contentDocument;
-    const chosen = open?.items[index];
+    const chosen = open?.matches[index];
     if (!open || !doc || !chosen) return;
     setTarget(null);
     writeFlowed(open.field, chosen.text);
@@ -116,18 +77,41 @@ export function useSheetSuggestions(
     setTarget((open) => (open ? { ...open, active: index } : open));
   }, []);
 
+  const more = useCallback(() => {
+    setTarget((open) =>
+      open && open.shown < open.matches.length ? { ...open, shown: open.shown + SUGGESTION_PAGE } : open);
+  }, []);
+
+  /** ↓ past the last one loaded loads the next page; past the very last goes back to the top. */
+  const step = useCallback((by: 1 | -1) => {
+    setTarget((open) => {
+      if (!open) return open;
+      const next = open.active + by;
+      if (next < 0) return { ...open, active: open.shown - 1 };
+      if (next >= open.matches.length) return { ...open, active: 0 };
+      const shown = next >= open.shown ? open.shown + SUGGESTION_PAGE : open.shown;
+      return { ...open, active: next, shown };
+    });
+  }, []);
+
   const attach = useCallback((doc: Document) => {
     /** `asked`: Ctrl + Space — an empty blank lists its most used texts too. */
     const refresh = (asked = false) => {
       const iframe = frame.current;
       const at = blankAtCaret(doc);
-      const values = at ? listsRef.current.get(at.field.getAttribute(FIELD_ATTR) ?? "") : undefined;
-      const items = at && values ? matchSuggestions(flowedText(at.field), values, { whenEmpty: asked }) : [];
-      if (!at || !iframe || items.length === 0) {
+      const values = at ? listsRef.current.get(listedBlankOf(at.field)) : undefined;
+      const matches = at && values ? matchSuggestions(flowedText(at.field), values, { whenEmpty: asked }) : [];
+      if (!at || !iframe || matches.length === 0) {
         setTarget(null);
         return;
       }
-      setTarget({ field: at.field, items, active: -1, anchor: anchorUnder(iframe, doc, at.line) });
+      setTarget({
+        field: at.field,
+        matches,
+        shown: SUGGESTION_PAGE,
+        active: -1,
+        anchor: anchorUnder(iframe, doc, at.line),
+      });
     };
 
     const onInput = () => {
@@ -150,14 +134,10 @@ export function useSheetSuggestions(
 
       const open = targetRef.current;
       if (!open) return;
-      const count = open.items.length;
 
-      if (event.key === "ArrowDown") {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         take();
-        highlight((open.active + 1) % count);
-      } else if (event.key === "ArrowUp") {
-        take();
-        highlight(open.active <= 0 ? count - 1 : open.active - 1);
+        step(event.key === "ArrowDown" ? 1 : -1);
       } else if (event.key === "Escape") {
         take();
         setTarget(null);
@@ -179,21 +159,31 @@ export function useSheetSuggestions(
       doc.removeEventListener("mousedown", close);
       doc.removeEventListener("focusout", close);
     };
-  }, [frame, close, highlight, pick]);
+  }, [frame, close, step, pick]);
 
   // The list is pinned to the screen; once the page moves under it, it no longer points at the line.
+  // Scrolling the list itself is not the page moving.
   useEffect(() => {
     if (!target) return;
-    window.addEventListener("scroll", close, true);
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest(".mr-suggest")) return;
+      close();
+    };
+    window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", close);
     return () => {
-      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", close);
     };
   }, [target, close]);
 
   const open: OpenSuggestions | null = target
-    ? { items: target.items, active: target.active, anchor: target.anchor }
+    ? {
+        items: target.matches.slice(0, target.shown),
+        hasMore: target.shown < target.matches.length,
+        active: target.active,
+        anchor: target.anchor,
+      }
     : null;
-  return { open, attach, pick, highlight };
+  return { open, attach, pick, highlight, more };
 }

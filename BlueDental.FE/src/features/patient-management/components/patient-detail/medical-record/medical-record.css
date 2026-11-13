@@ -259,9 +259,14 @@
 /* "Gợi ý khi nhập" (R-1219): pinned under the line being written, on the page
    rather than in the sheet, so printing never takes it along. */
 .mr-suggest {
+  --mr-suggest-row: 32px;
   position: fixed;
   left: var(--mr-suggest-left);
   top: var(--mr-suggest-top);
+  bottom: var(--mr-suggest-bottom);
+  display: flex;
+  flex-direction: column;
+  max-height: var(--mr-suggest-room);
   z-index: 1060;
   min-width: var(--mr-suggest-width);
   max-width: min(640px, calc(100vw - 32px));
@@ -274,15 +279,24 @@
   font-size: 14px;
 }
 
+/* Eight and a half rows, the half one showing the list scrolls on (R-1222);
+   fewer where the window has no room for them — the hint under it stays. */
 .mr-suggest-list {
+  min-height: 0;
+  max-height: calc(8.5 * var(--mr-suggest-row));
   margin: 0;
   padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   list-style: none;
 }
 
 .mr-suggest-option {
   overflow: hidden;
+  height: var(--mr-suggest-row);
   padding: 6px 12px;
+  box-sizing: border-box;
+  line-height: 20px;
   cursor: pointer;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -297,6 +311,7 @@
 }
 
 .mr-suggest-hint {
+  flex: none;
   padding: 4px 12px 2px;
   border-top: 1px solid var(--bd-border);
   color: var(--bd-ink-4);
