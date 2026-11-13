@@ -2983,6 +2983,7 @@
     "Treatment:Convert:ConvertService": "Convert Service",
     "Treatment:Convert:CurrentService": "Current Service",
     "Treatment:Convert:NewService": "New Service",
+    "Treatment:Convert:AdditionalPayment": "Additional payment due",
     "Treatment:Convert:OldService": "Old Service",
     "Treatment:Convert:ReplaceOption": "Replace",
     "Treatment:Convert:ConvertSuccess": "Service converted",

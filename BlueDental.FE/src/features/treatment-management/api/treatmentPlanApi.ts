@@ -237,6 +237,8 @@ export interface TreatmentServiceDto {
    * longer reads it: its Giá gốc is `originalPrice` (R-1102).
    */
   catalogPrice: number | null;
+  /** The service's "Đơn vị" in Danh mục (e.g. "Răng"); null when none (R-1226). */
+  unit: string | null;
   /**
    * The service's group in Danh mục — a "Theo dịch vụ" voucher may name it
    * instead of the service, so the payment dialog can preview one (P2910).

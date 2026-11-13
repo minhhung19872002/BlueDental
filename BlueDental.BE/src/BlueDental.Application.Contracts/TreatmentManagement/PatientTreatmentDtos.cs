@@ -80,6 +80,12 @@ public class TreatmentServiceDto : EntityDto<Guid>
     public decimal? CatalogPrice { get; set; }
 
     /// <summary>
+    /// The service's "Đơn vị" in Danh mục (e.g. "Răng"), printed after Số lượng in
+    /// Chuyển đổi dịch vụ (R-1226). Null when the catalog row is gone or has none.
+    /// </summary>
+    public string? Unit { get; set; }
+
+    /// <summary>
     /// The service's group in Danh mục — a "Theo dịch vụ" voucher may name it
     /// instead of the service (R-949), so the payment dialog can preview one (P2910).
     /// </summary>

@@ -15329,3 +15329,30 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - BE Domain Labo 82/82, Application Labo + Taxonomy 55/55.
   - tsc + eslint sạch.
 - **Mức retest**: 3 (LaboAppService + TaxonomyAppService dùng chung, toàn bộ spec Labo).
+
+## R-1226 (2026-11-13, mức 2: Kế hoạch điều trị — "Chuyển đổi dịch vụ" thêm Đơn giá + Số lượng ở dịch vụ hiện tại, "Còn lại" → "Cần thanh toán thêm" ở dịch vụ mới, F-38, CHỈ develop)
+
+- **Yêu cầu** (BA, 2 ảnh dialog, 2026-11-13; khối này hoãn ở F-96):
+  - Cột trái "THÔNG TIN THANH TOÁN HIỆN TẠI": thêm Đơn giá (vd 600.000 đ) và Số lượng (vd "5 Răng") của dịch vụ đang chuyển đổi, đặt trên Tổng tiền.
+  - Cột phải (Dịch vụ mới) "THÔNG TIN THANH TOÁN": đổi tên "Còn lại" thành "Cần thanh toán thêm". Số tiền giữ nguyên.
+  - Đơn giá lấy theo giá bán trên dòng (`price`), để Đơn giá × Số lượng = Tổng tiền trước giảm (`GrossAmount`). Không lấy Giá gốc (`originalPrice`).
+- **BE**:
+  - `TreatmentServiceDto.Unit` là "Đơn vị" của dịch vụ trong Danh mục (`CatalogEntry.Unit`).
+  - `PatientTreatmentAppService` đọc giá trị này từ `catalogRows` đã nạp sẵn, không thêm truy vấn. Null khi dịch vụ không có đơn vị hoặc mục Danh mục đã mất.
+  - Key mới `Treatment:Convert:AdditionalPayment` (vi "Cần thanh toán thêm" / en "Additional payment due").
+  - Không đụng `Treatment:Pricing:Remaining`, vì nhiều màn khác dùng chung. Không migration.
+- **FE**:
+  - `ConvertCurrentService`: hai dòng Đơn giá / Số lượng. Số lượng in `"<số> <đơn vị>"`, hoặc chỉ số khi không có đơn vị.
+  - `ConvertNewService`: dòng cuối dùng key mới.
+  - `treatmentPlanApi.TreatmentServiceDto.unit` và `treatmentRows` (dòng giả của phiếu Labo) thêm `unit: null`.
+- **Kiểm thử**: host riêng :5152 (build vào scratchpad) + bản build production `vite preview` :8091, đăng nhập thật, không chặn request.
+  - Spec mới `e2e/convert-current-price.spec.ts`:
+    - Tạo dịch vụ 600.000 đ, đơn vị "Răng", và phiếu 3 răng qua API thật.
+    - Đọc lại phiếu: `unit` = "Răng", `quantity` 3, `price` 600.000.
+    - Dialog: Đơn giá 600.000 đ / Số lượng "3 Răng" / Tổng tiền 1.800.000 đ, theo đúng thứ tự.
+    - Dòng cuối cột phải là "Cần thanh toán thêm", không còn "Còn lại".
+    - Chỉ đọc, không lưu chuyển đổi.
+    - 1/1 xanh.
+  - `convert-sale-price`, `convert-line-lock`, `convert-whole-jaw` 4/4 xanh. `treatment-plan-detail.spec.ts` 13/13 xanh.
+  - BE Application.Tests PatientTreatment 5/5. tsc + eslint sạch.
+- **Mức retest**: 2 (một feature; DTO chỉ thêm field).

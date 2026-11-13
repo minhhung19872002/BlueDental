@@ -2882,6 +2882,7 @@
     "Treatment:Convert:ConvertService": "Chuyển đổi dịch vụ",
     "Treatment:Convert:CurrentService": "Dịch vụ hiện tại",
     "Treatment:Convert:NewService": "Dịch vụ mới",
+    "Treatment:Convert:AdditionalPayment": "Cần thanh toán thêm",
     "Treatment:Convert:OldService": "Dịch vụ cũ",
     "Treatment:Convert:ReplaceOption": "Thay thế",
     "Treatment:Convert:ConvertSuccess": "Đã chuyển đổi dịch vụ",

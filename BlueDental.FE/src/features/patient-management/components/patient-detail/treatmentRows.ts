@@ -252,6 +252,7 @@ function diagnosisRow(slip: PatientDiagnosisDto): TreatmentRow {
     code: slip.code,
     originalPrice: 0,
     catalogPrice: null,
+    unit: null,
     serviceGroupId: null,
     price: 0,
     quantity: Math.max(slip.teeth.length, 1),

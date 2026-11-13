@@ -14,6 +14,12 @@ interface Props {
   onLaboCleared: () => void;
 }
 
+/** "5 Răng" — the count and the service's Đơn vị in Danh mục, or the count alone. */
+function quantityText(quantity: number, unit: string | null): string {
+  const name = unit?.trim();
+  return name ? `${quantity} ${name}` : String(quantity);
+}
+
 /**
  * Left column: the line being closed and what has already been collected on
  * it. Read-only throughout — the reference offers nothing to change here.
@@ -54,6 +60,8 @@ export function ConvertCurrentService({ row, hasOpenLabo, onLaboCleared }: Props
         <ConvertFacts
           tight
           facts={[
+            { label: t("Treatment:Pricing:UnitPrice"), value: moneyText(service.price) },
+            { label: t("Treatment:Pricing:Quantity"), value: quantityText(service.quantity, service.unit) },
             { label: t("Treatment:Pricing:TotalAmount"), value: moneyText(service.effectiveAmount) },
             { label: t("Treatment:Pricing:Discount"), value: moneyText(service.discountAmount) },
             { label: t("Treatment:Receipt:TotalPaid"), value: moneyText(paid) },
