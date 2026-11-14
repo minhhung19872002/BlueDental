@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Input } from "antd";
 import { LeftOutlined, RightOutlined, SearchOutlined } from "@ant-design/icons";
 import { SegmentedTabs } from "@/components/SegmentedTabs/SegmentedTabs";
@@ -17,10 +18,12 @@ interface Props {
   /** Every group of the month, for the team pick (not the filtered ones). */
   groups: readonly ScheduleGroupVm[];
   filters: ScheduleFilters;
+  /** Trailing controls, e.g. the day-off limit. */
+  children?: ReactNode;
 }
 
 /** View switch, month navigation, search and the team pick (prototype P0911). */
-export function ScheduleToolbar({ view, onViewChange, year, month, onMonthStep, groups, filters }: Props) {
+export function ScheduleToolbar({ view, onViewChange, year, month, onMonthStep, groups, filters, children }: Props) {
   const viewItems = [
     { key: "team" as const, label: t("Timekeeping:Board:View:Team") },
     { key: "person" as const, label: t("Timekeeping:Board:View:Person") },
@@ -53,6 +56,7 @@ export function ScheduleToolbar({ view, onViewChange, year, month, onMonthStep, 
         onChange={(e) => filters.setSearch(e.target.value)}
       />
       <TeamFilterDropdown groups={groups} filters={filters} />
+      {children}
     </div>
   );
 }

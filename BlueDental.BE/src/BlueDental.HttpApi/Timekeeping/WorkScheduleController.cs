@@ -19,4 +19,8 @@ public sealed class WorkScheduleController(IWorkScheduleAppService service) : Bl
     [HttpPost("save")]
     public Task<SaveWorkScheduleResultDto> SaveAsync([FromBody] SaveWorkScheduleInput input) =>
         service.SaveAsync(input);
+
+    [HttpPut("day-off-limit")]
+    public Task<DayOffLimitDto> SetDayOffLimitAsync([FromBody] SetDayOffLimitInput input) =>
+        service.SetDayOffLimitAsync(input);
 }

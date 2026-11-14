@@ -83,6 +83,14 @@
 .ws-month-label { min-width: 128px; text-align: center; font-weight: 700; font-size: 15px; color: var(--ws-ink); }
 .ws-search { flex: 1 1 220px; max-width: 320px; }
 
+/* Day-off limit (BA 2026-11-14): admin edits it, the others read it. */
+.ws-limit { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.ws-limit-label { font-size: 13px; font-weight: 600; color: var(--ws-ink); white-space: nowrap; }
+.ws-limit-input { width: 64px; }
+.ws-limit--read { font-size: 13px; color: var(--ws-sub); white-space: nowrap; }
+.ws-sub--over,
+.ws-stat-v--over { color: var(--bd-red); font-weight: 700; }
+
 .ws-dd { position: relative; }
 .ws-dd-btn {
   display: flex;

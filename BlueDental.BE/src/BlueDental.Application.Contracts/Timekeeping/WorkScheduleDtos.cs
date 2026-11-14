@@ -15,6 +15,17 @@ public class WorkScheduleBoardDto
     /// <summary>The clinic's today: it and every day before it are locked.</summary>
     public DateOnly Today { get; set; }
 
+    /// <summary>
+    /// Most days off one person may register in a month at this branch, a half
+    /// day counting 0.5 (BA 2026-11-14).
+    /// </summary>
+    public int MaxDayOffDays { get; set; }
+
+    /// <summary>
+    /// The caller is admin: sets <see cref="MaxDayOffDays"/> and is not held to it.
+    /// </summary>
+    public bool CanSetDayOffLimit { get; set; }
+
     public List<WorkScheduleGroupDto> Groups { get; set; } = [];
 }
 
@@ -98,4 +109,16 @@ public class SaveWorkScheduleResultDto
 
     /// <summary>Late changes recorded in the change log.</summary>
     public int Logged { get; set; }
+}
+
+/// <summary>Admin's "Số ngày nghỉ tối đa" for the current branch.</summary>
+public class SetDayOffLimitInput
+{
+    [Range(1, 31)]
+    public int MaxDayOffDays { get; set; }
+}
+
+public class DayOffLimitDto
+{
+    public int MaxDayOffDays { get; set; }
 }

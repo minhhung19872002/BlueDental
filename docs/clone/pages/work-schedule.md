@@ -49,6 +49,8 @@ Công: S = 0,5, C = 0,5, SC = 1.
 | 6 | Quyền "Điểm danh NV khác" đổi tên thành "Quản lý lịch làm việc". |
 | 7 | (BA 2026-11-10, R-1192) Người đang đăng nhập lên đầu danh sách "để họ book lịch cho dễ": nhóm của họ lên đầu, họ đứng đầu nhóm (trên cả trưởng phòng); ở chế độ "Từng bác sĩ / nhân viên" họ đứng đầu danh sách trái và được chọn sẵn. Chỉ FE (`utils/workScheduleOrder.ts`), API giữ thứ tự cũ. |
 | 8 | (BA 2026-11-10) Dưới Phòng ban có thể là Phòng ban con hoặc Team bác sĩ. Chỉ **trưởng phòng** xem được lịch của mọi người bên dưới; nhân viên phòng ban cấp trên **không** xem được đơn vị con. Khớp phạm vi hiện tại bên dưới, không phải sửa. |
+| 9 | (BA 2026-11-14, R-1233) Có lịch hẹn rồi thì **không đăng ký nghỉ** buổi đó: so theo buổi như khi đặt lịch (nghỉ sáng chặn lịch bắt đầu trước ca chiều, nghỉ chiều chặn lịch kết thúc sau ca sáng, cả ngày chặn mọi lịch). Lịch tạm có tính; Hủy hẹn và Không đến không tính. Admin cũng bị chặn (`Timekeeping:0020`). Một lịch hẹn mà buổi nghỉ cũ đã che thì không cản việc đổi. |
+| 10 | (BA 2026-11-14, R-1233) **Tối đa ngày nghỉ mỗi tháng** theo chi nhánh, mặc định 4; nghỉ sáng/chiều tính 0,5, cả ngày tính 1, ngày đã qua trong tháng cũng tính. Ai vượt cũng bị chặn, kể cả trưởng nhóm đăng ký cho thành viên (`Timekeeping:0021`); thay đổi làm giảm tổng luôn được lưu. Admin không bị giới hạn và tự đặt mức trên thanh công cụ (1..31). Bảng hiện "x/N ngày nghỉ" dưới tên mỗi người (đỏ khi vượt); cọ vẽ và "Áp dụng cho các ngày trống" dừng ở giới hạn với người không phải admin. |
 
 Phạm vi theo sơ đồ tổ chức (`OrgChartScope.WorkScheduleReachOf`):
 
@@ -63,11 +65,13 @@ Sửa lịch của người khác cần thêm quyền "Quản lý lịch làm vi
 
 ```
 GET  /api/v1/app/work-schedules?year&month
-  → { year, month, today, groups[{ unitId, name, kind, headStaffId,
+  → { year, month, today, maxDayOffDays, canSetDayOffLimit, groups[{ unitId, name, kind, headStaffId,
        members[{ staffId, fullName, roleLabel, isDentist, isHead, avatarUrl,
                  canEdit, days[{ workDate, shift }] }] }] }
 POST /api/v1/app/work-schedules/save   { items[{ staffId, workDate, shift }] }
   → { saved, logged }
+PUT  /api/v1/app/work-schedules/day-off-limit   { maxDayOffDays }   (admin, 1..31)
+  → { maxDayOffDays }
 ```
 
 `shift` có các giá trị: 0 Chưa đăng ký, 1 S, 2 C, 3 SC.
@@ -77,6 +81,9 @@ Lỗi (đều trả HTTP 403):
 - `Timekeeping:0018`: ngày đã khoá.
 - `Timekeeping:0019`: không có quyền sửa người này.
 - `Timekeeping:0016`: nhân viên không thuộc chi nhánh.
+- `Timekeeping:0020`: buổi nghỉ đè lên lịch hẹn đã có (R-1233).
+- `Timekeeping:0021`: vượt số ngày nghỉ tối đa trong tháng (R-1233).
+- `PUT day-off-limit`: người không phải admin nhận 403; mức ngoài 1..31 nhận **400** (kiểm tra DTO; domain có thêm `Organizations:0010` chặn lần nữa).
 
 ## Ảnh hưởng tới chọn bác sĩ và đặt lịch (đã kiểm tra 2026-11-10)
 

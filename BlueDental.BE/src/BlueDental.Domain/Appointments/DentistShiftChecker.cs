@@ -85,6 +85,17 @@ public class DentistShiftChecker : ITransientDependency
         }
 
         var (morning, afternoon) = PlannedShifts(record);
+        return OffConflict(off, morning, afternoon, localStart, localEnd);
+    }
+
+    /// <summary>
+    /// The same split for a day off not yet saved: the Lịch nghỉ board asks it
+    /// of an appointment already booked before letting <paramref name="off"/> stand.
+    /// </summary>
+    public static WorkScheduleShift OffConflict(
+        WorkScheduleShift off, ShiftWindow morning, ShiftWindow afternoon,
+        DateTimeOffset localStart, DateTimeOffset localEnd)
+    {
         var blocked = off switch
         {
             WorkScheduleShift.FullDay => true,
