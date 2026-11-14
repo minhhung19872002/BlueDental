@@ -63,6 +63,9 @@
   --bd-table-head: #e0e7ff;
   --bd-table-head-ink: #22285c;
   --bd-table-head-line: #c7d0f5;
+  /* The rules between a table's rows and columns (BA, R-1232): every on-screen
+     table, a mid grey that reads on white; print sheets keep their own ink. */
+  --bd-table-line: #d6dae6;
 
   /* The planes below a card: input fill, row hover, table head. */
   --bd-surface-2: #f6f8fe;
@@ -1930,7 +1933,7 @@ body::-webkit-scrollbar-track {
   font-size: 13px;
   padding: 8px 6px;
   height: auto;
-  border-bottom: 1px solid var(--bd-bg);
+  border-bottom: 1px solid var(--bd-table-line);
   color: var(--bd-sub);
 }
 
@@ -1950,7 +1953,7 @@ body::-webkit-scrollbar-track {
    the cell before it goes unruled like the body's last cell. */
 .ant-table-wrapper .ant-table-thead > tr > th:not(:last-child):not(:has(+ th.ant-table-cell-scrollbar)),
 .ant-table-wrapper .ant-table-tbody > tr > td:not(:last-child) {
-  border-inline-end: 1px solid var(--bd-line);
+  border-inline-end: 1px solid var(--bd-table-line);
 }
 
 /* On the indigo header strip the body's rule would vanish (R-1075). */

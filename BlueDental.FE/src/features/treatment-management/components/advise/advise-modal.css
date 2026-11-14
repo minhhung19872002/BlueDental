@@ -443,7 +443,7 @@
 }
 .am-table td {
   height: 40px;
-  border-bottom: 1px solid var(--bd-line-soft);
+  border-bottom: 1px solid var(--bd-table-line);
   padding: 6px 12px;
   color: var(--tp-ink);
   font-size: 14px;
@@ -455,7 +455,7 @@
 /* Ruled columns, like every other table in the app (R-997). */
 .am-table th:not(:last-child),
 .am-table td:not(:last-child) {
-  border-right: 1px solid var(--bd-line-soft);
+  border-right: 1px solid var(--bd-table-line);
 }
 .am-table th:not(:last-child) {
   border-right-color: var(--bd-table-head-line);

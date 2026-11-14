@@ -15443,3 +15443,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Đo computed style trên bảng thật (5 phiếu): ô 15px/600, Trạng thái 14px/600, dòng hạn 13.5px/600, tiêu đề 11.5px/700 (không đổi).
   - e2e `labo-tab-list` + `labo-orders-actions` 5/5 xanh. eslint sạch.
 - **Mức retest**: 1 (chỉ CSS).
+
+## R-1232 (2026-11-14, mức 3: CSS dùng chung cho mọi bảng)
+
+- **Yêu cầu BA (Zalo 2026-11-14)**: "cho size to lên, với các table các line gạch ngang cho đậm" — "line đậm thì toàn bộ table", "size to cho phần labo thôi".
+- **Thay đổi**:
+  - Chữ to + đậm: toàn bộ các tab của `/labo` (cùng quy tắc R-1231: ô 15px/600, dòng phụ 13.5px/600, Trạng thái 14px/600). Rule của tab Labo trong hồ sơ chuyển từ `patient-detail.css` sang `labo-order-dialog.css` (file được nạp ở cả hai màn), viết chung `:is(.pd-labo-table, .bd-labo-page)`. Dialog Labo nằm ngoài cả hai wrapper nên không đổi.
+  - Đường kẻ: token mới `--bd-table-line: #d6dae6` (theme `brand.tableLine`, AntD `Table.borderColor`). Đường ngang giữa các dòng (trước là màu nền #f7f9ff, gần như không thấy) và đường dọc R-997 (trước `--bd-line`) của mọi bảng trên màn hình dùng token này; các bảng tự dựng (`.rs-slips`, `.report-table-card`, `.report-daily-table`, `bd-combo-table`, `.wsb-table`, `.am-table`, `.tp-group-table`, `.pdt-refund-table`, `.pd-labo-history-round`, `.pd-debt-table`, `.bd-patient-tablecard`) cũng vậy.
+  - Không đổi: header chàm R-1075 (đường dọc header vẫn `--bd-table-head-line`), các bảng in/giấy (`.rcpt-lines`, `.pq-sheet`, `.rx-sheet-table`, `.report-print-table`, `.pdt-slip-sheet-table`, `.pd-print-table`...), cỡ chữ các bảng ngoài Labo. Không đổi API, không migration.
+- **Kiểm thử**: dev server :5173 + host thật, không chặn request.
+  - Đo computed style: `/labo` Mẫu Labo + Nhà cung cấp (20 dòng) ô 15px/600, kẻ #d6dae6, tiêu đề 11.5px/700 không đổi; tab Labo hồ sơ vẫn 15px/600; danh sách bệnh nhân giữ 14px/400, kẻ #d6dae6; bảng `bordered` Chăm sóc KH đường dọc #d6dae6.
+  - tsc sạch, build production OK.
+  - e2e (taxonomy*, payment-qr, branch-*, labo-tab-list, labo-orders-actions trên `vite preview`): CHƯA chạy lúc push — owner cho push trước, chạy sau; kết quả ghi bổ sung bên dưới.
+- **Mức retest**: 3 (CSS + token bảng dùng chung).

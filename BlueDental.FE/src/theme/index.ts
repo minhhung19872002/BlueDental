@@ -34,6 +34,8 @@ export const brand = {
   tableHead: "#e0e7ff",
   tableHeadInk: "#22285c",
   tableHeadLine: "#c7d0f5",
+  // Row and column rules of every on-screen table (BA, R-1232) = --bd-table-line.
+  tableLine: "#d6dae6",
   gold: "#d98b0f",
   goldDeep: "#d98b0f",
   red: "#e5484d",
@@ -123,7 +125,7 @@ export const themeConfig: ThemeConfig = {
       fixedHeaderSortActiveBg: brand.tableHead,
       headerSplitColor: "transparent",
       rowHoverBg: brand.bgSoft,
-      borderColor: brand.lineSoft,
+      borderColor: brand.tableLine,
       cellFontSize: 12.5,
       cellPaddingBlock: 8,
       cellPaddingInline: 6,

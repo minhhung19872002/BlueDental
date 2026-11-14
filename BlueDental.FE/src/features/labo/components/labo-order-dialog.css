@@ -649,6 +649,27 @@
   color: var(--bd-red);
 }
 
+/* Labo's tables read bold and bigger (BA 2026-11-14): the patient record's
+   Labo tab (R-1231) and every tab of /labo (R-1232) — 15px against the 13px of
+   other tables, the small second lines and the status pill in step. Column
+   titles stay; the dialogs render outside both wrappers, so they stay too. */
+:is(.pd-labo-table, .bd-labo-page) .ant-table-wrapper .ant-table-tbody > tr.ant-table-row > td {
+  font-size: 15px;
+  font-weight: 600;
+}
+:is(.pd-labo-table, .bd-labo-page) .ant-table-tbody :is(.pd-labo-due, .bd-labo-sub, .bd-labo-material-code) {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+:is(.pd-labo-table, .bd-labo-page) .ant-table-tbody .ant-tag {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 24px;
+}
+:is(.pd-labo-table, .bd-labo-page) .ant-table-tbody .bd-labo-link {
+  font-weight: 600;
+}
+
 /* ── The Labo workflow dialog (P2910_03) ─────────────────────────────────────
    Title + status pill, then the three numbered steps on one rail, the step's
    hint under them, and a footer whose hint sits left of the buttons.
