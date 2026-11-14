@@ -15454,5 +15454,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: dev server :5173 + host thật, không chặn request.
   - Đo computed style: `/labo` Mẫu Labo + Nhà cung cấp (20 dòng) ô 15px/600, kẻ #d6dae6, tiêu đề 11.5px/700 không đổi; tab Labo hồ sơ vẫn 15px/600; danh sách bệnh nhân giữ 14px/400, kẻ #d6dae6; bảng `bordered` Chăm sóc KH đường dọc #d6dae6.
   - tsc sạch, build production OK.
-  - e2e (taxonomy*, payment-qr, branch-*, labo-tab-list, labo-orders-actions trên `vite preview`): CHƯA chạy lúc push — owner cho push trước, chạy sau; kết quả ghi bổ sung bên dưới.
+  - e2e chạy sau khi push (owner cho push trước): taxonomy*, payment-qr, branch-*, labo-tab-list, labo-orders-actions trên `vite preview` bản build production — 97/101 xanh.
+  - 4 đỏ là lỗi có sẵn, không do thay đổi này: chạy lại đúng 4 test trên bản build của `f1c5a692` (trước R-1231, không có token `--bd-table-line`) vẫn đỏ y hệt. Chi tiết:
+    - `taxonomy-dialogs` :104 — không tìm thấy NCC vừa tạo trong dropdown Nhà cung cấp Labo.
+    - `taxonomy-dialogs` :256 — "the branch should have a service group".
+    - `taxonomy-dialogs` :456 — `getByLabel("Khác")` trùng nút dock "Khách đã đến" (strict mode).
+    - `taxonomy-import-api` :708 — không có option chi nhánh title "Nha Khoa Đức Hạnh Premium".
 - **Mức retest**: 3 (CSS + token bảng dùng chung).
