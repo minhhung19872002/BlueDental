@@ -15479,3 +15479,18 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `appointment-slot-pick-doctor` sửa setup: huỷ lịch hẹn trước khi đăng ký nghỉ cả ngày. Luật mới chặn đúng ca này; chạy lại 2/2.
   - Domain 42/42; tsc + eslint sạch.
 - **Mức retest**: 3.
+
+## R-1234 (2026-11-14, mức 2: Bệnh án in — chữ to hơn, giữ nguyên dòng và số trang; develop)
+
+- **Yêu cầu phòng khám**: "in ra giấy nhìn nó nhỏ". Chủ dự án: "thay đổi font size mà k ảnh hưởng layout và trang hiện tại"; không được nhảy dòng (ảnh mẫu 2 "9. Đối tượng … 4. Khác ☐" rớt xuống hàng).
+- **Thay đổi** (chỉ FE, không API, không migration):
+  - `sheetCss.ts`: mẫu 2–10 `font-size-adjust: var(--nfc-letter-height)` = 0.5 (Times New Roman x-height ≈ 0.45 → nét chữ to ≈ 11%). Cỡ chữ, cao dòng, chiều cao ô giữ nguyên. Bìa (mẫu 1) và `h1` không đổi. Placeholder của ô trống để chữ đứng (chữ nghiêng làm mỗi dòng có ô trống cao thêm ~1px).
+  - `fitBlanks.ts`: rút chỗ chấm điền cho mọi mẫu 2–10 (trước chỉ mẫu 2); đo trạng thái gốc với `font-size-adjust: none`.
+  - `holdLines.ts` (mới): đoạn nào nhiều dòng hơn so với chữ gốc thì riêng đoạn đó giảm từng nấc 0.01, tối đa về đúng chữ gốc. Chạy khi mở phiếu (`MedicalRecordDocument`) và chạy lại trước khi in (`printing.ts`).
+  - Cỡ chữ từng mẫu (R-970/R-1067/R-1068/R-1073/R-1079) không đổi.
+- **Kiểm thử**: dev server + host thật, không chặn request.
+  - Đo PDF in thật cả 10 mẫu: số trang bằng trước (3/3/4/1/2/2/1/2/1/5), không đoạn nào thêm dòng; chiều cao trang trên màn hình lệch −0,4 → +3 mm.
+  - Dòng phải giảm chữ: letterhead "SỞ Y TẾ…" (0.46–0.49); mẫu 2 "9. Đối tượng", "Người nhận hồ sơ", "- Khác"; mẫu 3 ô "Lệch phải/trái"; mẫu 6 hai câu; mẫu 8 vài dòng; mẫu 10 ~10 điều khoản.
+  - e2e `patient-medical-record`, `medical-record-sheet-facts`, `contract-party-a`, `printed-doctor-title`: 2 đỏ có sẵn (stash thay đổi vẫn đỏ y hệt): `medical-record-sheet-facts` :171 "Giảm giá", `patient-medical-record` :2419 ngày in. 3 test đỏ lần đầu chạy lại xanh.
+  - tsc + eslint sạch.
+- **Mức retest**: 2.

@@ -21,6 +21,7 @@ import { MaterialTypeDialog } from "./materials/MaterialTypeDialog";
 import { useSheetMaterials } from "./materials/useSheetMaterials";
 import { attachSections } from "./sheetSections";
 import { fitBlanksToLines } from "./fitBlanks";
+import { holdLines } from "./holdLines";
 import { flowLongBlanks, flowedText, isPartOf, writeFlowed } from "./flowLines";
 import { attachMultiLineSelect } from "./multiLineSelect";
 import { SheetSuggestions } from "./suggestions/SheetSuggestions";
@@ -182,10 +183,12 @@ export function MedicalRecordDocument({
 
     // Height only: the width of a sheet of A4 does not depend on what is on it,
     // and measuring it would read a scrollbar's width off a long record.
-    // Laid out now: mẫu 2's lines keep to one line in its larger type, then a
-    // blank whose text runs past its line goes on to lines of its own.
+    // Laid out now: the lines keep to one line in the larger letters, then a
+    // blank whose text runs past its line goes on to lines of its own, then a
+    // line the larger letters still break takes its letters down until it holds.
     fitBlanksToLines(doc);
     flowLongBlanks(doc);
+    holdLines(doc);
 
     const measure = () => {
       const next = Math.ceil(doc.documentElement.scrollHeight);

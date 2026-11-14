@@ -110,6 +110,22 @@ export const SHEET_CSS = String.raw`
 /* Mẫu 10, the clinic's contract, set like mẫu 6 — the other consent it is
    signed beside: 15px inside the same 15mm margins (R-1079). */
 .nfc-tpl[data-form="10"]{font-size:15px}
+/* Larger letters, same pages (clinic, 2026-11-14, R-1234: "in ra giấy nhìn nó
+   nhỏ", the pages kept as they are). Times New Roman's lower case stands at
+   0.45 of its size; font-size-adjust draws the letters as if it stood at
+   --nfc-letter-height, about an eighth larger, while the type's size — and the
+   line pitch, the box heights, the spacing, all set in em — stays. Only the
+   letters widen: fitBlanks shortens a line's blanks so the line still holds,
+   and holdLines takes a line the letters still break down until it holds.
+   Not the cover, drawn as a frame; not the titles, already large. A browser
+   without font-size-adjust prints the sheet as before. */
+.nfc-tpl[data-form]:not([data-form="1"]){font-size-adjust:var(--nfc-letter-height)}
+.nfc-tpl{--nfc-letter-height:0.5}
+.nfc-tpl h1{font-size-adjust:none}
+/* An empty blank's placeholder that shows nothing stands upright: in italic,
+   whose letters sit higher on the line than the blank's upright ones, the
+   larger letters make the blank a pixel taller, and every line holding one. */
+.nfc-tpl .nfc-medical-record-text-field:is([data-placeholder=""],[data-placeholder="Nhập nội dung"]):empty::before{font-style:normal}
 .nfc-tpl h2{font-size:1em}
 .nfc-tpl h2 span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl>h2{margin:6px 0 2px}
@@ -253,7 +269,7 @@ export const SHEET_CSS = String.raw`
     background:transparent;
     outline:none
   }
-  .nfc-tpl .nfc-medical-record-text-field:empty::before{content:''}
+  .nfc-tpl .nfc-medical-record-text-field:empty::before{content:'';font-style:normal}
 }
 /* Đóng float lại trong phạm vi phiếu, không để nó tràn ra ngoài. */
 .nfc-tpl::after{content:'';display:table;clear:both}
