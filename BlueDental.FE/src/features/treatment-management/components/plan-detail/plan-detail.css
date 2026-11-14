@@ -558,13 +558,13 @@ a.pdt-crumb:hover {
 }
 .pdt-refund-table td {
   padding: 8px 12px;
-  border-top: 1px solid var(--tp-line);
+  border-top: 1px solid var(--bd-table-line);
   vertical-align: middle;
 }
 /* Ruled columns, like every other table in the app (R-997). */
 .pdt-refund-table th:not(:last-child),
 .pdt-refund-table td:not(:last-child) {
-  border-right: 1px solid var(--tp-line);
+  border-right: 1px solid var(--bd-table-line);
 }
 .pdt-refund-table th:not(:last-child) {
   border-right-color: var(--bd-table-head-line);

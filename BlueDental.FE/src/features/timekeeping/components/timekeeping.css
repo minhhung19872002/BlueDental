@@ -888,8 +888,8 @@
 
 .wsb-table th,
 .wsb-table td {
-  border-bottom: 1px solid #e7eaf6;
-  border-right: 1px solid #e7eaf6;
+  border-bottom: 1px solid var(--bd-table-line);
+  border-right: 1px solid var(--bd-table-line);
 }
 
 /* A column title stays on one line (owner, 2026-10-20). */

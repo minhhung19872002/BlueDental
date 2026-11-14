@@ -800,7 +800,7 @@
 /* Reference draws a grid: vertical rules between columns, merged cells anchored to the top. */
 .report-table-card .ant-table-wrapper .ant-table-thead > tr > th:not(:last-child),
 .report-table-card .ant-table-wrapper .ant-table-tbody > tr > td:not(:last-child) {
-  border-inline-end: 1px solid var(--bd-line);
+  border-inline-end: 1px solid var(--bd-table-line);
 }
 .report-table-card .ant-table-wrapper .ant-table-thead > tr > th:not(:last-child) {
   border-inline-end-color: var(--bd-table-head-line);
@@ -869,7 +869,7 @@
 .report-daily-table th,
 .report-daily-table td {
   padding: 8px 10px;
-  border-bottom: 1px solid var(--bd-line);
+  border-bottom: 1px solid var(--bd-table-line);
   text-align: left;
   white-space: nowrap;
 }
@@ -887,7 +887,7 @@
 /* Ruled columns, like every other table in the app (R-997). */
 .report-daily-table th:not(:last-child),
 .report-daily-table td:not(:last-child) {
-  border-right: 1px solid var(--bd-line);
+  border-right: 1px solid var(--bd-table-line);
 }
 
 .report-daily-table th:not(:last-child) {

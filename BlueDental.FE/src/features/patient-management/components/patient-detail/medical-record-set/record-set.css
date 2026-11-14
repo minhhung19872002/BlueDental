@@ -295,7 +295,7 @@
   white-space: nowrap;
 }
 .rs-slips td {
-  border-top: 1px solid var(--bd-line-soft);
+  border-top: 1px solid var(--bd-table-line);
   padding: 8px 10px;
   color: var(--bd-ink);
   vertical-align: middle;
@@ -303,7 +303,7 @@
 /* Ruled columns, like every other table in the app (R-997). */
 .rs-slips th:not(:last-child),
 .rs-slips td:not(:last-child) {
-  border-right: 1px solid var(--bd-line);
+  border-right: 1px solid var(--bd-table-line);
 }
 .rs-slips th:not(:last-child) {
   border-right-color: var(--bd-table-head-line);

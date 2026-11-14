@@ -196,7 +196,7 @@
 }
 
 .bd-patient-tablecard .ant-table-tbody > tr > td {
-  border-bottom: 1px solid var(--bd-border);
+  border-bottom: 1px solid var(--bd-table-line);
   font-size: 14px;
   color: var(--bd-ink);
 }
