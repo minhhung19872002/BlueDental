@@ -60,7 +60,7 @@ export function PatientLaboTab({ patient }: { patient: PatientDto }) {
           </Button>
         )}
       </div>
-      <div className="bd-cat-card">
+      <div className="bd-cat-card pd-labo-table">
         <DataTable<LaboOrderDto>
           rowKey="id"
           loading={page.isLoading}

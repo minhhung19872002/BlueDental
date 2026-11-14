@@ -2073,6 +2073,21 @@
 .pd-labo-wide {
   grid-column: 1 / -1;
 }
+/* The patient's Labo table (BA 2026-11-14): every value in the rows bold and
+   bigger than the 13px of other tables; the column titles stay as they are. */
+.pd-labo-table .ant-table-tbody > tr > td {
+  font-size: 15px;
+  font-weight: 600;
+}
+.pd-labo-table .ant-table-tbody .pd-labo-due {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.pd-labo-table .ant-table-tbody .ant-tag {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 24px;
+}
 .pd-prescription-head {
   display: grid;
   grid-template-columns: 1.25fr 1fr auto;

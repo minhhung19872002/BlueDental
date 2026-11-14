@@ -15430,3 +15430,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy xanh 40/40: `convert-*`, `treatment-plan-detail`, `plan-treating-scope`, `discount-limit`.
   - Domain.Tests `TreatmentPlanSlipTests` có thêm 4 test, 49/49. Application.Tests PatientTreatment 5/5. tsc + eslint sạch.
 - **Mức retest**: 2 (một feature; DTO chỉ thêm field, thêm endpoint).
+
+## R-1231 (2026-11-14, mức 1: Hồ sơ bệnh nhân › tab Labo — dữ liệu trong bảng in đậm, chữ to hơn; develop)
+- **Yêu cầu** (BA 2026-11-14, ảnh khoanh bảng tab Labo): "cho in đậm, tăng size lên thêm" — xác nhận "hết data trong bảng luôn".
+  - Chủ dự án chốt: chỉ bảng tab Labo của hồ sơ (trang `/labo` giữ nguyên), cỡ chữ 15px.
+- **FE**: khung bảng trong `PatientLaboTab` thêm class `pd-labo-table` (chưa dùng ở đâu khác). CSS trong `patient-detail.css`:
+  - Ô dữ liệu 13px → 15px, `font-weight: 600`.
+  - Dòng "còn X ngày / Trễ X ngày / đã giao" 12px → 13.5px, đậm; "Trễ" vẫn đỏ.
+  - Nhãn Trạng thái 14px, đậm, cao dòng 24px.
+  - Tiêu đề cột và các nút icon (Răng, File, Thao tác) giữ nguyên. Không đổi API, không migration.
+- **Kiểm thử**: dev server :5173 + host thật, không chặn request.
+  - Đo computed style trên bảng thật (5 phiếu): ô 15px/600, Trạng thái 14px/600, dòng hạn 13.5px/600, tiêu đề 11.5px/700 (không đổi).
+  - e2e `labo-tab-list` + `labo-orders-actions` 5/5 xanh. eslint sạch.
+- **Mức retest**: 1 (chỉ CSS).
