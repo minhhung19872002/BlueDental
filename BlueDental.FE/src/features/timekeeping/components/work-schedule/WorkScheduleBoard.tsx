@@ -6,13 +6,14 @@ import { EmptyState } from "@/components/EmptyState";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { t } from "@/lib/i18n";
 import { WORK_SCHEDULE_SHIFT } from "../../api/workScheduleApi";
-import { useSaveWorkSchedule, useWorkScheduleBoard } from "../../api/workScheduleQueries";
+import { useSaveWorkSchedule, useSetDayOffLimit, useWorkScheduleBoard } from "../../api/workScheduleQueries";
 import { useScheduleDraft } from "../../hooks/useScheduleDraft";
 import { useScheduleFilters } from "../../hooks/useScheduleFilters";
 import { useSchedulePaint, type PaintBlock } from "../../hooks/useSchedulePaint";
 import type { ScheduleGroupVm, ScheduleView } from "../../types/workSchedule";
 import { viewerFirst } from "../../utils/workScheduleOrder";
 import { monthDays, type BrushShift } from "../../utils/workScheduleShift";
+import { DayOffLimitControl } from "./DayOffLimitControl";
 import type { GridContext } from "./ScheduleGroupRows";
 import { PersonScheduleView } from "./PersonScheduleView";
 import { SaveScheduleDialog } from "./SaveScheduleDialog";
@@ -31,10 +32,8 @@ const NO_GROUPS: ScheduleGroupVm[] = [];
 const BLOCK_MESSAGE: Record<PaintBlock, string> = {
   locked: "Timekeeping:Board:LockedDay",
   forbidden: "Timekeeping:Board:NoPermission",
+  limit: "Timekeeping:Board:DayOffLimit",
 };
-
-const handleBlocked = (reason: PaintBlock) =>
-  toast.warning(t(BLOCK_MESSAGE[reason]), { id: `ws-block-${reason}` });
 
 /**
  * Lịch làm việc (BA P0911, F-90): register S / C / SC per person per day for
@@ -49,8 +48,14 @@ export function WorkScheduleBoard({ initialDate }: Props) {
 
   const board = useWorkScheduleBoard(period.year, period.month);
   const save = useSaveWorkSchedule();
+  const setLimit = useSetDayOffLimit();
   const draft = useScheduleDraft();
-  const paint = useSchedulePaint(draft, brush, handleBlocked);
+  const limit = board.data?.limit ?? null;
+  const maxDays = limit?.max ?? 0;
+  const handleBlocked = useCallback(
+    (reason: PaintBlock) => toast.warning(t(BLOCK_MESSAGE[reason], maxDays), { id: `ws-block-${reason}` }),
+    [maxDays],
+  );
   const viewerId = useAuthStore((s) => s.user?.id);
   const loaded = board.data?.groups ?? NO_GROUPS;
   const groups = useMemo(() => viewerFirst(loaded, viewerId), [loaded, viewerId]);
@@ -58,6 +63,8 @@ export function WorkScheduleBoard({ initialDate }: Props) {
 
   const today = board.data?.today ?? dayjs().format("YYYY-MM-DD");
   const days = useMemo(() => monthDays(period.year, period.month, today), [period, today]);
+  const paintLimit = useMemo(() => ({ rule: limit, days }), [limit, days]);
+  const paint = useSchedulePaint(draft, brush, handleBlocked, paintLimit);
 
   const handleMonthStep = useCallback((step: MonthStep) => {
     setPeriod((prev) => {
@@ -87,7 +94,15 @@ export function WorkScheduleBoard({ initialDate }: Props) {
     });
   }, [draft, save]);
 
-  const ctx: GridContext = { days, month: period.month, draft, paint, onOpenPerson: handleOpenPerson };
+  const handleSaveLimit = useCallback(
+    (maxDayOffDays: number) =>
+      setLimit.mutate(maxDayOffDays, {
+        onSuccess: (r) => toast.success(t("Timekeeping:Board:Limit:Saved", r.maxDayOffDays)),
+      }),
+    [setLimit],
+  );
+
+  const ctx: GridContext = { days, month: period.month, draft, paint, limit, onOpenPerson: handleOpenPerson };
   const shown = filters.visibleGroups;
   const people = shown.flatMap((g) => g.members);
   const person = people.find((m) => m.staffId === personId) ?? people[0] ?? null;
@@ -108,7 +123,11 @@ export function WorkScheduleBoard({ initialDate }: Props) {
         onMonthStep={handleMonthStep}
         groups={groups}
         filters={filters}
-      />
+      >
+        {limit ? (
+          <DayOffLimitControl key={limit.max} limit={limit} saving={setLimit.isPending} onSave={handleSaveLimit} />
+        ) : null}
+      </ScheduleToolbar>
       <ShiftBrushBar
         brush={brush}
         onBrushChange={setBrush}

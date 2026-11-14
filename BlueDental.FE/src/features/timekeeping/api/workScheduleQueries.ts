@@ -25,3 +25,15 @@ export function useSaveWorkSchedule() {
     },
   });
 }
+
+/** Admin: the branch's most days off per person per month. */
+export function useSetDayOffLimit() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (maxDayOffDays: number) => workScheduleApi.setDayOffLimit(maxDayOffDays),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: workScheduleKeys.all });
+    },
+  });
+}

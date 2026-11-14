@@ -13,4 +13,7 @@ public interface IWorkScheduleAppService : IApplicationService
     Task<WorkScheduleBoardDto> GetBoardAsync(GetWorkScheduleBoardInput input);
 
     Task<SaveWorkScheduleResultDto> SaveAsync(SaveWorkScheduleInput input);
+
+    /// <summary>Admin only: the current branch's monthly day-off limit.</summary>
+    Task<DayOffLimitDto> SetDayOffLimitAsync(SetDayOffLimitInput input);
 }

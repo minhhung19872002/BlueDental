@@ -42,7 +42,15 @@ export interface WorkScheduleBoardDto {
   month: number;
   /** "YYYY-MM-DD" — the clinic's today; it and every earlier day are locked. */
   today: string;
+  /** Most days off one person may have in a month here (S/C = 0.5). */
+  maxDayOffDays: number;
+  /** Admin: sets the limit and is not held to it. */
+  canSetDayOffLimit: boolean;
   groups: WorkScheduleGroupDto[];
+}
+
+export interface DayOffLimitDto {
+  maxDayOffDays: number;
 }
 
 export interface WorkScheduleItemInput {
@@ -62,4 +70,7 @@ export const workScheduleApi = {
 
   save: (items: WorkScheduleItemInput[]) =>
     api.post<SaveWorkScheduleResultDto>(`${BASE}/save`, { items }).then((r) => r.data),
+
+  setDayOffLimit: (maxDayOffDays: number) =>
+    api.put<DayOffLimitDto>(`${BASE}/day-off-limit`, { maxDayOffDays }).then((r) => r.data),
 };

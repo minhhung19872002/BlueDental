@@ -26,6 +26,7 @@ public static class BlueDentalDomainErrorCodes
         public const string DuplicateName = "BlueDental:Organizations:0006";
         public const string InvalidIpRange = "BlueDental:Organizations:0007";
         public const string InvalidUsageHours = "BlueDental:Organizations:0008";
+        public const string InvalidMaxDayOffDays = "BlueDental:Organizations:0010";
         public const string InvalidCode = "BlueDental:Organizations:0009";
     }
 
@@ -733,6 +734,8 @@ public static class BlueDentalDomainErrorCodes
         public const string LeaveInPast = "BlueDental:Timekeeping:0017";
         public const string ScheduleDayLocked = "BlueDental:Timekeeping:0018";
         public const string ScheduleNotEditable = "BlueDental:Timekeeping:0019";
+        public const string DayOffOverAppointments = "BlueDental:Timekeeping:0020";
+        public const string DayOffLimitExceeded = "BlueDental:Timekeeping:0021";
     }
 
     public static class CustomerCare

@@ -2,7 +2,7 @@ import { DownOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import type { ScheduleDraft } from "../../hooks/useScheduleDraft";
 import type { SchedulePaint } from "../../hooks/useSchedulePaint";
-import type { ScheduleDay, ScheduleGroupVm, ScheduleMemberVm } from "../../types/workSchedule";
+import type { DayOffLimit, ScheduleDay, ScheduleGroupVm, ScheduleMemberVm } from "../../types/workSchedule";
 import { formatUnits, workUnits } from "../../utils/workScheduleShift";
 import { groupName } from "../../utils/workScheduleText";
 import { ScheduleCell, dayColumnClass } from "./ScheduleCell";
@@ -12,6 +12,8 @@ export interface GridContext {
   month: number;
   draft: ScheduleDraft;
   paint: SchedulePaint;
+  /** Null until the board has loaded. */
+  limit: DayOffLimit | null;
   onOpenPerson: (staffId: string) => void;
 }
 
@@ -25,7 +27,22 @@ interface Props {
 const unitsOf = (member: ScheduleMemberVm, ctx: GridContext) =>
   ctx.days.reduce((sum, day) => sum + workUnits(ctx.draft.shiftOf(member, day.date)), 0);
 
+/** "Bác sĩ · 1,5/4 ngày nghỉ" — the month's days off against the branch limit. */
+function unitsText(member: ScheduleMemberVm, units: number, limit: DayOffLimit | null) {
+  const shown = formatUnits(units);
+  if (!limit) {
+    return member.roleLabel
+      ? t("Timekeeping:Board:RoleUnits", member.roleLabel, shown)
+      : t("Timekeeping:Board:Units", shown);
+  }
+  return member.roleLabel
+    ? t("Timekeeping:Board:RoleUnitsOfMax", member.roleLabel, shown, limit.max)
+    : t("Timekeeping:Board:UnitsOfMax", shown, limit.max);
+}
+
 function MemberRow({ member, ctx }: { member: ScheduleMemberVm; ctx: GridContext }) {
+  const units = unitsOf(member, ctx);
+  const over = ctx.limit !== null && units > ctx.limit.max;
   return (
     <div className="ws-row">
       <div className="ws-namecol ws-namecol--member">
@@ -37,10 +54,8 @@ function MemberRow({ member, ctx }: { member: ScheduleMemberVm; ctx: GridContext
           onClick={() => ctx.onOpenPerson(member.staffId)}
         >
           <span className="ws-name">{member.fullName}</span>
-          <span className="ws-sub">
-            {member.roleLabel
-              ? t("Timekeeping:Board:RoleUnits", member.roleLabel, formatUnits(unitsOf(member, ctx)))
-              : t("Timekeeping:Board:Units", formatUnits(unitsOf(member, ctx)))}
+          <span className={["ws-sub", over && "ws-sub--over"].filter(Boolean).join(" ")}>
+            {unitsText(member, units, ctx.limit)}
           </span>
         </button>
       </div>

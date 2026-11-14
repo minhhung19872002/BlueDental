@@ -1,12 +1,18 @@
 import { useCallback, useEffect, useRef, type MouseEvent } from "react";
 import { WORK_SCHEDULE_SHIFT } from "../api/workScheduleApi";
-import type { ScheduleDay, ScheduleMemberVm } from "../types/workSchedule";
-import type { BrushShift } from "../utils/workScheduleShift";
+import type { DayOffLimit, ScheduleDay, ScheduleMemberVm } from "../types/workSchedule";
+import { breaksDayOffLimit, workUnits, type BrushShift } from "../utils/workScheduleShift";
 import type { ScheduleDraft } from "./useScheduleDraft";
 
 type StrokeMode = "set" | "erase" | "revert";
 
-export type PaintBlock = "locked" | "forbidden";
+export type PaintBlock = "locked" | "forbidden" | "limit";
+
+/** The month on screen and the branch's limit its days off are held to. */
+export interface PaintLimit {
+  rule: DayOffLimit | null;
+  days: readonly ScheduleDay[];
+}
 
 export interface SchedulePaint {
   onMouseDown: (member: ScheduleMemberVm, day: ScheduleDay, event: MouseEvent) => void;
@@ -25,12 +31,14 @@ const blockOf = (member: ScheduleMemberVm, day: ScheduleDay): PaintBlock | null 
  * cell decides the stroke — a different shift paints, the same saved shift
  * erases it, the same unsaved shift is taken back — and every cell the mouse
  * then passes over gets the same treatment. Today, past days and people the
- * user may not edit are skipped; pressing on one says why.
+ * user may not edit are skipped; pressing on one says why. A cell that would
+ * take the person's month past the day-off limit is skipped the same way.
  */
 export function useSchedulePaint(
   draft: ScheduleDraft,
   brush: BrushShift,
   onBlocked: (reason: PaintBlock) => void,
+  limit: PaintLimit,
 ): SchedulePaint {
   const stroke = useRef<StrokeMode | null>(null);
 
@@ -41,6 +49,16 @@ export function useSchedulePaint(
     window.addEventListener("mouseup", end);
     return () => window.removeEventListener("mouseup", end);
   }, []);
+
+  const breaksLimit = useCallback(
+    (member: ScheduleMemberVm, day: ScheduleDay) => {
+      if (!limit.rule || limit.rule.exempt) return false;
+      const before = limit.days.reduce((sum, d) => sum + workUnits(draft.shiftOf(member, d.date)), 0);
+      const after = before - workUnits(draft.shiftOf(member, day.date)) + workUnits(brush);
+      return breaksDayOffLimit(limit.rule, before, after);
+    },
+    [brush, draft, limit],
+  );
 
   const apply = useCallback(
     (mode: StrokeMode, member: ScheduleMemberVm, day: ScheduleDay) => {
@@ -62,10 +80,15 @@ export function useSchedulePaint(
       if (draft.shiftOf(member, day.date) === brush) {
         mode = draft.isPending(member.staffId, day.date) ? "revert" : "erase";
       }
+      if (mode === "set" && breaksLimit(member, day)) {
+        stroke.current = null;
+        onBlocked("limit");
+        return;
+      }
       stroke.current = mode;
       apply(mode, member, day);
     },
-    [apply, brush, draft, onBlocked],
+    [apply, breaksLimit, brush, draft, onBlocked],
   );
 
   const onMouseDown = useCallback(
@@ -81,9 +104,13 @@ export function useSchedulePaint(
     (member: ScheduleMemberVm, day: ScheduleDay) => {
       const mode = stroke.current;
       if (!mode || blockOf(member, day)) return;
+      if (mode === "set" && breaksLimit(member, day)) {
+        onBlocked("limit");
+        return;
+      }
       apply(mode, member, day);
     },
-    [apply],
+    [apply, breaksLimit, onBlocked],
   );
 
   const onClick = useCallback(

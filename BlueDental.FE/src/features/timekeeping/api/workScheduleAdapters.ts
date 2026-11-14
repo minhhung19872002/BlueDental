@@ -40,5 +40,11 @@ export function adaptBoard(dto: WorkScheduleBoardDto): ScheduleBoardVm {
       members: group.members.map((m) => adaptMember(m, key, colorIndex)),
     };
   });
-  return { year: dto.year, month: dto.month, today: dto.today, groups };
+  return {
+    year: dto.year,
+    month: dto.month,
+    today: dto.today,
+    limit: { max: dto.maxDayOffDays, exempt: dto.canSetDayOffLimit },
+    groups,
+  };
 }

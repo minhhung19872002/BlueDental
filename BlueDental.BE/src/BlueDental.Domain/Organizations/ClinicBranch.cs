@@ -52,6 +52,28 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 
     public bool RestrictsUsageHours => UsageStartTime.HasValue && UsageEndTime.HasValue;
 
+    public const int DefaultMaxDayOffDays = 4;
+    public const int MaxDayOffDaysCeiling = 31;
+
+    /// <summary>
+    /// Lịch nghỉ (BA 2026-11-14): the most days off one person may register in a
+    /// calendar month at this branch, a half day counting 0.5. Admin is not held
+    /// to it and is the one who sets it.
+    /// </summary>
+    public int MaxDayOffDays { get; private set; } = DefaultMaxDayOffDays;
+
+    public ClinicBranch SetMaxDayOffDays(int days)
+    {
+        if (days < 1 || days > MaxDayOffDaysCeiling)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.InvalidMaxDayOffDays)
+                .WithData("max", MaxDayOffDaysCeiling);
+        }
+
+        MaxDayOffDays = days;
+        return this;
+    }
+
     /// <summary>The window as people read it, e.g. "06:00–20:00"; null when unrestricted.</summary>
     public string? UsageHoursText => RestrictsUsageHours
         ? $"{UsageStartTime!.Value:HH\\:mm}–{UsageEndTime!.Value:HH\\:mm}"

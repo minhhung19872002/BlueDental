@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { WORK_SCHEDULE_SHIFT, type WorkScheduleShift } from "../api/workScheduleApi";
-import type { PendingChange, ScheduleDay } from "../types/workSchedule";
+import type { DayOffLimit, PendingChange, ScheduleDay } from "../types/workSchedule";
 
 /** The three shifts a brush paints, in brush-bar order. */
 export const BRUSH_SHIFTS = [
@@ -31,6 +31,16 @@ export const SHIFT_LABEL_KEY: Record<WorkScheduleShift, string> = {
 export function workUnits(shift: WorkScheduleShift): number {
   if (shift === WORK_SCHEDULE_SHIFT.FullDay) return 1;
   return shift === WORK_SCHEDULE_SHIFT.None ? 0 : 0.5;
+}
+
+/**
+ * Whether a change takes a person's month to more days off than the limit
+ * allows. A change that lowers the total always passes, so a month already
+ * over can still be cut back; admin (exempt) is never stopped.
+ */
+export function breaksDayOffLimit(limit: DayOffLimit | null, before: number, after: number): boolean {
+  if (!limit || limit.exempt) return false;
+  return after > limit.max && after > before;
 }
 
 export const worksMorning = (shift: WorkScheduleShift) =>

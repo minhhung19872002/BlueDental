@@ -100,9 +100,15 @@ test.describe("Lịch đã hẹn theo bác sĩ — bấm ô trống điền gi�
 
     // Each doctor gets a row in Lịch đã hẹn through a real booking, made
     // before the day off is marked and before the third stops being a doctor.
-    await book(page, branchId, off.id, day, "09:00");
+    // The day off may not cover a live booking (R-1233), so the off doctor's
+    // is cancelled first — Hủy hẹn still keeps its row in the diary.
+    const offBooking = await book(page, branchId, off.id, day, "09:00");
     await book(page, branchId, working.id, day, "14:00");
     await book(page, branchId, gone.id, day, "16:00");
+    const cancelled = await call(page, `${APPOINTMENTS}/${offBooking.id}/cancel`, {
+      method: "POST", branchId, json: { reason: 1, note: "e2e" },
+    });
+    expect(cancelled.status, JSON.stringify(cancelled.body.error)).toBe(200);
     await setDayOff(page, branchId, off.id, day, OFF.FullDay);
     const profile = await call<Record<string, unknown>>(page, `/api/v1/app/staff/${gone.id}`, { branchId });
     const demoted = await call(page, `/api/v1/app/staff/${gone.id}`, {

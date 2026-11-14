@@ -178,4 +178,23 @@ public class DentistShiftCheckerTests
         Assert.Equal(WorkScheduleShift.Morning, DentistShiftChecker.OffConflict(record, At(13, 30), At(14, 0)));
         Assert.Equal(WorkScheduleShift.None, DentistShiftChecker.OffConflict(record, At(14, 0), At(14, 30)));
     }
+
+    [Theory]
+    [InlineData(WorkScheduleShift.Morning, 9, 10, true)]
+    [InlineData(WorkScheduleShift.Morning, 14, 15, false)]
+    [InlineData(WorkScheduleShift.Afternoon, 14, 15, true)]
+    [InlineData(WorkScheduleShift.Afternoon, 9, 10, false)]
+    [InlineData(WorkScheduleShift.FullDay, 19, 20, true)]
+    [InlineData(WorkScheduleShift.None, 9, 10, false)]
+    public void A_Day_Off_Not_Yet_Saved_Splits_The_Day_The_Same_Way(
+        WorkScheduleShift off, int startHour, int endHour, bool clashes)
+    {
+        // The Lịch nghỉ board asks this of appointments already booked before
+        // letting a new S / C / SC stand (BA 2026-11-14).
+        var (morning, afternoon) = DentistShiftChecker.PlannedShifts(null);
+
+        var conflict = DentistShiftChecker.OffConflict(off, morning, afternoon, At(startHour), At(endHour));
+
+        Assert.Equal(clashes ? off : WorkScheduleShift.None, conflict);
+    }
 }

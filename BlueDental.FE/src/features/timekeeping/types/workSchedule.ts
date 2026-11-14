@@ -28,7 +28,16 @@ export interface ScheduleBoardVm {
   month: number;
   /** "YYYY-MM-DD" — locks it and every earlier day. */
   today: string;
+  limit: DayOffLimit;
   groups: ScheduleGroupVm[];
+}
+
+/** The branch's Lịch nghỉ limit (BA 2026-11-14). */
+export interface DayOffLimit {
+  /** Most days off per person per calendar month, S/C counting 0.5. */
+  max: number;
+  /** Admin: not held to it, and the one who sets it. */
+  exempt: boolean;
 }
 
 /** One day column of the month. */

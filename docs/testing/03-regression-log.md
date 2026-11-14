@@ -15461,3 +15461,21 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `taxonomy-dialogs` :456 — `getByLabel("Khác")` trùng nút dock "Khách đã đến" (strict mode).
     - `taxonomy-import-api` :708 — không có option chi nhánh title "Nha Khoa Đức Hạnh Premium".
 - **Mức retest**: 3 (CSS + token bảng dùng chung).
+
+## R-1233 (2026-11-14, mức 3: Lịch nghỉ — giới hạn ngày nghỉ/tháng, chặn nghỉ đè lịch hẹn; develop)
+
+- **Yêu cầu BA**: có lịch hẹn rồi thì không đăng ký nghỉ được. Giới hạn đăng ký nghỉ tối đa 4 ngày; trưởng nhóm đăng ký được cho thành viên, thành viên chỉ đăng ký cho mình; admin toàn quyền, không bị giới hạn, tự đặt mức tối đa.
+- **Chủ dự án chốt**:
+  - Tính theo tháng; S/C = 0,5.
+  - Chặn theo buổi. Lịch tạm có tính, Hủy hẹn / Không đến không tính; admin cũng bị chặn.
+  - Mức tối đa theo chi nhánh, mặc định 4, admin đặt trên bảng.
+- **Thay đổi**:
+  - BE: `ClinicBranch.MaxDayOffDays` (migration `DayOffLimitR1233`). Lỗi mới `Timekeeping:0020` / `0021`, `Organizations:0010`. Endpoint `PUT work-schedules/day-off-limit` chỉ cho admin.
+  - FE: ô đặt mức cho admin; "x/N ngày nghỉ"; cọ vẽ và "Áp dụng cho các ngày trống" dừng ở giới hạn.
+  - Chi tiết: `features/work-schedule.md`.
+- **Kiểm thử**: bản build production `vite preview` :8092 + host :5000, không chặn request.
+  - `e2e/day-off-limit.spec.ts` 4/4.
+  - Nhóm 11 spec Lịch nghỉ / lịch hẹn: 48 xanh, 1 skip, 1 đỏ sẵn (`appointment-day-timeline` drag-scroll, ghi từ R-1173).
+  - `appointment-slot-pick-doctor` sửa setup: huỷ lịch hẹn trước khi đăng ký nghỉ cả ngày. Luật mới chặn đúng ca này; chạy lại 2/2.
+  - Domain 42/42; tsc + eslint sạch.
+- **Mức retest**: 3.

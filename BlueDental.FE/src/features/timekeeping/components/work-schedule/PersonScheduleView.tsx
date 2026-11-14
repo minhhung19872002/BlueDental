@@ -5,7 +5,14 @@ import { toast } from "sonner";
 import { t } from "@/lib/i18n";
 import { WORK_SCHEDULE_SHIFT } from "../../api/workScheduleApi";
 import type { ScheduleGroupVm, ScheduleMemberVm } from "../../types/workSchedule";
-import { formatUnits, workUnits, worksAfternoon, worksMorning, type BrushShift } from "../../utils/workScheduleShift";
+import {
+  breaksDayOffLimit,
+  formatUnits,
+  workUnits,
+  worksAfternoon,
+  worksMorning,
+  type BrushShift,
+} from "../../utils/workScheduleShift";
 import { dowLong, groupName, shiftLabel } from "../../utils/workScheduleText";
 import { PersonDayCard } from "./PersonDayCard";
 import { PersonList } from "./PersonList";
@@ -34,6 +41,19 @@ function statsOf(person: ScheduleMemberVm, ctx: GridContext) {
   return { units, mornings, afternoons, pending };
 }
 
+/** The empty days, earliest first, that `brush` can fill before the month passes the day-off limit. */
+function datesWithinLimit(empty: readonly string[], brush: BrushShift, units: number, ctx: GridContext) {
+  const taken: string[] = [];
+  let total = units;
+  for (const date of empty) {
+    const next = total + workUnits(brush);
+    if (breaksDayOffLimit(ctx.limit, total, next)) break;
+    taken.push(date);
+    total = next;
+  }
+  return taken;
+}
+
 /** "Từng bác sĩ / nhân viên": one person's month as day cards. */
 export function PersonScheduleView({ groups, person, onSelect, brush, ctx }: Props) {
   const handleFill = useCallback(() => {
@@ -50,8 +70,15 @@ export function PersonScheduleView({ groups, person, onSelect, brush, ctx }: Pro
       toast.info(t("Timekeeping:Board:FillNone"));
       return;
     }
-    ctx.draft.setMany(person, empty, brush);
-    toast.success(t("Timekeeping:Board:FillDone", shiftLabel(brush), empty.length));
+    const max = ctx.limit?.max ?? 0;
+    const fits = datesWithinLimit(empty, brush, statsOf(person, ctx).units, ctx);
+    if (fits.length === 0) {
+      toast.warning(t("Timekeeping:Board:DayOffLimit", max));
+      return;
+    }
+    ctx.draft.setMany(person, fits, brush);
+    if (fits.length < empty.length) toast.warning(t("Timekeeping:Board:FillLimited", shiftLabel(brush), fits.length, max));
+    else toast.success(t("Timekeeping:Board:FillDone", shiftLabel(brush), fits.length));
   }, [brush, ctx.days, ctx.draft, person]);
 
   const team = person ? groups.find((g) => g.key === person.groupKey) : undefined;
@@ -77,7 +104,7 @@ export function PersonScheduleView({ groups, person, onSelect, brush, ctx }: Pro
             </Button>
           </div>
           <div className="ws-stats">
-            <div className="ws-stat"><div className="ws-stat-v">{formatUnits(stats.units)}</div><div className="ws-stat-l">{t("Timekeeping:Board:Stat:Units")}</div></div>
+            <div className="ws-stat"><div className={["ws-stat-v", ctx.limit && stats.units > ctx.limit.max && "ws-stat-v--over"].filter(Boolean).join(" ")}>{ctx.limit ? t("Timekeeping:Board:Stat:UnitsOfMax", formatUnits(stats.units), ctx.limit.max) : formatUnits(stats.units)}</div><div className="ws-stat-l">{t("Timekeeping:Board:Stat:Units")}</div></div>
             <div className="ws-stat"><div className="ws-stat-v ws-stat-v--s">{stats.mornings}</div><div className="ws-stat-l">{t("Timekeeping:Board:Stat:Mornings")}</div></div>
             <div className="ws-stat"><div className="ws-stat-v ws-stat-v--c">{stats.afternoons}</div><div className="ws-stat-l">{t("Timekeeping:Board:Stat:Afternoons")}</div></div>
             <div className="ws-stat"><div className="ws-stat-v ws-stat-v--p">{stats.pending}</div><div className="ws-stat-l">{t("Timekeeping:Board:Stat:Pending")}</div></div>
