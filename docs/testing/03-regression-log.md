@@ -15510,3 +15510,33 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `patient-permission-gates:120` đỏ có sẵn: chết ở `createDentist` của chính spec (option "Nhóm quyền" mở dưới mép 1600×900, không "stable" — cùng lỗi đã sửa cho `restrictedDentist.ts`), trước phần dịch vụ phát sinh. Không liên quan.
   - eslint sạch các file đổi; tsc sạch phần của R-1235; BE Application build OK.
 - **Mức retest**: 2.
+
+
+## R-1236 (2026-11-16, mức 2: Bệnh án mẫu 11 — Bảng kiểm an toàn phẫu thuật; develop)
+
+- **Yêu cầu**: phòng khám gửi tờ giấy "Bảng kiểm an toàn phẫu thuật" (MS PT-04) — "thêm 2 hs này vào nữa nha", "11, 12 để theo tên của phiếu luôn đi". Chủ dự án chốt 2026-11-16: Số vào viện để trống; điền sẵn tên/tuổi/giới/Mã NB; Chẩn đoán như mẫu 7; có Ngày thực hiện; làm trên develop trước.
+- **Thay đổi** (không migration — enum lưu dạng số, bộ hồ sơ cũ tự hiện mục mới):
+  - BE `MedicalRecordForm.SurgicalSafetyChecklist = 11` (Domain.Shared); test domain đếm 12 mẫu.
+  - FE template `templates/surgicalSafetyChecklist.ts` + khung chung `templates/sheetMarkup.ts` (header MS/Số vào viện/Mã NB, ô tick, chữ ký); `medicalRecordForms.ts` (tên, ngày, trang in `surgical-safety`); `fieldValues.ts` (MS PT-04, `DIAGNOSIS_FIELDS`, ba ô ngày); `sheetDay.ts` mới (`dayFieldValues`, `printedDayOf`) dùng chung cho các mẫu in ngày tách ba ô.
+  - `sheetCss.ts`: `@page surgical-safety{size:A4 landscape;margin:10mm}`, chữ 12px, khung ba giai đoạn (lề trong khung 6px 10px — phòng khám xem bản đầu 2026-11-16: "nó bị sát"; trước đó khung đầu mất lề trái vì luật `padding-left:0` của bảng không viền mẫu 6/7/11/12); `MedicalRecordDocument` cho tờ ngang rộng 1163px.
+  - In "Toàn bộ": tờ ngang in trang ngang, các tờ khác giữ trang dọc.
+- **Kiểm thử** (bản build production :8096 + host thật :5236 + PostgreSQL thật, không chặn request): mới `e2e/medical-record-surgical-checklists.spec.ts` ca mẫu 11 — điền sẵn (PT-04, Số vào viện trống, Mã NB, tên in hoa, tuổi, Nữ, chẩn đoán răng 36), ngày mặc định hôm nay (Asia/Ho_Chi_Minh), chọn 15/08/2026 → 15/08/26, 5 ô đầu trang cùng một hàng, tick + gõ → lưu → reload giữ nguyên cả ngày; in PDF 1 trang MediaBox [842,595] (ngang). Xanh.
+- **Mức retest**: 2.
+
+## R-1237 (2026-11-16, mức 2: Bệnh án mẫu 12 — Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ; develop)
+
+- **Yêu cầu**: tờ giấy thứ hai cùng đợt R-1236 (MS PT-06).
+- **Thay đổi**: BE `MedicalRecordForm.SurgicalCountSheet = 12`; FE `templates/surgicalCountSheet.ts` (bảng đếm 6 dòng × 8 ô số, ô kích thước gạc "…x…cm", phần kết quả + 2 chữ ký), MS PT-06, A4 dọc lề 15mm chữ 14px, không ô ngày. `medical-record-set.spec` và `patient-medical-record.spec` cập nhật danh sách 12 mẫu.
+- **Kiểm thử**: cùng spec, ca mẫu 12 — không có ô chọn ngày, điền sẵn PT-06 + bệnh nhân, bảng 7 hàng / 48 ô đếm, tick + gạc 5x7 + số đếm → lưu → reload giữ nguyên; in 1 trang dọc. Ca thứ ba in "Toàn bộ" trộn: [mẫu 11, mẫu 12] → [ngang, dọc]; [mẫu 7, mẫu 11] → [dọc, ngang]. 3/3 xanh.
+- **Mức retest**: 2.
+
+## R-1238 (2026-11-16, mức 2: ngày đã chọn không còn mất khi ghi tiếp, tờ rộng không bị cắt mép trái, MS không bị MS cũ đè; develop)
+
+- **Lỗi tìm thấy khi làm R-1236**:
+  1. Tờ chỉ lưu những ô khác bản tự điền (`collect`), mà ngày vừa chọn trên ô "Ngày …" lại chính là bản tự điền, nên tick hay gõ thêm sau khi chọn ngày thì ngày bị bỏ khỏi lần lưu — tải lại thấy về hôm nay. Có sẵn từ trước, ảnh hưởng mọi mẫu có ô chọn ngày.
+  2. `.pd-medical-paper` căn `align-items: center`: tờ rộng hơn cột (mẫu 11 trên màn 1280px) tràn cả hai mép, phần trái nằm dưới mục lục, không cuộn tới được, không bấm được ô tick đầu.
+  3. MS (R-1069) bị đè: hiệu ứng đẩy giá trị đã lưu vào tờ đang mở (`MedicalRecordDocument`, dùng cho ngày chọn ở đầu tờ) không bỏ qua ô MS, nên khi giá trị đã lưu tới lại (refetch), một MS cũ lưu trên tờ ("99/SỬA TAY") hiện đè lên 16/BV-01. `patient-medical-record:323` đỏ chập chờn vì vậy.
+  4. `patient-medical-record:1010` (mục lục gập) giả định bệnh nhân dùng chung đã có phiếu mẫu 3; `recordPatient` chọn bệnh nhân có ít phiếu nhất mà ≥ 3, nên bệnh nhân riêng của spec mới (3 phiếu mẫu 7/11/12) bị chọn và test đỏ do dữ liệu.
+- **Thay đổi**: `PatientMedicalRecordTab.handleSheetChange` gộp lại các ô in ngày từ ngày đã chọn (hoặc ngày đã lưu trên tờ, `printedDayOf`) mỗi lần tờ báo thay đổi; `patient-detail.css` `.pd-medical-paper` dùng `align-items: safe center`; hiệu ứng ghi giá trị ngoài bỏ qua ô `data-form-code`; test :1010 tự tạo phiếu mẫu 3 và Bìa nếu chưa có (`openSheet`), để Bìa mở rồi chọn mẫu 3 từ mục lục gập.
+- **Kiểm thử**: ca mẫu 11 của `medical-record-surgical-checklists.spec` (chọn ngày → tick/gõ → lưu → reload → picker "15/08/2026", ô 15/08/26; bấm được `check.1`). Hồi quy toàn bộ suite bệnh án (`medical-record-*`, `patient-medical-record`, `printed-doctor-title`, bản build production :8096): 58/60; 2 đỏ là 2 đỏ có sẵn từ R-1234 (`medical-record-sheet-facts:171` "the slip discount is in Giảm giá", `patient-medical-record:2426` — ô ngày dạng mask, `fill()` không gõ được). Lần chạy đầu còn đỏ `:323` (lỗi 3) và `:1010` (lỗi 4); sau sửa cả hai xanh. tsc + eslint sạch.
+- **Mức retest**: 2.

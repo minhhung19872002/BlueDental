@@ -206,7 +206,7 @@ test.describe("Bệnh án", () => {
   }) => {
     await openMedicalRecord(page);
 
-    // The index, in the reference's own order and wording, then the clinic's mẫu 10.
+    // The index, in the reference's own order and wording, then the clinic's mẫu 10, 11, 12.
     const forms = [
       "1. Bìa hồ sơ bệnh án",
       "2. Bệnh án ngoại trú Răng Hàm Mặt",
@@ -218,6 +218,8 @@ test.describe("Bệnh án", () => {
       "8. Phiếu theo dõi điều trị",
       "9. Phiếu chăm sóc",
       "10. Hợp đồng thỏa thuận niềng răng",
+      "11. Bảng kiểm an toàn phẫu thuật",
+      "12. Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ",
     ];
     await expect(page.locator(".pd-medical-form")).toHaveCount(forms.length);
     for (const label of forms) {
@@ -1010,6 +1012,11 @@ test.describe("Bệnh án", () => {
     // also how a real window reaches this state.
     await page.setViewportSize({ width: 1440, height: 900 });
     await openMedicalRecord(page);
+    // The shared record may keep no mẫu 3 or Bìa yet (a run's own patient with
+    // a few other sheets can be the one picked), so both are made sure of; the
+    // Bìa is left open, so picking mẫu 3 below has to change the sheet.
+    await openSheet(page, "3. Bệnh án chỉnh nha");
+    await openSheet(page, "1. Bìa hồ sơ bệnh án");
     await page.setViewportSize({ width: 900, height: 700 });
 
     const index = page.locator(".pd-medical-index");
@@ -1028,9 +1035,9 @@ test.describe("Bệnh án", () => {
      */
     await expect(bar).toBeHidden();
 
-    const target = page.locator(".pd-medical-form", { hasText: "3. Bệnh án chỉnh nha" });
-    const name = await target.locator(".pd-sheet-title").first().textContent();
-    await target.locator(".pd-sheet-open").first().click();
+    const target = cardsUnder(page, "3. Bệnh án chỉnh nha").first();
+    const name = await target.locator(".pd-sheet-title").textContent();
+    await target.locator(".pd-sheet-open").click();
 
     await expect(index).toHaveClass(/--collapsed/);
     await expect(openTitle).toHaveText(name!);

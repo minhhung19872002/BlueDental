@@ -116,6 +116,18 @@ public enum MedicalRecordForm
     /// The reference has no such form.
     /// </summary>
     OrthodonticContract = 10,
+
+    /// <summary>
+    /// 11. Bảng kiểm an toàn phẫu thuật (MS PT-04) — the clinic's own paper form,
+    /// printed on A4 landscape (clinic, 2026-11-16). The reference has no such form.
+    /// </summary>
+    SurgicalSafetyChecklist = 11,
+
+    /// <summary>
+    /// 12. Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ (MS PT-06) — the clinic's
+    /// own paper form (clinic, 2026-11-16). The reference has no such form.
+    /// </summary>
+    SurgicalCountSheet = 12,
 }
 
 /// <summary>

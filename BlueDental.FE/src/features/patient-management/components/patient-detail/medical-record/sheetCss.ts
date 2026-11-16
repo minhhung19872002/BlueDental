@@ -110,6 +110,11 @@ export const SHEET_CSS = String.raw`
 /* Mẫu 10, the clinic's contract, set like mẫu 6 — the other consent it is
    signed beside: 15px inside the same 15mm margins (R-1079). */
 .nfc-tpl[data-form="10"]{font-size:15px}
+/* The clinic's surgical checklists (2026-11-16): the count sheet (mẫu 12) set
+   like mẫu 7, 14px inside 15mm margins; the safety checklist (mẫu 11), three
+   columns on A4 landscape inside 10mm, at 12px so it holds one page. */
+.nfc-tpl[data-form="11"]{font-size:12px}
+.nfc-tpl[data-form="12"]{font-size:14px}
 /* Larger letters, same pages (clinic, 2026-11-14, R-1234: "in ra giấy nhìn nó
    nhỏ", the pages kept as they are). Times New Roman's lower case stands at
    0.45 of its size; font-size-adjust draws the letters as if it stood at
@@ -178,7 +183,7 @@ export const SHEET_CSS = String.raw`
    paragraph rules above, which it overrides; the header table it sits in drops
    its drawn 675px to span the writing area. */
 .nfc-tpl table:has(.record-ids){width:100%!important}
-.nfc-tpl table[data-record-page="outpatient-main"] p.record-ids,.nfc-tpl[data-form="7"] p.record-ids{display:grid;grid-template-columns:auto auto;column-gap:5px;row-gap:2px;align-items:baseline;width:max-content;max-width:100%;margin:0 0 0 auto;line-height:1.5!important}
+.nfc-tpl table[data-record-page="outpatient-main"] p.record-ids,.nfc-tpl:is([data-form="7"],[data-form="11"],[data-form="12"]) p.record-ids{display:grid;grid-template-columns:auto auto;column-gap:5px;row-gap:2px;align-items:baseline;width:max-content;max-width:100%;margin:0 0 0 auto;line-height:1.5!important}
 .nfc-tpl .record-ids-label{white-space:nowrap}
 .nfc-tpl .record-ids>span:not(.record-ids-label){display:block;min-width:0}
 .nfc-tpl .record-ids .nfc-medical-record-text-field{width:100%;box-sizing:border-box}
@@ -187,18 +192,33 @@ export const SHEET_CSS = String.raw`
    10 too, R-1079); the letterhead against the left margin and MS against the
    right; the first column of a borderless table on the left margin — on mẫu 6
    a box opening a line too. After the paragraph rules above, which it overrides. */
-.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"]) h1:not([data-cover] *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"]) h2{line-height:1.5!important}
-.nfc-tpl:is([data-form="6"],[data-form="7"])>table:first-child>tbody>tr>td:first-child,
-.nfc-tpl:is([data-form="6"],[data-form="7"])>table[data-borderless]>tbody>tr>td:first-child{padding-left:0}
-.nfc-tpl:is([data-form="6"],[data-form="7"])>table:first-child>tbody>tr>td:last-child{padding-right:0}
+.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h1:not([data-cover] *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h2{line-height:1.5!important}
+.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table:first-child>tbody>tr>td:first-child,
+.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table[data-borderless]>tbody>tr>td:first-child{padding-left:0}
+.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table:first-child>tbody>tr>td:last-child{padding-right:0}
+/* Mẫu 12's count table: rows tall enough to write a number in, the numbers
+   in the middle; the gauze sizes in the first column keep their dotted line. */
+.nfc-tpl table[data-record-section="surgical-count"] td{height:28px;vertical-align:middle}
+.nfc-tpl table[data-record-section="surgical-count"] td:not(:first-child) p{text-align:center}
+/* Mẫu 11's three stages: a box round each, the boxes of their titles joined
+   by an arrow; the notes under the third stage on dotted lines. The words
+   keep clear of the box (clinic 2026-11-16: "nó bị sát") — the form prefix
+   outranks the padding-left:0 the borderless tables of mẫu 6/7/11/12 take. */
+.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety"]>tbody>tr>td:nth-child(odd){border:1px solid #000;padding:6px 10px}
+.nfc-tpl table[data-record-section="surgical-safety"]>tbody>tr:first-child>td{vertical-align:middle}
+.nfc-tpl table[data-record-section="surgical-safety"]>tbody>tr:first-child>td:nth-child(even) p{font-size:20px;line-height:1!important}
+.nfc-tpl table[data-record-section="surgical-safety"]>tbody>tr:last-child>td:nth-child(even){padding:0}
+.nfc-tpl table[data-record-section="surgical-safety"] p{margin-bottom:2px}
+.nfc-tpl[data-form="11"]>table[data-record-section="signature"]{margin-top:8px}
 .nfc-tpl[data-form="6"]>table[data-borderless] td>p>input.nfc-medical-record-checkbox:first-child,
 .nfc-tpl[data-form="6"]>p>input.nfc-medical-record-checkbox:first-child{margin-left:0}
 /* On the 15mm forms a long blank's lines of its own (flowLines) reach the right
    margin, as the clinic's copies of mẫu 2 and mẫu 7 draw them (2026-10-29,
    R-1073). The text on them still breaks where the blank's first line did. */
-.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]) [data-flow-of]{width:100%;min-width:0!important;max-width:none;box-sizing:border-box}
+.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="11"],[data-form="12"]) [data-flow-of]{width:100%;min-width:0!important;max-width:none;box-sizing:border-box}
 @media print{
   .nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{border-bottom:0!important}
+  .nfc-tpl table[data-record-section="surgical-count"] td:first-child .nfc-medical-record-text-field:not([data-field-full-width="true"]){border-bottom:1px dotted #000!important}
   .nfc-tpl .nfc-material-add{display:none}
 }
 /* Compact table: columns size to content and the block is pulled out of the
@@ -337,7 +357,11 @@ const SHEET_FIELD_CSS = String.raw`
  * 2026-10-29, R-1067, R-1068 and R-1073): 15mm on every edge of every page,
  * so their pages are a named page with that margin — the A4 and the page
  * number still come from the rule above — and the sheet itself adds none.
- * Mẫu 10, the clinic's contract, joined them (R-1079). Mẫu 2 then gave up
+ * Mẫu 10, the clinic's contract, joined them (R-1079), and mẫu 12, the
+ * surgical count sheet (2026-11-16). Mẫu 11, the surgical safety checklist,
+ * is the one landscape sheet: its own page, `surgical-safety`, A4 on its side
+ * with 10mm margins — Chrome takes a named page's size, so a job printing it
+ * among the upright forms turns only its sheet. Mẫu 2 then gave up
  * 8mm at the foot of each page for room to space its lines (2026-11-12): its
  * own page, `outpatient-dental`, 15mm on three edges and 7mm at the bottom.
  *
@@ -358,10 +382,12 @@ const SHEET_PRINT_CSS = String.raw`
     @page{size:A4;margin:5mm;@bottom-right{content:counter(page);font-family:'Times New Roman',Times,serif;font-size:10pt;color:#000}}
     @page margin-15mm{margin:15mm}
     @page outpatient-dental{margin:15mm 15mm 7mm}
+    @page surgical-safety{size:A4 landscape;margin:10mm}
     @media print{
       .nfc-tpl{page:margin-5mm;width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
-      .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]){page:margin-15mm;width:auto;margin:0;padding:0}
+      .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]){page:margin-15mm;width:auto;margin:0;padding:0}
       .nfc-tpl[data-form="2"]{page:outpatient-dental}
+      .nfc-tpl[data-form="11"]{page:surgical-safety;width:auto;margin:0;padding:0}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
       .nfc-tpl .nfc-medical-record-checkbox{accent-color:#2671d8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
     }`;
@@ -373,11 +399,12 @@ const SHEET_PRINT_CSS = String.raw`
 export const SHEET_PAGE_CSS = String.raw`    html,body{margin:0;min-height:100%;background:#f0f0f0}
     body{padding:20px;box-sizing:border-box}
     .nfc-tpl{width:210mm;min-height:297mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.1)}
-    .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]){padding:15mm}
+    .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]){padding:15mm}
+    .nfc-tpl[data-form="11"]{width:297mm;min-height:210mm;padding:10mm}
     .nfc-tpl>hr{margin:28px 0;border:0;border-top:2px dashed #b7c0ce}
     ${SHEET_FIELD_CSS}
     @media print{html,body{width:210mm;height:auto!important;min-height:0!important;margin:0;padding:0;background:#fff}}
-    @media print{html:has(.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"])),html:has(.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"])) body{width:auto}}
+    @media print{html:has(.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="11"],[data-form="12"])),html:has(.nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="11"],[data-form="12"])) body{width:auto}}
 ${SHEET_PRINT_CSS}
   `;
 
@@ -390,7 +417,8 @@ ${SHEET_PRINT_CSS}
  */
 export const PRINT_COPY_CSS = String.raw`${SHEET_CSS}
     .nfc-tpl{width:210mm;margin:0 auto;padding:12mm;box-sizing:border-box;background:#fff}
-    .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"]){padding:15mm}
+    .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]){padding:15mm}
+    .nfc-tpl[data-form="11"]{width:297mm;padding:10mm}
     .nfc-tpl>hr{margin:0;border:0}
 ${SHEET_FIELD_CSS}
 ${SHEET_PRINT_CSS}

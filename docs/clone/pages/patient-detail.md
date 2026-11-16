@@ -4395,3 +4395,45 @@ mục UNKNOWN_REFERENCE_BEHAVIOR.
     vẫn là chữ in. Mẫu 10 giờ có 53 ô (trước 48), vẫn 5 trang.
 - Giữ nguyên văn file Word: phần bản thỏa thuận đánh số "I." rồi "Sự đồng ý và thỏa thuận…" (không
   có "II.") rồi "III. Đồng ý điều trị".
+
+## Bệnh án — Mẫu 11 và mẫu 12: hai bảng kiểm phẫu thuật (biểu mẫu của phòng khám, 2026-11-16)
+
+Hai tờ giấy phòng khám gửi qua chat ("thêm 2 hs này vào nữa nha", "11, 12 để theo tên của phiếu
+luôn đi"). **Bản gốc không có hai mẫu này**, nên không có mục UNKNOWN_REFERENCE_BEHAVIOR.
+
+- Enum `MedicalRecordForm.SurgicalSafetyChecklist = 11`, `SurgicalCountSheet = 12`; template
+  `medical-record/templates/surgicalSafetyChecklist.ts` (id ô `surgical-safety.*`) và
+  `surgicalCountSheet.ts` (id ô `surgical-count.*`); khung chung (quốc hiệu, ô MS, ô tick, chữ ký)
+  trong `templates/sheetMarkup.ts`.
+- Mục lục: "11. Bảng kiểm an toàn phẫu thuật", "12. Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ".
+  Bộ hồ sơ cũ tự hiện hai mục mới (`HiddenFormMask` chỉ lưu mục bị ẩn) — không cần migration.
+- Điền sẵn trên cả hai tờ (sửa được): Họ và tên (in hoa), Tuổi (tính theo ngày sinh), Nam/Nữ,
+  Mã người bệnh. **MS cố định**: PT-04 (mẫu 11), PT-06 (mẫu 12), chữ thường như MS của mẫu 2/6/7.
+  **Số vào viện để trống** (chủ dự án chốt 2026-11-16).
+- **Mẫu 11 — Bảng kiểm an toàn phẫu thuật (MS PT-04)**:
+  - Tờ duy nhất in **A4 ngang**, lề 10mm, chữ 12px, 1 trang. Trang in riêng
+    `@page surgical-safety{size:A4 landscape;margin:10mm}`; trên màn hình khung tờ rộng 1163px.
+  - Ba giai đoạn đứng cạnh nhau, mỗi giai đoạn một khung (lề trong 6px 10px để chữ không sát viền — phòng khám 2026-11-16), nối bằng mũi tên: Trước gây tê/gây mê,
+    Trước khi rạch da, Trước khi rời khỏi phòng mổ — đúng thứ tự và chữ của tờ giấy; 5 dòng ghi chú
+    sau mổ; 3 chữ ký (ĐD chạy ngoài, ĐD dụng cụ, Phẫu thuật viên).
+  - Chẩn đoán: các chẩn đoán của bệnh nhân như mẫu 7 (`DIAGNOSIS_FIELDS`), tính từ Ngày thực hiện.
+  - Ô chọn **"Ngày thực hiện"** trên đầu tờ (như các mẫu có ngày), in vào "Ngày … tháng … năm 20…"
+    tách ba ô (`datePartKeys` + `sheetDay.ts`; năm in hai số sau chữ "20"). Mặc định là hôm nay;
+    tờ đã lưu thì đọc lại ngày từ ba ô.
+- **Mẫu 12 — Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ (MS PT-06)**:
+  - A4 dọc, lề 15mm, chữ 14px (như mẫu 7), 1 trang. Không có ô chọn ngày (tờ giấy không có ngày).
+  - Bảng đếm 6 dòng × 8 ô số (Trước khi rạch da, 5 ô Số lượng cung cấp thêm, Đếm khi đóng khoang
+    rỗng, Khi đóng da): hai dòng Gạc có ô kích thước "…x…cm", Kim, Dao, Dụng cụ, và một dòng để trống
+    tên. Ô trong bảng in không có đường chấm (lưới đã kẻ), trừ ô kích thước gạc.
+  - Phần cuối: Kiểm đủ/Không đủ, Mô tả vật dụng mất, Thông báo PTV, Kiểm tra XQ, Kết quả, Xử lý,
+    2 chữ ký (Điều dưỡng vòng trong / vòng ngoài).
+- **In "Toàn bộ"**: một lượt in có cả tờ ngang và tờ dọc — mẫu 11 in trang ngang, các mẫu khác giữ
+  trang dọc của chúng. Trang cuối lượt in theo tờ cuối nên không thừa trang trắng.
+- **Tờ rộng hơn cột (2026-11-16, R-1238)**: `.pd-medical-paper` căn giữa bằng `align-items: safe
+  center`. Trước đây `center` làm tờ rộng hơn cột (mẫu 11 trên màn 1280px) tràn ra cả hai mép, phần
+  mép trái không cuộn tới được và nằm dưới mục lục. Giờ tờ vừa cột vẫn căn giữa, tờ rộng hơn bắt
+  đầu từ mép trái và cuộn ngang.
+- **Ngày đã chọn không còn mất khi ghi tiếp (2026-11-16, R-1238, mọi mẫu có ngày)**: tờ chỉ giữ
+  những ô khác với bản tự điền, mà ngày vừa chọn lại chính là bản tự điền — nên hễ tick hay gõ thêm
+  sau khi chọn ngày thì ngày bị bỏ khỏi lần lưu, tải lại thấy về hôm nay. Giờ mỗi lần tờ báo thay
+  đổi, ngày đã chọn (hoặc ngày đã lưu trên tờ) được giữ lại trong các ô in ngày.
