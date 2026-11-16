@@ -97,6 +97,7 @@ function adaptSnapshot(dto: ServerAppointmentSnapshotDto | null): HistorySnapsho
     note: dto.note,
     content: dto.content,
     color: dto.color,
+    star: dto.star ?? null,
     staffId: dto.staffId,
     staffName: dto.staffName,
     patientName: dto.patientName,

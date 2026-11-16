@@ -4,6 +4,7 @@ import type { MenuProps } from "antd";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { buildAppointmentCardMenu, isFinishedSeriesSession } from "./appointmentCardMenu";
+import { AppointmentStarMark } from "./AppointmentStar";
 import type { AppointmentDto, AppointmentStatus } from "../types/appointment";
 
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
@@ -15,16 +16,6 @@ interface StatusLook {
   badgeBg: string;
   badgeBorder: string;
   badgeText: string;
-}
-
-function hexToOpaqueTint(hex: string, alpha = 0.122): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  const mr = Math.round(r * alpha + 255 * (1 - alpha));
-  const mg = Math.round(g * alpha + 255 * (1 - alpha));
-  const mb = Math.round(b * alpha + 255 * (1 - alpha));
-  return `#${mr.toString(16).padStart(2, "0")}${mg.toString(16).padStart(2, "0")}${mb.toString(16).padStart(2, "0")}`;
 }
 
 /*
@@ -103,11 +94,8 @@ export const EventCard = React.memo(function EventCard({
   selected,
   onAction,
 }: EventCardProps) {
-  const baseLook = STATUS_LOOK[appointment.status];
-  const customColor = appointment.color;
-  const look = customColor
-    ? { ...baseLook, border: customColor, bg: hexToOpaqueTint(customColor), text: customColor }
-    : baseLook;
+  // Status colours only: the booking colour gave way to "Gán sao" (R-1240).
+  const look = STATUS_LOOK[appointment.status];
   const patientName = appointment.patientName?.trim() || t("Common:Appointment");
   const displayLabel = appointment.patientCode
     ? `[${appointment.patientCode}] - ${patientName}`
@@ -158,10 +146,10 @@ export const EventCard = React.memo(function EventCard({
               }
             }}
           >
-            {displayLabel}
+            <AppointmentStarMark star={appointment.star} />
           </a>
         ) : (
-          <span className="evt-card-title evt-card-title--static">{displayLabel}</span>
+          <span className="evt-card-title evt-card-title--static"><AppointmentStarMark star={appointment.star} />{displayLabel}</span>
         )}
         <Dropdown
           menu={{ items: menuItems, onClick: handleMenuClick }}

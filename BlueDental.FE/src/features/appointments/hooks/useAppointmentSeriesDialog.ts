@@ -57,7 +57,7 @@ export function useAppointmentSeriesDialog({ open, editing, booking }: Options) 
         branchId: data.branchId,
         ...slotOf(data),
         reason: data.content || undefined,
-        color: data.color || undefined,
+        star: data.star,
         recurrence: toRecurrenceRequest(recurrence.values),
         allowDentistOverlap,
       });

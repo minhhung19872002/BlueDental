@@ -16,7 +16,6 @@ import { useSlotPickHandler } from "../hooks/useSlotPickHandler";
 import { useClinicBranches } from "@/features/organizations/api";
 import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
-import { APPT_COLORS } from "./AppointmentColorPicker";
 import { TempAppointmentForm, type TempAppointmentFormValues } from "./TempAppointmentForm";
 
 const buildSchema = () =>
@@ -30,7 +29,7 @@ const buildSchema = () =>
     durationMinutes: z.number().int().min(15),
     sourceTaxonomyId: z.string(),
     sourceEntryId: z.string(),
-    color: z.string(),
+    star: z.string().nullable(),
     content: z.string(),
     notes: z.string(),
   });
@@ -79,7 +78,7 @@ export function TempAppointmentEditorModal({
       durationMinutes: 15,
       sourceTaxonomyId: "",
       sourceEntryId: "",
-      color: APPT_COLORS[0].value,
+      star: null,
       content: "",
       notes: "",
     },
@@ -138,7 +137,7 @@ export function TempAppointmentEditorModal({
         durationMinutes: end.diff(start, "minute"),
         sourceTaxonomyId: existingAppt.sourceTaxonomyId ?? "",
         sourceEntryId: existingAppt.sourceEntryId ?? "",
-        color: existingAppt.color ?? APPT_COLORS[0].value,
+        star: existingAppt.star ?? null,
         content: existingAppt.reason ?? "",
         notes: existingAppt.notes ?? "",
       });
@@ -153,7 +152,7 @@ export function TempAppointmentEditorModal({
         durationMinutes: 15,
         sourceTaxonomyId: "",
         sourceEntryId: "",
-        color: APPT_COLORS[0].value,
+        star: null,
         content: "",
         notes: "",
       });
@@ -190,7 +189,7 @@ export function TempAppointmentEditorModal({
           endTime: endDateTime,
           patientName: data.patientName,
           patientPhone: data.patientPhone ?? "",
-          color: data.color ?? "",
+          star: data.star,
           // Sent even when emptied: the update rewrites it, so leaving it out wiped it.
           reason: data.content,
           // Not on the form any more; resent as loaded so the update keeps it.
@@ -220,7 +219,7 @@ export function TempAppointmentEditorModal({
           endTime: endDateTime,
           sourceTaxonomyId: data.sourceTaxonomyId || undefined,
           sourceEntryId: data.sourceEntryId || undefined,
-          color: data.color || undefined,
+          star: data.star,
           reason: data.content || undefined,
           allowDentistOverlap,
         },

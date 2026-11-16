@@ -1,7 +1,8 @@
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/cn";
 import type { HistoryEntry } from "../../types/appointmentHistory";
-import { appointmentColorLabel } from "../AppointmentColorPicker";
+import { AppointmentStarIcon, isAppointmentStar } from "../AppointmentStar";
+import { appointmentColorLabel } from "./legacyColorLabel";
 import { fieldLabel, formatFieldValue, tableChanges } from "./historyLabels";
 
 const EMPTY = "—";
@@ -11,8 +12,11 @@ interface Props {
   side: "before" | "after";
 }
 
-/** A stored value as a person reads it: the appointment colour as a dot, its name on hover; the rest as text. */
+/** A stored value as a person reads it: a star as the star itself, an old appointment colour as a dot, the rest as text. */
 export function HistoryFieldValue({ field, value }: { field: string; value: string | null }) {
+  if (field === "star" && isAppointmentStar(value)) {
+    return <AppointmentStarIcon star={value} />;
+  }
   if (field === "color" && value) {
     const name = appointmentColorLabel(value) ?? value;
     return (

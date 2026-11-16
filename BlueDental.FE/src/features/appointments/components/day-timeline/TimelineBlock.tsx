@@ -4,6 +4,7 @@ import type { MenuProps } from "antd";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { buildAppointmentCardMenu, isFinishedSeriesSession } from "../appointmentCardMenu";
+import { AppointmentStarMark } from "../AppointmentStar";
 import { BLOCK_STATE_LABEL_KEY, type BlockState } from "./blockState";
 import type { PlacedBlock } from "./timelineLayout";
 
@@ -39,7 +40,7 @@ function BlockTooltip({ placed, state }: Pick<Props, "placed" | "state">) {
   const { startTime, endTime, reason } = placed.appointment;
   return (
     <div className="dtl-tip">
-      <div className="dtl-tip-title">{blockTitle(placed)}</div>
+      <div className="dtl-tip-title"><AppointmentStarMark star={placed.appointment.star} />{blockTitle(placed)}</div>
       <div>{`${dayjs(startTime).format("HH:mm")} - ${dayjs(endTime).format("HH:mm")}`}</div>
       {reason && <div className="dtl-tip-note">{reason}</div>}
       <div className="dtl-tip-state">{t(BLOCK_STATE_LABEL_KEY[state])}</div>
@@ -95,7 +96,10 @@ export const TimelineBlock = React.memo(function TimelineBlock({ placed, state, 
         onKeyDown={handleKeyDown}
       >
         {/* A 15-minute block is one line tall: the name alone fits, the code rides in the tooltip. */}
-        <span className="dtl-block-label">{blockName(placed)}</span>
+        <span className="dtl-block-label">
+          <AppointmentStarMark star={placed.appointment.star} />
+          {blockName(placed)}
+        </span>
         {/* BA 2026-10-20: the booking's content under the name, cut with "…" where the block ends. */}
         {noteLines > 0 && <span className="dtl-block-note">{note}</span>}
         <Dropdown menu={{ items: menuItems, onClick: handleMenuClick }} trigger={["click"]} placement="bottomRight">

@@ -9,7 +9,8 @@ export interface AppointmentEditorValues {
   startTime: string;
   durationMinutes: number;
   content: string;
-  color: string;
+  /** "Gán sao" (R-1240); null = no star. */
+  star: string | null;
   /** Ghi chú — no longer on the form (R-1055): only carried so an edit keeps an older booking's note. */
   notes: string;
   /** Trạng thái — shown while editing only; a new booking is always Đã hẹn. */

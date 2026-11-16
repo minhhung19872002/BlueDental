@@ -3,6 +3,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { EllipsisOutlined } from "@ant-design/icons";
 import { t } from "@/lib/i18n";
 import type { Appointment } from "../types/appointment";
+import { AppointmentStarMark } from "./AppointmentStar";
 
 const WEEKDAY_KEYS = [
   "Appointment:MiniCal:Monday",
@@ -66,9 +67,9 @@ function MiniWeekCard({ appointment: a }: { appointment: Appointment }) {
   const start = dayjs(a.startTime);
   const end = dayjs(a.endTime);
   return (
-    <div className="mcal-week-card" style={{ borderLeftColor: a.color || a.statusColor }}>
+    <div className="mcal-week-card" style={{ borderLeftColor: a.statusColor }}>
       <div className="mcal-week-card-row1">
-        <span className="mcal-week-card-title">{a.patientCode ? `[${a.patientCode}] - ${a.patientName}` : a.patientName}</span>
+        <span className="mcal-week-card-title"><AppointmentStarMark star={a.star} />{a.patientCode ? `[${a.patientCode}] - ${a.patientName}` : a.patientName}</span>
         <button type="button" className="mcal-week-card-menu"><EllipsisOutlined /></button>
       </div>
       {a.patientPhone && <div className="mcal-week-card-phone">{a.patientPhone}</div>}

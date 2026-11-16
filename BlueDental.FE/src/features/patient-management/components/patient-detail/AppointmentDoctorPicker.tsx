@@ -53,7 +53,8 @@ export function AppointmentDoctorPicker({ appointment, onChanged }: Props) {
         endTime: appointment.endTime,
         reason: appointment.reason ?? undefined,
         notes: appointment.notes ?? undefined,
-        color: appointment.color ?? undefined,
+        // The update rewrites the whole booking: resend its star or it is lost (R-1240).
+        star: appointment.star,
         allowDentistOverlap,
       });
       toast.success(t("Patient:DoctorChangedSuccess"));

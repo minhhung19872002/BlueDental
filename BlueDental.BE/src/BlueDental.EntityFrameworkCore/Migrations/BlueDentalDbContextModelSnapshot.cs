@@ -160,6 +160,10 @@ namespace BlueDental.Migrations
                     b.Property<Guid?>("SourceTaxonomyId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Star")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<DateTimeOffset?>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 

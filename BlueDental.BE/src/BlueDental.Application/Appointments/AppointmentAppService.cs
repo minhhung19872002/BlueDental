@@ -482,7 +482,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             input.ProcedureId,
             input.ChiefComplaint,
             input.Color,
-            input.Notes);
+            input.Notes,
+            input.Star);
 
         await _repository.InsertAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
@@ -515,7 +516,8 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
             input.SourceEntryId,
             input.Color,
             input.Notes,
-            input.ChiefComplaint);
+            input.ChiefComplaint,
+            input.Star);
 
         await _repository.InsertAsync(appointment, autoSave: true);
         await _changeRecorder.RecordAsync(
@@ -563,7 +565,9 @@ public class AppointmentAppService : ApplicationService, IAppointmentAppService
 
         var statusBefore = appointment.Status;
         appointment.Reschedule(slot, input.DentistId);
-        appointment.UpdateDetails(input.ChiefComplaint, input.Notes, input.Color);
+        // The colour picker is gone (R-1240): an old colour stays as it was rather than read as a change.
+        appointment.UpdateDetails(input.ChiefComplaint, input.Notes, input.Color ?? appointment.Color);
+        appointment.SetStar(input.Star);
         if (input.Status is { } status)
         {
             appointment.ChangeStatus(

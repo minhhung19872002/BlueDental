@@ -22,7 +22,14 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
     public AppointmentType Type { get; private set; }
     public string? ChiefComplaint { get; private set; }
     public string? Notes { get; private set; }
+    /// <summary>The old "Màu lịch hẹn"; the dialogs no longer set it (R-1240), so new bookings leave it null.</summary>
     public string? Color { get; private set; }
+
+    /// <summary>
+    /// "Gán sao": one of <see cref="AppointmentStar.All"/>, drawn before the
+    /// patient's name on the calendar; null = no star (R-1240, BA 2026-11-16).
+    /// </summary>
+    public string? Star { get; private set; }
     public CancellationReason? CancellationReason { get; private set; }
     public string? CancellationNote { get; private set; }
     public DateTimeOffset? CheckedInAt { get; private set; }
@@ -87,7 +94,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Guid? procedureId = null,
         string? chiefComplaint = null,
         string? color = null,
-        string? notes = null)
+        string? notes = null,
+        string? star = null)
         : base(id)
     {
         PatientId = patientId;
@@ -98,6 +106,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         ProcedureId = procedureId;
         ChiefComplaint = chiefComplaint;
         Color = color;
+        Star = AppointmentStar.Normalize(star);
         Notes = notes;
         Status = AppointmentStatus.Requested;
     }
@@ -113,7 +122,8 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         Guid? sourceEntryId = null,
         string? color = null,
         string? notes = null,
-        string? chiefComplaint = null)
+        string? chiefComplaint = null,
+        string? star = null)
     {
         Check.NotNullOrWhiteSpace(patientName, nameof(patientName));
 
@@ -132,6 +142,7 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
             SourceTaxonomyId = sourceTaxonomyId,
             SourceEntryId = sourceEntryId,
             Color = color,
+            Star = AppointmentStar.Normalize(star),
             Notes = notes,
             ChiefComplaint = chiefComplaint,
         };
@@ -693,6 +704,13 @@ public class Appointment : FullAuditedAggregateRoot<Guid>
         ChiefComplaint = chiefComplaint;
         Notes = notes;
         Color = color;
+        return this;
+    }
+
+    /// <summary>"Gán sao" from the booking dialogs; null takes the star off (R-1240).</summary>
+    public Appointment SetStar(string? star)
+    {
+        Star = AppointmentStar.Normalize(star);
         return this;
     }
 

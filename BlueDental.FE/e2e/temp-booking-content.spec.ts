@@ -161,9 +161,9 @@ test.describe("Lịch tạm — Nội dung đặt lịch", () => {
     // The form is reset once the booking arrives; type only after that.
     await expect(field).toHaveValue(content);
 
-    // No Ghi chú to edit. Only the colour changes: content and the old note must survive the save.
+    // No Ghi chú to edit. Only the star changes (R-1240): content and the old note must survive the save.
     await expect(edit.getByPlaceholder("Ghi chú")).toHaveCount(0);
-    await edit.locator(".appt-color-swatch:not(.appt-color-swatch--selected)").first().click();
+    await edit.getByRole("button", { name: "Sao cam" }).click();
     let put = page.waitForResponse((r) => r.url().includes(APPOINTMENTS) && r.request().method() === "PUT");
     await edit.getByRole("button", { name: "Lưu" }).click();
     expect((await put).ok()).toBeTruthy();

@@ -1144,6 +1144,45 @@ public class AppointmentTests
         Assert.Equal(AppointmentStatus.Cancelled, cancelled.Status);
     }
 
+    /// <summary>"Gán sao" (R-1240): one of four stars, or none.</summary>
+    [Theory]
+    [InlineData("purple", "purple")]
+    [InlineData(" Red ", "red")]
+    [InlineData(null, null)]
+    [InlineData("", null)]
+    public void SetStar_Should_Keep_One_Of_The_Four_Stars_Or_None(string? given, string? expected)
+    {
+        var appointment = NewAppointment().SetStar("green");
+
+        appointment.SetStar(given);
+
+        Assert.Equal(expected, appointment.Star);
+    }
+
+    [Theory]
+    [InlineData("#6366f1")]
+    [InlineData("gold")]
+    public void SetStar_Should_Refuse_A_Star_The_Dialog_Does_Not_Offer(string given)
+    {
+        var ex = Assert.Throws<BusinessException>(() => NewAppointment().SetStar(given));
+
+        Assert.Equal(BlueDentalDomainErrorCodes.Appointments.InvalidStar, ex.Code);
+    }
+
+    [Fact]
+    public void Booking_Should_Carry_Its_Star_Into_The_History_Snapshot()
+    {
+        var booked = new Appointment(
+            Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot,
+            AppointmentType.Consultation, star: "orange");
+        var temp = Appointment.CreateTemporary(
+            Guid.NewGuid(), "Khach tam", null, _branchId, _slot, null, null, null, star: "red");
+
+        Assert.Equal("orange", AppointmentSnapshot.From(booked, null, null, null).Star);
+        Assert.Contains(AppointmentSnapshot.From(temp, null, null, null).Fields(),
+            f => f.Key == "star" && f.Value == "red");
+    }
+
     private Appointment NewAppointment() =>
         new(Guid.NewGuid(), _patientId, _dentistId, _branchId, _slot, AppointmentType.Consultation);
 }

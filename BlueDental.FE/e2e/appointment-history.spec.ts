@@ -221,7 +221,7 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
     // The form is reset once the appointment arrives; type only after that.
     await expect(edit.getByPlaceholder("Nội dung đặt lịch")).toHaveValue(reason);
     await edit.getByPlaceholder("Nội dung đặt lịch").fill(updated);
-    await edit.getByTitle("Đỏ", { exact: true }).click();
+    await edit.getByRole("button", { name: "Sao đỏ" }).click();
     const put = page.waitForResponse(
       (res) => res.url().includes("/api/v1/app/appointments") && res.request().method() === "PUT",
     );
@@ -239,10 +239,13 @@ test.describe("Lịch sử thay đổi lịch hẹn", () => {
     await expect(first).not.toContainText("Ghi chú");
     await expect(first.locator(".ah-values--before")).toContainText(`Nội dung: ${reason}`);
     await expect(first.locator(".ah-values--after")).toContainText(`Nội dung: ${updated}`);
-    // The colour shows as a dot of itself, named on hover, never as its hex code.
+    // R-1240: the star shows as itself, named, never as its key.
     const after = first.locator(".ah-values--after");
-    await expect(after).toContainText("Màu:");
-    await expect(after.getByRole("img", { name: "Đỏ" })).toBeVisible();
+    await expect(after).toContainText("Gán sao:");
+    await expect(after.getByRole("img", { name: "Sao đỏ" })).toBeVisible();
+    await expect(first).not.toContainText("red");
+    // The retired colour is not re-sent, so it is no change of its own.
+    await expect(first).not.toContainText("Màu:");
     await expect(first).not.toContainText("#");
     await expect(dialog.getByTestId("ah-stats").getByText("Cập nhật", { exact: true })).toBeVisible();
 

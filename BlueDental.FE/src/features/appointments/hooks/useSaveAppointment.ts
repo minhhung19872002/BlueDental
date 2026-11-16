@@ -43,7 +43,7 @@ export function useSaveAppointment(appointmentId?: string | null): SaveAppointme
         startTime,
         endTime,
         reason: data.content || undefined,
-        color: data.color || undefined,
+        star: data.star,
         allowDentistOverlap,
       });
       return;
@@ -54,7 +54,7 @@ export function useSaveAppointment(appointmentId?: string | null): SaveAppointme
       startTime,
       endTime,
       reason: data.content,
-      color: data.color,
+      star: data.star,
       // Not on the form any more; resent as loaded so the update keeps it.
       notes: data.notes,
       status: data.status,

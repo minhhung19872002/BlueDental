@@ -37,6 +37,7 @@ export interface ServerAppointmentSnapshotDto {
   note: string | null;
   content: string | null;
   color: string | null;
+  star?: string | null;
   staffId: string | null;
   staffName: string | null;
   branchId: string;
@@ -144,6 +145,7 @@ export interface HistorySnapshot {
   note: string | null;
   content: string | null;
   color: string | null;
+  star: string | null;
   staffId: string | null;
   staffName: string | null;
   patientName: string | null;
