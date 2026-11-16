@@ -63,6 +63,7 @@ const FIELD_LABELS: Record<string, string> = {
   content: "Appointment:History:Field:Content",
   note: "Appointment:History:Field:Note",
   color: "Appointment:History:Field:Color",
+  star: "Appointment:History:Field:Star",
   staffId: "Appointment:History:Field:Doctor",
   patientName: "Appointment:History:Field:PatientName",
   patientPhone: "Appointment:History:Field:PatientPhone",

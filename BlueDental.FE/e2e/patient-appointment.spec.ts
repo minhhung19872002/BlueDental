@@ -188,13 +188,12 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
       await expect(dialog.getByText(mode, { exact: true })).toBeVisible();
     }
 
-    // Four colours, and the first of them is preselected. Asserted by position,
-    // not by name: the palette itself is a design choice that has already been
-    // renamed once, and what matters here is that a colour is chosen for you.
-    const swatches = dialog.locator(".appt-color-swatch");
-    await expect(swatches).toHaveCount(4);
-    await expect(swatches.first()).toHaveClass(/appt-color-swatch--selected/);
-    await expect(dialog.locator(".appt-color-swatch--selected")).toHaveCount(1);
+    // R-1240: "Gán sao" replaced the four colour swatches: four star buttons, no
+    // checkbox, none pressed until one is picked.
+    const stars = dialog.getByRole("group", { name: "Gán sao" }).getByRole("button");
+    await expect(stars).toHaveCount(4);
+    await expect(dialog.getByRole("checkbox", { name: "Gán sao" })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { pressed: true })).toHaveCount(0);
 
     // Fill the form the way the reference does.
     await chooseSlot(dialog, freeSlot(id, 1));
@@ -213,11 +212,14 @@ test.describe("Lịch hẹn của bệnh nhân", () => {
     expect(Math.abs(box!.x - third!.x)).toBeLessThan(2);
     await content.fill(reason);
 
-    await dialog.getByTitle("Xanh lá").click();
-    await expect(dialog.locator(".appt-color-swatch--selected")).toHaveAttribute(
-      "title",
-      "Xanh lá",
-    );
+    // A click on a star picks it; a second click on the same star takes it off.
+    const green = dialog.getByRole("button", { name: "Sao xanh lá" });
+    await green.click();
+    await expect(green).toHaveAttribute("aria-pressed", "true");
+    await green.click();
+    await expect(green).toHaveAttribute("aria-pressed", "false");
+    await green.click();
+    await expect(green).toHaveAttribute("aria-pressed", "true");
 
     const created = page.waitForResponse(
       (res) => res.url().includes("/api/v1/app/appointments") && res.request().method() === "POST",

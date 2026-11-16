@@ -11,14 +11,12 @@ export const APPOINTMENT_STATUSES = [
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
 /**
- * "Màu lịch hẹn" — the four swatches the booking dialog offers.
- *
- * The server stores the colour as a free string, so the swatch key is what
- * travels: it round-trips unchanged and reads for itself in the database. A
- * colour outside this set is still accepted on the wire and falls back to
- * "default" when drawn.
+ * "Gán sao" (R-1240) — the four stars the booking dialog offers, by the key the
+ * server stores. Null on a booking means no star.
  */
-export type AppointmentColor = "default" | "green" | "orange" | "red";
+export const APPOINTMENT_STARS = ["purple", "green", "orange", "red"] as const;
+
+export type AppointmentStarKey = (typeof APPOINTMENT_STARS)[number];
 
 /**
  * What the screens work with. The server speaks its own shape
@@ -39,7 +37,10 @@ export interface AppointmentDto {
   status: AppointmentStatus;
   reason: string | null;
   notes: string | null;
+  /** The colour the retired "Màu lịch hẹn" picker stored; no longer drawn (R-1240). */
   color: string | null;
+  /** "Gán sao" — drawn in front of the name on the calendar; null = none. */
+  star: string | null;
   createdAt: string;
   isTemporary: boolean;
   /** "Đặt cờ" on its Tiếp nhận card: the booking runs the rainbow ring here too. */
@@ -67,7 +68,7 @@ export interface CreateAppointmentRequest {
   endTime: string;
   reason?: string;
   notes?: string;
-  color?: string;
+  star?: string | null;
   /** Set after the user confirmed booking the dentist into an overlap (Appointment:0002). */
   allowDentistOverlap?: boolean;
 }
@@ -80,7 +81,7 @@ export interface UpdateAppointmentRequest {
   endTime?: string;
   reason?: string;
   notes?: string;
-  color?: string;
+  star?: string | null;
   status?: AppointmentStatus;
   /** Lý do hủy — the server refuses a cancel without one. */
   cancelNote?: string;
@@ -129,7 +130,7 @@ export interface CreateTempAppointmentRequest {
   endTime: string;
   sourceTaxonomyId?: string;
   sourceEntryId?: string;
-  color?: string;
+  star?: string | null;
   /** Nội dung đặt lịch. */
   reason?: string;
   notes?: string;

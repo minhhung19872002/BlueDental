@@ -16,6 +16,7 @@ public class AppointmentSnapshotDto
     public string? Note { get; set; }
     public string? Content { get; set; }
     public string? Color { get; set; }
+    public string? Star { get; set; }
     public Guid? StaffId { get; set; }
     public string? StaffName { get; set; }
     public Guid BranchId { get; set; }

@@ -28,6 +28,9 @@ public class AppointmentDto : FullAuditedEntityDto<Guid>
     public string? ChiefComplaint { get; set; }
     public string? Notes { get; set; }
     public string? Color { get; set; }
+    /// <summary>"Gán sao" (R-1240): purple, green, orange or red; null = no star.</summary>
+    [StringLength(16)]
+    public string? Star { get; set; }
     public DateTimeOffset? CheckedInAt { get; set; }
     public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
@@ -69,6 +72,9 @@ public class CreateTempAppointmentDto
     public Guid? SourceTaxonomyId { get; set; }
     public Guid? SourceEntryId { get; set; }
     public string? Color { get; set; }
+    /// <summary>"Gán sao" (R-1240): purple, green, orange or red; null = no star.</summary>
+    [StringLength(16)]
+    public string? Star { get; set; }
     public string? Notes { get; set; }
 
     /// <summary>"Nội dung đặt lịch", as on Tạo lịch hẹn (owner 2026-10-27, R-1046).</summary>
@@ -93,6 +99,9 @@ public class CreateAppointmentDto
     public AppointmentType Type { get; set; }
     public string? ChiefComplaint { get; set; }
     public string? Color { get; set; }
+    /// <summary>"Gán sao" (R-1240): purple, green, orange or red; null = no star.</summary>
+    [StringLength(16)]
+    public string? Star { get; set; }
     public string? Notes { get; set; }
 
     /// <summary>
@@ -111,6 +120,9 @@ public class UpdateAppointmentDto
     public string? ChiefComplaint { get; set; }
     public string? Notes { get; set; }
     public string? Color { get; set; }
+    /// <summary>"Gán sao" (R-1240): purple, green, orange or red; null = no star.</summary>
+    [StringLength(16)]
+    public string? Star { get; set; }
 
     /// <summary>
     /// The edit dialog's Trạng thái. Cancelled or NoShow moves the appointment

@@ -26,7 +26,8 @@ public sealed record AppointmentSnapshot(
     string? PatientPhone,
     CancellationReason? CancelReason,
     string? CancelNote,
-    bool IsTemporary)
+    bool IsTemporary,
+    string? Star = null)
 {
     public static AppointmentSnapshot From(
         Appointment appointment,
@@ -54,7 +55,8 @@ public sealed record AppointmentSnapshot(
             patientPhone ?? appointment.PatientPhone,
             appointment.CancellationReason,
             appointment.CancellationNote,
-            appointment.IsTemporary);
+            appointment.IsTemporary,
+            appointment.Star);
     }
 
     /// <summary>
@@ -71,6 +73,7 @@ public sealed record AppointmentSnapshot(
         new("content", Content),
         new("note", Note),
         new("color", Color),
+        new("star", Star),
         new("staffId", StaffName ?? StaffId?.ToString()),
         new("patientName", PatientName),
         new("patientPhone", PatientPhone),

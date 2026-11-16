@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Controller, type Control } from "react-hook-form";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
-import { AppointmentColorPicker } from "./AppointmentColorPicker";
+import { AppointmentStarPicker } from "./AppointmentStarPicker";
 import { useTaxonomyGroupOptions, useCatalogOptions, CATALOG_GROUP } from "@/hooks/useCatalogOptions";
 import type { TempAppointmentFormValues } from "./TempAppointmentForm";
 
@@ -87,12 +87,12 @@ export function TempFormCenter({ control, doctorOptions, watchedSourceTaxonomyId
         />
       </div>
 
-      {/* Color */}
+      {/* Gán sao (R-1240) — replaced Màu lịch hẹn */}
       <Controller
-        name="color"
+        name="star"
         control={control}
         render={({ field }) => (
-          <AppointmentColorPicker value={field.value} onChange={field.onChange} />
+          <AppointmentStarPicker value={field.value} onChange={field.onChange} />
         )}
       />
     </div>

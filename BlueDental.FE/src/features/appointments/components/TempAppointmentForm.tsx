@@ -15,7 +15,8 @@ export interface TempAppointmentFormValues {
   durationMinutes: number;
   sourceTaxonomyId: string;
   sourceEntryId: string;
-  color: string;
+  /** "Gán sao" (R-1240); null = no star. */
+  star: string | null;
   /** Nội dung đặt lịch. */
   content: string;
   /** Ghi chú — no longer on the form (R-1055): only carried so an edit keeps an older booking's note. */

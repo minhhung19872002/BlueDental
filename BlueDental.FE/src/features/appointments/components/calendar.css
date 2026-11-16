@@ -1100,7 +1100,7 @@ body.cal-fullscreen .cal-grid-wrap {
 .cal-panel-clear-row {
   display: flex;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 /* ── Responsive ───────────────────────────────────────────────────── */
@@ -1550,32 +1550,107 @@ body.cal-fullscreen .cal-grid-wrap {
 
 /* ── Color Picker (outline-style circles matching reference) ──────────── */
 
-.appt-color-row {
+/* ── Gán sao (R-1240) — replaced "Màu lịch hẹn" ─────────────────────── */
+
+/* Each star keeps its own shape and colour; fill and a slightly deeper
+   outline both come from currentColor, so one class sets the whole star. */
+.appt-star {
+  display: inline-block;
+  flex: none;
+  overflow: visible;
+}
+
+.appt-star--sm {
+  width: 13px;
+  height: 13px;
+  margin-right: 3px;
+  vertical-align: -2px;
+}
+
+.appt-star--lg {
+  width: 26px;
+  height: 26px;
+}
+
+.appt-star--purple { color: var(--bd-violet); }
+.appt-star--green  { color: var(--bd-green); }
+.appt-star--orange { color: var(--bd-amber-bright); }
+.appt-star--red    { color: var(--bd-red); }
+
+.appt-star__body {
+  fill: currentColor;
+  stroke: color-mix(in srgb, currentColor 78%, #000);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+}
+
+.appt-star__inner {
+  fill: var(--bd-card);
+}
+
+.appt-star-row {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
-.appt-color-swatch {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-  border: 2px solid var(--swatch-color);
+.appt-star-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
   padding: 0;
-  transition: background 0.15s, box-shadow 0.15s;
-  outline: none;
+  border: 1.5px solid var(--bd-border);
+  border-radius: 12px;
+  background: var(--bd-card);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.15s, opacity 0.15s;
 }
 
-.appt-color-swatch:hover {
-  background: color-mix(in srgb, var(--swatch-color) 15%, transparent);
+.appt-star-option:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--appt-star-tone) 55%, var(--bd-border));
 }
 
-.appt-color-swatch--selected {
-  background: var(--swatch-color);
-  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--swatch-color);
+.appt-star-option:focus-visible {
+  outline: 2px solid var(--appt-star-tone);
+  outline-offset: 2px;
+}
+
+.appt-star-option--purple { --appt-star-tone: var(--bd-violet); }
+.appt-star-option--green  { --appt-star-tone: var(--bd-green); }
+.appt-star-option--orange { --appt-star-tone: var(--bd-amber-bright); }
+.appt-star-option--red    { --appt-star-tone: var(--bd-red); }
+
+.appt-star-option--selected {
+  border-color: var(--appt-star-tone);
+  background: color-mix(in srgb, var(--appt-star-tone) 12%, var(--bd-card));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--appt-star-tone) 22%, transparent);
+}
+
+.appt-star-option--selected .appt-star {
+  animation: appt-star-pop 0.25s ease-out;
+}
+
+@keyframes appt-star-pop {
+  0% { transform: scale(0.7); }
+  70% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+.appt-star-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--bd-muted);
+}
+
+/* The star sits inside a one-line flex label: keep it from shrinking away. */
+.dtl-block-label .appt-star,
+.dtl-tip-title .appt-star {
+  margin-right: 4px;
 }
 
 /* ── Status field ────────────────────────────────────────────────────── */

@@ -1,7 +1,7 @@
 import { Controller, type Control, type FieldErrors, type UseFormSetValue } from "react-hook-form";
 import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
-import { AppointmentColorPicker } from "./AppointmentColorPicker";
+import { AppointmentStarPicker } from "./AppointmentStarPicker";
 import type { AppointmentEditorValues } from "../types/appointmentEditor";
 
 interface Props {
@@ -40,12 +40,12 @@ export function AppointmentFormCenter({ control, errors, doctorOptions, setValue
         {errors.doctorId && <span className="appt-field-error">{errors.doctorId.message}</span>}
       </div>
 
-      {/* Color */}
+      {/* Gán sao (R-1240) — replaced Màu lịch hẹn */}
       <Controller
-        name="color"
+        name="star"
         control={control}
         render={({ field }) => (
-          <AppointmentColorPicker value={field.value} onChange={field.onChange} />
+          <AppointmentStarPicker value={field.value} onChange={field.onChange} />
         )}
       />
     </div>

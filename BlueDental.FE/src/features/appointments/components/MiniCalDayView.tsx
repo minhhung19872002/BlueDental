@@ -3,6 +3,7 @@ import { Tooltip } from "antd";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import type { Appointment } from "../types/appointment";
+import { AppointmentStarMark } from "./AppointmentStar";
 import type { CalendarFocus } from "../types/appointmentSeries";
 import { buildAxis, placeOnAxis, shownLength, type CalendarAxis } from "../store/calendarAxis";
 import { useCalendarWindowStore } from "../store/calendarWindowStore";
@@ -56,7 +57,7 @@ function EvtTooltipContent({ appt }: { appt: Appointment }) {
   return (
     <div className="mcal-tooltip">
       <div className="mcal-tooltip-doctor">{appt.doctorName}</div>
-      <div>{t("Appointment:MiniCal:Customer")}: {appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName}</div>
+      <div>{t("Appointment:MiniCal:Customer")}: <AppointmentStarMark star={appt.star} />{appt.patientCode ? `[${appt.patientCode}] - ${appt.patientName}` : appt.patientName}</div>
       <div>{start.format("DD/MM/YYYY HH:mm")} – {end.format("HH:mm")} ({dur} {t("Patient:Misc:Minutes")})</div>
       <div>{t("Common:Status")}: {appt.statusLabel}</div>
       {appt.reason && <div>"{appt.reason}"</div>}
@@ -68,14 +69,10 @@ function EvtBlock({ appt, label, axis }: { appt: Appointment; label: string; axi
   const position = calcPosition(appt, axis);
   if (!position) return null;
   const evtStyle: React.CSSProperties = { left: position.left, width: position.width };
-  if (appt.color) {
-    evtStyle.background = `${appt.color}28`;
-    evtStyle.borderLeft = `3px solid ${appt.color}`;
-  }
   return (
     <Tooltip title={<EvtTooltipContent appt={appt} />} placement="top" classNames={{ root: "mcal-tooltip-overlay" }}>
       <div className="mcal-day-evt" style={evtStyle}>
-        <span className="mcal-day-evt-text" style={appt.color ? { color: appt.color } : undefined}>{label}</span>
+        <span className="mcal-day-evt-text"><AppointmentStarMark star={appt.star} />{label}</span>
       </div>
     </Tooltip>
   );

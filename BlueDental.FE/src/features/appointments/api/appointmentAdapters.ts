@@ -32,6 +32,7 @@ export interface ServerAppointmentDto {
   chiefComplaint: string | null;
   notes: string | null;
   color: string | null;
+  star: string | null;
   creationTime: string;
   isTemporary: boolean;
   isFlagged: boolean;
@@ -158,6 +159,7 @@ export function adaptAppointment(dto: ServerAppointmentDto): Appointment {
     reason: dto.chiefComplaint,
     notes: dto.notes,
     color: dto.color,
+    star: dto.star ?? null,
     createdAt: dto.creationTime,
     isTemporary: dto.isTemporary,
     isFlagged: dto.isFlagged,
@@ -210,7 +212,7 @@ export function toCreateRequest(request: CreateAppointmentRequest): Record<strin
     slotEnd: toInstant(request.endTime),
     type: DEFAULT_APPOINTMENT_TYPE,
     chiefComplaint: request.reason,
-    color: request.color,
+    star: request.star ?? null,
     notes: request.notes,
     allowDentistOverlap: request.allowDentistOverlap,
   };
@@ -226,7 +228,7 @@ export function toCreateTempRequest(request: CreateTempAppointmentRequest): Reco
     slotEnd: toInstant(request.endTime),
     sourceTaxonomyId: request.sourceTaxonomyId || undefined,
     sourceEntryId: request.sourceEntryId || undefined,
-    color: request.color || undefined,
+    star: request.star ?? null,
     chiefComplaint: request.reason || undefined,
     notes: request.notes || undefined,
     allowDentistOverlap: request.allowDentistOverlap,
@@ -240,7 +242,8 @@ export function toUpdateRequest(request: UpdateAppointmentRequest): Record<strin
     dentistId: request.doctorId,
     chiefComplaint: request.reason,
     notes: request.notes,
-    color: request.color,
+    // The whole booking is sent each time: no star here takes it off.
+    star: request.star ?? null,
     // Trạng thái from the edit dialog; left out, the server leaves it alone.
     status: request.status ? CODE_BY_STATUS[request.status] : undefined,
     cancellationNote: request.cancelNote || undefined,

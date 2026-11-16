@@ -120,7 +120,8 @@ public class AppointmentSeriesAppService : BlueDentalAppService, IAppointmentSer
                 input.ProcedureId,
                 input.ChiefComplaint,
                 input.Color,
-                input.Notes)
+                input.Notes,
+                input.Star)
             .JoinSeries(series.Id))
             .ToList();
         await _appointmentRepository.InsertManyAsync(appointments, autoSave: true);

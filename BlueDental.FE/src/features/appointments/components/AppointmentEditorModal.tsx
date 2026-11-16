@@ -24,7 +24,6 @@ import { useCurrentBranchId } from "@/lib/clinicBranch";
 import { t } from "@/lib/i18n";
 import { PatientEditorDialog } from "@/features/patient-management/components/PatientEditorDialog";
 import type { PatientDto, PatientPrefill } from "@/features/patient-management/types/patient";
-import { APPT_COLORS } from "./AppointmentColorPicker";
 import { AppointmentEditorForm } from "./AppointmentEditorForm";
 import { buildSeriesSlots } from "./appointmentSeriesSlots";
 import { STATUS_GROUP } from "./appointmentStatusOptions";
@@ -45,7 +44,7 @@ const buildSchema = (storedStatus?: AppointmentStatus) =>
     // differ from its output type, and react-hook-form's resolver generics then
     // refuse the form values. The form always supplies all three.
     content: z.string(),
-    color: z.string(),
+    star: z.string().nullable(),
     notes: z.string(),
     status: z.enum(APPOINTMENT_STATUSES),
     cancelNote: z.string(),
@@ -110,7 +109,7 @@ export function AppointmentEditorModal({
       startTime: "",
       durationMinutes: 15,
       content: "",
-      color: APPT_COLORS[0].value,
+      star: null,
       notes: "",
       status: "scheduled",
       cancelNote: "",
@@ -200,7 +199,7 @@ export function AppointmentEditorModal({
         startTime: start.format("HH:mm"),
         durationMinutes: end.diff(start, "minute"),
         content: existingAppt.reason ?? "",
-        color: existingAppt.color ?? APPT_COLORS[0].value,
+        star: existingAppt.star ?? null,
         notes: existingAppt.notes ?? "",
         status: STATUS_GROUP[existingAppt.status],
         cancelNote: existingAppt.cancellationNote ?? "",
@@ -221,7 +220,7 @@ export function AppointmentEditorModal({
       startTime: initialTime ?? "",
       durationMinutes: 15,
       content: initialReason ?? "",
-      color: APPT_COLORS[0].value,
+      star: null,
       notes: "",
       status: "scheduled",
       cancelNote: "",

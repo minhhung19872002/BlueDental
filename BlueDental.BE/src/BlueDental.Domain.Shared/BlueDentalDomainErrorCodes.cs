@@ -225,6 +225,9 @@ public static class BlueDentalDomainErrorCodes
         /// so the visit is seated against a real patient (BA 2026-11-02).
         /// </summary>
         public const string TemporaryNeedsRecord = "BlueDental:Appointment:0018";
+
+        /// <summary>"Gán sao" carries a key that is none of the dialog's four stars (R-1240).</summary>
+        public const string InvalidStar = "BlueDental:Appointment:0021";
     }
 
     public static class TreatmentManagement
