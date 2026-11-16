@@ -318,23 +318,21 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
         var plan = await LoadAsync(id);
         var slipBefore = PlanDiscountOf(plan);
 
-        var catalog = await _catalogRepository.FirstOrDefaultAsync(c => c.Id == input.ServiceId)
-            ?? throw new BusinessException(
-                BlueDentalDomainErrorCodes.Catalogs.CatalogEntryNotFound,
-                "That service is not in the catalog.");
+        // The price the picker offered — Danh mục's "Giá sau giảm", as Phiếu tư
+        // vấn and Chuyển đổi sell it (R-1235) — is the line's giá gốc and its
+        // ceiling: the row may lower it, never raise it (Treatment:0040).
+        var salePrice = await CatalogPriceAsync(input.ServiceId);
 
         var line = plan.AddService(
             GuidGenerator.Create(),
-            catalog.Id,
+            input.ServiceId,
             sourceAdviseId: null,
             input.Price,
             input.Quantity,
             input.DiscountType,
             input.DiscountValue,
             PatientDiagnosisAppService.ToToothSelections(input.Teeth),
-            // The catalog price the picker offered is the ceiling: the row may
-            // lower it, never raise it (Treatment:0040).
-            originalPrice: catalog.Price);
+            originalPrice: salePrice);
         await EnsureLineDiscountAsync(line, DiscountLimit.Measure.None);
         await EnsurePlanDiscountAsync(plan, slipBefore);
         await StampTaxRatesAsync([line]);

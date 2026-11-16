@@ -15479,3 +15479,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `appointment-slot-pick-doctor` sửa setup: huỷ lịch hẹn trước khi đăng ký nghỉ cả ngày. Luật mới chặn đúng ca này; chạy lại 2/2.
   - Domain 42/42; tsc + eslint sạch.
 - **Mức retest**: 3.
+
+## R-1235 (2026-11-16, mức 2: Kế hoạch điều trị — "Thêm dịch vụ phát sinh" lấy Giá sau giảm; develop + main)
+
+- **Yêu cầu BA**: "phần thêm dịch vụ phát sinh chưa lấy giá sau giảm nha". Dialog "Thêm dịch vụ" (nút "Thêm dịch vụ phát sinh" ở Chi tiết phiếu) điền giá gốc Danh mục (`price`), không phải "Giá sau giảm" (`serviceConfig.priceAfterDiscount`). Phiếu tư vấn và Chuyển đổi (R-1184) đã bán theo Giá sau giảm.
+- **Chủ dự án chốt**: áp cho cả hai chế độ của dialog (thực tế chế độ tạo phiếu mới không còn nút nào mở từ 2026-10-15, chỉ còn nút phát sinh); trần Đơn giá = Giá sau giảm (hạ được, không nâng được — như R-1184).
+- **Thay đổi** (không migration):
+  - FE `PlanServicePicker`: bỏ prop `salePrices` (R-1185), picker luôn hiện Giá sau giảm; helper `sellingPrice(service)` dùng chung. `useCreatePlanForm.handlePickService` điền Đơn giá = Giá sau giảm; tạo phiếu mới gửi `originalPrice` = Giá sau giảm. `CreatePlanDialog` truyền trần = Giá sau giảm cho `PlanPricingFields`. Các chế độ sửa (phiếu / dòng / báo giá) giữ giá gốc đã bán của dòng.
+  - BE `PatientTreatmentAppService.AddServiceAsync`: `originalPrice` (trần, Treatment:0040) = `CatalogPriceAsync` (PriceAfterDiscount), thay cho `catalog.Price`. `DiscountLimitGuard` vốn đã đo theo Giá sau giảm, không đổi.
+- **Kiểm thử** (bản build production :8090 + host thật :5000 + PostgreSQL thật, không chặn request):
+  - Mới `e2e/extra-service-sale-price.spec.ts`: dịch vụ 300.000 đ giảm 10% → dropdown 270.000 đ, Đơn giá 270.000, tóm tắt 270.000 / 0 / 270.000; nhập 280.000 báo "Đơn giá không được lớn hơn giá gốc của dịch vụ."; lưu xong đọc lại bằng request riêng price = originalPrice = effectiveAmount = 270.000; reload bảng không còn 300.000 đ; POST thẳng API giá 300.000 → 403 BlueDental:Treatment:0040, không thêm dòng. Xanh.
+  - Fixture mới `e2e/fixtures/saleService.ts` (fetch theo phiên trình duyệt + tạo dịch vụ giảm 10%); `convert-sale-price.spec.ts` chuyển sang dùng fixture.
+  - Hồi quy: `convert-sale-price`, `treatment-plan-detail`, `plan-advisor-scope`, `plan-treating-scope`, `service-priority-order`, `treatment-plan`, `cross-screen-freshness`, `taxonomy-active-state`, `patient-permission-gates`: 47/49 lần đầu.
+    - `treatment-plan-detail:998` đỏ do test: POST `…/services` với `price` = giá gốc Danh mục, giờ vượt trần → 0040 đúng luật mới. Sửa test lấy `serviceConfig.priceAfterDiscount ?? price`; chạy lại xanh.
+    - `patient-permission-gates:120` đỏ có sẵn: chết ở `createDentist` của chính spec (option "Nhóm quyền" mở dưới mép 1600×900, không "stable" — cùng lỗi đã sửa cho `restrictedDentist.ts`), trước phần dịch vụ phát sinh. Không liên quan.
+  - eslint sạch các file đổi; tsc sạch phần của R-1235; BE Application build OK.
+- **Mức retest**: 2.

@@ -21,6 +21,7 @@ import {
 } from "../../api/treatmentPlanApi";
 import { adviseToFormValues, adviseToUpdateDto } from "./adviseEditing";
 import { lineToFormValues, lineToUpdateInput, type LineEditTarget } from "./lineEditing";
+import { sellingPrice } from "./PlanServicePicker";
 import {
   EMPTY_TOOTH_VALUE,
   isToothValueEmpty,
@@ -182,9 +183,10 @@ export function useCreatePlanForm({
   const watched = Form.useWatch([], form);
   const totals = planTotals(watched ?? { discountType: DISCOUNT_TYPE.Percentage });
 
+  /** A new line starts at the service's Giá sau giảm, as Phiếu tư vấn does (R-1235). */
   const handlePickService = (service: CatalogOption) => {
     setPickedService(service);
-    form.setFieldsValue({ price: service.price ?? 0, quantity: 1 });
+    form.setFieldsValue({ price: sellingPrice(service), quantity: 1 });
   };
 
   /** The field was cleared from the Select's own × rather than by a pick. */
@@ -319,7 +321,7 @@ export function useCreatePlanForm({
         // diagnosing doctor. The reference sends the same pair.
         staffId: values.advisorId ?? dentistId,
         secondStaffId: values.secondAdvisorId,
-        originalPrice: selectedService?.price ?? values.price ?? 0,
+        originalPrice: selectedService ? sellingPrice(selectedService) : (values.price ?? 0),
         price: values.price ?? 0,
         quantity: values.quantity ?? 1,
         discountType: values.discountValue ? values.discountType : DISCOUNT_TYPE.None,
