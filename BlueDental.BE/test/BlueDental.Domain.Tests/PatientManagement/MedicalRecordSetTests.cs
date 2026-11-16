@@ -58,7 +58,32 @@ public class MedicalRecordSetTests
         set.VisibleForms.ShouldNotContain(MedicalRecordForm.OutpatientDental);
         set.VisibleForms.ShouldNotContain(MedicalRecordForm.CareSheet);
         set.VisibleForms.ShouldContain(MedicalRecordForm.OrthodonticContract);
-        MedicalRecordSet.AllForms[^1].ShouldBe(MedicalRecordForm.OrthodonticContract);
+    }
+
+    [Fact]
+    public void A_set_saved_before_mau_11_and_12_existed_shows_them_and_keeps_what_it_hid()
+    {
+        // Saved when there were ten forms, with mẫu 3 and mẫu 10 unticked: bits 2 and 9.
+        var set = ASet();
+        typeof(MedicalRecordSet).GetProperty(nameof(MedicalRecordSet.HiddenFormMask))!
+            .SetValue(set, (1 << 2) | (1 << 9));
+
+        set.VisibleForms.ShouldNotContain(MedicalRecordForm.Orthodontic);
+        set.VisibleForms.ShouldNotContain(MedicalRecordForm.OrthodonticContract);
+        set.VisibleForms.ShouldContain(MedicalRecordForm.SurgicalSafetyChecklist);
+        set.VisibleForms.ShouldContain(MedicalRecordForm.SurgicalCountSheet);
+        MedicalRecordSet.AllForms[^1].ShouldBe(MedicalRecordForm.SurgicalCountSheet);
+    }
+
+    [Fact]
+    public void Mau_11_and_12_can_be_unticked_and_ticked_like_any_other()
+    {
+        var set = ASet().ShowOnly([MedicalRecordForm.Cover, MedicalRecordForm.SurgicalCountSheet]);
+
+        set.VisibleForms.ShouldBe([MedicalRecordForm.Cover, MedicalRecordForm.SurgicalCountSheet]);
+        set.VisibleForms.ShouldNotContain(MedicalRecordForm.SurgicalSafetyChecklist);
+        (set.HiddenFormMask & (1 << 10)).ShouldNotBe(0);
+        (set.HiddenFormMask & (1 << 11)).ShouldBe(0);
     }
 
     [Fact]

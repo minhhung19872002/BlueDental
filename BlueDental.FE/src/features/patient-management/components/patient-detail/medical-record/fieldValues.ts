@@ -207,7 +207,8 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
  * may carry many diagnosis slips and the sheet cannot tell which one the
  * operation is for, so the doctor writes it (clinic, 2026-10-16). The contract
  * (mẫu 10) takes it as Bệnh án chỉnh nha does — until the set has a mẫu 3,
- * whose VIII it then copies (contractFromOrthodontic, R-1097).
+ * whose VIII it then copies (contractFromOrthodontic, R-1097). Bảng kiểm an
+ * toàn phẫu thuật (mẫu 11) takes it as Phiếu phẫu thuật/thủ thuật does.
  */
 const DIAGNOSIS_FIELDS = [
   "outpatient-dental.text.43",
@@ -216,6 +217,7 @@ const DIAGNOSIS_FIELDS = [
   "procedure-record.text.1",
   "care.diagnosis",
   "orthodontic-contract.text.7",
+  "surgical-safety.diagnosis",
 ] as const;
 
 /** One diagnosis as a sheet prints it. */
@@ -255,6 +257,10 @@ export const FORM_CODE_VALUES: Readonly<FieldValues> = {
   "custom.text.6d1c4222d1b041c1aff9becd446183e1": "01/BV2",
   // Phiếu phẫu thuật/thủ thuật
   "custom.text.8d7eb5b7fe9746b3909ce9c21ba46a31": "PT-11",
+  // Bảng kiểm an toàn phẫu thuật (clinic, 2026-11-16)
+  "surgical-safety.form-code": "PT-04",
+  // Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ (clinic, 2026-11-16)
+  "surgical-count.form-code": "PT-06",
 };
 
 /**

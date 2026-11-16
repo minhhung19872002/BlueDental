@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { t } from "@/lib/i18n";
+import { MEDICAL_RECORD_FORM } from "../../../api/medicalRecordApi";
 import type { FieldValues } from "./fieldValues";
 import { renderSheetHtml, sheetDocument } from "./renderSheet";
 import { GENERATED_ROW_ATTR } from "./rowEditing";
@@ -21,14 +22,18 @@ import { MaterialTypeDialog } from "./materials/MaterialTypeDialog";
 import { useSheetMaterials } from "./materials/useSheetMaterials";
 import { attachSections } from "./sheetSections";
 import { fitBlanksToLines } from "./fitBlanks";
+import { holdLines } from "./holdLines";
 import { flowLongBlanks, flowedText, isPartOf, writeFlowed } from "./flowLines";
 import { attachMultiLineSelect } from "./multiLineSelect";
 import { SheetSuggestions } from "./suggestions/SheetSuggestions";
 import { useSheetSuggestions } from "./suggestions/useSheetSuggestions";
 
 /** A4 at 96dpi, plus the 20px margin the sheet's own page leaves around it. */
-const PAGE_WIDTH = 834;
-const PAGE_HEIGHT = 1163;
+const PORTRAIT = { width: 834, height: 1163 };
+/** Bảng kiểm an toàn phẫu thuật (mẫu 11) is printed on A4 lying on its side. */
+const LANDSCAPE = { width: PORTRAIT.height, height: PORTRAIT.width };
+
+const pageOf = (form?: number) => (form === MEDICAL_RECORD_FORM.SurgicalSafetyChecklist ? LANDSCAPE : PORTRAIT);
 
 interface Props {
   /** Which sheet this is, so printing can find the frame drawing it. */
@@ -80,7 +85,8 @@ export function MedicalRecordDocument({
   onChange,
 }: Props) {
   const frame = useRef<HTMLIFrameElement | null>(null);
-  const [height, setHeight] = useState(PAGE_HEIGHT);
+  const page = pageOf(form);
+  const [height, setHeight] = useState(page.height);
 
   // Read through refs: the page is built once per documentKey, and the values
   // it started from must not rebuild it when the parent re-renders.
@@ -182,10 +188,12 @@ export function MedicalRecordDocument({
 
     // Height only: the width of a sheet of A4 does not depend on what is on it,
     // and measuring it would read a scrollbar's width off a long record.
-    // Laid out now: mẫu 2's lines keep to one line in its larger type, then a
-    // blank whose text runs past its line goes on to lines of its own.
+    // Laid out now: the lines keep to one line in the larger letters, then a
+    // blank whose text runs past its line goes on to lines of its own, then a
+    // line the larger letters still break takes its letters down until it holds.
     fitBlanksToLines(doc);
     flowLongBlanks(doc);
+    holdLines(doc);
 
     const measure = () => {
       const next = Math.ceil(doc.documentElement.scrollHeight);
@@ -254,7 +262,7 @@ export function MedicalRecordDocument({
 
   // A page swapped out while its observers are live would keep measuring a
   // document nobody can see.
-  useEffect(() => () => setHeight(PAGE_HEIGHT), [srcDoc]);
+  useEffect(() => () => setHeight(page.height), [srcDoc, page.height]);
 
   /*
    * A value written from outside the sheet — the day picked in the heading, say
@@ -269,6 +277,9 @@ export function MedicalRecordDocument({
     for (const [id, value] of Object.entries(stored)) {
       const node = doc.querySelector(`[data-medical-record-field="${id}"]`);
       if (!node || isPartOf(node, doc.activeElement)) continue;
+      // A form's MS is print (R-1069): a code stored on the sheet before must
+      // not overwrite it when the stored values arrive again.
+      if (node.hasAttribute("data-form-code")) continue;
 
       if (isDrawingField(node)) {
         if (drawingOf(node) !== value) showDrawing(node, value, editable);
@@ -307,7 +318,7 @@ export function MedicalRecordDocument({
         title={t("Patient:View:MedicalRecord")}
         srcDoc={srcDoc}
         onLoad={handleLoad}
-        style={{ width: PAGE_WIDTH, height }}
+        style={{ width: page.width, height }}
       />
       {editable && <SheetDrawingDialogs drawing={drawing} />}
       {editable && <MaterialTypeDialog materials={materials} />}

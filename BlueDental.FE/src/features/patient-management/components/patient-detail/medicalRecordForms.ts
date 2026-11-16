@@ -55,6 +55,11 @@ export interface MedicalRecordFormSpec {
    */
   dateFieldKeys?: string[];
   /**
+   * Where the paper writes that date as "Ngày … tháng … năm 20…": the three
+   * blanks it is split over, the year as its last two digits (mẫu 11).
+   */
+  datePartKeys?: { day: string; month: string; year: string };
+  /**
    * The blanks the doctor picked above the sheet is printed into: the name,
    * and the Chức danh kept on their staff record (clinic, 2026-10-16).
    */
@@ -166,6 +171,32 @@ export const MEDICAL_RECORD_FORMS: MedicalRecordFormSpec[] = [
     tint: "#fff7f1",
     accent: "#d97a40",
     iconBg: "#ffe6d5",
+  },
+  {
+    // The clinic's own paper forms (2026-11-16), named as they are printed;
+    // the reference has neither. Mẫu 11 is the one landscape sheet.
+    form: MEDICAL_RECORD_FORM.SurgicalSafetyChecklist,
+    fillable: true,
+    dateLabel: "Patient:MedRecord:PerformedDate",
+    datePartKeys: {
+      day: "surgical-safety.date.day",
+      month: "surgical-safety.date.month",
+      year: "surgical-safety.date.year",
+    },
+    index: 11,
+    label: "Bảng kiểm an toàn phẫu thuật",
+    tint: "#faf6ff",
+    accent: "#a174e0",
+    iconBg: "#eee1ff",
+  },
+  {
+    form: MEDICAL_RECORD_FORM.SurgicalCountSheet,
+    fillable: true,
+    index: 12,
+    label: "Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ",
+    tint: "#fff9ef",
+    accent: "#e2a32a",
+    iconBg: "#fff0d5",
   },
 ];
 

@@ -4395,3 +4395,81 @@ mục UNKNOWN_REFERENCE_BEHAVIOR.
     vẫn là chữ in. Mẫu 10 giờ có 53 ô (trước 48), vẫn 5 trang.
 - Giữ nguyên văn file Word: phần bản thỏa thuận đánh số "I." rồi "Sự đồng ý và thỏa thuận…" (không
   có "II.") rồi "III. Đồng ý điều trị".
+
+## Bệnh án — Mẫu 11 và mẫu 12: hai bảng kiểm phẫu thuật (biểu mẫu của phòng khám, 2026-11-16)
+
+Hai tờ giấy phòng khám gửi qua chat ("thêm 2 hs này vào nữa nha", "11, 12 để theo tên của phiếu
+luôn đi"). **Bản gốc không có hai mẫu này**, nên không có mục UNKNOWN_REFERENCE_BEHAVIOR.
+
+- Enum `MedicalRecordForm.SurgicalSafetyChecklist = 11`, `SurgicalCountSheet = 12`; template
+  `medical-record/templates/surgicalSafetyChecklist.ts` (id ô `surgical-safety.*`) và
+  `surgicalCountSheet.ts` (id ô `surgical-count.*`); khung chung (quốc hiệu, ô MS, ô tick, chữ ký)
+  trong `templates/sheetMarkup.ts`.
+- Mục lục: "11. Bảng kiểm an toàn phẫu thuật", "12. Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ".
+  Bộ hồ sơ cũ tự hiện hai mục mới (`HiddenFormMask` chỉ lưu mục bị ẩn) — không cần migration.
+- Điền sẵn trên cả hai tờ (sửa được): Họ và tên (in hoa), Tuổi (tính theo ngày sinh), Nam/Nữ,
+  Mã người bệnh. **MS cố định**: PT-04 (mẫu 11), PT-06 (mẫu 12), chữ thường như MS của mẫu 2/6/7.
+  **Số vào viện để trống** (chủ dự án chốt 2026-11-16) — chỉ mẫu 12 có ô này; mẫu 11 bỏ từ R-1241
+  vì tờ giấy PT-04 không có.
+- **Mẫu 11 — Bảng kiểm an toàn phẫu thuật (MS PT-04)**:
+  - Tờ duy nhất in **A4 ngang** (khung trên màn 1122.5 × 793.7px = 297 × 210mm), lề **5mm trên/dưới,
+    10mm hai bên** (phòng khám: lề trên/dưới ít nhất có thể), chữ **13px**, 1 trang (R-1241; 12px
+    phòng khám chê nhỏ, 14px lại "lớn hơn 1 tí"). Trong bảng giai đoạn dòng 1.36, ô và đường kẻ
+    sát (lề trong `3px 10px 4px`); khoảng trống dồn lên trên — đầu tờ cách 22px, dòng Họ tên /
+    Chẩn đoán cách 12px, ô tiêu đề giai đoạn cách 20px trên / 14px dưới. Nội dung 717/756px. Trang in riêng
+    `@page surgical-safety{size:A4 landscape;margin:10mm}`; trên màn hình khung tờ rộng 1163px.
+  - **Bố cục theo tờ giấy PT-04 (R-1241, phòng khám 2026-11-16 "chưa giống lắm")**:
+    - Đầu tờ một hàng: tên phòng khám chữ thường nhỏ 12px bên trái ("**Sở Y tế Thành Phố Hồ Chí
+      Minh**" in đậm như tờ giấy / "Phòng khám Chuyên khoa Răng Hàm Mặt – / thuộc Công ty Cổ phần Dịch vụ Nha Khoa Đức
+      Hạnh"), tiêu đề 22px ở giữa, **chỉ "MS: PT-04"** ở góc phải — tờ giấy không có Số vào viện /
+      Mã người bệnh ở góc; Mã NB nằm trên dòng Họ và tên. Dưới tiêu đề cách 14px rồi mới tới dòng
+      Họ và tên; tiêu đề giai đoạn cách dòng Chẩn đoán 10px.
+    - Ba ô tiêu đề giai đoạn **riêng**, viền bo góc, nối bằng **mũi tên khối rỗng viền đen** như tờ
+      giấy (SVG `.ss-arrow` 46×22, không dùng ký tự ⟹) (bảng `surgical-safety`, 5 ô cùng hàng:
+      27% · 9.5% · 27% · 9.5% · 27% — ô hẹp hơn cột bên dưới để mũi tên có khoảng hở hai bên).
+    - Dưới đó **một bảng kẻ liền** 3 cột × **4 hàng có ô gộp dòng** (`surgical-safety-stages`),
+      như tờ giấy — đường kẻ thẳng hàng giữa các cột là cùng một cạnh hàng: đường trên "Vùng mổ"
+      (cột 1) = đường trên "Dự kiến" (cột 2); đường trên "Thuốc…" (cột 1) = đường trên "Đối với
+      PTV…" (cột 3). Cột 1: giấy tờ người bệnh · Vùng mổ · **Thuốc + Máy đo chung một ô** (không kẻ
+      giữa) · nguy cơ người bệnh. Cột 2: tới Kháng sinh · gộp hàng 2–4 từ Dự kiến; hai đường kẻ
+      riêng của cột 2 (trên Kháng sinh, trên Chẩn đoán hình ảnh) là `p.ss-rule`. Cột 3: gộp hàng
+      1–2 liền mạch tới "□ Có □ Không áp dụng" của Dán nhãn · gộp hàng 3–4 "Đối với PTV…" + ghi
+      chú. Mỗi cột mở đầu bằng dòng vai trò in nghiêng trong ngoặc. Cột rộng 35% · 33% · 32%. Câu trả lời "□ Có  □ Không áp dụng" xuống dòng riêng dưới
+      câu hỏi, lựa chọn thứ hai thẳng một mốc trong cột (`.ss-opt`). **Chữ và chỗ xuống dòng theo
+      đúng tờ giấy** (`<br>`): "…người bệnh và / hoạt động bình thường:", "…(7ml/kg ở / trẻ em):",
+      "…trung tâm / và dịch truyền/máu.", "…vị trí rạch da / bằng lời", "…các loại / dụng cụ dùng
+      cho phẫu thuật", "…nhãn bệnh phẩm / bao gồm cả tên người bệnh)", "…và chăm / sóc sau mổ".
+      Cuối cột 3: "Đối với PTV…" in đậm một dòng, "Những vấn đề…" dòng dưới, rồi **6 dòng ghi
+      chú** (`text.1–5`, `text.9`) — **khi in có đường chấm** (ô trong bảng kẻ mặc định in trơn,
+      `.ss-note` được in chấm lại).
+    - Dưới mỗi cột một dòng chữ ký in nghiêng: "ĐD chạy ngoài/vòng ngoài (Ký, ghi rõ họ tên)",
+      "ĐD dụng cụ/vòng trong (…)", "Phẫu thuật viên (…)", rồi chỗ ký và ô họ tên. **Khi in, ô họ
+      tên này không có đường chấm** (phòng khám 2026-11-16); trên màn vẫn là ô nhập.
+    - Thứ tự ô tick (`check.1…33`) và ô chữ (`text.1…8`) giữ nguyên như bản đầu nên tờ đã lưu không
+      lệch dấu tick.
+  - Chẩn đoán: các chẩn đoán của bệnh nhân như mẫu 7 (`DIAGNOSIS_FIELDS`), tính từ Ngày thực hiện.
+  - Ô chọn **"Ngày thực hiện"** trên đầu tờ (như các mẫu có ngày), in vào "Ngày … tháng … năm 20…"
+    tách ba ô (`datePartKeys` + `sheetDay.ts`; năm in hai số sau chữ "20"). Mặc định là hôm nay;
+    tờ đã lưu thì đọc lại ngày từ ba ô.
+- **Mẫu 12 — Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ (MS PT-06)**:
+  - A4 dọc, lề 15mm, chữ 14px (như mẫu 7), 1 trang. Không có ô chọn ngày (tờ giấy không có ngày).
+  - Tiêu đề 3 dòng **15pt** dòng 1.25, cách dòng họ tên 22px; bảng đếm cách dòng "Họ và tên người bệnh" 16px; khi in,
+    2 ô tên dưới chữ ký không có đường chấm (R-1242).
+  - Bảng đếm 6 dòng × 8 ô số (Trước khi rạch da, 5 ô Số lượng cung cấp thêm, Đếm khi đóng khoang
+    rỗng, Khi đóng da): hai dòng Gạc có ô kích thước "…x…cm", Kim, Dao, Dụng cụ, và một dòng để trống
+    tên. Ô trong bảng in không có đường chấm (lưới đã kẻ), trừ ô kích thước gạc.
+  - Phần cuối: Kiểm đủ/Không đủ, Mô tả vật dụng mất, Thông báo PTV, Kiểm tra XQ, Kết quả, Xử lý,
+    2 chữ ký (Điều dưỡng vòng trong / vòng ngoài).
+- **Không in header của trình duyệt (R-1242, mọi mẫu)**: `@page` gốc có một ô lề trên trống
+  (`@top-center{content:""}`), nên Chrome không in ngày giờ + tiêu đề trang ở lề trên (các tờ lề 15mm
+  từng bị); footer đã không có vì ô số trang `@bottom-right`. Lề và bố cục không đổi.
+- **In "Toàn bộ"**: một lượt in có cả tờ ngang và tờ dọc — mẫu 11 in trang ngang, các mẫu khác giữ
+  trang dọc của chúng. Trang cuối lượt in theo tờ cuối nên không thừa trang trắng.
+- **Tờ rộng hơn cột (2026-11-16, R-1238)**: `.pd-medical-paper` căn giữa bằng `align-items: safe
+  center`. Trước đây `center` làm tờ rộng hơn cột (mẫu 11 trên màn 1280px) tràn ra cả hai mép, phần
+  mép trái không cuộn tới được và nằm dưới mục lục. Giờ tờ vừa cột vẫn căn giữa, tờ rộng hơn bắt
+  đầu từ mép trái và cuộn ngang.
+- **Ngày đã chọn không còn mất khi ghi tiếp (2026-11-16, R-1238, mọi mẫu có ngày)**: tờ chỉ giữ
+  những ô khác với bản tự điền, mà ngày vừa chọn lại chính là bản tự điền — nên hễ tick hay gõ thêm
+  sau khi chọn ngày thì ngày bị bỏ khỏi lần lưu, tải lại thấy về hôm nay. Giờ mỗi lần tờ báo thay
+  đổi, ngày đã chọn (hoặc ngày đã lưu trên tờ) được giữ lại trong các ô in ngày.

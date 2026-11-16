@@ -1,9 +1,10 @@
 /**
- * Mẫu 2's blanks are drawn at fixed widths for 13px type: each line of the
- * form — label, blank, label, blank — fills the writing area at that size and
- * no more. Set in larger type (clinic, 2026-11-10: "in ra nhìn nhỏ xíu") the
- * labels widen, the last blank on a line no longer fits beside them and drops
- * to a line of its own, and every page of the form runs onto a second sheet.
+ * A form's blanks are drawn at fixed widths for its type as drawn: each line —
+ * label, blank, label, blank — fills the writing area at that size and no
+ * more. Set larger (clinic, 2026-11-10: "in ra nhìn nhỏ xíu" — mẫu 2 a size up;
+ * 2026-11-14, R-1234: every form's letters, sheetCss) the labels widen, the
+ * last blank on a line no longer fits beside them and drops to a line of its
+ * own, and the pages run onto another sheet.
  *
  * So once the sheet is laid out, each line that held on one line at the size
  * the blanks were drawn for, and no longer does, gives back what its labels
@@ -15,10 +16,13 @@
  * Runs before flowLongBlanks, which breaks a blank's text at its width.
  */
 
-/** The forms set larger than the size their blanks were drawn for. */
-const FITTED_SHEET_SELECTOR = '.nfc-tpl[data-form="2"]';
-/** The type size mẫu 2's blank widths were drawn for (R-1067). */
-const DRAWN_FONT_SIZE = "13px";
+/**
+ * The forms set larger than they were drawn: all but the cover, whose letters
+ * sheetCss enlarges with font-size-adjust (2026-11-14, R-1234).
+ */
+const FITTED_SHEET_SELECTOR = '.nfc-tpl[data-form]:not([data-form="1"])';
+/** Mẫu 2 also sets its type a size up: its blank widths were drawn for 13px (R-1067). */
+const DRAWN_FONT_SIZES: Readonly<Record<string, string>> = { "2": "13px" };
 /** A blank is never shortened below this — still room to write a word. */
 const MIN_BLANK_WIDTH = 40;
 
@@ -92,14 +96,17 @@ export function fitBlanksToLines(doc: Document) {
   );
   if (blocks.length === 0) return;
 
-  // One line at the drawn size: shorter than a line and a half.
-  const before = sheet.style.fontSize;
-  sheet.style.fontSize = DRAWN_FONT_SIZE;
+  // One line as drawn — the drawn size, letters not enlarged: shorter than a
+  // line and a half.
+  const before = { fontSize: sheet.style.fontSize, fontSizeAdjust: sheet.style.fontSizeAdjust };
+  sheet.style.fontSize = DRAWN_FONT_SIZES[sheet.dataset.form ?? ""] ?? before.fontSize;
+  sheet.style.fontSizeAdjust = "none";
   const oneLine = blocks.map((block) => {
     const lineHeight = parseFloat(doc.defaultView?.getComputedStyle(block).lineHeight ?? "") || 0;
     return lineHeight > 0 && heightOf(block) < lineHeight * 1.5;
   });
-  sheet.style.fontSize = before;
+  sheet.style.fontSize = before.fontSize;
+  sheet.style.fontSizeAdjust = before.fontSizeAdjust;
 
   blocks.forEach((block, at) => {
     if (oneLine[at]) fitBlock(block);

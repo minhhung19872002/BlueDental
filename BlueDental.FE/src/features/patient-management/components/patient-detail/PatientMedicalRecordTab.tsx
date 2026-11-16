@@ -43,6 +43,7 @@ import { useUnsavedSheets } from "./medical-record/useUnsavedSheets";
 import { UnsavedSheetDialog } from "./medical-record/UnsavedSheetDialog";
 import { diagnosisFieldValues, type FieldValues } from "./medical-record/fieldValues";
 import { contractAutoFrom } from "./medical-record/contractFromOrthodontic";
+import { dayFieldValues, printedDayOf } from "./medical-record/sheetDay";
 import { MEDICAL_RECORD_FORMS, formSpecOf, type MedicalRecordFormSpec } from "./medicalRecordForms";
 import { parseFieldValues, serialiseFieldValues } from "./medicalRecordDraft";
 import "./medical-record/medical-record.css";
@@ -195,14 +196,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     const picked = dates[sheet.id];
     if (picked) return picked;
 
-    const [key] = formSpecOf(sheet.form).dateFieldKeys ?? [];
     // What the sheet holds, else what the set's slips say — Ngày tư vấn.
-    const printed = key ? (valuesOf(sheet)[key] ?? factValues[key]) : undefined;
-    if (typeof printed === "string" && printed) {
-      const parsed = dayjs(printed, "DD/MM/YYYY", true);
-      if (parsed.isValid()) return parsed;
-    }
-    return dayjs();
+    return printedDayOf(formSpecOf(sheet.form), { ...factValues, ...valuesOf(sheet) }) ?? dayjs();
   };
 
   /**
@@ -214,10 +209,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   const ownAutoOf = (sheet: PatientMedicalRecordDto): FieldValues => {
     const spec = formSpecOf(sheet.form);
     const day = spec.dateLabel ? dateOf(sheet) : undefined;
-    const printedDay = day?.format("DD/MM/YYYY");
-    const dated = printedDay
-      ? Object.fromEntries((spec.dateFieldKeys ?? []).map((key) => [key, printedDay]))
-      : {};
+    const dated = day ? dayFieldValues(spec, day) : {};
     return { ...auto, ...diagnosisFieldValues(diagnosesFrom(day)), ...factValues, ...dated };
   };
 
@@ -233,21 +225,35 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     return contractAutoFrom(own, { ...ownAutoOf(orthodonticSheet), ...valuesOf(orthodonticSheet) });
   };
 
-  /** Writes a value picked outside the sheet into the blanks that print it. */
-  const writeOnSheet = (sheet: PatientMedicalRecordDto, keys: readonly string[], printed: string) => {
-    if (keys.length === 0) return;
-    setEdits((current) => {
-      const values = { ...(current[sheet.id] ?? parseFieldValues(sheet.content)) };
-      for (const key of keys) values[key] = printed;
-      return { ...current, [sheet.id]: values };
-    });
+  /** Writes values picked outside the sheet into the blanks that print them. */
+  const writeOnSheet = (sheet: PatientMedicalRecordDto, printed: FieldValues) => {
+    if (Object.keys(printed).length === 0) return;
+    setEdits((current) => ({
+      ...current,
+      [sheet.id]: { ...(current[sheet.id] ?? parseFieldValues(sheet.content)), ...printed },
+    }));
   };
 
   /** Picking the day writes it into whichever blanks the form prints it in. */
   const handleDateChange = (sheet: PatientMedicalRecordDto, next: Dayjs | null) => {
     if (!next) return;
     setDates((current) => ({ ...current, [sheet.id]: next }));
-    writeOnSheet(sheet, formSpecOf(sheet.form).dateFieldKeys ?? [], next.format("DD/MM/YYYY"));
+    writeOnSheet(sheet, dayFieldValues(formSpecOf(sheet.form), next));
+  };
+
+  /**
+   * What a sheet reports, with its day kept in the blanks that print it. The
+   * sheet keeps only what differs from what it is filled from, and the day —
+   * picked above it, or saved on it before — is one of those answers; without
+   * this the next tick or word written on the sheet would drop it from the save.
+   */
+  const handleSheetChange = (sheet: PatientMedicalRecordDto, next: FieldValues) => {
+    const spec = formSpecOf(sheet.form);
+    const day = spec.dateLabel
+      ? (dates[sheet.id] ?? printedDayOf(spec, parseFieldValues(sheet.content)))
+      : undefined;
+    const kept = day ? dayFieldValues(spec, day) : {};
+    setEdits((current) => ({ ...current, [sheet.id]: { ...next, ...kept } }));
   };
 
   /** `Bản NN` for a sheet: its position among the sheets of its own form. */
@@ -489,7 +495,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                     editable={mode === "single" && sheet.id === active?.id && !readOnly(sheet)}
                     values={valuesOf(sheet)}
                     mayEditRows={mayEditRows}
-                    onChange={(next) => setEdits((current) => ({ ...current, [sheet.id]: next }))}
+                    onChange={(next) => handleSheetChange(sheet, next)}
                   />
                 ))
               )}

@@ -1,3 +1,4 @@
+import { holdLines } from "./holdLines";
 import { PRINT_COPY_CSS } from "./sheetCss";
 
 /**
@@ -64,6 +65,8 @@ export function copySheetsForPrint(frames: readonly HTMLIFrameElement[]): () => 
   for (const frame of frames) {
     const sheet = frame.contentDocument?.querySelector(SHEET_SELECTOR);
     if (!sheet) continue;
+    // What has been written since the sheet opened keeps to its lines too.
+    holdLines(sheet.ownerDocument);
     // From another document, so it has to be imported rather than adopted.
     const copy = document.importNode(sheet, true);
     carryTickBoxes(sheet, copy);
