@@ -15,7 +15,7 @@ export const SALE_PRICE = 270_000;
 export const vnd = (value: number) => `${value.toLocaleString("vi-VN")} đ`;
 
 export interface ApiCall {
-  method: "POST" | "GET";
+  method: "POST" | "GET" | "PUT";
   url: string;
   body?: unknown;
 }

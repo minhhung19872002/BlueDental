@@ -8,8 +8,9 @@ import { DataTable } from "@/components/DataTable";
 import { LetterAvatar } from "@/components/LetterAvatar";
 import { useDragReorder, type DragReorder } from "@/hooks/useDragReorder";
 import { t } from "@/lib/i18n";
-import { formatDateTime, formatMoneyUnit } from "@/utils/format";
+import { formatDateTime } from "@/utils/format";
 import { ComboExpandedRow, ComboNameCell, ComboPriceCell } from "./ComboEntryParts";
+import { ServicePriceCell } from "./ServicePriceCell";
 
 interface Props {
   entries: CatalogEntryDto[];
@@ -170,13 +171,9 @@ export function CatalogEntryTable({
       list.push({
         key: "price",
         title: t("Taxonomy:Table:Price"),
-        width: 128,
+        width: 144,
         align: "right",
-        render: (_, entry) => entry.isCombo ? <ComboPriceCell entry={entry} /> : (
-          <span className="bd-cat-price">
-            {entry.price == null ? "—" : formatMoneyUnit(entry.price)}
-          </span>
-        ),
+        render: (_, entry) => entry.isCombo ? <ComboPriceCell entry={entry} /> : <ServicePriceCell entry={entry} />,
       });
     }
 

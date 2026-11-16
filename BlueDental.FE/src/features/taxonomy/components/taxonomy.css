@@ -802,12 +802,14 @@
   align-items: flex-end;
 }
 
+/* Also the struck list price of a discounted service (R-1239); one line even at 8 digits. */
 .bd-combo-price-was {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   color: var(--bd-muted);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .bd-combo-off {
