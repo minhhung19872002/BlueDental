@@ -189,8 +189,9 @@ test.describe("Bệnh án — mẫu 11 and mẫu 12, the clinic's surgical check
 
     // What the record already knows.
     await expect(blank(page, "surgical-safety.form-code")).toHaveText("PT-04");
-    await expect(blank(page, "surgical-safety.admission-number")).toHaveText("");
-    await expect(blank(page, "surgical-safety.patient.code")).toHaveText(subject.code);
+    // As the paper: only MS in the corner, the patient's code on the name line.
+    await expect(blank(page, "surgical-safety.admission-number")).toHaveCount(0);
+    await expect(blank(page, "surgical-safety.patient.code")).toHaveCount(0);
     await expect(blank(page, "surgical-safety.patient.code-line")).toHaveText(subject.code);
     await expect(blank(page, "surgical-safety.patient.name")).toContainText(subject.firstName.toUpperCase());
     await expect(blank(page, "surgical-safety.patient.age")).toHaveText(String(subject.age));
@@ -221,6 +222,48 @@ test.describe("Bệnh án — mẫu 11 and mẫu 12, the clinic's surgical check
     );
     expect(new Set(heads).size).toBe(1);
     expect(heads).toHaveLength(5);
+    // Under the titles one ruled table of three columns and four rows, as the paper:
+    // where its rules line up across columns they are one row edge.
+    const stagesTable = sheet(page).locator('table[data-record-section="surgical-safety-stages"]');
+    await expect(stagesTable.locator("> tbody > tr")).toHaveCount(4);
+    const stageCell = (text: string) => stagesTable.locator("> tbody > tr > td", { hasText: text });
+    const top = async (text: string) => Math.round((await stageCell(text).boundingBox())?.y ?? -1);
+    expect(await top("Vùng mổ được đánh dấu:")).toBe(await top("Dự kiến:"));
+    expect(await top("Thuốc và thiết bị gây mê")).toBe(
+      await top("Đối với PTV, BS gây mê, điều dưỡng:"),
+    );
+    // Thuốc and Máy đo share a cell — no rule between them.
+    await expect(stageCell("Thuốc và thiết bị gây mê")).toContainText("Máy đo bão hòa oxy");
+    // The third column runs unbroken down to Dán nhãn's answers.
+    await expect(stageCell("Điều dưỡng viên xác nhận lại bằng lời:")).toContainText(
+      "Dán nhãn bệnh phẩm",
+    );
+    // The second column's own rules, above Kháng sinh and above Chẩn đoán hình ảnh.
+    await expect(stagesTable.locator("p.ss-rule")).toHaveText([
+      "Kháng sinh dự phòng:",
+      "Chẩn đoán hình ảnh thiết yếu được chiếu:",
+    ]);
+    await expect(
+      stagesTable.getByRole("checkbox", {
+        name: "Xác nhận lại họ tên người bệnh và vị trí rạch da bằng lời",
+      }),
+    ).toHaveCount(1);
+    // In print the signers' names have no dotted line (the room above is for the
+    // signature); the six note lines under the third stage do.
+    await page.emulateMedia({ media: "print" });
+    const borders = (fields: typeof stagesTable) =>
+      fields.evaluateAll((els) => els.map((el) => getComputedStyle(el).borderBottomStyle));
+    const names = sheet(page).locator(
+      'table[data-record-section="signature"] .nfc-medical-record-text-field',
+    );
+    await expect(names).toHaveCount(3);
+    expect(await borders(names)).toEqual(["none", "none", "none"]);
+    const notes = stageCell("Đối với PTV, BS gây mê, điều dưỡng:").locator(
+      ".ss-note .nfc-medical-record-text-field",
+    );
+    await expect(notes).toHaveCount(6);
+    expect(await borders(notes)).toEqual(Array(6).fill("dotted"));
+    await page.emulateMedia({ media: "screen" });
 
     const note = `Theo dõi mạch ${runId()}`;
     const surgeon = `BS PTV ${runId()}`;
@@ -264,6 +307,23 @@ test.describe("Bệnh án — mẫu 11 and mẫu 12, the clinic's surgical check
     const table = sheet(page).locator('table[data-record-section="surgical-count"]');
     await expect(table.locator("tbody > tr")).toHaveCount(7);
     await expect(table.locator('[data-medical-record-field^="surgical-count.count."]')).toHaveCount(48);
+    // The title's three lines set close, the table clear of the name line, and the
+    // signers' names printed with no dotted line (clinic 2026-11-16).
+    const title = sheet(page).locator('h1[data-record-section="surgical-count-title"]');
+    expect(Math.round((await title.boundingBox())?.height ?? 0)).toBeLessThanOrEqual(92);
+    const nameLine = sheet(page).locator("p", { has: blank(page, "surgical-count.patient.name") });
+    const gap =
+      ((await table.boundingBox())?.y ?? 0) -
+      (((await nameLine.boundingBox())?.y ?? 0) + ((await nameLine.boundingBox())?.height ?? 0));
+    expect(gap).toBeGreaterThanOrEqual(8);
+    await page.emulateMedia({ media: "print" });
+    const signers = sheet(page).locator(
+      'table[data-record-section="signature"] .nfc-medical-record-text-field',
+    );
+    expect(
+      await signers.evaluateAll((els) => els.map((el) => getComputedStyle(el).borderBottomStyle)),
+    ).toEqual(["none", "none"]);
+    await page.emulateMedia({ media: "screen" });
 
     const lost = `Thiếu 1 gạc ${runId()}`;
     await blank(page, "surgical-count.check.1").check();

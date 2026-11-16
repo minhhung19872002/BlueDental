@@ -1,120 +1,217 @@
-import { blank, header, signature, ticked } from "./sheetMarkup";
+import { blank, box, ticked } from "./sheetMarkup";
 
 /*
  * Bảng kiểm an toàn phẫu thuật (MS PT-04) — the clinic's own paper form
  * (2026-11-16), the one sheet printed on A4 landscape, 10mm margins. The
  * reference has no such form.
  *
- * Its three stages stand side by side, each in a box, the boxes of their
- * titles joined by arrows. The table holding them is borderless (so its
- * blanks keep their dotted lines on paper, as the notes under the third stage
- * do); the stylesheet draws the boxes round every other column.
+ * Laid out as the paper is (clinic 2026-11-16, "chưa giống lắm"): the clinic's
+ * name in small mixed case on the left (its Sở Y tế line bold), the title
+ * beside it, only "MS: PT-04" in the corner (the patient's code is on the name
+ * line). The three stages' titles stand in boxes of their own joined by hollow
+ * block arrows; under them one ruled table of three columns (four rows, see
+ * below), each opening with who checks it in italics. The
+ * answers sit on a line of their own under each question, the second answer at
+ * a set place (`ss-opt`). One italic signature line under each column.
+ *
+ * The words and where each line breaks are the paper's (`BR`, clinic
+ * 2026-11-16: "nội dung, xuống dòng, chưa thực sự khớp 100%"); the first column
+ * is a little wider so its longest line ("… người bệnh và") holds.
+ *
+ * The tick boxes and blanks are numbered in the order of the first layout, so
+ * sheets saved before keep their ticks; the sixth note line, added later, is
+ * text.9.
  */
 
 const ID = "surgical-safety";
 const text = (n: number) => `${ID}.text.${n}`;
 
-/** A numbered tick box of this form and its printed label. */
+/** Where the paper breaks a line. */
+const BR = "<br>";
+
+/**
+ * A numbered tick box of this form and its printed label; `printed` when the
+ * label breaks where the paper does (the box is read out as `label`).
+ */
 let boxes = 0;
-const tick = (label: string) => {
+const tick = (label: string, printed?: string) => {
   boxes += 1;
-  return ticked(`${ID}.check.${boxes}`, label);
+  const id = `${ID}.check.${boxes}`;
+  return printed ? `${box(id, label)} ${printed}` : ticked(id, label);
 };
 
+const GAP = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
 const p = (body: string) => `<p>${body}</p>`;
-/** A line under a heading, set in from it. */
-const item = (body: string) => `<p style="padding-left: 14px;">${body}</p>`;
-const both = (left: string, right: string) => `${tick(left)} &nbsp;&nbsp; ${tick(right)}`;
+/** The first line of a section, ruled off from the one above. */
+const section = (body: string) => `<p class="ss-rule">${body}</p>`;
+const bold = (body: string) => `<strong>${body}</strong>`;
+const who = (body: string) => `<p class="ss-who"><em>(${body})</em></p>`;
+/** Two answers on one line, the second at the same place on every line of the column. */
+const both = (left: string, right: string) => p(`<span class="ss-opt">${tick(left)}</span>${tick(right)}`);
 
-const stageHead = (title: string, who: string) =>
-  `<td colspan="1" rowspan="1"><p style="text-align: center;"><strong>${title}</strong><br><em>(${who})</em></p></td>`;
-const ARROW = '<td colspan="1" rowspan="1"><p style="text-align: center;">⟹</p></td>';
-const stage = (body: string) => `<td colspan="1" rowspan="1">${body}</td>`;
-const GAP = '<td colspan="1" rowspan="1"><p></p></td>';
+/*
+ * The stages are one table of four rows, as the paper is: a rule across a
+ * column is a row's edge, so where the paper's rules line up from one column
+ * to the next they are the same edge (clinic 2026-11-16: "2 đường kẻ ngang
+ * này không ngang hàng") — above Vùng mổ and above Dự kiến (row 2), above
+ * Thuốc and above Đối với PTV (row 3). The second column spans rows 2–4 and
+ * the third rows 1–2 and 3–4; the second column's own rules (above Kháng sinh
+ * and above Chẩn đoán hình ảnh) line up with nothing, so they stay `ss-rule`.
+ *
+ * Built in the order of the first layout (first column, second, third), so
+ * the tick boxes keep their numbers.
+ */
 
-const BEFORE_ANAESTHESIA = stage(
-  p("<strong>Người bệnh đã được kiểm tra, xác nhận:</strong>") +
-    item(tick("Họ và tên, tuổi, giới tính, mã người bệnh")) +
-    item(tick("Vị trí phẫu thuật")) +
-    item(tick("Phương pháp phẫu thuật dự kiến")) +
-    item(tick("Giấy cam kết chấp nhận phẫu thuật, thủ thuật, GMHS")) +
-    p(`<strong>Vùng mổ được đánh dấu:</strong> ${both("Có", "Không áp dụng")}`) +
-    p(`<strong>Thuốc và thiết bị gây mê đầy đủ và sẵn sàng:</strong> ${tick("Có")}`) +
-    p(`<strong>Máy đo bão hòa oxy trong máu gắn trên người bệnh và hoạt động bình thường:</strong> ${tick("Có")}`) +
-    p(`<strong>Người bệnh có tiền sử dị ứng/say tàu xe:</strong> ${both("Có", "Không")}`) +
-    p("<strong>Người bệnh có khó thở hoặc có nguy cơ sặc:</strong>") +
-    item(tick("Không")) +
-    item(tick("Có (thiết bị/dụng cụ hỗ trợ)")) +
-    p("<strong>Người bệnh có nguy cơ mất &gt; 500ml máu (7ml/kg ở trẻ em):</strong>") +
-    item(tick("Không")) +
-    item(tick("Có, và có sẵn 2 đường truyền/tĩnh mạch trung tâm và dịch truyền/máu")),
+/** First column, row 1: who checks, and the patient's papers. */
+const A1 =
+  who("Bác sĩ gây mê, KTV/điều dưỡng gây mê") +
+  p(bold("Người bệnh đã được kiểm tra, xác nhận:")) +
+  p(tick("Họ và tên, tuổi, giới tính, mã người bệnh")) +
+  p(tick("Vị trí phẫu thuật")) +
+  p(tick("Phương pháp phẫu thuật dự kiến")) +
+  p(tick("Giấy cam kết chấp nhận phẫu thuật, thủ thuật, GMHS"));
+/** Row 2: Vùng mổ. */
+const A2 = p(bold("Vùng mổ được đánh dấu:")) + both("Có", "Không áp dụng");
+/** Row 3: Thuốc and Máy đo, one cell — the paper rules nothing between them (clinic 2026-11-16). */
+const A3 =
+  p(bold("Thuốc và thiết bị gây mê đầy đủ và sẵn sàng:")) +
+  p(tick("Có")) +
+  p(bold(`Máy đo bão hòa oxy trong máu gắn trên người bệnh và${BR}hoạt động bình thường:`)) +
+  p(tick("Có"));
+/** Row 4: the patient's risks. */
+const A4 =
+  p(bold("Người bệnh có tiền sử dị ứng/say tàu xe:")) +
+  both("Có", "Không") +
+  p(bold("Người bệnh có khó thở hoặc có nguy cơ sặc:")) +
+  both("Không", "Có (thiết bị/dụng cụ hỗ trợ)") +
+  p(bold(`Người bệnh có nguy cơ mất &gt; 500ml máu (7ml/kg ở${BR}trẻ em):`)) +
+  p(tick("Không")) +
+  p(
+    tick(
+      "Có, và có sẵn 2 đường truyền/tĩnh mạch trung tâm và dịch truyền/máu.",
+      `Có, và có sẵn 2 đường truyền/tĩnh mạch trung tâm${BR}và dịch truyền/máu.`,
+    ),
+  );
+
+/** Second column, row 1: who checks, the team, Kháng sinh. */
+const B1 =
+  who("Điều dưỡng phòng mổ, Bác sĩ gây mê, PTV") +
+  p(bold(tick("Các thành viên trong kíp giới thiệu tên, nhiệm vụ"))) +
+  p(
+    bold(
+      tick(
+        "Xác nhận lại họ tên người bệnh và vị trí rạch da bằng lời",
+        `Xác nhận lại họ tên người bệnh và vị trí rạch da${BR}bằng lời`,
+      ),
+    ),
+  ) +
+  section(bold("Kháng sinh dự phòng:")) +
+  both("Có", "Không áp dụng");
+/** Rows 2–4: Dự kiến down to Chẩn đoán hình ảnh. */
+const B2 =
+  p(bold("Dự kiến:")) +
+  p(bold("Đối với phẫu thuật viên (PTV):")) +
+  p(tick("Những chú ý trong phẫu thuật hoặc diễn biến bất ngờ")) +
+  p(tick("Thời gian phẫu thuật")) +
+  p(tick("Dụng cụ đặc biệt dùng cho phẫu thuật")) +
+  p(tick("Tiên lượng mất máu")) +
+  p(bold("Đối với Bác sỹ gây mê:")) +
+  p(tick("Điều cần chú ý trong gây mê ở người bệnh")) +
+  p(bold("Đối với nhóm Điều dưỡng:")) +
+  p(
+    tick(
+      "Xác nhận tình trạng vô khuẩn bằng lời với các loại dụng cụ dùng cho phẫu thuật",
+      `Xác nhận tình trạng vô khuẩn bằng lời với các loại${BR}dụng cụ dùng cho phẫu thuật`,
+    ),
+  ) +
+  p(`Thiết bị bị hỏng, bị thiếu:${GAP}${tick("Có")}${GAP}${tick("Không")}`) +
+  section(bold("Chẩn đoán hình ảnh thiết yếu được chiếu:")) +
+  both("Có", "Không áp dụng");
+
+/** A dotted line to write on, printed dotted though it sits in a ruled table. */
+const notesLine = (n: number) => `<p class="ss-note">${blank(text(n), 200, { full: true })}</p>`;
+
+/** Third column, rows 1–2: one run down to Dán nhãn's answers (clinic 2026-11-16: "liền mạch"). */
+const C1 =
+  who("Điều dưỡng phòng mổ, Bác sĩ gây mê, PTV") +
+  p(bold("Điều dưỡng viên xác nhận lại bằng lời:")) +
+  p(tick("Tên của phương pháp mổ")) +
+  p(tick("Hoàn thành đếm gạc, kim và dụng cụ phẫu thuật")) +
+  p(tick("Các vấn đề về dụng cụ cần giải quyết")) +
+  p(`Dán nhãn bệnh phẩm (đọc to cả nhãn bệnh phẩm${BR}bao gồm cả tên người bệnh)`) +
+  both("Có", "Không áp dụng");
+/** Rows 3–4: the notes after the operation. */
+const C2 =
+  p(bold("Đối với PTV, BS gây mê, điều dưỡng:")) +
+  p(`Những vấn đề cần lưu ý đặc biệt về hồi tỉnh và chăm${BR}sóc sau mổ`) +
+  [1, 2, 3, 4, 5, 9].map(notesLine).join("");
+
+const cell = (body: string) => `<td colspan="1" rowspan="1">${body}</td>`;
+/** A cell of the stages' table: its column (`ss-col1…3`) and how many rows it spans. */
+const stage = (column: number, body: string, rows = 1) =>
+  `<td colspan="1" rowspan="${rows}" class="ss-col${column}">${body}</td>`;
+
+/** The three columns' widths, the stages' and the signatures' alike. */
+const COLUMNS = '<col style="width: 35%;"><col style="width: 33%;"><col style="width: 32%;">';
+
+const stageHead = (title: string) => cell(`<p>${bold(title)}</p>`);
+/** The paper's arrow: a hollow block arrow, outlined in black. */
+const ARROW = cell(
+  '<p><svg class="ss-arrow" viewBox="0 0 46 22" aria-hidden="true">' +
+    '<path d="M1 6.5H29V1L45 11L29 21V15.5H1Z" fill="none" stroke="#000" stroke-width="1.3" stroke-linejoin="miter"/>' +
+    "</svg></p>",
 );
 
-const BEFORE_INCISION = stage(
-  p(tick("Các thành viên trong kíp giới thiệu tên, nhiệm vụ")) +
-    p(tick("Xác nhận lại họ tên người bệnh và vị trí rạch da")) +
-    p(`<strong>Kháng sinh dự phòng:</strong> ${both("Có", "Không áp dụng")}`) +
-    p("<strong>Dự kiến – Đối với phẫu thuật viên (PTV):</strong>") +
-    item(tick("Những chú ý trong phẫu thuật hoặc diễn biến bất ngờ")) +
-    item(tick("Thời gian phẫu thuật")) +
-    item(tick("Dụng cụ đặc biệt dùng cho phẫu thuật")) +
-    item(tick("Tiên lượng mất máu")) +
-    p("<strong>Đối với Bác sỹ gây mê:</strong>") +
-    item(tick("Điều cần chú ý trong gây mê ở người bệnh")) +
-    p("<strong>Đối với nhóm Điều dưỡng:</strong>") +
-    item(tick("Xác nhận tình trạng vô khuẩn bằng lời với các loại dụng cụ dùng cho phẫu thuật")) +
-    p(`<strong>Thiết bị bị hỏng, bị thiếu:</strong> ${both("Có", "Không")}`) +
-    p(`<strong>Chẩn đoán hình ảnh thiết yếu được chiếu:</strong> ${both("Có", "Không áp dụng")}`),
-);
+/** The stages' titles, each in its own box, an arrow between them. */
+const STAGE_HEADS =
+  '<table data-borderless="true" data-record-section="surgical-safety"><colgroup>' +
+  // Boxes narrower than the columns under them, so each arrow has room either side (clinic 2026-11-16).
+  '<col style="width: 27%;"><col style="width: 9.5%;"><col style="width: 27%;"><col style="width: 9.5%;"><col style="width: 27%;">' +
+  "</colgroup><tbody><tr>" +
+  `${stageHead("TRƯỚC GÂY TÊ, GÂY MÊ")}${ARROW}${stageHead("TRƯỚC KHI RẠCH DA")}${ARROW}` +
+  `${stageHead("TRƯỚC KHI RỜI KHỎI PHÒNG MỔ")}</tr></tbody></table>`;
 
-const notesLine = (n: number) => p(blank(text(n), 200, { full: true }));
-
-const BEFORE_LEAVING = stage(
-  p("<strong>Điều dưỡng viên xác nhận lại bằng lời:</strong>") +
-    item(tick("Tên của phương pháp mổ")) +
-    item(tick("Hoàn thành đếm gạc, kim và dụng cụ phẫu thuật")) +
-    item(tick("Các vấn đề về dụng cụ cần giải quyết")) +
-    p(
-      "<strong>Dán nhãn bệnh phẩm</strong> (đọc to cả nhãn bệnh phẩm bao gồm cả tên người bệnh): " +
-        both("Có", "Không áp dụng"),
-    ) +
-    p(
-      "<strong>Đối với PTV, BS gây mê, điều dưỡng:</strong> Những vấn đề cần lưu ý đặc biệt về hồi tỉnh và chăm sóc sau mổ",
-    ) +
-    [1, 2, 3, 4, 5].map(notesLine).join(""),
-);
-
+/** The three stages under their titles, one ruled table. */
 const STAGES =
-  '<table data-borderless="true" data-record-section="surgical-safety" style="width: 1047px;"><colgroup>' +
-  '<col style="width: 333px;"><col style="width: 24px;"><col style="width: 333px;"><col style="width: 24px;"><col style="width: 333px;">' +
-  "</colgroup><tbody>" +
-  `<tr>${stageHead("TRƯỚC GÂY TÊ, GÂY MÊ", "Bác sĩ gây mê, KTV/điều dưỡng gây mê")}${ARROW}` +
-  `${stageHead("TRƯỚC KHI RẠCH DA", "Điều dưỡng phòng mổ, Bác sĩ gây mê, PTV")}${ARROW}` +
-  `${stageHead("TRƯỚC KHI RỜI KHỎI PHÒNG MỔ", "Điều dưỡng phòng mổ, Bác sĩ gây mê, PTV")}</tr>` +
-  `<tr>${BEFORE_ANAESTHESIA}${GAP}${BEFORE_INCISION}${GAP}${BEFORE_LEAVING}</tr>` +
+  `<table data-record-section="surgical-safety-stages"><colgroup>${COLUMNS}</colgroup><tbody>` +
+  `<tr>${stage(1, A1)}${stage(2, B1)}${stage(3, C1, 2)}</tr>` +
+  `<tr>${stage(1, A2)}${stage(2, B2, 3)}</tr>` +
+  `<tr>${stage(1, A3)}${stage(3, C2, 2)}</tr>` +
+  `<tr>${stage(1, A4)}</tr>` +
   "</tbody></table>";
 
-const PATIENT =
-  `<p>Họ và tên: ${blank(`${ID}.patient.name`, 300, { source: "patient.nameUppercase" })}` +
-  ` &nbsp;&nbsp; Tuổi: ${blank(`${ID}.patient.age`, 56, { source: "patient.age" })}` +
-  ` &nbsp;&nbsp; Giới tính: ${ticked(`${ID}.patient.gender-male`, "Nam", "patient.genderMale")}` +
-  ` &nbsp; ${ticked(`${ID}.patient.gender-female`, "Nữ", "patient.genderFemale")}` +
-  ` &nbsp;&nbsp; Mã NB: ${blank(`${ID}.patient.code-line`, 120, { source: "patient.code" })}</p>` +
-  `<p>Chẩn đoán: ${blank(`${ID}.diagnosis`, 640)}` +
-  ` &nbsp;&nbsp; Ngày ${blank(`${ID}.date.day`, 32)} tháng ${blank(`${ID}.date.month`, 32)}` +
-  ` năm 20${blank(`${ID}.date.year`, 32)}</p>`;
+/** Who signs under each column, on one italic line, then room to sign and the name. */
+const signature = (title: string, nameId: string) =>
+  cell(`<p><em>${title} (Ký, ghi rõ họ tên)</em><br><br><br>${blank(nameId, 160)}</p>`);
 
-export const SURGICAL_SAFETY_CHECKLIST_TEMPLATE =
-  header([
-    ["MS:", blank(`${ID}.form-code`, 120)],
-    ["Số vào viện:", blank(`${ID}.admission-number`, 120)],
-    ["Mã người bệnh:", blank(`${ID}.patient.code`, 120, { source: "patient.code" })],
-  ]) +
-  '<h1 style="text-align: center; line-height: 1.15;"><span style="font-size: 18pt;"><strong>BẢNG KIỂM AN TOÀN PHẪU THUẬT</strong></span></h1>' +
-  PATIENT +
-  STAGES +
-  '<table data-borderless="true" data-record-section="signature" style="min-width: 75px;"><colgroup><col style="min-width: 25px;"><col style="min-width: 25px;"><col style="min-width: 25px;"></colgroup><tbody><tr>' +
+const SIGNATURES =
+  `<table data-borderless="true" data-record-section="signature"><colgroup>${COLUMNS}</colgroup><tbody><tr>` +
   signature("ĐD chạy ngoài/vòng ngoài", text(6)) +
   signature("ĐD dụng cụ/vòng trong", text(7)) +
   signature("Phẫu thuật viên", text(8)) +
   "</tr></tbody></table>";
+
+/** The clinic's name as the paper prints it — small, mixed case, the Sở Y tế line bold — the title beside it, MS in the corner. */
+const HEADER =
+  '<table data-borderless="true" data-record-section="surgical-safety-header"><colgroup>' +
+  '<col style="width: 30%;"><col style="width: 52%;"><col style="width: 18%;">' +
+  "</colgroup><tbody><tr>" +
+  cell(
+    '<p class="ss-clinic"><strong>Sở Y tế Thành Phố Hồ Chí Minh</strong><br>Phòng khám Chuyên khoa Răng Hàm Mặt –<br>' +
+      "thuộc Công ty Cổ phần Dịch vụ Nha Khoa Đức Hạnh</p>",
+  ) +
+  cell('<h1 style="text-align: center;"><strong>BẢNG KIỂM AN TOÀN PHẪU THUẬT</strong></h1>') +
+  cell(`<p class="ss-code">MS: ${blank(`${ID}.form-code`, 60)}</p>`) +
+  "</tr></tbody></table>";
+
+const PATIENT =
+  `<p>Họ và tên: ${blank(`${ID}.patient.name`, 300, { source: "patient.nameUppercase" })}` +
+  `${GAP}Tuổi: ${blank(`${ID}.patient.age`, 56, { source: "patient.age" })}` +
+  `${GAP}Giới tính: ${ticked(`${ID}.patient.gender-male`, "Nam", "patient.genderMale")}` +
+  ` &nbsp; ${ticked(`${ID}.patient.gender-female`, "Nữ", "patient.genderFemale")}` +
+  `${GAP}Mã NB: ${blank(`${ID}.patient.code-line`, 140, { source: "patient.code" })}</p>` +
+  `<p>Chẩn đoán: ${blank(`${ID}.diagnosis`, 560)}` +
+  `${GAP}Ngày ${blank(`${ID}.date.day`, 32)} tháng ${blank(`${ID}.date.month`, 32)}` +
+  ` năm 20${blank(`${ID}.date.year`, 32)}</p>`;
+
+export const SURGICAL_SAFETY_CHECKLIST_TEMPLATE = HEADER + PATIENT + STAGE_HEADS + STAGES + SIGNATURES;

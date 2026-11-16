@@ -55,7 +55,7 @@ export const SURGICAL_COUNT_SHEET_TEMPLATE =
     ["Số vào viện:", blank(`${ID}.admission-number`, 120)],
     ["Mã người bệnh:", blank(`${ID}.patient.code`, 120, { source: "patient.code" })],
   ]) +
-  '<h1 style="text-align: center; line-height: 1.15;"><span style="font-size: 18pt;"><strong>' +
+  '<h1 data-record-section="surgical-count-title" style="text-align: center;"><span style="font-size: 15pt;"><strong>' +
   "BẢNG KIỂM ĐẾM GẠC,<br>DỤNG CỤ SẮC NHỌN,<br>DỤNG CỤ</strong></span></h1>" +
   `<p>Họ và tên người bệnh: ${blank(`${ID}.patient.name`, 300, { source: "patient.nameUppercase" })}` +
   ` &nbsp;&nbsp; Tuổi: ${blank(`${ID}.patient.age`, 56, { source: "patient.age" })}` +
