@@ -6,9 +6,9 @@ import { openStageDialog } from "./fixtures/stageDialog";
 /**
  * Feature: "Ghi chú lịch hẹn" — the fourth column of the công đoạn form (BA,
  * 2026-10-27, R-1056). A free-text box with "Chọn nhanh" chips under it, sorted
- * into three tabs (owner 2026-11-09, R-1175): Ngày +1 → +7, Tuần +1 → +4,
- * Tháng +1 → +12, each chip showing the day it lands on counted from Ngày điều
- * trị. One chip at a time fills "Hẹn tái khám: dd/mm/yyyy" into the box; it
+ * into three tabs (owner 2026-11-09, R-1175): Ngày +1 → +7, Tuần +1 → +4, +6,
+ * +8 (BA 2026-11-16), Tháng +1 → +12, each chip showing the weekday and day it
+ * lands on counted from Ngày điều trị. One chip at a time fills "Hẹn tái khám: dd/mm/yyyy" into the box; it
  * saves as the new công đoạn's Ghi chú (R-986), the column of Lịch sử điều
  * trị. Note text only — no appointment is booked.
  *
@@ -20,12 +20,15 @@ const BRANCH = "11111111-1111-1111-1111-111111111111";
 const STAGES = "/api/v1/app/treatment-stages";
 
 type Tab = "Ngày" | "Tuần" | "Tháng";
-/** Per tab: how many chips, their word, and the [days, months] chip n adds. */
-const TABS: Record<Tab, { count: number; word: string; offset: (n: number) => [number, number] }> = {
-  Ngày: { count: 7, word: "ngày", offset: (n) => [n, 0] },
-  Tuần: { count: 4, word: "tuần", offset: (n) => [7 * n, 0] },
-  Tháng: { count: 12, word: "tháng", offset: (n) => [0, n] },
+const upTo = (last: number) => Array.from({ length: last }, (_, at) => at + 1);
+/** Per tab: its chips' counts, their word, and the [days, months] a count of n adds. */
+const TABS: Record<Tab, { counts: number[]; word: string; offset: (n: number) => [number, number] }> = {
+  Ngày: { counts: upTo(7), word: "ngày", offset: (n) => [n, 0] },
+  Tuần: { counts: [...upTo(4), 6, 8], word: "tuần", offset: (n) => [7 * n, 0] },
+  Tháng: { counts: upTo(12), word: "tháng", offset: (n) => [0, n] },
 };
+/** Sunday first, as Date.getDay counts. */
+const WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
 interface Fixture {
   patientId: string;
@@ -75,7 +78,7 @@ async function api(
 
 /** The browser's today shifted by `days`, as "DD/MM/YYYY". */
 /** Months as dayjs adds them: 31/01 + 1 tháng = 28/02, not 03/03. */
-function day(days: number, months = 0): string {
+function dateOf(days: number, months = 0): Date {
   const at = new Date();
   at.setDate(at.getDate() + days);
   if (months) {
@@ -84,16 +87,22 @@ function day(days: number, months = 0): string {
     at.setMonth(at.getMonth() + months);
     at.setDate(Math.min(date, new Date(at.getFullYear(), at.getMonth() + 1, 0).getDate()));
   }
+  return at;
+}
+
+function day(days: number, months = 0): string {
+  const at = dateOf(days, months);
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${pad(at.getDate())}/${pad(at.getMonth() + 1)}/${at.getFullYear()}`;
 }
 
-/** One tab's chip captions for a Ngày điều trị `from` days off today. */
+/** One tab's chip captions for a Ngày điều trị `from` days off today: "+1 tuần · T3 24/11". */
 function captions(tab: Tab, from: number): string[] {
-  const { count, word, offset } = TABS[tab];
-  return Array.from({ length: count }, (_, at) => {
-    const [days, months] = offset(at + 1);
-    return `+${at + 1} ${word} · ${day(from + days, months).slice(0, 5)}`;
+  const { counts, word, offset } = TABS[tab];
+  return counts.map((count) => {
+    const [days, months] = offset(count);
+    const weekday = WEEKDAY[dateOf(from + days, months).getDay()];
+    return `+${count} ${word} · ${weekday} ${day(from + days, months).slice(0, 5)}`;
   });
 }
 
@@ -157,7 +166,7 @@ const pressed = (chips: Locator) =>
   chips.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed") === "true"));
 
 /** Which chips of `tab` read pressed: only the one at `at` (none for -1). */
-const only = (tab: Tab, at: number) => Array.from({ length: TABS[tab].count }, (_, index) => index === at);
+const only = (tab: Tab, at: number) => TABS[tab].counts.map((_, index) => index === at);
 
 /** The Chọn nhanh tab strip of a form, and one of its tabs opened. */
 const tabStrip = (form: Locator) => form.locator(".pd-stage-quicktabs");
@@ -197,7 +206,7 @@ test.describe("Thêm công đoạn — Ghi chú lịch hẹn", () => {
     const chips = group.getByRole("button");
     await expect(form.locator(".pd-stage-quickpick-head > span")).toHaveText("Chọn nhanh");
 
-    // ── Three tabs, Ngày open; 7 / 4 / 12 chips (R-1175) ───────────────────
+    // ── Three tabs, Ngày open; 7 / 6 / 12 chips (R-1175, +6/+8 tuần) ───────
     await expect(tabStrip(form).getByRole("button")).toHaveText(["Ngày", "Tuần", "Tháng"]);
     await expect(openedTab(form)).toHaveText("Ngày");
     await expect(chips).toHaveText(captions("Ngày", 0));
@@ -374,7 +383,7 @@ test.describe("Thêm công đoạn — Ghi chú lịch hẹn", () => {
               top: Math.round(box.top),
               left: box.left,
               right: box.right,
-              // Each half of the caption ("+10 tháng", "· 09/09") inside the chip.
+              // Each half of the caption ("+10 tháng", "· T3 09/09") inside the chip.
               fits: parts.every((part) => part.left >= box.left - 0.5 && part.right <= box.right + 0.5),
               cut: button.scrollWidth > button.clientWidth,
             };

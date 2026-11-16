@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import { t } from "@/lib/i18n";
 
 /** The three "Chọn nhanh" tabs, in their order on screen. */
@@ -12,15 +12,22 @@ export interface QuickPick {
 
 export const QUICK_PICK_UNITS: readonly QuickPickUnit[] = ["day", "week", "month"];
 
+const upTo = (last: number) => Array.from({ length: last }, (_, at) => at + 1);
+
 /**
- * How many chips each tab holds — owner 2026-11-09 (R-1175): Ngày 1 → 7,
- * Tuần 1 → 4, Tháng 1 → 12. Before that, one strip of nine (R-1056, R-1128).
+ * The chips of each tab — owner 2026-11-09 (R-1175): Ngày 1 → 7, Tuần 1 → 4,
+ * Tháng 1 → 12; BA 2026-11-16 adds +6 and +8 tuần. Before that, one strip of
+ * nine (R-1056, R-1128).
  */
-const PICKS_PER_UNIT: Record<QuickPickUnit, number> = { day: 7, week: 4, month: 12 };
+const COUNTS_PER_UNIT: Record<QuickPickUnit, readonly number[]> = {
+  day: upTo(7),
+  week: [...upTo(4), 6, 8],
+  month: upTo(12),
+};
 
 /** Every chip: days first, then weeks, then months — the order {@link pickedOf} leans on. */
 export const QUICK_PICKS: readonly QuickPick[] = QUICK_PICK_UNITS.flatMap((unit) =>
-  Array.from({ length: PICKS_PER_UNIT[unit] }, (_, at): QuickPick => ({ count: at + 1, unit })),
+  COUNTS_PER_UNIT[unit].map((count): QuickPick => ({ count, unit })),
 );
 
 /** The chips of one tab. */
@@ -34,14 +41,19 @@ const STEP_KEYS: Record<QuickPickUnit, string> = {
 
 const dayOf = (treatmentDate: string, pick: QuickPick) => dayjs(treatmentDate).add(pick.count, pick.unit);
 
+/** dayjs counts Sunday as 0; the short weekday keys run Mon = 1 … Sun = 7. */
+const weekdayOf = (date: Dayjs) => t(`Appointment:Series:WeekdayShort:${date.day() || 7}`);
+
 /**
- * "+1 tuần" and "03/11" — the chip reads "+1 tuần · 03/11", the day counted
- * from Ngày điều trị, not from today. With the picker cleared there is no day
+ * "+1 tuần" and "T3 03/11" — the chip reads "+1 tuần · T3 03/11" (weekday BA
+ * 2026-11-16), the day counted from Ngày điều trị, not from today. With the picker cleared there is no day
  * to show, only the step. Two parts so a narrow chip breaks between them.
  */
 export function quickPickLabel(treatmentDate: string, pick: QuickPick): { step: string; day?: string } {
   const step = t(STEP_KEYS[pick.unit], pick.count);
-  return treatmentDate ? { step, day: dayOf(treatmentDate, pick).format("DD/MM") } : { step };
+  if (!treatmentDate) return { step };
+  const day = dayOf(treatmentDate, pick);
+  return { step, day: `${weekdayOf(day)} ${day.format("DD/MM")}` };
 }
 
 /** The line a chip writes into the note: "Hẹn tái khám: 03/11/2026". */
