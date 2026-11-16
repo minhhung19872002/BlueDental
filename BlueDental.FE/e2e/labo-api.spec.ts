@@ -570,8 +570,7 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const self = `${LABO_ORDERS}/${draft.body.id}`;
 
     // Ngày trả hàng dự kiến not after Ngày gửi is refused; a later one keeps
-    // only its day (P3110 REQ-C2): 09:30 is stored as that day's 00:00 in the
-    // clinic's UTC+7.
+    // its hour (BA 2026-11-16, reversing P3110 REQ-C2): 09:30 stays 09:30.
     const tooEarly = await call(page, self, {
       method: "PUT",
       json: { ...body, dueAt: new Date(new Date(body.sentAt).getTime() - 60 * 60_000).toISOString() },
@@ -583,7 +582,12 @@ test.describe("Labo workflow API (P2910_03)", () => {
     const saved = await call(page, self, { method: "PUT", json: { ...body, dueAt: due.toISOString(), teeth: [21, 22] } });
     expect(saved.status, saved.text).toBe(200);
     const reread = await read(page, draft.body.id!);
-    expect(new Date(reread.dueAt!).getTime()).toBe(due.getTime() - (9 * 60 + 30) * 60_000);
+    expect(new Date(reread.dueAt!).getTime()).toBe(due.getTime());
+    // Later the same day is after Ngày gửi too, to the minute.
+    const sameDay = new Date(new Date(body.sentAt).getTime() + 60 * 60_000).toISOString();
+    const later = await call(page, self, { method: "PUT", json: { ...body, dueAt: sameDay, teeth: [21, 22] } });
+    expect(later.status, later.text).toBe(200);
+    expect(new Date((await read(page, draft.body.id!)).dueAt!).getTime()).toBe(new Date(sameDay).getTime());
     expect(reread.teeth.map((t) => t.toothNumber)).toEqual([21, 22]);
 
     const deleted = await call(page, self, { method: "DELETE" });

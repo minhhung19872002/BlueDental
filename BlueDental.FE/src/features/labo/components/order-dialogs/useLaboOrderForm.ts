@@ -162,8 +162,8 @@ export function useLaboOrderForm(
   };
 }
 
-/** The day itself, sent as the clinic's midnight; the server keeps only the day. */
-const dayOf = (date: Dayjs | null | undefined) => date?.startOf("day").toISOString();
+/** Day and hour to the minute (BA 2026-11-16: Ngày gửi / Ngày nhận carry their hour again). */
+const stampOf = (date: Dayjs | null | undefined) => date?.startOf("minute").toISOString();
 
 /** The part of the payload the form's own fields decide. */
 export function laboOrderBody(
@@ -181,8 +181,8 @@ export function laboOrderBody(
     teeth,
     quantity: Number(values.quantity) || 1,
     notes: values.notes?.trim() || undefined,
-    sentAt: dayOf(values.sentDate),
-    dueAt: dayOf(values.dueDate),
+    sentAt: stampOf(values.sentDate),
+    dueAt: stampOf(values.dueDate),
     biteId: values.biteId,
     specMode,
     toothSpecs: specInputs(teeth, specMode, values.specs),
@@ -190,11 +190,11 @@ export function laboOrderBody(
 }
 
 /**
- * Ngày nhận dự kiến has to fall after Ngày gửi — a later day, as the server
- * holds it (DueBeforeSent). Holds while either day is blank: the required
+ * Ngày giờ nhận dự kiến has to fall after Ngày giờ gửi, to the minute, as the
+ * server holds it (DueBeforeSent). Holds while either is blank: the required
  * rules speak to that.
  */
 export function dueAfterSent(sentDate: Dayjs | null | undefined, dueDate: Dayjs | null | undefined): boolean {
   if (!sentDate || !dueDate) return true;
-  return dueDate.startOf("day").isAfter(sentDate.startOf("day"));
+  return dueDate.isAfter(sentDate, "minute");
 }

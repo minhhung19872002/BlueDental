@@ -21,7 +21,9 @@ interface Props {
   title?: string;
 }
 
-const DAY_FORMAT = "DD/MM/YYYY";
+/** Ngày gửi / Ngày nhận dự kiến carry their hour (BA 2026-11-16). */
+const STAMP_FORMAT = "DD/MM/YYYY HH:mm";
+const STAMP_TIME = { format: "HH:mm", minuteStep: 5 } as const;
 
 const GENDER_LABEL: Record<number, string> = {
   [PATIENT_GENDER_CODE.Male]: "Common:Gender:Male",
@@ -130,7 +132,9 @@ export function RequestSlipInfo({ branchId, patient, dentists, values, editable,
           <DatePicker
             className="rs-inp"
             value={values.sentDate}
-            format={DAY_FORMAT}
+            showTime={STAMP_TIME}
+            needConfirm={false}
+            format={STAMP_FORMAT}
             allowClear={false}
             disabled={!editable}
             aria-label={t("Labo:Slip:SentAt")}
@@ -141,7 +145,9 @@ export function RequestSlipInfo({ branchId, patient, dentists, values, editable,
           <DatePicker
             className={inputClass(editable && dueBad)}
             value={values.dueDate}
-            format={DAY_FORMAT}
+            showTime={STAMP_TIME}
+            needConfirm={false}
+            format={STAMP_FORMAT}
             disabled={!editable}
             aria-label={t("Labo:Slip:DueAt")}
             onChange={(dueDate) => onChange({ dueDate })}

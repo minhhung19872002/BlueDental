@@ -11,11 +11,14 @@ import type { SlipOrderView } from "./laboSlipApi";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** DD/MM/YYYY, `days` from today — what the slip's DatePickers show and take. */
+/** DD/MM/YYYY, `days` from today. */
 export function day(days: number): string {
   const at = new Date(Date.now() + days * 86_400_000);
   return `${pad(at.getDate())}/${pad(at.getMonth() + 1)}/${at.getFullYear()}`;
 }
+
+/** "DD/MM/YYYY HH:mm" — what Ngày gửi / Ngày nhận dự kiến show and take (BA 2026-11-16). */
+export const stamp = (days: number, time = "09:00") => `${day(days)} ${time}`;
 
 export async function typeDate(field: Locator, value: string) {
   await field.click();
@@ -146,7 +149,7 @@ export async function fillRequired(
   await dialog.getByLabel("Mã số", { exact: true }).fill(no);
   await dialog.getByLabel("Bác sĩ chỉ định").click();
   await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
-  await typeDate(dialog.getByLabel("Ngày nhận dự kiến"), day(5));
+  await typeDate(dialog.getByLabel("Ngày nhận dự kiến"), stamp(5));
   await pickTeeth(page, dialog, [16, 17]);
   await pickRestoration(page, dialog, material);
 }

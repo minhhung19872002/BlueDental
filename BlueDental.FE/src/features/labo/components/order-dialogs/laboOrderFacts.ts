@@ -1,7 +1,7 @@
 import { t } from "@/lib/i18n";
 import { orderedSurfaces, surfaceList, surfaceName } from "@/components/ToothSurfacePicker";
 import type { LaboOrderDto, LaboOrderToothDto, LaboOrderToothSurfaceDto } from "@/features/labo/api/laboApi";
-import { formatDate } from "@/utils/format";
+import { formatDate, formatDayOrDateTime } from "@/utils/format";
 import { printedDoctorName } from "@/utils/printedDoctorName";
 
 export interface LaboDetailPatient {
@@ -55,9 +55,9 @@ export function laboOrderFacts(order: LaboOrderDto, patient: LaboDetailPatient) 
     customer: patient.name,
     birthDate: formatDate(patient.dateOfBirth),
     supplier: order.supplierName ?? order.labProviderName,
-    // Days only: Giờ gửi / Giờ nhận are gone (P3110 REQ-C2).
-    sentAt: formatDate(order.sentAt),
-    dueAt: formatDate(order.dueAt),
+    // Day and hour (BA 2026-11-16); an order saved as a day shows the day only.
+    sentAt: formatDayOrDateTime(order.sentAt),
+    dueAt: formatDayOrDateTime(order.dueAt),
     material: order.materialName ?? "",
     finishLine: perTooth(order, (tooth) => bySurface(tooth, (s) => s.finishLineName, tooth.finishLineName), order.finishLineName),
     // One Khớp cắn per order since R-1150; an older order kept one per tooth.

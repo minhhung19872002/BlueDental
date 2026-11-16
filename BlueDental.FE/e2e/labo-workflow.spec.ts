@@ -251,8 +251,8 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
       await expect(summary.locator(".pd-labo-summary-fact")).toHaveCount(9);
       await expect(summary).toContainText(orderCode);
       await expect(summary).toContainText("Ngày giao dự kiến");
-      // P3110 REQ-C2: Ngày gửi / Ngày giao dự kiến are days, no hour.
-      await expect(summary).not.toContainText(/\d{2}:\d{2}/);
+      // BA 2026-11-16 (reverses P3110 REQ-C2): Ngày gửi / Ngày giao dự kiến carry their hour.
+      await expect(summary).toContainText(/\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}/);
 
       // P3110 m279: B. waits behind «Kiểm tra Labo»; nothing to conclude yet.
       const start = dialog.locator(".pd-labo-start-card");

@@ -37,6 +37,17 @@ export function formatDateTime(
   );
 }
 
+/**
+ * DD/MM/YYYY HH:mm, or only the day when the stamp sits on midnight — a value
+ * that was kept as a day before it carried an hour (Labo Ngày gửi / Ngày nhận).
+ */
+export function formatDayOrDateTime(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "";
+  return date.getHours() === 0 && date.getMinutes() === 0 ? formatDate(date) : formatDateTime(date);
+}
+
 /** Format currency as VND with symbol */
 /** HH:mm in local time, or a placeholder when there is no instant. */
 export function formatClock(value: string | Date | null | undefined): string {

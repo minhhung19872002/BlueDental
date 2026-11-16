@@ -270,20 +270,29 @@ public class LaboOrderWorkflowTests
     }
 
     [Fact]
-    public void Sent_And_Due_Should_Be_Kept_As_Clinic_Days()
+    public void Sent_And_Due_Should_Keep_Their_Hour()
     {
         var order = Draft(11);
 
-        order.SentAt.ShouldBe(new DateTimeOffset(2026, 10, 1, 0, 0, 0, Clinic));
-        order.DueAt.ShouldBe(new DateTimeOffset(2026, 10, 8, 0, 0, 0, Clinic));
+        order.SentAt.ShouldBe(SentAt);
+        order.DueAt.ShouldBe(DueAt);
     }
 
     [Fact]
-    public void Draft_Should_Refuse_A_Due_Day_Equal_To_The_Sent_Day()
+    public void Draft_Should_Take_A_Due_Hour_Later_The_Same_Day()
+    {
+        var order = new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
+            Complete(11) with { DueAt = SentAt.AddHours(5) });
+
+        order.DueAt.ShouldBe(SentAt.AddHours(5));
+    }
+
+    [Fact]
+    public void Draft_Should_Refuse_A_Due_Hour_Before_The_Sent_One()
     {
         ShouldFail(
             () => new LaboOrder(Guid.NewGuid(), "LABO-1", Guid.NewGuid(), Guid.NewGuid(),
-                Complete(11) with { DueAt = SentAt.AddHours(5) }),
+                Complete(11) with { DueAt = SentAt.AddMinutes(-30) }),
             BlueDentalDomainErrorCodes.Labo.DueBeforeSent);
     }
 

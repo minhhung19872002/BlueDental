@@ -172,16 +172,16 @@ export function requestSlipErrors(values: RequestSlipValues): string[] {
   return errors;
 }
 
-/** Ngày nhận dự kiến missing, or not after Ngày gửi. */
+/** Ngày nhận dự kiến missing, or not after Ngày gửi — to the minute, both carry their hour. */
 export function isDueBad({
   sentDate,
   dueDate,
 }: Pick<RequestSlipValues, "sentDate" | "dueDate">): boolean {
   if (!dueDate) return true;
-  return sentDate !== null && !dueDate.isAfter(sentDate, "day");
+  return sentDate !== null && !dueDate.isAfter(sentDate, "minute");
 }
 
-const dayOf = (date: Dayjs | null) => date?.startOf("day").toISOString();
+const stampOf = (date: Dayjs | null) => date?.startOf("minute").toISOString();
 const blankToUndefined = (value: string) => value.trim() || undefined;
 
 /** The values as the mutation sends them; empty zones, and the parts the Mẫu phiếu hides, stay out of the request. */
@@ -195,8 +195,8 @@ export function requestSlipBody(values: RequestSlipValues) {
     teeth: values.teeth,
     quantity: values.teeth.length,
     notes: shown(LABO_BLOCK_KIND.Notes) ? blankToUndefined(richTextForSave(values.notes)) : undefined,
-    sentAt: dayOf(values.sentDate),
-    dueAt: dayOf(values.dueDate),
+    sentAt: stampOf(values.sentDate),
+    dueAt: stampOf(values.dueDate),
     shadeZones: mapZones((zone) => (shown(LABO_BLOCK_KIND.Shade) ? blankToUndefined(values.shade[zone]) : undefined)),
     finishLineIds: shown(LABO_BLOCK_KIND.FinishLine) ? values.finishLineIds : [],
     // Kiểu nhịp and Khớp cắn sit with Đường hoàn tất (R-1216): hidden with it.

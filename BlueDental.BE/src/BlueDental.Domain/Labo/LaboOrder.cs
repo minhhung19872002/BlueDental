@@ -456,8 +456,8 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         EstimatedCost = details.EstimatedCost;
         TreatmentServiceId = details.TreatmentServiceId;
         TreatmentStageId = details.TreatmentStageId;
-        SentAt = DayOf(details.SentAt);
-        SetDueAt(DayOf(details.DueAt));
+        SentAt = details.SentAt;
+        SetDueAt(details.DueAt);
         SetTeeth(details.Teeth);
         Layout = Enum.IsDefined(details.Layout) ? details.Layout : LaboOrderLayout.Classic;
         ExtraForm = Layout == LaboOrderLayout.RequestSlip ? details.ExtraForm : null;
@@ -544,11 +544,10 @@ public class LaboOrder : FullAuditedAggregateRoot<Guid>
         }
     }
 
-    /// <summary>Ngày gửi / Ngày nhận dự kiến are days (P3110): kept as the clinic's midnight.</summary>
-    private static DateTimeOffset? DayOf(DateTimeOffset? stamp) =>
-        stamp is { } value ? ClinicCalendar.StartOfDay(ClinicCalendar.DateOf(value)) : null;
-
-    /// <summary>"Ngày nhận dự kiến phải sau ngày gửi": a due day on or before the sent day is refused.</summary>
+    /// <summary>
+    /// "Ngày giờ nhận dự kiến phải sau ngày giờ gửi": both carry their hour again
+    /// (BA 2026-11-16, reversing P3110 REQ-C2), so a due stamp at or before the sent one is refused.
+    /// </summary>
     private void SetDueAt(DateTimeOffset? dueAt)
     {
         if (dueAt.HasValue && SentAt.HasValue && dueAt.Value <= SentAt.Value)
