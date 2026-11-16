@@ -1049,16 +1049,19 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
         // Then the owner's own case (R-586): a line discounted by 50.000 đ on
         // the line itself, added through the inline-row endpoint on a live
         // catalog service (the slip's own may be a deleted leftover). It goes
-        // on at the catalog price: a new line may not rise above it (R-605).
+        // on at the catalog's Giá sau giảm: a new line may not rise above it
+        // (R-605, R-1235).
         const service = (
           (await (
             await fetch(
               `/api/v1/app/catalog-entries?clinicBranchId=${plan.branchId}&group=care_service&isActive=true&isDeleted=false&maxResultCount=50`,
               { credentials: "include" },
             )
-          ).json()) as { items: { id: string; price: number | null }[] }
-        ).items.find((item) => (item.price ?? 0) > 50_000)!;
-        const linePrice = service.price ?? 0;
+          ).json()) as {
+            items: { id: string; price: number | null; serviceConfig?: { priceAfterDiscount: number } | null }[];
+          }
+        ).items.find((item) => (item.serviceConfig?.priceAfterDiscount ?? item.price ?? 0) > 50_000)!;
+        const linePrice = service.serviceConfig?.priceAfterDiscount ?? service.price ?? 0;
         const added = await fetch(`${plans}/${planId}/services`, {
           method: "POST",
           credentials: "include",

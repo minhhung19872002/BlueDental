@@ -16,7 +16,10 @@ const DISCOUNT_UNITS = [
 interface Props {
   form: FormInstance<CreatePlanValues>;
   totals: PlanTotals;
-  /** The service's giá gốc: the ceiling "Đơn giá" may not rise above (0 = none). */
+  /**
+   * The line's giá gốc — a new line's is the service's Giá sau giảm (R-1235),
+   * a saved line's what it was sold at: the ceiling "Đơn giá" may not rise above (0 = none).
+   */
   originalPrice: number;
   /** "Chỉnh sửa" on a line in treatment: price and discount stay as they are (Treatment:0038). */
   locked?: boolean;

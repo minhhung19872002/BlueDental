@@ -8,7 +8,7 @@ import { withAdviseService } from "./adviseEditing";
 import { isPricingLocked, lineAdvisors, lineServiceOption, type LineEditTarget } from "./lineEditing";
 import { PlanAdvisorFields } from "./PlanAdvisorFields";
 import { PlanPricingFields } from "./PlanPricingFields";
-import { PlanServicePicker } from "./PlanServicePicker";
+import { PlanServicePicker, sellingPrice } from "./PlanServicePicker";
 import { ServerSearchSelect } from "@/components/ServerSearchSelect";
 import { useDentistOptions } from "@/hooks/usePickerOptions";
 import { ToothPickerDialog } from "./ToothPickerDialog";
@@ -194,7 +194,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
           <PlanPricingFields
             form={form}
             totals={totals}
-            originalPrice={state.selectedService?.price ?? 0}
+            originalPrice={state.selectedService ? sellingPrice(state.selectedService) : 0}
             locked={Boolean(lineService && isPricingLocked(lineService))}
           />
         </div>

@@ -1,6 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
 import { openNewSlip } from "./fixtures/ledgerReceipt";
+import { createSaleService, LIST_PRICE, patientBranch, SALE_PRICE, slipLines, vnd as money } from "./fixtures/saleService";
 
 /**
  * R-1184 — "Chuyển đổi dịch vụ" → Thay thế prices the new service at Danh
@@ -11,83 +12,15 @@ import { openNewSlip } from "./fixtures/ledgerReceipt";
  * slip are written through the API with the browser's own session.
  */
 
-const PLANS_API = "/api/v1/app/patient-treatments";
-const money = (value: number) => `${value.toLocaleString("vi-VN")} đ`;
-
-interface CatalogCall {
-  method: "POST" | "GET";
-  url: string;
-  body?: unknown;
-}
-
-/** The browser's own fetch: its cookie, its XSRF token, the patient's branch. */
-async function api<T>(page: Page, branch: string, call: CatalogCall): Promise<T> {
-  return page.evaluate(
-    async ({ branch, call }) => {
-      const xsrf = document.cookie
-        .split("; ")
-        .find((c) => c.startsWith("XSRF-TOKEN="))
-        ?.substring("XSRF-TOKEN=".length);
-      const res = await fetch(call.url, {
-        method: call.method,
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-Clinic-Branch-Id": branch,
-          ...(xsrf ? { RequestVerificationToken: decodeURIComponent(xsrf) } : {}),
-        },
-        body: call.body === undefined ? undefined : JSON.stringify(call.body),
-      });
-      if (!res.ok) throw new Error(`${call.method} ${call.url} ${res.status} ${await res.text()}`);
-      const text = await res.text();
-      return text ? JSON.parse(text) : null;
-    },
-    { branch, call },
-  ) as Promise<T>;
-}
-
 test("Chuyển đổi → Thay thế charges the new service at its Giá sau giảm", async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await login(page);
   const { patientId, slip } = await openNewSlip(page);
-  const { branchId: branch } = await api<{ branchId: string }>(page, "", {
-    method: "GET",
-    url: `/api/v1/app/patients/${patientId}`,
-  });
+  const branch = await patientBranch(page, patientId);
 
   // A service of 300.000 đ with 10% off in Danh mục: "Giá sau giảm" 270.000 đ.
   const name = `e2e chuyển đổi giá sau giảm ${runId()}`;
-  const groups = await api<{ items: { id: string }[] }>(page, branch, {
-    method: "GET",
-    url: `/api/v1/app/taxonomies?ClinicBranchId=${branch}&Group=care_service&MaxResultCount=1`,
-  });
-  const entry = await api<{ id: string; serviceConfig: { priceAfterDiscount: number } }>(page, branch, {
-    method: "POST",
-    url: "/api/v1/app/catalog-entries",
-    body: {
-      clinicBranchId: branch,
-      taxonomyId: groups.items[0].id,
-      name,
-      price: 300_000,
-      serviceConfig: {
-        taxRate: 0,
-        priceIncludesTax: false,
-        discountIsPercent: true,
-        discountValue: 10,
-        requireImage: false,
-        deductDoctorOnWarranty: false,
-        separateRevenue: false,
-        showToothOnInvoice: false,
-        revenueByStage: false,
-        requireStageSequence: false,
-        warrantyDays: 0,
-        laboSupplierIds: [],
-      },
-      stages: [],
-    },
-  });
-  expect(entry.serviceConfig.priceAfterDiscount).toBe(270_000);
+  const entry = await createSaleService(page, branch, name);
 
   // The entry stays: a line now uses it, so Danh mục refuses to delete it
   // (Catalogs:0033), and its six-digit run id keeps other specs off it.
@@ -107,13 +40,13 @@ test("Chuyển đổi → Thay thế charges the new service at its Giá sau gi�
   await expect(option).toHaveCount(1, { timeout: 15_000 });
   // R-1185: the option reads the sale price alone, as Thông tin thanh toán
   // will charge — no list price beside it (owner, 2026-11-10).
-  await expect(option.locator(".tp-opt-price")).toHaveText(money(270_000));
+  await expect(option.locator(".tp-opt-price")).toHaveText(money(SALE_PRICE));
   await option.click();
 
   // Thông tin thanh toán of the new service, one tooth: Tổng tiền and Còn lại
   // at the sale price, nothing taken off on top of it.
   const facts = dialog.locator(".cvt-section").last().locator(".cvt-fact-value");
-  await expect(facts).toHaveText([money(270_000), money(0), money(0), money(0), money(270_000)]);
+  await expect(facts).toHaveText([money(SALE_PRICE), money(0), money(0), money(0), money(SALE_PRICE)]);
 
   await dialog.getByRole("textbox", { name: /Ghi chú/ }).fill("R-1184 giá sau giảm");
   for (const label of ["Bác sĩ chẩn đoán 1", "Nhân sự tư vấn 1"]) {
@@ -135,18 +68,15 @@ test("Chuyển đổi → Thay thế charges the new service at its Giá sau gi�
   await expect(dialog).toBeHidden();
 
   // Read back on a separate request: the new line was written at 270.000 đ.
-  const saved = await api<{
-    services: { serviceId: string; price: number; originalPrice: number; effectiveAmount: number }[];
-  }>(page, branch, { method: "GET", url: `${PLANS_API}/${slip.id}` });
-  const line = saved.services.find((item) => item.serviceId === entry.id);
+  const line = (await slipLines(page, branch, slip.id)).find((item) => item.serviceId === entry.id);
   expect(line).toBeDefined();
-  expect(line!.price).toBe(270_000);
-  expect(line!.originalPrice).toBe(270_000);
-  expect(line!.effectiveAmount).toBe(270_000);
+  expect(line!.price).toBe(SALE_PRICE);
+  expect(line!.originalPrice).toBe(SALE_PRICE);
+  expect(line!.effectiveAmount).toBe(SALE_PRICE);
 
   // And the slip table, reloaded, prints it so.
   await page.reload();
   const newRow = page.locator(".pdt-table tbody tr.ant-table-row", { hasText: name });
-  await expect(newRow).toContainText(money(270_000));
-  await expect(newRow).not.toContainText(money(300_000));
+  await expect(newRow).toContainText(money(SALE_PRICE));
+  await expect(newRow).not.toContainText(money(LIST_PRICE));
 });
