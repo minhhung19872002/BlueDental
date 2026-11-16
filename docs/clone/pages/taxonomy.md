@@ -124,6 +124,12 @@ the two layouts measurably identical.
 - Name cell: `size-8 rounded-lg` initial square + `truncate font-medium` name.
 - Nhóm phân loại: `h-6 rounded-md bg-[#F6F8FB] px-2.5 text-[12px]` badge.
 - Giá: right-aligned, `font-semibold`, formatted `35.000.000 đ`.
+  **Local addition, not on the reference (owner 2026-11-16, R-1239):** a
+  service whose Danh mục discount leaves "Giá sau giảm" below the list price
+  reads the list price struck through + `-N%` badge (12px muted line), then the
+  Giá sau giảm under it in the usual bold — the combo cell's look, upside
+  down. No discount → the plain price as before. Column 128 → 144 px so an
+  8-digit struck line stays on one line.
 - Cập nhật gần nhất: `dd/MM/yyyy HH:mm`, `text-[#5A6B82]`.
 - Thao tác: `sticky right-0` with
   `shadow-[-4px_0_6px_-2px_rgba(27,42,65,0.06)]`; a `size-7` pencil
