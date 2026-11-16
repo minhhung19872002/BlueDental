@@ -1,5 +1,5 @@
 import { t } from "@/lib/i18n";
-import { formatDate } from "@/utils/format";
+import { formatDate, formatDayOrDateTime } from "@/utils/format";
 import { asRichText } from "@/utils/sanitizeHtml";
 import { RichTextView } from "@/components/RichTextView";
 import { LABO_CASE_TYPE, laboOrderNo, type LaboOrderDto } from "@/features/labo/api/laboApi";
@@ -37,8 +37,8 @@ export function LaboRequestSlipFacts({ order, patient, pill }: Props) {
       <Block
         title={t("Patient:Labo:Info")}
         rows={[
-          [t("Patient:Labo:SentDate"), formatDate(order.sentAt)],
-          [t("Patient:Labo:ExpectedReceiveDate"), formatDate(order.dueAt)],
+          [t("Patient:Labo:SentDate"), formatDayOrDateTime(order.sentAt)],
+          [t("Patient:Labo:ExpectedReceiveDate"), formatDayOrDateTime(order.dueAt)],
         ]}
       />
       <Block

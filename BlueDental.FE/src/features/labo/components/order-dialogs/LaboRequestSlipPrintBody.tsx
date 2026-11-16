@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
-import { formatDate } from "@/utils/format";
+import { formatDayOrDateTime } from "@/utils/format";
 import { asRichText } from "@/utils/sanitizeHtml";
 import { RichTextView } from "@/components/RichTextView";
 import { LABO_CASE_TYPE, type LaboOrderDto } from "@/features/labo/api/laboApi";
@@ -45,8 +45,8 @@ function printParts(order: LaboOrderDto) {
           <Field label={t("Labo:Slip:CaseType")}>
             <PrintCaseBoxes redo={order.caseType === LABO_CASE_TYPE.Redo} />
           </Field>
-          <Field label={t("Labo:Slip:SentAt")}>{dashed(formatDate(order.sentAt))}</Field>
-          <Field label={t("Labo:Slip:DueAt")}>{dashed(formatDate(order.dueAt))}</Field>
+          <Field label={t("Labo:Slip:SentAt")}>{dashed(formatDayOrDateTime(order.sentAt))}</Field>
+          <Field label={t("Labo:Slip:DueAt")}>{dashed(formatDayOrDateTime(order.dueAt))}</Field>
         </div>
       </>
     ),

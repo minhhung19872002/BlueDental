@@ -15583,3 +15583,22 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử** (bản build production :8080 + host Docker :5000 + PostgreSQL thật, không chặn request): `medical-record-surgical-checklists.spec` 3/3 — ca mẫu 12 thêm: khối tiêu đề ≤ 92px, bảng cách dòng họ tên ≥ 8px, 2 ô tên chữ ký không chấm ở media print; in 1 trang dọc. Hồi quy mức 3 toàn bộ suite bệnh án (`medical-record-*`, `patient-medical-record`, `printed-doctor-title`, gồm ca in đủ số trang thiết kế của từng mẫu): **58/60**; 2 đỏ không do thay đổi này — `patient-medical-record:2426` "picking the day…" (đỏ sẵn, R-1234) và `patient-medical-record:624` "the open sheet's card wears its own form's colour" (so `borderTopColor` của thẻ phiếu — `patient-detail.css` vẽ bằng `color-mix` — với nền nút "Thêm": Chromium trả `oklab(…)` thay vì `rgb(217, 122, 64)`; diff này không đụng `patient-detail.css`). Header trình duyệt: không đo được qua `page.pdf()` (Playwright không in header mặc định) nên đo bằng Chromium `--print-to-pdf` như trên. tsc + eslint sạch.
 - **Mức retest**: 3 (CSS in dùng chung mọi mẫu).
 
+## R-1243 (2026-11-16, mức 2: Labo — Ngày gửi / Ngày nhận dự kiến có cả giờ; develop + main)
+
+- **Yêu cầu** (BA, ảnh hộp Đặt hàng, khoanh đỏ Ngày gửi và Ngày nhận dự kiến): "ngày giờ luôn nha". **Đảo ngược P3110 REQ-C2 / m142** (hai ô chỉ còn ngày, BE cắt giờ về 00:00 giờ phòng khám).
+- **Thay đổi** (không migration — `SentAt` / `DueAt` vốn là `timestamptz`):
+  - BE `LaboOrder`: giữ nguyên giờ (bỏ helper `DayOf`); luật `DueBeforeSent` (Labo:0013) so tới **phút** — cùng ngày, giờ sau vẫn hợp lệ; giờ bằng hoặc trước bị từ chối. 4 thông báo vi/en đổi thành "Ngày giờ nhận … phải sau ngày giờ gửi".
+  - FE: picker `DD/MM/YYYY HH:mm` (`showTime` bước 5 phút, `needConfirm={false}`) ở hộp Đặt hàng (`LaboDeliveryFields`) và Phiếu yêu cầu (`RequestSlipInfo`); Ngày gửi mặc định = bây giờ. Kiểm tra "nhận sau gửi" ở FE cũng so tới phút.
+  - Hiển thị: `formatDayOrDateTime` — phiếu cũ lưu lúc 00:00 vẫn chỉ hiện ngày, phiếu mới hiện cả giờ (thẻ tóm tắt, bản in phiếu yêu cầu, khối thông tin phiếu).
+- **Giữ nguyên, ghi lại**: ô gọn trong bảng /labo, xuất Excel và nhãn đếm ngày đến hạn vẫn tính theo ngày.
+- **Kiểm thử**: Domain.Tests Labo 83/83 (thêm 3 ca: giữ giờ, cùng ngày giờ sau được nhận, giờ trước bị từ chối). E2E trên bản build production :8091 + host thật :5000 + PostgreSQL thật, không chặn request, `--workers=1`: `labo-api` (09:30 lưu đúng 09:30; gửi + 1 giờ cùng ngày → 200 và đọc lại đúng), `labo-workflow` (thẻ tóm tắt có `DD/MM/YYYY HH:mm`), `labo-request-slip-ui` (Ngày gửi = hôm nay + giờ mở), `labo-form-layout`, `labo-form-template-ui` — gộp với R-1244: **36 pass, 6 skip** (skip có sẵn).
+- **Ghi chú môi trường**: DbMigrator seed ném `BusinessException` ở `SeedDataAsync` sau khi schema đã migrate — không liên quan thay đổi này (không có migration mới).
+- **Mức retest**: 2 (Labo).
+
+## R-1244 (2026-11-16, mức 2: Công đoạn — Chọn nhanh hiện thứ, tab Tuần thêm +6 / +8; develop + main)
+
+- **Yêu cầu** (BA, ảnh khối Chọn nhanh): "thêm hiển thị thứ"; tab Tuần: "thêm +6, 8 tuần".
+- **Thay đổi** (chỉ FE, `appointmentNote.ts`): chip hiện "+1 ngày · T3 17/11" — thứ lấy qua `Appointment:Series:WeekdayShort:1..7` (vi T2..CN, en Mon..Sun); tab Tuần = +1, +2, +3, +4, +6, +8. Thứ tự `QUICK_PICKS` vẫn ngày → tuần → tháng. Dòng ghi chú "Hẹn tái khám: DD/MM/YYYY" không đổi.
+- **Kiểm thử**: `stage-appointment-note.spec` (7 / 6 / 12 chip, chữ chip có thứ đúng theo Ngày điều trị) — nằm trong 36 pass của R-1243.
+- **Mức retest**: 2 (form công đoạn).
+

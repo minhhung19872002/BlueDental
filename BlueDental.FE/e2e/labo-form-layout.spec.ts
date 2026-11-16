@@ -18,7 +18,7 @@ import {
   type TemplateView,
 } from "./fixtures/laboFormTemplateApi";
 import { fullSlip, newPatient, slipCatalog, slipNo } from "./fixtures/laboSlipApi";
-import { day, openLaboTab, patientRow, pickRestoration, pickTeeth, sentOrder, slipDialog, startSlip, typeDate } from "./fixtures/laboSlipUi";
+import { openLaboTab, patientRow, pickRestoration, pickTeeth, sentOrder, slipDialog, stamp, startSlip, typeDate } from "./fixtures/laboSlipUi";
 
 /**
  * Feature F-94: the Mẫu phiếu lays out the whole Phiếu yêu cầu. The slip's own
@@ -465,7 +465,7 @@ test.describe.skip("Labo Mẫu phiếu layout UI (F-94)", () => {
       await dialog.getByLabel("Mã số", { exact: true }).fill(no);
       await dialog.getByLabel("Bác sĩ chỉ định").click();
       await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
-      await typeDate(dialog.getByLabel("Ngày nhận dự kiến"), day(5));
+      await typeDate(dialog.getByLabel("Ngày nhận dự kiến"), stamp(5));
       await pickTeeth(page, dialog, [16, 17]);
       await pickRestoration(page, dialog, c.ceramic);
       await dialog.getByLabel("Yêu cầu", { exact: true }).fill("Làm sát nướu");

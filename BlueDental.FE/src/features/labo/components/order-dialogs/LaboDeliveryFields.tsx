@@ -6,9 +6,11 @@ import { SearchSelect } from "@/components/SearchSelect";
 import { t } from "@/lib/i18n";
 import type { PickerOption } from "@/hooks/useLaboPickers";
 import { dueAfterSent, requiredRule } from "./useLaboOrderForm";
-import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
+import { DATE_TIME_INPUT_FORMAT } from "@/utils/dateInput";
 
-/** Ngày nhận dự kiến has to be a later day than Ngày gửi. */
+const STAMP_TIME = { format: "HH:mm", minuteStep: 5 } as const;
+
+/** Ngày giờ nhận dự kiến has to be later than Ngày giờ gửi. */
 const dueAfterSentRule: Rule = ({ getFieldValue }) => ({
   validator: () => {
     const sent: Dayjs | null = getFieldValue("sentDate") ?? null;
@@ -24,8 +26,9 @@ interface Props {
 }
 
 /**
- * Ngày gửi, Nhà cung cấp and Ngày nhận dự kiến of the labo header — days
- * only since P3110 (m142 dropped Giờ gửi / Giờ nhận). Ngày gửi starts on today;
+ * Ngày gửi, Nhà cung cấp and Ngày nhận dự kiến of the labo header — each a
+ * day and hour in one picker (BA 2026-11-16, after P3110 m142 had dropped the
+ * hour). Ngày gửi starts on now;
  * a sent order keeps both, locked by the form (REQ-C2).
  */
 export function LaboDeliveryFields({ suppliers }: Props) {
@@ -39,7 +42,7 @@ export function LaboDeliveryFields({ suppliers }: Props) {
         dependencies={DATE_PAIR}
         rules={requiredRule(t("Patient:Labo:RequiredField", sentLabel.toLowerCase()))}
       >
-        <DatePicker format={DATE_INPUT_FORMAT} />
+        <DatePicker showTime={STAMP_TIME} needConfirm={false} format={DATE_TIME_INPUT_FORMAT} />
       </FloatingField>
       <FloatingField
         name="supplierId"
@@ -56,7 +59,7 @@ export function LaboDeliveryFields({ suppliers }: Props) {
         dependencies={DATE_PAIR}
         rules={[...requiredRule(t("Patient:Labo:RequiredExpectedDate")), dueAfterSentRule]}
       >
-        <DatePicker format={DATE_INPUT_FORMAT} />
+        <DatePicker showTime={STAMP_TIME} needConfirm={false} format={DATE_TIME_INPUT_FORMAT} />
       </FloatingField>
     </>
   );

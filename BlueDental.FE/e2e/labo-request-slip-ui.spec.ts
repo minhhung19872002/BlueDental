@@ -61,7 +61,8 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     const dialog = await startSlip(page, patientId);
 
     await test.step("what is known is already filled", async () => {
-      await expect(dialog.getByLabel("Ngày gửi")).toHaveValue(day(0));
+      // Today and the hour it was opened (BA 2026-11-16).
+      await expect(dialog.getByLabel("Ngày gửi")).toHaveValue(new RegExp(`^${day(0)} \\d{2}:\\d{2}$`));
       await expect(dialog.getByRole("radio", { name: "Ca mới" })).toBeChecked();
       await expect(dialog.getByRole("textbox", { name: "Bệnh nhân" })).toContainText("Phiếu YC ui");
       await expect(dialog.getByRole("button", { name: "Tạo phiếu Labo" })).toBeDisabled();
