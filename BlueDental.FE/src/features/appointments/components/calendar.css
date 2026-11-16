@@ -1561,10 +1561,19 @@ body.cal-fullscreen .cal-grid-wrap {
 }
 
 .appt-star--sm {
-  width: 13px;
-  height: 13px;
-  margin-right: 3px;
-  vertical-align: -2px;
+  /* A bit bigger than the letters (owner 2026-11-16) and centred on them: the
+     star drawing sits 0.53 of its height above its bottom edge, the capital
+     letters 0.36em above the baseline, so the box bottom sits 0.74em - 0.36em
+     under the baseline (vertical-align counts from the margin edge, hence
+     -0.28em with the -0.1em bottom margin). In em so the 11px mini calendar and
+     the 12-13px cards line up alike; the negative margins keep the line as tall
+     as before. */
+  width: 1.4em;
+  height: 1.4em;
+  margin-right: 0.25em;
+  margin-top: -0.3em;
+  margin-bottom: -0.1em;
+  vertical-align: -0.28em;
 }
 
 .appt-star--lg {
@@ -1582,10 +1591,6 @@ body.cal-fullscreen .cal-grid-wrap {
   stroke: color-mix(in srgb, currentColor 78%, #000);
   stroke-width: 0.9;
   stroke-linejoin: round;
-}
-
-.appt-star__inner {
-  fill: var(--bd-card);
 }
 
 .appt-star-row {
