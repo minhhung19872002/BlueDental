@@ -30,8 +30,8 @@ public interface IElectronicInvoiceAppService : IApplicationService
     /// <summary>Asks the provider where the invoice stands now (signed, cancelled…), as the sync does each minute.</summary>
     Task<ElectronicInvoiceDto> SyncAsync(Guid id);
 
-    /// <summary>The signed PDF kept when it was signed, else the provider's rendering.</summary>
-    Task<byte[]> GetPdfAsync(Guid id);
+    /// <summary>The signed PDF kept when it was signed, else the provider's rendering — named as EasyInvoice names it.</summary>
+    Task<ElectronicInvoicePdfDto> GetPdfAsync(Guid id);
 
     /// <summary>PHIẾU THU of what the dialog holds, filled into the template and rendered as PDF.</summary>
     Task<byte[]> RenderReceiptAsync(RenderPaymentReceiptDto input);

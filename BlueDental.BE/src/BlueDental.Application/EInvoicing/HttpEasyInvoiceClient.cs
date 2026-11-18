@@ -66,7 +66,11 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
 
             if (response.IsSuccessStatusCode && IsPdf(bytes, mediaType))
             {
-                return new EasyInvoiceCallResult<byte[]>(GetPdfPath, status, true, watch.ElapsedMilliseconds, null, null, bytes);
+                // "attachment; filename=2026_1118_1C26TYY_0_0318531468.pdf" — the name the portal downloads it under.
+                var disposition = response.Content.Headers.ContentDisposition;
+                var fileName = ElectronicInvoicePdfName.FromProvider(disposition?.FileNameStar ?? disposition?.FileName);
+                return new EasyInvoiceCallResult<byte[]>(
+                    GetPdfPath, status, true, watch.ElapsedMilliseconds, null, null, bytes, fileName);
             }
 
             // A refusal comes back as the JSON envelope instead of a file.

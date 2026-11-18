@@ -35,8 +35,11 @@ public sealed class ElectronicInvoiceController(IElectronicInvoiceAppService ser
     public Task<ElectronicInvoiceDto> SyncAsync(Guid id) => service.SyncAsync(id);
 
     [HttpGet("{id:guid}/pdf")]
-    public async Task<IActionResult> GetPdfAsync(Guid id) =>
-        Pdf(await service.GetPdfAsync(id), $"hoa-don-dien-tu-{id:N}");
+    public async Task<IActionResult> GetPdfAsync(Guid id)
+    {
+        var pdf = await service.GetPdfAsync(id);
+        return File(pdf.Content, "application/pdf", pdf.FileName);
+    }
 
     [HttpPost("receipt-pdf")]
     public async Task<IActionResult> RenderReceiptAsync([FromBody] RenderPaymentReceiptDto input) =>

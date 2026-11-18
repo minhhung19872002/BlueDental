@@ -126,6 +126,13 @@ kế toán ký/phát hành trên portal, BlueDental `getInvoicesByIkeys` để �
 
 `Pattern` tùy chọn. Trả `application/pdf` thẳng (không bọc JSON). ~460 KB cho HĐ 1 dòng.
 
+Tên file nằm trong `Content-Disposition: attachment; filename=…` (đọc trên sandbox 2026-11-18):
+`{yyyy}_{M}{d}_{Pattern}{Serial}_{No}_{MST}.pdf` — tháng và ngày **không** đệm số 0
+(`2026_106_…` = 06/10, `2026_929_…` = 29/09), `No` = `0` khi chưa có số. Ví dụ nháp:
+`2026_1118_1C26TYY_0_0318531468.pdf`. Ngày = ngày lập (ArisingDate, rỗng thì ngày gửi).
+UNKNOWN_REFERENCE_BEHAVIOR: với HĐ đã ký, ngày nào được dùng (ngày lập hay ngày ký) và `No`
+có đệm số 0 không — sandbox không ký được nên chưa quan sát.
+
 ### `api/business/cancelInvoice` — hủy
 
 Body `{ "Ikey", "Pattern"?, "Serial"?, "Reason"? }` — server nhận Ikey, nhưng HĐ nháp
@@ -276,7 +283,7 @@ Controller: `BlueDental.HttpApi/EInvoicing/ElectronicInvoiceController.cs`, base
 | GET | `/api/v1/app/e-invoices?patientPaymentId&treatmentPlanId&patientId&clinicBranchId` | `payment.read` | Danh sách HĐĐT, mới nhất trước, lọc theo chi nhánh user được xem. Trả `ListResultDto<ElectronicInvoiceDto>` |
 | POST | `/api/v1/app/e-invoices/issue-from-payment/{patientPaymentId}` | `payment.finalize` | Tạo nháp tại EasyInvoice từ một phiếu thu. Gọi lại khi còn nháp → **ghi đè cùng nháp** (Ikey cố định) |
 | POST | `/api/v1/app/e-invoices/{id}/sync` | `payment.read` | `getInvoicesByIkeys` — cập nhật trạng thái/số HĐ sau khi kế toán ký trên portal |
-| GET | `/api/v1/app/e-invoices/{id}/pdf` | `payment.read` | `getInvoicePdf` — trả `application/pdf`, tên `hoa-don-dien-tu-{id}` |
+| GET | `/api/v1/app/e-invoices/{id}/pdf` | `payment.read` | `getInvoicePdf` (hoặc bản PDF đã ký đang lưu) — trả `application/pdf`, tên file đúng như EasyInvoice đặt: lấy nguyên tên trong `Content-Disposition` của EasyInvoice; với bản đã lưu thì dựng lại theo cùng mẫu (`ElectronicInvoicePdfName`) (BA 2026-11-18) |
 
 Không có body request; mọi tham số ở path/query.
 

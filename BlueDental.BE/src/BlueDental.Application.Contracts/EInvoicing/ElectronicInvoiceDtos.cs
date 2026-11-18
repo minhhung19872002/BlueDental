@@ -275,3 +275,11 @@ public class RenderPaymentReceiptDto
     /// <summary>The lines ticked in the dialog; empty takes the prefilled ones.</summary>
     public List<ElectronicInvoiceLineInput> Lines { get; set; } = [];
 }
+
+/// <summary>An invoice's PDF under the name EasyInvoice gives it (<c>2026_1118_1C26TYY_12_0318531468.pdf</c>).</summary>
+public class ElectronicInvoicePdfDto
+{
+    public byte[] Content { get; set; } = [];
+
+    public string FileName { get; set; } = string.Empty;
+}

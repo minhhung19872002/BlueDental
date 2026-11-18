@@ -274,7 +274,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
-    public async Task<byte[]> GetPdfAsync(Guid id)
+    public async Task<ElectronicInvoicePdfDto> GetPdfAsync(Guid id)
     {
         var invoice = await _invoices.GetAsync(id);
         await _branchAccess.CheckAsync(invoice.ClinicBranchId);
@@ -285,7 +285,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             && await LazyServiceProvider.LazyGetRequiredService<IBlobContainer>().GetAllBytesOrNullAsync(blobName)
                 is { Length: > 0 } kept)
         {
-            return kept;
+            return new ElectronicInvoicePdfDto { Content = kept, FileName = await KeptPdfNameAsync(invoice) };
         }
 
         var settings = await _accounts.GetForInvoiceAsync(invoice);
@@ -297,7 +297,37 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             throw EasyInvoiceRefusal.From(outcome.ErrorCode, outcome.Error);
         }
 
-        return outcome.Data;
+        return new ElectronicInvoicePdfDto
+        {
+            Content = outcome.Data,
+            FileName = outcome.FileName ?? PdfNameOf(invoice, settings.TaxCode)
+        };
+    }
+
+    /// <summary>
+    /// The kept file came without the provider's name: the same one, built.
+    /// An account removed since must not lock the signed PDF away, so that one
+    /// goes out under its number instead.
+    /// </summary>
+    private async Task<string> KeptPdfNameAsync(ElectronicInvoice invoice)
+    {
+        try
+        {
+            return PdfNameOf(invoice, (await _accounts.GetForInvoiceAsync(invoice)).TaxCode);
+        }
+        catch (BusinessException)
+        {
+            return $"hoa-don-dien-tu-{invoice.No ?? invoice.Ikey}.pdf";
+        }
+    }
+
+    /// <summary>Ngày hóa đơn as sent, else the day it went out (the provider stamps that one).</summary>
+    private static string PdfNameOf(ElectronicInvoice invoice, string taxCode)
+    {
+        var date = invoice.ArisingDate is { } arising
+            ? DateOnly.FromDateTime(arising)
+            : ClinicCalendar.DateOf(invoice.CurrentAttempt?.SentAt ?? invoice.CreationTime);
+        return ElectronicInvoicePdfName.Build(invoice.Pattern, invoice.Serial, invoice.No, date, taxCode);
     }
 
     /// <summary>
