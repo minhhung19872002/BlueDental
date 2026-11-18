@@ -44,6 +44,9 @@ public class ElectronicInvoiceAppServiceContractTests
         properties.ShouldNotContain("Username");
         properties.ShouldContain(nameof(ElectronicInvoiceDto.LookupCode));
         properties.ShouldContain(nameof(ElectronicInvoiceDto.Status));
+        properties.ShouldContain(nameof(ElectronicInvoiceDto.Attempts));
+        properties.ShouldNotContain("PdfBlobName");
+        properties.ShouldNotContain("FormJson");
     }
 
     [Fact]
@@ -84,6 +87,9 @@ public class ElectronicInvoiceAppServiceContractTests
 
         ElectronicInvoiceAppService.IkeyOf(id).ShouldBe("bd-11111111222233334444555555555555");
         ElectronicInvoiceAppService.IkeyOf(id).Length.ShouldBeLessThanOrEqualTo(ElectronicInvoice.MaxIkeyLength);
+        ElectronicInvoice.RoundKey(ElectronicInvoiceAppService.PlanIkeyOf(id), 1).ShouldBe(ElectronicInvoiceAppService.PlanIkeyOf(id));
+        ElectronicInvoice.RoundKey(ElectronicInvoiceAppService.PlanIkeyOf(id), 12).ShouldBe("bd-plan-11111111222233334444555555555555-12");
+        ElectronicInvoiceAppService.PlanIkeyOf(id).Length.ShouldBeLessThanOrEqualTo(ElectronicInvoice.MaxSourceKeyLength);
     }
 
     [Fact]
@@ -91,7 +97,9 @@ public class ElectronicInvoiceAppServiceContractTests
     {
         typeof(IEasyInvoiceClient).IsAssignableFrom(typeof(HttpEasyInvoiceClient)).ShouldBeTrue();
         HttpEasyInvoiceClient.ImportInvoicePath.ShouldBe("/api/publish/importInvoice");
-        HttpEasyInvoiceClient.ImportAndPublishPath.ShouldBe("/api/publish/importAndPublishInv");
+        // BA 2026-11-18: BlueDental never signs — the accountant does, on the portal.
+        typeof(HttpEasyInvoiceClient).GetField("ImportAndPublishPath").ShouldBeNull();
+        typeof(IEasyInvoiceClient).GetMethods().Select(m => m.Name).ShouldNotContain("ImportAndPublishAsync");
     }
 
     private static string? ConfigPolicy(string method) =>

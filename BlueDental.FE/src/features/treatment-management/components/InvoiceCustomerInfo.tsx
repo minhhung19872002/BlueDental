@@ -1,7 +1,7 @@
 import { Input } from "antd";
 import { FloatingLabel } from "@/components/FloatingLabel";
 import { t } from "@/lib/i18n";
-import type { RedInvoiceErrors } from "./redInvoiceRules";
+import type { BuyerErrors } from "./redInvoiceRules";
 
 interface InvoiceCustomerInfoProps {
   customerName: string;
@@ -20,7 +20,7 @@ interface InvoiceCustomerInfoProps {
   onPhoneChange: (value: string) => void;
   /** "Xuất hóa đơn đỏ" ticked: Tên khách hàng, Mã số thuế, Email and Số ĐT carry the asterisk. */
   redInvoice: boolean;
-  errors: RedInvoiceErrors;
+  errors: BuyerErrors;
 }
 
 interface TextFieldProps {
@@ -92,7 +92,12 @@ export function InvoiceCustomerInfo({
             status={nationalId && nationalId.length !== 12 ? "error" : undefined}
           />
         </FloatingLabel>
-        <TextField label={t("Treatment:Invoice:CompanyName")} value={companyName} onChange={onCompanyNameChange} />
+        <TextField
+          label={t("Treatment:Invoice:CompanyName")}
+          value={companyName}
+          onChange={onCompanyNameChange}
+          error={errors.companyName}
+        />
         <TextField
           label={t("Treatment:Invoice:TaxCode")}
           value={taxCode}
@@ -100,7 +105,13 @@ export function InvoiceCustomerInfo({
           required={redInvoice}
           error={errors.taxCode}
         />
-        <TextField label={t("Treatment:Common:Address")} value={address} onChange={onAddressChange} />
+        <TextField
+          label={t("Treatment:Common:Address")}
+          value={address}
+          onChange={onAddressChange}
+          required={redInvoice}
+          error={errors.address}
+        />
         <TextField
           label={t("Email")}
           value={email}

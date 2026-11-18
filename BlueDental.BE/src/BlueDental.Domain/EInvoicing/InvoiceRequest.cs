@@ -183,6 +183,42 @@ public class InvoiceRequest : FullAuditedAggregateRoot<Guid>
         Status = InvoiceRequestStatus.Issued;
     }
 
+    /// <summary>
+    /// The e-invoice it asked for was signed on the provider's portal: done,
+    /// whoever had it (BA 2026-11-18). Nothing happens to one already closed.
+    /// </summary>
+    public bool CompleteFromProvider(string invoiceNo, DateTimeOffset completedAt)
+    {
+        if (!IsOpen || string.IsNullOrWhiteSpace(invoiceNo))
+        {
+            return false;
+        }
+
+        InvoiceNo = Truncate(invoiceNo.Trim(), MaxInvoiceNoLength);
+        CompletedAt = completedAt;
+        Reason = null;
+        Status = InvoiceRequestStatus.Issued;
+        return true;
+    }
+
+    /// <summary>
+    /// The invoice it was completed with was cancelled on the provider: open
+    /// again (Đang xử lý), with why, until the next round is signed.
+    /// </summary>
+    public bool ReopenAfterProviderCancel(string reason)
+    {
+        if (Status != InvoiceRequestStatus.Issued)
+        {
+            return false;
+        }
+
+        InvoiceNo = null;
+        CompletedAt = null;
+        Reason = RequiredReason(reason);
+        Status = InvoiceRequestStatus.Processing;
+        return true;
+    }
+
     public void Cancel(string reason)
     {
         if (!IsOpen)

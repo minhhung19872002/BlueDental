@@ -15,6 +15,10 @@ import { createNotificationConnection } from "@/lib/signalr";
  * along at reception by someone else refetches the same screens, silently.
  * The hub only names the branch and the bookings; everything is read back
  * through the API.
+ *
+ * The same socket carries e-invoices the accountant signed or cancelled on
+ * EasyInvoice's portal (BA 2026-11-18): the server's sync names the branch and
+ * the invoice, receipt and YC-HD screens refetch.
  */
 export function useAppointmentLiveUpdates(enabled: boolean): void {
   const queryClient = useQueryClient();
@@ -40,11 +44,17 @@ export function useAppointmentLiveUpdates(enabled: boolean): void {
       invalidateEntities(queryClient, ["appointment"]);
     };
 
+    const handleEInvoicesChanged = (branchId: string) => {
+      if (branchRef.current && branchRef.current !== branchId) return;
+      invalidateEntities(queryClient, ["eInvoice"]);
+    };
+
     connection.on("AppointmentsMarkedLate", handleMarkedLate);
     connection.on("ArrivalsChanged", handleArrivalsChanged);
+    connection.on("EInvoicesChanged", handleEInvoicesChanged);
     // Whatever changed while the socket was down is fetched once it is back.
     connection.onreconnected(() => {
-      invalidateEntities(queryClient, ["appointment"]);
+      invalidateEntities(queryClient, ["appointment", "eInvoice"]);
     });
     connection.start().catch((error: unknown) => {
       console.warn("Appointment live updates unavailable:", error);

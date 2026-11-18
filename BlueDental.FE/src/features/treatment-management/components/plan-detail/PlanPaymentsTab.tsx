@@ -16,8 +16,8 @@ import { NEW_PAYMENT_PARAM, receiptPagePath } from "@/lib/receiptTab";
 import { countedTotal } from "@/utils/countedTotal";
 import { usePatientAdvises } from "../../api/consultingQueries";
 import {
-  downloadEInvoicePdf,
   isReceiptInvoiceable,
+  useDownloadEInvoicePdf,
   usePlanEInvoices,
   useSyncEInvoice,
   type ElectronicInvoiceDto,
@@ -109,11 +109,10 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   const handleSync = (invoice: ElectronicInvoiceDto) =>
     sync.mutate(invoice.id, { onSuccess: () => toast.success(t("Treatment:EInvoice:Synced")) });
 
-  const handleDownload = (invoice: ElectronicInvoiceDto) => {
-    downloadEInvoicePdf(invoice).catch((error: unknown) =>
-      notifyError(extractApiError(error) || t("Treatment:EInvoice:DownloadError")),
-    );
-  };
+  const download = useDownloadEInvoicePdf((error) =>
+    notifyError(extractApiError(error) || t("Treatment:EInvoice:DownloadError")),
+  );
+  const handleDownload = (invoice: ElectronicInvoiceDto) => download.mutate(invoice);
 
   const renderEInvoice = (payment: PatientPaymentDto) => {
     const invoice = eInvoiceOf(payment.id);
@@ -122,6 +121,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
       <EInvoiceBadge
         invoice={invoice}
         syncing={sync.isPending && sync.variables === invoice.id}
+        downloading={download.isPending && download.variables?.id === invoice.id}
         onSync={handleSync}
         onDownload={handleDownload}
       />
@@ -160,7 +160,7 @@ export function PlanPaymentsTab({ patient, plan, branchId }: Props) {
   };
   const columns = useMemo(
     () => buildPaymentColumns(plan, rowActions),
-    [plan, branchId, canUpdate, canDelete, canFinalize, eInvoiceQuery.data, sync.isPending, sync.variables], // eslint-disable-line react-hooks/exhaustive-deps
+    [plan, branchId, canUpdate, canDelete, canFinalize, eInvoiceQuery.data, sync.isPending, sync.variables, download.isPending, download.variables], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return (

@@ -14,7 +14,7 @@ import {
   vatRateLabel,
   vatRateOf,
 } from "./invoiceConstants";
-import { missingRedInvoiceFields } from "./redInvoiceRules";
+import { isValidTaxCode, missingRedInvoiceFields } from "./redInvoiceRules";
 
 /** A line priced and taxed under the chosen type; CX falls back to the account's rate. */
 function priced(row: InvoiceServiceRow, defaultVatRate: number): InvoiceServiceRow {
@@ -25,28 +25,41 @@ function priced(row: InvoiceServiceRow, defaultVatRate: number): InvoiceServiceR
 }
 
 function rowsOf(draft: ElectronicInvoiceDraftDto): InvoiceServiceRow[] {
-  return draft.lines.map((line, index) =>
-    priced(
+  // A saved Nháp / sent form reopens as left: only its lines ticked, at its prices and rates.
+  const saved = draft.savedForm ? [...draft.savedForm.lines] : null;
+  return draft.lines.map((line, index) => {
+    const at = saved?.findIndex((s) => s.code === line.code) ?? -1;
+    const kept = at >= 0 ? saved?.splice(at, 1)[0] : undefined;
+    return priced(
       {
         key: `${line.code}-${index}`,
         stt: index + 1,
         code: line.code,
         serviceName: line.name,
-        // The service's own "% thuế", as the server worked it out for the line;
-        // a line at the account's default opens on "Chưa xuất", as the original does.
-        taxType: line.vatRate === draft.defaultVatRate ? "CX" : taxTypeOf(line.vatRate),
+        // The service's own "% thuế", as the server worked it out for the line.
+        taxType: kept ? savedTaxType(kept.vatRate) : openingTaxType(line.vatRate, draft.defaultVatRate),
         unit: line.unit,
         quantity: line.quantity,
-        unitPrice: line.unitPrice,
+        unitPrice: kept?.unitPrice ?? line.unitPrice,
         taxBasePrice: 0,
         taxPercent: "",
         taxAmount: 0,
         totalAfterTax: 0,
-        selected: true,
+        selected: saved === null || kept !== undefined,
       },
       draft.defaultVatRate,
-    ),
-  );
+    );
+  });
+}
+
+/** A saved line's rate: none means the account's default ("Chưa xuất"). */
+function savedTaxType(vatRate: number | null): InvoiceTaxType {
+  return vatRate === null ? "CX" : taxTypeOf(vatRate);
+}
+
+/** A fresh line at the account's default opens on "Chưa xuất", as the original does. */
+function openingTaxType(vatRate: number, defaultVatRate: number): InvoiceTaxType {
+  return vatRate === defaultVatRate ? "CX" : taxTypeOf(vatRate);
 }
 
 const blankToNull = (value: string): string | null => (value.trim() === "" ? null : value.trim());
@@ -82,19 +95,20 @@ export function useInvoiceForm(draft: ElectronicInvoiceDraftDto | undefined) {
 
   useEffect(() => {
     if (!draft) return;
-    setCustomerName(draft.buyerName);
-    setNationalId(draft.nationalId ?? "");
-    setCompanyName("");
-    setAddress(draft.address ?? "");
-    setTaxCode("");
-    setEmail(draft.email ?? "");
-    setPhone(draft.phone ?? "");
-    setTemplateId(draft.pattern ?? "");
-    setTemplateSymbol(draft.serial ?? "");
-    setInvoiceDate(dayjs());
-    setPaymentMethod(offeredMethod(draft.paymentMethod));
-    setCurrency(DEFAULT_CURRENCY);
-    setExchangeRate(String(DEFAULT_EXCHANGE_RATE));
+    const saved = draft.savedForm;
+    setCustomerName(saved?.buyerName ?? draft.buyerName);
+    setNationalId(saved?.nationalId ?? draft.nationalId ?? "");
+    setCompanyName(saved?.companyName ?? "");
+    setAddress(saved?.address ?? draft.address ?? "");
+    setTaxCode(saved?.taxCode ?? "");
+    setEmail(saved?.email ?? draft.email ?? "");
+    setPhone(saved?.phone ?? draft.phone ?? "");
+    setTemplateId(saved?.pattern ?? draft.pattern ?? "");
+    setTemplateSymbol(saved?.serial ?? draft.serial ?? "");
+    setInvoiceDate(saved?.arisingDate ? dayjs(saved.arisingDate) : dayjs());
+    setPaymentMethod(offeredMethod(saved?.paymentMethod ?? draft.paymentMethod));
+    setCurrency(saved?.currency ?? DEFAULT_CURRENCY);
+    setExchangeRate(String(saved?.exchangeRate ?? DEFAULT_EXCHANGE_RATE));
     setServiceRows(rowsOf(draft));
   }, [draft]);
 
@@ -206,7 +220,9 @@ export function useInvoiceForm(draft: ElectronicInvoiceDraftDto | undefined) {
     totalBeforeTax,
     totalTax,
     grandTotal: totalBeforeTax + totalTax,
-    redInvoiceMissing: missingRedInvoiceFields({ customerName, taxCode, phone, email }),
+    redInvoiceMissing: missingRedInvoiceFields({ customerName, taxCode, address, phone, email }),
+    buyerValues: { customerName, companyName, address, taxCode, phone, email },
+    buyerFormatValid: isValidTaxCode(taxCode),
     buildLines,
     buildBuyer,
   };

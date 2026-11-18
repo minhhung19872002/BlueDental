@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using BlueDental.Billing;
 using BlueDental.Catalogs;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Authorization;
+using Volo.Abp.BlobStoring;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Identity;
@@ -31,10 +33,13 @@ namespace BlueDental.EInvoicing;
 /// Hóa đơn điện tử, from a receipt (Thanh toán row) or a whole slip (the
 /// Hóa đơn dialog of the plan).
 ///
-/// One source → one invoice at EasyInvoice, keyed <c>bd-{receipt id}</c> or
-/// <c>bd-plan-{slip id}</c> so a retry rewrites the same draft instead of
-/// filing a second one. A slip is invoiced either whole or receipt by
-/// receipt, never both. The invoice goes out under the branch's own account
+/// One source → one invoice row, keyed <c>bd-{receipt id}</c> or
+/// <c>bd-plan-{slip id}</c> (BA 2026-11-18): Lưu Nháp keeps the dialog here;
+/// Lưu sends it to EasyInvoice unsigned, and a second Lưu rewrites that same
+/// draft there; the accountant signs on the provider's portal and
+/// <see cref="ElectronicInvoiceSync"/> reads it back. Cancelled there, the next
+/// Lưu sends a new round on the same row. A slip is invoiced either whole or
+/// receipt by receipt, never both. The invoice goes out under the branch's own account
 /// (Công cụ › Hóa đơn › Cấu hình), else the server-wide one. Every provider
 /// call is recorded in the integration call log (CLAUDE.md §9), shape only —
 /// never the body, which names the patient, nor the header, which carries
@@ -43,14 +48,10 @@ namespace BlueDental.EInvoicing;
 [Authorize]
 public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvoiceAppService
 {
-    private const string ImportOperation = "einvoice-import";
-    private const string PublishOperation = "einvoice-publish";
-    private const string LookupOperation = "einvoice-lookup";
-    private const string PdfOperation = "einvoice-pdf";
-
     /// <summary>
     /// Keys with an issue in flight on this host: a double click must not race
-    /// two provider calls. The unique Ikey index backs this across hosts.
+    /// two saves or provider calls. The unique SourceKey and Ikey indexes back
+    /// this across hosts.
     /// </summary>
     private static readonly ConcurrentDictionary<string, byte> InFlight = new(StringComparer.Ordinal);
 
@@ -59,12 +60,11 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     private readonly IRepository<TreatmentPlan, Guid> _plans;
     private readonly IRepository<Patient, Guid> _patients;
     private readonly IRepository<CatalogEntry, Guid> _catalog;
-    private readonly IRepository<IntegrationCallLog, Guid> _callLogs;
+    private readonly ElectronicInvoiceSync _sync;
     private readonly BranchAccessChecker _branchAccess;
     private readonly IEasyInvoiceClient _provider;
     private readonly EasyInvoiceSettingsResolver _accounts;
     private readonly IOptions<EasyInvoiceOptions> _options;
-    private readonly IUnitOfWorkManager _unitOfWorkManager;
 
     public ElectronicInvoiceAppService(
         IRepository<ElectronicInvoice, Guid> invoices,
@@ -72,30 +72,28 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         IRepository<TreatmentPlan, Guid> plans,
         IRepository<Patient, Guid> patients,
         IRepository<CatalogEntry, Guid> catalog,
-        IRepository<IntegrationCallLog, Guid> callLogs,
+        ElectronicInvoiceSync sync,
         BranchAccessChecker branchAccess,
         IEasyInvoiceClient provider,
         EasyInvoiceSettingsResolver accounts,
-        IOptions<EasyInvoiceOptions> options,
-        IUnitOfWorkManager unitOfWorkManager)
+        IOptions<EasyInvoiceOptions> options)
     {
         _invoices = invoices;
         _payments = payments;
         _plans = plans;
         _patients = patients;
         _catalog = catalog;
-        _callLogs = callLogs;
+        _sync = sync;
         _branchAccess = branchAccess;
         _provider = provider;
         _accounts = accounts;
         _options = options;
-        _unitOfWorkManager = unitOfWorkManager;
     }
 
-    /// <summary>The provider-side key of a receipt's invoice — stable, so a retry overwrites.</summary>
+    /// <summary>The key of a receipt's invoice row, and of its first round at the provider.</summary>
     public static string IkeyOf(Guid patientPaymentId) => $"bd-{patientPaymentId:N}";
 
-    /// <summary>The provider-side key of a whole slip's invoice.</summary>
+    /// <summary>The key of a whole slip's invoice row.</summary>
     public static string PlanIkeyOf(Guid treatmentPlanId) => $"bd-plan-{treatmentPlanId:N}";
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -105,7 +103,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         var account = await _accounts.FindForBranchAsync(source.ClinicBranchId);
         var vatRate = account?.Settings.VatRate ?? _options.Value.VatRate;
         var patient = await _patients.GetAsync(source.PatientId);
-        var existing = await _invoices.FirstOrDefaultAsync(x => x.Ikey == source.Ikey);
+        var existing = await FindAsync(source);
 
         return new ElectronicInvoiceDraftDto
         {
@@ -126,7 +124,8 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             PaymentMethod = source.PaymentMethod,
             MaxAmount = source.MaxAmount,
             Lines = (await DefaultLinesAsync(source, vatRate)).Select(MapLine).ToList(),
-            Existing = existing == null ? null : Map(existing)
+            Existing = existing == null ? null : Map(existing),
+            SavedForm = FormFrom(existing?.FormJson)
         };
     }
 
@@ -140,15 +139,11 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         }
 
         EnsureVnd(input);
-        EnsureBuyerForPublish(input);
-        var account = await _accounts.GetForBranchAsync(source.ClinicBranchId);
-        var pattern = Blank(input.Pattern);
-        var settings = pattern == null
-            ? account
-            : account with { Pattern = pattern, Serial = Blank(input.Serial) };
-        if (string.IsNullOrWhiteSpace(settings.Pattern))
+        EasyInvoiceSettings? settings = null;
+        if (input.Send)
         {
-            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.PatternRequired);
+            EnsureBuyer(input);
+            settings = await SettingsForSendAsync(source, input);
         }
 
         if (!InFlight.TryAdd(source.Ikey, 0))
@@ -158,7 +153,9 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
 
         try
         {
-            return await IssueLockedAsync(source, settings, input);
+            return settings == null
+                ? await SaveFormLockedAsync(source, input)
+                : await SendLockedAsync(source, settings, input);
         }
         finally
         {
@@ -166,6 +163,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         }
     }
 
+    /// <summary>Lưu Nháp of a receipt's invoice with the prefilled lines.</summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
     public Task<ElectronicInvoiceDto> IssueFromPaymentAsync(Guid patientPaymentId) =>
         IssueAsync(new IssueElectronicInvoiceDto
@@ -209,31 +207,19 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     {
         var invoice = await _invoices.GetAsync(id);
         await _branchAccess.CheckAsync(invoice.ClinicBranchId);
+        if (invoice.Status == ElectronicInvoiceStatus.NotSent)
+        {
+            // Only saved here: the provider has nothing to say about it.
+            return Map(invoice);
+        }
+
         var settings = await _accounts.GetForInvoiceAsync(invoice);
-
-        var outcome = await _provider.GetByIkeysAsync(settings, [invoice.Ikey]);
-        await LogAsync(invoice.ClinicBranchId, LookupOperation, outcome, 1);
-
-        var now = Clock.Now;
+        var outcome = await _sync.RefreshAsync(settings, [invoice], UtcNow());
         if (!outcome.Succeeded)
         {
-            invoice.RecordFailure(outcome.LogError, now);
-            await _invoices.UpdateAsync(invoice);
-            throw Refusal(outcome.LogError);
+            throw EasyInvoiceRefusal.From(outcome.ErrorCode, outcome.Error);
         }
 
-        var summary = outcome.Data?.FirstOrDefault(s =>
-            string.Equals(s.Ikey, invoice.Ikey, StringComparison.OrdinalIgnoreCase));
-        if (summary != null)
-        {
-            invoice.ApplyProviderSummary(summary, now);
-        }
-        else
-        {
-            invoice.RecordFailure("The provider no longer lists this invoice.", now);
-        }
-
-        await _invoices.UpdateAsync(invoice);
         return Map(invoice);
     }
 
@@ -242,21 +228,30 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     {
         var invoice = await _invoices.GetAsync(id);
         await _branchAccess.CheckAsync(invoice.ClinicBranchId);
-        var settings = await _accounts.GetForInvoiceAsync(invoice);
 
+        // The signed PDF the sync kept is the one the customer got; the
+        // provider renders the others (a draft, a cancelled round) on demand.
+        if (invoice.PdfBlobName is { } blobName
+            && await LazyServiceProvider.LazyGetRequiredService<IBlobContainer>().GetAllBytesOrNullAsync(blobName)
+                is { Length: > 0 } kept)
+        {
+            return kept;
+        }
+
+        var settings = await _accounts.GetForInvoiceAsync(invoice);
         var outcome = await _provider.GetPdfAsync(settings, invoice.Ikey);
-        await LogAsync(invoice.ClinicBranchId, PdfOperation, outcome, 1);
+        await _sync.LogAsync(invoice.ClinicBranchId, ElectronicInvoiceSync.PdfOperation, outcome, 1);
 
         if (!outcome.Succeeded || outcome.Data == null)
         {
-            throw Refusal(outcome.LogError);
+            throw EasyInvoiceRefusal.From(outcome.ErrorCode, outcome.Error);
         }
 
         return outcome.Data;
     }
 
     /// <summary>
-    /// PHIẾU THU for Phát Hành, whether or not an e-invoice goes out with it,
+    /// PHIẾU THU for Lưu, whether or not an e-invoice goes out with it,
     /// and for Lưu on "Tạo phiếu thanh toán", which prints the receipt it just
     /// wrote while it is still "Chưa thanh toán" (owner 2026-10-12). So whoever
     /// may write a receipt (payment.create) or finalize one may print it.
@@ -382,24 +377,51 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         return string.IsNullOrWhiteSpace(fullName) ? user.UserName : fullName;
     }
 
-    private async Task<ElectronicInvoiceDto> IssueLockedAsync(
-        InvoiceSource source, EasyInvoiceSettings settings, IssueElectronicInvoiceDto input)
+    /// <summary>The account Lưu sends under, with the Mẫu số / ký hiệu picked in the dialog.</summary>
+    private async Task<EasyInvoiceSettings> SettingsForSendAsync(InvoiceSource source, IssueElectronicInvoiceDto input)
     {
-        var existing = await _invoices.FirstOrDefaultAsync(x => x.Ikey == source.Ikey);
-        if (existing != null)
+        var account = await _accounts.GetForBranchAsync(source.ClinicBranchId);
+        var pattern = Blank(input.Pattern);
+        var settings = pattern == null
+            ? account
+            : account with { Pattern = pattern, Serial = Blank(input.Serial) };
+        if (string.IsNullOrWhiteSpace(settings.Pattern))
         {
-            existing.EnsureReissuable();
-            if (existing.ProviderConfigId != settings.ConfigId
-                || existing.Pattern != settings.Pattern
-                || existing.Serial != settings.Serial)
-            {
-                existing.MoveTo(settings);
-            }
+            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.PatternRequired);
         }
 
+        return settings;
+    }
+
+    /// <summary>Lưu Nháp: the dialog kept as it is, nothing sent, nothing required.</summary>
+    private async Task<ElectronicInvoiceDto> SaveFormLockedAsync(InvoiceSource source, IssueElectronicInvoiceDto input)
+    {
+        var existing = await FindAsync(source);
         await EnsureNotInvoicedTwiceAsync(source);
 
-        var draft = await BuildDraftAsync(source, settings.VatRate, input);
+        var account = await _accounts.FindForBranchAsync(source.ClinicBranchId);
+        var vatRate = account?.Settings.VatRate ?? _options.Value.VatRate;
+        var figures = await BuildDraftAsync(source, vatRate, input, source.Ikey, validated: false);
+
+        var invoice = existing ?? OpenFor(source);
+        invoice.SaveForm(FormOf(input), figures);
+        await SaveAsync(invoice, isNew: existing == null);
+        return Map(invoice);
+    }
+
+    /// <summary>
+    /// Lưu: the invoice goes to EasyInvoice unsigned — "Chờ kiểm tra" — for the
+    /// accountant to sign on the provider's portal. While it waits, Lưu again
+    /// rewrites the same draft there; after a cancel it goes out as a new round.
+    /// </summary>
+    private async Task<ElectronicInvoiceDto> SendLockedAsync(
+        InvoiceSource source, EasyInvoiceSettings settings, IssueElectronicInvoiceDto input)
+    {
+        var existing = await FindAsync(source);
+        var ikey = existing?.IkeyForSend() ?? ElectronicInvoice.RoundKey(source.Ikey, 1);
+        await EnsureNotInvoicedTwiceAsync(source);
+
+        var draft = await BuildDraftAsync(source, settings.VatRate, input, ikey, validated: true);
         // Compared VAT included on both sides: the source is what was (or is to
         // be) paid, and the draft's Amount is what the invoice will ask for.
         if (draft.Amount > source.MaxAmount)
@@ -408,38 +430,42 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
                 .WithData("Max", source.MaxAmount.ToString("N0"));
         }
 
-        var xml = EasyInvoiceXmlBuilder.Build(draft);
-        var outcome = input.Publish
-            ? await _provider.ImportAndPublishAsync(settings, xml)
-            : await _provider.ImportInvoiceAsync(settings, xml);
-        await LogAsync(source.ClinicBranchId, input.Publish ? PublishOperation : ImportOperation,
-            outcome, draft.Lines.Count);
+        var outcome = await _provider.ImportInvoiceAsync(settings, EasyInvoiceXmlBuilder.Build(draft));
+        await _sync.LogAsync(source.ClinicBranchId, ElectronicInvoiceSync.ImportOperation, outcome, draft.Lines.Count);
 
-        var now = Clock.Now;
+        var now = UtcNow();
         if (!outcome.Succeeded)
         {
-            if (existing != null)
-            {
-                existing.RecordFailure(outcome.LogError, now);
-                await _invoices.UpdateAsync(existing);
-            }
-
-            throw Refusal(outcome.LogError);
+            // Nothing changed at the provider: the row (if any) stays as it was,
+            // and the refusal goes under the box it is about.
+            throw EasyInvoiceRefusal.From(outcome.ErrorCode, outcome.Error);
         }
 
-        var invoice = existing ?? ElectronicInvoice.Create(
-            GuidGenerator.Create(), source.ClinicBranchId, source.PatientId, source.Payment?.Id,
-            source.Payment?.TreatmentPlanId ?? source.Plan?.Id, settings, draft);
-        invoice.TakeAmounts(draft);
-
+        var invoice = existing ?? OpenFor(source);
+        invoice.Sent(settings, draft, FormOf(input), now);
         var summary = outcome.Data?.FirstOrDefault(s =>
             string.Equals(s.Ikey, draft.Ikey, StringComparison.OrdinalIgnoreCase));
         if (summary != null)
         {
-            invoice.ApplyProviderSummary(summary, now);
+            await _sync.HeardAsync(settings, invoice, invoice.ApplyProviderSummary(summary, now), now);
         }
 
-        if (existing == null)
+        await SaveAsync(invoice, isNew: existing == null);
+        await _accounts.RememberNumberingAsync(settings);
+        await _sync.StartRequestsAsync(invoice, CurrentUser.GetId());
+        return Map(invoice);
+    }
+
+    private Task<ElectronicInvoice?> FindAsync(InvoiceSource source) =>
+        _invoices.FirstOrDefaultAsync(x => x.SourceKey == source.Ikey);
+
+    private ElectronicInvoice OpenFor(InvoiceSource source) => ElectronicInvoice.Open(
+        GuidGenerator.Create(), source.ClinicBranchId, source.PatientId, source.Payment?.Id,
+        source.Payment?.TreatmentPlanId ?? source.Plan?.Id, source.Ikey);
+
+    private async Task SaveAsync(ElectronicInvoice invoice, bool isNew)
+    {
+        if (isNew)
         {
             await _invoices.InsertAsync(invoice);
         }
@@ -447,9 +473,29 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         {
             await _invoices.UpdateAsync(invoice);
         }
+    }
 
-        await _accounts.RememberNumberingAsync(settings);
-        return Map(invoice);
+    private static readonly JsonSerializerOptions FormJsonOptions = new(JsonSerializerDefaults.Web);
+
+    /// <summary>The dialog as stored on the row; only BlueDental reads it back.</summary>
+    private static string FormOf(IssueElectronicInvoiceDto input) => JsonSerializer.Serialize(input, FormJsonOptions);
+
+    private static IssueElectronicInvoiceDto? FormFrom(string? formJson)
+    {
+        if (string.IsNullOrWhiteSpace(formJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<IssueElectronicInvoiceDto>(formJson, FormJsonOptions);
+        }
+        catch (JsonException)
+        {
+            // A form saved under an older shape just opens with the prefilled values.
+            return null;
+        }
     }
 
     /// <summary>The provider is only ever sent VND at rate 1; the dialog's fields must agree.</summary>
@@ -464,17 +510,25 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
     }
 
     /// <summary>
-    /// "Xuất hóa đơn đỏ" (BA): a signed invoice must carry Tên khách hàng, Mã số
-    /// thuế, Số ĐT and Email as typed — no fallback to the patient record. A
-    /// draft (Lưu Nháp) may still go out incomplete.
+    /// "Xuất hóa đơn đỏ" (BA): what goes to the provider must carry Tên khách
+    /// hàng, Mã số thuế, Số ĐT and Email as typed — no fallback to the patient
+    /// record. Lưu Nháp sends nothing and checks none of it.
     /// </summary>
-    private static void EnsureBuyerForPublish(IssueElectronicInvoiceDto input)
+    private static void EnsureBuyer(IssueElectronicInvoiceDto input)
     {
-        if (input.Publish
-            && (Blank(input.BuyerName) == null || Blank(input.TaxCode) == null
-                || Blank(input.Phone) == null || Blank(input.Email) == null))
+        // Địa chỉ: EasyInvoice refuses a buyer with a Mã số thuế and no address.
+        if (Blank(input.BuyerName) == null || Blank(input.TaxCode) == null || Blank(input.Address) == null
+            || Blank(input.Phone) == null || Blank(input.Email) == null)
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.BuyerDetailsRequired);
+        }
+
+        // EasyInvoice refuses a tax code of any other shape (129); say so
+        // before the call, under the box it is about.
+        if (Blank(input.TaxCode) is { } taxCode && !BuyerTaxCode.IsValid(taxCode))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.InvalidBuyerTaxCode)
+                .WithData(EasyInvoiceRefusal.FieldKey, "taxCode");
         }
     }
 
@@ -585,16 +639,21 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             ?? throw new EntityNotFoundException(typeof(TreatmentPlan), id);
     }
 
+    /// <summary>
+    /// The invoice the dialog describes, under <paramref name="ikey"/>. Only
+    /// what is sent is <paramref name="validated"/>: Lưu Nháp keeps whatever
+    /// the cashier has so far.
+    /// </summary>
     private async Task<ElectronicInvoiceDraft> BuildDraftAsync(
-        InvoiceSource source, int defaultVatRate, IssueElectronicInvoiceDto input)
+        InvoiceSource source, int defaultVatRate, IssueElectronicInvoiceDto input, string ikey, bool validated)
     {
         var patient = await _patients.GetAsync(source.PatientId);
         var lines = await LinesOfAsync(source, defaultVatRate, input.Lines);
 
         var buyer = Blank(input.BuyerName) ?? patient.FullName;
-        return new ElectronicInvoiceDraft
+        var draft = new ElectronicInvoiceDraft
         {
-            Ikey = source.Ikey,
+            Ikey = ikey,
             CustomerCode = patient.PatientCode,
             CustomerName = Blank(input.CompanyName) ?? buyer,
             BuyerName = buyer,
@@ -613,7 +672,8 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             ArisingDate = input.ArisingDate?.Date,
             VatRate = lines.Count > 0 ? lines[0].VatRate : defaultVatRate,
             Lines = lines
-        }.Validated();
+        };
+        return validated ? draft.Validated() : draft;
     }
 
     /// <summary>
@@ -734,25 +794,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         }).ToList();
     }
 
-    /// <summary>
-    /// The call log survives the refusal that follows it: written in its own
-    /// unit of work, so throwing afterwards rolls back the invoice row and
-    /// nothing else.
-    /// </summary>
-    private async Task LogAsync<T>(Guid clinicBranchId, string operation, EasyInvoiceCallResult<T> outcome, int itemCount)
-    {
-        using var uow = _unitOfWorkManager.Begin(requiresNew: true);
-        await _callLogs.InsertAsync(new IntegrationCallLog(
-            GuidGenerator.Create(), clinicBranchId, operation, outcome.RequestPath,
-            outcome.StatusCode, outcome.Succeeded, outcome.DurationMs, itemCount, outcome.LogError));
-        await uow.CompleteAsync();
-    }
-
     private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static BusinessException Refusal(string? error) =>
-        new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.ProviderRefused)
-            .WithData("Message", error ?? "no response");
 
     private static ElectronicInvoiceLineDto MapLine(ElectronicInvoiceLine line) => new()
     {
@@ -776,6 +818,8 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         TreatmentPlanId = invoice.TreatmentPlanId,
         ProviderConfigId = invoice.ProviderConfigId,
         Provider = invoice.Provider,
+        SourceKey = invoice.SourceKey,
+        Round = invoice.Round,
         Ikey = invoice.Ikey,
         Pattern = invoice.Pattern,
         Serial = invoice.Serial,
@@ -789,10 +833,28 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         CustomerName = invoice.CustomerName,
         PaymentMethod = invoice.PaymentMethod,
         ArisingDate = invoice.ArisingDate,
+        SignedAt = invoice.SignedAt,
+        HasPdf = invoice.PdfBlobName != null,
         LastSyncedAt = invoice.LastSyncedAt,
         LastError = invoice.LastError,
-        CreationTime = invoice.CreationTime
+        CreationTime = invoice.CreationTime,
+        Attempts = invoice.Attempts.OrderBy(x => x.Round).Select(x => new ElectronicInvoiceAttemptDto
+        {
+            Round = x.Round,
+            Ikey = x.Ikey,
+            Pattern = x.Pattern,
+            Serial = x.Serial,
+            Status = x.Status,
+            No = x.No,
+            Amount = x.Amount,
+            SentAt = x.SentAt,
+            SignedAt = x.SignedAt,
+            CancelledAt = x.CancelledAt
+        }).ToList()
     };
+
+    // Postgres keeps timestamptz in UTC only; Clock.Now is local unless the clock is set to UTC.
+    private DateTimeOffset UtcNow() => new(Clock.Now.ToUniversalTime(), TimeSpan.Zero);
 
     /// <summary>
     /// What is being invoiced. <see cref="Plan"/> is the slip billed whole;

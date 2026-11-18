@@ -11,15 +11,12 @@ namespace BlueDental.EInvoicing;
 /// </summary>
 public interface IEasyInvoiceClient
 {
-    /// <summary>Creates (or, for a draft with the same key, replaces) an invoice draft.</summary>
-    Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportInvoiceAsync(
-        EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken = default);
-
     /// <summary>
-    /// Creates and signs the invoice in one call. Needs the account's signing
-    /// device (HSM); the sandbox has none and answers 196.
+    /// Creates (or, for a draft with the same key, replaces) an unsigned
+    /// invoice. BlueDental never signs: the accountant does that on the
+    /// provider's portal (BA 2026-11-18) and the sync reads it back.
     /// </summary>
-    Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportAndPublishAsync(
+    Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportInvoiceAsync(
         EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken = default);
 
     Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> GetByIkeysAsync(

@@ -3,11 +3,13 @@ import { BRANCH2_USER, login } from "./fixtures/auth";
 import { PAYMENTS_API, call, collectOnFirstLine, openNewSlip, type Receipt } from "./fixtures/ledgerReceipt";
 
 /**
- * Feature: Phát Hành in the "Hóa đơn" dialog always prints the PHIẾU THU (BA,
- * 2026-10-07). The server fills `wwwroot/templates/PHIẾU THU.docx` and
+ * Feature: Lưu (was Phát Hành) in the "Hóa đơn" dialog always prints the PHIẾU
+ * THU (BA, 2026-10-07). The server fills `wwwroot/templates/PHIẾU THU.docx` and
  * Gotenberg (LibreOffice in Docker) turns it into a PDF; the app opens it in a
- * new tab. "Xuất hóa đơn đỏ" is left unticked throughout — ticked, Phát Hành
- * would also sign a real e-invoice on the provider.
+ * new tab. "Xuất hóa đơn đỏ" is never sent ticked for a receipt the server would
+ * pass on — ticked, Lưu would send a real e-invoice to the provider (Chờ kiểm tra,
+ * BA 2026-11-18); the one ticked send is refused by BlueDental first. Lưu Nháp
+ * keeps the form in BlueDental only, so it is exercised for real.
  *
  * Real stack only: real login, real ASP.NET Core API, real PostgreSQL, real
  * Gotenberg. Nothing is intercepted.
@@ -35,7 +37,7 @@ async function renderReceipt(page: Page, json: unknown) {
 
 test.describe.configure({ mode: "serial", timeout: 150_000 });
 
-test.describe("Hóa đơn → Phát Hành prints the PHIẾU THU", () => {
+test.describe("Hóa đơn → Lưu prints the PHIẾU THU", () => {
   test.afterAll(async ({ browser }) => {
     if (!receipt) return;
     const page = await browser.newPage();
@@ -73,7 +75,7 @@ test.describe("Hóa đơn → Phát Hành prints the PHIẾU THU", () => {
     expect(denied.type).not.toContain("application/pdf");
   });
 
-  test("Phát Hành opens the receipt PDF in a new tab and leaves the dialog open", async ({ page, context }) => {
+  test("Lưu opens the receipt PDF in a new tab and leaves the dialog open", async ({ page, context }) => {
     expect(receipt).toBeDefined();
     const saved = receipt!;
     await page.setViewportSize({ width: 1600, height: 900 });
@@ -91,7 +93,7 @@ test.describe("Hóa đơn → Phát Hành prints the PHIẾU THU", () => {
 
     const rendered = page.waitForResponse((res) => res.url().includes(RECEIPT_PDF));
     const opened = context.waitForEvent("page");
-    await invoice.getByRole("button", { name: "Phát Hành" }).click();
+    await invoice.getByRole("button", { name: "Lưu", exact: true }).click();
 
     const response = await rendered;
     expect(response.status()).toBe(200);
@@ -107,15 +109,19 @@ test.describe("Hóa đơn → Phát Hành prints the PHIẾU THU", () => {
     ]);
     expect(landed).toMatch(/^blob:/);
 
+    // Headless Chromium stops drawing a page left behind a popup, so close the
+    // PDF and come back to the dialog as the user would.
+    await tab.close();
+    await page.bringToFront();
     // The dialog stays, to correct the data and print again.
     await expect(invoice).toBeVisible();
-    await expect(invoice.getByRole("button", { name: "Phát Hành" })).toBeEnabled();
-    await tab.close();
+    await expect(invoice.getByRole("button", { name: "Lưu", exact: true })).toBeEnabled();
   });
 
-  // BA 2026-10-08: ticked, Tên khách hàng, Mã số thuế, Số ĐT and Email are required.
+  // BA 2026-10-08: ticked, Tên khách hàng, Mã số thuế, Số ĐT and Email are required;
+  // Địa chỉ too, as EasyInvoice refuses a Mã số thuế without one (owner 2026-11-18).
   // Both checks stop before EasyInvoice: the dialog never sends, the server refuses first.
-  test("Xuất hóa đơn đỏ requires the buyer's name, tax code, phone and email", async ({ page }) => {
+  test("Xuất hóa đơn đỏ requires the buyer's name, tax code, address, phone and email", async ({ page }) => {
     expect(receipt).toBeDefined();
     const saved = receipt!;
     await page.setViewportSize({ width: 1600, height: 900 });
@@ -125,9 +131,9 @@ test.describe("Hóa đơn → Phát Hành prints the PHIẾU THU", () => {
       method: "POST",
       json: {
         patientPaymentId: saved.id,
-        publish: true,
+        send: true,
         buyerName: "E2E Buyer",
-        taxCode: "0100000000",
+        taxCode: "0123456787",
         phone: "0900000000",
         email: "   ",
         paymentMethod: 1,
@@ -147,32 +153,188 @@ test.describe("Hóa đơn → Phát Hành prints the PHIẾU THU", () => {
     await expect(invoice.locator("tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
     const taxCode = invoice.getByRole("textbox", { name: /^Mã số thuế/ });
     const email = invoice.getByRole("textbox", { name: /^Email/ });
+    const address = invoice.getByRole("textbox", { name: /^Địa chỉ/ });
     await taxCode.fill("");
     await email.fill("");
+    await address.fill("");
 
     // Unticked, the blank fields are fine: no asterisk, no error.
     await expect(invoice.locator(".floating-field-required")).toHaveCount(0);
 
     await invoice.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
-    await expect(invoice.locator(".floating-field-required")).toHaveCount(4);
+    await expect(invoice.locator(".floating-field-required")).toHaveCount(5);
 
     let sent = false;
     page.on("request", (req) => {
       if (req.url().includes(`${EINVOICES}/issue`) || req.url().includes(RECEIPT_PDF)) sent = true;
     });
-    await invoice.getByRole("button", { name: "Phát Hành" }).click();
+    await invoice.getByRole("button", { name: "Lưu", exact: true }).click();
     await expect(invoice.getByText("Vui lòng nhập Mã số thuế")).toBeVisible();
     await expect(invoice.getByText("Vui lòng nhập Email")).toBeVisible();
+    await expect(invoice.getByText("Vui lòng nhập Địa chỉ")).toBeVisible();
+    await expect(address).toHaveAttribute("aria-invalid", "true");
     await expect(taxCode).toHaveAttribute("aria-invalid", "true");
     // No confirm, no receipt, nothing sent.
-    await expect(page.getByRole("dialog", { name: /^Phát hành hóa đơn/ })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: /^Gửi hóa đơn/ })).toHaveCount(0);
     expect(sent).toBe(false);
 
     // Typing clears that field's error; unticking clears the rest.
-    await taxCode.fill("0100000000");
+    await taxCode.fill("0123456787");
     await expect(invoice.getByText("Vui lòng nhập Mã số thuế")).toHaveCount(0);
     await invoice.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).uncheck();
     await expect(invoice.getByText("Vui lòng nhập Email")).toHaveCount(0);
     await expect(invoice.locator(".floating-field-required")).toHaveCount(0);
+  });
+
+  test("a Mã số thuế EasyInvoice would refuse (129) is caught under the box, before anything is sent (R-1245)", async ({ page }) => {
+    expect(receipt).toBeDefined();
+    const saved = receipt!;
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+
+    // The server says it too before sending, and names the box.
+    const refused = await call(page, `${EINVOICES}/issue`, {
+      method: "POST",
+      json: {
+        patientPaymentId: saved.id,
+        send: true,
+        buyerName: "E2E Buyer",
+        taxCode: "02344444444",
+        address: "1 E2E",
+        phone: "0900000000",
+        email: "e2e@example.com",
+        paymentMethod: 1,
+        lines: [],
+      },
+    });
+    expect(refused.status).toBe(403);
+    expect(refused.body).toMatchObject({ error: { code: "BlueDental:EInvoicing:0018", data: { Field: "taxCode" } } });
+
+    await page.goto("/billing");
+    await page.getByPlaceholder(SEARCH).fill(saved.code);
+    const row = page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: saved.code });
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    await row.getByRole("button", { name: `Xuất hóa đơn điện tử cho phiếu ${saved.code}` }).click();
+
+    const invoice = page.getByRole("dialog", { name: "Hóa đơn" });
+    await expect(invoice.locator("tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
+    const taxCode = invoice.getByRole("textbox", { name: /^Mã số thuế/ });
+    await taxCode.fill("02344444444");
+
+    let sent = false;
+    page.on("request", (req) => {
+      if (req.url().includes(`${EINVOICES}/issue`)) sent = true;
+    });
+    await invoice.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
+    await invoice.getByRole("button", { name: "Lưu", exact: true }).click();
+    const formatError = invoice.getByText(/^Mã số thuế không đúng/);
+    await expect(formatError).toBeVisible();
+    await expect(taxCode).toHaveAttribute("aria-invalid", "true");
+    expect(sent).toBe(false);
+
+    // 13 digits without the dash, and a wrong check digit: EasyInvoice refused
+    // this one after the send, so it is caught here first.
+    await taxCode.fill("0232323232323");
+    await expect(formatError).toBeVisible();
+    await invoice.getByRole("button", { name: "Lưu", exact: true }).click();
+    expect(sent).toBe(false);
+
+    // A branch code with its dash is one EasyInvoice takes: the error goes.
+    await taxCode.fill("0123456787-001");
+    await expect(formatError).toHaveCount(0);
+    await expect(taxCode).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  // BA 2026-11-18: Lưu Nháp only keeps the form here — nothing is required, nothing
+  // reaches EasyInvoice — and the dialog reopens as it was left.
+  test("Lưu Nháp keeps the form in BlueDental as Nháp and reopens with it", async ({ page }) => {
+    expect(receipt).toBeDefined();
+    const saved = receipt!;
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+
+    const openDialog = async () => {
+      await page.goto("/billing");
+      await page.getByPlaceholder(SEARCH).fill(saved.code);
+      const row = page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: saved.code });
+      await expect(row).toBeVisible({ timeout: 20_000 });
+      await row.getByRole("button", { name: `Xuất hóa đơn điện tử cho phiếu ${saved.code}` }).click();
+      const dialog = page.getByRole("dialog", { name: "Hóa đơn" });
+      await expect(dialog.locator("tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
+      return dialog;
+    };
+
+    const invoice = await openDialog();
+    // Half typed — a Mã số thuế EasyInvoice would refuse and no email — is fine for a draft.
+    await invoice.getByRole("textbox", { name: /^Tên đơn vị/ }).fill("E2E Công ty Nháp");
+    await invoice.getByRole("textbox", { name: /^Mã số thuế/ }).fill("02344444444");
+    await invoice.getByRole("textbox", { name: /^Email/ }).fill("");
+
+    const issued = page.waitForResponse((res) => res.url().includes(`${EINVOICES}/issue`));
+    await invoice.getByRole("button", { name: "Lưu Nháp" }).click();
+    const response = await issued;
+    expect(response.status()).toBe(200);
+    expect(JSON.parse(response.request().postData() ?? "{}")).toMatchObject({ send: false });
+    const body = (await response.json()) as { status: number; round: number; no: string | null };
+    // 5 = Nháp: never sent, so no round and no number.
+    expect(body).toMatchObject({ status: 5, round: 0, no: null });
+    await expect(invoice).toBeHidden();
+
+    // Reload, reopen: the dialog is as it was left.
+    await page.reload();
+    const reopened = await openDialog();
+    await expect(reopened.getByRole("textbox", { name: /^Tên đơn vị/ })).toHaveValue("E2E Công ty Nháp");
+    await expect(reopened.getByRole("textbox", { name: /^Mã số thuế/ })).toHaveValue("02344444444");
+
+    // Still a Nháp on the server, read back with a separate request.
+    const list = await call(page, `${EINVOICES}?patientPaymentId=${saved.id}`);
+    expect(list.status).toBe(200);
+    expect(list.body).toMatchObject({ items: [{ status: 5, round: 0 }] });
+  });
+
+  // Owner 2026-11-18: ticked, the PHIẾU THU tab opens only once EasyInvoice took the
+  // invoice — a refused send leaves just the dialog, its error, and no new tab. The
+  // receipt is cancelled behind the open dialog, so the server no longer finds it
+  // (404) and refuses before anything reaches EasyInvoice. Last, because it spends the shared receipt.
+  test("ticked, a refused send opens no PHIẾU THU tab and keeps the dialog", async ({ page, context }) => {
+    expect(receipt).toBeDefined();
+    const saved = receipt!;
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+
+    await page.goto("/billing");
+    await page.getByPlaceholder(SEARCH).fill(saved.code);
+    const row = page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: saved.code });
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    await row.getByRole("button", { name: `Xuất hóa đơn điện tử cho phiếu ${saved.code}` }).click();
+    const invoice = page.getByRole("dialog", { name: "Hóa đơn", exact: true });
+    await expect(invoice.locator("tbody tr.ant-table-row").first()).toBeVisible({ timeout: 20_000 });
+    await invoice.getByRole("textbox", { name: /^Mã số thuế/ }).fill("0123456787");
+    await invoice.getByRole("textbox", { name: /^Email/ }).fill("e2e@example.com");
+    await invoice.getByRole("textbox", { name: /^Địa chỉ/ }).fill("1 E2E");
+    await invoice.getByRole("checkbox", { name: "Xuất hóa đơn đỏ" }).check();
+
+    const cancelled = await call(page, `${PAYMENTS_API}/${saved.id}/cancel`, {
+      method: "POST",
+      json: { reasonCode: 4, reason: "e2e refused send" },
+    });
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBeLessThan(300);
+    receipt = undefined;
+
+    const tabs: unknown[] = [];
+    context.on("page", (tab) => tabs.push(tab));
+    await invoice.getByRole("button", { name: "Lưu", exact: true }).click();
+    const confirm = page.getByRole("dialog", { name: "Gửi hóa đơn sang EasyInvoice?" });
+    const issued = page.waitForResponse((res) => res.url().includes(`${EINVOICES}/issue`));
+    const rendered = page.waitForResponse((res) => res.url().includes(RECEIPT_PDF));
+    await confirm.getByRole("button", { name: /Lưu$/ }).click();
+
+    const refused = await issued;
+    expect(refused.status()).toBe(404);
+    await rendered;
+    await expect(page.locator("[data-sonner-toast][data-type=error]")).toBeVisible();
+    await expect(invoice).toBeVisible();
+    await expect(invoice.getByRole("button", { name: "Lưu", exact: true })).toBeEnabled();
+    expect(tabs).toHaveLength(0);
   });
 });

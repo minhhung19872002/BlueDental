@@ -996,6 +996,10 @@ public static class BlueDentalDomainErrorCodes
         public const string CurrencyNotSupported = "BlueDental:EInvoicing:0015";
         /// <summary>"Xuất hóa đơn đỏ" needs Tên khách hàng, Mã số thuế, Số ĐT and Email.</summary>
         public const string BuyerDetailsRequired = "BlueDental:EInvoicing:0017";
+        /// <summary>Mã số thuế người mua: 10 digits with a valid check digit, the branch form 0123456787-001, or a 12-digit CCCD. Data: Field.</summary>
+        public const string InvalidBuyerTaxCode = "BlueDental:EInvoicing:0018";
+        /// <summary>Lưu Nháp on an invoice already at EasyInvoice (Chờ kiểm tra or signed): only Lưu re-sends it.</summary>
+        public const string AlreadySent = "BlueDental:EInvoicing:0019";
     }
 
     /// <summary>"Yêu cầu xuất HĐ" and the QR form behind it (F-71).</summary>

@@ -9,15 +9,16 @@ import { InvoiceCustomerInfo } from "./InvoiceCustomerInfo";
 import { InvoiceFormInfo } from "./InvoiceFormInfo";
 import { InvoiceServiceTable } from "./InvoiceServiceTable";
 import { useInvoiceIssue } from "./useInvoiceIssue";
-import { redInvoiceErrors } from "./redInvoiceRules";
+import { buyerErrors } from "./redInvoiceRules";
 import "./invoice-modal.css";
 
 /**
- * "Hóa đơn": Lưu Nháp files a draft on EasyInvoice (the same key overwrites
- * it). Phát Hành opens the PHIẾU THU in a new tab and, with "Xuất hóa đơn đỏ" ticked, also
- * signs the e-invoice — the provider then owns the number and it can no
- * longer change. A missing account, a published invoice or an amount over the
- * cap come back from the server as the usual error toast.
+ * "Hóa đơn" (BA 2026-11-18): Lưu Nháp keeps the form in BlueDental only. Lưu
+ * opens the PHIẾU THU in a new tab and, with "Xuất hóa đơn đỏ" ticked, also
+ * sends the e-invoice to EasyInvoice unsigned (Chờ kiểm tra); the accountant
+ * signs it on the portal and the sync brings it back as Đã xuất hóa đơn.
+ * A missing account, a signed invoice or an amount over the cap come back
+ * from the server as the usual error toast.
  */
 export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
   const draft = useEInvoiceDraft(source, open).data;
@@ -27,11 +28,17 @@ export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
     buildBuyer: form.buildBuyer,
     buildLines: form.buildLines,
     redInvoiceComplete: form.redInvoiceMissing.length === 0,
+    buyerFormatValid: form.buyerFormatValid,
     onClose,
   });
 
   const busy = !draft || flow.pending;
-  const buyerErrors = flow.showRequiredErrors ? redInvoiceErrors(form.redInvoiceMissing) : {};
+  const errors = buyerErrors({
+    values: form.buyerValues,
+    showRequired: flow.showRequiredErrors,
+    showFormat: flow.showFormatErrors,
+    server: flow.serverError,
+  });
 
   return (
     <Modal
@@ -82,7 +89,7 @@ export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
           phone={form.phone}
           onPhoneChange={form.onPhoneChange}
           redInvoice={flow.redInvoice}
-          errors={buyerErrors}
+          errors={errors}
         />
         <InvoiceFormInfo
           numberings={draft?.numberings ?? []}
@@ -127,8 +134,8 @@ export function InvoiceModal({ open, source, onClose }: InvoiceModalProps) {
 
       <ConfirmDialog
         open={flow.confirmingPublish}
-        title={t("Treatment:EInvoice:PublishTitle")}
-        message={t("Treatment:EInvoice:PublishBody", `${formatVND(form.grandTotal)} ${t("Treatment:Pricing:CurrencyUnit")}`)}
+        title={t("Treatment:EInvoice:SendTitle")}
+        message={t("Treatment:EInvoice:SendBody", `${formatVND(form.grandTotal)} ${t("Treatment:Pricing:CurrencyUnit")}`)}
         confirmLabel={t("Treatment:Invoice:Issue")}
         pending={flow.publishing}
         onConfirm={flow.confirmPublish}

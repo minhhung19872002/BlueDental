@@ -2228,8 +2228,27 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.CustomerName).HasMaxLength(ElectronicInvoice.MaxCustomerNameLength);
             entity.Property(x => x.LastError).HasMaxLength(ElectronicInvoice.MaxErrorLength);
             entity.Property(x => x.PaymentMethod).HasMaxLength(ElectronicInvoice.MaxPaymentMethodLength).IsRequired();
+            entity.Property(x => x.SourceKey).HasMaxLength(ElectronicInvoice.MaxSourceKeyLength).IsRequired();
+            entity.Property(x => x.FormJson).HasColumnType("text");
 
+            // BA 2026-11-18: every round sent, on the same row as JSON.
+            entity.OwnsMany(x => x.Attempts, attempt =>
+            {
+                attempt.ToJson();
+                attempt.Property(x => x.Ikey).HasMaxLength(ElectronicInvoice.MaxIkeyLength);
+                attempt.Property(x => x.Pattern).HasMaxLength(ElectronicInvoice.MaxPatternLength);
+                attempt.Property(x => x.Serial).HasMaxLength(ElectronicInvoice.MaxSerialLength);
+                attempt.Property(x => x.No).HasMaxLength(ElectronicInvoice.MaxNoLength);
+                attempt.Property(x => x.PdfBlobName).HasMaxLength(ElectronicInvoice.MaxBlobNameLength);
+            });
+            entity.Navigation(x => x.Attempts).UsePropertyAccessMode(PropertyAccessMode.Field);
+            entity.Ignore(x => x.CurrentAttempt);
+            entity.Ignore(x => x.PdfBlobName);
+            entity.Ignore(x => x.IsSigned);
+
+            entity.HasIndex(x => x.SourceKey).IsUnique();
             entity.HasIndex(x => x.Ikey).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.SignedAt });
             entity.HasIndex(x => x.PatientPaymentId).IsUnique().HasFilter("\"IsDeleted\" = false");
             entity.HasIndex(x => x.ClinicBranchId);
             entity.HasIndex(x => x.PatientId);

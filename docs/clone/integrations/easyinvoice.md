@@ -243,6 +243,25 @@ HĐ chưa có số (`No` rỗng / `"0"`) luôn là `Draft`, trừ mã 5. Mã g�
 - Bản gốc app.nfcdental.com lập HĐ từ phiếu thu hay từ kế hoạch điều trị (register có cột
   "Tên đơn vị", "Hình thức thanh toán" → nghiêng về phiếu thu; không có dữ liệu thật để xem).
 
+## Luồng ký trên portal (BA 2026-11-18, R-1245 / R-1246) — thay phần "Phát Hành" bên dưới
+
+- **Lưu Nháp**: chỉ lưu ở BlueDental (status `NotSent = 5`, form giữ ở `FormJson`), không gọi EasyInvoice.
+  Lưu Nháp trên hóa đơn đã gửi → `BlueDental:EInvoicing:0019`.
+- **Lưu** (trước là "Phát Hành"): `importInvoice` **không ký** → status `Draft = 0` "Chờ kiểm tra". Lưu lại khi
+  còn chờ → ghi đè cùng nháp (cùng Ikey). Kế toán ký trên portal SoftDreams.
+- **Đồng bộ**: `EInvoiceSyncWorker` mỗi 60 s gọi `getInvoicesByIkeys` (lô 50) cho hóa đơn Chờ kiểm tra; mỗi giờ thêm
+  hóa đơn đã ký ≤ 90 ngày để bắt hủy trên portal; ↻ trên dòng gọi `POST {id}/sync` ngay.
+  Ký → `Published`, `SignedAt`, PDF lưu blob `einvoices/{id:N}-{round}.pdf`, YC-HD liên quan đóng với số HĐ.
+  Hủy → `Cancelled`, YC-HD do chính số HĐ đó đóng được mở lại.
+- **Lần gửi (round)**: gửi lại sau khi hủy = lần mới trên cùng dòng, Ikey = `SourceKey` (lần 1) hoặc
+  `{SourceKey}-{round}`; lịch sử ở cột `Attempts` (jsonb), FE hiện ở tooltip badge.
+- **Realtime**: sau commit, hub `NotificationHub` phát `EInvoicesChanged(branchId)` — chỉ mã chi nhánh; màn hình đọc
+  lại qua API (có kiểm chi nhánh + quyền).
+- **MST người mua** (kiểm ở FE và BE trước khi gọi EasyInvoice, lỗi `0018`): 10 chữ số đúng chữ số kiểm tra
+  (trọng số 31,29,23,19,17,13,7,5,3; `10 − tổng mod 11` = chữ số 10), mã chi nhánh dạng `0123456787-001`, hoặc 12 chữ
+  số CCCD. Lỗi 129 của EasyInvoice → `0003` kèm `data.Field` để hiện dưới đúng ô.
+- Chưa kiểm được: ký thật trên portal sandbox.
+
 ## BlueDental API — đã dựng (2026-09-30, thay cho bản đề xuất 2026-09-28)
 
 Luồng: Chi tiết kế hoạch điều trị → tab **Thanh toán** → nút "Xuất hóa đơn điện tử" (icon FileText) trên phiếu thu

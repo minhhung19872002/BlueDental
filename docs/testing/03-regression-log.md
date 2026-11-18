@@ -15602,3 +15602,26 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: `stage-appointment-note.spec` (7 / 6 / 12 chip, chữ chip có thứ đúng theo Ngày điều trị) — nằm trong 36 pass của R-1243.
 - **Mức retest**: 2 (form công đoạn).
 
+
+## R-1245 (2026-11-18, mức 2: Hóa đơn điện tử — lỗi EasyInvoice hiện dưới từng ô, MST kiểm ở FE; develop)
+
+- **Yêu cầu** (chủ dự án, ảnh toast lỗi 129 khi Lưu Nháp): "b handle được lỗi đó vô từng field hoặc format cho dễ nhìn được k"; "sao b k validate ở FE giống rule của EasyInvoice đc k"; "này là lỗi sau khi t submit, b handle ở FE trước khi gọi BE đc k" (MST `0232323232323` bị EasyInvoice trả lỗi).
+- **Thay đổi**:
+  - BE `EasyInvoiceRefusal`: lỗi 129 / thông báo nhà cung cấp → `BlueDental:EInvoicing:0003` kèm `data.Field` (`taxCode`, `phone`, `address`, `companyName`, `buyerName`) và `data.Message` đã bỏ tên phần tử XML `(CusTaxCode)`.
+  - BE `BuyerTaxCode` + FE `redInvoiceRules.isValidTaxCode`: cùng một luật — 10 chữ số **đúng chữ số kiểm tra** (trọng số 31,29,23,19,17,13,7,5,3; `10 − tổng mod 11` = chữ số thứ 10), mã chi nhánh có gạch `0123456787-001`, hoặc 12 chữ số CCCD. Server từ chối `BlueDental:EInvoicing:0018` (Field = taxCode) trước khi gọi EasyInvoice.
+  - FE `InvoiceModal` / `InvoiceCustomerInfo`: lỗi theo ô hiện dưới ô đó, phần còn lại toast; tick "Xuất hóa đơn đỏ" thì Địa chỉ bắt buộc (`*`).
+- **Kiểm thử**: Domain.Tests `EasyInvoiceRefusalTests` (13 ca MST + 4 ca chọn ô). E2E `payment-receipt-pdf.spec` — MST `0232323232323` hiện lỗi dưới ô và Lưu không gửi request.
+- **Mức retest**: 2 (Hóa đơn điện tử).
+
+## R-1246 (2026-11-18, mức 2: Hóa đơn điện tử — ký trên portal EasyInvoice, đồng bộ về; develop)
+
+- **Yêu cầu** (BA 2026-11-18, plan đã được chủ dự án xác nhận: "1. theo đề xuất 2. đổi thành Lưu 3. để làm sau 4. realtime …"): Lưu Nháp chỉ lưu ở BlueDental; Lưu gửi hóa đơn **chưa ký** (Chờ kiểm tra), kế toán ký trên portal; đồng bộ về Đã xuất hóa đơn + giữ PDF; hủy trên portal cũng đồng bộ về; nút "Phát Hành" đổi thành "Lưu".
+- **Thay đổi**:
+  - `ElectronicInvoiceStatus.NotSent = 5` (Nháp). `ElectronicInvoice` thêm `SourceKey`, `Round`, `SignedAt`, `FormJson`, `Attempts` (jsonb, lịch sử từng lần gửi). Gửi lại sau khi hủy = lần mới cùng dòng, Ikey `{SourceKey}-{round}`. Lỗi `0019` AlreadySent: Lưu Nháp trên hóa đơn đã gửi.
+  - Migration `20261118043123_EInvoicePortalSignR1246`: dữ liệu cũ = lần 1, `SourceKey = Ikey`, unique index `SourceKey`, index `(Status, SignedAt)`.
+  - `ElectronicInvoiceSync` + `EInvoiceSyncWorker`: mỗi phút hỏi các hóa đơn Chờ kiểm tra, mỗi giờ các hóa đơn đã ký trong 90 ngày (bắt hủy trên portal), theo lô 50, mỗi chi nhánh/tài khoản một unit of work. Ký → lưu PDF vào blob, đóng YC-HD với số HĐ; hủy → mở lại YC-HD mà hóa đơn đó đã đóng. Nhật ký gọi API chỉ ghi hình dạng, log chỉ ghi loại lỗi (không PHI).
+  - `SignalREInvoiceNotifier`: sau commit phát `EInvoicesChanged(branchId)` — chỉ mã chi nhánh; FE (`useAppointmentLiveUpdates`) làm mới hóa đơn, YC-HD, sổ thu, báo cáo.
+  - FE: badge trạng thái Nháp / Chờ kiểm tra / Đã xuất…, tooltip lịch sử lần gửi; nút ↻ và Tải PDF có spinner + khóa khi đang chạy; mở lại hộp thoại theo form đã lưu; tick Xuất hóa đơn đỏ mà gửi bị từ chối thì không mở tab PHIẾU THU.
+- **Kiểm thử** (không gửi hóa đơn thật lên EasyInvoice — provider stub): Domain.Tests EInvoicing **81/81**; EntityFrameworkCore.Tests EInvoicing (PostgreSQL thật) **8/8** gồm `ElectronicInvoiceSyncTests`; Application.Tests EInvoicing **8/8**. E2E `payment-receipt-pdf.spec` trên bản build production :8092 + host thật :5152 + PostgreSQL thật, không chặn request: **6/6**; ca "Lưu opens the receipt PDF in a new tab" đỏ sẵn khi headless (đỏ cả trên HEAD, chạy worktree HEAD :8093) — loại khỏi lần chạy. Tải PDF: kiểm bằng trình duyệt thật với mạng giới hạn 200KB/s, nút `aria-busy` + disabled trong lúc tải. tsc + eslint sạch.
+- **Chưa kiểm được**: ký thật trên portal sandbox (chủ dự án: "t k test được") → F-46 vẫn `READY_FOR_TEST`.
+- **Mức retest**: 2 (Hóa đơn điện tử + YC-HD).

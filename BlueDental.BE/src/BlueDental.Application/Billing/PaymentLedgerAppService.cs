@@ -159,20 +159,21 @@ public class PaymentLedgerAppService : BlueDentalAppService, IPaymentLedgerAppSe
     }
 
     /// <summary>
-    /// A receipt with a published (or cancelled) invoice of its own is done; a
-    /// Draft one is retried. A live whole-slip invoice bars every receipt of it.
+    /// A receipt whose invoice is signed is done; one only saved, waiting to be
+    /// signed, or cancelled on the provider (re-issued on the same row) is
+    /// still open. A whole-slip invoice sent to the provider bars every receipt of it.
     /// </summary>
     private static bool CanIssueEInvoice(PatientPayment payment, IReadOnlyCollection<ElectronicInvoice> invoices)
     {
         var own = invoices.FirstOrDefault(inv => inv.PatientPaymentId == payment.Id);
-        if (own != null && own.Status != ElectronicInvoiceStatus.Draft)
+        if (own is { IsSigned: true })
         {
             return false;
         }
 
         return !invoices.Any(inv => inv.PatientPaymentId == null
             && inv.TreatmentPlanId == payment.TreatmentPlanId
-            && inv.Status != ElectronicInvoiceStatus.Cancelled);
+            && inv.Status is not (ElectronicInvoiceStatus.Cancelled or ElectronicInvoiceStatus.NotSent));
     }
 
     /// <summary>Names for one page, each kind resolved in a single read.</summary>
