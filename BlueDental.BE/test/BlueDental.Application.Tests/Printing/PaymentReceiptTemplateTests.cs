@@ -59,7 +59,11 @@ public class PaymentReceiptTemplateTests
     }
 
 
-    /// <summary>The QR takes the template's box: same centre, GrowMm larger on every side, the box itself gone.</summary>
+    /// <summary>
+    /// The QR takes the template's box: a square on the box's longer side plus
+    /// GrowMm each way, same centre, the box itself gone. R-1247's box is drawn
+    /// 21.5 × 19.6 mm, so the QR stands 1 mm over it at the top and bottom.
+    /// </summary>
     [Fact]
     public void The_Qr_Replaces_The_Box_Around_Its_Centre()
     {
@@ -72,9 +76,11 @@ public class PaymentReceiptTemplateTests
         xml.ShouldNotContain("<v:rect");
         var qr = Placement(xml, PictureUri, "invoice-request-qr");
         const long grow = (long)(PaymentReceiptQr.GrowMm * 36_000);
-        qr.Size.ShouldBe(box.Size + 2 * grow);
-        qr.Left.ShouldBe(box.Left - grow);
-        qr.Top.ShouldBe(box.Top - grow);
+        var size = Math.Max(box.Width, box.Height) + 2 * grow;
+        qr.Width.ShouldBe(size);
+        qr.Height.ShouldBe(size);
+        qr.Left.ShouldBe(box.Left + (box.Width - size) / 2);
+        qr.Top.ShouldBe(box.Top + (box.Height - size) / 2);
         FooterXml(PaymentReceiptQr.Place(template, "https://example.test/x")).ShouldContain("QR");
     }
 
@@ -113,10 +119,11 @@ public class PaymentReceiptTemplateTests
             .ServiceTypes.ShouldContain(typeof(IDocxPdfConverter));
 
     /// <summary>
-    /// The room the template leaves above each name: two blank 10 pt lines at
-    /// 1.5 spacing in a TableGrid cell (no space after) — 2 × 345 twips, ≈ 12.2 mm.
+    /// The room the template leaves above each name: two blank 14 pt lines at
+    /// 1.5 spacing in a TableGrid cell (no space after) — 2 × 483 twips, ≈ 17 mm
+    /// (R-1247's A5 template; the A6 one had 10 pt lines, 2 × 345).
     /// </summary>
-    private const long SignatureRoomEmu = 2 * 345 * 635;
+    private const long SignatureRoomEmu = 2 * 483 * 635;
 
     /// <summary>
     /// The tallest a signature goes: the room less 31 twips (0.55 mm) on each
@@ -143,7 +150,7 @@ public class PaymentReceiptTemplateTests
         before.Paragraphs.ShouldBe(after.Paragraphs + 1);
         after.Above.ShouldNotBeNull();
         after.Above.Name.ShouldBe("customer-signature");
-        // 600 × 200 px into 50 mm × the ≈11.1 mm the room allows: the room binds, ≈33.2 × 11.1 mm.
+        // 600 × 200 px into 50 mm × the ≈15.9 mm the room allows: the room binds, ≈47.8 × 15.9 mm.
         after.Above.Height.ShouldBe(SignatureMaxEmu);
         after.Above.Width.ShouldBe(SignatureMaxEmu * 3);
     }
@@ -180,7 +187,7 @@ public class PaymentReceiptTemplateTests
     [Fact]
     public void A_Short_Signature_Sits_Midway_In_The_Room()
     {
-        // 500 × 100 px into 50 mm wide: 50 × 10 mm (360000 EMU ≈ 567 twips) of the 690-twip room.
+        // 500 × 100 px into 50 mm wide: 50 × 10 mm (360000 EMU ≈ 567 twips) of the 966-twip room.
         var signed = DocxPicture.PlaceAbove(
             File.ReadAllBytes(TemplatePath()), "{{PayerName}}", Png(500, 100),
             ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
@@ -212,7 +219,7 @@ public class PaymentReceiptTemplateTests
     [Fact]
     public void A_Signature_Is_Never_Enlarged_Past_A_Ballpoint_Stroke()
     {
-        // A 10 px pen: 0.5 mm per 10 px = 1800 EMU per pixel; the room alone would allow ≈3115.
+        // A 10 px pen: 0.5 mm per 10 px = 1800 EMU per pixel; the room and the 50 mm width alone would allow ≈3409.
         var signed = DocxPicture.PlaceAbove(
             File.ReadAllBytes(TemplatePath()), "{{CashierName}}", InkedPng(600, 200, 40, 40, 560, 160, pen: 10),
             ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "accountant-signature");
@@ -225,7 +232,11 @@ public class PaymentReceiptTemplateTests
         extent.Cy!.Value.ShouldBeInRange(128 * 1782, 128 * 1818);
     }
 
-    /// <summary>A fine pen keeps filling the room: the cap only bites on thick strokes.</summary>
+    /// <summary>
+    /// A fine pen keeps filling the room: the cap only bites on thick strokes.
+    /// Ink 528 × 128 px is as large as the room's height or the 50 mm width
+    /// lets it be — on R-1247's taller room the width binds.
+    /// </summary>
     [Fact]
     public void A_Fine_Stroke_Still_Fills_The_Room()
     {
@@ -233,7 +244,9 @@ public class PaymentReceiptTemplateTests
             File.ReadAllBytes(TemplatePath()), "{{PayerName}}", InkedPng(600, 200, 40, 40, 560, 160, pen: 2),
             ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
 
-        PayerCell(signed).Above!.Height.ShouldBeInRange(SignatureMaxEmu - 1, SignatureMaxEmu);
+        var widthBound = (long)(ReceiptExporter.SignatureMaxWidthMm * 36_000 * 128 / 528);
+        var fullest = Math.Min(SignatureMaxEmu, widthBound);
+        PayerCell(signed).Above!.Height.ShouldBeInRange(fullest - 1, fullest);
     }
 
     /// <summary>
@@ -445,9 +458,9 @@ public class PaymentReceiptTemplateTests
     private const string ShapeUri = "uri=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\"";
     private const string PictureUri = "uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\"";
 
-    private sealed record Box(long Left, long Top, long Size);
+    private sealed record Box(long Left, long Top, long Width, long Height);
 
-    /// <summary>Offsets and width of the one floating drawing whose graphic is <paramref name="uri"/>.</summary>
+    /// <summary>Offsets and size of the one floating drawing whose graphic is <paramref name="uri"/>.</summary>
     private static Box Placement(string xml, string uri, string? name = null)
     {
         var anchor = Regex.Matches(xml, "<wp:anchor[\\s\\S]*?</wp:anchor>")
@@ -457,7 +470,8 @@ public class PaymentReceiptTemplateTests
         return new Box(
             Number("<wp:positionH[^>]*><wp:posOffset>(-?\\d+)"),
             Number("<wp:positionV[^>]*><wp:posOffset>(-?\\d+)"),
-            Number("<wp:extent cx=\"(\\d+)\""));
+            Number("<wp:extent cx=\"(\\d+)\""),
+            Number("<wp:extent cx=\"\\d+\" cy=\"(\\d+)\""));
     }
 
     private static string DocumentXml(byte[] docx) => PartXml(docx, "word/document.xml");
