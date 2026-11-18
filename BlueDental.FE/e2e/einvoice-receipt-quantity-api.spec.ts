@@ -4,10 +4,13 @@ import { call, createSlipViaApi, settleReceipt } from "./fixtures/ledgerReceipt"
 
 /**
  * R-1258 (BA 2026-11-18): a receipt's e-invoice printed every service as
- * "1 × Thành tiền" — Cạo vôi 10 × 500.000 went out as 1 × 5.000.000. A
- * service the receipt pays in full now bills the slip's Số lượng and Đơn giá
- * (after its discount: the invoice has no Giảm giá column, 6 = 4 × 5). A part
- * payment stays one line of what was collected until the BA rules on it.
+ * "1 × Thành tiền" — Cạo vôi 10 × 500.000 went out as 1 × 5.000.000. Each
+ * service now bills the slip's Đơn giá (after its discount and the đợt's TN
+ * giảm / voucher, before VAT: the invoice has no Giảm giá column, 6 = 4 × 5)
+ * and as many units as the đợt's money buys; money short of a unit is a line
+ * of its own, the đồng a rounded-down Đơn giá leaves go on the last unit.
+ * (Owner 2026-11-18 on the BA's "Số lượng = tiền ÷ đơn giá"; the rounding of
+ * Đơn giá after a voucher is still with the BA.)
  *
  * Real API on the logged-in session: a catalog service is made, put on a fresh
  * slip ×10, collected, ✓'d, and the receipt's e-invoice draft is read back.
@@ -102,8 +105,14 @@ async function slipWith(
   return { slip, line: slip.services.find((s) => s.serviceId === line.serviceId)! };
 }
 
-/** A receipt of `amount` on the one line, settled ("Đã thanh toán"), and its e-invoice draft's lines. */
-async function invoiceLinesOf(page: Page, slip: Slip, line: SlipLine, amount: number): Promise<InvoiceLine[]> {
+/** A receipt of `amount` on the one line (TN giảm `cashierDiscount` off it), settled ("Đã thanh toán"), and its e-invoice draft's lines. */
+async function invoiceLinesOf(
+  page: Page,
+  slip: Slip,
+  line: SlipLine,
+  amount: number,
+  cashierDiscount = 0,
+): Promise<InvoiceLine[]> {
   const receipt = await call(page, "/api/v1/app/patient-payments", {
     method: "POST",
     json: {
@@ -117,6 +126,9 @@ async function invoiceLinesOf(page: Page, slip: Slip, line: SlipLine, amount: nu
       method: 1,
       amount,
       staffId: slip.dentistId,
+      lineTerms: cashierDiscount
+        ? [{ treatmentServiceId: line.id, receiptName: null, cashierDiscount, cashierDiscountReason: "e2e R-1258" }]
+        : [],
     },
   });
   expect(receipt.status, JSON.stringify(receipt.body)).toBe(200);
@@ -125,11 +137,20 @@ async function invoiceLinesOf(page: Page, slip: Slip, line: SlipLine, amount: nu
   const draft = await call(page, `/api/v1/app/e-invoices/draft?patientPaymentId=${String(receipt.body.id)}`);
   expect(draft.status, JSON.stringify(draft.body)).toBe(200);
   expect(draft.body.maxAmount).toBe(amount);
-  return draft.body.lines as InvoiceLine[];
+  const lines = draft.body.lines as InvoiceLine[];
+  // Every line keeps 6 = 4 × 5, and the lines add up to what the đợt collected.
+  for (const l of lines) expect(l.total).toBe(l.quantity * l.unitPrice);
+  expect(lines.reduce((sum, l) => sum + l.amount, 0)).toBe(amount);
+  return lines;
 }
 
+/** "qty × unitPrice" of each line, the way the invoice prints them. */
+const shape = (lines: InvoiceLine[]) => lines.map((l) => `${l.quantity} × ${l.unitPrice}`);
+
 test.describe("Hóa đơn điện tử từ phiếu thu: Số lượng và Đơn giá của phiếu điều trị (API, R-1258)", () => {
-  test("a service paid in full bills 10 × 500.000, a part payment stays 1 × what was paid", async ({ page }) => {
+  test("paid in full bills 10 × 500.000; a part payment bills whole units, the rest on a line of its own", async ({
+    page,
+  }) => {
     await login(page);
     const id = runId();
     const serviceId = await catalogService(page, `HĐ SL ${id}`, 500_000, TAX.NotTaxable);
@@ -140,13 +161,20 @@ test.describe("Hóa đơn điện tử từ phiếu thu: Số lượng và Đơn
     const [paid] = await invoiceLinesOf(page, full.slip, full.line, 5_000_000);
     expect(paid).toMatchObject({ quantity: 10, unitPrice: 500_000, total: 5_000_000, taxAmount: 0, amount: 5_000_000 });
 
-    // UNKNOWN until the BA answers: how a part payment should read. Today it is one line of the đợt.
+    // BA: Đơn giá stays the slip's, Số lượng is what the đợt's money buys. Đợt 1
+    // 2.000.000 → 4 × 500.000; đợt 2 2.200.000 → 4 × 500.000 + 1 × 200.000
+    // (rounding up to 5 × 500.000 would bill more than was collected).
     const part = await slipWith(page, `${id} 1 phần`, { serviceId, price: 500_000, quantity: 10 });
-    const [partLine] = await invoiceLinesOf(page, part.slip, part.line, 2_000_000);
-    expect(partLine).toMatchObject({ quantity: 1, unitPrice: 2_000_000, total: 2_000_000, amount: 2_000_000 });
+    expect(shape(await invoiceLinesOf(page, part.slip, part.line, 2_000_000))).toEqual(["4 × 500000"]);
+    expect(shape(await invoiceLinesOf(page, part.slip, part.line, 2_200_000))).toEqual([
+      "4 × 500000",
+      "1 × 200000",
+    ]);
+    // Đợt 3 clears the line: 800.000 → 1 × 500.000 + 1 × 300.000.
+    expect(shape(await invoiceLinesOf(page, part.slip, part.line, 800_000))).toEqual(["1 × 500000", "1 × 300000"]);
   });
 
-  test("a discounted line bills its price after the discount, a taxed line its price before VAT", async ({ page }) => {
+  test("Đơn giá is after the line's discount and the đợt's TN giảm, before VAT", async ({ page }) => {
     await login(page);
     const id = runId();
 
@@ -162,6 +190,15 @@ test.describe("Hóa đơn điện tử từ phiếu thu: Số lượng và Đơn
     expect(discounted.line.payableAmount).toBe(4_500_000);
     const [cut] = await invoiceLinesOf(page, discounted.slip, discounted.line, 4_500_000);
     expect(cut).toMatchObject({ quantity: 10, unitPrice: 450_000, total: 4_500_000, amount: 4_500_000 });
+
+    // TN giảm 50.000 on 3 × 1.000.000: 2.950.000 ÷ 3 = 983.333,33 — rounded down,
+    // the đồng left over go on the last unit.
+    const reliefId = await catalogService(page, `HĐ SL TN ${id}`, 1_000_000, TAX.NotTaxable);
+    const relieved = await slipWith(page, `${id} TN`, { serviceId: reliefId, price: 1_000_000, quantity: 3 });
+    expect(shape(await invoiceLinesOf(page, relieved.slip, relieved.line, 2_950_000, 50_000))).toEqual([
+      "2 × 983333",
+      "1 × 983334",
+    ]);
 
     // 8 % VAT: 10 × 900.000 + 720.000 = 9.720.000 collected.
     const taxedId = await catalogService(page, `HĐ SL VAT ${id}`, 900_000, TAX.Eight);

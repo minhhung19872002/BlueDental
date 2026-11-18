@@ -15645,3 +15645,11 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: E2E mới `einvoice-receipt-quantity-api` **2/2** (10 × 500.000 trả đủ; trả 2.000.000 → 1 × 2.000.000; giảm 10 % → 10 × 450.000; VAT 8 % → 10 × 900.000 + 720.000) — trên develop gốc đỏ đúng chỗ (1 × 5.000.000). Cùng lượt: `einvoice-api`, `vat-payment-einvoice-api`, `payment-from-slip`, `invoice-request-api`, `invoice-request-ui` — tổng **14/14** (preview :8093 → host thật :5152 → PostgreSQL thật, không chặn request). Domain.Tests EInvoicing **99/99**, Application.Tests EInvoicing + interception **15/15**.
 - **Chưa kiểm được**: gửi thật lên EasyInvoice (không gửi từ test).
 - **Mức retest**: 2 (Hóa đơn điện tử).
+
+### R-1258 vòng 2 (2026-11-18, BA trả lời về trả một phần)
+
+- **BA**: Đơn giá giữ theo phiếu; Số lượng = tiền đợt ÷ Đơn giá (BA nói làm tròn lên); Thành tiền = tiền đợt; voucher trừ thẳng vào Đơn giá rồi × SL.
+- **Quyết định của chủ dự án** (thay cho "làm tròn lên", vì 5 × 500.000 = 2.500.000 vượt số đã thu và dialog Hóa đơn / BE đều tính Thành tiền = SL × ĐG): tiền không đủ một đơn vị nữa thành **dòng riêng** — 2.200.000 ở 500.000 → 4 × 500.000 + 1 × 200.000. Đơn giá sau voucher / TN giảm làm tròn **xuống** đồng, phần đồng dư dồn vào đơn vị cuối — 3 × 1.000.000, TN giảm 50.000 → 2 × 983.333 + 1 × 983.334. Voucher / TN giảm chỉ trừ vào Đơn giá của **đợt có nó**. Cách làm tròn này còn chờ BA xác nhận.
+- **Thay đổi**: Domain `ElectronicInvoiceDraft.LinesAtUnitPrice` (+ `PreTaxOf`); BE `UnitPriceOf` = ⌊`ChargedAmountOf(dịch vụ, relief của đợt)` ÷ SL⌋, mỗi dịch vụ ra 1 hoặc 2 dòng, dòng nào cũng 6 = 4 × 5, cộng lại đúng số tiền đợt. Bỏ quy tắc "trả đủ mới lấy SL" của vòng 1.
+- **Kiểm thử**: E2E `einvoice-receipt-quantity-api` **2/2** (trả đủ 10 × 500.000; đợt 2.000.000 → 4 × 500.000; 2.200.000 → 4 × 500.000 + 1 × 200.000; 800.000 cuối → 1 × 500.000 + 1 × 300.000; giảm 10 % → 10 × 450.000; TN giảm 50.000 → 2 × 983.333 + 1 × 983.334; VAT 8 % → 10 × 900.000 + 720.000). Cùng lượt thêm `payment-rounds` — tổng **17/17** (preview :8093 → host thật :5152 → PostgreSQL thật). Domain.Tests EInvoicing **107/107** (+8 case `LinesAtUnitPrice`), Application.Tests EInvoicing + interception **15/15**.
+- **Chưa kiểm được**: EasyInvoice nhận hai dòng cùng mã dịch vụ (không gửi từ test).

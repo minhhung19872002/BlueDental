@@ -829,8 +829,10 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             group.Key)).ToList();
     }
 
-    private static List<(TreatmentService Service, decimal Quantity, decimal Amount, decimal? Tax)> ReceiptParts(
-        InvoiceSource source)
+    /// <summary>One service a receipt collects on, with the Đơn giá its invoice bills it at.</summary>
+    private sealed record ReceiptPart(TreatmentService Service, decimal UnitPrice, decimal Amount, decimal? Tax);
+
+    private static List<ReceiptPart> ReceiptParts(InvoiceSource source)
     {
         if (source.Slip == null)
         {
@@ -844,28 +846,29 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             .Select(l =>
             {
                 var service = services[l.TreatmentServiceId];
-                return (service, BilledQuantityOf(slip, service, l.Amount), l.Amount, l.TaxAmount);
+                return new ReceiptPart(service, UnitPriceOf(slip, service, l.Relief), l.Amount, l.TaxAmount);
             })
             .ToList();
     }
 
     /// <summary>
-    /// A receipt that pays a service in full bills the slip's Số lượng, so the
-    /// invoice reads 10 × 500.000 rather than 1 × 5.000.000 (BA 2026-11-18,
-    /// R-1258). A part payment stays one line of what the đợt collected — how
-    /// that should read is still with the BA.
+    /// The Đơn giá a receipt bills a service at (BA 2026-11-18, R-1258): the
+    /// slip's price before VAT once the line's discount and this đợt's TN giảm
+    /// and voucher are off, spread over its Số lượng and rounded down to the
+    /// đồng. 10 × 500.000 paid in full reads 10 × 500.000, not 1 × 5.000.000.
     /// </summary>
-    private static decimal BilledQuantityOf(TreatmentPlan slip, TreatmentService service, decimal collected) =>
-        service.Quantity > 1 && collected == slip.PayableAmountOf(service) ? service.Quantity : 1m;
+    private static decimal UnitPriceOf(TreatmentPlan slip, TreatmentService service, decimal relief) =>
+        service.Quantity > 0 ? decimal.Floor(slip.ChargedAmountOf(service, relief) / service.Quantity) : 0m;
 
     /// <summary>
-    /// One line per service of a receipt. What was collected is VAT included,
+    /// The lines of each service of a receipt, at its Đơn giá (one line, or two
+    /// when the money is no whole number of units — <see
+    /// cref="ElectronicInvoiceDraft.LinesAtUnitPrice"/>). What was collected is VAT included,
     /// so each line takes its VAT out of the amount rather than adding it: the
     /// VAT the đợt stored (P2910), so the đợt' invoices add up to the line's
     /// VAT, or — on a receipt from before — backed out at the service's rate.
     /// </summary>
-    private async Task<List<ElectronicInvoiceLine>> NameLinesAsync(
-        List<(TreatmentService Service, decimal Quantity, decimal Amount, decimal? Tax)> parts)
+    private async Task<List<ElectronicInvoiceLine>> NameLinesAsync(List<ReceiptPart> parts)
     {
         if (parts.Count == 0)
         {
@@ -876,21 +879,14 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         var entries = (await _catalog.GetListAsync(c => serviceIds.Contains(c.Id))).ToDictionary(c => c.Id);
         var unit = L["Treatment:EInvoice:DefaultUnit"].Value;
 
-        return parts.Select(p =>
+        return parts.SelectMany(p =>
         {
             entries.TryGetValue(p.Service.ServiceId, out var entry);
-            var code = entry?.Code ?? p.Service.Code;
-            var name = entry?.Name ?? p.Service.Code;
-            ElectronicInvoiceLine LineAt(decimal quantity) => p.Tax is { } tax
-                ? ElectronicInvoiceDraft.LineOf(
-                    code, name, entry?.Unit ?? unit, quantity, p.Amount - tax, tax, RateOf(p.Service))
-                : ElectronicInvoiceDraft.LineFromGross(
-                    code, name, entry?.Unit ?? unit, quantity, p.Amount, RateOf(p.Service));
-
-            // Đơn giá is Thành tiền ÷ Số lượng (the invoice's 6 = 4 × 5); when
-            // that is no whole đồng the line goes back to 1 × Thành tiền.
-            var line = LineAt(p.Quantity);
-            return line.UnitPrice == decimal.Truncate(line.UnitPrice) ? line : LineAt(1m);
+            var rate = RateOf(p.Service);
+            var tax = p.Tax ?? p.Amount - ElectronicInvoiceDraft.PreTaxOf(p.Amount, rate);
+            return ElectronicInvoiceDraft.LinesAtUnitPrice(
+                entry?.Code ?? p.Service.Code, entry?.Name ?? p.Service.Code, entry?.Unit ?? unit,
+                p.UnitPrice, p.Service.Quantity, p.Amount - tax, tax, rate);
         }).ToList();
     }
 

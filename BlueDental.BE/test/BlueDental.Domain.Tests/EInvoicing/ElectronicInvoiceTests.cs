@@ -329,4 +329,27 @@ public class ElectronicInvoiceTests
         Assert.False(Blocks(wholeSlip, issuingWholeSlip: false));
         Assert.False(Blocks(receipt, issuingWholeSlip: true));
     }
+
+    /// <summary>R-1258: a đợt's money on a service, at its Đơn giá — "qty×price" lines, tax shared out.</summary>
+    [Theory]
+    [InlineData(500_000, 10, 5_000_000, 0, "10×500000")] // paid in full
+    [InlineData(500_000, 10, 2_000_000, 0, "4×500000")] // part payment, whole units
+    [InlineData(500_000, 10, 2_200_000, 0, "4×500000 1×200000")] // part payment, short of a unit
+    [InlineData(500_000, 10, 300_000, 0, "1×300000")] // less than one unit
+    [InlineData(983_333, 3, 2_950_000, 0, "2×983333 1×983334")] // Đơn giá rounded down: the đồng go on the last unit
+    [InlineData(5_000_000, 1, 2_000_000, 0, "1×2000000")]
+    [InlineData(900_000, 10, 9_000_000, 720_000, "10×900000")]
+    [InlineData(900_000, 10, 2_000_000, 160_000, "2×900000 1×200000")]
+    public void A_receipt_line_bills_whole_units_at_its_unit_price(
+        int unitPrice, int quantity, int total, int tax, string expected)
+    {
+        var rate = tax > 0 ? 8 : -1;
+        var lines = ElectronicInvoiceDraft.LinesAtUnitPrice("CV01", "Cạo vôi", "Lần", unitPrice, quantity, total, tax, rate);
+
+        Assert.Equal(expected, string.Join(" ", lines.Select(l => $"{l.Quantity:0}×{l.UnitPrice:0}")));
+        Assert.All(lines, l => Assert.Equal(l.Total, l.Quantity * l.UnitPrice));
+        Assert.Equal(total, lines.Sum(l => l.Total));
+        Assert.Equal(tax, lines.Sum(l => l.TaxAmount));
+        Assert.Equal(total + tax, lines.Sum(l => l.Amount));
+    }
 }
