@@ -81,7 +81,8 @@ public class PaymentReceiptTemplateTests
         qr.Height.ShouldBe(size);
         qr.Left.ShouldBe(box.Left + (box.Width - size) / 2);
         qr.Top.ShouldBe(box.Top + (box.Height - size) / 2);
-        FooterXml(PaymentReceiptQr.Place(template, "https://example.test/x")).ShouldContain("QR");
+        // Placing the QR leaves the footer as the template has it (R-1251's has no scan hint).
+        FooterXml(PaymentReceiptQr.Place(template, "https://example.test/x")).ShouldBe(FooterXml(template));
     }
 
     [Fact]
@@ -119,17 +120,17 @@ public class PaymentReceiptTemplateTests
             .ServiceTypes.ShouldContain(typeof(IDocxPdfConverter));
 
     /// <summary>
-    /// The room the template leaves above each name: an 18 pt blank line and a
-    /// 14 pt one, both at 1.5 spacing in a TableGrid cell (no space after) —
-    /// 621 + 483 twips, ≈ 19.5 mm (R-1250's template; R-1247's had two 14 pt
-    /// lines, 2 × 483, and the A6 one two 10 pt lines, 2 × 345).
+    /// The room the template leaves above each name: a 14 pt blank line and a
+    /// 16 pt one, both at 1.5 spacing in a TableGrid cell (no space after) —
+    /// 483 + 552 twips, ≈ 18.3 mm (R-1251's template; R-1250's had 18 + 14 pt,
+    /// R-1247's 2 × 14 pt, and the A6 one 2 × 10 pt).
     /// </summary>
-    private const long SignatureRoomEmu = (621 + 483) * 635;
+    private const long SignatureRoomEmu = (483 + 552) * 635;
 
     /// <summary>
     /// The tallest a signature goes: the room less 31 twips (0.55 mm) on each
     /// side, so it can be lifted that far and leave equal paper above and below —
-    /// but never past the exporter's 18 mm, which binds first on R-1250's room.
+    /// and never past the exporter's 18 mm (on R-1251's room the room binds, ≈17.2 mm).
     /// </summary>
     private static readonly long SignatureMaxEmu = Math.Min(
         SignatureRoomEmu - 2 * 31 * 635, (long)(ReceiptExporter.SignatureMaxHeightMm * 36_000));
@@ -156,7 +157,7 @@ public class PaymentReceiptTemplateTests
         before.Paragraphs.ShouldBe(after.Paragraphs + 1);
         after.Above.ShouldNotBeNull();
         after.Above.Name.ShouldBe("customer-signature");
-        // 600 × 200 px into 50 mm × the 18 mm allowed: on R-1250's room the width binds, 50 × 16.7 mm.
+        // 600 × 200 px into 50 mm × the 18 mm allowed: on R-1251's room the width binds, 50 × 16.7 mm.
         var height = Math.Min(SignatureMaxEmu, SignatureMaxWidthEmu / 3);
         after.Above.Height.ShouldBe(height);
         after.Above.Width.ShouldBe(height * 3);
@@ -181,7 +182,7 @@ public class PaymentReceiptTemplateTests
 
         var after = PayerCell(signed);
         after.Above.ShouldNotBeNull();
-        // 168 × 68 px, shape kept, no taller than allowed. On R-1250's room the
+        // 168 × 68 px, shape kept, no taller than allowed. On R-1251's room the
         // 0.5 mm ballpoint cap binds this 2 px pen (≈16.9 mm tall).
         var height = after.Above.Height;
         height.ShouldBeLessThanOrEqualTo(SignatureMaxEmu);
@@ -197,7 +198,7 @@ public class PaymentReceiptTemplateTests
     [Fact]
     public void A_Short_Signature_Sits_Midway_In_The_Room()
     {
-        // 500 × 100 px into 50 mm wide: 50 × 10 mm (360000 EMU ≈ 567 twips) of the 1104-twip room.
+        // 500 × 100 px into 50 mm wide: 50 × 10 mm (360000 EMU ≈ 567 twips) of the 1035-twip room.
         var signed = DocxPicture.PlaceAbove(
             File.ReadAllBytes(TemplatePath()), "{{PayerName}}", Png(500, 100),
             ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
