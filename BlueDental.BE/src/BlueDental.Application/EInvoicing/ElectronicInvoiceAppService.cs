@@ -837,12 +837,26 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             return [];
         }
 
-        var services = source.Slip.Services.ToDictionary(s => s.Id);
+        var slip = source.Slip;
+        var services = slip.Services.ToDictionary(s => s.Id);
         return source.Payment!.Lines
             .Where(l => services.ContainsKey(l.TreatmentServiceId) && l.Amount > 0m)
-            .Select(l => (services[l.TreatmentServiceId], 1m, l.Amount, l.TaxAmount))
+            .Select(l =>
+            {
+                var service = services[l.TreatmentServiceId];
+                return (service, BilledQuantityOf(slip, service, l.Amount), l.Amount, l.TaxAmount);
+            })
             .ToList();
     }
+
+    /// <summary>
+    /// A receipt that pays a service in full bills the slip's Số lượng, so the
+    /// invoice reads 10 × 500.000 rather than 1 × 5.000.000 (BA 2026-11-18,
+    /// R-1258). A part payment stays one line of what the đợt collected — how
+    /// that should read is still with the BA.
+    /// </summary>
+    private static decimal BilledQuantityOf(TreatmentPlan slip, TreatmentService service, decimal collected) =>
+        service.Quantity > 1 && collected == slip.PayableAmountOf(service) ? service.Quantity : 1m;
 
     /// <summary>
     /// One line per service of a receipt. What was collected is VAT included,
@@ -867,11 +881,16 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             entries.TryGetValue(p.Service.ServiceId, out var entry);
             var code = entry?.Code ?? p.Service.Code;
             var name = entry?.Name ?? p.Service.Code;
-            return p.Tax is { } tax
+            ElectronicInvoiceLine LineAt(decimal quantity) => p.Tax is { } tax
                 ? ElectronicInvoiceDraft.LineOf(
-                    code, name, entry?.Unit ?? unit, p.Quantity, p.Amount - tax, tax, RateOf(p.Service))
+                    code, name, entry?.Unit ?? unit, quantity, p.Amount - tax, tax, RateOf(p.Service))
                 : ElectronicInvoiceDraft.LineFromGross(
-                    code, name, entry?.Unit ?? unit, p.Quantity, p.Amount, RateOf(p.Service));
+                    code, name, entry?.Unit ?? unit, quantity, p.Amount, RateOf(p.Service));
+
+            // Đơn giá is Thành tiền ÷ Số lượng (the invoice's 6 = 4 × 5); when
+            // that is no whole đồng the line goes back to 1 × Thành tiền.
+            var line = LineAt(p.Quantity);
+            return line.UnitPrice == decimal.Truncate(line.UnitPrice) ? line : LineAt(1m);
         }).ToList();
     }
 

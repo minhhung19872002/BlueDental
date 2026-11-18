@@ -15636,3 +15636,12 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử** (không gửi HĐ thật lên EasyInvoice — trạng thái 2/4/5 đặt bằng SQL; Xử lý trong test chỉ đi tới lỗi 0017): Domain.Tests EInvoicing **99/99**; Application.Tests EInvoicing **10/10**; EntityFrameworkCore.Tests EInvoicing (PostgreSQL thật) **8/8**; HttpApi.Host.Tests ControllerConvention **21/21**. E2E trên bản build production (preview :8149 → host thật :5148 → PostgreSQL thật, không chặn request): `invoice-request-api` **3/3**, `invoice-request-ui` **1/1**, `header-navigation` **10/10** (số mục drawer 18 → 20: X-quang R-1203 đã làm đỏ sẵn ở 19, + Hóa đơn đỏ). tsc + oxlint sạch.
 - **Chưa kiểm được**: Xử lý gửi thật lên EasyInvoice (không gửi từ test, kể cả sandbox).
 - **Mức retest**: 2 (YC-HD + Hóa đơn điện tử) + 3 phần header (menu).
+
+## R-1258 (2026-11-18, mức 2: Hóa đơn điện tử từ phiếu thu — Số lượng / Đơn giá lấy theo phiếu điều trị; develop)
+
+- **Yêu cầu**: BA 2026-11-18 (ảnh) — HĐ điện tử của phiếu thu in mỗi dịch vụ "1 × Thành tiền" (Cạo vôi 10 × 500.000 ra 1 × 5.000.000). Lấy Số lượng và Đơn giá tại bảng dịch vụ của phiếu điều trị.
+- **Quyết định của chủ dự án**: Đơn giá = giá **sau giảm** (HĐ không có cột Giảm giá, 6 = 4 × 5). HĐ xuất cho **cả phiếu điều trị** giữ nguyên một dòng "Kế hoạch điều trị DT…" SL 1. **Trả một phần**: chưa đổi, chờ hỏi BA — vẫn 1 × số tiền đợt (UNKNOWN cách hiển thị mong muốn).
+- **Thay đổi**: BE `ElectronicInvoiceAppService.ReceiptParts` — dòng phiếu thu trả **đủ** dịch vụ (số thu = `PayableAmountOf`, gồm VAT) lấy SL của dịch vụ; `NameLinesAsync` tính Đơn giá = Thành tiền trước thuế ÷ SL, không chẵn đồng thì quay về 1 × Thành tiền. Thuế và Tổng tiền thanh toán không đổi.
+- **Kiểm thử**: E2E mới `einvoice-receipt-quantity-api` **2/2** (10 × 500.000 trả đủ; trả 2.000.000 → 1 × 2.000.000; giảm 10 % → 10 × 450.000; VAT 8 % → 10 × 900.000 + 720.000) — trên develop gốc đỏ đúng chỗ (1 × 5.000.000). Cùng lượt: `einvoice-api`, `vat-payment-einvoice-api`, `payment-from-slip`, `invoice-request-api`, `invoice-request-ui` — tổng **14/14** (preview :8093 → host thật :5152 → PostgreSQL thật, không chặn request). Domain.Tests EInvoicing **99/99**, Application.Tests EInvoicing + interception **15/15**.
+- **Chưa kiểm được**: gửi thật lên EasyInvoice (không gửi từ test).
+- **Mức retest**: 2 (Hóa đơn điện tử).
