@@ -381,9 +381,10 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         var docx = DocxTemplate.Fill(
             await LazyServiceProvider.LazyGetRequiredService<PaymentReceiptTemplate>().LoadAsync(),
             content.ToPlaceholders());
-        docx = source.Payment is { RedInvoiceRequested: true } payment
-            ? await WithInvoiceRequestQrAsync(docx, payment)
-            : PaymentReceiptQr.Leave(docx);
+        // TEMP-NO-QR (BA 2026-11-18, R-1253): no QR on the receipt — see ReceiptExporter.
+        // docx = source.Payment is { RedInvoiceRequested: true } payment
+        //     ? await WithInvoiceRequestQrAsync(docx, payment)
+        //     : PaymentReceiptQr.Leave(docx);
 
         return await LazyServiceProvider.LazyGetRequiredService<IDocxPdfConverter>()
             .ConvertAsync(docx, "phieu-thu.docx");
