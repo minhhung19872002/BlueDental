@@ -144,10 +144,14 @@ public class ReceiptExporter(
         }
 
         docx = DocxTemplate.Fill(docx, placeholders);
-        docx = payment.RedInvoiceRequested
-            ? PaymentReceiptQr.Place(docx, invoiceRequests.PublicUrlOf(
-                await invoiceRequests.EnsureLinkAsync(payment, guidGenerator.Create())))
-            : PaymentReceiptQr.Leave(docx);
+        // TEMP-NO-QR (BA 2026-11-18, R-1253): the receipt prints no QR. R-1251's
+        // template dropped the QR box and its only shape is now the "PHIẾU THU"
+        // title, which Place would swap for a page-wide QR and Leave would delete.
+        // Restore with a template that draws the box again.
+        // docx = payment.RedInvoiceRequested
+        //     ? PaymentReceiptQr.Place(docx, invoiceRequests.PublicUrlOf(
+        //         await invoiceRequests.EnsureLinkAsync(payment, guidGenerator.Create())))
+        //     : PaymentReceiptQr.Leave(docx);
 
         return await converter.ConvertAsync(docx, "phieu-thu.docx", GotenbergPdfConverter.PdfA2b);
     }

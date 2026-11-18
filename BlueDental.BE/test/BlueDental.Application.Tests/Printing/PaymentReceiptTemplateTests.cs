@@ -64,7 +64,7 @@ public class PaymentReceiptTemplateTests
     /// GrowMm each way, same centre, the box itself gone. R-1247's box is drawn
     /// 21.5 × 19.6 mm, so the QR stands 1 mm over it at the top and bottom.
     /// </summary>
-    [Fact]
+    [Fact(Skip = "TEMP-NO-QR (BA 2026-11-18, R-1253): receipts print no QR; R-1251's template has no QR box.")]
     public void The_Qr_Replaces_The_Box_Around_Its_Centre()
     {
         var template = File.ReadAllBytes(TemplatePath());
@@ -85,7 +85,7 @@ public class PaymentReceiptTemplateTests
         FooterXml(PaymentReceiptQr.Place(template, "https://example.test/x")).ShouldBe(FooterXml(template));
     }
 
-    [Fact]
+    [Fact(Skip = "TEMP-NO-QR (BA 2026-11-18, R-1253): receipts print no QR; R-1251's template has no QR box.")]
     public void Without_A_Qr_The_Box_And_The_Scan_Hint_Go()
     {
         var docx = PaymentReceiptQr.Leave(File.ReadAllBytes(TemplatePath()));
