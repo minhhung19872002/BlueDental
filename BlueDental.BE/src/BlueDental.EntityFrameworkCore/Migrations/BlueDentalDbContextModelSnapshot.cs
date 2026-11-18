@@ -3215,6 +3215,9 @@ namespace BlueDental.Migrations
                         .HasColumnType("text")
                         .HasColumnName("ExtraProperties");
 
+                    b.Property<string>("FormJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("Ikey")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -3280,9 +3283,20 @@ namespace BlueDental.Migrations
                     b.Property<int?>("ProviderStatus")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Round")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Serial")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset?>("SignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(90)
+                        .HasColumnType("character varying(90)");
 
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
@@ -3311,7 +3325,12 @@ namespace BlueDental.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDeleted\" = false");
 
+                    b.HasIndex("SourceKey")
+                        .IsUnique();
+
                     b.HasIndex("TreatmentPlanId");
+
+                    b.HasIndex("Status", "SignedAt");
 
                     b.ToTable("bd_electronic_invoices", (string)null);
                 });
@@ -3428,6 +3447,9 @@ namespace BlueDental.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -3462,7 +3484,7 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("PatientPaymentId")
                         .IsUnique()
-                        .HasFilter("\"IsDeleted\" = false AND \"Status\" <> 5");
+                        .HasFilter("\"IsDeleted\" = false AND \"Status\" <> 6");
 
                     b.HasIndex("ClinicBranchId", "Code")
                         .IsUnique();
@@ -12195,6 +12217,70 @@ namespace BlueDental.Migrations
                         .HasForeignKey("NoteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BlueDental.EInvoicing.ElectronicInvoice", b =>
+                {
+                    b.OwnsMany("BlueDental.EInvoicing.ElectronicInvoiceAttempt", "Attempts", b1 =>
+                        {
+                            b1.Property<Guid>("ElectronicInvoiceId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            b1.Property<decimal>("Amount")
+                                .HasColumnType("numeric");
+
+                            b1.Property<DateTimeOffset?>("CancelledAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("Ikey")
+                                .IsRequired()
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)");
+
+                            b1.Property<string>("No")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
+                            b1.Property<string>("Pattern")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
+                            b1.Property<string>("PdfBlobName")
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)");
+
+                            b1.Property<int>("Round")
+                                .HasColumnType("integer");
+
+                            b1.Property<DateTimeOffset>("SentAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("Serial")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)");
+
+                            b1.Property<DateTimeOffset?>("SignedAt")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<int>("Status")
+                                .HasColumnType("integer");
+
+                            b1.HasKey("ElectronicInvoiceId", "__synthesizedOrdinal");
+
+                            b1.ToTable("bd_electronic_invoices");
+
+                            b1.ToJson("Attempts");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ElectronicInvoiceId");
+                        });
+
+                    b.Navigation("Attempts");
                 });
 
             modelBuilder.Entity("BlueDental.Inventory.MaterialAllocationItem", b =>

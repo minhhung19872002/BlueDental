@@ -26,7 +26,6 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
 {
     public const string ClientName = "EasyInvoice";
     public const string ImportInvoicePath = "/api/publish/importInvoice";
-    public const string ImportAndPublishPath = "/api/publish/importAndPublishInv";
     public const string GetByIkeysPath = "/api/publish/getInvoicesByIkeys";
     public const string GetPdfPath = "/api/publish/getInvoicePdf";
 
@@ -43,10 +42,6 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
     public Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportInvoiceAsync(
         EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken = default) =>
         ImportAsync(ImportInvoicePath, settings, xmlData, cancellationToken);
-
-    public Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportAndPublishAsync(
-        EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken = default) =>
-        ImportAsync(ImportAndPublishPath, settings, xmlData, cancellationToken);
 
     public async Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> GetByIkeysAsync(
         EasyInvoiceSettings settings, IReadOnlyList<string> ikeys, CancellationToken cancellationToken = default)
@@ -71,7 +66,11 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
 
             if (response.IsSuccessStatusCode && IsPdf(bytes, mediaType))
             {
-                return new EasyInvoiceCallResult<byte[]>(GetPdfPath, status, true, watch.ElapsedMilliseconds, null, null, bytes);
+                // "attachment; filename=2026_1118_1C26TYY_0_0318531468.pdf" — the name the portal downloads it under.
+                var disposition = response.Content.Headers.ContentDisposition;
+                var fileName = ElectronicInvoicePdfName.FromProvider(disposition?.FileNameStar ?? disposition?.FileName);
+                return new EasyInvoiceCallResult<byte[]>(
+                    GetPdfPath, status, true, watch.ElapsedMilliseconds, null, null, bytes, fileName);
             }
 
             // A refusal comes back as the JSON envelope instead of a file.
@@ -214,12 +213,13 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
             var message = Text(root, "Message");
             var errorCode = Number(root, "ErrorCode");
 
-            // Per-invoice refusals ride inside Data.KeyInvoiceMsg; surface them
-            // so the cashier reads "102: thiếu trường…" rather than "lỗi dữ liệu".
+            // Per-invoice refusals ride inside Data.KeyInvoiceMsg, keyed by Ikey;
+            // that text says what is wrong, the envelope's only "lỗi dữ liệu".
             if (root.TryGetProperty("Data", out var data) && data.ValueKind == JsonValueKind.Object
-                && data.TryGetProperty("KeyInvoiceMsg", out var detail) && detail.ValueKind != JsonValueKind.Null)
+                && data.TryGetProperty("KeyInvoiceMsg", out var detail)
+                && InvoiceMessages(detail) is { Length: > 0 } perInvoice)
             {
-                message = $"{message} {Clip(detail.GetRawText())}".Trim();
+                message = perInvoice;
             }
 
             return new Envelope((int)status, message, errorCode is { } code ? (int)code : null, document);
@@ -228,6 +228,26 @@ public class HttpEasyInvoiceClient : IEasyInvoiceClient, ITransientDependency
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// <c>{ "bd-…": "Dữ liệu không hợp lệ, …" }</c> → the messages alone, without
+    /// the keys; anything else the provider might send comes through as written.
+    /// </summary>
+    private static string? InvoiceMessages(JsonElement detail)
+    {
+        var text = detail.ValueKind switch
+        {
+            JsonValueKind.Object => string.Join("; ", detail.EnumerateObject()
+                .Select(p => p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : p.Value.GetRawText())
+                .Where(m => !string.IsNullOrWhiteSpace(m))
+                .Distinct()),
+            JsonValueKind.String => detail.GetString(),
+            JsonValueKind.Null or JsonValueKind.Undefined => null,
+            _ => detail.GetRawText()
+        };
+
+        return text == null ? null : Clip(text.Trim());
     }
 
     private static string? Text(JsonElement element, string name)

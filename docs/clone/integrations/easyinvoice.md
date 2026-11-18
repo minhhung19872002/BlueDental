@@ -126,6 +126,13 @@ kế toán ký/phát hành trên portal, BlueDental `getInvoicesByIkeys` để �
 
 `Pattern` tùy chọn. Trả `application/pdf` thẳng (không bọc JSON). ~460 KB cho HĐ 1 dòng.
 
+Tên file nằm trong `Content-Disposition: attachment; filename=…` (đọc trên sandbox 2026-11-18):
+`{yyyy}_{M}{d}_{Pattern}{Serial}_{No}_{MST}.pdf` — tháng và ngày **không** đệm số 0
+(`2026_106_…` = 06/10, `2026_929_…` = 29/09), `No` = `0` khi chưa có số. Ví dụ nháp:
+`2026_1118_1C26TYY_0_0318531468.pdf`. Ngày = ngày lập (ArisingDate, rỗng thì ngày gửi).
+UNKNOWN_REFERENCE_BEHAVIOR: với HĐ đã ký, ngày nào được dùng (ngày lập hay ngày ký) và `No`
+có đệm số 0 không — sandbox không ký được nên chưa quan sát.
+
 ### `api/business/cancelInvoice` — hủy
 
 Body `{ "Ikey", "Pattern"?, "Serial"?, "Reason"? }` — server nhận Ikey, nhưng HĐ nháp
@@ -243,6 +250,25 @@ HĐ chưa có số (`No` rỗng / `"0"`) luôn là `Draft`, trừ mã 5. Mã g�
 - Bản gốc app.nfcdental.com lập HĐ từ phiếu thu hay từ kế hoạch điều trị (register có cột
   "Tên đơn vị", "Hình thức thanh toán" → nghiêng về phiếu thu; không có dữ liệu thật để xem).
 
+## Luồng ký trên portal (BA 2026-11-18, R-1245 / R-1246) — thay phần "Phát Hành" bên dưới
+
+- **Lưu Nháp**: chỉ lưu ở BlueDental (status `NotSent = 5`, form giữ ở `FormJson`), không gọi EasyInvoice.
+  Lưu Nháp trên hóa đơn đã gửi → `BlueDental:EInvoicing:0019`.
+- **Lưu** (trước là "Phát Hành"): `importInvoice` **không ký** → status `Draft = 0` "Chờ kiểm tra". Lưu lại khi
+  còn chờ → ghi đè cùng nháp (cùng Ikey). Kế toán ký trên portal SoftDreams.
+- **Đồng bộ**: `EInvoiceSyncWorker` mỗi 60 s gọi `getInvoicesByIkeys` (lô 50) cho hóa đơn Chờ kiểm tra; mỗi giờ thêm
+  hóa đơn đã ký ≤ 90 ngày để bắt hủy trên portal; ↻ trên dòng gọi `POST {id}/sync` ngay.
+  Ký → `Published`, `SignedAt`, PDF lưu blob `einvoices/{id:N}-{round}.pdf`, YC-HD liên quan đóng với số HĐ.
+  Hủy → `Cancelled`, YC-HD do chính số HĐ đó đóng được mở lại.
+- **Lần gửi (round)**: gửi lại sau khi hủy = lần mới trên cùng dòng, Ikey = `SourceKey` (lần 1) hoặc
+  `{SourceKey}-{round}`; lịch sử ở cột `Attempts` (jsonb), FE hiện ở tooltip badge.
+- **Realtime**: sau commit, hub `NotificationHub` phát `EInvoicesChanged(branchId)` — chỉ mã chi nhánh; màn hình đọc
+  lại qua API (có kiểm chi nhánh + quyền).
+- **MST người mua** (kiểm ở FE và BE trước khi gọi EasyInvoice, lỗi `0018`): 10 chữ số đúng chữ số kiểm tra
+  (trọng số 31,29,23,19,17,13,7,5,3; `10 − tổng mod 11` = chữ số 10), mã chi nhánh dạng `0123456787-001`, hoặc 12 chữ
+  số CCCD. Lỗi 129 của EasyInvoice → `0003` kèm `data.Field` để hiện dưới đúng ô.
+- Chưa kiểm được: ký thật trên portal sandbox.
+
 ## BlueDental API — đã dựng (2026-09-30, thay cho bản đề xuất 2026-09-28)
 
 Luồng: Chi tiết kế hoạch điều trị → tab **Thanh toán** → nút "Xuất hóa đơn điện tử" (icon FileText) trên phiếu thu
@@ -257,7 +283,7 @@ Controller: `BlueDental.HttpApi/EInvoicing/ElectronicInvoiceController.cs`, base
 | GET | `/api/v1/app/e-invoices?patientPaymentId&treatmentPlanId&patientId&clinicBranchId` | `payment.read` | Danh sách HĐĐT, mới nhất trước, lọc theo chi nhánh user được xem. Trả `ListResultDto<ElectronicInvoiceDto>` |
 | POST | `/api/v1/app/e-invoices/issue-from-payment/{patientPaymentId}` | `payment.finalize` | Tạo nháp tại EasyInvoice từ một phiếu thu. Gọi lại khi còn nháp → **ghi đè cùng nháp** (Ikey cố định) |
 | POST | `/api/v1/app/e-invoices/{id}/sync` | `payment.read` | `getInvoicesByIkeys` — cập nhật trạng thái/số HĐ sau khi kế toán ký trên portal |
-| GET | `/api/v1/app/e-invoices/{id}/pdf` | `payment.read` | `getInvoicePdf` — trả `application/pdf`, tên `hoa-don-dien-tu-{id}` |
+| GET | `/api/v1/app/e-invoices/{id}/pdf` | `payment.read` | `getInvoicePdf` (hoặc bản PDF đã ký đang lưu) — trả `application/pdf`, tên file đúng như EasyInvoice đặt: lấy nguyên tên trong `Content-Disposition` của EasyInvoice; với bản đã lưu thì dựng lại theo cùng mẫu (`ElectronicInvoicePdfName`) (BA 2026-11-18) |
 
 Không có body request; mọi tham số ở path/query.
 

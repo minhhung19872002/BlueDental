@@ -84,7 +84,7 @@ public class InvoiceRequestSources(
 
         var ids = list.Select(x => x.Id).ToList();
         var taken = (await requests.GetQueryableAsync())
-            .Where(r => ids.Contains(r.PatientPaymentId) && r.Status != InvoiceRequestStatus.Cancelled)
+            .Where(r => ids.Contains(r.PatientPaymentId) && r.Status != InvoiceRequestStatus.Withdrawn)
             .Select(r => r.PatientPaymentId);
         var takenIds = (await executer.ToListAsync(taken)).ToHashSet();
         return list.Where(x => !takenIds.Contains(x.Id)).ToList();
@@ -163,7 +163,7 @@ public class InvoiceRequestSources(
     public async Task EnsureNoLiveRequestAsync(Guid patientPaymentId)
     {
         if (await requests.AnyAsync(r =>
-                r.PatientPaymentId == patientPaymentId && r.Status != InvoiceRequestStatus.Cancelled))
+                r.PatientPaymentId == patientPaymentId && r.Status != InvoiceRequestStatus.Withdrawn))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.AlreadyRequested);
         }

@@ -116,7 +116,7 @@ public class PublicInvoiceRequestAppService(
     }
 
     private Task<bool> HasLiveRequestAsync(Guid patientPaymentId) =>
-        requests.AnyAsync(r => r.PatientPaymentId == patientPaymentId && r.Status != InvoiceRequestStatus.Cancelled);
+        requests.AnyAsync(r => r.PatientPaymentId == patientPaymentId && r.Status != InvoiceRequestStatus.Withdrawn);
 
     /// <summary>The customer's value, or the one on file when the field was left blank.</summary>
     private static string? Kept(string? typed, string? onFile) =>

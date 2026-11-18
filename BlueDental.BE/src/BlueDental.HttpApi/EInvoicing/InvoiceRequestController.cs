@@ -45,20 +45,14 @@ public sealed class InvoiceRequestController(IInvoiceRequestAppService service) 
     public Task<InvoiceRequestDto> UpdateAsync(Guid id, [FromBody] UpdateInvoiceRequestDto input) =>
         service.UpdateAsync(id, input);
 
-    [HttpPost("{id:guid}/start")]
-    public Task<InvoiceRequestDto> StartAsync(Guid id) => service.StartAsync(id);
+    /// <summary>Xử lý / Xử lý lại: sends the e-invoice to EasyInvoice (P1811).</summary>
+    [HttpPost("{id:guid}/process")]
+    public Task<InvoiceRequestDto> ProcessAsync(Guid id) => service.ProcessAsync(id);
 
-    [HttpPost("{id:guid}/needs-info")]
-    public Task<InvoiceRequestDto> RequestMoreInfoAsync(Guid id, [FromBody] InvoiceRequestReasonDto input) =>
-        service.RequestMoreInfoAsync(id, input);
-
-    [HttpPost("{id:guid}/complete")]
-    public Task<InvoiceRequestDto> CompleteAsync(Guid id, [FromBody] CompleteInvoiceRequestDto input) =>
-        service.CompleteAsync(id, input);
-
-    [HttpPost("{id:guid}/cancel")]
-    public Task<InvoiceRequestDto> CancelAsync(Guid id, [FromBody] InvoiceRequestReasonDto input) =>
-        service.CancelAsync(id, input);
+    /// <summary>Hủy yêu cầu.</summary>
+    [HttpPost("{id:guid}/withdraw")]
+    public Task<InvoiceRequestDto> WithdrawAsync(Guid id, [FromBody] InvoiceRequestReasonDto input) =>
+        service.WithdrawAsync(id, input);
 }
 
 /// <summary>The page behind the QR on a PHIẾU THU; no sign-in, the token is the key.</summary>

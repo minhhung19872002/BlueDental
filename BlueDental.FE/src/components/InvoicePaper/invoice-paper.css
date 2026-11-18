@@ -42,8 +42,10 @@ span.inv-paper__field {
 .inv-paper__field--name {
   flex-grow: 3.2;
 }
+/* On a narrow card the shares leave the year ~30px ("195"): it keeps room for the label and four digits. */
 .inv-paper__field--year {
   flex-grow: 1.1;
+  min-width: 8em;
 }
 .inv-paper__field--phone {
   flex-grow: 1.9;
@@ -163,6 +165,8 @@ span.inv-paper__field {
 .inv-paper .inv-paper__control .ant-input:not(textarea):not(.ant-input-affix-wrapper .ant-input),
 .inv-paper .inv-paper__control .ant-input-number.ant-input-number {
   height: auto;
+  /* AntD 6 pads the number wrapper 11px a side on top of the input's own 6px: Năm sinh read "195". */
+  padding: 0;
 }
 .inv-paper .inv-paper__control .ant-input-number-input {
   height: auto;

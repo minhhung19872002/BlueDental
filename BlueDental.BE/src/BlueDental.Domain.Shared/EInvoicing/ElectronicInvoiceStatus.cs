@@ -1,19 +1,21 @@
 namespace BlueDental.EInvoicing;
 
 /// <summary>
-/// Where an e-invoice stands at the provider, as BlueDental last heard it.
+/// Where an e-invoice stands, as BlueDental last heard it (BA 2026-11-18):
+/// Lưu Nháp keeps it in BlueDental (<see cref="NotSent"/>); Lưu sends it to
+/// EasyInvoice unsigned (<see cref="Draft"/>, "Chờ kiểm tra"); the accountant
+/// signs it on the provider's portal and the sync reads it back
+/// (<see cref="Published"/>, "Đã xuất hóa đơn").
 ///
 /// EasyInvoice's own <c>InvoiceStatus</c> is kept raw on the row; this is the
-/// three-way reading every screen needs. The sandbox has no signing device, so
-/// today every invoice BlueDental creates stays <see cref="Draft"/> until the
-/// accountant signs it on the provider's portal.
+/// reading every screen needs.
 /// </summary>
 public enum ElectronicInvoiceStatus
 {
-    /// <summary>Created at the provider, not yet signed / numbered.</summary>
+    /// <summary>At the provider, not yet signed / numbered — "Chờ kiểm tra".</summary>
     Draft = 0,
 
-    /// <summary>Signed and numbered by the provider.</summary>
+    /// <summary>Signed and numbered by the provider — "Đã xuất hóa đơn".</summary>
     Published = 1,
 
     /// <summary>Cancelled at the provider.</summary>
@@ -23,5 +25,8 @@ public enum ElectronicInvoiceStatus
     Replaced = 3,
 
     /// <summary>Signed, then corrected by an adjustment invoice (provider status 4).</summary>
-    Adjusted = 4
+    Adjusted = 4,
+
+    /// <summary>Saved in BlueDental only (Lưu Nháp); nothing was sent — "Nháp".</summary>
+    NotSent = 5
 }

@@ -50,7 +50,7 @@ export function PatientInvoiceTab({ patientId }: { patientId: string }) {
         onChange={setTab}
         className="pd-invoice-tabs"
       />
-      {tab === "requests" ? <InvoiceRequestPanel patientId={patientId} /> : <PatientReceiptTable patientId={patientId} />}
+      {tab === "requests" ? <InvoiceRequestPanel scope={{ patientId }} /> : <PatientReceiptTable patientId={patientId} />}
     </section>
   );
 }

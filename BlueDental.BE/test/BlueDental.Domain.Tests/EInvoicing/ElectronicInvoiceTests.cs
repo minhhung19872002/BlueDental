@@ -5,66 +5,170 @@ using Xunit;
 
 namespace BlueDental.EInvoicing;
 
+/// <summary>
+/// The BA 2026-11-18 flow: Lưu Nháp keeps the dialog here, Lưu sends it unsigned
+/// ("Chờ kiểm tra"), the accountant signs on the portal, the sync hears it, and an
+/// invoice cancelled there goes out again as the next round of the same row.
+/// </summary>
 public class ElectronicInvoiceTests
 {
-    private static readonly DateTimeOffset At = new(2026, 9, 28, 10, 0, 0, TimeSpan.FromHours(7));
+    private const string SourceKey = "bd-abc";
+    private static readonly DateTimeOffset At = new(2026, 11, 18, 10, 0, 0, TimeSpan.FromHours(7));
 
-    private static ElectronicInvoiceDraft Draft() => new()
+    private static ElectronicInvoiceDraft Draft(string ikey = SourceKey, decimal price = 500_000m) => new()
     {
-        Ikey = "bd-abc",
+        Ikey = ikey,
         CustomerCode = "BN0001",
         CustomerName = "Nguyễn Văn Test",
         PaymentMethod = ElectronicInvoiceDraft.TransferPaymentMethod,
         VatRate = -1,
-        Lines = [ElectronicInvoiceDraft.Line("TR01", "Trám răng", "Lần", 1m, 500_000m, -1)]
+        Lines = [ElectronicInvoiceDraft.Line("TR01", "Trám răng", "Lần", 1m, price, -1)]
     };
 
     private static EasyInvoiceSettings Account(Guid? configId = null, string pattern = "1C26TYY") =>
         new(configId, "http://sandbox.test", "user", "secret", "0100000000", pattern, null, -1);
 
-    private static ElectronicInvoice Invoice() => ElectronicInvoice.Create(
-        Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, Account(), Draft());
+    private static ElectronicInvoice Opened(Guid? paymentId = null, Guid? planId = null) => ElectronicInvoice.Open(
+        Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), paymentId ?? Guid.NewGuid(), planId, SourceKey);
 
-    private static ProviderInvoiceSummary Summary(int status, string no, string ikey = "bd-abc") =>
+    private static ElectronicInvoice Waiting(Guid? configId = null)
+    {
+        var invoice = Opened();
+        invoice.Sent(Account(configId), Draft(), "{}", At);
+        return invoice;
+    }
+
+    private static ElectronicInvoice Signed(string no = "17")
+    {
+        var invoice = Waiting();
+        invoice.ApplyProviderSummary(Summary(1, no), At.AddMinutes(5));
+        return invoice;
+    }
+
+    private static ProviderInvoiceSummary Summary(int status, string no, string ikey = SourceKey) =>
         new(ikey, status, "1C26TYY", "", no, "LOOKUP1", "http://view", 500_000m, 0m, 500_000m, "Nguyễn Văn Test");
 
     [Fact]
-    public void A_New_Invoice_Is_A_Draft_Carrying_The_Draft_Amounts()
+    public void An_Opened_Invoice_Is_Only_Kept_Here()
     {
-        var invoice = Invoice();
+        var invoice = Opened();
 
-        Assert.Equal(ElectronicInvoiceStatus.Draft, invoice.Status);
-        Assert.Equal(ElectronicInvoice.EasyInvoiceProvider, invoice.Provider);
-        Assert.Equal(500_000m, invoice.Total);
-        Assert.Equal(0m, invoice.TaxAmount);
-        Assert.Equal(500_000m, invoice.Amount);
-        Assert.Equal("Nguyễn Văn Test", invoice.CustomerName);
-        Assert.Null(invoice.No);
+        Assert.Equal(ElectronicInvoiceStatus.NotSent, invoice.Status);
+        Assert.Equal(0, invoice.Round);
+        Assert.Equal(SourceKey, invoice.Ikey);
+        Assert.Empty(invoice.Attempts);
+        Assert.False(invoice.IsSigned);
     }
 
     [Fact]
-    public void Provider_Summary_Without_A_Number_Keeps_It_A_Draft()
+    public void An_Invoice_Needs_A_Receipt_Or_A_Slip()
     {
-        var invoice = Invoice();
-        invoice.ApplyProviderSummary(Summary(0, "0"), At);
+        var error = Assert.Throws<BusinessException>(() => ElectronicInvoice.Open(
+            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, null, SourceKey));
 
+        Assert.Equal(BlueDentalDomainErrorCodes.EInvoicing.SourceRequired, error.Code);
+    }
+
+    [Fact]
+    public void Luu_Nhap_Keeps_The_Form_And_Amounts_Without_Sending()
+    {
+        var invoice = Opened();
+
+        invoice.SaveForm("{\"buyerName\":\"A\"}", Draft());
+        invoice.SaveForm("{\"buyerName\":\"B\"}", Draft(price: 300_000m));
+
+        Assert.Equal(ElectronicInvoiceStatus.NotSent, invoice.Status);
+        Assert.Equal("{\"buyerName\":\"B\"}", invoice.FormJson);
+        Assert.Equal(300_000m, invoice.Amount);
+        Assert.Empty(invoice.Attempts);
+        Assert.Equal(0, invoice.Round);
+    }
+
+    [Fact]
+    public void Luu_Sends_Round_One_And_Waits_For_Review()
+    {
+        var configId = Guid.NewGuid();
+        var invoice = Opened();
+        Assert.Equal(SourceKey, invoice.IkeyForSend());
+
+        invoice.Sent(Account(configId), Draft(), "{}", At);
+
+        Assert.Equal(ElectronicInvoiceStatus.Draft, invoice.Status);
+        Assert.Equal(1, invoice.Round);
+        Assert.Equal(configId, invoice.ProviderConfigId);
+        Assert.Equal("1C26TYY", invoice.Pattern);
+        var attempt = Assert.Single(invoice.Attempts);
+        Assert.Equal(1, attempt.Round);
+        Assert.Equal(SourceKey, attempt.Ikey);
+        Assert.Equal(At, attempt.SentAt);
+        Assert.Null(attempt.SignedAt);
+    }
+
+    [Fact]
+    public void Luu_Again_While_Waiting_Rewrites_The_Same_Round()
+    {
+        var invoice = Waiting();
+        Assert.Equal(SourceKey, invoice.IkeyForSend());
+
+        invoice.Sent(Account(), Draft(price: 400_000m), "{\"v\":2}", At.AddMinutes(3));
+
+        var attempt = Assert.Single(invoice.Attempts);
+        Assert.Equal(1, invoice.Round);
+        Assert.Equal(400_000m, attempt.Amount);
+        Assert.Equal(At.AddMinutes(3), attempt.SentAt);
+        Assert.Equal("{\"v\":2}", invoice.FormJson);
+    }
+
+    [Fact]
+    public void A_Waiting_Invoice_Cannot_Go_Back_To_Luu_Nhap()
+    {
+        var error = Assert.Throws<BusinessException>(() => Waiting().SaveForm("{}", Draft()));
+
+        Assert.Equal(BlueDentalDomainErrorCodes.EInvoicing.AlreadySent, error.Code);
+    }
+
+    [Fact]
+    public void A_Draft_Built_For_Another_Round_Is_Refused()
+    {
+        var error = Assert.Throws<BusinessException>(() =>
+            Opened().Sent(Account(), Draft(ikey: "bd-abc-2"), "{}", At));
+
+        Assert.Equal(BlueDentalDomainErrorCodes.EInvoicing.InvalidDraft, error.Code);
+    }
+
+    [Fact]
+    public void A_Summary_Without_A_Number_Keeps_It_Waiting()
+    {
+        var invoice = Waiting();
+
+        var change = invoice.ApplyProviderSummary(Summary(0, "0"), At);
+
+        Assert.Equal(ElectronicInvoiceChange.None, change);
         Assert.Equal(ElectronicInvoiceStatus.Draft, invoice.Status);
         Assert.Null(invoice.No);
         Assert.Equal("LOOKUP1", invoice.LookupCode);
-        Assert.Equal(At, invoice.LastSyncedAt);
-        Assert.Null(invoice.LastError);
+        Assert.Null(invoice.SignedAt);
     }
 
     [Fact]
-    public void A_Numbered_Summary_Publishes_The_Invoice_And_Blocks_Reissue()
+    public void Signed_On_The_Portal_Is_Heard_Once_And_Blocks_Any_Resend()
     {
-        var invoice = Invoice();
-        invoice.ApplyProviderSummary(Summary(1, "17"), At);
+        var invoice = Waiting();
 
-        Assert.Equal(ElectronicInvoiceStatus.Published, invoice.Status);
+        var first = invoice.ApplyProviderSummary(Summary(1, "17"), At.AddMinutes(5));
+        var again = invoice.ApplyProviderSummary(Summary(1, "17"), At.AddMinutes(6));
+
+        Assert.Equal(ElectronicInvoiceChange.Signed, first);
+        Assert.Equal(ElectronicInvoiceChange.None, again);
+        Assert.True(invoice.IsSigned);
         Assert.Equal("17", invoice.No);
+        Assert.Equal(At.AddMinutes(5), invoice.SignedAt);
+        Assert.Equal(At.AddMinutes(5), invoice.CurrentAttempt!.SignedAt);
+        Assert.Equal("17", invoice.CurrentAttempt.No);
         Assert.Equal(BlueDentalDomainErrorCodes.EInvoicing.AlreadyPublished,
-            Assert.Throws<BusinessException>(invoice.EnsureReissuable).Code);
+            Assert.Throws<BusinessException>(() => invoice.IkeyForSend()).Code);
+        Assert.Equal(BlueDentalDomainErrorCodes.EInvoicing.AlreadyPublished,
+            Assert.Throws<BusinessException>(() => invoice.SaveForm("{}", Draft())).Code);
     }
 
     [Theory]
@@ -79,11 +183,75 @@ public class ElectronicInvoiceTests
     [InlineData(5, "0", ElectronicInvoiceStatus.Cancelled)]
     public void Provider_Status_Codes_Map_To_BlueDental_States(int providerStatus, string no, ElectronicInvoiceStatus expected)
     {
-        var invoice = Invoice();
+        var invoice = Waiting();
         invoice.ApplyProviderSummary(Summary(providerStatus, no), At);
 
         Assert.Equal(expected, invoice.Status);
         Assert.Equal(providerStatus, invoice.ProviderStatus);
+    }
+
+    [Fact]
+    public void A_Summary_For_Another_Key_Or_For_An_Unsent_Invoice_Is_Refused()
+    {
+        Assert.Throws<BusinessException>(() => Waiting().ApplyProviderSummary(Summary(0, "0", ikey: "bd-other"), At));
+        Assert.Throws<BusinessException>(() => Opened().ApplyProviderSummary(Summary(0, "0"), At));
+    }
+
+    [Fact]
+    public void Cancelled_On_The_Portal_Goes_Out_Again_As_The_Next_Round()
+    {
+        var invoice = Signed();
+
+        var change = invoice.ApplyProviderSummary(Summary(5, "17"), At.AddHours(1));
+        Assert.Equal(ElectronicInvoiceChange.Cancelled, change);
+        Assert.Equal(At.AddHours(1), invoice.CurrentAttempt!.CancelledAt);
+        Assert.Equal("bd-abc-2", invoice.IkeyForSend());
+
+        invoice.Sent(Account(), Draft(ikey: "bd-abc-2"), "{}", At.AddHours(2));
+
+        Assert.Equal(2, invoice.Round);
+        Assert.Equal("bd-abc-2", invoice.Ikey);
+        Assert.Equal(ElectronicInvoiceStatus.Draft, invoice.Status);
+        Assert.Null(invoice.No);
+        Assert.Null(invoice.SignedAt);
+        Assert.Collection(invoice.Attempts.OrderBy(a => a.Round),
+            first =>
+            {
+                Assert.Equal(ElectronicInvoiceStatus.Cancelled, first.Status);
+                Assert.Equal("17", first.No);
+                Assert.NotNull(first.SignedAt);
+            },
+            second =>
+            {
+                Assert.Equal("bd-abc-2", second.Ikey);
+                Assert.Equal(ElectronicInvoiceStatus.Draft, second.Status);
+            });
+    }
+
+    [Fact]
+    public void Luu_Nhap_After_A_Cancel_Prepares_The_Next_Round()
+    {
+        var invoice = Signed();
+        invoice.ApplyProviderSummary(Summary(5, "17"), At.AddHours(1));
+
+        invoice.SaveForm("{\"retry\":true}", Draft());
+
+        Assert.Equal(ElectronicInvoiceStatus.NotSent, invoice.Status);
+        Assert.Equal("bd-abc-2", invoice.Ikey);
+        Assert.Equal(1, invoice.Round);
+        Assert.Null(invoice.No);
+        Assert.Equal("bd-abc-2", invoice.IkeyForSend());
+    }
+
+    [Fact]
+    public void Only_A_Signed_Invoice_Keeps_A_Pdf()
+    {
+        Assert.Throws<BusinessException>(() => Waiting().AttachPdf("einvoices/x.pdf"));
+
+        var invoice = Signed();
+        invoice.AttachPdf("einvoices/x.pdf");
+
+        Assert.Equal("einvoices/x.pdf", invoice.PdfBlobName);
     }
 
     [Fact]
@@ -99,17 +267,9 @@ public class ElectronicInvoiceTests
     }
 
     [Fact]
-    public void A_Summary_For_Another_Key_Is_Refused()
-    {
-        var invoice = Invoice();
-
-        Assert.Throws<BusinessException>(() => invoice.ApplyProviderSummary(Summary(0, "0", ikey: "bd-other"), At));
-    }
-
-    [Fact]
     public void A_Failure_Is_Kept_Until_The_Next_Successful_Sync_Clears_It()
     {
-        var invoice = Invoice();
+        var invoice = Waiting();
         invoice.RecordFailure("175: bad signature", At);
         Assert.Equal("175: bad signature", invoice.LastError);
         Assert.Equal(ElectronicInvoiceStatus.Draft, invoice.Status);
@@ -119,75 +279,44 @@ public class ElectronicInvoiceTests
     }
 
     [Fact]
-    public void A_Draft_May_Be_Reissued()
+    public void A_Receipt_Whose_Invoice_Was_Never_Signed_May_Be_Removed()
     {
-        Invoice().EnsureReissuable();
+        Opened().EnsureReceiptRemovable();
+        Waiting().EnsureReceiptRemovable();
     }
 
     [Fact]
-    public void An_Invoice_Needs_A_Receipt_Or_A_Slip()
+    public void A_Receipt_Whose_Invoice_Was_Ever_Signed_Stays_Even_After_A_Cancel()
     {
-        var error = Assert.Throws<BusinessException>(() => ElectronicInvoice.Create(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, null, Account(), Draft()));
-
-        Assert.Equal(BlueDentalDomainErrorCodes.EInvoicing.SourceRequired, error.Code);
-    }
-
-    [Fact]
-    public void A_Slip_Invoice_Has_No_Receipt_And_Remembers_Its_Account()
-    {
-        var configId = Guid.NewGuid();
-        var invoice = ElectronicInvoice.Create(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, Guid.NewGuid(), Account(configId), Draft());
-
-        Assert.Null(invoice.PatientPaymentId);
-        Assert.Equal(configId, invoice.ProviderConfigId);
-        Assert.Equal(ElectronicInvoiceDraft.TransferPaymentMethod, invoice.PaymentMethod);
-    }
-
-    [Fact]
-    public void A_Draft_Moves_To_The_Branchs_New_Account()
-    {
-        var invoice = Invoice();
-        var configId = Guid.NewGuid();
-
-        invoice.MoveTo(Account(configId, "2C26TAA"));
-
-        Assert.Equal(configId, invoice.ProviderConfigId);
-        Assert.Equal("2C26TAA", invoice.Pattern);
-    }
-
-    [Fact]
-    public void A_Signed_Invoice_Neither_Moves_Nor_Lets_Its_Receipt_Go()
-    {
-        var invoice = Invoice();
-        invoice.ApplyProviderSummary(Summary(1, "17"), At);
-
-        Assert.Throws<BusinessException>(() => invoice.MoveTo(Account(Guid.NewGuid())));
-        var error = Assert.Throws<BusinessException>(invoice.EnsureReceiptRemovable);
+        var signed = Signed();
+        var error = Assert.Throws<BusinessException>(signed.EnsureReceiptRemovable);
         Assert.Equal(BlueDentalDomainErrorCodes.EInvoicing.ReceiptInvoiced, error.Code);
         Assert.Equal("17", error.Data["No"]);
+
+        signed.ApplyProviderSummary(Summary(5, "17"), At.AddHours(1));
+        signed.SaveForm("{}", Draft());
+        Assert.Throws<BusinessException>(signed.EnsureReceiptRemovable);
     }
 
     [Fact]
-    public void A_Drafts_Receipt_May_Be_Removed()
-    {
-        Invoice().EnsureReceiptRemovable();
-    }
-
-    [Fact]
-    public void A_Slip_Billed_One_Way_Blocks_The_Other_Way_Until_That_Invoice_Is_Cancelled()
+    public void A_Slip_Billed_One_Way_Blocks_The_Other_Way_Only_While_It_Is_At_The_Provider()
     {
         var planId = Guid.NewGuid();
-        var wholeSlip = ElectronicInvoice.Create(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, planId, Account(), Draft());
-        var receipt = ElectronicInvoice.Create(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), planId, Account(), Draft());
-        var otherSlip = ElectronicInvoice.Create(
-            Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Account(), Draft());
+        var wholeSlip = ElectronicInvoice.Open(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), null, planId, SourceKey);
+        var receipt = ElectronicInvoice.Open(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), planId, SourceKey);
+        var otherSlip = ElectronicInvoice.Open(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), SourceKey);
 
         bool Blocks(ElectronicInvoice existing, bool issuingWholeSlip) =>
             new[] { existing }.AsQueryable().Any(ElectronicInvoice.BillsSlipOtherWay(planId, issuingWholeSlip));
+
+        // Only saved here: bills nothing yet.
+        Assert.False(Blocks(wholeSlip, issuingWholeSlip: false));
+        Assert.False(Blocks(receipt, issuingWholeSlip: true));
+
+        foreach (var invoice in new[] { wholeSlip, receipt, otherSlip })
+        {
+            invoice.Sent(Account(), Draft(), "{}", At);
+        }
 
         Assert.True(Blocks(wholeSlip, issuingWholeSlip: false));
         Assert.True(Blocks(receipt, issuingWholeSlip: true));
@@ -199,5 +328,28 @@ public class ElectronicInvoiceTests
 
         Assert.False(Blocks(wholeSlip, issuingWholeSlip: false));
         Assert.False(Blocks(receipt, issuingWholeSlip: true));
+    }
+
+    /// <summary>R-1258: a đợt's money on a service, at its Đơn giá — "qty×price" lines, tax shared out.</summary>
+    [Theory]
+    [InlineData(500_000, 10, 5_000_000, 0, "10×500000")] // paid in full
+    [InlineData(500_000, 10, 2_000_000, 0, "4×500000")] // part payment, whole units
+    [InlineData(500_000, 10, 2_200_000, 0, "4×500000 1×200000")] // part payment, short of a unit
+    [InlineData(500_000, 10, 300_000, 0, "1×300000")] // less than one unit
+    [InlineData(983_333, 3, 2_950_000, 0, "2×983333 1×983334")] // Đơn giá rounded down: the đồng go on the last unit
+    [InlineData(5_000_000, 1, 2_000_000, 0, "1×2000000")]
+    [InlineData(900_000, 10, 9_000_000, 720_000, "10×900000")]
+    [InlineData(900_000, 10, 2_000_000, 160_000, "2×900000 1×200000")]
+    public void A_receipt_line_bills_whole_units_at_its_unit_price(
+        int unitPrice, int quantity, int total, int tax, string expected)
+    {
+        var rate = tax > 0 ? 8 : -1;
+        var lines = ElectronicInvoiceDraft.LinesAtUnitPrice("CV01", "Cạo vôi", "Lần", unitPrice, quantity, total, tax, rate);
+
+        Assert.Equal(expected, string.Join(" ", lines.Select(l => $"{l.Quantity:0}×{l.UnitPrice:0}")));
+        Assert.All(lines, l => Assert.Equal(l.Total, l.Quantity * l.UnitPrice));
+        Assert.Equal(total, lines.Sum(l => l.Total));
+        Assert.Equal(tax, lines.Sum(l => l.TaxAmount));
+        Assert.Equal(total + tax, lines.Sum(l => l.Amount));
     }
 }

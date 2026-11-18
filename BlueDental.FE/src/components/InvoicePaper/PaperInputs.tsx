@@ -20,7 +20,15 @@ interface PaperInputProps {
   children: ReactElement<PaperControlProps>;
 }
 
-function PaperLabel({ htmlFor, label, required }: { htmlFor: string; label: ReactNode; required?: boolean }) {
+interface PaperLabelProps {
+  htmlFor: string;
+  label: ReactNode;
+  required?: boolean;
+  /** Printed after the star: "Địa chỉ cá nhân:* (Ghi rõ …)". */
+  hint?: string;
+}
+
+function PaperLabel({ htmlFor, label, required, hint }: PaperLabelProps) {
   return (
     <label className="inv-paper__label" htmlFor={htmlFor}>
       {label}
@@ -29,6 +37,7 @@ function PaperLabel({ htmlFor, label, required }: { htmlFor: string; label: Reac
           *
         </span>
       )}
+      {hint && ` ${hint}`}
     </label>
   );
 }
@@ -61,20 +70,22 @@ function useWidthOf(ref: RefObject<HTMLElement | null>): number {
 
 interface PaperLinedInputProps {
   label: string;
+  hint?: string;
   name: string;
   rules?: Rule[];
+  required?: boolean;
   maxLength: number;
 }
 
 /** "Label: (hint) ……" over two dotted lines: the text starts after the label, then runs full width. */
-export function PaperLinedInput({ label, name, rules, maxLength }: PaperLinedInputProps) {
+export function PaperLinedInput({ label, hint, name, rules, required, maxLength }: PaperLinedInputProps) {
   const id = useId();
   const labelRef = useRef<HTMLSpanElement>(null);
   const indent = useWidthOf(labelRef);
   return (
     <div className="inv-paper__lined-field" style={{ "--paper-indent": `${indent}px` } as CSSProperties}>
       <span ref={labelRef} className="inv-paper__lined-label">
-        <PaperLabel htmlFor={id} label={label} />
+        <PaperLabel htmlFor={id} label={`${label}:`} required={required} hint={hint} />
       </span>
       <Form.Item name={name} rules={rules} className="inv-paper__control">
         <Input.TextArea id={id} variant="borderless" maxLength={maxLength} autoSize={{ minRows: 2, maxRows: 6 }} />

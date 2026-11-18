@@ -11,15 +11,12 @@ namespace BlueDental.EInvoicing;
 /// </summary>
 public interface IEasyInvoiceClient
 {
-    /// <summary>Creates (or, for a draft with the same key, replaces) an invoice draft.</summary>
-    Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportInvoiceAsync(
-        EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken = default);
-
     /// <summary>
-    /// Creates and signs the invoice in one call. Needs the account's signing
-    /// device (HSM); the sandbox has none and answers 196.
+    /// Creates (or, for a draft with the same key, replaces) an unsigned
+    /// invoice. BlueDental never signs: the accountant does that on the
+    /// provider's portal (BA 2026-11-18) and the sync reads it back.
     /// </summary>
-    Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportAndPublishAsync(
+    Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> ImportInvoiceAsync(
         EasyInvoiceSettings settings, string xmlData, CancellationToken cancellationToken = default);
 
     Task<EasyInvoiceCallResult<IReadOnlyList<ProviderInvoiceSummary>>> GetByIkeysAsync(
@@ -34,6 +31,8 @@ public interface IEasyInvoiceClient
 /// Shape of one call, whatever happened: the HTTP status when a response came
 /// back, the provider's <c>ErrorCode</c> when it refused, and the data on success.
 /// Never carries the request body or headers — those hold the password.
+/// <paramref name="FileName"/> is the PDF call's own name for the file
+/// (<see cref="ElectronicInvoicePdfName"/>), already checked to be a plain one.
 /// </summary>
 public sealed record EasyInvoiceCallResult<T>(
     string RequestPath,
@@ -42,7 +41,8 @@ public sealed record EasyInvoiceCallResult<T>(
     long DurationMs,
     string? Error,
     int? ErrorCode,
-    T? Data)
+    T? Data,
+    string? FileName = null)
 {
     /// <summary>What the call log stores: the provider's code in front of its message.</summary>
     public string? LogError => Error == null ? null : ErrorCode == null ? Error : $"{ErrorCode}: {Error}";

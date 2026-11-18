@@ -567,7 +567,7 @@ public class OperationsReportAppService(
                 PatientName = patients.GetValueOrDefault(i.PatientId)?.Name ?? i.CustomerName,
                 UnitName = branches.GetValueOrDefault(i.ClinicBranchId, string.Empty),
                 PaymentMethod = i.PaymentMethod,
-                IssueStatus = i.Status is ElectronicInvoiceStatus.Draft or ElectronicInvoiceStatus.Cancelled ? L["BE:Report:NotInvoiced"].Value : L["BE:Report:Invoiced"].Value,
+                IssueStatus = !i.IsSigned ? L["BE:Report:NotInvoiced"].Value : L["BE:Report:Invoiced"].Value,
                 Status = i.Status.ToString(),
                 SubTotal = i.Total,
                 TaxAmount = i.TaxAmount,

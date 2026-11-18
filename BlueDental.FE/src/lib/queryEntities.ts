@@ -142,6 +142,11 @@ export const ENTITY_QUERY_ROOTS = {
   ],
   eInvoice: [
     ["e-invoices"] satisfies RootOf<typeof eInvoiceKeys>,
+    // Signed / cancelled on EasyInvoice's portal closes or reopens the YC-HD,
+    // and the receipt + report rows show the invoice number.
+    INVOICE_REQUESTS,
+    ["payment-ledger"] satisfies RootOf<typeof paymentLedgerKeys>,
+    ["operation-report"],
   ],
   invoiceRequest: [INVOICE_REQUESTS],
   laboOrder: [

@@ -1,16 +1,20 @@
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useIsFetching, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
 import type { QueryEntity } from "@/lib/queryEntities";
 
 // ── DTO mirror (BlueDental.Application.Contracts/EInvoicing) ────────────────
 
-/** Where a "Yêu cầu xuất HĐ" stands with the accountant. */
+/**
+ * Where a "Yêu cầu xuất HĐ" stands (P1811): Mới until Xử lý sends it, Chờ xử lý
+ * while EasyInvoice holds it, then Đã xuất HĐ or Đã hủy as EasyInvoice says;
+ * Đã hủy yêu cầu closes it for good.
+ */
 export const INVOICE_REQUEST_STATUS = {
   Pending: 1,
   Processing: 2,
-  NeedsInfo: 3,
   Issued: 4,
   Cancelled: 5,
+  Withdrawn: 6,
 } as const;
 
 export type InvoiceRequestStatus =
@@ -29,6 +33,8 @@ export interface InvoiceRequestDto {
   patientPaymentId: string;
   treatmentPlanId: string | null;
   code: string;
+  patientCode: string;
+  patientName: string;
   source: InvoiceRequestSource;
   requesterName: string | null;
   paymentCode: string;
@@ -50,6 +56,7 @@ export interface InvoiceRequestDto {
   status: InvoiceRequestStatus;
   assigneeId: string | null;
   assigneeName: string | null;
+  processedAt: string | null;
   completedAt: string | null;
   invoiceNo: string | null;
   reason: string | null;
@@ -60,9 +67,9 @@ export interface InvoiceRequestStatsDto {
   open: number;
   pending: number;
   processing: number;
-  needsInfo: number;
   issued: number;
   cancelled: number;
+  withdrawn: number;
   overdue: number;
 }
 
@@ -111,13 +118,18 @@ export interface InvoiceRequestFormValues {
   wantsPaperInvoice: boolean | null;
 }
 
-export interface InvoiceRequestListParams {
-  patientId: string;
+/**
+ * One patient's requests (Hóa đơn tab), or every customer's in one branch
+ * (Tài chính › Hóa đơn đỏ).
+ */
+export type InvoiceRequestScope = { patientId: string } | { clinicBranchId: string };
+
+export type InvoiceRequestListParams = InvoiceRequestScope & {
   status?: InvoiceRequestStatus;
   openOnly?: boolean;
   skipCount: number;
   maxResultCount: number;
-}
+};
 
 interface PagedResult<T> {
   items: T[];
@@ -131,8 +143,8 @@ const BASE = "/v1/app/invoice-requests";
 const invoiceRequestHttp = {
   list: (params: InvoiceRequestListParams) =>
     api.get<PagedResult<InvoiceRequestDto>>(BASE, { params }).then((r) => r.data),
-  stats: (patientId: string) =>
-    api.get<InvoiceRequestStatsDto>(`${BASE}/stats`, { params: { patientId } }).then((r) => r.data),
+  stats: (scope: InvoiceRequestScope) =>
+    api.get<InvoiceRequestStatsDto>(`${BASE}/stats`, { params: scope }).then((r) => r.data),
   paymentOptions: (patientId: string) =>
     api
       .get<InvoiceRequestPaymentOptionDto[]>(`${BASE}/payment-options/${patientId}`)
@@ -145,21 +157,21 @@ const invoiceRequestHttp = {
     api.post<InvoiceRequestDto>(BASE, body).then((r) => r.data),
   update: ({ id, ...body }: InvoiceRequestFormValues & { id: string }) =>
     api.put<InvoiceRequestDto>(`${BASE}/${id}`, body).then((r) => r.data),
-  start: (id: string) => api.post<InvoiceRequestDto>(`${BASE}/${id}/start`).then((r) => r.data),
-  needsInfo: ({ id, reason }: { id: string; reason: string }) =>
-    api.post<InvoiceRequestDto>(`${BASE}/${id}/needs-info`, { reason }).then((r) => r.data),
-  complete: ({ id, invoiceNo }: { id: string; invoiceNo: string }) =>
-    api.post<InvoiceRequestDto>(`${BASE}/${id}/complete`, { invoiceNo }).then((r) => r.data),
-  cancel: ({ id, reason }: { id: string; reason: string }) =>
-    api.post<InvoiceRequestDto>(`${BASE}/${id}/cancel`, { reason }).then((r) => r.data),
+  process: (id: string) => api.post<InvoiceRequestDto>(`${BASE}/${id}/process`).then((r) => r.data),
+  withdraw: ({ id, reason }: { id: string; reason: string }) =>
+    api.post<InvoiceRequestDto>(`${BASE}/${id}/withdraw`, { reason }).then((r) => r.data),
 };
 
 // ── Queries ─────────────────────────────────────────────────────────────────
 
+function hasScope(scope: InvoiceRequestScope): boolean {
+  return "patientId" in scope ? Boolean(scope.patientId) : Boolean(scope.clinicBranchId);
+}
+
 export const invoiceRequestKeys = {
   all: ["invoice-requests"] as const,
   list: (params: InvoiceRequestListParams) => [...invoiceRequestKeys.all, "list", params] as const,
-  stats: (patientId: string) => [...invoiceRequestKeys.all, "stats", patientId] as const,
+  stats: (scope: InvoiceRequestScope) => [...invoiceRequestKeys.all, "stats", scope] as const,
   paymentOptions: (patientId: string) =>
     [...invoiceRequestKeys.all, "payment-options", patientId] as const,
   draft: (patientPaymentId: string) => [...invoiceRequestKeys.all, "draft", patientPaymentId] as const,
@@ -169,19 +181,30 @@ export function useInvoiceRequests(params: InvoiceRequestListParams) {
   return useQuery({
     queryKey: invoiceRequestKeys.list(params),
     queryFn: () => invoiceRequestHttp.list(params),
-    enabled: Boolean(params.patientId),
+    enabled: hasScope(params),
     // A chip or a page turn narrows the table in place rather than blanking it.
     placeholderData: keepPreviousData,
   });
 }
 
 /** Counts behind the chips, the banner and the badge on the Hóa đơn tab. */
-export function useInvoiceRequestStats(patientId: string, enabled = true) {
+export function useInvoiceRequestStats(scope: InvoiceRequestScope, enabled = true) {
   return useQuery({
-    queryKey: invoiceRequestKeys.stats(patientId),
-    queryFn: () => invoiceRequestHttp.stats(patientId),
-    enabled: enabled && Boolean(patientId),
+    queryKey: invoiceRequestKeys.stats(scope),
+    queryFn: () => invoiceRequestHttp.stats(scope),
+    enabled: enabled && hasScope(scope),
   });
+}
+
+/**
+ * Làm mới on Tài chính › Hóa đơn đỏ: reads the list and the counts again (the
+ * sync worker moves requests to Đã xuất HĐ / Đã hủy behind the page's back).
+ */
+export function useRefreshInvoiceRequests() {
+  const queryClient = useQueryClient();
+  const refreshing = useIsFetching({ queryKey: invoiceRequestKeys.all }) > 0;
+  const refresh = () => queryClient.invalidateQueries({ queryKey: invoiceRequestKeys.all });
+  return { refresh, refreshing };
 }
 
 /** Receipts the create dialog may pick: payments with no live request. */
@@ -207,6 +230,8 @@ export function useInvoiceRequestDraft(patientPaymentId: string | null) {
 // ── Mutations ───────────────────────────────────────────────────────────────
 
 const INVALIDATES: readonly QueryEntity[] = ["invoiceRequest"];
+// Xử lý makes an e-invoice on the receipt: its Hóa đơn tab and the ledger follow.
+const PROCESS_INVALIDATES: readonly QueryEntity[] = ["invoiceRequest", "eInvoice"];
 
 export function useCreateInvoiceRequest() {
   return useMutation({ mutationFn: invoiceRequestHttp.create, meta: { invalidates: INVALIDATES } });
@@ -216,20 +241,14 @@ export function useUpdateInvoiceRequest() {
   return useMutation({ mutationFn: invoiceRequestHttp.update, meta: { invalidates: INVALIDATES } });
 }
 
-export function useStartInvoiceRequest() {
-  return useMutation({ mutationFn: invoiceRequestHttp.start, meta: { invalidates: INVALIDATES } });
+/** Xử lý / Xử lý lại: sends the e-invoice to EasyInvoice. */
+export function useProcessInvoiceRequest() {
+  return useMutation({ mutationFn: invoiceRequestHttp.process, meta: { invalidates: PROCESS_INVALIDATES } });
 }
 
-export function useNeedsInfoInvoiceRequest() {
-  return useMutation({ mutationFn: invoiceRequestHttp.needsInfo, meta: { invalidates: INVALIDATES } });
-}
-
-export function useCompleteInvoiceRequest() {
-  return useMutation({ mutationFn: invoiceRequestHttp.complete, meta: { invalidates: INVALIDATES } });
-}
-
-export function useCancelInvoiceRequest() {
-  return useMutation({ mutationFn: invoiceRequestHttp.cancel, meta: { invalidates: INVALIDATES } });
+/** Hủy yêu cầu, with a reason. */
+export function useWithdrawInvoiceRequest() {
+  return useMutation({ mutationFn: invoiceRequestHttp.withdraw, meta: { invalidates: INVALIDATES } });
 }
 
 /** The receipt's QR address, for staff to hand over; made on first ask. */

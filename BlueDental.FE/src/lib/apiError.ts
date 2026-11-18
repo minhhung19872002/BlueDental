@@ -201,6 +201,20 @@ export function extractApiError(error: unknown): string {
 }
 
 /**
+ * One string the server put in a BusinessException's data (`.WithData`),
+ * e.g. which form field the error is about. The key is matched without case:
+ * the serializer may camel-case dictionary keys.
+ */
+export function apiErrorData(error: unknown, key: string): string | undefined {
+  if (!axios.isAxiosError<unknown>(error)) return undefined;
+  const payload = parseBody(error.response?.data);
+  if (!isRecord(payload) || !isRecord(payload.error) || !isRecord(payload.error.data)) return undefined;
+  const wanted = key.toLowerCase();
+  const entry = Object.entries(payload.error.data).find(([name]) => name.toLowerCase() === wanted);
+  return typeof entry?.[1] === "string" ? sanitizeServerText(entry[1]) : undefined;
+}
+
+/**
  * A blob request gets its ABP error back as a Blob too; parse it so the global
  * error toast can read the server's message instead of a bare status.
  */

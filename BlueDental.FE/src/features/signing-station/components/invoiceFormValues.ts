@@ -21,9 +21,9 @@ export const INITIAL_INVOICE_VALUES: StationInvoiceValues = { isCompany: true };
 
 /**
  * Built per render so the messages follow the language. Doanh nghiệp needs
- * MST, tên, địa chỉ and email (BA mock); Cá nhân needs name, phone and CCCD —
- * the server's InvoiceRequestDetails rule. The Cá nhân lines are an
- * assumption: the mock draws only the company side.
+ * MST, tên, địa chỉ and email (BA mock); Cá nhân needs name, phone, CCCD and
+ * — the CCCD being its Mã số thuế (P1811) — an address. The Cá nhân lines are
+ * an assumption: the mock draws only the company side.
  */
 export function stationInvoiceRules() {
   return {

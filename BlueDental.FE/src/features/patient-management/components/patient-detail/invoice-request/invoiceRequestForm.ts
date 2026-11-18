@@ -42,8 +42,8 @@ const isMasked = (value: string) => value.includes("*");
 export function formRules() {
   return {
     fullName: [{ required: true, whitespace: true, message: t("BlueDental:InvoiceRequest:0001") }],
+    // SĐT and Email are optional on both kinds (P1811), checked when given.
     phone: [
-      { required: true, whitespace: true, message: t("BlueDental:InvoiceRequest:0002") },
       {
         validator: (_, value: string | undefined) =>
           !value || isMasked(value) || /^\d{8,15}$/.test(value.trim())
@@ -52,7 +52,6 @@ export function formRules() {
       },
     ],
     email: [
-      { required: true, whitespace: true, message: t("BlueDental:InvoiceRequest:0003") },
       { type: "email", message: t("BlueDental:InvoiceRequest:0003") },
     ],
     ...invoiceCompanyRules(),
@@ -105,14 +104,31 @@ export function fromRequest(row: InvoiceRequestDto): InvoiceRequestFormState {
   };
 }
 
-/** What the system knows of the customer, filled in once a receipt is picked. */
-export function fromDraft(draft: InvoiceRequestDraftDto): Partial<InvoiceRequestFormState> {
-  return {
+const isBlank = (value: unknown) => value === undefined || value === null || String(value).trim() === "";
+
+const DRAFT_FIELDS = ["fullName", "birthYear", "phone", "nationalId", "personalAddress", "email"] as const;
+type DraftField = (typeof DRAFT_FIELDS)[number];
+
+/**
+ * What the system knows of the customer, filled in once a receipt is picked — only into
+ * the blanks: a line the user typed before picking the receipt stays as typed.
+ */
+export function fromDraft(
+  draft: InvoiceRequestDraftDto,
+  current: Partial<InvoiceRequestFormState>,
+): Partial<InvoiceRequestFormState> {
+  const known: Pick<InvoiceRequestFormState, DraftField> = {
     fullName: draft.fullName,
     birthYear: draft.birthYear,
-    phone: draft.phone ?? "",
+    phone: draft.phone ?? undefined,
     nationalId: draft.nationalId ?? undefined,
     personalAddress: draft.personalAddress ?? undefined,
-    email: draft.email ?? "",
+    email: draft.email ?? undefined,
   };
+  const filled: Partial<InvoiceRequestFormState> = {};
+  const fill = <K extends DraftField>(key: K) => {
+    if (!isBlank(known[key]) && isBlank(current[key])) filled[key] = known[key];
+  };
+  DRAFT_FIELDS.forEach(fill);
+  return filled;
 }

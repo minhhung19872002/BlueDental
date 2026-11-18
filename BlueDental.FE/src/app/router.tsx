@@ -201,6 +201,11 @@ const VoucherPage = lazy(() =>
     default: m.VoucherPage,
   })),
 );
+const InvoiceRequestsPage = lazy(() =>
+  import("@/features/patient-management/pages/InvoiceRequestsPage").then((m) => ({
+    default: m.InvoiceRequestsPage,
+  })),
+);
 const PatientGroupPage = lazy(() =>
   import("@/features/patient-group/pages/PatientGroupPage").then((m) => ({
     default: m.PatientGroupPage,
@@ -560,6 +565,15 @@ const appRoutes: RouteObject[] = [
         element: (
           <G k="operations">
             <OperationsPage />
+          </G>
+        ),
+      },
+      {
+        // Tài chính › Hóa đơn đỏ (P1811).
+        path: "invoice-requests",
+        element: (
+          <G k="invoiceRequests">
+            <InvoiceRequestsPage />
           </G>
         ),
       },

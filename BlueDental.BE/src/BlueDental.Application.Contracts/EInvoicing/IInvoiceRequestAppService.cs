@@ -8,8 +8,8 @@ namespace BlueDental.EInvoicing;
 
 /// <summary>
 /// Yêu cầu xuất HĐ: the THÔNG TIN XUẤT HÓA ĐƠN form for a receipt, sent by the
-/// customer through the QR on the PHIẾU THU or keyed in by staff, and worked by
-/// the accountant to an invoice number.
+/// customer through the QR on the PHIẾU THU or keyed in by staff, and sent to
+/// EasyInvoice by Xử lý; its status then follows the invoice there (P1811).
 /// </summary>
 public interface IInvoiceRequestAppService : IApplicationService
 {
@@ -32,17 +32,15 @@ public interface IInvoiceRequestAppService : IApplicationService
 
     Task<InvoiceRequestDto> UpdateAsync(Guid id, UpdateInvoiceRequestDto input);
 
-    /// <summary>Xử lý.</summary>
-    Task<InvoiceRequestDto> StartAsync(Guid id);
+    /// <summary>
+    /// Xử lý (Mới) / Xử lý lại (Đã hủy): sends the receipt's e-invoice to
+    /// EasyInvoice with this buyer — Chờ xử lý until the accountant signs or
+    /// cancels it on the portal (P1811).
+    /// </summary>
+    Task<InvoiceRequestDto> ProcessAsync(Guid id);
 
-    /// <summary>Cần bổ sung.</summary>
-    Task<InvoiceRequestDto> RequestMoreInfoAsync(Guid id, InvoiceRequestReasonDto input);
-
-    /// <summary>Hoàn tất.</summary>
-    Task<InvoiceRequestDto> CompleteAsync(Guid id, CompleteInvoiceRequestDto input);
-
-    /// <summary>Hủy.</summary>
-    Task<InvoiceRequestDto> CancelAsync(Guid id, InvoiceRequestReasonDto input);
+    /// <summary>Hủy yêu cầu (Đã hủy only on screen; the server also takes Mới).</summary>
+    Task<InvoiceRequestDto> WithdrawAsync(Guid id, InvoiceRequestReasonDto input);
 }
 
 /// <summary>The page behind the QR — no sign-in; the token is the key.</summary>

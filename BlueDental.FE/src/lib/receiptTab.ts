@@ -19,11 +19,18 @@ export function openReceiptTab(): Window | null {
   return tab;
 }
 
-/** Points the waiting tab at the PDF, or opens one if the first was blocked. */
+/**
+ * Points the waiting tab at the PDF, or opens one now. A browser that blocks
+ * that tab gets a button to open it, since a click on it may open a tab.
+ */
 export function showReceipt(tab: Window | null, pdf: Blob): void {
   const url = URL.createObjectURL(pdf);
   if (tab) tab.location.href = url;
-  else if (!window.open(url, "_blank")) toast.error(t("Treatment:PaymentReceipt:PopupBlocked"));
+  else if (!window.open(url, "_blank")) {
+    toast.error(t("Treatment:PaymentReceipt:PopupBlocked"), {
+      action: { label: t("Treatment:PaymentReceipt:Open"), onClick: () => window.open(url, "_blank") },
+    });
+  }
   window.setTimeout(() => URL.revokeObjectURL(url), RECEIPT_URL_LIFETIME_MS);
 }
 

@@ -166,6 +166,12 @@ export const NAV_ENTRIES = {
     icon: "M4 19V5m0 14h16M8 19v-6m4 6V8m4 11v-9",
     permissions: ROUTE_PERMISSIONS.reports,
   },
+  invoiceRequests: {
+    path: "/invoice-requests",
+    label: "Menu:InvoiceRequests",
+    icon: "M7 3h10a1 1 0 011 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 011-1zm2 5h6m-6 4h6m-6 4h3",
+    permissions: ROUTE_PERMISSIONS.invoiceRequests,
+  },
 } as const satisfies Record<string, NavEntry>;
 
 /** Flat list, in the design's order — what the mobile drawer shows. */
@@ -201,7 +207,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: "finance",
     label: "Menu:FinanceGroup",
     icon: "M3 10h18M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm4 8h4",
-    items: [NAV_ENTRIES.billing, NAV_ENTRIES.voucher, NAV_ENTRIES.reports],
+    items: [NAV_ENTRIES.billing, NAV_ENTRIES.voucher, NAV_ENTRIES.reports, NAV_ENTRIES.invoiceRequests],
   },
   {
     id: "ops",

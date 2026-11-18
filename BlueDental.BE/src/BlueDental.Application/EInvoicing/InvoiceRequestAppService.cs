@@ -6,6 +6,7 @@ using BlueDental.Organizations;
 using BlueDental.PatientManagement;
 using BlueDental.Permissions;
 using Microsoft.AspNetCore.Authorization;
+using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Domain.Entities;
 using Volo.Abp.Domain.Repositories;
@@ -15,10 +16,12 @@ using Volo.Abp.Users;
 namespace BlueDental.EInvoicing;
 
 /// <summary>
-/// Yêu cầu xuất HĐ on the patient's Hóa đơn tab. Reading and keying in a
-/// request is the cashier's (payment.read / payment.create); taking it,
-/// sending it back, issuing and cancelling are the accountant's
-/// (payment.finalize). Rows are scoped to the branches the caller may see.
+/// Yêu cầu xuất HĐ — on the patient's Hóa đơn tab, and for every customer of
+/// the branch under Tài chính › Hóa đơn đỏ. Reading and keying in a request is
+/// the cashier's (payment.read / payment.create); Xử lý, which sends it to
+/// EasyInvoice, and Hủy yêu cầu are the accountant's (payment.finalize). From
+/// there its status follows EasyInvoice (P1811). Rows are scoped to the
+/// branches the caller may see.
 /// </summary>
 [Authorize]
 public class InvoiceRequestAppService(
@@ -26,6 +29,7 @@ public class InvoiceRequestAppService(
     IRepository<Patient, Guid> patients,
     IRepository<IdentityUser, Guid> users,
     InvoiceRequestSources sources,
+    ElectronicInvoiceAppService electronicInvoices,
     BranchAccessChecker branchAccess) : BlueDentalAppService, IInvoiceRequestAppService
 {
     [Authorize(BlueDentalAbilityPermissions.Payment.Read)]
@@ -35,8 +39,7 @@ public class InvoiceRequestAppService(
         if (input.OpenOnly)
         {
             query = query.Where(r => r.Status == InvoiceRequestStatus.Pending
-                || r.Status == InvoiceRequestStatus.Processing
-                || r.Status == InvoiceRequestStatus.NeedsInfo);
+                || r.Status == InvoiceRequestStatus.Cancelled);
         }
         else if (input.Status is { } status)
         {
@@ -60,19 +63,17 @@ public class InvoiceRequestAppService(
         var rows = await AsyncExecuter.ToListAsync(query.Select(r => new { r.Status, r.DueAt }));
         int Count(InvoiceRequestStatus status) => rows.Count(r => r.Status == status);
 
-        var open = rows.Where(r => r.Status is InvoiceRequestStatus.Pending
-            or InvoiceRequestStatus.Processing or InvoiceRequestStatus.NeedsInfo).ToList();
         return new InvoiceRequestStatsDto
         {
             Total = rows.Count,
-            Open = open.Count,
+            Open = rows.Count(r => r.Status is InvoiceRequestStatus.Pending or InvoiceRequestStatus.Cancelled),
             Pending = Count(InvoiceRequestStatus.Pending),
             Processing = Count(InvoiceRequestStatus.Processing),
-            NeedsInfo = Count(InvoiceRequestStatus.NeedsInfo),
             Issued = Count(InvoiceRequestStatus.Issued),
             Cancelled = Count(InvoiceRequestStatus.Cancelled),
-            // Cần bổ sung waits on the front desk, so its clock is paused.
-            Overdue = open.Count(r => r.Status != InvoiceRequestStatus.NeedsInfo && r.DueAt < now)
+            Withdrawn = Count(InvoiceRequestStatus.Withdrawn),
+            // Hạn xử lý runs from the request until it is first sent.
+            Overdue = rows.Count(r => r.Status == InvoiceRequestStatus.Pending && r.DueAt < now)
         };
     }
 
@@ -170,36 +171,76 @@ public class InvoiceRequestAppService(
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
-    public async Task<InvoiceRequestDto> StartAsync(Guid id)
+    public async Task<InvoiceRequestDto> ProcessAsync(Guid id)
     {
         var request = await LoadAsync(id);
-        request.Start(CurrentUser.GetId());
+        if (!request.NeedsAction)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTransition);
+        }
+
+        var patient = await patients.GetAsync(request.PatientId);
+        await electronicInvoices.SendForRequestAsync(request.PatientPaymentId, BuyerOf(request, patient));
+
+        // The send moved it to Chờ xử lý already (same unit of work); this
+        // only covers a request the invoice row could not link to.
+        if (request.NeedsAction)
+        {
+            request.Process(CurrentUser.GetId(), Clock.Now);
+        }
+
         return await SaveAsync(request);
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
-    public async Task<InvoiceRequestDto> RequestMoreInfoAsync(Guid id, InvoiceRequestReasonDto input)
+    public async Task<InvoiceRequestDto> WithdrawAsync(Guid id, InvoiceRequestReasonDto input)
     {
         var request = await LoadAsync(id);
-        request.RequestMoreInfo(input.Reason, CurrentUser.GetId());
+        request.Withdraw(input.Reason);
         return await SaveAsync(request);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
-    public async Task<InvoiceRequestDto> CompleteAsync(Guid id, CompleteInvoiceRequestDto input)
+    /// <summary>
+    /// Who the invoice is made out to (P1811, BA 2026-11-18): a company under
+    /// its tax code and address; a person under their CCCD as Mã số thuế, so
+    /// it must be the 12-digit one, with their address — or the one on file —
+    /// since EasyInvoice refuses a tax code without one.
+    /// </summary>
+    private static InvoiceBuyer BuyerOf(InvoiceRequest request, Patient patient)
     {
-        var request = await LoadAsync(id);
-        request.Complete(input.InvoiceNo, CurrentUser.GetId(), DateTimeOffset.UtcNow);
-        return await SaveAsync(request);
+        var taxCode = request.IsCompany ? request.TaxCode : request.NationalId;
+        if (request.IsCompany)
+        {
+            if (taxCode == null || !BuyerTaxCode.IsValid(taxCode))
+            {
+                throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.InvalidBuyerTaxCode)
+                    .WithData(EasyInvoiceRefusal.FieldKey, "taxCode");
+            }
+        }
+        else if (taxCode == null || taxCode.Length != 12 || !BuyerTaxCode.IsValid(taxCode))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.NationalIdNotTaxCode);
+        }
+
+        var address = request.IsCompany
+            ? Blank(request.CompanyAddress)
+            : Blank(request.PersonalAddress) ?? Blank(patient.Contact?.Address) ?? Blank(patient.OldAddress);
+        if (address == null)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.AddressRequired);
+        }
+
+        return new InvoiceBuyer(
+            request.FullName,
+            request.IsCompany ? request.CompanyName : null,
+            taxCode,
+            address,
+            Blank(request.Phone),
+            Blank(request.Email),
+            request.NationalId);
     }
 
-    [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
-    public async Task<InvoiceRequestDto> CancelAsync(Guid id, InvoiceRequestReasonDto input)
-    {
-        var request = await LoadAsync(id);
-        request.Cancel(input.Reason);
-        return await SaveAsync(request);
-    }
+    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     /// <summary>A Công ty request does not ask the name: it keeps <paramref name="nameOnFile"/>.</summary>
     internal static InvoiceRequestDetails DetailsOf(InvoiceRequestFormDto input, string? phone, string nameOnFile) => new(
@@ -243,6 +284,9 @@ public class InvoiceRequestAppService(
             .ToDictionary(u => u.Id, DisplayName);
 
         var paymentCodes = await sources.PaymentCodesAsync(rows.Select(r => r.PatientPaymentId).Distinct().ToList());
+        var patientIds = rows.Select(r => r.PatientId).Distinct().ToList();
+        var patientsById = (await patients.GetListAsync(p => patientIds.Contains(p.Id)))
+            .ToDictionary(p => p.Id);
 
         return rows.Select(r => new InvoiceRequestDto
         {
@@ -256,6 +300,8 @@ public class InvoiceRequestAppService(
             RequesterName = r.Source == InvoiceRequestSource.Staff && r.CreatorId is { } creator
                 ? names.GetValueOrDefault(creator)
                 : null,
+            PatientCode = patientsById.GetValueOrDefault(r.PatientId)?.PatientCode ?? string.Empty,
+            PatientName = patientsById.GetValueOrDefault(r.PatientId)?.FullName ?? string.Empty,
             PaymentCode = paymentCodes.GetValueOrDefault(r.PatientPaymentId, string.Empty),
             FullName = r.FullName,
             BirthYear = r.BirthYear,
@@ -275,6 +321,7 @@ public class InvoiceRequestAppService(
             Status = r.Status,
             AssigneeId = r.AssigneeId,
             AssigneeName = r.AssigneeId is { } assignee ? names.GetValueOrDefault(assignee) : null,
+            ProcessedAt = r.ProcessedAt,
             CompletedAt = r.CompletedAt,
             InvoiceNo = r.InvoiceNo,
             Reason = r.Reason

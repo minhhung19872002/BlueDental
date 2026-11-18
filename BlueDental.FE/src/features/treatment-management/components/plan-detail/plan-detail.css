@@ -1234,6 +1234,11 @@ a.pdt-crumb:hover {
   color: var(--tp-label);
   font-size: 12px;
 }
+.pdt-einvoice-attempts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 .pdt-row-action:disabled {
   cursor: default;
   opacity: 0.6;

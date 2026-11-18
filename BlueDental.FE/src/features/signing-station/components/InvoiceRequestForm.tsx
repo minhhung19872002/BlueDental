@@ -63,8 +63,8 @@ function PersonLines({ rules }: { rules: Rules }) {
       <Form.Item label={label("NationalId")} name="nationalId" rules={rules.nationalId} required>
         <Input size="large" maxLength={12} inputMode="numeric" />
       </Form.Item>
-      <Form.Item label={label("Address")} name="personalAddress">
-        <Input size="large" maxLength={500} placeholder={hint("Optional")} />
+      <Form.Item label={label("Address")} name="personalAddress" rules={rules.personalAddress} required>
+        <Input size="large" maxLength={500} />
       </Form.Item>
       <h3 className="sst-form-section">{t("SigningStation:Invoice:ReceiveSection")}</h3>
       <Form.Item label={label("Email")} name="email" rules={rules.personalEmail}>

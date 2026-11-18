@@ -6,7 +6,11 @@ using BlueDental.PatientManagement;
 
 namespace BlueDental.EInvoicing;
 
-/// <summary>An e-invoice BlueDental created at the provider for one receipt or one slip.</summary>
+/// <summary>
+/// The e-invoice of one receipt or one slip: saved in BlueDental (Nháp), at
+/// the provider unsigned (Chờ kiểm tra), signed (Đã xuất hóa đơn) or cancelled,
+/// with every round it went out under.
+/// </summary>
 public class ElectronicInvoiceDto : EntityDto<Guid>
 {
     public Guid ClinicBranchId { get; set; }
@@ -21,6 +25,14 @@ public class ElectronicInvoiceDto : EntityDto<Guid>
     public Guid? ProviderConfigId { get; set; }
 
     public string Provider { get; set; } = string.Empty;
+
+    /// <summary>What it is of — one row per receipt or slip.</summary>
+    public string SourceKey { get; set; } = string.Empty;
+
+    /// <summary>How many times it went out under a new key; 0 while only saved.</summary>
+    public int Round { get; set; }
+
+    /// <summary>The provider key of the current round.</summary>
     public string Ikey { get; set; } = string.Empty;
     public string Pattern { get; set; } = string.Empty;
     public string? Serial { get; set; }
@@ -40,9 +52,33 @@ public class ElectronicInvoiceDto : EntityDto<Guid>
     public string PaymentMethod { get; set; } = string.Empty;
     public DateTime? ArisingDate { get; set; }
 
+    /// <summary>When the current round was first read back signed.</summary>
+    public DateTimeOffset? SignedAt { get; set; }
+
+    /// <summary>The signed PDF is kept in BlueDental.</summary>
+    public bool HasPdf { get; set; }
+
     public DateTimeOffset? LastSyncedAt { get; set; }
     public string? LastError { get; set; }
     public DateTime CreationTime { get; set; }
+
+    /// <summary>Every round sent, oldest first (BA 2026-11-18: re-issues are tracked on one record).</summary>
+    public List<ElectronicInvoiceAttemptDto> Attempts { get; set; } = [];
+}
+
+/// <summary>One time the invoice went to the provider under its own key.</summary>
+public class ElectronicInvoiceAttemptDto
+{
+    public int Round { get; set; }
+    public string Ikey { get; set; } = string.Empty;
+    public string Pattern { get; set; } = string.Empty;
+    public string? Serial { get; set; }
+    public ElectronicInvoiceStatus Status { get; set; }
+    public string? No { get; set; }
+    public decimal Amount { get; set; }
+    public DateTimeOffset SentAt { get; set; }
+    public DateTimeOffset? SignedAt { get; set; }
+    public DateTimeOffset? CancelledAt { get; set; }
 }
 
 /// <summary>Filters for the e-invoice list; a branch the caller cannot see is never returned.</summary>
@@ -145,8 +181,11 @@ public class ElectronicInvoiceDraftDto
 
     public List<ElectronicInvoiceLineDto> Lines { get; set; } = [];
 
-    /// <summary>The invoice already filed for this source, if any.</summary>
+    /// <summary>The invoice already saved or filed for this source, if any.</summary>
     public ElectronicInvoiceDto? Existing { get; set; }
+
+    /// <summary>The dialog as last saved (Lưu Nháp) or sent (Lưu), to reopen it as it was left.</summary>
+    public IssueElectronicInvoiceDto? SavedForm { get; set; }
 }
 
 /// <summary>A Mẫu số with the ký hiệu it went out under.</summary>
@@ -156,7 +195,7 @@ public class ElectronicInvoiceNumberingDto
     public string? Serial { get; set; }
 }
 
-/// <summary>Lưu Nháp / Phát Hành from the Hóa đơn dialog.</summary>
+/// <summary>Lưu Nháp / Lưu from the Hóa đơn dialog (BA 2026-11-18).</summary>
 public class IssueElectronicInvoiceDto
 {
     /// <summary>Exactly one of the receipt or the slip.</summary>
@@ -164,8 +203,11 @@ public class IssueElectronicInvoiceDto
 
     public Guid? TreatmentPlanId { get; set; }
 
-    /// <summary>False saves a draft; true signs it too (needs the account's HSM).</summary>
-    public bool Publish { get; set; }
+    /// <summary>
+    /// False (Lưu Nháp) keeps the dialog in BlueDental and sends nothing; true
+    /// (Lưu) sends it to EasyInvoice unsigned, to be signed on the provider's portal.
+    /// </summary>
+    public bool Send { get; set; }
 
     [StringLength(200)]
     public string? BuyerName { get; set; }
@@ -213,7 +255,7 @@ public class IssueElectronicInvoiceDto
 }
 
 /// <summary>
-/// The PHIẾU THU that Phát Hành prints, from what the Hóa đơn dialog holds.
+/// The PHIẾU THU that Lưu prints, from what the Hóa đơn dialog holds.
 /// Nothing is stored: a wrong receipt is fixed in the dialog and printed again.
 /// </summary>
 public class RenderPaymentReceiptDto
@@ -232,4 +274,12 @@ public class RenderPaymentReceiptDto
 
     /// <summary>The lines ticked in the dialog; empty takes the prefilled ones.</summary>
     public List<ElectronicInvoiceLineInput> Lines { get; set; } = [];
+}
+
+/// <summary>An invoice's PDF under the name EasyInvoice gives it (<c>2026_1118_1C26TYY_12_0318531468.pdf</c>).</summary>
+public class ElectronicInvoicePdfDto
+{
+    public byte[] Content { get; set; } = [];
+
+    public string FileName { get; set; } = string.Empty;
 }

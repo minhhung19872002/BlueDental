@@ -15602,3 +15602,54 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: `stage-appointment-note.spec` (7 / 6 / 12 chip, chữ chip có thứ đúng theo Ngày điều trị) — nằm trong 36 pass của R-1243.
 - **Mức retest**: 2 (form công đoạn).
 
+
+## R-1245 (2026-11-18, mức 2: Hóa đơn điện tử — lỗi EasyInvoice hiện dưới từng ô, MST kiểm ở FE; develop)
+
+- **Yêu cầu** (chủ dự án, ảnh toast lỗi 129 khi Lưu Nháp): "b handle được lỗi đó vô từng field hoặc format cho dễ nhìn được k"; "sao b k validate ở FE giống rule của EasyInvoice đc k"; "này là lỗi sau khi t submit, b handle ở FE trước khi gọi BE đc k" (MST `0232323232323` bị EasyInvoice trả lỗi).
+- **Thay đổi**:
+  - BE `EasyInvoiceRefusal`: lỗi 129 / thông báo nhà cung cấp → `BlueDental:EInvoicing:0003` kèm `data.Field` (`taxCode`, `phone`, `address`, `companyName`, `buyerName`) và `data.Message` đã bỏ tên phần tử XML `(CusTaxCode)`.
+  - BE `BuyerTaxCode` + FE `redInvoiceRules.isValidTaxCode`: cùng một luật — 10 chữ số **đúng chữ số kiểm tra** (trọng số 31,29,23,19,17,13,7,5,3; `10 − tổng mod 11` = chữ số thứ 10), mã chi nhánh có gạch `0123456787-001`, hoặc 12 chữ số CCCD. Server từ chối `BlueDental:EInvoicing:0018` (Field = taxCode) trước khi gọi EasyInvoice.
+  - FE `InvoiceModal` / `InvoiceCustomerInfo`: lỗi theo ô hiện dưới ô đó, phần còn lại toast; tick "Xuất hóa đơn đỏ" thì Địa chỉ bắt buộc (`*`).
+- **Kiểm thử**: Domain.Tests `EasyInvoiceRefusalTests` (13 ca MST + 4 ca chọn ô). E2E `payment-receipt-pdf.spec` — MST `0232323232323` hiện lỗi dưới ô và Lưu không gửi request.
+- **Mức retest**: 2 (Hóa đơn điện tử).
+
+## R-1246 (2026-11-18, mức 2: Hóa đơn điện tử — ký trên portal EasyInvoice, đồng bộ về; develop)
+
+- **Yêu cầu** (BA 2026-11-18, plan đã được chủ dự án xác nhận: "1. theo đề xuất 2. đổi thành Lưu 3. để làm sau 4. realtime …"): Lưu Nháp chỉ lưu ở BlueDental; Lưu gửi hóa đơn **chưa ký** (Chờ kiểm tra), kế toán ký trên portal; đồng bộ về Đã xuất hóa đơn + giữ PDF; hủy trên portal cũng đồng bộ về; nút "Phát Hành" đổi thành "Lưu".
+- **Thay đổi**:
+  - `ElectronicInvoiceStatus.NotSent = 5` (Nháp). `ElectronicInvoice` thêm `SourceKey`, `Round`, `SignedAt`, `FormJson`, `Attempts` (jsonb, lịch sử từng lần gửi). Gửi lại sau khi hủy = lần mới cùng dòng, Ikey `{SourceKey}-{round}`. Lỗi `0019` AlreadySent: Lưu Nháp trên hóa đơn đã gửi.
+  - Migration `20261118043123_EInvoicePortalSignR1246`: dữ liệu cũ = lần 1, `SourceKey = Ikey`, unique index `SourceKey`, index `(Status, SignedAt)`.
+  - `ElectronicInvoiceSync` + `EInvoiceSyncWorker`: mỗi phút hỏi các hóa đơn Chờ kiểm tra, mỗi giờ các hóa đơn đã ký trong 90 ngày (bắt hủy trên portal), theo lô 50, mỗi chi nhánh/tài khoản một unit of work. Ký → lưu PDF vào blob, đóng YC-HD với số HĐ; hủy → mở lại YC-HD mà hóa đơn đó đã đóng. Nhật ký gọi API chỉ ghi hình dạng, log chỉ ghi loại lỗi (không PHI).
+  - `SignalREInvoiceNotifier`: sau commit phát `EInvoicesChanged(branchId)` — chỉ mã chi nhánh; FE (`useAppointmentLiveUpdates`) làm mới hóa đơn, YC-HD, sổ thu, báo cáo.
+  - FE: badge trạng thái Nháp / Chờ kiểm tra / Đã xuất…, tooltip lịch sử lần gửi; nút ↻ và Tải PDF có spinner + khóa khi đang chạy; mở lại hộp thoại theo form đã lưu; tick Xuất hóa đơn đỏ mà gửi bị từ chối thì không mở tab PHIẾU THU.
+- **Kiểm thử** (không gửi hóa đơn thật lên EasyInvoice — provider stub): Domain.Tests EInvoicing **81/81**; EntityFrameworkCore.Tests EInvoicing (PostgreSQL thật) **8/8** gồm `ElectronicInvoiceSyncTests`; Application.Tests EInvoicing **8/8**. E2E `payment-receipt-pdf.spec` trên bản build production :8092 + host thật :5152 + PostgreSQL thật, không chặn request: **6/6**; ca "Lưu opens the receipt PDF in a new tab" đỏ sẵn khi headless (đỏ cả trên HEAD, chạy worktree HEAD :8093) — loại khỏi lần chạy. Tải PDF: kiểm bằng trình duyệt thật với mạng giới hạn 200KB/s, nút `aria-busy` + disabled trong lúc tải. tsc + eslint sạch.
+- **Chưa kiểm được**: ký thật trên portal sandbox (chủ dự án: "t k test được") → F-46 vẫn `READY_FOR_TEST`.
+- **Mức retest**: 2 (Hóa đơn điện tử + YC-HD).
+
+## R-1248 (2026-11-18, mức 2: Yêu cầu xuất HĐ — trạng thái theo EasyInvoice, trang Hóa đơn đỏ; develop) — F-71, BA P1811
+
+- **Yêu cầu**: BA P1811 — Tài chính thêm "Hóa đơn đỏ" (danh sách YC-HD của mọi khách trong chi nhánh, chỉ xem/xử lý); trạng thái lấy theo EasyInvoice: Mới → Chờ xử lý → Đã xuất HĐ / Đã hủy, thêm Đã hủy yêu cầu; nút theo trạng thái; Đã hủy tag đỏ; Xử lý gọi API EasyInvoice; MST cá nhân = CCCD.
+- **Thay đổi**:
+  - BE: `InvoiceRequestStatus` 1 Mới / 2 Chờ xử lý / 4 Đã xuất HĐ / 5 Đã hủy / 6 Đã hủy yêu cầu; bỏ Cần bổ sung + Hoàn tất tay. `Process` (Mới hoặc Đã hủy) ghi người + giờ rồi gửi HĐ chưa ký qua `SendForRequestAsync`; `Withdraw` cần lý do, chỉ khi Đã hủy. Sync: ký → 4 + số HĐ, hủy trên portal → 5 + lý do. Migration `20261118071604_InvoiceRequestFlowR1248` đổi dữ liệu cũ (5→6, 3→1, 2 chưa gửi→1). Danh sách/stats lọc theo chi nhánh (`clinicBranchId`) hoặc bệnh nhân. Lỗi mới 0017 (CCCD không đủ 12 số khi Xử lý), 0018 (thiếu địa chỉ — bắt buộc cả Cá nhân lẫn Công ty). SĐT/Email không bắt buộc.
+  - FE: menu Tài chính › Hóa đơn đỏ (`/invoice-requests`, quyền `payment.read`), cột Khách hàng, không có Tạo yêu cầu, nút Làm mới; chip Cần xử lý = Mới + Đã hủy; tag Đã hủy đỏ; hộp thoại Hủy yêu cầu có lý do; dấu `*` đỏ cho Địa chỉ cá nhân ở form nhân viên, trang QR, trạm ký.
+  - Kèm 2 sửa của chủ dự án (session khác): Năm sinh hiện đủ 4 số; chọn Phiếu thu không xóa ô đã nhập.
+- **Kiểm thử** (không gửi HĐ thật lên EasyInvoice — trạng thái 2/4/5 đặt bằng SQL; Xử lý trong test chỉ đi tới lỗi 0017): Domain.Tests EInvoicing **99/99**; Application.Tests EInvoicing **10/10**; EntityFrameworkCore.Tests EInvoicing (PostgreSQL thật) **8/8**; HttpApi.Host.Tests ControllerConvention **21/21**. E2E trên bản build production (preview :8149 → host thật :5148 → PostgreSQL thật, không chặn request): `invoice-request-api` **3/3**, `invoice-request-ui` **1/1**, `header-navigation` **10/10** (số mục drawer 18 → 20: X-quang R-1203 đã làm đỏ sẵn ở 19, + Hóa đơn đỏ). tsc + oxlint sạch.
+- **Chưa kiểm được**: Xử lý gửi thật lên EasyInvoice (không gửi từ test, kể cả sandbox).
+- **Mức retest**: 2 (YC-HD + Hóa đơn điện tử) + 3 phần header (menu).
+
+## R-1258 (2026-11-18, mức 2: Hóa đơn điện tử từ phiếu thu — Số lượng / Đơn giá lấy theo phiếu điều trị; develop)
+
+- **Yêu cầu**: BA 2026-11-18 (ảnh) — HĐ điện tử của phiếu thu in mỗi dịch vụ "1 × Thành tiền" (Cạo vôi 10 × 500.000 ra 1 × 5.000.000). Lấy Số lượng và Đơn giá tại bảng dịch vụ của phiếu điều trị.
+- **Quyết định của chủ dự án**: Đơn giá = giá **sau giảm** (HĐ không có cột Giảm giá, 6 = 4 × 5). HĐ xuất cho **cả phiếu điều trị** giữ nguyên một dòng "Kế hoạch điều trị DT…" SL 1. **Trả một phần**: chưa đổi, chờ hỏi BA — vẫn 1 × số tiền đợt (UNKNOWN cách hiển thị mong muốn).
+- **Thay đổi**: BE `ElectronicInvoiceAppService.ReceiptParts` — dòng phiếu thu trả **đủ** dịch vụ (số thu = `PayableAmountOf`, gồm VAT) lấy SL của dịch vụ; `NameLinesAsync` tính Đơn giá = Thành tiền trước thuế ÷ SL, không chẵn đồng thì quay về 1 × Thành tiền. Thuế và Tổng tiền thanh toán không đổi.
+- **Kiểm thử**: E2E mới `einvoice-receipt-quantity-api` **2/2** (10 × 500.000 trả đủ; trả 2.000.000 → 1 × 2.000.000; giảm 10 % → 10 × 450.000; VAT 8 % → 10 × 900.000 + 720.000) — trên develop gốc đỏ đúng chỗ (1 × 5.000.000). Cùng lượt: `einvoice-api`, `vat-payment-einvoice-api`, `payment-from-slip`, `invoice-request-api`, `invoice-request-ui` — tổng **14/14** (preview :8093 → host thật :5152 → PostgreSQL thật, không chặn request). Domain.Tests EInvoicing **99/99**, Application.Tests EInvoicing + interception **15/15**.
+- **Chưa kiểm được**: gửi thật lên EasyInvoice (không gửi từ test).
+- **Mức retest**: 2 (Hóa đơn điện tử).
+
+### R-1258 vòng 2 (2026-11-18, BA trả lời về trả một phần)
+
+- **BA**: Đơn giá giữ theo phiếu; Số lượng = tiền đợt ÷ Đơn giá (BA nói làm tròn lên); Thành tiền = tiền đợt; voucher trừ thẳng vào Đơn giá rồi × SL.
+- **Quyết định của chủ dự án** (thay cho "làm tròn lên", vì 5 × 500.000 = 2.500.000 vượt số đã thu và dialog Hóa đơn / BE đều tính Thành tiền = SL × ĐG): tiền không đủ một đơn vị nữa thành **dòng riêng** — 2.200.000 ở 500.000 → 4 × 500.000 + 1 × 200.000. Đơn giá sau voucher / TN giảm làm tròn **xuống** đồng, phần đồng dư dồn vào đơn vị cuối — 3 × 1.000.000, TN giảm 50.000 → 2 × 983.333 + 1 × 983.334. Voucher / TN giảm chỉ trừ vào Đơn giá của **đợt có nó**. Cách làm tròn này còn chờ BA xác nhận.
+- **Thay đổi**: Domain `ElectronicInvoiceDraft.LinesAtUnitPrice` (+ `PreTaxOf`); BE `UnitPriceOf` = ⌊`ChargedAmountOf(dịch vụ, relief của đợt)` ÷ SL⌋, mỗi dịch vụ ra 1 hoặc 2 dòng, dòng nào cũng 6 = 4 × 5, cộng lại đúng số tiền đợt. Bỏ quy tắc "trả đủ mới lấy SL" của vòng 1.
+- **Kiểm thử**: E2E `einvoice-receipt-quantity-api` **2/2** (trả đủ 10 × 500.000; đợt 2.000.000 → 4 × 500.000; 2.200.000 → 4 × 500.000 + 1 × 200.000; 800.000 cuối → 1 × 500.000 + 1 × 300.000; giảm 10 % → 10 × 450.000; TN giảm 50.000 → 2 × 983.333 + 1 × 983.334; VAT 8 % → 10 × 900.000 + 720.000). Cùng lượt thêm `payment-rounds` — tổng **17/17** (preview :8093 → host thật :5152 → PostgreSQL thật). Domain.Tests EInvoicing **107/107** (+8 case `LinesAtUnitPrice`), Application.Tests EInvoicing + interception **15/15**.
+- **Chưa kiểm được**: EasyInvoice nhận hai dòng cùng mã dịch vụ (không gửi từ test).

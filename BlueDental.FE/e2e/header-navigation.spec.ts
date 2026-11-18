@@ -50,6 +50,8 @@ test.describe("Header navigation", () => {
       "Thanh toán",
       "Voucher",
       "Báo cáo",
+      // P1811: the request list of every customer.
+      "Hóa đơn đỏ",
     ]);
   });
 
@@ -103,7 +105,7 @@ test.describe("Header navigation", () => {
       await page.evaluate(() => (window as Window & { __oldGroupFlashed?: boolean }).__oldGroupFlashed),
     ).toBe(false);
     await expect(page.locator(".app-ribbon-item--active")).toHaveText("Báo cáo");
-    await expect(page.locator(".app-ribbon-item")).toHaveText(["Thanh toán", "Voucher", "Báo cáo"]);
+    await expect(page.locator(".app-ribbon-item")).toHaveText(["Thanh toán", "Voucher", "Báo cáo", "Hóa đơn đỏ"]);
   });
 
   test("another group swaps the ribbon, the same group leaves it open", async ({ page }) => {
@@ -146,10 +148,10 @@ test.describe("Header navigation", () => {
     await expect(page.locator(".app-ribbon")).toBeHidden();
     await page.locator(".app-header-burger").click();
 
-    // Every page of every group, Thống kê CSKH (F-78) among them.
+    // Every page of every group, Thống kê CSKH (F-78) and Hóa đơn đỏ (P1811) among them.
     const drawer = page.locator(".app-drawer-item");
     await expect(drawer.first()).toBeVisible();
-    await expect(drawer).toHaveCount(18);
+    await expect(drawer).toHaveCount(20);
     await expect(page.locator('.app-drawer-item[title="Thống kê CSKH"]')).toBeVisible();
 
     await page.locator('.app-drawer-item[title="Vật tư"]').click();

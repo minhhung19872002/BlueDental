@@ -6,12 +6,18 @@ import type { QueryEntity } from "@/lib/queryEntities";
 
 // ── DTO mirror ──────────────────────────────────────────────────────────────
 
+/**
+ * BA 2026-11-18: Nháp (NotSent, Lưu Nháp) → Chờ kiểm tra (Draft, sent by Lưu,
+ * unsigned) → Đã xuất hóa đơn (Published, signed on EasyInvoice's portal).
+ */
 export const EINVOICE_STATUS = {
   Draft: 0,
   Published: 1,
   Cancelled: 2,
   Replaced: 3,
   Adjusted: 4,
+  /** Lưu Nháp: kept in BlueDental only, nothing sent yet. */
+  NotSent: 5,
 } as const;
 
 export type EInvoiceStatus = (typeof EINVOICE_STATUS)[keyof typeof EINVOICE_STATUS];
@@ -28,6 +34,20 @@ export type EInvoicePaymentMethod =
 
 /** VAT rates EasyInvoice knows; -1 is "KCT" (not subject to VAT). */
 export const EINVOICE_VAT_RATES = [-1, 0, 5, 8, 10] as const;
+
+/** One time the invoice went to EasyInvoice under its own key. */
+export interface ElectronicInvoiceAttemptDto {
+  round: number;
+  ikey: string;
+  pattern: string;
+  serial: string | null;
+  status: EInvoiceStatus;
+  no: string | null;
+  amount: number;
+  sentAt: string;
+  signedAt: string | null;
+  cancelledAt: string | null;
+}
 
 export interface ElectronicInvoiceDto {
   id: string;
@@ -53,6 +73,14 @@ export interface ElectronicInvoiceDto {
   lastSyncedAt: string | null;
   lastError: string | null;
   creationTime: string;
+  sourceKey: string;
+  /** How many times it went out; 0 while only saved (Nháp). */
+  round: number;
+  signedAt: string | null;
+  /** The signed PDF is kept in BlueDental. */
+  hasPdf: boolean;
+  /** Every round sent, oldest first — a re-issue after a cancel stays on the same row. */
+  attempts: ElectronicInvoiceAttemptDto[];
 }
 
 export interface ElectronicInvoiceLineDto {
@@ -92,6 +120,8 @@ export interface ElectronicInvoiceDraftDto {
   lines: ElectronicInvoiceLineDto[];
   numberings: ElectronicInvoiceNumberingDto[];
   existing: ElectronicInvoiceDto | null;
+  /** The dialog as last saved or sent, to reopen it as it was left. */
+  savedForm: SavedElectronicInvoiceForm | null;
 }
 
 export interface ElectronicInvoiceLineInput {
@@ -110,7 +140,8 @@ export type EInvoiceSource =
   | { treatmentPlanId: string; patientPaymentId?: undefined };
 
 export type IssueElectronicInvoiceInput = EInvoiceSource & {
-  publish: boolean;
+  /** false = Lưu Nháp (kept here, nothing sent); true = Lưu (sent unsigned, Chờ kiểm tra). */
+  send: boolean;
   buyerName: string | null;
   companyName: string | null;
   address: string | null;
@@ -129,6 +160,9 @@ export type IssueElectronicInvoiceInput = EInvoiceSource & {
   lines: ElectronicInvoiceLineInput[];
 };
 
+/** The issue input as the server kept it; only the fields the dialog shows matter. */
+export type SavedElectronicInvoiceForm = Omit<IssueElectronicInvoiceInput, keyof EInvoiceSource | "send">;
+
 /** PHIẾU THU: what the dialog shows now, so the paper matches the screen. */
 export type RenderPaymentReceiptInput = EInvoiceSource & {
   buyerName: string | null;
@@ -143,11 +177,24 @@ interface GetEInvoiceListInput {
   clinicBranchId?: string;
 }
 
+/** Nháp, Chờ kiểm tra and a cancelled one (its next round) may still be opened and sent. */
+const STILL_OPEN: ReadonlySet<EInvoiceStatus> = new Set<EInvoiceStatus>([
+  EINVOICE_STATUS.NotSent,
+  EINVOICE_STATUS.Draft,
+  EINVOICE_STATUS.Cancelled,
+]);
+
+/** A slip invoiced whole bills it unless that invoice was cancelled or never left BlueDental. */
+const billsTheSlip = (inv: ElectronicInvoiceDto): boolean =>
+  inv.patientPaymentId === null
+  && inv.status !== EINVOICE_STATUS.Cancelled
+  && inv.status !== EINVOICE_STATUS.NotSent;
+
 /**
- * Whether a receipt may still be sent to the provider, mirroring the server:
- * a signed invoice is never re-sent (EInvoicing:0004) and a slip billed whole
- * is not billed again receipt by receipt (EInvoicing:0012) unless that whole
- * invoice was cancelled. Until the list loads the server is left to decide.
+ * Whether a receipt may still be invoiced, mirroring the server: a signed
+ * invoice is never re-sent (EInvoicing:0004) and a slip billed whole is not
+ * billed again receipt by receipt (EInvoicing:0012). Until the list loads the
+ * server is left to decide.
  */
 export function isReceiptInvoiceable(
   paymentId: string,
@@ -155,8 +202,8 @@ export function isReceiptInvoiceable(
 ): boolean {
   if (!planInvoices) return true;
   const own = planInvoices.find((inv) => inv.patientPaymentId === paymentId);
-  if (own && own.status !== EINVOICE_STATUS.Draft) return false;
-  return !planInvoices.some((inv) => inv.patientPaymentId === null && inv.status !== EINVOICE_STATUS.Cancelled);
+  if (own && !STILL_OPEN.has(own.status)) return false;
+  return !planInvoices.some(billsTheSlip);
 }
 
 // ── Query keys ──────────────────────────────────────────────────────────────
@@ -214,19 +261,24 @@ export function useEInvoiceDraft(source: EInvoiceSource, enabled: boolean) {
 
 const INVALIDATES: readonly QueryEntity[] = ["eInvoice", "payment"];
 
-/** Lưu Nháp (publish=false) or Phát Hành (publish=true). */
-export function useIssueEInvoice() {
+/**
+ * Lưu Nháp (send=false) or Lưu (send=true).
+ * `onError`, when given, replaces the global error toast: the dialog shows a
+ * refusal about one buyer box under that box, and toasts the rest itself.
+ */
+export function useIssueEInvoice(onError?: (error: unknown, input: IssueElectronicInvoiceInput) => void) {
   return useMutation({
     mutationFn: async (input: IssueElectronicInvoiceInput) => {
       const res = await api.post<ElectronicInvoiceDto>("/v1/app/e-invoices/issue", input);
       return res.data;
     },
+    onError,
     meta: { invalidates: INVALIDATES },
   });
 }
 
 /**
- * Phát Hành: the PHIẾU THU as a PDF, filled on the server from the docx
+ * Lưu: the PHIẾU THU as a PDF, filled on the server from the docx
  * template. Nothing is stored, so nothing is invalidated.
  */
 export function useRenderPaymentReceipt() {
@@ -254,10 +306,14 @@ export function useSyncEInvoice() {
   });
 }
 
-/** Download the provider's PDF through our backend (auth-proxied). */
-export function downloadEInvoicePdf(invoice: Pick<ElectronicInvoiceDto, "id" | "no" | "ikey">): Promise<void> {
-  return downloadFile(
-    `/v1/app/e-invoices/${invoice.id}/pdf`,
-    `hoa-don-dien-tu-${invoice.no ?? invoice.ikey}.pdf`,
-  );
+/**
+ * The signed PDF BlueDental kept, else the provider's rendering (auth-proxied).
+ * A mutation so the button can show it is fetching — the provider can be slow.
+ */
+export function useDownloadEInvoicePdf(onError: (error: unknown) => void) {
+  return useMutation({
+    mutationFn: (invoice: Pick<ElectronicInvoiceDto, "id" | "no" | "ikey">) =>
+      downloadFile(`/v1/app/e-invoices/${invoice.id}/pdf`, `hoa-don-dien-tu-${invoice.no ?? invoice.ikey}.pdf`),
+    onError,
+  });
 }
