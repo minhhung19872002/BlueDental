@@ -189,3 +189,35 @@ first, the lines swap on Công ty, staff dialog asks CCCD not Email).
 - how the customer re-sends after "Cần bổ sung"
 - notifications
 - a cross-patient screen
+
+## P1811 (2026-11-18, R-1248) — the status follows EasyInvoice
+
+BA drawio `P1811` + chat: "hóa đơn đỏ lấy status theo thằng einvoice … nó xuất HĐ
+thì mình hoàn thành, nó hủy mình hủy là dc".
+
+| Value | Status | Buttons |
+|---|---|---|
+| 1 | Mới | Xử lý (records who + when: `AssigneeId`, `ProcessedAt`) |
+| 2 | Chờ xử lý (sent, unsigned on the portal) | view only |
+| 4 | Đã xuất HĐ (the sync read it signed; invoice number shown) | view only |
+| 5 | Đã hủy (cancelled on the portal; red tag, reason under it) | Xử lý lại, Hủy yêu cầu |
+| 6 | Đã hủy yêu cầu (staff withdrew it, reason required) | view only |
+
+- Cần bổ sung and the manual Hoàn tất are gone. Migration
+  `20261118071604_InvoiceRequestFlowR1248`: old 5 → 6, old 3 → 1, an old 2 with
+  no invoice at EasyInvoice → 1.
+- Xử lý sends the receipt's invoice unsigned with the request's buyer
+  (`ElectronicInvoiceAppService.SendForRequestAsync`); the Hóa đơn dialog keeps
+  its own five-box rule (R-817).
+- Buyer rules: Cá nhân = Họ tên + CCCD (its Mã số thuế; Xử lý refuses anything
+  but 12 digits, 0017) + Địa chỉ cá nhân (0018). Công ty = Tên + MST + Địa chỉ
+  công ty. SĐT and Email optional. Address required on the staff form, the QR
+  page and the signing station (red `*`).
+- Tài chính › Hóa đơn đỏ (`/invoice-requests`, `payment.read`): the same list
+  for every customer of the branch, a Khách hàng column, no Tạo yêu cầu, a
+  Làm mới button that reads the list and counts again.
+- Chip "Cần xử lý" = Mới + Đã hủy.
+
+Tests: `e2e/invoice-request-api.spec.ts` 3/3, `e2e/invoice-request-ui.spec.ts`
+1/1 (states 2/4/5 set in SQL — no real invoice is ever sent),
+`e2e/header-navigation.spec.ts` 10/10.

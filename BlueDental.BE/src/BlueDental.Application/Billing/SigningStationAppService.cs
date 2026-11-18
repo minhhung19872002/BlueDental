@@ -188,7 +188,7 @@ public class SigningStationAppService(
             ? null
             : SignatureImage.ToDataUrl(cipher.Decrypt(session.SignatureCipher));
         station.InvoiceRequested = await requests.AnyAsync(r =>
-            r.PatientPaymentId == payment.Id && r.Status != InvoiceRequestStatus.Cancelled);
+            r.PatientPaymentId == payment.Id && r.Status != InvoiceRequestStatus.Withdrawn);
         station.IssuedAt = payment.IssuedAt;
         station.PaperSignedAt = payment.PaperSignedAt;
         return station;

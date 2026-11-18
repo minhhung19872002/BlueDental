@@ -945,19 +945,18 @@ public class PatientPaymentAppService : BlueDentalAppService, IPatientPaymentApp
     }
 
     /// <summary>
-    /// A "Yêu cầu xuất HĐ" still waiting on the accountant dies with its receipt
-    /// (R-915); an issued one stays as history.
+    /// A "Yêu cầu xuất HĐ" not yet issued dies with its receipt (R-915) as
+    /// Đã hủy yêu cầu; an issued one stays as history.
     /// </summary>
     private async Task CancelOpenInvoiceRequestsAsync(Guid paymentId, string paymentReason)
     {
         var open = await _invoiceRequests.GetListAsync(x => x.PatientPaymentId == paymentId
-            && (x.Status == InvoiceRequestStatus.Pending
-                || x.Status == InvoiceRequestStatus.Processing
-                || x.Status == InvoiceRequestStatus.NeedsInfo));
+            && x.Status != InvoiceRequestStatus.Issued
+            && x.Status != InvoiceRequestStatus.Withdrawn);
         var reason = L["Patient:InvoiceRequest:ReceiptCancelledReason", paymentReason].Value;
         foreach (var request in open)
         {
-            request.Cancel(reason);
+            request.WithdrawWithReceipt(reason);
         }
 
         await _invoiceRequests.UpdateManyAsync(open, autoSave: true);

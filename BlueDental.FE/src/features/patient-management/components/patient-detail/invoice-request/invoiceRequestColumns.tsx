@@ -2,94 +2,43 @@ import { Button, type TableColumnsType } from "antd";
 import { t } from "@/lib/i18n";
 import { formatDateTime, formatMoneyUnit } from "@/utils/format";
 import {
-  INVOICE_REQUEST_SOURCE,
   INVOICE_REQUEST_STATUS,
   type InvoiceRequestDto,
 } from "../../../api/invoiceRequestApi";
-import { InvoiceRequestStatusTag } from "./InvoiceRequestStatusTag";
-import { describeDue, isNewRequest } from "./invoiceRequestStatus";
+import { BuyerCell, CustomerCell, DueCell, StatusCell, TwoLines, requesterOf } from "./InvoiceRequestCells";
+import { isNewRequest } from "./invoiceRequestStatus";
 
-interface Handlers {
+export interface InvoiceRequestRowHandlers {
+  /** Xử lý / Xử lý lại; left out for an account that may not finalize payments. */
+  onProcess?: (row: InvoiceRequestDto) => void;
+  /** Hủy yêu cầu, offered once EasyInvoice cancelled the invoice. */
+  onWithdraw?: (row: InvoiceRequestDto) => void;
+}
+
+interface Options extends InvoiceRequestRowHandlers {
   now: number;
   onDetail: (row: InvoiceRequestDto) => void;
-  /** Xử lý / Hoàn tất; left out for an account that may not finalize payments. */
-  onStart?: (row: InvoiceRequestDto) => void;
-  onComplete?: (row: InvoiceRequestDto) => void;
+  /** Tài chính › Hóa đơn đỏ lists every customer, so it names whose request it is. */
+  showCustomer?: boolean;
 }
 
-/** The customer filled these in themselves; a staff request names its author. */
-const CUSTOMER_SOURCE_LABEL: Partial<Record<InvoiceRequestDto["source"], string>> = {
-  [INVOICE_REQUEST_SOURCE.CustomerQr]: "Patient:InvoiceRequest:ByCustomerQr",
-  [INVOICE_REQUEST_SOURCE.SigningDevice]: "Patient:InvoiceRequest:ByCustomerIpad",
-};
-
-function RequestedCell({ row }: { row: InvoiceRequestDto }) {
-  const customerLabel = CUSTOMER_SOURCE_LABEL[row.source];
-  const who = customerLabel ? t(customerLabel) : row.requesterName ?? "—";
-  return (
-    <div className="ir-cell">
-      <span>{formatDateTime(row.requestedAt)}</span>
-      <small>{who}</small>
-    </div>
-  );
-}
-
-/** "Công ty · MST 0101234567" or "Cá nhân". */
-function buyerKind(row: InvoiceRequestDto): string {
-  if (!row.isCompany) return t("Patient:InvoiceRequest:Personal");
-  const company = t("Patient:InvoiceRequest:Company");
-  return row.taxCode ? `${company} · ${t("Patient:InvoiceRequest:TaxCodeShort")} ${row.taxCode}` : company;
-}
-
-function BuyerCell({ row }: { row: InvoiceRequestDto }) {
-  return (
-    <div className="ir-cell">
-      <strong>{row.isCompany ? row.companyName ?? row.fullName : row.fullName}</strong>
-      <small>{buyerKind(row)}</small>
-      {/* The contact each kind asks: Email for Công ty, SĐT for Cá nhân (R-916). */}
-      <small>{row.isCompany ? row.email : row.phone}</small>
-    </div>
-  );
-}
-
-function StatusCell({ row }: { row: InvoiceRequestDto }) {
-  const note = row.status === INVOICE_REQUEST_STATUS.Issued && row.invoiceNo
-    ? t("Patient:InvoiceRequest:InvoiceNoShort", row.invoiceNo)
-    : row.reason;
-  return (
-    <div className="ir-cell">
-      <InvoiceRequestStatusTag status={row.status} />
-      {note && <small className="ir-cell__note">{note}</small>}
-    </div>
-  );
-}
-
-type RowHandlers = Omit<Handlers, "now">;
-
-/** The one action the row offers beside Chi tiết, by where the request stands. */
-function primaryAction(row: InvoiceRequestDto, { onDetail, onStart, onComplete }: RowHandlers) {
-  if (row.status === INVOICE_REQUEST_STATUS.Pending && onStart) {
-    return { label: t("Patient:InvoiceRequest:Action:Start"), run: () => onStart(row) };
-  }
-  if (row.status === INVOICE_REQUEST_STATUS.Processing && onComplete) {
-    return { label: t("Patient:InvoiceRequest:Action:Complete"), run: () => onComplete(row) };
-  }
-  if (row.status === INVOICE_REQUEST_STATUS.NeedsInfo) {
-    return { label: t("Patient:InvoiceRequest:Action:SeeReason"), run: () => onDetail(row) };
-  }
-  return null;
-}
-
-function ActionCell({ row, ...handlers }: RowHandlers & { row: InvoiceRequestDto }) {
-  const primary = primaryAction(row, handlers);
+/** P1811: Mới → Xử lý; Đã hủy → Xử lý lại and Hủy yêu cầu; the rest only Chi tiết. */
+function ActionCell({ row, onDetail, onProcess, onWithdraw }: Omit<Options, "now" | "showCustomer"> & { row: InvoiceRequestDto }) {
+  const cancelled = row.status === INVOICE_REQUEST_STATUS.Cancelled;
+  const canProcess = row.status === INVOICE_REQUEST_STATUS.Pending || cancelled;
   return (
     <div className="ir-actions">
-      {primary && (
-        <Button size="small" type="primary" ghost onClick={primary.run}>
-          {primary.label}
+      {onProcess && canProcess && (
+        <Button size="small" type="primary" ghost onClick={() => onProcess(row)}>
+          {t(cancelled ? "Patient:InvoiceRequest:Action:Reprocess" : "Patient:InvoiceRequest:Action:Process")}
         </Button>
       )}
-      <Button size="small" type="link" onClick={() => handlers.onDetail(row)}>
+      {onWithdraw && cancelled && (
+        <Button size="small" danger onClick={() => onWithdraw(row)}>
+          {t("Patient:InvoiceRequest:Action:Withdraw")}
+        </Button>
+      )}
+      <Button size="small" type="link" onClick={() => onDetail(row)}>
         {t("Common:Detail")}
       </Button>
     </div>
@@ -97,7 +46,10 @@ function ActionCell({ row, ...handlers }: RowHandlers & { row: InvoiceRequestDto
 }
 
 /** The columns of the BA mockup, left to right. */
-export function buildInvoiceRequestColumns({ now, ...handlers }: Handlers): TableColumnsType<InvoiceRequestDto> {
+export function buildInvoiceRequestColumns({ now, showCustomer, ...handlers }: Options): TableColumnsType<InvoiceRequestDto> {
+  const customer: TableColumnsType<InvoiceRequestDto> = showCustomer
+    ? [{ title: t("Patient:InvoiceRequest:Col:Customer"), width: 168, render: (_, row) => <CustomerCell row={row} /> }]
+    : [];
   return [
     {
       title: t("Patient:InvoiceRequest:Col:Code"),
@@ -110,7 +62,8 @@ export function buildInvoiceRequestColumns({ now, ...handlers }: Handlers): Tabl
         </div>
       ),
     },
-    { title: t("Patient:InvoiceRequest:Col:RequestedAt"), width: 132, render: (_, row) => <RequestedCell row={row} /> },
+    ...customer,
+    { title: t("Patient:InvoiceRequest:Col:RequestedAt"), width: 132, render: (_, row) => <TwoLines top={formatDateTime(row.requestedAt)} bottom={requesterOf(row)} /> },
     {
       title: t("Patient:InvoiceRequest:Col:Payment"),
       width: 200,
@@ -129,28 +82,22 @@ export function buildInvoiceRequestColumns({ now, ...handlers }: Handlers): Tabl
       align: "right",
       render: (value: number) => <strong>{formatMoneyUnit(value)}</strong>,
     },
+    { title: t("Patient:InvoiceRequest:Col:Due"), width: 128, render: (_, row) => <DueCell row={row} now={now} /> },
     {
-      title: t("Patient:InvoiceRequest:Col:Due"),
-      width: 128,
-      render: (_, row) => {
-        const due = describeDue(row, now);
-        return (
-          <div className="ir-cell">
-            <span className={`ir-due ir-due--${due.tone}`}>{due.text}</span>
-            {due.tone !== "none" && <small>{formatDateTime(row.dueAt)}</small>}
-          </div>
-        );
-      },
-    },
-    {
+      // Who pressed Xử lý, and when (P1811).
       title: t("Patient:InvoiceRequest:Col:Assignee"),
       width: 140,
-      render: (_, row) => row.assigneeName ?? <span className="ir-muted">{t("Patient:InvoiceRequest:Unassigned")}</span>,
+      render: (_, row) =>
+        row.assigneeName ? (
+          <TwoLines top={row.assigneeName} bottom={row.processedAt && formatDateTime(row.processedAt)} />
+        ) : (
+          <span className="ir-muted">{t("Patient:InvoiceRequest:Unassigned")}</span>
+        ),
     },
     { title: t("Patient:InvoiceRequest:Col:Status"), width: 128, render: (_, row) => <StatusCell row={row} /> },
     {
       title: t("Common:Actions"),
-      width: 170,
+      width: 260,
       fixed: "right",
       render: (_, row) => <ActionCell row={row} {...handlers} />,
     },

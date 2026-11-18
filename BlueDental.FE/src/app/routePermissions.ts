@@ -88,6 +88,8 @@ export const ROUTE_PERMISSIONS = {
   marketingTicketDeleted: [abilityPermission("marketingTicket", "delete")] as readonly string[],
   billing: readOf(["payment"]),
   voucher: readOf(["voucher"]),
+  /* Hóa đơn đỏ: the payment request list of the whole branch (P1811). */
+  invoiceRequests: readOf(["payment"]),
   reports: readOf([
     "reportSales",
     "reportIncome",

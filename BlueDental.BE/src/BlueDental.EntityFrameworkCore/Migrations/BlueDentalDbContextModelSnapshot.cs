@@ -3447,6 +3447,9 @@ namespace BlueDental.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -3481,7 +3484,7 @@ namespace BlueDental.Migrations
 
                     b.HasIndex("PatientPaymentId")
                         .IsUnique()
-                        .HasFilter("\"IsDeleted\" = false AND \"Status\" <> 5");
+                        .HasFilter("\"IsDeleted\" = false AND \"Status\" <> 6");
 
                     b.HasIndex("ClinicBranchId", "Code")
                         .IsUnique();

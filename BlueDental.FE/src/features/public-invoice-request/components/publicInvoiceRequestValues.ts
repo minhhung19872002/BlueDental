@@ -32,9 +32,10 @@ export function initialValues(form: PublicInvoiceRequestFormDto): PublicInvoiceR
 }
 
 /**
- * Built per render so the messages follow the language. Cá nhân needs name,
- * phone and CCCD; Công ty needs company name, MST and email. A contact the
- * clinic already holds (it has a hint) may be left blank; the server keeps it.
+ * Built per render so the messages follow the language. Cá nhân needs name
+ * and CCCD; Công ty needs company name, MST and address (P1811); SĐT and Email
+ * are checked only when given. A CCCD the clinic already holds (it has a hint)
+ * may be left blank; the server keeps it.
  */
 export function publicRules(form: PublicInvoiceRequestFormDto) {
   return {
@@ -43,7 +44,6 @@ export function publicRules(form: PublicInvoiceRequestFormDto) {
       { type: "number", min: 1900, max: new Date().getFullYear(), message: t("BlueDental:InvoiceRequest:0007") },
     ],
     phone: [
-      { required: !form.phoneHint, whitespace: true, message: t("BlueDental:InvoiceRequest:0002") },
       { pattern: /^\d{8,15}$/, message: t("BlueDental:InvoiceRequest:0002") },
     ],
     nationalId: [
@@ -51,7 +51,6 @@ export function publicRules(form: PublicInvoiceRequestFormDto) {
       { pattern: /^(\d{9}|\d{12})$/, message: t("BlueDental:InvoiceRequest:0006") },
     ],
     email: [
-      { required: !form.emailHint, whitespace: true, message: t("BlueDental:InvoiceRequest:0003") },
       { type: "email", message: t("BlueDental:InvoiceRequest:0003") },
     ],
     ...invoiceCompanyRules(),

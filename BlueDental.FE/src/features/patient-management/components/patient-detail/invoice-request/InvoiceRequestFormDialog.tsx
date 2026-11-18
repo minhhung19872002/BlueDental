@@ -49,9 +49,10 @@ export function InvoiceRequestFormDialog({ target, onClose }: Props) {
     form.setFieldsValue(target.kind === "edit" ? fromRequest(target.request) : EMPTY_FORM);
   }, [target, form]);
 
-  // Picking a receipt fills in what the clinic already knows of the customer.
+  // Picking a receipt fills in what the clinic already knows of the customer — into the
+  // blanks only, so what the user typed before picking it is kept.
   useEffect(() => {
-    if (draft.data) form.setFieldsValue(fromDraft(draft.data));
+    if (draft.data) form.setFieldsValue(fromDraft(draft.data, form.getFieldsValue(true)));
   }, [draft.data, form]);
 
   const picked = options.data?.find((option) => option.patientPaymentId === paymentId);

@@ -163,6 +163,56 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         }
     }
 
+    /// <summary>
+    /// Xử lý on a "Yêu cầu xuất HĐ" (P1811): the receipt's invoice goes to
+    /// EasyInvoice unsigned with the buyer the request carries — the caller
+    /// checked it, so the Hóa đơn dialog's five-box rule (R-817) does not apply.
+    /// What a Lưu Nháp kept (Mẫu số, ký hiệu, lines, date) goes along; the
+    /// buyer is the request's. The caller holds the permission.
+    /// </summary>
+    internal async Task<ElectronicInvoiceDto> SendForRequestAsync(Guid patientPaymentId, InvoiceBuyer buyer)
+    {
+        var source = await LoadSourceAsync(patientPaymentId, null);
+        if (source.Payment is { Kind: not PatientPaymentKind.Payment })
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.ReceiptNotInvoiceable);
+        }
+
+        var saved = FormFrom((await FindAsync(source))?.FormJson);
+        var input = new IssueElectronicInvoiceDto
+        {
+            PatientPaymentId = patientPaymentId,
+            Send = true,
+            BuyerName = buyer.BuyerName,
+            CompanyName = buyer.CompanyName,
+            TaxCode = buyer.TaxCode,
+            Address = buyer.Address,
+            Phone = buyer.Phone,
+            Email = buyer.Email,
+            NationalId = buyer.NationalId,
+            ArisingDate = saved?.ArisingDate,
+            PaymentMethod = saved?.PaymentMethod ?? source.PaymentMethod,
+            Pattern = saved?.Pattern,
+            Serial = saved?.Serial,
+            Lines = saved?.Lines ?? []
+        };
+        var settings = await SettingsForSendAsync(source, input);
+
+        if (!InFlight.TryAdd(source.Ikey, 0))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.EInvoicing.IssueInProgress);
+        }
+
+        try
+        {
+            return await SendLockedAsync(source, settings, input);
+        }
+        finally
+        {
+            InFlight.TryRemove(source.Ikey, out _);
+        }
+    }
+
     /// <summary>Lưu Nháp of a receipt's invoice with the prefilled lines.</summary>
     [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
     public Task<ElectronicInvoiceDto> IssueFromPaymentAsync(Guid patientPaymentId) =>
@@ -452,7 +502,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
 
         await SaveAsync(invoice, isNew: existing == null);
         await _accounts.RememberNumberingAsync(settings);
-        await _sync.StartRequestsAsync(invoice, CurrentUser.GetId());
+        await _sync.StartRequestsAsync(invoice, CurrentUser.GetId(), now);
         return Map(invoice);
     }
 

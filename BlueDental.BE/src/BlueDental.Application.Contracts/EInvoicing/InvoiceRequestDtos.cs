@@ -5,7 +5,7 @@ using BlueDental.PatientManagement;
 
 namespace BlueDental.EInvoicing;
 
-/// <summary>One row of "Yêu cầu xuất HĐ" on the patient's Hóa đơn tab.</summary>
+/// <summary>One row of "Yêu cầu xuất HĐ" — the patient's Hóa đơn tab, or Tài chính › Hóa đơn đỏ.</summary>
 public class InvoiceRequestDto : EntityDto<Guid>
 {
     public Guid ClinicBranchId { get; set; }
@@ -18,6 +18,10 @@ public class InvoiceRequestDto : EntityDto<Guid>
 
     /// <summary>Who keyed it in: the staff member's name, or null when the customer sent it by QR.</summary>
     public string? RequesterName { get; set; }
+
+    /// <summary>Mã khách hàng and the patient's name, for the all-customer list (Hóa đơn đỏ).</summary>
+    public string PatientCode { get; set; } = string.Empty;
+    public string PatientName { get; set; } = string.Empty;
 
     /// <summary>Mã phiếu thu.</summary>
     public string PaymentCode { get; set; } = string.Empty;
@@ -45,6 +49,9 @@ public class InvoiceRequestDto : EntityDto<Guid>
     public Guid? AssigneeId { get; set; }
     public string? AssigneeName { get; set; }
 
+    /// <summary>When Xử lý last sent it to EasyInvoice.</summary>
+    public DateTimeOffset? ProcessedAt { get; set; }
+
     public DateTimeOffset? CompletedAt { get; set; }
     public string? InvoiceNo { get; set; }
     public string? Reason { get; set; }
@@ -59,7 +66,7 @@ public class GetInvoiceRequestListInput : PagedResultRequestDto
     /// <summary>One status; ignored when <see cref="OpenOnly"/> is set.</summary>
     public InvoiceRequestStatus? Status { get; set; }
 
-    /// <summary>"Cần xử lý": Chờ xử lý, Đang xử lý and Cần bổ sung together.</summary>
+    /// <summary>"Cần xử lý": Mới and Đã hủy (by EasyInvoice) together — what waits on staff.</summary>
     public bool OpenOnly { get; set; }
 }
 
@@ -70,11 +77,11 @@ public class InvoiceRequestStatsDto
     public int Open { get; set; }
     public int Pending { get; set; }
     public int Processing { get; set; }
-    public int NeedsInfo { get; set; }
     public int Issued { get; set; }
     public int Cancelled { get; set; }
+    public int Withdrawn { get; set; }
 
-    /// <summary>Open requests past their Hạn xử lý.</summary>
+    /// <summary>Mới requests past their Hạn xử lý.</summary>
     public int Overdue { get; set; }
 }
 
@@ -164,20 +171,12 @@ public class CreateInvoiceRequestDto : InvoiceRequestFormDto
 
 public class UpdateInvoiceRequestDto : InvoiceRequestFormDto;
 
-/// <summary>Cần bổ sung / Hủy.</summary>
+/// <summary>Hủy yêu cầu.</summary>
 public class InvoiceRequestReasonDto
 {
     [Required]
     [StringLength(500)]
     public string Reason { get; set; } = string.Empty;
-}
-
-/// <summary>Hoàn tất — the number of the invoice that went out.</summary>
-public class CompleteInvoiceRequestDto
-{
-    [Required]
-    [StringLength(50)]
-    public string InvoiceNo { get; set; } = string.Empty;
 }
 
 /// <summary>

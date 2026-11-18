@@ -33,7 +33,7 @@ function PersonalLines({ rules }: { rules: Rules }) {
         <PaperInput label={field("BirthYear")} name="birthYear" rules={rules.birthYear} width="year">
           <InputNumber controls={false} precision={0} />
         </PaperInput>
-        <PaperInput label={field("Phone")} name="phone" required rules={rules.phone} width="phone">
+        <PaperInput label={field("Phone")} name="phone" rules={rules.phone} width="phone">
           <Input maxLength={15} inputMode="tel" />
         </PaperInput>
       </PaperRow>
@@ -43,8 +43,11 @@ function PersonalLines({ rules }: { rules: Rules }) {
         </PaperInput>
       </PaperRow>
       <PaperLinedInput
-        label={`${field("PersonalAddress")}: ${t("Patient:InvoiceRequest:AddressHint")}`}
+        label={field("PersonalAddress")}
+        hint={t("Patient:InvoiceRequest:AddressHint")}
         name="personalAddress"
+        required
+        rules={rules.personalAddress}
         maxLength={500}
       />
     </>
@@ -67,12 +70,12 @@ function CompanyLines({ rules }: { rules: Rules }) {
         </PaperInput>
       </PaperRow>
       <PaperRow>
-        <PaperInput label={field("CompanyAddress")} name="companyAddress">
+        <PaperInput label={field("CompanyAddress")} name="companyAddress" required rules={rules.companyAddress}>
           <Input maxLength={500} />
         </PaperInput>
       </PaperRow>
       <PaperRow>
-        <PaperInput label={field("Email")} name="email" required rules={rules.email} strong>
+        <PaperInput label={field("Email")} name="email" rules={rules.email} strong>
           <Input maxLength={256} inputMode="email" />
         </PaperInput>
       </PaperRow>

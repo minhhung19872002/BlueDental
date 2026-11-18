@@ -1025,6 +1025,10 @@ public static class BlueDentalDomainErrorCodes
         public const string ReceiptCancelled = "BlueDental:InvoiceRequest:0015";
         /// <summary>A personal invoice (Cá nhân) needs the CCCD.</summary>
         public const string NationalIdRequired = "BlueDental:InvoiceRequest:0016";
+        /// <summary>Xử lý on a Cá nhân request: its CCCD goes as the Mã số thuế, so it must be the 12-digit one (P1811).</summary>
+        public const string NationalIdNotTaxCode = "BlueDental:InvoiceRequest:0017";
+        /// <summary>EasyInvoice refuses a buyer with a Mã số thuế and no address.</summary>
+        public const string AddressRequired = "BlueDental:InvoiceRequest:0018";
     }
 
     /// <summary>PHIẾU THU printed by Phát Hành in the Hóa đơn dialog.</summary>

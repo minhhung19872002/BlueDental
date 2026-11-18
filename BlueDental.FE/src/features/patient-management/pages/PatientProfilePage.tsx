@@ -70,7 +70,7 @@ export function PatientProfilePage() {
   const prescriptionAbility = useAbility("prescription");
   const paymentAbility = useAbility("payment");
   // Open "Yêu cầu xuất HĐ" ride on the Hóa đơn tab as a badge.
-  const invoiceRequestStats = useInvoiceRequestStats(id, paymentAbility.canRead);
+  const invoiceRequestStats = useInvoiceRequestStats({ patientId: id }, paymentAbility.canRead);
   const imageAbility = useAbility("treatmentImage");
   const medicalRecordAbility = useAbility("patientMedicalRecord");
   const consultationAbility = useAbility("treatmentConsultation");

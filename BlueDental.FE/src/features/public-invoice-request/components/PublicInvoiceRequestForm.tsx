@@ -41,7 +41,7 @@ function PersonalLines({ form, rules }: LinesProps) {
         <PaperInput label={field("BirthYear")} name="birthYear" rules={rules.birthYear} width="year">
           <InputNumber controls={false} precision={0} inputMode="numeric" />
         </PaperInput>
-        <PaperInput label={field("Phone")} name="phone" required={!form.phoneHint} rules={rules.phone} width="phone">
+        <PaperInput label={field("Phone")} name="phone" rules={rules.phone} width="phone">
           <Input maxLength={15} inputMode="tel" autoComplete="tel" />
         </PaperInput>
       </PaperRow>
@@ -51,16 +51,19 @@ function PersonalLines({ form, rules }: LinesProps) {
         </PaperInput>
       </PaperRow>
       <PaperLinedInput
-        label={`${field("PersonalAddress")}: ${t("Patient:InvoiceRequest:AddressHint")}`}
+        label={field("PersonalAddress")}
+        hint={t("Patient:InvoiceRequest:AddressHint")}
         name="personalAddress"
+        required
+        rules={rules.personalAddress}
         maxLength={500}
       />
     </>
   );
 }
 
-/** Công ty: the company lines and the Email the invoice goes to. */
-function CompanyLines({ form, rules }: LinesProps) {
+/** Công ty: the company lines and the Email the invoice goes to, if given. */
+function CompanyLines({ rules }: Pick<LinesProps, "rules">) {
   return (
     <>
       <PaperNote>{t("Patient:InvoiceRequest:CompanyNote")}</PaperNote>
@@ -75,12 +78,12 @@ function CompanyLines({ form, rules }: LinesProps) {
         </PaperInput>
       </PaperRow>
       <PaperRow>
-        <PaperInput label={field("CompanyAddress")} name="companyAddress">
+        <PaperInput label={field("CompanyAddress")} name="companyAddress" required rules={rules.companyAddress}>
           <Input maxLength={500} />
         </PaperInput>
       </PaperRow>
       <PaperRow>
-        <PaperInput label={field("Email")} name="email" required={!form.emailHint} rules={rules.email} strong>
+        <PaperInput label={field("Email")} name="email" rules={rules.email} strong>
           <Input maxLength={256} inputMode="email" autoComplete="email" />
         </PaperInput>
       </PaperRow>
@@ -107,7 +110,7 @@ export function PublicInvoiceRequestForm({ form, submitting, onSubmit }: Props) 
     <Form form={antForm} initialValues={initialValues(form)} onFinish={onSubmit} className="pir-form" scrollToFirstError>
       <InvoicePaper title={t("Patient:InvoiceRequest:SheetTitle")}>
         <PaperChoiceInput label={field("InvoiceKind")} name="isCompany" options={kinds} />
-        {isCompany ? <CompanyLines form={form} rules={rules} /> : <PersonalLines form={form} rules={rules} />}
+        {isCompany ? <CompanyLines rules={rules} /> : <PersonalLines form={form} rules={rules} />}
         <PaperRow>
           <PaperText label={field("Service")} value={form.serviceName} strong />
         </PaperRow>

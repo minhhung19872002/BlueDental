@@ -2277,9 +2277,9 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Reason).HasMaxLength(InvoiceRequest.MaxReasonLength);
 
             entity.HasIndex(x => new { x.ClinicBranchId, x.Code }).IsUnique();
-            // One live request per receipt; a cancelled one must not block a new one.
+            // One live request per receipt; a withdrawn one (Đã hủy yêu cầu) must not block a new one.
             entity.HasIndex(x => x.PatientPaymentId).IsUnique()
-                .HasFilter("\"IsDeleted\" = false AND \"Status\" <> " + (short)InvoiceRequestStatus.Cancelled);
+                .HasFilter("\"IsDeleted\" = false AND \"Status\" <> " + (short)InvoiceRequestStatus.Withdrawn);
             entity.HasIndex(x => x.PatientId);
             entity.HasIndex(x => new { x.ClinicBranchId, x.Status });
         });

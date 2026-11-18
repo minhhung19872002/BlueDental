@@ -90,7 +90,7 @@ public class ElectronicInvoiceSyncTests : BlueDentalPostgresTestBase
     }
 
     [Fact]
-    public async Task Cancelled_On_The_Portal_Reopens_The_Request_And_Lets_The_Next_Round_Go()
+    public async Task Cancelled_On_The_Portal_Marks_The_Request_Da_Huy_And_Lets_The_Next_Round_Go()
     {
         var paymentId = Guid.NewGuid();
         var invoiceId = await SeedWaitingAsync(paymentId);
@@ -111,7 +111,7 @@ public class ElectronicInvoiceSyncTests : BlueDentalPostgresTestBase
         attempt.No.ShouldBe("17");
 
         var request = await LoadRequestAsync(requestId);
-        request.Status.ShouldBe(InvoiceRequestStatus.Processing);
+        request.Status.ShouldBe(InvoiceRequestStatus.Cancelled);
         request.InvoiceNo.ShouldBeNull();
         request.Reason!.ShouldContain("17");
     }
@@ -160,9 +160,9 @@ public class ElectronicInvoiceSyncTests : BlueDentalPostgresTestBase
         var request = InvoiceRequest.Create(
             Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), paymentId, null, "YC0001",
             InvoiceRequestSource.Staff,
-            new InvoiceRequestDetails(false, "Test", 1990, "0900000000", "001090000000", null, null, null, null, null, null),
+            new InvoiceRequestDetails(false, "Test", 1990, "0900000000", "001090000000", "Hà Nội", null, null, null, null, null),
             "Trám răng", 500_000m, At.AddHours(-1));
-        request.Start(Guid.NewGuid());
+        request.Process(Guid.NewGuid(), At.AddMinutes(-10));
         await GetRequiredService<IRepository<InvoiceRequest, Guid>>().InsertAsync(request);
         return request.Id;
     });

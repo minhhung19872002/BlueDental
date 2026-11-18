@@ -24,9 +24,11 @@ public sealed partial record InvoiceRequestDetails(
     bool? WantsPaperInvoice)
 {
     /// <summary>
-    /// Trimmed, blanks as null, and checked. Cá nhân needs Họ tên, SĐT and CCCD
-    /// (Email optional); Công ty needs the company name, the MÃ SỐ THUẾ and the
-    /// Email, and keeps only the customer's name (taken from the patient).
+    /// Trimmed, blanks as null, and checked. Cá nhân needs Họ tên, the CCCD
+    /// (its Mã số thuế on the invoice, P1811) and an address; Công ty needs the
+    /// company name, the MÃ SỐ THUẾ and the company address, and keeps only the
+    /// customer's name (taken from the patient). SĐT and Email are optional,
+    /// checked when given.
     /// </summary>
     public InvoiceRequestDetails Validated()
     {
@@ -79,7 +81,7 @@ public sealed partial record InvoiceRequestDetails(
 
     private void CheckPersonal()
     {
-        if (Phone == null || !PhonePattern().IsMatch(Phone))
+        if (Phone != null && !PhonePattern().IsMatch(Phone))
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidPhone);
         }
@@ -98,6 +100,13 @@ public sealed partial record InvoiceRequestDetails(
         {
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidBirthYear);
         }
+
+        // The CCCD goes out as the buyer's Mã số thuế, and EasyInvoice refuses
+        // a Mã số thuế with no address (P1811 Xử lý).
+        if (PersonalAddress == null)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.AddressRequired);
+        }
     }
 
     private void CheckCompany()
@@ -112,9 +121,10 @@ public sealed partial record InvoiceRequestDetails(
             throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTaxCode);
         }
 
-        if (Email == null)
+        // EasyInvoice refuses a Mã số thuế with no address.
+        if (CompanyAddress == null)
         {
-            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidEmail);
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.AddressRequired);
         }
     }
 

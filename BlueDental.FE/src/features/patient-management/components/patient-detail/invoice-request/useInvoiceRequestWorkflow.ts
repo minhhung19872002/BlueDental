@@ -4,35 +4,52 @@ import { useAbility } from "@/hooks/useAbility";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import {
+  INVOICE_REQUEST_STATUS,
   useInvoiceRequestLink,
-  useStartInvoiceRequest,
+  useProcessInvoiceRequest,
   type InvoiceRequestDto,
 } from "../../../api/invoiceRequestApi";
-import type { InvoiceRequestAction, InvoiceRequestActionKind } from "./InvoiceRequestActionDialog";
 import type { InvoiceRequestFormTarget } from "./InvoiceRequestFormDialog";
 
 /**
- * Which dialog is open over the request list, and the two actions that need
- * none (Xử lý, Sao chép link). Gated like the server: payment create edits and
- * hands out links, payment finalize moves a request along.
+ * Which dialog is open over the request list, and Sao chép link which needs
+ * none. Gated like the server: payment create edits and hands out links,
+ * payment finalize sends a request (Xử lý) or withdraws it. Without a patient
+ * — Tài chính › Hóa đơn đỏ — the list is only worked, never added to.
  */
-export function useInvoiceRequestWorkflow(patientId: string) {
+export function useInvoiceRequestWorkflow(patientId?: string) {
   const ability = useAbility("payment");
   const canEdit = ability.canCreate;
   const canFinalize = ability.can("finalize");
   const [detail, setDetail] = useState<InvoiceRequestDto | null>(null);
   const [form, setForm] = useState<InvoiceRequestFormTarget | null>(null);
-  const [action, setAction] = useState<InvoiceRequestAction | null>(null);
-  const start = useStartInvoiceRequest();
+  const [toProcess, setToProcess] = useState<InvoiceRequestDto | null>(null);
+  const [toWithdraw, setToWithdraw] = useState<InvoiceRequestDto | null>(null);
+  const process = useProcessInvoiceRequest();
   const link = useInvoiceRequestLink();
 
-  const handleStart = (request: InvoiceRequestDto) =>
-    start.mutate(request.id, {
+  const followDetail = (updated: InvoiceRequestDto) =>
+    setDetail((open) => (open?.id === updated.id ? updated : open));
+
+  const handleProcess = () => {
+    if (!toProcess) return;
+    const again = toProcess.status === INVOICE_REQUEST_STATUS.Cancelled;
+    process.mutate(toProcess.id, {
       onSuccess: (updated) => {
-        toast.success(t("Patient:InvoiceRequest:Done:Start"));
-        setDetail((open) => (open?.id === updated.id ? updated : open));
+        toast.success(t(again ? "Patient:InvoiceRequest:Done:Reprocess" : "Patient:InvoiceRequest:Done:Process"));
+        setToProcess(null);
+        followDetail(updated);
       },
+      // A refusal (CCCD, address, EasyInvoice) is toasted by the API layer;
+      // the dialog closes so the request can be fixed with Sửa.
+      onError: () => setToProcess(null),
     });
+  };
+
+  const handleWithdrawn = (updated: InvoiceRequestDto) => {
+    setToWithdraw(null);
+    followDetail(updated);
+  };
 
   const handleCopyLink = (request: InvoiceRequestDto) =>
     link.mutate(request.patientPaymentId, {
@@ -47,38 +64,34 @@ export function useInvoiceRequestWorkflow(patientId: string) {
       },
     });
 
-  const openAction = (request: InvoiceRequestDto, kind: InvoiceRequestActionKind) =>
-    setAction({ kind, request });
-
-  const handleActionDone = (updated: InvoiceRequestDto) => {
-    setAction(null);
-    setDetail((open) => (open?.id === updated.id ? updated : open));
-  };
-
   const handleEdit = (request: InvoiceRequestDto) => {
     setDetail(null);
     setForm({ kind: "edit", request });
   };
 
+  const onProcess = canFinalize ? setToProcess : undefined;
+  const onWithdraw = canFinalize ? setToWithdraw : undefined;
+
   return {
-    canFinalize,
     detail,
     form,
-    action,
+    toProcess,
+    toWithdraw,
+    processing: process.isPending,
     openDetail: setDetail,
     closeDetail: () => setDetail(null),
-    openCreate: canEdit ? () => setForm({ kind: "create", patientId }) : undefined,
+    openCreate: canEdit && patientId ? () => setForm({ kind: "create", patientId }) : undefined,
     closeForm: () => setForm(null),
-    closeAction: () => setAction(null),
-    start: canFinalize ? handleStart : undefined,
-    complete: canFinalize ? (request: InvoiceRequestDto) => openAction(request, "complete") : undefined,
-    handleActionDone,
+    closeProcess: () => setToProcess(null),
+    closeWithdraw: () => setToWithdraw(null),
+    handleProcess,
+    handleWithdrawn,
+    rowHandlers: { onProcess, onWithdraw },
     detailHandlers: (request: InvoiceRequestDto) => ({
       onEdit: canEdit ? () => handleEdit(request) : undefined,
       onCopyLink: canEdit ? () => handleCopyLink(request) : undefined,
-      onStart: canFinalize ? () => handleStart(request) : undefined,
-      onAction: canFinalize ? (kind: InvoiceRequestActionKind) => openAction(request, kind) : undefined,
-      starting: start.isPending,
+      onProcess: onProcess && (() => onProcess(request)),
+      onWithdraw: onWithdraw && (() => onWithdraw(request)),
       copying: link.isPending,
     }),
   };

@@ -164,9 +164,9 @@
   background: var(--bd-blue-pale);
   color: var(--bd-blue-dark);
 }
-.ir-status--orange {
-  background: var(--bd-orange-pale);
-  color: var(--bd-orange);
+.ir-status--red {
+  background: var(--bd-red-pale);
+  color: var(--bd-red-dark);
 }
 .ir-status--green {
   background: var(--bd-green-pale);
@@ -189,7 +189,6 @@
 .ir-due--late {
   color: var(--bd-red);
 }
-.ir-due--paused,
 .ir-due--none {
   color: var(--bd-muted);
 }

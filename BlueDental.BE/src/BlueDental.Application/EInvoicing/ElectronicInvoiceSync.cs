@@ -152,14 +152,18 @@ public class ElectronicInvoiceSync : ITransientDependency
                 await _requests.UpdateAsync(request);
             }
         }
-        else if (change == ElectronicInvoiceChange.Cancelled
-                 && (invoice.CurrentAttempt?.No ?? invoice.No) is { } cancelledNo)
+        else if (change == ElectronicInvoiceChange.Cancelled)
         {
-            var reason = _localizer["Treatment:EInvoice:CancelledOnProvider", cancelledNo].Value;
-            // Only the requests this invoice closed: one finished by hand under
-            // another number is the accountant's, not the sync's.
-            foreach (var request in requests.Where(r => r.InvoiceNo == cancelledNo
-                         && r.ReopenAfterProviderCancel(reason)))
+            // Cancelled on EasyInvoice, signed or still a draft: the request is
+            // Đã hủy until staff sends it again (P1811). A request issued under
+            // another number is left alone.
+            var cancelledNo = invoice.CurrentAttempt?.No ?? invoice.No;
+            var reason = cancelledNo == null
+                ? _localizer["Treatment:EInvoice:DraftCancelledOnProvider"].Value
+                : _localizer["Treatment:EInvoice:CancelledOnProvider", cancelledNo].Value;
+            foreach (var request in requests.Where(r =>
+                         (r.Status != InvoiceRequestStatus.Issued || r.InvoiceNo == cancelledNo)
+                         && r.CancelFromProvider(reason)))
             {
                 await _requests.UpdateAsync(request);
             }
@@ -168,14 +172,17 @@ public class ElectronicInvoiceSync : ITransientDependency
         NotifyAfterCommit(invoice.ClinicBranchId);
     }
 
-    /// <summary>Lưu sent the invoice: the YC-HD it answers is being worked (Đang xử lý).</summary>
-    public async Task StartRequestsAsync(ElectronicInvoice invoice, Guid assigneeId)
+    /// <summary>
+    /// The invoice went to EasyInvoice — by Xử lý on the request or by Lưu in
+    /// the Hóa đơn dialog: the YC-HD it answers waits on the portal (Chờ xử lý).
+    /// </summary>
+    public async Task StartRequestsAsync(ElectronicInvoice invoice, Guid assigneeId, DateTimeOffset now)
     {
         foreach (var request in await LinkedRequestsAsync(invoice))
         {
-            if (request.Status is InvoiceRequestStatus.Pending or InvoiceRequestStatus.NeedsInfo)
+            if (request.NeedsAction)
             {
-                request.Start(assigneeId);
+                request.Process(assigneeId, now);
                 await _requests.UpdateAsync(request);
             }
         }

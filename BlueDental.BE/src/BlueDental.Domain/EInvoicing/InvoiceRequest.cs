@@ -7,12 +7,13 @@ namespace BlueDental.EInvoicing;
 /// <summary>
 /// "Yêu cầu xuất HĐ" — the THÔNG TIN XUẤT HÓA ĐƠN form for one receipt (phiếu
 /// thu), filled in by the customer through the QR on the PHIẾU THU or by staff
-/// (BA 2026-10-12). The accountant works it to an invoice number:
-/// Chờ xử lý → Đang xử lý → Đã xuất HĐ, with Cần bổ sung and Đã hủy on the side.
+/// (BA 2026-10-12). Since P1811 its status follows EasyInvoice: Mới → Xử lý
+/// sends it (Chờ xử lý) → signed on the portal (Đã xuất HĐ) or cancelled there
+/// (Đã hủy, Xử lý lại sends it again); Hủy yêu cầu drops it (Đã hủy yêu cầu).
 /// <para>
 /// The service and amount are copied from the receipt when the request is made
 /// so the list reads without joining it. A receipt has at most one live
-/// (not cancelled) request.
+/// (not withdrawn) request.
 /// </para>
 /// </summary>
 public class InvoiceRequest : FullAuditedAggregateRoot<Guid>
@@ -65,23 +66,25 @@ public class InvoiceRequest : FullAuditedAggregateRoot<Guid>
 
     public InvoiceRequestStatus Status { get; private set; }
 
-    /// <summary>Phụ trách — the accountant who took it; null is "Chưa phân công".</summary>
+    /// <summary>Phụ trách — who last pressed Xử lý; null until it was sent.</summary>
     public Guid? AssigneeId { get; private set; }
+
+    /// <summary>When it was last sent to EasyInvoice (Xử lý / Xử lý lại).</summary>
+    public DateTimeOffset? ProcessedAt { get; private set; }
 
     public DateTimeOffset? CompletedAt { get; private set; }
 
     /// <summary>Số HĐ, once issued.</summary>
     public string? InvoiceNo { get; private set; }
 
-    /// <summary>Why it was sent back (Cần bổ sung) or cancelled.</summary>
+    /// <summary>Why the e-invoice was cancelled on EasyInvoice, or why the request was withdrawn.</summary>
     public string? Reason { get; private set; }
 
     /// <summary>Company when a company name or tax code was given, otherwise a person.</summary>
     public bool IsCompany => !string.IsNullOrWhiteSpace(CompanyName) || !string.IsNullOrWhiteSpace(TaxCode);
 
-    /// <summary>Counted in "Cần xử lý".</summary>
-    public bool IsOpen => Status is InvoiceRequestStatus.Pending or InvoiceRequestStatus.Processing
-        or InvoiceRequestStatus.NeedsInfo;
+    /// <summary>Waiting on staff — Mới or Đã hủy: counted in "Cần xử lý", and the only states that edit or send.</summary>
+    public bool NeedsAction => Status is InvoiceRequestStatus.Pending or InvoiceRequestStatus.Cancelled;
 
     protected InvoiceRequest() { }
 
@@ -119,77 +122,35 @@ public class InvoiceRequest : FullAuditedAggregateRoot<Guid>
         return request;
     }
 
-    /// <summary>
-    /// Staff corrects the form. Allowed until it is issued or cancelled; a
-    /// request sent back for more information goes back to Chờ xử lý.
-    /// </summary>
+    /// <summary>Staff corrects the form — only while it waits on them (Mới, Đã hủy).</summary>
     public void UpdateDetails(InvoiceRequestDetails details)
     {
-        if (!IsOpen)
-        {
-            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTransition);
-        }
-
+        EnsureNeedsAction();
         Apply(details);
-        if (Status == InvoiceRequestStatus.NeedsInfo)
-        {
-            Status = InvoiceRequestStatus.Pending;
-            Reason = null;
-        }
     }
 
-    /// <summary>Xử lý — the accountant takes it.</summary>
-    public void Start(Guid assigneeId)
+    /// <summary>
+    /// Xử lý / Xử lý lại — it went to EasyInvoice: Chờ xử lý until the
+    /// accountant signs or cancels it there. Records who sent it and when.
+    /// </summary>
+    public void Process(Guid assigneeId, DateTimeOffset processedAt)
     {
-        if (Status is not (InvoiceRequestStatus.Pending or InvoiceRequestStatus.NeedsInfo))
-        {
-            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTransition);
-        }
-
+        EnsureNeedsAction();
         Status = InvoiceRequestStatus.Processing;
         AssigneeId = assigneeId;
+        ProcessedAt = processedAt;
         Reason = null;
-    }
-
-    /// <summary>Cần bổ sung — sent back with what is missing or wrong.</summary>
-    public void RequestMoreInfo(string reason, Guid assigneeId)
-    {
-        if (Status is not (InvoiceRequestStatus.Pending or InvoiceRequestStatus.Processing))
-        {
-            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTransition);
-        }
-
-        Reason = RequiredReason(reason);
-        AssigneeId ??= assigneeId;
-        Status = InvoiceRequestStatus.NeedsInfo;
-    }
-
-    /// <summary>Hoàn tất — the invoice went out under <paramref name="invoiceNo"/>.</summary>
-    public void Complete(string invoiceNo, Guid assigneeId, DateTimeOffset completedAt)
-    {
-        if (Status != InvoiceRequestStatus.Processing)
-        {
-            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTransition);
-        }
-
-        if (string.IsNullOrWhiteSpace(invoiceNo))
-        {
-            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvoiceNoRequired);
-        }
-
-        InvoiceNo = Truncate(invoiceNo.Trim(), MaxInvoiceNoLength);
-        AssigneeId ??= assigneeId;
-        CompletedAt = completedAt;
-        Status = InvoiceRequestStatus.Issued;
     }
 
     /// <summary>
     /// The e-invoice it asked for was signed on the provider's portal: done,
-    /// whoever had it (BA 2026-11-18). Nothing happens to one already closed.
+    /// whoever sent it (BA 2026-11-18). Nothing happens to one already issued
+    /// or withdrawn.
     /// </summary>
     public bool CompleteFromProvider(string invoiceNo, DateTimeOffset completedAt)
     {
-        if (!IsOpen || string.IsNullOrWhiteSpace(invoiceNo))
+        if (Status is InvoiceRequestStatus.Issued or InvoiceRequestStatus.Withdrawn
+            || string.IsNullOrWhiteSpace(invoiceNo))
         {
             return false;
         }
@@ -202,12 +163,12 @@ public class InvoiceRequest : FullAuditedAggregateRoot<Guid>
     }
 
     /// <summary>
-    /// The invoice it was completed with was cancelled on the provider: open
-    /// again (Đang xử lý), with why, until the next round is signed.
+    /// The e-invoice was cancelled on EasyInvoice, signed or not: Đã hủy, with
+    /// why, until staff sends it again (Xử lý lại) or withdraws it.
     /// </summary>
-    public bool ReopenAfterProviderCancel(string reason)
+    public bool CancelFromProvider(string reason)
     {
-        if (Status != InvoiceRequestStatus.Issued)
+        if (Status is not (InvoiceRequestStatus.Processing or InvoiceRequestStatus.Issued))
         {
             return false;
         }
@@ -215,19 +176,40 @@ public class InvoiceRequest : FullAuditedAggregateRoot<Guid>
         InvoiceNo = null;
         CompletedAt = null;
         Reason = RequiredReason(reason);
-        Status = InvoiceRequestStatus.Processing;
+        Status = InvoiceRequestStatus.Cancelled;
         return true;
     }
 
-    public void Cancel(string reason)
+    /// <summary>Hủy yêu cầu — dropped by staff while it waits on them (Mới, Đã hủy).</summary>
+    public void Withdraw(string reason)
     {
-        if (!IsOpen)
+        EnsureNeedsAction();
+        Reason = RequiredReason(reason);
+        Status = InvoiceRequestStatus.Withdrawn;
+    }
+
+    /// <summary>
+    /// Its receipt was cancelled, so the request goes with it. An issued one
+    /// stays: a receipt with a signed invoice cannot be cancelled anyway.
+    /// </summary>
+    public bool WithdrawWithReceipt(string reason)
+    {
+        if (Status is InvoiceRequestStatus.Issued or InvoiceRequestStatus.Withdrawn)
         {
-            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTransition);
+            return false;
         }
 
         Reason = RequiredReason(reason);
-        Status = InvoiceRequestStatus.Cancelled;
+        Status = InvoiceRequestStatus.Withdrawn;
+        return true;
+    }
+
+    private void EnsureNeedsAction()
+    {
+        if (!NeedsAction)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.InvoiceRequest.InvalidTransition);
+        }
     }
 
     private void Apply(InvoiceRequestDetails details)
