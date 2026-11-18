@@ -119,17 +119,23 @@ public class PaymentReceiptTemplateTests
             .ServiceTypes.ShouldContain(typeof(IDocxPdfConverter));
 
     /// <summary>
-    /// The room the template leaves above each name: two blank 14 pt lines at
-    /// 1.5 spacing in a TableGrid cell (no space after) — 2 × 483 twips, ≈ 17 mm
-    /// (R-1247's A5 template; the A6 one had 10 pt lines, 2 × 345).
+    /// The room the template leaves above each name: an 18 pt blank line and a
+    /// 14 pt one, both at 1.5 spacing in a TableGrid cell (no space after) —
+    /// 621 + 483 twips, ≈ 19.5 mm (R-1250's template; R-1247's had two 14 pt
+    /// lines, 2 × 483, and the A6 one two 10 pt lines, 2 × 345).
     /// </summary>
-    private const long SignatureRoomEmu = 2 * 483 * 635;
+    private const long SignatureRoomEmu = (621 + 483) * 635;
 
     /// <summary>
     /// The tallest a signature goes: the room less 31 twips (0.55 mm) on each
-    /// side, so it can be lifted that far and leave equal paper above and below.
+    /// side, so it can be lifted that far and leave equal paper above and below —
+    /// but never past the exporter's 18 mm, which binds first on R-1250's room.
     /// </summary>
-    private const long SignatureMaxEmu = SignatureRoomEmu - 2 * 31 * 635;
+    private static readonly long SignatureMaxEmu = Math.Min(
+        SignatureRoomEmu - 2 * 31 * 635, (long)(ReceiptExporter.SignatureMaxHeightMm * 36_000));
+
+    /// <summary>The widest a signature goes: the exporter's 50 mm.</summary>
+    private static readonly long SignatureMaxWidthEmu = (long)(ReceiptExporter.SignatureMaxWidthMm * 36_000);
 
     /// <summary>
     /// P2610 phase 5: the customer's signature takes the two blank lines above
@@ -150,9 +156,10 @@ public class PaymentReceiptTemplateTests
         before.Paragraphs.ShouldBe(after.Paragraphs + 1);
         after.Above.ShouldNotBeNull();
         after.Above.Name.ShouldBe("customer-signature");
-        // 600 × 200 px into 50 mm × the ≈15.9 mm the room allows: the room binds, ≈47.8 × 15.9 mm.
-        after.Above.Height.ShouldBe(SignatureMaxEmu);
-        after.Above.Width.ShouldBe(SignatureMaxEmu * 3);
+        // 600 × 200 px into 50 mm × the 18 mm allowed: on R-1250's room the width binds, 50 × 16.7 mm.
+        var height = Math.Min(SignatureMaxEmu, SignatureMaxWidthEmu / 3);
+        after.Above.Height.ShouldBe(height);
+        after.Above.Width.ShouldBe(height * 3);
     }
 
     /// <summary>
@@ -174,20 +181,23 @@ public class PaymentReceiptTemplateTests
 
         var after = PayerCell(signed);
         after.Above.ShouldNotBeNull();
-        // 168 × 68 px into 50 mm × the room: the room's height binds.
-        after.Above.Height.ShouldBeInRange(SignatureMaxEmu - 1, SignatureMaxEmu);
-        after.Above.Width.ShouldBeInRange(SignatureMaxEmu * 168 / 68 - 1, SignatureMaxEmu * 168 / 68 + 1);
+        // 168 × 68 px, shape kept, no taller than allowed. On R-1250's room the
+        // 0.5 mm ballpoint cap binds this 2 px pen (≈16.9 mm tall).
+        var height = after.Above.Height;
+        height.ShouldBeLessThanOrEqualTo(SignatureMaxEmu);
+        after.Above.Width.ShouldBeInRange(height * 168 / 68 - 1, height * 168 / 68 + 1);
         after.Above.Crop.ShouldBe(new[] { 6_000, 58_000, 66_000, 8_000 });
-        // As tall as it may go: lifted the whole 31 twips, all the spare paper under it.
-        after.Above.SpaceBefore.ShouldBe(0);
-        after.Above.SpaceAfter.ShouldBe(62);
+        // Midway, lifted 31 twips: the cell keeps its height, 31 more twips of paper under the ink than over it.
+        (after.Above.SpaceAfter - after.Above.SpaceBefore).ShouldBe(62);
+        (after.Above.SpaceBefore + after.Above.SpaceAfter + height / 635)
+            .ShouldBeInRange(SignatureRoomEmu / 635 - 1, SignatureRoomEmu / 635);
     }
 
     /// <summary>A signature small enough to leave room sits midway, lifted 0.55 mm so the paper above and below its ink matches.</summary>
     [Fact]
     public void A_Short_Signature_Sits_Midway_In_The_Room()
     {
-        // 500 × 100 px into 50 mm wide: 50 × 10 mm (360000 EMU ≈ 567 twips) of the 966-twip room.
+        // 500 × 100 px into 50 mm wide: 50 × 10 mm (360000 EMU ≈ 567 twips) of the 1104-twip room.
         var signed = DocxPicture.PlaceAbove(
             File.ReadAllBytes(TemplatePath()), "{{PayerName}}", Png(500, 100),
             ReceiptExporter.SignatureMaxWidthMm, ReceiptExporter.SignatureMaxHeightMm, "customer-signature");
