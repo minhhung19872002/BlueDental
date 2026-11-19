@@ -2882,10 +2882,10 @@ Còn mở:
   EasyInvoice → server vẫn từ chối (`EInvoicing:0016`), HĐ phiếu điều trị tách mỗi mức thuế một
   dòng; người dùng bỏ chọn dòng khác mức. Cần thử trên sandbox rồi mới mở.
 - **KKKNT** chưa có mã riêng đã thử → gửi như KCT (-1); cả hai đều không tính thuế.
-- **Đơn giá thập phân** (R-1258 vòng 3, 2026-11-19): HĐ của phiếu thu trả một phần gửi
-  `ProdPrice` 2 chữ số lẻ ("454545.5" = 909.091 ÷ 2), tiền khác vẫn đồng chẵn. UNKNOWN
-  EasyInvoice có nhận / in đúng số lẻ không — chưa gửi thử (sandbox / staging). Nếu bị từ chối
-  thì cần BA chọn: làm tròn Đơn giá về đồng (SL × ĐG lệch Thành tiền vài đồng) hay SL 1.
+- ~~**Đơn giá thập phân**~~ — **ĐÃ RÕ 2026-11-19**: HĐ phiếu thu trả một phần gửi `ProdPrice`
+  2 chữ số lẻ (R-1258 vòng 3). Chủ dự án gửi ảnh HĐ trên EasyInvoice: chỉnh nha 2 Hàm, đợt
+  9.050.000 VAT 10 % → Đơn giá in "4.113.636,5", Thành tiền 8.227.273, thuế 822.727, tổng
+  9.050.000 — EasyInvoice nhận và in đúng số lẻ, cột 6 = 4 × 5 khớp. Đợt 9.000.000 → 2 × 4.090.909.
 - **Dữ liệu cũ**: migration `TreatmentServiceTaxRate` gán thuế cho dòng của phiếu **chưa có phiếu
   thu nào**; phiếu đã thu tiền giữ nguyên (không phát sinh nợ VAT cho tiền đã tất toán).
 - Phiếu thu cũ (trước thay đổi) của dòng có thuế: HĐĐT của phiếu đó vẫn tách thuế ra từ số đã
