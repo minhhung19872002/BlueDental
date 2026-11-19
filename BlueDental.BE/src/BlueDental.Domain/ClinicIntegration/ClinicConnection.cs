@@ -73,6 +73,13 @@ public class ClinicConnection : FullAuditedAggregateRoot<Guid>
         return urlChanged;
     }
 
+    /// <summary>
+    /// The same key, encrypted again in a newer format. Unlike
+    /// <see cref="ChangeCredentials"/> the link stays as proven as it was.
+    /// </summary>
+    public void ReencryptApiKey(string apiKeyCipher) =>
+        ApiKeyCipher = Check.NotNullOrWhiteSpace(apiKeyCipher, nameof(apiKeyCipher));
+
     public void RecordHandshake(bool succeeded, string? error, DateTime at)
     {
         LastHandshakeTime = at;

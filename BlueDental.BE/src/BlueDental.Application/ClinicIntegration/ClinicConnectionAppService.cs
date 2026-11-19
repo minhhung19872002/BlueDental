@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Security.Encryption;
+using BlueDental.Security;
 
 namespace BlueDental.ClinicIntegration;
 
@@ -22,7 +22,7 @@ public class ClinicConnectionAppService : ApplicationService, IClinicConnectionA
     private readonly IRepository<IntegrationCallLog, Guid> _callLogs;
     private readonly IRepository<ClinicBranch, Guid> _branches;
     private readonly BranchAccessChecker _branchAccess;
-    private readonly IStringEncryptionService _encryption;
+    private readonly ISecretCipher _encryption;
     private readonly IClinicPartnerClient _partner;
 
     public ClinicConnectionAppService(
@@ -31,7 +31,7 @@ public class ClinicConnectionAppService : ApplicationService, IClinicConnectionA
         IRepository<IntegrationCallLog, Guid> callLogs,
         IRepository<ClinicBranch, Guid> branches,
         BranchAccessChecker branchAccess,
-        IStringEncryptionService encryption,
+        ISecretCipher encryption,
         IClinicPartnerClient partner)
     {
         _connections = connections;
@@ -116,12 +116,10 @@ public class ClinicConnectionAppService : ApplicationService, IClinicConnectionA
     }
 
     private string Encrypt(string apiKey) =>
-        _encryption.Encrypt(apiKey.Trim())
-        ?? throw new InvalidOperationException("The API key could not be encrypted.");
+        _encryption.Protect(apiKey.Trim(), SecretPurposes.ClinicApiKey);
 
     private string Decrypt(string cipher) =>
-        _encryption.Decrypt(cipher)
-        ?? throw new InvalidOperationException("The stored API key could not be decrypted.");
+        _encryption.Unprotect(cipher, SecretPurposes.ClinicApiKey);
 
     private static ClinicConnectionDto ToDto(ClinicConnection connection) => new()
     {

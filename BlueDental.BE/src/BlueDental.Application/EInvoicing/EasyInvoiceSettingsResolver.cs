@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Security.Encryption;
+using BlueDental.Security;
 
 namespace BlueDental.EInvoicing;
 
@@ -17,12 +17,12 @@ namespace BlueDental.EInvoicing;
 public class EasyInvoiceSettingsResolver : ITransientDependency
 {
     private readonly IRepository<EInvoiceProviderConfig, Guid> _configs;
-    private readonly IStringEncryptionService _encryption;
+    private readonly ISecretCipher _encryption;
     private readonly IOptions<EasyInvoiceOptions> _options;
 
     public EasyInvoiceSettingsResolver(
         IRepository<EInvoiceProviderConfig, Guid> configs,
-        IStringEncryptionService encryption,
+        ISecretCipher encryption,
         IOptions<EasyInvoiceOptions> options)
     {
         _configs = configs;
@@ -82,12 +82,10 @@ public class EasyInvoiceSettingsResolver : ITransientDependency
     }
 
     public string Encrypt(string password) =>
-        _encryption.Encrypt(password.Trim())
-        ?? throw new InvalidOperationException("The e-invoice password could not be encrypted.");
+        _encryption.Protect(password.Trim(), SecretPurposes.EInvoicePassword);
 
     private string Decrypt(EInvoiceProviderConfig config) =>
-        _encryption.Decrypt(config.PasswordCipher)
-        ?? throw new InvalidOperationException("The stored e-invoice password could not be decrypted.");
+        _encryption.Unprotect(config.PasswordCipher, SecretPurposes.EInvoicePassword);
 
     private static BusinessException NotConfigured() =>
         new(BlueDentalDomainErrorCodes.EInvoicing.NotConfigured);

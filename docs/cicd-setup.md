@@ -140,6 +140,17 @@ grep RECEIPT_VAULT_KEY .env   # chep gia tri nay cat o noi an toan, ngoai VM
   quan ly mat khau), khong dua vao git.
 - Local: khoa nam trong `appsettings.Development.json` (`ReceiptVault:Key`),
   file nay da nam trong `.gitignore`.
+- **Tu R-1260 khoa nay con ma hoa thong tin tich hop**: mat khau EasyInvoice
+  (Cong cu › Hoa don › Cau hinh), API key doi tac (ClinicConnection), token
+  Zalo OA. Gia tri luu dang `v1:...` (AES-256-GCM, khoa con HKDF tu khoa nay).
+  Gia tri cu (ma hoa bang passphrase ABP `StringEncryption:DefaultPassPhrase`
+  trong appsettings.json) van doc duoc; `SecretCipherUpgradeWorker` viet lai
+  chung sang dang moi luc api khoi dong va moi 6 gio (log
+  `Secrets: re-encrypted ...`). Token Zalo doi sang dang moi o lan refresh ke
+  tiep. Mat khoa nay thi phai nhap lai mat khau EasyInvoice / API key doi tac
+  va ket noi lai Zalo OA.
+- **Khong doi / xoa** `StringEncryption:DefaultPassPhrase`: no van dung de doc
+  gia tri cu (va setting ABP neu co).
 
 ## Deploy tay / hotfix
 

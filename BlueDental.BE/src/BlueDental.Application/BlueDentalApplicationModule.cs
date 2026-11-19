@@ -104,5 +104,6 @@ public class BlueDentalApplicationModule : AbpModule
         await context.AddBackgroundWorkerAsync<MissedAppointmentWorker>();
         await context.AddBackgroundWorkerAsync<Chat.ChatOrphanAttachmentWorker>();
         await context.AddBackgroundWorkerAsync<EInvoicing.EInvoiceSyncWorker>();
+        await context.AddBackgroundWorkerAsync<Security.SecretCipherUpgradeWorker>();
     }
 }
