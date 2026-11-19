@@ -58,6 +58,23 @@ public class EasyInvoiceXmlBuilderTests
     }
 
     [Fact]
+    public void A_Part_Payment_Prints_Its_Unit_Price_With_Decimals()
+    {
+        // R-1258, the BA's chỉnh nha sample: 1.000.000 paid VAT 10 % on 2 Hàm.
+        var draft = Draft(vatRate: 10) with
+        {
+            Lines = [ElectronicInvoiceDraft.LineFromGross("CN01", "Chỉnh nha", "Hàm", 2m, 1_000_000m, 10)]
+        };
+        var product = XDocument.Parse(EasyInvoiceXmlBuilder.Build(draft)).Descendants("Product").Single();
+
+        Assert.Equal("2", product.Element("ProdQuantity")!.Value);
+        Assert.Equal("454545.5", product.Element("ProdPrice")!.Value);
+        Assert.Equal("909091", product.Element("Total")!.Value);
+        Assert.Equal("90909", product.Element("VATAmount")!.Value);
+        Assert.Equal("1000000", product.Element("Amount")!.Value);
+    }
+
+    [Fact]
     public void Positive_Vat_Adds_Tax_Per_Line_And_On_The_Invoice()
     {
         var xml = XDocument.Parse(EasyInvoiceXmlBuilder.Build(Draft(vatRate: 10)));

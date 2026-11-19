@@ -402,14 +402,37 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         return PaymentReceiptQr.Place(docx, sources.PublicUrlOf(link));
     }
 
-    /// <summary>The lines ticked in the dialog, priced VAT included as the invoice would be.</summary>
+    /// <summary>
+    /// The lines ticked in the dialog, priced VAT included as the invoice would
+    /// be. A line the cashier left at the Số lượng, Đơn giá and rate it opened
+    /// with keeps the money the server worked out for it — what the đợt
+    /// collected, to the đồng — rather than Số lượng × a two-decimal Đơn giá
+    /// with its VAT taken again, which may land a đồng off (R-1258). Only a
+    /// line the cashier changed is priced afresh.
+    /// </summary>
     private async Task<List<ElectronicInvoiceLine>> LinesOfAsync(
-        InvoiceSource source, int defaultVatRate, List<ElectronicInvoiceLineInput> input) =>
-        input.Count > 0
-            ? input.Select(l => ElectronicInvoiceDraft.Line(
-                l.Code.Trim(), l.Name.Trim(), l.Unit.Trim(), l.Quantity, l.UnitPrice,
-                l.VatRate ?? defaultVatRate)).ToList()
-            : await DefaultLinesAsync(source, defaultVatRate);
+        InvoiceSource source, int defaultVatRate, List<ElectronicInvoiceLineInput> input)
+    {
+        var defaults = await DefaultLinesAsync(source, defaultVatRate);
+        if (input.Count == 0)
+        {
+            return defaults;
+        }
+
+        return input.Select(l =>
+        {
+            var (code, name, unit, rate) = (l.Code.Trim(), l.Name.Trim(), l.Unit.Trim(), l.VatRate ?? defaultVatRate);
+            var opened = defaults.FirstOrDefault(d =>
+                d.Code == code && d.Quantity == l.Quantity && d.UnitPrice == l.UnitPrice && d.VatRate == rate);
+            if (opened == null)
+            {
+                return ElectronicInvoiceDraft.Line(code, name, unit, l.Quantity, l.UnitPrice, rate);
+            }
+
+            defaults.Remove(opened);
+            return opened with { Name = name, Unit = unit };
+        }).ToList();
+    }
 
     /// <summary>
     /// Công việc điều trị: a whole slip is billed as one "Kế hoạch điều trị DT…"
@@ -829,8 +852,8 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             group.Key)).ToList();
     }
 
-    /// <summary>One service a receipt collects on, with the Đơn giá its invoice bills it at.</summary>
-    private sealed record ReceiptPart(TreatmentService Service, decimal UnitPrice, decimal Amount, decimal? Tax);
+    /// <summary>One service a receipt collects on, and what it collected on it (VAT included).</summary>
+    private sealed record ReceiptPart(TreatmentService Service, decimal Amount, decimal? Tax);
 
     private static List<ReceiptPart> ReceiptParts(InvoiceSource source)
     {
@@ -839,34 +862,24 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             return [];
         }
 
-        var slip = source.Slip;
-        var services = slip.Services.ToDictionary(s => s.Id);
+        var services = source.Slip.Services.ToDictionary(s => s.Id);
         return source.Payment!.Lines
             .Where(l => services.ContainsKey(l.TreatmentServiceId) && l.Amount > 0m)
-            .Select(l =>
-            {
-                var service = services[l.TreatmentServiceId];
-                return new ReceiptPart(service, UnitPriceOf(slip, service, l.Relief), l.Amount, l.TaxAmount);
-            })
+            .Select(l => new ReceiptPart(services[l.TreatmentServiceId], l.Amount, l.TaxAmount))
             .ToList();
     }
 
     /// <summary>
-    /// The Đơn giá a receipt bills a service at (BA 2026-11-18, R-1258): the
-    /// slip's price before VAT once the line's discount and this đợt's TN giảm
-    /// and voucher are off, spread over its Số lượng and rounded down to the
-    /// đồng. 10 × 500.000 paid in full reads 10 × 500.000, not 1 × 5.000.000.
-    /// </summary>
-    private static decimal UnitPriceOf(TreatmentPlan slip, TreatmentService service, decimal relief) =>
-        service.Quantity > 0 ? decimal.Floor(slip.ChargedAmountOf(service, relief) / service.Quantity) : 0m;
-
-    /// <summary>
-    /// The lines of each service of a receipt, at its Đơn giá (one line, or two
-    /// when the money is no whole number of units — <see
-    /// cref="ElectronicInvoiceDraft.LinesAtUnitPrice"/>). What was collected is VAT included,
-    /// so each line takes its VAT out of the amount rather than adding it: the
-    /// VAT the đợt stored (P2910), so the đợt' invoices add up to the line's
-    /// VAT, or — on a receipt from before — backed out at the service's rate.
+    /// One line per service of a receipt (BA 2026-11-19, R-1258): Số lượng is
+    /// the slip's, Thành tiền is what this đợt actually collected on it, and
+    /// Đơn giá is that over Số lượng, decimals and all — 10 × 500.000 paid in
+    /// full reads 10 × 500.000, a part payment of 2.200.000 reads 10 × 220.000,
+    /// TN giảm 50.000 on 3 × 1.000.000 reads 3 × 983.333,33. The invoice never
+    /// bills a đồng more or less than was paid. What was collected is VAT
+    /// included, so each line takes its VAT out of the amount rather than
+    /// adding it: the VAT the đợt stored (P2910), so the đợt' invoices add up to
+    /// the line's VAT, or — on a receipt from before — backed out at the
+    /// service's rate.
     /// </summary>
     private async Task<List<ElectronicInvoiceLine>> NameLinesAsync(List<ReceiptPart> parts)
     {
@@ -879,14 +892,14 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         var entries = (await _catalog.GetListAsync(c => serviceIds.Contains(c.Id))).ToDictionary(c => c.Id);
         var unit = L["Treatment:EInvoice:DefaultUnit"].Value;
 
-        return parts.SelectMany(p =>
+        return parts.Select(p =>
         {
             entries.TryGetValue(p.Service.ServiceId, out var entry);
             var rate = RateOf(p.Service);
             var tax = p.Tax ?? p.Amount - ElectronicInvoiceDraft.PreTaxOf(p.Amount, rate);
-            return ElectronicInvoiceDraft.LinesAtUnitPrice(
+            return ElectronicInvoiceDraft.LineOf(
                 entry?.Code ?? p.Service.Code, entry?.Name ?? p.Service.Code, entry?.Unit ?? unit,
-                p.UnitPrice, p.Service.Quantity, p.Amount - tax, tax, rate);
+                p.Service.Quantity > 0 ? p.Service.Quantity : 1m, p.Amount - tax, tax, rate);
         }).ToList();
     }
 

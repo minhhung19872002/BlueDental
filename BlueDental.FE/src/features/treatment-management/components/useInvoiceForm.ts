@@ -16,11 +16,18 @@ import {
 } from "./invoiceConstants";
 import { isValidTaxCode, missingRedInvoiceFields } from "./redInvoiceRules";
 
-/** A line priced and taxed under the chosen type; CX falls back to the account's rate. */
+/**
+ * A line priced and taxed under the chosen type; CX falls back to the account's rate.
+ * Left at the Đơn giá and rate it opened with, it keeps the server's money — what the
+ * đợt collected, to the đồng (R-1258: 2 × 454.545,5 is 909.091, VAT 90.909, not a
+ * fresh 10 % of it); only a line the cashier changed is worked out again.
+ */
 function priced(row: InvoiceServiceRow, defaultVatRate: number): InvoiceServiceRow {
   const rate = vatRateOf(row.taxType) ?? defaultVatRate;
-  const taxBasePrice = Math.round(row.unitPrice * row.quantity);
-  const taxAmount = taxOf(taxBasePrice, rate);
+  const { opening } = row;
+  const untouched = opening !== undefined && opening.unitPrice === row.unitPrice && opening.vatRate === rate;
+  const taxBasePrice = untouched ? opening.total : Math.round(row.unitPrice * row.quantity);
+  const taxAmount = untouched ? opening.taxAmount : taxOf(taxBasePrice, rate);
   return { ...row, taxBasePrice, taxAmount, taxPercent: vatRateLabel(rate), totalAfterTax: taxBasePrice + taxAmount };
 }
 
@@ -41,6 +48,7 @@ function rowsOf(draft: ElectronicInvoiceDraftDto): InvoiceServiceRow[] {
         unit: line.unit,
         quantity: line.quantity,
         unitPrice: kept?.unitPrice ?? line.unitPrice,
+        opening: { unitPrice: line.unitPrice, vatRate: line.vatRate, total: line.total, taxAmount: line.taxAmount },
         taxBasePrice: 0,
         taxPercent: "",
         taxAmount: 0,

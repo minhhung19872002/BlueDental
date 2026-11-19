@@ -70,6 +70,7 @@ export function InvoiceServiceTable({
       render: (_, row) => (
         <CurrencyInput
           className="inv-price-input"
+          decimalScale={2}
           value={row.unitPrice}
           onChange={(v) => onUnitPriceChange(row.key, v)}
         />
