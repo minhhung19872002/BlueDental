@@ -8,7 +8,7 @@ using Volo.Abp;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.Domain.Repositories;
 using Volo.Abp.Guids;
-using Volo.Abp.Security.Encryption;
+using BlueDental.Security;
 using Volo.Abp.Timing;
 
 namespace BlueDental.Zalo;
@@ -34,7 +34,7 @@ public class ZaloOaTokenService : ITransientDependency
     private readonly IRepository<ZaloOaConnection, Guid> _connections;
     private readonly IRepository<IntegrationCallLog, Guid> _callLogs;
     private readonly IZaloApiClient _zalo;
-    private readonly IStringEncryptionService _encryption;
+    private readonly ISecretCipher _encryption;
     private readonly IGuidGenerator _guids;
     private readonly IClock _clock;
     private readonly ILogger<ZaloOaTokenService> _logger;
@@ -43,7 +43,7 @@ public class ZaloOaTokenService : ITransientDependency
         IRepository<ZaloOaConnection, Guid> connections,
         IRepository<IntegrationCallLog, Guid> callLogs,
         IZaloApiClient zalo,
-        IStringEncryptionService encryption,
+        ISecretCipher encryption,
         IGuidGenerator guids,
         IClock clock,
         ILogger<ZaloOaTokenService> logger)
@@ -71,8 +71,7 @@ public class ZaloOaTokenService : ITransientDependency
     }
 
     public string Decrypt(string cipher) =>
-        _encryption.Decrypt(cipher)
-        ?? throw new InvalidOperationException("The stored Zalo token could not be decrypted.");
+        _encryption.Unprotect(cipher, SecretPurposes.ZaloToken);
 
     /// <summary>
     /// The access token to call Zalo with, refreshed first when it is about
@@ -151,8 +150,7 @@ public class ZaloOaTokenService : ITransientDependency
     }
 
     private string EncryptText(string token) =>
-        _encryption.Encrypt(token.Trim())
-        ?? throw new InvalidOperationException("The Zalo token could not be encrypted.");
+        _encryption.Protect(token.Trim(), SecretPurposes.ZaloToken);
 
     /// <summary>The tracked instance takes the newer row's token state.</summary>
     private void Copy(ZaloOaConnection source, ZaloOaConnection target)

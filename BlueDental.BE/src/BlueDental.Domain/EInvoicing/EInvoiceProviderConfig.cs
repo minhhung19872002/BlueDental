@@ -102,6 +102,10 @@ public class EInvoiceProviderConfig : FullAuditedAggregateRoot<Guid>
         }
     }
 
+    /// <summary>The same password, encrypted again in a newer format; nothing else changes.</summary>
+    public void ReencryptPassword(string passwordCipher) =>
+        PasswordCipher = Check.NotNullOrWhiteSpace(passwordCipher, nameof(passwordCipher), MaxPasswordCipherLength);
+
     /// <summary>Called once the provider accepted an invoice under this pair.</summary>
     public void RememberNumbering(string pattern, string? serial)
     {

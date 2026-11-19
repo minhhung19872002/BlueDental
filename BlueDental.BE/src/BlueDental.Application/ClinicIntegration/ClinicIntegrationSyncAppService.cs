@@ -10,7 +10,7 @@ using Volo.Abp;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Data;
 using Volo.Abp.Domain.Repositories;
-using Volo.Abp.Security.Encryption;
+using BlueDental.Security;
 
 namespace BlueDental.ClinicIntegration;
 
@@ -31,7 +31,7 @@ public class ClinicIntegrationSyncAppService : ApplicationService, IClinicIntegr
     private readonly IRepository<Taxonomy, Guid> _taxonomies;
     private readonly BranchAccessChecker _branchAccess;
     private readonly IDataFilter<ISoftDelete> _softDeleteFilter;
-    private readonly IStringEncryptionService _encryption;
+    private readonly ISecretCipher _encryption;
     private readonly IClinicPartnerClient _partner;
 
     public ClinicIntegrationSyncAppService(
@@ -42,7 +42,7 @@ public class ClinicIntegrationSyncAppService : ApplicationService, IClinicIntegr
         IRepository<Taxonomy, Guid> taxonomies,
         BranchAccessChecker branchAccess,
         IDataFilter<ISoftDelete> softDeleteFilter,
-        IStringEncryptionService encryption,
+        ISecretCipher encryption,
         IClinicPartnerClient partner)
     {
         _connections = connections;
@@ -303,8 +303,7 @@ public class ClinicIntegrationSyncAppService : ApplicationService, IClinicIntegr
         CheckPolicyAsync(BlueDentalAbilities.Permission(BlueDentalAbilities.Subjects.CatalogService, action));
 
     private string Decrypt(string cipher) =>
-        _encryption.Decrypt(cipher)
-        ?? throw new InvalidOperationException("The stored API key could not be decrypted.");
+        _encryption.Unprotect(cipher, SecretPurposes.ClinicApiKey);
 
     private static ServiceCatalogSyncResultDto ToDto(ServiceCatalogSyncReport report) => new()
     {
