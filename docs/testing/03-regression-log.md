@@ -15654,6 +15654,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: E2E `einvoice-receipt-quantity-api` **2/2** (trả đủ 10 × 500.000; đợt 2.000.000 → 4 × 500.000; 2.200.000 → 4 × 500.000 + 1 × 200.000; 800.000 cuối → 1 × 500.000 + 1 × 300.000; giảm 10 % → 10 × 450.000; TN giảm 50.000 → 2 × 983.333 + 1 × 983.334; VAT 8 % → 10 × 900.000 + 720.000). Cùng lượt thêm `payment-rounds` — tổng **17/17** (preview :8093 → host thật :5152 → PostgreSQL thật). Domain.Tests EInvoicing **107/107** (+8 case `LinesAtUnitPrice`), Application.Tests EInvoicing + interception **15/15**.
 - **Chưa kiểm được**: EasyInvoice nhận hai dòng cùng mã dịch vụ (không gửi từ test).
 
+### R-1258 vòng 3 (2026-11-19, quy tắc chốt của BA sau khi trao đổi với kế toán)
+
+- **BA**: mỗi dịch vụ **một dòng**; SL = SL của phiếu; Thành tiền = số khách thực trả cho dòng đó (tách VAT ra, hoặc lấy thuế đã lưu); **Đơn giá = Thành tiền trước thuế ÷ SL, cho phép số lẻ**; tổng tiền không được đổi. Chỉnh nha / Răng sứ VAT 10 % chỉ qua cấu hình "% thuế" của danh mục, dịch vụ khác KCT. Thay cho vòng 2 (tách dòng, làm tròn xuống).
+- **Thay đổi**:
+  - Domain `ElectronicInvoiceDraft`: bỏ `LinesAtUnitPrice`; `LineOf(…, total, tax, …)` giữ nguyên Thành tiền và thuế, Đơn giá = `UnitPriceOf` = Thành tiền ÷ SL làm tròn **2 chữ số thập phân** (AwayFromZero); `LineFromGross` đi qua `LineOf`.
+  - `EasyInvoiceXmlBuilder`: `ProdPrice` in `0.##` (454545.5) — trước đây cắt về đồng. Tiền khác vẫn đồng chẵn.
+  - BE `ElectronicInvoiceAppService`: `ReceiptPart(Service, Amount, Tax)`, `NameLinesAsync` một dòng/dịch vụ; `LinesOfAsync` — dòng dialog gửi về **không sửa** (cùng mã, SL, Đơn giá, % thuế) lấy lại đúng dòng server đã dựng (Thành tiền + thuế gốc), dòng đã sửa tính lại SL × ĐG như trước. Tránh lệch 1 đồng (909.091 ≠ 2 × 454.545,5 × 1,1) làm vượt số đã thu.
+  - FE `useInvoiceForm`: dòng chưa sửa giữ Thành tiền / thuế server trả (`opening`); ô Đơn giá (`InvoiceServiceTable`, `InvoiceServiceCard`) `decimalScale={2}` → hiện "454.545,5".
+- **Ví dụ**: chỉnh nha 2 Hàm, đợt 1.000.000 VAT 10 % → 2 × 454.545,5 = 909.091 + 90.909 = 1.000.000. Trả 2.950.000 / 3 → 983.333,33. Trả đủ 10 × 500.000 không đổi. BA mẫu ghi 454.545,4 (chia 909.090,9 chưa làm tròn) — ta làm tròn Thành tiền về đồng trước rồi mới chia (Thành tiền in trên HĐ là 909.091) → **454.545,5**; báo lại BA.
+- **Kiểm thử**:
+  - Domain.Tests **124/124** (theory 8 case: trả đủ / trả một phần / TN giảm / VAT 8 % / VAT 10 % 2 và 3 đơn vị; 20.000 case ngẫu nhiên SL 1..99: SL × ĐG làm tròn về đúng Thành tiền; thuế đã lưu giữ nguyên; XML `ProdPrice` "454545.5").
+  - Application.Tests PaymentReceiptTemplate + EInvoic **29/29** (2 skip có sẵn) — 11 đỏ lúc trước chỉ do build với `--artifacts-path` (test tìm PHIẾU THU.docx theo thư mục bin).
+  - E2E `einvoice-receipt-quantity-api` **4/4**: trả đủ 10 × 500.000; đợt 2.000.000 / 2.200.000 / 800.000 → 10 × 200.000 / 220.000 / 80.000; giảm 10 % → 10 × 450.000; TN giảm → 3 × 983.333,33 và Lưu Nháp lưu đúng 2.950.000; VAT 8 % → 10 × 900.000; chỉnh nha VAT 10 % → 2 × 454.545,5, Lưu Nháp (send: false) lưu đúng 909.091 + 90.909 = 1.000.000, mở lại vẫn 2 × 454.545,5, sửa Đơn giá 400.000 → 880.000, đợt 2 5.600.000 → 2 × 2.545.454,5; **UI thật** /billing → Xuất hóa đơn → ô Đơn giá "454.545,5", Lưu Nháp → 1.000.000.
+  - Cùng lượt: `einvoice-api`, `vat-payment-einvoice-api`, `invoice-request-api`, `invoice-request-ui`, `payment-from-slip`, `payment-rounds`, `billing-ledger`, `receipt-export`, `payment-receipt-pdf` — **25/25** + payment-receipt-pdf **6/6** chạy lại riêng; đỏ duy nhất "Lưu opens the receipt PDF in a new tab" là đỏ headless có sẵn (từ R-1245). Preview :8093 → host thật :5152 → PostgreSQL thật, không chặn request.
+- **Chưa kiểm được**: EasyInvoice có nhận `ProdPrice` thập phân "454545.5" không (không gửi từ test; sandbox chưa thử) — docs/clone/unknowns.md. Kiểm trên staging bằng một HĐ nháp trước khi lên main.
+- **Mức retest**: 2 (Hóa đơn điện tử).
+
+#### R-1258 vòng 3 — bổ sung (2026-11-19, nháp lưu theo quy tắc cũ)
+
+- **Lỗi**: HĐ đã Lưu Nháp / Chờ kiểm tra theo vòng 1–2 (vd. 4 × 500.000 + 1 × 200.000 cùng mã, hay 1 × cả đợt) mở lại → FE khớp dòng theo mã, lấy SL mới (10) nhưng Đơn giá cũ (500.000) → 10 × 500.000 = 5.000.000 > 2.200.000 đã thu, server từ chối; dòng thứ hai cùng mã bị bỏ tích. Xử lý (Yêu cầu xuất HĐ) cũng gửi form cũ y nguyên.
+- **Sửa** (chủ dự án chốt "theo đề xuất"): BE `ElectronicInvoiceAppService.Refitted` — `SavedForm` chỉ giữ dòng đã lưu nếu **mỗi dòng khớp một dòng mặc định khác nhau theo mã + SL** (dialog không cho sửa SL, nên lệch SL = lưu theo quy tắc cũ); lệch → trả lại dòng mặc định hôm nay (thông tin người mua, mẫu số… vẫn giữ). Dòng bỏ tích chỉ là vắng mặt → vẫn khớp; Đơn giá đã gõ tay vẫn giữ. `SendForRequestAsync`: form lệch → `Lines = []` (đi theo dòng mặc định). FE không đổi.
+- **Không sửa** (chủ dự án: "nhiều mức thuế chắc k xảy ra trong thực tế"): phiếu thu lẫn dịch vụ VAT khác nhau vẫn bị chặn 0016 khi tích hết.
+- **Kiểm thử**: E2E `einvoice-receipt-quantity-api` **5/5** (thêm: lưu nháp kiểu vòng 2 4 × 500.000 + 1 × 200.000 → GET draft trả `10 × 220000`; UI thật /billing → Xuất hóa đơn: Đơn giá "220.000", 2.200.000, dòng được tích, Lưu Nháp 2.200.000; gõ Đơn giá 200.000 → mở lại vẫn `10 × 200000`); `einvoice-api`, `vat-payment-einvoice-api`, `invoice-request-api`, `invoice-request-ui` **10/10**; Domain.Tests EInvoic **110/110**, Application.Tests EInvoic **10/10**. Preview :8093 → host :5152 → PostgreSQL thật.
+- **Chưa kiểm được**: nhánh Xử lý gửi EasyInvoice (không gửi từ test).
+
 ## R-1260 (2026-11-19, mức 3: mã hóa thông tin tích hợp bằng khóa vault; develop)
 
 - **Yêu cầu**: chủ dự án hỏi mật khẩu cấu hình EasyInvoice có mã hóa không → có (ABP `IStringEncryptionService`), nhưng passphrase `BlueDentalDefaultPassPhrase` nằm trong `appsettings.json` đã commit, ai có DB + repo là giải được. Chủ dự án: "làm theo b đề xuất …, nhớ k làm ảnh hưởng hiện tại".

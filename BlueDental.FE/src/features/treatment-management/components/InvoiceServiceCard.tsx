@@ -43,6 +43,7 @@ export function InvoiceServiceCard({ row, onToggle, onTaxTypeChange, onUnitPrice
           <span className="inv-card-label">{t("Treatment:Pricing:UnitPrice")}</span>
           <CurrencyInput
             className="inv-card-price"
+            decimalScale={2}
             value={row.unitPrice}
             onChange={onUnitPriceChange}
           />

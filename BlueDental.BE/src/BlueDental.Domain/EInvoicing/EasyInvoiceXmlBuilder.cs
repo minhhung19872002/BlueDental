@@ -54,7 +54,9 @@ public static class EasyInvoiceXmlBuilder
             new XElement("ProdName", line.Name),
             new XElement("ProdUnit", line.Unit),
             new XElement("ProdQuantity", line.Quantity.ToString("0.####", Invariant)),
-            new XElement("ProdPrice", Money(line.UnitPrice)),
+            // Đơn giá may carry two decimals (303030.33): Thành tiền over Số lượng
+            // of what was actually collected (BA 2026-11-19, R-1258).
+            new XElement("ProdPrice", line.UnitPrice.ToString("0.##", Invariant)),
             new XElement("Total", Money(line.Total)),
             new XElement("VATRate", line.VatRate.ToString(Invariant)),
             new XElement("VATAmount", Money(line.TaxAmount)),

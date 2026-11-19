@@ -18,7 +18,10 @@ export interface InvoiceServiceRow {
   taxType: InvoiceTaxType;
   unit: string;
   quantity: number;
+  /** Đơn giá; two decimals when it is a đợt's money over Số lượng (R-1258). */
   unitPrice: number;
+  /** The line as the server priced it, kept while the cashier leaves its Đơn giá and rate alone. */
+  opening?: { unitPrice: number; vatRate: number; total: number; taxAmount: number };
   taxBasePrice: number;
   /** What the "% thuế" column prints: "8%", "KCT"… */
   taxPercent: string;

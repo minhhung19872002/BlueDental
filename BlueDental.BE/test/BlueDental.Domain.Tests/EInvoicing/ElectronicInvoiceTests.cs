@@ -330,26 +330,56 @@ public class ElectronicInvoiceTests
         Assert.False(Blocks(receipt, issuingWholeSlip: true));
     }
 
-    /// <summary>R-1258: a đợt's money on a service, at its Đơn giá — "qty×price" lines, tax shared out.</summary>
+    /// <summary>
+    /// R-1258 (BA 2026-11-19): one line per service — the slip's Số lượng, what
+    /// the đợt collected as Thành tiền (VAT backed out of it), Đơn giá to two
+    /// decimals. The line adds up to exactly what was paid.
+    /// </summary>
     [Theory]
-    [InlineData(500_000, 10, 5_000_000, 0, "10×500000")] // paid in full
-    [InlineData(500_000, 10, 2_000_000, 0, "4×500000")] // part payment, whole units
-    [InlineData(500_000, 10, 2_200_000, 0, "4×500000 1×200000")] // part payment, short of a unit
-    [InlineData(500_000, 10, 300_000, 0, "1×300000")] // less than one unit
-    [InlineData(983_333, 3, 2_950_000, 0, "2×983333 1×983334")] // Đơn giá rounded down: the đồng go on the last unit
-    [InlineData(5_000_000, 1, 2_000_000, 0, "1×2000000")]
-    [InlineData(900_000, 10, 9_000_000, 720_000, "10×900000")]
-    [InlineData(900_000, 10, 2_000_000, 160_000, "2×900000 1×200000")]
-    public void A_receipt_line_bills_whole_units_at_its_unit_price(
-        int unitPrice, int quantity, int total, int tax, string expected)
+    [InlineData(5_000_000, 10, -1, "500000", 5_000_000, 0)] // paid in full
+    [InlineData(2_200_000, 10, -1, "220000", 2_200_000, 0)] // part payment
+    [InlineData(300_000, 10, -1, "30000", 300_000, 0)]
+    [InlineData(2_950_000, 3, -1, "983333.33", 2_950_000, 0)] // voucher / TN giảm: decimals, not a split
+    [InlineData(1_000_000, 2, 10, "454545.5", 909_091, 90_909)] // the BA's chỉnh nha sample: 909.091 ÷ 2
+    [InlineData(1_000_000, 3, 10, "303030.33", 909_091, 90_909)]
+    [InlineData(9_720_000, 10, 8, "900000", 9_000_000, 720_000)]
+    [InlineData(2_000_000, 1, -1, "2000000", 2_000_000, 0)]
+    public void A_receipt_line_bills_the_slip_quantity_at_what_was_paid(
+        int paid, int quantity, int rate, string unitPrice, int total, int tax)
     {
-        var rate = tax > 0 ? 8 : -1;
-        var lines = ElectronicInvoiceDraft.LinesAtUnitPrice("CV01", "Cạo vôi", "Lần", unitPrice, quantity, total, tax, rate);
+        var line = ElectronicInvoiceDraft.LineFromGross("CN01", "Chỉnh nha", "Hàm", quantity, paid, rate);
 
-        Assert.Equal(expected, string.Join(" ", lines.Select(l => $"{l.Quantity:0}×{l.UnitPrice:0}")));
-        Assert.All(lines, l => Assert.Equal(l.Total, l.Quantity * l.UnitPrice));
-        Assert.Equal(total, lines.Sum(l => l.Total));
-        Assert.Equal(tax, lines.Sum(l => l.TaxAmount));
-        Assert.Equal(total + tax, lines.Sum(l => l.Amount));
+        Assert.Equal(quantity, line.Quantity);
+        Assert.Equal(unitPrice, line.UnitPrice.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(total, line.Total);
+        Assert.Equal(tax, line.TaxAmount);
+        Assert.Equal(paid, line.Amount);
+        Assert.Equal(line.Total, Values.Vnd.Round(line.Quantity * line.UnitPrice));
+    }
+
+    [Fact]
+    public void A_two_decimal_unit_price_rounds_back_to_its_total_under_a_hundred_units()
+    {
+        var random = new Random(1258);
+        for (var i = 0; i < 20_000; i++)
+        {
+            var quantity = random.Next(1, 100);
+            decimal total = random.Next(1, 200_000_000);
+            var unitPrice = ElectronicInvoiceDraft.UnitPriceOf(total, quantity);
+
+            Assert.Equal(total, Values.Vnd.Round(quantity * unitPrice));
+            Assert.Equal(unitPrice, decimal.Round(unitPrice, 2));
+        }
+    }
+
+    [Fact]
+    public void A_stored_vat_is_kept_as_given()
+    {
+        // P2910: the đợt stored its VAT share; the line takes it, not a fresh back-out.
+        var line = ElectronicInvoiceDraft.LineOf("CN01", "Chỉnh nha", "Hàm", 2m, 909_090m, 90_910m, 10);
+
+        Assert.Equal(454_545m, line.UnitPrice);
+        Assert.Equal(90_910m, line.TaxAmount);
+        Assert.Equal(1_000_000m, line.Amount);
     }
 }

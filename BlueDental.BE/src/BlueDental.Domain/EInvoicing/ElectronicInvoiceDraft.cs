@@ -114,49 +114,28 @@ public sealed record ElectronicInvoiceDraft
         string code, string name, string unit, decimal quantity, decimal gross, int vatRate)
     {
         var total = PreTaxOf(gross, vatRate);
-        return new ElectronicInvoiceLine(code, name, unit, quantity, total / quantity, total, vatRate, gross - total, gross);
+        return LineOf(code, name, unit, quantity, total, gross - total, vatRate);
     }
 
     /// <summary>The pre-VAT base inside money collected VAT included.</summary>
     public static decimal PreTaxOf(decimal gross, int vatRate) =>
         vatRate > 0 ? Vnd.Round(gross * 100m / (100m + vatRate)) : gross;
 
-    /// <summary>A line whose base and tax were already worked out (a slip's lines of one rate, summed).</summary>
+    /// <summary>
+    /// A line whose base and tax were already worked out — a slip's lines of
+    /// one rate summed, or what a đợt collected on one service. The money is
+    /// kept as given and Đơn giá is only what it comes to per unit, to two
+    /// decimals (BA 2026-11-19, R-1258: 909.091 trước thuế over 2 = 454.545,5;
+    /// 2.950.000 over 3 = 983.333,33). Under a hundred units, Số lượng × Đơn giá
+    /// rounds back to the same Thành tiền.
+    /// </summary>
     public static ElectronicInvoiceLine LineOf(
         string code, string name, string unit, decimal quantity, decimal total, decimal tax, int vatRate) =>
-        new(code, name, unit, quantity, total / quantity, total, vatRate, tax, total + tax);
+        new(code, name, unit, quantity, UnitPriceOf(total, quantity), total, vatRate, tax, total + tax);
 
-    /// <summary>
-    /// What a đợt collected on one service, billed at the service's Đơn giá
-    /// (BA 2026-11-18, R-1258): as many whole units as the money buys, at
-    /// <paramref name="unitPrice"/>. Money short of one more unit (a part
-    /// payment: 2.200.000 at 500.000 → 4 × 500.000 + 1 × 200.000) is a line of
-    /// its own; once every one of the slip's <paramref name="quantity"/> units is
-    /// billed, what is left is the đồng the Đơn giá was rounded down by and goes
-    /// on the last unit (2.950.000 over 3 → 2 × 983.333 + 1 × 983.334). Every
-    /// line keeps 6 = 4 × 5 and the lines add up to exactly what was collected.
-    /// </summary>
-    public static IReadOnlyList<ElectronicInvoiceLine> LinesAtUnitPrice(
-        string code, string name, string unit, decimal unitPrice, decimal quantity,
-        decimal total, decimal tax, int vatRate)
-    {
-        var units = unitPrice > 0m ? decimal.Floor(total / unitPrice) : 0m;
-        var rest = total - units * unitPrice;
-        var (whole, odd) = rest > 0m && units >= quantity ? (units - 1m, unitPrice + rest) : (units, rest);
-
-        if (whole <= 0m || odd == 0m)
-        {
-            return [LineOf(code, name, unit, whole > 0m ? whole : 1m, total, tax, vatRate)];
-        }
-
-        var wholeTotal = whole * unitPrice;
-        var wholeTax = Vnd.Round(tax * wholeTotal / total);
-        return
-        [
-            LineOf(code, name, unit, whole, wholeTotal, wholeTax, vatRate),
-            LineOf(code, name, unit, 1m, odd, tax - wholeTax, vatRate)
-        ];
-    }
+    /// <summary>Thành tiền over Số lượng, to two decimals — the provider prints Đơn giá with them.</summary>
+    public static decimal UnitPriceOf(decimal total, decimal quantity) =>
+        quantity > 0m ? Math.Round(total / quantity, 2, MidpointRounding.AwayFromZero) : total;
 
     /// <summary>
     /// The provider's VATRate for a service's "% thuế". KKKNT has no code of its
