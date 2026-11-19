@@ -15671,6 +15671,14 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Chưa kiểm được**: EasyInvoice có nhận `ProdPrice` thập phân "454545.5" không (không gửi từ test; sandbox chưa thử) — docs/clone/unknowns.md. Kiểm trên staging bằng một HĐ nháp trước khi lên main.
 - **Mức retest**: 2 (Hóa đơn điện tử).
 
+#### R-1258 vòng 3 — bổ sung (2026-11-19, nháp lưu theo quy tắc cũ)
+
+- **Lỗi**: HĐ đã Lưu Nháp / Chờ kiểm tra theo vòng 1–2 (vd. 4 × 500.000 + 1 × 200.000 cùng mã, hay 1 × cả đợt) mở lại → FE khớp dòng theo mã, lấy SL mới (10) nhưng Đơn giá cũ (500.000) → 10 × 500.000 = 5.000.000 > 2.200.000 đã thu, server từ chối; dòng thứ hai cùng mã bị bỏ tích. Xử lý (Yêu cầu xuất HĐ) cũng gửi form cũ y nguyên.
+- **Sửa** (chủ dự án chốt "theo đề xuất"): BE `ElectronicInvoiceAppService.Refitted` — `SavedForm` chỉ giữ dòng đã lưu nếu **mỗi dòng khớp một dòng mặc định khác nhau theo mã + SL** (dialog không cho sửa SL, nên lệch SL = lưu theo quy tắc cũ); lệch → trả lại dòng mặc định hôm nay (thông tin người mua, mẫu số… vẫn giữ). Dòng bỏ tích chỉ là vắng mặt → vẫn khớp; Đơn giá đã gõ tay vẫn giữ. `SendForRequestAsync`: form lệch → `Lines = []` (đi theo dòng mặc định). FE không đổi.
+- **Không sửa** (chủ dự án: "nhiều mức thuế chắc k xảy ra trong thực tế"): phiếu thu lẫn dịch vụ VAT khác nhau vẫn bị chặn 0016 khi tích hết.
+- **Kiểm thử**: E2E `einvoice-receipt-quantity-api` **5/5** (thêm: lưu nháp kiểu vòng 2 4 × 500.000 + 1 × 200.000 → GET draft trả `10 × 220000`; UI thật /billing → Xuất hóa đơn: Đơn giá "220.000", 2.200.000, dòng được tích, Lưu Nháp 2.200.000; gõ Đơn giá 200.000 → mở lại vẫn `10 × 200000`); `einvoice-api`, `vat-payment-einvoice-api`, `invoice-request-api`, `invoice-request-ui` **10/10**; Domain.Tests EInvoic **110/110**, Application.Tests EInvoic **10/10**. Preview :8093 → host :5152 → PostgreSQL thật.
+- **Chưa kiểm được**: nhánh Xử lý gửi EasyInvoice (không gửi từ test).
+
 ## R-1260 (2026-11-19, mức 3: mã hóa thông tin tích hợp bằng khóa vault; develop)
 
 - **Yêu cầu**: chủ dự án hỏi mật khẩu cấu hình EasyInvoice có mã hóa không → có (ABP `IStringEncryptionService`), nhưng passphrase `BlueDentalDefaultPassPhrase` nằm trong `appsettings.json` đã commit, ai có DB + repo là giải được. Chủ dự án: "làm theo b đề xuất …, nhớ k làm ảnh hưởng hiện tại".

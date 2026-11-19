@@ -104,6 +104,7 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
         var vatRate = account?.Settings.VatRate ?? _options.Value.VatRate;
         var patient = await _patients.GetAsync(source.PatientId);
         var existing = await FindAsync(source);
+        var lines = await DefaultLinesAsync(source, vatRate);
 
         return new ElectronicInvoiceDraftDto
         {
@@ -123,10 +124,62 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             NationalId = patient.NationalId,
             PaymentMethod = source.PaymentMethod,
             MaxAmount = source.MaxAmount,
-            Lines = (await DefaultLinesAsync(source, vatRate)).Select(MapLine).ToList(),
+            Lines = lines.Select(MapLine).ToList(),
             Existing = existing == null ? null : Map(existing),
-            SavedForm = FormFrom(existing?.FormJson)
+            SavedForm = Refitted(FormFrom(existing?.FormJson), lines, vatRate)
         };
+    }
+
+    /// <summary>
+    /// A saved form whose lines no longer fit the lines its source opens with —
+    /// kept under an older rule: R-1258 rounds 1 and 2 billed a part payment as
+    /// 1 × the đợt or split it at the slip's Đơn giá (4 × 500.000 + 1 × 200.000),
+    /// where it now opens as 10 × 220.000. Reopened as it was, the dialog would
+    /// put the old Đơn giá on the new Số lượng and ask for more than was paid;
+    /// so such a form reopens on today's lines, as if untouched, and keeps
+    /// everything else the cashier typed.
+    /// </summary>
+    private static IssueElectronicInvoiceDto? Refitted(
+        IssueElectronicInvoiceDto? saved, IReadOnlyList<ElectronicInvoiceLine> lines, int defaultVatRate)
+    {
+        if (saved == null || Fits(saved.Lines, lines))
+        {
+            return saved;
+        }
+
+        saved.Lines = lines.Select(l => new ElectronicInvoiceLineInput
+        {
+            Code = l.Code,
+            Name = l.Name,
+            Unit = l.Unit,
+            Quantity = l.Quantity,
+            UnitPrice = l.UnitPrice,
+            // As the dialog posts a line left at the account's rate: "Chưa xuất".
+            VatRate = l.VatRate == defaultVatRate ? null : l.VatRate
+        }).ToList();
+        return saved;
+    }
+
+    /// <summary>
+    /// Every saved line is one of <paramref name="lines"/> — same code, same
+    /// Số lượng (the dialog cannot change it), each taken once. Lines the
+    /// cashier unticked are simply not there; a typed Đơn giá still fits.
+    /// </summary>
+    private static bool Fits(IEnumerable<ElectronicInvoiceLineInput> saved, IEnumerable<ElectronicInvoiceLine> lines)
+    {
+        var open = lines.ToList();
+        foreach (var line in saved)
+        {
+            var at = open.FindIndex(l => l.Code == line.Code.Trim() && l.Quantity == line.Quantity);
+            if (at < 0)
+            {
+                return false;
+            }
+
+            open.RemoveAt(at);
+        }
+
+        return true;
     }
 
     [Authorize(BlueDentalAbilityPermissions.Payment.Finalize)]
@@ -197,6 +250,11 @@ public class ElectronicInvoiceAppService : BlueDentalAppService, IElectronicInvo
             Lines = saved?.Lines ?? []
         };
         var settings = await SettingsForSendAsync(source, input);
+        // A Lưu Nháp kept under an older rule goes out on today's lines (see Refitted).
+        if (!Fits(input.Lines, await DefaultLinesAsync(source, settings.VatRate)))
+        {
+            input.Lines = [];
+        }
 
         if (!InFlight.TryAdd(source.Ikey, 0))
         {

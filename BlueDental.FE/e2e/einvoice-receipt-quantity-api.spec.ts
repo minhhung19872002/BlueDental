@@ -402,4 +402,55 @@ test.describe("Hóa đơn điện tử từ phiếu thu: Số lượng của phi
     const reread = await call(page, `/api/v1/app/e-invoices/draft?patientPaymentId=${receiptId}`);
     expect(shape(reread.body.lines as InvoiceLine[])).toEqual(["2 × 454545.5"]);
   });
+
+  test("a Lưu Nháp kept under the old split rule reopens on today's line; a typed Đơn giá stays", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await login(page);
+    const id = runId();
+    const serviceId = await catalogService(page, `HĐ SL cũ ${id}`, 500_000, TAX.NotTaxable);
+    const part = await slipWith(page, `${id} cũ`, { serviceId, price: 500_000, quantity: 10 });
+    const { receiptId, receiptCode, lines } = await invoiceLinesOf(page, part.slip, part.line, 2_200_000);
+    const [line] = lines;
+
+    // Round 2 (on main until R-1258 round 3) saved 2.200.000 as 4 × 500.000 + 1 × 200.000.
+    await saveDraft(page, receiptId, [
+      { ...line, quantity: 4, unitPrice: 500_000 },
+      { ...line, quantity: 1, unitPrice: 200_000 },
+    ]);
+    const stale = await call(page, `/api/v1/app/e-invoices/draft?patientPaymentId=${receiptId}`);
+    expect(stale.status).toBe(200);
+    expect(
+      (stale.body.savedForm.lines as InvoiceLine[]).map((l) => `${l.quantity} × ${l.unitPrice}`),
+    ).toEqual(["10 × 220000"]);
+
+    // The dialog opens on 10 × 220.000 = 2.200.000 — not 10 × the old 500.000 — and Lưu Nháp saves it.
+    await page.goto("/billing");
+    await page
+      .getByPlaceholder("Tìm theo mã thanh toán, tên hoặc mã khách hàng...")
+      .fill(receiptCode);
+    const row = page.locator(".ant-table-tbody tr.ant-table-row").filter({ hasText: receiptCode });
+    await expect(row).toBeVisible({ timeout: 20_000 });
+    await row
+      .getByRole("button", { name: `Xuất hóa đơn điện tử cho phiếu ${receiptCode}` })
+      .click();
+    const invoice = page.getByRole("dialog", { name: "Hóa đơn" });
+    const first = invoice.locator("tbody tr.ant-table-row").first();
+    await expect(first.locator("input.inv-price-input")).toHaveValue("220.000");
+    await expect(first).toContainText("2.200.000");
+    await expect(first.locator("input[type=checkbox]")).toBeChecked();
+    const saved = page.waitForResponse((res) => res.url().includes("/api/v1/app/e-invoices/issue"));
+    await invoice.getByRole("button", { name: "Lưu Nháp" }).click();
+    const response = await saved;
+    expect(response.ok()).toBeTruthy();
+    expect(await response.json()).toMatchObject({ total: 2_200_000, amount: 2_200_000 });
+
+    // A Đơn giá the cashier typed on today's Số lượng is the cashier's: it reopens as typed.
+    await saveDraft(page, receiptId, [{ ...line, unitPrice: 200_000 }]);
+    const typed = await call(page, `/api/v1/app/e-invoices/draft?patientPaymentId=${receiptId}`);
+    expect(
+      (typed.body.savedForm.lines as InvoiceLine[]).map((l) => `${l.quantity} × ${l.unitPrice}`),
+    ).toEqual(["10 × 200000"]);
+  });
 });
