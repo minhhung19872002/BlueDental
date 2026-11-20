@@ -1,3 +1,5 @@
+import { SHEET_FONT_FACE_CSS, SHEET_FONT_FAMILY } from "./sheetFont";
+
 /*
  * The stylesheet the A4 sheets are drawn with, measured off the reference's
  * own preview frame (staging, 2026-09-09).
@@ -10,8 +12,9 @@
  * space in a ::before.
  */
 export const SHEET_CSS = String.raw`
-    
-.nfc-tpl{font-family:'Times New Roman',Times,serif;font-size:13px;color:#000;line-height:1.5}
+
+${SHEET_FONT_FACE_CSS}
+.nfc-tpl{font-family:${SHEET_FONT_FAMILY};font-size:13px;color:#000;line-height:1.5}
 .nfc-tpl p{margin:0 0 4px;white-space:pre-wrap;line-height:1.5}
 .nfc-tpl ul{list-style:disc outside;margin:0 0 4px;padding-left:1.5em}
 .nfc-tpl ol{list-style:decimal outside;margin:0 0 4px;padding-left:1.5em}
@@ -425,7 +428,7 @@ const SHEET_FIELD_CSS = String.raw`
  * through the middle of a row.
  */
 const SHEET_PRINT_CSS = String.raw`
-    @page{size:A4;margin:5mm;@top-center{content:""}@bottom-right{content:counter(page);font-family:'Times New Roman',Times,serif;font-size:10pt;color:#000}}
+    @page{size:A4;margin:5mm;@top-center{content:""}@bottom-right{content:counter(page);font-family:${SHEET_FONT_FAMILY};font-size:10pt;color:#000}}
     @page margin-15mm{margin:15mm}
     @page outpatient-dental{margin:15mm 15mm 7mm}
     @page surgical-safety{size:A4 landscape;margin:5mm 10mm}

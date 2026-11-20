@@ -23,6 +23,7 @@ import { useSheetMaterials } from "./materials/useSheetMaterials";
 import { attachSections } from "./sheetSections";
 import { fitBlanksToLines } from "./fitBlanks";
 import { holdLines } from "./holdLines";
+import { whenSheetTypeReady } from "./sheetFont";
 import { flowLongBlanks, flowedText, isPartOf, writeFlowed } from "./flowLines";
 import { attachMultiLineSelect } from "./multiLineSelect";
 import { SheetSuggestions } from "./suggestions/SheetSuggestions";
@@ -182,10 +183,7 @@ export function MedicalRecordDocument({
   const suggestions = useSheetSuggestions(frame, form, editable);
   const attachSuggestions = suggestions.attach;
 
-  const handleLoad = useCallback(() => {
-    const doc = frame.current?.contentDocument;
-    if (!doc) return;
-
+  const layOut = useCallback((doc: Document) => {
     // Height only: the width of a sheet of A4 does not depend on what is on it,
     // and measuring it would read a scrollbar's width off a long record.
     // Laid out now: the lines keep to one line in the larger letters, then a
@@ -259,6 +257,18 @@ export function MedicalRecordDocument({
       { once: true },
     );
   }, [collect, editable, canAddRows, canDeleteRows, attachDrawing, attachMaterials, attachSuggestions]);
+
+  // The lines are fitted by measuring them, so in the letters they are drawn
+  // in — where those had to be fetched, once they are in (sheetFont).
+  const handleLoad = useCallback(() => {
+    const doc = frame.current?.contentDocument;
+    if (!doc) return;
+    whenSheetTypeReady(doc, () => {
+      // Reloaded or closed while the letters were on their way.
+      if (frame.current?.contentDocument !== doc || !doc.defaultView) return;
+      layOut(doc);
+    });
+  }, [layOut]);
 
   // A page swapped out while its observers are live would keep measuring a
   // document nobody can see.
