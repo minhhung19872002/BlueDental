@@ -1,5 +1,6 @@
 import { holdLines } from "./holdLines";
 import { PRINT_COPY_CSS } from "./sheetCss";
+import { typeReady } from "./sheetFont";
 
 /**
  * Getting a record onto paper.
@@ -90,10 +91,16 @@ export function copySheetsForPrint(frames: readonly HTMLIFrameElement[]): () => 
  * phẫu thuật/thủ thuật. A copy is a new document's worth of `<img>` that starts
  * loading only when it is made, and printing straight away put an empty cell on
  * paper. A picture that fails is printed without, rather than holding the print.
+ *
+ * The letters likewise: on a machine without Times New Roman the copy is set in
+ * the face the app carries (sheetFont), fetched into this document only now.
  */
-export async function copiedPicturesReady(within = 4000): Promise<void> {
+export async function copiesReadyToPrint(within = 4000): Promise<void> {
   const pictures = Array.from(document.querySelectorAll<HTMLImageElement>(`.${COPY_CLASS} img`));
-  const loaded = Promise.all(pictures.map((picture) => picture.decode().catch(() => undefined)));
+  const loaded = Promise.all([
+    ...pictures.map((picture) => picture.decode().catch(() => undefined)),
+    typeReady(document, within),
+  ]);
   await Promise.race([loaded, new Promise((settle) => window.setTimeout(settle, within))]);
 }
 

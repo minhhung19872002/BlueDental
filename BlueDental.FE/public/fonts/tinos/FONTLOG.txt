@@ -1,0 +1,23 @@
+Tinos, as carried by BlueDental for the medical-record sheets
+=============================================================
+
+Source: Tinos (https://github.com/googlefonts/tinos), SIL Open Font License 1.1
+(OFL.txt), as split into unicode-range subsets by Fontsource (@fontsource/tinos):
+latin, latin-ext, vietnamese x 400/700 x normal/italic.
+
+Modification (2026-11-20, R-1262): the OS/2 sxHeight of each file is set to
+that of the matching Times New Roman style, nothing else is changed:
+
+  400 normal  940 -> 916
+  700 normal  940 -> 935
+  400 italic  940 -> 881
+  700 italic  941 -> 899
+
+Why: the sheets size their letters with font-size-adjust, which reads this
+number. With Tinos's own x-height the letters came out 2.6% smaller than in
+Times New Roman; with Times New Roman's they come out the same size, and
+Tinos's widths already match Times New Roman's.
+
+Tool: BlueDental.FE/scripts/font-x-height.mjs
+The modified files remain under the SIL Open Font License 1.1. They are used
+under the CSS family name 'BD Times'.
