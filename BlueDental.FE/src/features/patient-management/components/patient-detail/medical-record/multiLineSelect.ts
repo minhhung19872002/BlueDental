@@ -2,6 +2,8 @@ import { eraseSelection } from "./eraseSelection";
 import { flowOwner, flowParts } from "./flowLines";
 import { holdBlanks, releaseBlanks } from "./heldBlanks";
 import { copiedText } from "./sheetCopy";
+import type { SheetHistory } from "./sheetHistory";
+import { PASTE_STEP, pastedText } from "./sheetPaste";
 
 /**
  * Selecting what is written on a sheet across its lines (clinic, 2026-11-09,
@@ -27,6 +29,10 @@ import { copiedText } from "./sheetCopy";
  *   - a letter typed over it erases it too and is written in its place
  *     (R-1223 — it used to be spent on giving the blanks back, so the first
  *     letter of a word went missing: "dòng" came out "òng");
+ *   - a paste over it (Ctrl+V or the context menu) erases it too, and the
+ *     lines pasted go where it began (sheetPaste; R-1263) — one step for Ctrl+Z;
+ *   - Ctrl+Z / Ctrl+Y give the blanks back and go on to undo or redo
+ *     (sheetHistory): erasing a selection is a step it can take back;
  *   - the next click, or any other key but Ctrl+C, gives the blanks back. The
  *     key itself is spent on that.
  *
@@ -70,7 +76,7 @@ function isTyping(event: KeyboardEvent): boolean {
   return event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
 }
 
-export function attachMultiLineSelect(doc: Document): () => void {
+export function attachMultiLineSelect(doc: Document, history: SheetHistory): () => void {
   let drag: Drag | null = null;
   let holding = false;
 
@@ -94,6 +100,10 @@ export function attachMultiLineSelect(doc: Document): () => void {
     if (!selection || !end) return;
     hostOf(end.node)?.focus({ preventScroll: true });
     selection.collapse(end.node, end.offset);
+  };
+
+  const erase = (selected: Range, tag?: string) => {
+    history.record(() => eraseSelection(doc, selected, release), { tag });
   };
 
   const onMouseDown = (event: MouseEvent) => {
@@ -142,21 +152,26 @@ export function attachMultiLineSelect(doc: Document): () => void {
       if (command && key === "a" && !event.isComposing) selectBlank(event);
       return;
     }
-    if (MODIFIER_KEYS.has(event.key) || (command && key === "c")) return;
+    // Ctrl+V: the paste that follows erases the selection (onPaste).
+    if (MODIFIER_KEYS.has(event.key) || (command && (key === "c" || key === "v"))) return;
+    if (command && (key === "z" || key === "y")) {
+      releaseToCaret();
+      return;
+    }
     const selection = doc.getSelection();
     const selected = selection && selection.rangeCount > 0 && !selection.isCollapsed ? selection.getRangeAt(0) : null;
     // A letter over the selection: erased, then the key goes on to write where the caret was left.
     if (selected && isTyping(event) && !event.isComposing) {
       event.stopPropagation();
-      eraseSelection(doc, selected, release);
+      erase(selected);
       return;
     }
     // Not passed on: Enter, or lineEditing's Delete on an empty line, must not act on blanks the selection spans.
     event.preventDefault();
     event.stopPropagation();
-    const erase = (event.key === "Delete" || event.key === "Backspace") && !command;
-    if (erase && selected) {
-      eraseSelection(doc, selected, release);
+    const erasing = (event.key === "Delete" || event.key === "Backspace") && !command;
+    if (erasing && selected) {
+      erase(selected);
       return;
     }
     releaseToCaret();
@@ -169,12 +184,21 @@ export function attachMultiLineSelect(doc: Document): () => void {
     event.preventDefault();
   };
 
+  /** Before sheetPaste reads where the caret is: the selection is erased, and the paste goes in its place. */
+  const onPaste = (event: ClipboardEvent) => {
+    if (!holding || !event.clipboardData || pastedText(event.clipboardData) === null) return;
+    const selection = doc.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+    erase(selection.getRangeAt(0), PASTE_STEP);
+  };
+
   doc.addEventListener("mousedown", onMouseDown, true);
   doc.addEventListener("mousemove", onMouseMove, true);
   doc.addEventListener("mouseup", onMouseUp, true);
   // Before lineEditing's own, which reads Enter and Delete on the blank.
   doc.addEventListener("keydown", onKeyDown, true);
   doc.addEventListener("copy", onCopy);
+  doc.addEventListener("paste", onPaste, true);
 
   return () => {
     doc.removeEventListener("mousedown", onMouseDown, true);
@@ -182,6 +206,7 @@ export function attachMultiLineSelect(doc: Document): () => void {
     doc.removeEventListener("mouseup", onMouseUp, true);
     doc.removeEventListener("keydown", onKeyDown, true);
     doc.removeEventListener("copy", onCopy);
+    doc.removeEventListener("paste", onPaste, true);
     release();
   };
 }

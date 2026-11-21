@@ -4473,3 +4473,25 @@ luôn đi"). **Bản gốc không có hai mẫu này**, nên không có mục UN
   những ô khác với bản tự điền, mà ngày vừa chọn lại chính là bản tự điền — nên hễ tick hay gõ thêm
   sau khi chọn ngày thì ngày bị bỏ khỏi lần lưu, tải lại thấy về hôm nay. Giờ mỗi lần tờ báo thay
   đổi, ngày đã chọn (hoặc ngày đã lưu trên tờ) được giữ lại trong các ô in ngày.
+
+## Bệnh án — dán nhiều dòng và Ctrl+Z (phòng khám, 2026-11-21, R-1263)
+
+Yêu cầu của phòng khám (tester), không quan sát trên bản gốc. UNKNOWN_REFERENCE_BEHAVIOR: bản gốc dán nhiều dòng và hoàn tác thế nào (chưa thử, vì dán là sửa phiếu).
+
+Dán (`sheetPaste.ts`, chủ dự án chọn phương án A):
+
+- Chỉ dán chữ (`text/plain`), không mang định dạng của trang đã sao chép. Tab thành dấu cách, CRLF thành xuống dòng, bỏ một dòng trống cuối.
+- Dòng 1 vào ô đang có con trỏ, đúng chỗ con trỏ (thay vùng đang chọn trong ô, nếu có).
+- Mỗi dòng sau:
+  - dòng ngay dưới là dòng chỉ để viết (một ô chữ, chưa có chữ) → vào dòng đó;
+  - dòng dưới đã có chữ, có nhãn của mẫu ("5. Chẩn đoán…"), có nhiều ô, hoặc không có → thêm một dòng ngay đó như Enter thêm (`custom.line.<ô gốc>.<n>`), phần dưới bị đẩy xuống.
+- Phần đứng sau con trỏ nối vào cuối dòng dán cuối; con trỏ đặt ở cuối phần vừa dán.
+- Trong ô bảng: dòng thêm nằm trong chính ô, bảng không thêm hàng.
+- Ô không nằm trong một dòng (p / h1–h4 / li) giữ cách cũ: xuống dòng ngay trong ô.
+- Dán đè vùng bôi đen qua nhiều dòng (R-1179): vùng đó bị xoá rồi dán vào chỗ đầu vùng.
+
+Hoàn tác (`sheetHistory.ts`):
+
+- Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z (và Undo / Redo của trình duyệt) hoàn tác được: dán, xoá vùng bôi đen, dòng Enter thêm, dòng thêm trống bị Backspace / Delete xoá. Dán đè vùng chọn là **một** bước.
+- Chữ gõ tay vẫn là của trình duyệt. Gõ sau khi dán thì Ctrl+Z gỡ chữ gõ trước, rồi mới tới lần dán. Gõ chữ mới thì không làm lại (Ctrl+Y) được nữa.
+- Giới hạn: bước gõ tay **trước** một lần dán, trong ô bị dán viết lại, không còn hoàn tác được.

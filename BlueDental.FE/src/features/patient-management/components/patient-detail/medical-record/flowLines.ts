@@ -160,6 +160,33 @@ export function flowLongBlanks(doc: Document) {
   doc.querySelectorAll(TEXT_BLANK_SELECTOR).forEach((field) => flow(field, context));
 }
 
+/**
+ * The last block of the line a blank is written on: its own block, or the last
+ * line flowed on under it. What goes on after the blank goes after this.
+ */
+export function lineEnd(field: Element): Element {
+  let end = field.closest(BLOCK_SELECTOR);
+  if (!end) return field;
+  let next = end.nextElementSibling;
+  while (next?.hasAttribute(FLOW_LINE_ATTR)) {
+    end = next;
+    next = end.nextElementSibling;
+  }
+  return end;
+}
+
+/**
+ * Gives blanks new ids, and the lines they flowed onto with them. All found
+ * first, then all renamed: one blank may take the id another gives up.
+ */
+export function renameFlowed(renames: ReadonlyArray<{ field: Element; id: string }>) {
+  const found = renames.map(({ field, id }) => ({ field, id, lines: flowedLines(field) }));
+  for (const { field, id, lines } of found) {
+    field.setAttribute("data-medical-record-field", id);
+    lines.forEach((line) => line.setAttribute(FLOW_OF, id));
+  }
+}
+
 /** Writes a value from outside the sheet into a blank, flowing it again. */
 export function writeFlowed(field: Element, text: string) {
   unflow(field, text);

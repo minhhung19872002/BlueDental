@@ -1,3 +1,4 @@
+import { placeCaretAt } from "./flowCaret";
 import { FLOW_BREAK, flowOwner, flowParts, writeFlowed } from "./flowLines";
 
 /**
@@ -43,28 +44,6 @@ function joined(parts: readonly Element[]): string {
   }, "");
 }
 
-/** The caret `offset` characters into the blank's value, on whichever line that falls. */
-function placeCaret(field: Element, offset: number) {
-  const doc = field.ownerDocument;
-  let left = offset;
-  const parts = flowParts(field);
-  const at = parts.find((part, index) => {
-    const length = part.textContent?.length ?? 0;
-    if (left <= length || index === parts.length - 1) return true;
-    left -= length + 1;
-    return false;
-  });
-  const host = at ?? field;
-  const text = host.firstChild;
-  const selection = doc.getSelection();
-  host.closest<HTMLElement>("[contenteditable]")?.focus({ preventScroll: true });
-  if (text && text.nodeType === Node.TEXT_NODE) {
-    selection?.collapse(text, Math.min(Math.max(left, 0), text.textContent?.length ?? 0));
-  } else {
-    selection?.collapse(host, 0);
-  }
-}
-
 /**
  * Erases what `range` covers in the sheet's text blanks. `release` gives the
  * blanks back their writing first; the blanks touched are then reported as
@@ -92,7 +71,7 @@ export function eraseSelection(doc: Document, range: Range, release: () => void)
   }
 
   const first = owners[0];
-  placeCaret(caret?.field ?? first, caret?.offset ?? 0);
+  placeCaretAt(caret?.field ?? first, caret?.offset ?? 0);
   const InputEvent = doc.defaultView?.Event ?? Event;
   owners.forEach((owner) => owner.dispatchEvent(new InputEvent("input", { bubbles: true })));
 }
