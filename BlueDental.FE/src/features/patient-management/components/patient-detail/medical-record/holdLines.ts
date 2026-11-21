@@ -15,8 +15,6 @@
  * before the copy, for what has been written since the sheet opened.
  */
 
-import { atDrawnSize, drawnFontSize } from "./drawnSizes";
-
 const SHEET_SELECTOR = '.nfc-tpl[data-form]:not([data-form="1"])';
 const BLOCK_SELECTOR = "p, h1, h2, h3, h4, li, td, th";
 /** Times New Roman's own lower case: the letters as drawn. */
@@ -56,18 +54,13 @@ function lineCount(block: HTMLElement): number {
   );
 }
 
-/**
- * Takes the block's letters down until it is back to its lines, or to `floor`:
- * the letters as drawn (no font-size-adjust), unless a lower letter height is
- * given — a line held to its one line as drawn may go down to its old size.
- */
-function stepDown(block: HTMLElement, from: number, lines: number, floor: number | null = null) {
-  const lowest = floor ?? DRAWN_LETTER_HEIGHT;
-  for (let height = from - STEP; height > lowest + STEP / 2; height -= STEP) {
+/** Takes the block's letters down until it is back to its lines, or to the letters as drawn. */
+function stepDown(block: HTMLElement, from: number, lines: number) {
+  for (let height = from - STEP; height > DRAWN_LETTER_HEIGHT + STEP / 2; height -= STEP) {
     block.style.fontSizeAdjust = height.toFixed(2);
     if (lineCount(block) <= lines) return;
   }
-  block.style.fontSizeAdjust = floor === null ? "none" : floor.toFixed(2);
+  block.style.fontSizeAdjust = "none";
 }
 
 /** Keeps every block of the sheet to the lines it runs to with the letters as drawn. */
@@ -86,16 +79,8 @@ export function holdLines(doc: Document) {
   const drawn = blocks.map(lineCount);
   sheet.style.fontSizeAdjust = before;
   const now = blocks.map(lineCount);
-  // Every form went to 17px (2026-11-21): a line that held on one line at the
-  // form's old size — a row of labels and boxes, "9. Đối tượng … 4. Khác ☐" —
-  // keeps its one line, its letters going down as far as they were then.
-  const oneLineAsDrawn = atDrawnSize(sheet, () => blocks.map((block) => lineCount(block) === 1));
-  const drawnSize = drawnFontSize(sheet);
-  const fontSize = parseFloat(doc.defaultView?.getComputedStyle(sheet).fontSize ?? "") || 0;
-  const oldLetters = drawnSize !== null && fontSize > 0 ? (DRAWN_LETTER_HEIGHT * drawnSize) / fontSize : null;
 
   blocks.forEach((block, at) => {
-    if (oneLineAsDrawn[at] && now[at] > 1 && oldLetters !== null) stepDown(block, enlarged, 1, oldLetters);
-    else if (now[at] > drawn[at]) stepDown(block, enlarged, drawn[at]);
+    if (now[at] > drawn[at]) stepDown(block, enlarged, drawn[at]);
   });
 }

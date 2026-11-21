@@ -1462,8 +1462,8 @@ test.describe("Bệnh án", () => {
     const document = sheet(page);
     await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr')).toHaveCount(9);
     await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr').last()).toContainText("Tổng");
-    // Every form's writing at 17px (R-1265); the first page still holds (the print path is checked below).
-    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("17px");
+    // As large as the first page allows (the print path is checked below).
+    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("16px");
 
     const box = (field: string) => document.locator(`[data-medical-record-field="${field}"]`).boundingBox();
     const [scaling, other] = await Promise.all([box("consultation.checkbox.1"), box("consultation.checkbox.9")]);
@@ -2008,8 +2008,8 @@ test.describe("Bệnh án", () => {
 
   /**
    * The other eight forms take mẫu 5's style (clinic, 2026-10-16): taken in
-   * like it, each at 17px since R-1265 (its lines at its old pitch) and still
-   * printing exactly the pages it is drawn with, through the app's own
+   * like it, each at the largest type whose every page fits its sheet of A4 —
+   * so each prints exactly the pages it is drawn with, through the app's own
    * print path — the paper's 12px boxes, a bold letterhead, and blanks in a
    * grid cell printed without the dotted line while those outside keep it.
    * Enter is checked on mẫu 5; it is the same code on every form.
@@ -2020,14 +2020,14 @@ test.describe("Bệnh án", () => {
 
     const expected: Array<[string, string, string, number]> = [
       ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
-      ["Bệnh án ngoại trú Răng Hàm Mặt", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
-      ["Bệnh án chỉnh nha", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
-      ["Phiếu Tư Vấn Tổng Quát", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Phiếu phẫu thuật/thủ thuật", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu theo dõi điều trị", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu chăm sóc", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
+      ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
+      ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Phiếu phẫu thuật/thủ thuật", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu chăm sóc", "15.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
     ];
     for (const [form, size, letterhead, pages] of expected) {
       // Blank, so what other tests wrote on the sheet does not add lines.
@@ -2224,8 +2224,7 @@ test.describe("Bệnh án", () => {
       });
 
     for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
-    // 17px on the pitch a line and a half gave it at its old size (R-1265).
-    expect(layout.lineHeight, "a line and a half at the old pitch").toBeCloseTo((1.5 * 14.5) / 17, 2);
+    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
     expect(layout.letterheadSize, "letterhead at 10pt").toBeCloseTo((10 * 4) / 3, 2);
     expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
     expect(Math.abs(layout.ms), "MS on the right margin").toBeLessThan(1);
@@ -2300,10 +2299,9 @@ test.describe("Bệnh án", () => {
         };
       });
 
-    expect(layout.fontSize, "type").toBe("17px");
+    expect(layout.fontSize, "type").toBe("14px");
     for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
-    // 17px on the pitch a line and a half gave it at its old size (R-1265).
-    expect(layout.lineHeight, "a line and a half at the old pitch").toBeCloseTo((1.5 * 13.2) / 17, 2);
+    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
     expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
     expect(layout.labels, "MS labels").toHaveLength(2);
     for (const at of layout.labels) expect(at, "labels in one column").toBeCloseTo(layout.labels[0], 0);

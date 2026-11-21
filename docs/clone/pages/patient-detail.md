@@ -4518,6 +4518,8 @@ khám), nên không có mục UNKNOWN_REFERENCE_BEHAVIOR.
 
 ## Bệnh án — Nội dung mọi mẫu lên 17px, giữ bố cục (chủ dự án, 2026-11-21, R-1265)
 
+> **Đã bỏ** (R-1267, cùng ngày): chủ dự án "lấy lại code cũ ngoại trừ mẫu 10" — các mẫu về cỡ chữ và giãn dòng trước R-1265; mẫu 10 giữ như R-1266. Phần dưới chỉ còn để tra lịch sử.
+
 Chủ dự án: "cho nội dung lên hết 17px …, ráng phải giữ layout nhất có thể". Trước đó mỗi mẫu một cỡ
 (mẫu 2 14px, 3 15px, 4–5 16px, 6 15px, 7 14px, 8 14px, 9 15,5px, 10 15px, 11 13px, 12 14px; bìa 17px),
 cộng phần phóng nét chữ ~11% của R-1234 (`font-size-adjust` 0,5) — giữ nguyên.
@@ -4557,3 +4559,13 @@ Chủ dự án gửi `docs/mau10-mac-cai.html` (bản lưu tờ mẫu 10 có ch�
   `font-size-adjust` (chữ phóng ~11%, R-1234), nên dòng đầu của ô dài nhận quá nhiều chữ và gói lại trong ô thay vì
   chảy xuống dòng chấm kế tiếp. Nay đo ở cỡ chữ hiển thị (`drawnLetterSize`, x-height Times New Roman 916/2048).
   Chẩn đoán mẫu 5 (`consentLines`) tách theo 17px có phóng.
+
+## Bệnh án — Về cỡ chữ cũ, trừ mẫu 10 (chủ dự án, 2026-11-21, R-1267)
+
+Chủ dự án: "lấy lại code cũ ngoại trừ mẫu 10". Bỏ R-1265: mỗi mẫu về cỡ riêng như trước — mẫu 1 17px,
+2 14px (Tóm tắt hồ sơ 13px), 3 15px, 4–5 16px, 6 15px, 7 14px, 8 14px, 9 15,5px, 11 13px, 12 14px —
+cùng giãn dòng cũ; `fitBlanks` / `holdLines` về bản cũ, `drawnSizes.ts` xoá.
+
+Giữ lại: mẫu 10 theo bản của phòng khám (R-1266, 20px), cách đo chữ ở cỡ hiển thị khi chảy chữ xuống
+dòng chấm (`flowLines` / `lineFit`, mọi mẫu — Chẩn đoán mẫu 5 tách theo 16px có phóng), và luật in
+không ra trang trắng (R-1264).

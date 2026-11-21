@@ -79,8 +79,8 @@ function wholeCell(page: Page, field: string) {
 
 /**
  * `text` wherever the cell's lines broke it: a blank's text flows on to the
- * cell's next dotted line where its line ends, and at 17px (R-1265) the lines
- * of a narrow cell break between other words than they did.
+ * cell's next dotted line where its line ends, measured at the letters as
+ * drawn (flowLines, R-1266), so where a narrow cell's lines break may move.
  */
 function acrossLines(text: string): RegExp {
   const words = text.split(/\s+/).map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
@@ -313,7 +313,7 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "treatment-tracking.page-1.row-1.date-time")).toHaveText(
       new RegExp(`^${today.day}/${today.month}/${today.year} \\d{2}:\\d{2}$`),
     );
-    // The whole cell: at 17px (R-1265) a long diagnosis flows onto the cell's next dotted line.
+    // The whole cell: a long diagnosis flows onto the cell's next dotted line.
     await expect(wholeCell(page, "treatment-tracking.page-1.row-1.diagnosis-progress")).toContainText(
       acrossLines(patient.diagnosisName),
     );

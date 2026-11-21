@@ -15768,3 +15768,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Hồi quy (bản build :8080) `patient-medical-record`, `medical-record-drawing`, `-sheet-facts`, `-contract-*`, `-surgical-checklists`, `-field-suggestions`, `printed-doctor-title`, `medical-record-set`: **62 pass / 2 đỏ có sẵn** (`:648` màu thẻ oklab, `:2782` chọn ngày), cộng ca "every form draws…" chạy lại sau khi sửa kỳ vọng: **1/1**.
   - tsc (`tsconfig.app.json`) + eslint các tệp đổi: sạch.
 - **Mức retest**: 2 (F-30 bệnh án).
+
+## R-1267 (2026-11-21, mức 2: Bệnh án — bỏ 17px của R-1265, các mẫu về cỡ chữ cũ; mẫu 10 giữ như R-1266; develop + main)
+
+- **Yêu cầu chủ dự án**: "lấy lại code cũ ngoại trừ mẫu 10".
+- **Thay đổi** (chỉ FE, không API, không migration):
+  - `sheetCss.ts`: về bản trước R-1265 — mẫu 1 17px, 2 14px (Tóm tắt hồ sơ 13px), 3 15px, 4–5 16px, 6 15px, 7 14px, 8 14px, 9 15,5px, 11 13px, 12 14px; giãn dòng cũ; bỏ `pitch()` / `--nfc-pitch`, đệm 2px ô bảng, cách 1px đoạn mẫu 2.
+  - `fitBlanks.ts` / `holdLines.ts` về bản trước R-1265 (fitBlanks giữ `DRAWN_FONT_SIZES` mẫu 2 = 13px); xoá `drawnSizes.ts`.
+  - `useSheetFactValues.ts`: Chẩn đoán mẫu 5 (`consentLines`) tách theo `drawnLetterSize(16)`.
+  - **Giữ**: mẫu 10 của R-1266 (20px, 1,5, dòng nhãn flex, Bên A/B đậm, `bracket-types`, một `<hr>`), cách đo chữ ở cỡ hiển thị (`flowLines` / `lineFit`, mọi mẫu) và luật in R-1264 (trang đầy sát đáy không in trang trắng).
+  - E2E: kỳ vọng cỡ chữ / giãn dòng mẫu 2–9 về như trước R-1265 (14/15/16/16/15/14/14/15,5px; mẫu 6, 7 giãn 1,5); phần mẫu 10 giữ.
+- **Kiểm thử** (bản build :8098 + host thật :5000 + PostgreSQL thật, không chặn API):
+  - `npm run build` (tsc + vite) sạch.
+  - `patient-medical-record`, `medical-record-sheet-facts`, `medical-record-contract-from-orthodontic`: **45 pass / 3 đỏ**; chạy lại 3 ca: mẫu 10 "the contract…" **xanh** (lần đầu chập chờn); còn 2 đỏ không liên quan cỡ chữ:
+    - `patient-medical-record:2781` chọn ngày — đỏ có sẵn (R-1265/R-1266).
+    - `medical-record-sheet-facts:181` "the slip discount is in Giảm giá" — `discountAmount` lấy thẳng từ API facts trả về = 0, trước khi vẽ tờ; dữ liệu/BE, không phải CSS.
+- **Mức retest**: 2 (F-30 bệnh án — màn hình và bản in mọi mẫu).
