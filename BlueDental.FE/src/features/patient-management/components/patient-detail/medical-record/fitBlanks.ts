@@ -1,3 +1,5 @@
+import { atDrawnSize } from "./drawnSizes";
+
 /**
  * A form's blanks are drawn at fixed widths for its type as drawn: each line —
  * label, blank, label, blank — fills the writing area at that size and no
@@ -21,8 +23,6 @@
  * sheetCss enlarges with font-size-adjust (2026-11-14, R-1234).
  */
 const FITTED_SHEET_SELECTOR = '.nfc-tpl[data-form]:not([data-form="1"])';
-/** Mẫu 2 also sets its type a size up: its blank widths were drawn for 13px (R-1067). */
-const DRAWN_FONT_SIZES: Readonly<Record<string, string>> = { "2": "13px" };
 /** A blank is never shortened below this — still room to write a word. */
 const MIN_BLANK_WIDTH = 40;
 
@@ -98,15 +98,12 @@ export function fitBlanksToLines(doc: Document) {
 
   // One line as drawn — the drawn size, letters not enlarged: shorter than a
   // line and a half.
-  const before = { fontSize: sheet.style.fontSize, fontSizeAdjust: sheet.style.fontSizeAdjust };
-  sheet.style.fontSize = DRAWN_FONT_SIZES[sheet.dataset.form ?? ""] ?? before.fontSize;
-  sheet.style.fontSizeAdjust = "none";
-  const oneLine = blocks.map((block) => {
-    const lineHeight = parseFloat(doc.defaultView?.getComputedStyle(block).lineHeight ?? "") || 0;
-    return lineHeight > 0 && heightOf(block) < lineHeight * 1.5;
-  });
-  sheet.style.fontSize = before.fontSize;
-  sheet.style.fontSizeAdjust = before.fontSizeAdjust;
+  const oneLine = atDrawnSize(sheet, () =>
+    blocks.map((block) => {
+      const lineHeight = parseFloat(doc.defaultView?.getComputedStyle(block).lineHeight ?? "") || 0;
+      return lineHeight > 0 && heightOf(block) < lineHeight * 1.5;
+    }),
+  );
 
   blocks.forEach((block, at) => {
     if (oneLine[at]) fitBlock(block);

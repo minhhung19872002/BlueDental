@@ -6,6 +6,18 @@ import { registerSheetFont, SHEET_FONT_FAMILY } from "./sheetFont";
  * first (clinic, 2026-10-19: Chẩn đoán on mẫu 5).
  */
 
+/** Times New Roman's lower case: its OS/2 x-height, 916 of 2048 units (sheetFont, FONTLOG.txt). */
+export const TIMES_LETTER_HEIGHT = 916 / 2048;
+
+/**
+ * The size letters set at `size` are drawn at, with font-size-adjust at
+ * `letterHeight` (sheetCss, --nfc-letter-height 0.5 since R-1234). A canvas
+ * knows no font-size-adjust, so what it measures has to be set at this size.
+ */
+export function drawnLetterSize(size: number, letterHeight = 0.5): number {
+  return (size * letterHeight) / TIMES_LETTER_HEIGHT;
+}
+
 /** A4 less the sheet's 12mm margins each side, at 96dpi, less a blank's own padding. */
 export const FULL_LINE_WIDTH = Math.floor(((210 - 24) / 25.4) * 96) - 8;
 

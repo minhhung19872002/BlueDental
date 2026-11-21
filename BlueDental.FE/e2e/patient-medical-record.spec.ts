@@ -2,6 +2,7 @@ import { expect, test, type FrameLocator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { createSlipViaApi } from "./fixtures/ledgerReceipt";
 import { SETS_API, openRecordWithSet } from "./fixtures/medicalRecordSet";
+import { firstLineOf, pdfPageTexts } from "./fixtures/pdfText";
 import { call, firstBranchId } from "./fixtures/timekeepingStaff";
 
 /**
@@ -312,10 +313,11 @@ test.describe("Bệnh án", () => {
       { form: "Phiếu phẫu thuật/thủ thuật", blanks: 39, boxes: 2, pages: 1 },
       { form: "Phiếu theo dõi điều trị", blanks: 111, boxes: 2, pages: 1 },
       { form: "Phiếu chăm sóc", blanks: 118, boxes: 2, pages: 1 },
-      // The clinic's .docx (2026-10-29): every dotted line a blank; the contract
-      // on two pages and the agreement attached to it on three; Loại mắc cài
-      // as on mẫu 3, four boxes and their prices (BA, 2026-11-01, R-1097).
-      { form: "Hợp đồng thỏa thuận niềng răng", blanks: 53, boxes: 4, pages: 5 },
+      // The clinic's .docx (2026-10-29): every dotted line a blank; Loại mắc cài
+      // as on mẫu 3, four boxes and their prices (BA, 2026-11-01, R-1097). Since
+      // the clinic's own copy (R-1266) one break only: the contract, then the
+      // agreement, each running on over as many sheets as it takes.
+      { form: "Hợp đồng thỏa thuận niềng răng", blanks: 53, boxes: 4, pages: 2 },
     ];
 
     for (const item of expected) {
@@ -1392,7 +1394,11 @@ test.describe("Bệnh án", () => {
     await page.goto(`/patient/${patient.body.id}?branchId=${branch}&view=medical-record`);
     await expect(page.locator(".pd-medical-form").first()).toBeVisible();
     await openSheet(page, "Hợp đồng thỏa thuận niềng răng");
-    await expect(blank(page, "orthodontic-contract.text.29")).toHaveText(`Mẹ Hợp Đồng ${suffix}`);
+    // The label runs most of the line (R-1266): the name flows on to the line under it.
+    const guardian = await sheet(page)
+      .locator('[data-medical-record-field="orthodontic-contract.text.29"], [data-flow-of="orthodontic-contract.text.29"]')
+      .allTextContents();
+    expect(guardian.join(" ").replace(/\s+/g, " ").trim()).toBe(`Mẹ Hợp Đồng ${suffix}`);
     await expect(blank(page, "orthodontic-contract.patient.date-of-birth")).toHaveText(`03/03/${born}`);
   });
 
@@ -1456,8 +1462,8 @@ test.describe("Bệnh án", () => {
     const document = sheet(page);
     await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr')).toHaveCount(9);
     await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr').last()).toContainText("Tổng");
-    // As large as the first page allows (the print path is checked below).
-    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("16px");
+    // Every form's writing at 17px (R-1265); the first page still holds (the print path is checked below).
+    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("17px");
 
     const box = (field: string) => document.locator(`[data-medical-record-field="${field}"]`).boundingBox();
     const [scaling, other] = await Promise.all([box("consultation.checkbox.1"), box("consultation.checkbox.9")]);
@@ -2002,8 +2008,8 @@ test.describe("Bệnh án", () => {
 
   /**
    * The other eight forms take mẫu 5's style (clinic, 2026-10-16): taken in
-   * like it, each at the largest type whose every page fits its sheet of A4 —
-   * so each prints exactly the pages it is drawn with, through the app's own
+   * like it, each at 17px since R-1265 (its lines at its old pitch) and still
+   * printing exactly the pages it is drawn with, through the app's own
    * print path — the paper's 12px boxes, a bold letterhead, and blanks in a
    * grid cell printed without the dotted line while those outside keep it.
    * Enter is checked on mẫu 5; it is the same code on every form.
@@ -2014,14 +2020,14 @@ test.describe("Bệnh án", () => {
 
     const expected: Array<[string, string, string, number]> = [
       ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
-      ["Bệnh án ngoại trú Răng Hàm Mặt", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
-      ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
-      ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Phiếu phẫu thuật/thủ thuật", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu chăm sóc", "15.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
+      ["Bệnh án chỉnh nha", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
+      ["Phiếu Tư Vấn Tổng Quát", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Phiếu phẫu thuật/thủ thuật", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu theo dõi điều trị", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu chăm sóc", "17px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
     ];
     for (const [form, size, letterhead, pages] of expected) {
       // Blank, so what other tests wrote on the sheet does not add lines.
@@ -2218,7 +2224,8 @@ test.describe("Bệnh án", () => {
       });
 
     for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
-    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
+    // 17px on the pitch a line and a half gave it at its old size (R-1265).
+    expect(layout.lineHeight, "a line and a half at the old pitch").toBeCloseTo((1.5 * 14.5) / 17, 2);
     expect(layout.letterheadSize, "letterhead at 10pt").toBeCloseTo((10 * 4) / 3, 2);
     expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
     expect(Math.abs(layout.ms), "MS on the right margin").toBeLessThan(1);
@@ -2293,9 +2300,10 @@ test.describe("Bệnh án", () => {
         };
       });
 
-    expect(layout.fontSize, "type").toBe("14px");
+    expect(layout.fontSize, "type").toBe("17px");
     for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
-    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
+    // 17px on the pitch a line and a half gave it at its old size (R-1265).
+    expect(layout.lineHeight, "a line and a half at the old pitch").toBeCloseTo((1.5 * 13.2) / 17, 2);
     expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
     expect(layout.labels, "MS labels").toHaveLength(2);
     for (const at of layout.labels) expect(at, "labels in one column").toBeCloseTo(layout.labels[0], 0);
@@ -2395,7 +2403,7 @@ test.describe("Bệnh án", () => {
           reaching,
         };
       });
-    expect(layout.fontSize, "mẫu 6's type").toBe("15px");
+    expect(layout.fontSize, "20px, as the clinic's own copy (R-1266)").toBe("20px");
     for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
     expect(layout.contract, "the contract a line and a half").toBeCloseTo(1.5, 2);
     expect(layout.agreement, "the agreement too").toBeCloseTo(1.5, 2);
@@ -2435,7 +2443,59 @@ test.describe("Bệnh án", () => {
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
     expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
-    expect((pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length, "printed pages").toBe(5);
+    // 20px on a line and a half, one page break only (R-1266): seven pages.
+    expect((pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length, "printed pages").toBe(7);
+  });
+
+  /**
+   * A page filled to its foot prints no blank page (2026-11-21, R-1264). The
+   * 7mm under a 5mm sheet's last line, a 3px gap closing a page, or the last
+   * box's bottom margin went on to a page of their own when a page was full to
+   * within a few px, and the printer gave out a sheet with nothing but its
+   * page number. Lines written under "Thời gian mang duy trì" fill the
+   * contract's first page a line at a time, through and past its foot; at every
+   * step each printed page has writing on it.
+   */
+  test("mẫu 10: a page filled to its foot prints no blank page", async ({ page }) => {
+    test.slow();
+    const form = "Hợp đồng thỏa thuận niềng răng";
+    await openMedicalRecord(page);
+    await openFreshSheet(page, form);
+    await page.evaluate(() => {
+      window.print = () => undefined;
+    });
+    const printJob = async () => {
+      await page.locator(".pd-medical-bar").getByRole("button", { name: "In biểu mẫu" }).click();
+      await expect(page.locator(".mr-print-copy .nfc-tpl")).toBeAttached();
+      const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+      await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+      return pdfPageTexts(pdf);
+    };
+
+    expect(await printJob(), "the blank form").toHaveLength(7);
+
+    // Each Enter under the last line of page 1 adds a line there (lineEditing).
+    let last = "orthodontic-contract.text.20";
+    await blank(page, last).click();
+    await page.keyboard.type("Hàm duy trì trong suốt");
+    let pages = 7;
+    for (let line = 1; line <= 30; line += 1) {
+      // Printing took the caret out of the sheet: back to the end of the last line.
+      await blank(page, last).click();
+      await page.keyboard.press("End");
+      await page.keyboard.press("Enter");
+      last = await sheet(page)
+        .locator(":focus")
+        .evaluate((node) => node.getAttribute("data-medical-record-field") ?? "");
+      await page.keyboard.type(`Ghi chú thêm dòng ${line}`);
+
+      const printed = await printJob();
+      printed.forEach((text, at) => {
+        expect(firstLineOf(text), `${line} added line(s): page ${at + 1} has writing`).not.toBe("");
+      });
+      pages = printed.length;
+    }
+    expect(pages, "thirty more lines run the contract onto a sheet more").toBeGreaterThan(7);
   });
 
   /**
@@ -2503,7 +2563,7 @@ test.describe("Bệnh án", () => {
     expect(await printedPages([], true), `${procedure} · printed pages`).toBe(1);
     // Mẫu 10 on the 15mm page too, its five pages unchanged by Loại mắc cài (R-1097).
     await openFreshSheet(page, contract);
-    expect(await printedPages([], true), `${contract} · printed pages`).toBe(5);
+    expect(await printedPages([], true), `${contract} · printed pages`).toBe(7);
 
     // Mẫu 5 on the 5mm page, then mẫu 6 on the 15mm one: as many pages as the two print without the blocks.
     await openFreshSheet(page, treatment);

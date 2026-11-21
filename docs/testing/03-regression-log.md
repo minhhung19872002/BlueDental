@@ -15725,3 +15725,46 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `medical-record-contract-from-orthodontic`, `contract-party-a`, `drawing`, `field-suggestions`, `sheet-facts`, `surgical-checklists`, `printed-doctor-title`: 16/17 pass. Đỏ có sẵn: `medical-record-sheet-facts:171` (Giảm giá = 0, thuần API phía BE).
   - tsc (`tsconfig.app.json`) + eslint các tệp đổi: sạch.
 - **Mức retest**: 2 (bệnh án).
+
+## R-1264 (2026-11-21, mức 2: Bệnh án in — trang đầy sát đáy không còn in ra trang trắng; ngắt trang trên màn hình giữ như cũ; develop)
+
+- **Yêu cầu phòng khám** (ảnh mẫu 10 Hợp đồng thỏa thuận niềng răng, Kế hoạch điều trị dài): "xem lại phần ngắt trang", "line ngang trong đây lại khác với khi in ra"; chủ dự án: kiểm vừa A4 chưa, kiểm các mẫu khác.
+- **Nguyên nhân**: trên màn hình tờ chỉ ngắt ở `<hr>` của mẫu; trang chứa nhiều hơn mẫu thiết kế thì dài hơn A4 và Chrome tự sang tờ trước `<hr>`. Mẫu trống thì cả 12 mẫu vừa A4.
+- **Đã thử rồi bỏ** (cùng ngày, theo chủ dự án): vòng 1 vạch đỏ + nhãn "Trang N" chỗ máy in tự sang trang; vòng 2 tách tờ trên màn hình thành từng trang A4 như Word (cả 12 mẫu). Chủ dự án: bỏ, **để màn hình y như cũ**, không vạch / nhãn nhận diện hết trang. Đã gỡ hết (`pageGuides.ts`, `printedPages.ts`, CSS màn hình, 2 key dịch). Những gì đo được ghi ở `docs/clone/pages/patient-detail.md` để dùng nếu làm lại.
+- **Giữ lại — lỗi tìm thấy khi đo**: tờ đầy tới sát đáy in ra **thêm một trang trắng** chỉ có số trang — đệm 7mm cuối tờ (mẫu lề 5mm), đoạn trống 3px `data-spacer` cuối trang, hoặc lề dưới của khối cuối tờ / khối ngay trước `<hr>` bị đẩy sang tờ mới. Gặp ở mẫu 8 của BD269006 (2 trang, trang 2 trắng), mẫu 9 (bảng cuối cách đáy 0,2px), mẫu 6 (trang 2 đầy sát đáy trước `<hr>`), mẫu 4/7 khi gần đầy.
+  - `sheetCss.ts` `SHEET_PRINT_CSS` (chỉ khi in): `.nfc-tpl{padding-bottom:0}`; `p[data-spacer]` cuối tờ / ngay trước `<hr>` ẩn; khối cuối tờ và khối ngay trước `<hr>` không lề dưới.
+  - `e2e/fixtures/pdfText.ts` (mới): đọc chữ từng trang PDF của Chromium.
+- **Kiểm thử** (dev :5173 / bản build :8080 + host thật :5000 + PostgreSQL thật, không chặn API):
+  - Đo tay 10 mẫu của BD269006 × 13 mức kéo dài trang 1 × 2 kiểu chữ (dòng Enter / chữ dài tự xuống dòng): không còn trang PDF nào chỉ có số trang (trước sửa: mẫu 8 mức 0, mẫu 4/7/9 mức 2, mẫu 6 mức 24).
+  - E2E mới `patient-medical-record` "mẫu 10: a page filled to its foot prints no blank page": mẫu trống 5 trang; thêm từng dòng 1→12 dưới "Thời gian mang duy trì", mỗi bước mọi trang PDF có chữ, cuối cùng sang trang 6 → **xanh**.
+  - Hồi quy xem R-1265 (chạy chung).
+- **Mức retest**: 2 (F-30 bản in).
+## R-1265 (2026-11-21, mức 2: Bệnh án — nội dung mọi mẫu lên 17px, giữ bố cục và số trang; develop)
+
+- **Yêu cầu**: phòng khám "font size to hơn"; chủ dự án: "cho nội dung lên hết 17px …, ráng phải giữ layout nhất có thể".
+- **Trước**: mẫu 2 14px (chấm điền vẽ cho 13px), 3 15px, 4–5 16px, 6 15px, 7 14px, 8 14px, 9 15,5px, 10 15px, 11 13px, 12 14px; bìa 17px; nét chữ phóng ~11% (R-1234) — giữ.
+- **Thay đổi** (chỉ FE, không API, không migration):
+  - `sheetCss.ts`: `.nfc-tpl[data-form]{font-size:17px}`, **trừ mẫu 11** (A4 ngang 3 cột hẹp: ở 17px — cả 14px — tràn 1/5 trang và gãy sang tờ 2 theo từng cột) giữ 13px. Mọi giãn dòng phần nội dung = `pitch()` → giãn cũ × `--nfc-pitch` (cỡ cũ / 17), không dưới 1,15; siết thêm cho vừa: mẫu 2 bước 13px, mẫu 6 14,5px, mẫu 7 13,2px; ô bảng kẻ đệm 2px (mẫu 8: 1px); đoạn trong mẫu 2 cách 1px.
+  - `drawnSizes.ts` (mới): cỡ cũ từng mẫu; `fitBlanks.ts` đo "một dòng ở cỡ cũ" theo đó; `holdLines.ts`: dòng ở cỡ cũ nằm một dòng mà nay rớt (vd mẫu 2 "9. Đối tượng … 4. Khác ☐") thì riêng dòng đó thu nét chữ, thấp nhất về cỡ cũ. Đoạn văn nhiều dòng giữ 17px, được dài thêm.
+- **Kiểm thử** (dev :5173 / bản build :8080 + host thật :5000 + PostgreSQL thật, không chặn API):
+  - Số trang PDF thật, bệnh nhân demo BD269006 (đủ 12 mẫu): **bằng hệt trước** — 3/3/4/1/2/2/1/1/1/6 (mẫu 10 có 9 dòng điền thêm; mẫu trống 5)/1/1. Từng trang thiết kế đo trên bản sao in: đều ≤ 0,998 trang trừ trang đầu mẫu 10 của phiếu demo (dòng điền thêm).
+  - E2E: "every form shares…" (17px, số trang từng mẫu), mẫu 2/6/7/10 (17px, giãn dòng = bước cũ, lề), surgical 3/3 (mẫu 11 13px một trang ngang, mẫu 12 một trang) cập nhật kỳ vọng → xanh. `medical-record-sheet-facts`: chữ dài trong ô hẹp mẫu 8 chảy xuống dòng chấm kế tiếp ở chỗ khác — so chữ qua dòng (`acrossLines`) → **3/3**.
+  - Hồi quy (bản build :8080) `patient-medical-record`, `medical-record-drawing`, `-sheet-facts`, `-contract-*`, `-surgical-checklists`, `-field-suggestions`, `printed-doctor-title`, `medical-record-set`: **64 pass / 2 đỏ có sẵn** (`:648` màu thẻ oklab, `:2778` chọn ngày — đỏ y hệt từ trước, R-1262).
+  - tsc (`tsconfig.app.json`) + eslint các tệp đổi: sạch.
+- **Chốt**: mẫu 11 giữ 13px (chủ dự án, cùng ngày). Mẫu 10 sau đó theo bản của phòng khám (R-1266, 20px).
+- **Mức retest**: 2 (F-30 bệnh án — màn hình và bản in mọi mẫu).
+
+## R-1266 (2026-11-21, mức 2: Bệnh án mẫu 10 — font + style theo bản của phòng khám `docs/mau10-mac-cai.html`; đo chữ ở cỡ hiển thị; develop + main)
+
+- **Yêu cầu chủ dự án**: so mẫu 10 với `docs/mau10-mac-cai.html` (bản lưu tờ mẫu 10 có chỉnh, kèm dữ liệu một bệnh nhân — không commit) rồi "update font + style mẫu 10 cho giống". Chữ in sẵn hai bên trùng từng chữ; khác: cỡ chữ 20px, giãn dòng 1,5 cố định, dòng nhãn + ô điền dàn flex (ô chấm tới lề phải), Bên A (nhãn + tên công ty) và "Bên B: Khách hàng" in đậm, "Loại mắc cài" lưới 2×2, chỉ một chỗ ngắt trang (trước bản thỏa thuận).
+- **Thay đổi** (chỉ FE):
+  - `sheetCss.ts`: các luật mẫu 10 của file, đặt trong `SHEET_CSS` để bản in giống màn hình; `--nfc-pitch` bỏ mẫu 10. `drawnSizes.ts` bỏ mẫu 10.
+  - `templates/orthodonticContract.ts`: `<strong>` cho "Bên A:" và "Bên B: Khách hàng"; "Loại mắc cài" một đoạn `data-record-section="bracket-types"` (mã ô giữ nguyên `checkbox.1–4`, `text.34–37`); bỏ `<hr>` trước "3. Cam kết…", mục 17, mục 5.
+  - `flowLines.ts` / `lineFit.ts` (mọi mẫu): canvas đo chữ ở cỡ hiển thị (`drawnLetterSize`, x-height Times New Roman 916/2048) — trước đó bỏ qua `font-size-adjust` (R-1234) nên dòng đầu của ô dài nhận quá nhiều chữ và gói lại trong ô (thấy ở "1. Chẩn đoán" mẫu 10) thay vì chảy xuống dòng chấm kế tiếp. Chẩn đoán mẫu 5 (`consentLines`) tách theo 17px có phóng.
+- **Kiểm thử** (bản build :8080 + host thật :5000 + PostgreSQL thật, không chặn API):
+  - So DOM/CSS tờ mẫu 10 của app với file: chỉ còn khác dữ liệu bệnh nhân; ảnh phần đầu và "Loại mắc cài" trùng.
+  - Mẫu 10 trống in **7 trang** (trước 5); phiếu demo BD269006 (9 dòng Kế hoạch điều trị thêm) 7 trang.
+  - E2E cập nhật: "every form draws…" (mẫu 10 hai phần = 1 `<hr>`), "mẫu 10: the contract…" (20px, 1,5, 7 trang), "a page filled to its foot…" (7 trang, 30 dòng thêm, không trang trắng, > 7), "a browser extension's block…" (7), `contract-from-orthodontic` (4 lựa chọn mỗi cái một dòng, hai hàng thẳng cột), guardian (tên chảy sang dòng kế tiếp).
+  - Hồi quy (bản build :8080) `patient-medical-record`, `medical-record-drawing`, `-sheet-facts`, `-contract-*`, `-surgical-checklists`, `-field-suggestions`, `printed-doctor-title`, `medical-record-set`: **62 pass / 2 đỏ có sẵn** (`:648` màu thẻ oklab, `:2782` chọn ngày), cộng ca "every form draws…" chạy lại sau khi sửa kỳ vọng: **1/1**.
+  - tsc (`tsconfig.app.json`) + eslint các tệp đổi: sạch.
+- **Mức retest**: 2 (F-30 bệnh án).

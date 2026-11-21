@@ -11,6 +11,7 @@
  */
 
 import { isEditableBlank } from "./heldBlanks";
+import { drawnLetterSize } from "./lineFit";
 
 const FIELD_SELECTOR = "[data-medical-record-field]";
 const TEXT_BLANK_SELECTOR = `${FIELD_SELECTOR}[data-field-type="text"]`;
@@ -115,6 +116,18 @@ function flowLine(field: Element, block: Element, line: Line): HTMLElement {
   return paragraph;
 }
 
+/**
+ * The size the letters are drawn at. A canvas knows no font-size-adjust, and
+ * the sheets enlarge their letters with it (sheetCss, R-1234): measured at the
+ * bare size, a line held a tenth too many words and wrapped inside its blank
+ * instead of flowing on to the next line.
+ */
+function drawnSize(style: CSSStyleDeclaration): number {
+  const size = parseFloat(style.fontSize) || 16;
+  const adjust = parseFloat(style.fontSizeAdjust.match(/\d*\.?\d+/)?.[0] ?? "");
+  return Number.isFinite(adjust) && adjust > 0 ? drawnLetterSize(size, adjust) : size;
+}
+
 /** Breaks one blank's text over lines of its own, if it wraps or breaks at all. */
 function flow(field: Element, context: CanvasRenderingContext2D) {
   const text = field.textContent ?? "";
@@ -129,7 +142,7 @@ function flow(field: Element, context: CanvasRenderingContext2D) {
 
   const width = field.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 2;
   if (width <= 0) return;
-  context.font = style.font || `${style.fontSize} ${style.fontFamily}`;
+  context.font = `${style.fontStyle} ${style.fontWeight} ${drawnSize(style)}px ${style.fontFamily}`;
 
   const [first, ...rest] = wrap(text, width, context);
   if (rest.length === 0) return;
