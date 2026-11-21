@@ -98,14 +98,8 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="9"]{font-size:15.5px}
 .nfc-tpl[data-form="3"]{font-size:15px}
 .nfc-tpl[data-form="8"]{font-size:14px}
-/* 14px (clinic, 2026-11-10: too small on paper). Its blanks are drawn for
-   13px inside 15mm margins (R-1067); fitBlanks shortens them so each line
-   still holds on one line and the form still prints on 3 sheets. Its lines
-   keep 13px's pitch (14 × 1.2 ≈ 13 × 1.3, rule below), and the handover box
-   at the foot of the last page stays at 13px: at 14px that page has under
-   1mm to spare. */
-.nfc-tpl[data-form="2"]{font-size:14px}
-.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]{font-size:13px}
+/* Mẫu 2 at the BA's 12pt (R-1268, block further down). */
+.nfc-tpl[data-form="2"]{font-size:16px}
 /* 15px from the clinic's own copy, inside 15mm margins (R-1068). */
 .nfc-tpl[data-form="6"]{font-size:15px}
 /* 14px from the clinic's own copy, inside 15mm margins (R-1073). */
@@ -185,21 +179,60 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl p[data-spacer]::before{content:none}
 .nfc-tpl h1:not([data-cover] *){margin:10px 0 6px;line-height:1.2!important}
 .nfc-tpl p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.3!important}
-/* Mẫu 2 at 14px keeps 13px's line pitch (2026-11-10). */
-.nfc-tpl[data-form="2"] p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.2!important}
-/* Mẫu 2 opened up like the clinic's paper copy (2026-11-12): the title two
-   tight 18px lines, the section headings at 1.25, and with what that and a
-   7mm foot margin (SHEET_PRINT_CSS) free, the lines of the first two pages
-   at 1.5 and of the last at 1.35 — each page keeps ~7mm to spare. The
-   letterhead and the handover box keep their 1.2. "1. Toàn thân",
-   "2. Bệnh chuyên khoa", "4. Tóm tắt…" were drawn at 10pt: body size now. */
-.nfc-tpl[data-form="2"] table:is([data-record-page="outpatient-main"],[data-record-page="outpatient-figure"]) p:not(table[data-record-section="layout"]:has(.record-ids) *){line-height:1.5!important}
-.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] p:not(table[data-record-section="summary-files"] *){line-height:1.35!important}
-.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h2{margin:6px 0 3px;line-height:1.25!important}
-.nfc-tpl[data-form="2"] table[data-record-page^="outpatient"]>tbody>tr>td>p span[style*="font-size"]{font-size:inherit!important}
-.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1,.nfc-tpl[data-form="2"] table[data-record-section="outpatient-summary-title"] h1{font-size:18px;line-height:1.15!important;margin:0}
-.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1:has(+h1){margin-top:6px}
-.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1+h1{margin-bottom:6px}
+/* Mẫu 2 as the BA's Word copy (Mau-02-Benh-an-ngoai-tru-RHM.docx, 2026-11-21,
+   R-1268), measured line by line against the PDF Word prints of it. Times New
+   Roman at its own height (no font-size-adjust); every line 1.5 of Word's,
+   i.e. 1.725 × the size, no space around paragraphs: the text and blanks 12pt,
+   I.–IV. 14pt, the titles 16pt, "3. Hình vẽ" 12.5pt, "TỔNG KẾT BỆNH ÁN:"
+   13.5pt, what is inside its box 11.5pt; the letterhead four bold 12pt lines
+   in a wider column, the MS block's labels and blanks in Word's two tab
+   stops; a checkbox line stands taller, as Word's ☐ makes it; "+ Bản thân:"
+   on a line of its own, its blank under it; a line left before the
+   signatures. The sizes the template draws in its spans give way to these. */
+.nfc-tpl[data-form="2"]{--nfc-letter-height:none}
+.nfc-tpl[data-form="2"] span[style*="font-size"]{font-size:inherit!important}
+.nfc-tpl.nfc-tpl[data-form="2"] :is(p,h1,h2){line-height:1.725!important;margin:0}
+.nfc-tpl.nfc-tpl[data-form="2"] h2{font-size:18.667px}
+.nfc-tpl.nfc-tpl[data-form="2"] h2:has(>span[style*="font-size"]){font-size:16.667px}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1{font-size:21.333px;text-align:center}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1:has(+h1){margin-top:10.4px}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1+h1{margin-bottom:4.6px}
+.nfc-tpl.nfc-tpl[data-form="2"] p:has(>input.nfc-medical-record-checkbox):not(table[data-record-section="general-exam"] *){padding:2px 0 3.7px;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="layout"]>tbody>tr>td{padding-top:0;padding-bottom:0}
+.nfc-tpl.nfc-tpl[data-form="2"] .nfc-medical-record-text-field:not([data-grid-cell] *){min-height:1em}
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.80"]{min-width:426px!important}
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.81"]{min-width:349px!important}
+.nfc-tpl.nfc-tpl[data-form="2"] p>input.nfc-medical-record-checkbox{margin:0 .9px}
+.nfc-tpl[data-form="2"] table:has(.record-ids)>colgroup>col:first-child{width:378px!important}
+.nfc-tpl[data-form="2"] table:has(.record-ids)>tbody>tr>td:first-child>p{white-space:nowrap}
+.nfc-tpl[data-form="2"] table:has(.record-ids)>colgroup>col:last-child{width:auto!important}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] p.record-ids{grid-template-columns:94.4px minmax(0,1fr);column-gap:0;row-gap:0;width:auto;margin:0 0 0 52.7px;line-height:1.725!important}
+.nfc-tpl[data-form="2"] p:has([data-medical-record-field="outpatient.patient.history"])>span{display:block}
+.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient.patient.history"]{width:100%!important;min-width:0!important;box-sizing:border-box}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="general-exam"]>tbody>tr>td>p{line-height:32px!important;margin:0}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="signature"]{margin:27.6px 0 0}
+.nfc-tpl[data-form="2"] table[data-record-section="outpatient-summary-title"] h1{font-size:18px;text-align:left}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"]>tbody>tr:first-child>td{font-size:.9583em}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"]>tbody>tr:first-child>td p{line-height:1.722!important}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] table[data-record-section="layout"]{width:662px!important}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] table[data-record-section="layout"]>colgroup>col:first-child{width:520px!important}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] table[data-record-section="layout"]>colgroup>col:last-child{width:142px!important}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"]{width:116px;margin-left:14.6px}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"] td{height:17px}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"] p{line-height:15px!important;min-height:0}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]{width:100%!important}
+.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(1){width:207.4px!important}
+.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(2){width:75.6px!important}
+.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(3){width:189px!important}
+.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(4){width:auto!important}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="summary-files"] :is(td,th){line-height:1.725}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="summary-files"] :is([colwidth="208"],[colwidth="90"],[colwidth="208,90"]){vertical-align:middle}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="summary-files"] td[rowspan="3"] p{line-height:1.15!important}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] table[data-record-section="layout"]{margin-bottom:4px}
+.nfc-tpl.nfc-tpl[data-form="2"] h2:has(>span[style*="font-size"])+p:empty{display:none}
+.nfc-tpl.nfc-tpl[data-form="2"] :is([data-medical-record-field="outpatient-dental.text.99"],[data-medical-record-field="outpatient-dental.text.100"]){min-width:15px!important}
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.101"]{min-width:30px!important}
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.108"]{min-width:140px!important}
 /* Mẫu 2's MS / Số ngoại trú / Số lưu trữ (clinic, 2026-10-28, R-1067), and mẫu
    7's MS / Mã người bệnh (2026-10-29, R-1073): the labels in one column, the
    blanks lined up after the ":", the block against the right margin. After the

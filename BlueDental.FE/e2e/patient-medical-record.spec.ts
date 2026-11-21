@@ -2020,7 +2020,7 @@ test.describe("Bệnh án", () => {
 
     const expected: Array<[string, string, string, number]> = [
       ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
-      ["Bệnh án ngoại trú Răng Hàm Mặt", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 3],
+      ["Bệnh án ngoại trú Răng Hàm Mặt", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 5],
       ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
       ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
@@ -2131,7 +2131,7 @@ test.describe("Bệnh án", () => {
             const line = root.querySelector('[data-medical-record-field="outpatient-dental.checkbox.6"]')!.closest("p")!;
             return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
           })(),
-          // "9. Đối tượng" with all four boxes on its line, and the title two 18px lines (2026-11-12).
+          // "9. Đối tượng" with all four boxes on its line, and the title two 16pt lines (BA docx, 2026-11-21).
           subjectLines: (() => {
             const line = root.querySelector('[data-medical-record-field="outpatient-dental.checkbox.4"]')!.closest("p")!;
             return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
@@ -2157,7 +2157,7 @@ test.describe("Bệnh án", () => {
     for (const right of layout.flowed) expect(Math.abs(right), "a line of its own reaches the right margin").toBeLessThan(1);
     expect(layout.referralLines, "line 13 with its Tự đến box on one line").toBeLessThan(1.6);
     expect(layout.subjectLines, "9. Đối tượng with its four boxes on one line").toBeLessThan(1.6);
-    expect(layout.titles, "the title, two 18px lines").toEqual(["18px", "18px"]);
+    expect(layout.titles, "the title, two 16pt lines").toEqual(["21.333px", "21.333px"]);
 
     // On paper the margin is the page's, on every page: a page of its own — 15mm, 7mm at the foot since
     // 2026-11-12 (`@page outpatient-dental`) — and no padding on the sheet.

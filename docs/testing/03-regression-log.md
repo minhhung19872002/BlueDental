@@ -15784,3 +15784,14 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - `patient-medical-record:2781` chọn ngày — đỏ có sẵn (R-1265/R-1266).
     - `medical-record-sheet-facts:181` "the slip discount is in Giảm giá" — `discountAmount` lấy thẳng từ API facts trả về = 0, trước khi vẽ tờ; dữ liệu/BE, không phải CSS.
 - **Mức retest**: 2 (F-30 bệnh án — màn hình và bản in mọi mẫu).
+
+## R-1268 (2026-11-21, mức 2: Bệnh án — mẫu 2 theo file Word BA chỉnh: cỡ chữ + giãn dòng; develop)
+
+- **Yêu cầu chủ dự án**: BA gửi `Mau-02-Benh-an-ngoai-tru-RHM.docx` — làm HTML mẫu 2 khớp style file này, **chỉ cỡ chữ / giãn dòng**, không thêm nội dung, **giữ nguyên ngắt trang như code cũ**.
+- **Thay đổi** (chỉ FE, không API, không migration):
+  - `sheetCss.ts` (khối mẫu 2): Times New Roman cỡ thật; chữ + ô trống 12pt (16px), I.–IV. 14pt, tên mẫu 16pt, "3. Hình vẽ" 12,5pt, "TỔNG KẾT BỆNH ÁN:" 13,5pt, trong khung tổng kết 11,5pt; mọi dòng giãn 1,5 của Word (1,725 × cỡ), không cách đoạn; dòng có ô vuông cao như ☐ của Word; cột tiêu đề / MS theo tab của Word; bảng bàn giao hồ sơ theo độ rộng cột của Word; vài ô trống thu ngắn (`text.80/81/99/100/101/108`) để dòng không rớt.
+  - `outpatientDental.ts`: chỉ khoảng trắng — "MẶT -" → "MẶT", gộp `&nbsp;` thừa, bớt `<br>` trước "Họ và tên" ở ô chữ ký / bàn giao (khoảng cách như Word). Hai `<hr>` (trước "3. Hình vẽ", trước "TỔNG KẾT") **giữ nguyên vị trí cũ**.
+  - Không theo BA: ngắt trang ép trước "IV. KHÁM BỆNH" (BA thêm) và một dòng chấm thêm ở mục 1 Tổng kết (nội dung) — không đưa vào.
+  - E2E: tiêu đề mẫu 2 hai dòng 21,333px; "every form shares…" mẫu 2 = 16px, 5 trang.
+- **Kiểm thử**: so từng dòng PDF in (Chrome, @page 15/15/7mm) với PDF Word của BA — 5 trang; trang 4–5 lệch ≤ ~5pt, trừ mục 2–6 Tổng kết (−18pt, do BA thêm 1 dòng ở mục 1); trang 1–3 khác chỗ ngắt vì giữ ngắt trang cũ. Không có ô tràn lề. Hồi quy e2e: xem báo cáo commit.
+- **Mức retest**: 2 (F-30 bệnh án — mẫu 2 màn hình và bản in).
