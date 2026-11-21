@@ -33,8 +33,8 @@ export function useSheetFactValues(setId: string | undefined): FieldValues {
       teeth: teethLabel,
       money: formatVND,
       moneyWords: moneyInWords,
-      // Mẫu 5 prints at 17px, its letters enlarged (sheetCss, R-1265).
-      consentLines: makeLineSplitter(drawnLetterSize(17), FULL_LINE_WIDTH),
+      // Mẫu 5 prints at 16px, its letters enlarged (sheetCss, R-1234).
+      consentLines: makeLineSplitter(drawnLetterSize(16), FULL_LINE_WIDTH),
     }),
     [],
   );
