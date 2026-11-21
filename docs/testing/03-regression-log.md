@@ -15810,3 +15810,18 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: PDF in Chrome so với PDF Word của docx (1): 5 trang, nội dung từng trang trùng — tr.1 I–III, tr.2 IV → 6 (4 dòng đầu của 6), tr.3 4 dòng còn lại của 6 + 7 + chữ ký, tr.4 Tổng kết, tr.5 Hồ sơ; khối MS chồng khít ảnh Word.
 - **Hồi quy e2e** (build production, `vite preview` :8099): `patient-medical-record.spec.ts` + `medical-record-drawing.spec.ts` 48/49 — đỏ còn lại là "picking the day…" (mẫu 3, đỏ sẵn từ R-1267); `tsc` sạch.
 - **Mức retest**: 2 (F-30 bệnh án — mẫu 2 màn hình và bản in).
+
+## R-1270 (2026-11-22, mức 2: Bệnh án — mẫu 2 theo ghi chú BA trên bản in; chấm in nhỏ hơn, ô có chữ in không chấm (mọi mẫu); develop)
+
+- **Yêu cầu** (BA, ảnh chụp bản in mẫu 2): (a) ô sinh hiệu mất dấu chấm; (b) ô mã bệnh "thu nhỏ" so với Word; (c) khung tổng kết mất viền phải; (d) bảng Hồ sơ, phim, ảnh mất dấu chấm. Thêm qua chat: "chỗ mà in ra á, nếu như có data bỏ hết dấu ... đi"; "dấu chấm này chỉnh nhỏ hơn dc hong"; "+ Bản thân:" cho lên một hàng như "+ Gia đình:".
+- **Thay đổi** (chỉ FE, `sheetCss.ts`):
+  - (a)/(d) mẫu 2: bảng `vitals` và `summary-files` giữ chấm khi in (luật chung "ô trong lưới in không chấm" chừa hai bảng này, như Word). "Họ tên" của Người nhận hồ sơ một dòng (text.107 min 120px); Ngày/tháng/năm, Số tờ nới vừa.
+  - (b) ô mã bệnh như Word: bảng 116px (1740 twips), lùi 14,6px; mỗi hàng cao một dòng 1,5 (trHeight 255 chỉ là chiều cao tối thiểu — R-1268 hiểu nhầm thành 17px), hàng 1 ngang "Bệnh chính", hàng 2 ngang "Bệnh kèm theo".
+  - (c) không tái hiện: bản in Chrome có đủ hai viền khung (rộng 680px). Cần BA cho biết trình duyệt / thiết lập in nếu còn thấy.
+  - Chấm nhỏ hơn (mọi mẫu): Chrome in viền dưới 1px thành 1px, gradient mất, nền SVG bị raster xám. Nên viền ô để trong suốt (vẫn quyết định ô nào có chấm), `::after` vẽ lại viền chấm 1px ở `scale(.6)` — vẫn là vector trên giấy. `:not(#_)` để thắng các `!important` cũ.
+  - Ô có chữ (`:not(:empty)`, đúng như nền xanh trên màn hình) in **không** chấm (mọi mẫu); ô gõ rồi xoá hết vẫn có chấm (đã thử).
+  - "+ Bản thân:" và ô của nó một dòng như "+ Gia đình:" (bỏ luật R-1268 đưa ô xuống dòng).
+  - E2E: khẳng định chấm sinh hiệu/bảng hồ sơ, Họ tên một dòng, hàng ô mã ngang dòng chữ + rộng 116px, `::after` scale 0,6 trên ô trống và ẩn trên ô có chữ, "+ Bản thân" một dòng; ca "every form shares…" chừa hai bảng mẫu 2 khỏi luật lưới không chấm.
+- **Kiểm thử**: PDF in thật (nút "In biểu mẫu") với Mạch/Bệnh chính/Số tờ/Người nhận có chữ: các ô đó không chấm, ô trống chấm nhỏ; phóng 500dpi chấm mịn hơn rõ.
+- **Hồi quy e2e** (build production, `vite preview` :8099): `patient-medical-record.spec.ts` + `medical-record-drawing.spec.ts` 48/49 — đỏ còn lại là "picking the day…" (đỏ sẵn từ R-1267); `tsc` sạch. Ghi chú: "mẫu 10: the contract…" có lúc đỏ do dữ liệu — ca "the record's address…" tạo bệnh nhân tên dài "Ràng Buộc … Địa Chỉ", tên tràn ô ký 180px sang dòng riêng (flowLines, đúng thiết kế); không liên quan R-1270.
+- **Mức retest**: 2 (F-30 bệnh án — bản in mọi mẫu, mẫu 2 màn hình và bản in).

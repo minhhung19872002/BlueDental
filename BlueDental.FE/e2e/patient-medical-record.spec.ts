@@ -2055,7 +2055,12 @@ test.describe("Bệnh án", () => {
       const lines = await tpl.evaluate((root) => {
         const style = (node: Element | null) => (node ? getComputedStyle(node).borderBottomStyle : null);
         return {
-          inGrid: style(root.querySelector("[data-grid-cell] .nfc-medical-record-text-field")),
+          // Mẫu 2's vitals box and files table keep their dots, as its Word copy (R-1270).
+          inGrid: style(
+            root.querySelector(
+              '[data-grid-cell] .nfc-medical-record-text-field:not(:is(table[data-record-section="vitals"], table[data-record-section="summary-files"]) *)',
+            ),
+          ),
           // MS is print, not a blank (R-1069): it has no line at all.
           outside: style(
             Array.from(root.querySelectorAll(".nfc-medical-record-text-field:not([data-form-code])")).find(
@@ -2136,6 +2141,11 @@ test.describe("Bệnh án", () => {
             return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
           })(),
           // "9. Đối tượng" with all four boxes on its line, and the title two 16pt lines (BA docx, 2026-11-21).
+          // "+ Bản thân:" and its blank on one line, as "+ Gia đình:" (BA, 2026-11-22, R-1270).
+          historyLines: (() => {
+            const line = root.querySelector('[data-medical-record-field="outpatient.patient.history"]')!.closest("p")!;
+            return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
+          })(),
           subjectLines: (() => {
             const line = root.querySelector('[data-medical-record-field="outpatient-dental.checkbox.4"]')!.closest("p")!;
             return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
@@ -2164,6 +2174,7 @@ test.describe("Bệnh án", () => {
     for (const right of layout.flowed) expect(Math.abs(right), "a line of its own reaches the right margin").toBeLessThan(1);
     expect(layout.referralLines, "line 13 with its Tự đến box on one line").toBeLessThan(1.6);
     expect(layout.subjectLines, "9. Đối tượng with its four boxes on one line").toBeLessThan(1.6);
+    expect(layout.historyLines, "+ Bản thân: and its blank on one line").toBeLessThan(1.6);
     expect(layout.titles, "the title, two 16pt lines").toEqual(["21.333px", "21.333px"]);
     expect(layout.idsSize, "MS / Số ngoại trú / Số lưu trữ at 10pt").toBe("13.333px");
     expect(layout.pagesBegin, "pages begin at IV. and at the summary").toEqual(["IV. KHÁM BỆNH:", "TỔNG KẾT BỆNH ÁN:"]);
@@ -2181,9 +2192,63 @@ test.describe("Bệnh án", () => {
       const style = getComputedStyle(node);
       return { page: style.getPropertyValue("page"), padding: style.paddingTop };
     });
+    // The vitals box and the files table keep their dots on paper, as in Word: "Mạch ......lần/ph",
+    // "Số tờ ......"; Người nhận's "Họ tên ......" on one line (BA, 2026-11-22, R-1270).
+    const boxes = await copy.evaluate((node) => {
+      const fields = (section: string) =>
+        Array.from(node.querySelectorAll(`table[data-record-section="${section}"] .nfc-medical-record-text-field`));
+      const receiver = node.querySelector('[data-medical-record-field="outpatient-dental.text.107"]')!;
+      const line = receiver.closest("p")!;
+      return {
+        vitals: fields("vitals").map((field) => getComputedStyle(field).borderBottomStyle),
+        files: fields("summary-files").map((field) => getComputedStyle(field).borderBottomStyle),
+        receiverLines: line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight),
+        // The code boxes' rows on "Bệnh chính" and "Bệnh kèm theo", as in Word — not two 17px rows (R-1270).
+        codeRows: (() => {
+          const rows = Array.from(node.querySelectorAll('table[data-record-section="diagnosis-code"] tr'));
+          return ["outpatient-dental.text.80", "outpatient-dental.text.81"].map((id, at) => {
+            const text = node.querySelector(`[data-medical-record-field="${id}"]`)!.closest("p")!.getBoundingClientRect();
+            const row = rows[at].getBoundingClientRect();
+            return { top: row.top - text.top, height: row.height - text.height };
+          });
+        })(),
+        codeWidth: node.querySelector('table[data-record-section="diagnosis-code"]')!.getBoundingClientRect().width,
+        // Finer dots, drawn by ::after at 0.6 scale over a clear border; none on a blank written in (R-1270).
+        dots: ["outpatient-dental.text.25", "outpatient-dental.text.43"].map((id) => {
+          const field = node.querySelector(`[data-medical-record-field="${id}"]`)!;
+          const after = getComputedStyle(field, "::after");
+          return {
+            border: getComputedStyle(field).borderBottomColor,
+            shown: after.display,
+            style: after.borderBottomStyle,
+            scale: after.transform,
+          };
+        }),
+      };
+    });
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
     expect(printed).toEqual({ page: "outpatient-dental", padding: "0px" });
+    expect(boxes.vitals, "Mạch, Nhiệt độ, Huyết áp ×2, Nhịp thở, Cân nặng").toHaveLength(6);
+    expect(new Set(boxes.vitals), "the vitals keep their dots").toEqual(new Set(["dotted"]));
+    expect(boxes.files.length, "the files table's blanks").toBeGreaterThanOrEqual(10);
+    expect(new Set(boxes.files), "the files table keeps its dots").toEqual(new Set(["dotted"]));
+    // "Người nhận hồ sơ:", then "Họ tên ......" on the line under it, not wrapped on to a third.
+    expect(boxes.receiverLines, "Người nhận hồ sơ, then Họ tên on one line").toBeLessThan(2.6);
+    for (const { top, height } of boxes.codeRows) {
+      expect(Math.abs(top), "a code row on its line").toBeLessThan(1.5);
+      expect(Math.abs(height), "a code row a line tall").toBeLessThan(1.5);
+    }
+    expect(boxes.codeWidth, "the code boxes as wide as Word's, 1740 twips").toBeCloseTo(116, 0);
+    // BA, 2026-11-22: "dấu chấm này chỉnh nhỏ hơn"; "nếu như có data bỏ hết dấu ... đi".
+    const [empty, written] = boxes.dots;
+    expect(empty, "an empty blank: finer dots").toEqual({
+      border: "rgba(0, 0, 0, 0)",
+      shown: "block",
+      style: "dotted",
+      scale: "matrix(0.6, 0, 0, 0.6, 0, 0)",
+    });
+    expect(written.shown, "a blank written in: no dots").toBe("none");
   });
 
   /**

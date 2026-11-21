@@ -186,9 +186,10 @@ ${SHEET_FONT_FACE_CSS}
    I.–IV. 14pt, the titles 16pt, "3. Hình vẽ" 12.5pt, "TỔNG KẾT BỆNH ÁN:"
    13.5pt, what is inside its box 11.5pt; the letterhead four bold 12pt lines
    in a wider column, the MS block's labels and blanks in Word's two tab
-   stops; a checkbox line stands taller, as Word's ☐ makes it; "+ Bản thân:"
-   on a line of its own, its blank under it; a line left before the
-   signatures. The sizes the template draws in its spans give way to these.
+   stops; a checkbox line stands taller, as Word's ☐ makes it; a line left
+   before the signatures; "+ Bản thân:" and its blank on one line, as "+ Gia
+   đình:" (BA, 2026-11-22, R-1270). The sizes the template draws in its spans
+   give way to these.
    Its second copy (Mau-02-...RHM (1).docx, R-1269): the MS block 10pt, its
    tab stops at 569 and 1703 twips. */
 .nfc-tpl[data-form="2"]{--nfc-letter-height:none}
@@ -209,8 +210,6 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="2"] table:has(.record-ids)>tbody>tr>td:first-child>p{white-space:nowrap}
 .nfc-tpl[data-form="2"] table:has(.record-ids)>colgroup>col:last-child{width:auto!important}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] p.record-ids{grid-template-columns:75.6px minmax(0,1fr);column-gap:0;row-gap:0;width:auto;margin:0 0 0 43.4px;font-size:13.333px;line-height:1.725!important}
-.nfc-tpl[data-form="2"] p:has([data-medical-record-field="outpatient.patient.history"])>span{display:block}
-.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient.patient.history"]{width:100%!important;min-width:0!important;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="general-exam"]>tbody>tr>td>p{line-height:32px!important;margin:0}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="signature"]{margin:27.6px 0 0}
 .nfc-tpl[data-form="2"] table[data-record-section="outpatient-summary-title"] h1{font-size:18px;text-align:left}
@@ -219,9 +218,10 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] table[data-record-section="layout"]{width:662px!important}
 .nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] table[data-record-section="layout"]>colgroup>col:first-child{width:520px!important}
 .nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] table[data-record-section="layout"]>colgroup>col:last-child{width:142px!important}
-.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"]{width:116px;margin-left:14.6px}
-.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"] td{height:17px}
-.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"] p{line-height:15px!important;min-height:0}
+/* The code boxes as in Word: an empty 1.5-spaced paragraph above them and one in each box, so each row is a line of the text beside it, the first on "Bệnh chính" (BA, 2026-11-22, R-1270; trHeight 255 is only a least height). */
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"]{width:116px;margin:1.722em 0 0 14.6px}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"] td{height:1.722em}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"] p{line-height:1.722!important;min-height:0}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]{width:100%!important}
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(1){width:207.4px!important}
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(2){width:75.6px!important}
@@ -232,9 +232,12 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="summary-files"] td[rowspan="3"] p{line-height:1.15!important}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] table[data-record-section="layout"]{margin-bottom:4px}
 .nfc-tpl.nfc-tpl[data-form="2"] h2:has(>span[style*="font-size"])+p:empty{display:none}
-.nfc-tpl.nfc-tpl[data-form="2"] :is([data-medical-record-field="outpatient-dental.text.99"],[data-medical-record-field="outpatient-dental.text.100"]){min-width:15px!important}
-.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.101"]{min-width:30px!important}
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.99"]{min-width:24px!important}
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.100"]{min-width:20px!important}
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.101"]{min-width:28px!important}
 .nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.108"]{min-width:140px!important}
+/* Người nhận hồ sơ's "Họ tên ......" on one line, as in Word (R-1270). */
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.107"]{min-width:120px!important}
 /* Mẫu 2's MS / Số ngoại trú / Số lưu trữ (clinic, 2026-10-28, R-1067), and mẫu
    7's MS / Mã người bệnh (2026-10-29, R-1073): the labels in one column, the
    blanks lined up after the ":", the block against the right margin. After the
@@ -309,6 +312,8 @@ ${SHEET_FONT_FACE_CSS}
 @media print{
   .nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{border-bottom:0!important}
   .nfc-tpl table[data-record-section="surgical-count"] td:first-child .nfc-medical-record-text-field:not([data-field-full-width="true"]){border-bottom:1px dotted #000!important}
+  /* Mẫu 2's vitals box and files table keep their dots on paper, as the BA's Word copy has them: "Mạch ......lần/ph", "Số tờ ......", "Họ tên ......" (R-1270). */
+  .nfc-tpl[data-form="2"] :is(table[data-record-section="vitals"],table[data-record-section="summary-files"]) .nfc-medical-record-text-field{border-bottom:1px dotted #000!important}
   /* Mẫu 11's and 12's signers' names print with no dotted line (clinic 2026-11-16): the room above is for the signature. */
   .nfc-tpl:is([data-form="11"],[data-form="12"])>table[data-record-section="signature"] .nfc-medical-record-text-field{border-bottom:0!important}
   .nfc-tpl .nfc-material-add{display:none}
@@ -382,6 +387,15 @@ ${SHEET_FONT_FACE_CSS}
     outline:none
   }
   .nfc-tpl .nfc-medical-record-text-field:empty::before{content:'';font-style:normal}
+  /* The dots finer than a 1px dotted border (BA, 2026-11-22, R-1270: "dấu chấm này chỉnh nhỏ hơn"):
+     Chrome prints any border under 1px at 1px, so the border only says whether a
+     blank has dots — every rule above still decides that — and is drawn clear;
+     ::after draws it again at 0.6 scale, which stays vector on paper. :not(#_)
+     outranks those rules' !important. */
+  .nfc-tpl .nfc-medical-record-text-field:not(#_){position:relative;border-bottom-color:transparent!important}
+  .nfc-tpl .nfc-medical-record-text-field::after{content:'';position:absolute;left:0;bottom:-1px;width:calc(100% / .6);border-bottom:1px #000;border-bottom-style:inherit;transform:scale(.6);transform-origin:left bottom;pointer-events:none}
+  /* A blank with something written in it prints with no dots (BA, 2026-11-22, R-1270: "nếu như có data bỏ hết dấu ... đi"). */
+  .nfc-tpl .nfc-medical-record-text-field:not(:empty)::after{display:none}
 }
 /* Đóng float lại trong phạm vi phiếu, không để nó tràn ra ngoài. */
 .nfc-tpl::after{content:'';display:table;clear:both}
