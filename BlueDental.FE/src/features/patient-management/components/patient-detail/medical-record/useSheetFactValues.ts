@@ -4,7 +4,7 @@ import { formatVND } from "@/utils/format";
 import { moneyInWords } from "@/utils/moneyWords";
 import { useRecordSetSheetFacts } from "../../../api/medicalRecordSetApi";
 import type { FieldValues } from "./fieldValues";
-import { FULL_LINE_WIDTH, makeLineSplitter } from "./lineFit";
+import { FULL_LINE_WIDTH, drawnLetterSize, makeLineSplitter } from "./lineFit";
 import { sheetFactFieldValues, type SheetFactFormats } from "./sheetFacts";
 
 /** Tooth numbers alone, read as the consulting table reads them — a whole jaw by its name. */
@@ -33,8 +33,8 @@ export function useSheetFactValues(setId: string | undefined): FieldValues {
       teeth: teethLabel,
       money: formatVND,
       moneyWords: moneyInWords,
-      // Mẫu 5 prints at 16px (sheetCss).
-      consentLines: makeLineSplitter(16, FULL_LINE_WIDTH),
+      // Mẫu 5 prints at 17px, its letters enlarged (sheetCss, R-1265).
+      consentLines: makeLineSplitter(drawnLetterSize(17), FULL_LINE_WIDTH),
     }),
     [],
   );

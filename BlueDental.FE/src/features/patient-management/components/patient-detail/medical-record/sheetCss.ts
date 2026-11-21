@@ -11,11 +11,20 @@ import { SHEET_FONT_FACE_CSS, SHEET_FONT_FAMILY } from "./sheetFont";
  * String.raw, because the sheet relies on CSS escapes such as a non-breaking
  * space in a ::before.
  */
+/**
+ * A line height of the writing at its form's pitch (`--nfc-pitch`, see the
+ * 17px rule): `ratio` scaled, never under single spacing. `unit` "em" for a
+ * box height set in lines.
+ */
+function pitch(ratio: number, unit: "" | "em" = ""): string {
+  return `max(1.15${unit}, calc(${ratio}${unit} * var(--nfc-pitch, 1)))`;
+}
+
 export const SHEET_CSS = String.raw`
 
 ${SHEET_FONT_FACE_CSS}
 .nfc-tpl{font-family:${SHEET_FONT_FAMILY};font-size:13px;color:#000;line-height:1.5}
-.nfc-tpl p{margin:0 0 4px;white-space:pre-wrap;line-height:1.5}
+.nfc-tpl p{margin:0 0 4px;white-space:pre-wrap;line-height:${pitch(1.5)}}
 .nfc-tpl ul{list-style:disc outside;margin:0 0 4px;padding-left:1.5em}
 .nfc-tpl ol{list-style:decimal outside;margin:0 0 4px;padding-left:1.5em}
 /* A number of legacy medical-record templates use heading tags for section
@@ -39,7 +48,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl table[data-record-page="outpatient-main"]>tbody>tr>td,.nfc-tpl table[data-record-page="outpatient-figure"]>tbody>tr>td{border:0;padding:0}
 .nfc-tpl table[data-record-page^="outpatient"] h1{font-size:21px;line-height:1.25;margin:6px 0;text-align:center}
 .nfc-tpl table[data-record-page^="outpatient"] h2{font-size:15px;line-height:1.25;margin:8px 0 4px}
-.nfc-tpl table[data-record-page^="outpatient"] p{line-height:1.35;margin-bottom:3px}
+.nfc-tpl table[data-record-page^="outpatient"] p{line-height:${pitch(1.35)};margin-bottom:3px}
 .nfc-tpl table[data-record-section="layout"]{border:0;margin:0}
 .nfc-tpl table[data-record-section="layout"]>tbody>tr>td{border:0;padding:1px 4px}
 .nfc-tpl table[data-record-section="general-exam"]{border:0;margin:0}
@@ -58,7 +67,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl table[data-record-section="diagnosis-code"]{margin:22px 0 0}
 .nfc-tpl table[data-record-section="diagnosis-code"] td{height:16px;padding:0}
 .nfc-tpl table[data-record-section="summary-files"]{border:0;margin:0}
-.nfc-tpl table[data-record-section="summary-files"] td,.nfc-tpl table[data-record-section="summary-files"] th{padding:2px 8px;line-height:1.2}
+.nfc-tpl table[data-record-section="summary-files"] td,.nfc-tpl table[data-record-section="summary-files"] th{padding:2px 8px;line-height:${pitch(1.2)}}
 /* Mẫu 2 inside its 15mm margins (clinic, 2026-10-28, R-1067): the headings of
    a table laid out in columns start on the left edge with I., II., 10., 11.,
    the right column reaches the right edge — "3. Hình vẽ mô tả tổn thương"
@@ -78,11 +87,11 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl h1[data-record-section="consultation-title"]{margin:12px 0 8px;line-height:1.2}
 .nfc-tpl table[data-record-section="consultation-methods"]{margin:0}
 .nfc-tpl table[data-record-section="consultation-methods"] td{padding:0 6px}
-.nfc-tpl table[data-record-section="consultation-methods"] p{margin:0;line-height:1.2}
+.nfc-tpl table[data-record-section="consultation-methods"] p{margin:0;line-height:${pitch(1.2)}}
 .nfc-tpl table[data-record-section="consultation-detail"],.nfc-tpl table[data-record-section="consultation-cost"]{margin:2px 0 4px}
 .nfc-tpl table[data-record-section="consultation-detail"] td,.nfc-tpl table[data-record-section="consultation-detail"] th,.nfc-tpl table[data-record-section="consultation-cost"] td,.nfc-tpl table[data-record-section="consultation-cost"] th{padding:1px 8px;vertical-align:middle}
 .nfc-tpl table[data-record-section="consultation-detail"] th{font-weight:normal;text-align:left}
-.nfc-tpl table[data-record-section="consultation-detail"] p,.nfc-tpl table[data-record-section="consultation-cost"] p{margin:0;line-height:1.2}
+.nfc-tpl table[data-record-section="consultation-detail"] p,.nfc-tpl table[data-record-section="consultation-cost"] p{margin:0;line-height:${pitch(1.2)}}
 /* All nine forms, after mẫu 5 (clinic, 2026-10-16):
    - each prints at the largest type (17px at most) whose every page fits
      its sheet of A4 with a few mm to spare, measured through the app's own
@@ -93,34 +102,60 @@ ${SHEET_FONT_FACE_CSS}
    - a blank in a grid cell prints with no dotted line — the cell's borders
      already say where to write. renderSheet marks those cells; a table that
      only lays the page out is not one, and its blanks keep the line. */
-.nfc-tpl[data-form="1"]{font-size:17px}
-.nfc-tpl[data-form="4"],.nfc-tpl[data-form="5"]{font-size:16px}
-.nfc-tpl[data-form="9"]{font-size:15.5px}
-.nfc-tpl[data-form="3"]{font-size:15px}
-.nfc-tpl[data-form="8"]{font-size:14px}
-/* 14px (clinic, 2026-11-10: too small on paper). Its blanks are drawn for
-   13px inside 15mm margins (R-1067); fitBlanks shortens them so each line
-   still holds on one line and the form still prints on 3 sheets. Its lines
-   keep 13px's pitch (14 × 1.2 ≈ 13 × 1.3, rule below), and the handover box
-   at the foot of the last page stays at 13px: at 14px that page has under
-   1mm to spare. */
-.nfc-tpl[data-form="2"]{font-size:14px}
-.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]{font-size:13px}
-/* 15px from the clinic's own copy, inside 15mm margins (R-1068). */
-.nfc-tpl[data-form="6"]{font-size:15px}
-/* 14px from the clinic's own copy, inside 15mm margins (R-1073). */
-.nfc-tpl[data-form="7"]{font-size:14px}
-/* Mẫu 10, the clinic's contract, set like mẫu 6 — the other consent it is
-   signed beside: 15px inside the same 15mm margins (R-1079). */
-.nfc-tpl[data-form="10"]{font-size:15px}
-/* The clinic's surgical checklists (2026-11-16): the count sheet (mẫu 12) set
-   like mẫu 7, 14px inside 15mm margins; the safety checklist (mẫu 11), three
-   columns on A4 landscape inside 10mm, at 13px on 1.36 lines — 12px read too
-   small, 14px a touch large (clinic 2026-11-16). The room left at the foot
-   went into the line pitch and the gaps between sections ("hơi khít"), the
-   sheet still one page with ~15px to spare. */
+/* Every form's writing at 17px, the cover's size (owner, 2026-11-21: "cho nội
+   dung lên hết 17px … ráng phải giữ layout"). Before, each form had the
+   largest size its pages held (R-970 and the clinic's copies: mẫu 2 14px over
+   blanks drawn for 13px, R-1067; mẫu 3 15px; 4 and 5 16px; 6 15px, R-1068; 7
+   14px, R-1073; 8 14px; 9 15.5px; 10 15px, R-1079; 11 13px and 12 14px,
+   2026-11-16) — those are the sizes the blanks were drawn for, and fitBlanks
+   shortens a line's blanks from them so each labelled line still holds on one
+   line. Paragraphs of print run longer. */
+.nfc-tpl[data-form]{font-size:17px}
+/* Except mẫu 11, the safety checklist: one landscape sheet in three narrow
+   columns, which at 17px ran past its page by a fifth (and at 14px still did)
+   and broke across two sheets column by column. It keeps its 13px. */
 .nfc-tpl[data-form="11"]{font-size:13px}
-.nfc-tpl[data-form="12"]{font-size:14px}
+/* Mẫu 10, the clinic's contract, as the clinic's own copy of it
+   (docs/mau10-mac-cai.html, 2026-11-21): 20px on lines a line and a half
+   apart — paragraphs, the national heading, the titles, the section heads;
+   each line of a label and a blank on one line, the dotted blank stretching
+   to the right margin; Bên A's company in bold; "Loại mắc cài" a label line
+   over two rows of two choices lined up. In SHEET_CSS, so the print copy
+   draws it too. */
+.nfc-tpl[data-form="10"]{font-size:20px}
+.nfc-tpl.nfc-tpl[data-form="10"] :is(p,h1,h2){line-height:1.5!important}
+.nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"])){display:flex;align-items:baseline;gap:.3em;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"]))>span{flex:1 1 auto;min-width:0;white-space:pre-wrap}
+.nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"]))>span>.nfc-medical-record-text-field{width:100%!important;min-width:0!important;max-width:none}
+.nfc-tpl[data-form="10"] [data-medical-record-field="orthodontic-contract.party-a.name"]{font-weight:700}
+.nfc-tpl[data-form="10"] p[data-record-section="bracket-types"]{display:grid;grid-template-columns:1.5em minmax(0,1fr) minmax(0,1fr);column-gap:1.5em;align-items:baseline;white-space:nowrap}
+.nfc-tpl[data-form="10"] p[data-record-section="bracket-types"]>.bracket-label{grid-column:1/-1}
+.nfc-tpl[data-form="10"] p[data-record-section="bracket-types"]>.bracket-opt:is(:nth-child(2),:nth-child(5)){grid-column:2}
+.nfc-tpl[data-form="10"] p[data-record-section="bracket-types"] .bracket-opt{display:flex;align-items:baseline;gap:.25em;min-width:0}
+.nfc-tpl[data-form="10"] p[data-record-section="bracket-types"] .bracket-opt>.nfc-medical-record-checkbox{flex:none;margin:0 .15em 0 0;align-self:center}
+.nfc-tpl[data-form="10"] p[data-record-section="bracket-types"] .bracket-opt>span:has(>.nfc-medical-record-text-field){flex:1 1 0;min-width:2.5em}
+.nfc-tpl[data-form="10"] p[data-record-section="bracket-types"] .bracket-opt .nfc-medical-record-text-field{width:100%!important;min-width:0!important}
+/* …and each form's lines keep the pitch they had at its old size, as far as
+   they can: every line height of the writing is scaled by --nfc-pitch (the
+   old size over 17), but never set closer than 1.15 — Word's single spacing —
+   so lines do not touch. The titles and the cover keep theirs. */
+.nfc-tpl[data-form="8"],.nfc-tpl[data-form="12"]{--nfc-pitch:calc(14 / 17)}
+.nfc-tpl[data-form="3"]{--nfc-pitch:calc(15 / 17)}
+/* A shade closer, for their pages to hold (measured on the print copy,
+   2026-11-21): mẫu 2 at its blanks' 13px pitch, mẫu 6 and 7 a few % in. */
+.nfc-tpl[data-form="2"]{--nfc-pitch:calc(13 / 17)}
+.nfc-tpl[data-form="6"]{--nfc-pitch:calc(14.5 / 17)}
+.nfc-tpl[data-form="7"]{--nfc-pitch:calc(13.2 / 17)}
+.nfc-tpl[data-form="4"],.nfc-tpl[data-form="5"]{--nfc-pitch:calc(16 / 17)}
+.nfc-tpl[data-form="9"]{--nfc-pitch:calc(15.5 / 17)}
+/* A ruled table's cells give 2px above and below their line rather than 4px:
+   at 17px the line itself is the room to write in. */
+.nfc-tpl[data-form]:not([data-form="11"]) [data-grid-cell]{padding-top:2px;padding-bottom:2px}
+.nfc-tpl[data-form="8"] [data-grid-cell]{padding-top:1px;padding-bottom:1px}
+/* Mẫu 2's lines 1px apart rather than 3px: its pages are each one table row,
+   and a row taller than the page is not turned — its last lines ran into the
+   foot margin. */
+.nfc-tpl[data-form="2"] table[data-record-page^="outpatient"] p{margin-bottom:1px}
 /* Larger letters, same pages (clinic, 2026-11-14, R-1234: "in ra giấy nhìn nó
    nhỏ", the pages kept as they are). Times New Roman's lower case stands at
    0.45 of its size; font-size-adjust draws the letters as if it stood at
@@ -143,7 +178,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl>p{margin-bottom:2px}
 .nfc-tpl>:is(p,h2):has(+table){margin-bottom:0}
 .nfc-tpl>:is(p,h2)+table{margin-top:1px}
-.nfc-tpl [data-grid-cell] p,.nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{line-height:1.2;min-height:1.2em}
+.nfc-tpl [data-grid-cell] p,.nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{line-height:${pitch(1.2)};min-height:${pitch(1.2, "em")}}
 .nfc-tpl p[data-record-section="consultation-other"]{padding-left:6px}
 /* Mẫu 3: "Tôi … (Khách hàng tự ghi …)" and the signatures under it stand a
    line apart from the plan lines above (clinic, 2026-11-10, R-1191). */
@@ -167,18 +202,18 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl p[data-spacer]{min-height:0;height:3px;margin:0;line-height:0;overflow:hidden}
 .nfc-tpl p[data-spacer]::before{content:none}
 .nfc-tpl h1:not([data-cover] *){margin:10px 0 6px;line-height:1.2!important}
-.nfc-tpl p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.3!important}
+.nfc-tpl p:not(:is([data-cover],[data-grid-cell]) *){line-height:${pitch(1.3)}!important}
 /* Mẫu 2 at 14px keeps 13px's line pitch (2026-11-10). */
-.nfc-tpl[data-form="2"] p:not(:is([data-cover],[data-grid-cell]) *){line-height:1.2!important}
+.nfc-tpl[data-form="2"] p:not(:is([data-cover],[data-grid-cell]) *){line-height:${pitch(1.2)}!important}
 /* Mẫu 2 opened up like the clinic's paper copy (2026-11-12): the title two
    tight 18px lines, the section headings at 1.25, and with what that and a
    7mm foot margin (SHEET_PRINT_CSS) free, the lines of the first two pages
    at 1.5 and of the last at 1.35 — each page keeps ~7mm to spare. The
    letterhead and the handover box keep their 1.2. "1. Toàn thân",
    "2. Bệnh chuyên khoa", "4. Tóm tắt…" were drawn at 10pt: body size now. */
-.nfc-tpl[data-form="2"] table:is([data-record-page="outpatient-main"],[data-record-page="outpatient-figure"]) p:not(table[data-record-section="layout"]:has(.record-ids) *){line-height:1.5!important}
-.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] p:not(table[data-record-section="summary-files"] *){line-height:1.35!important}
-.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h2{margin:6px 0 3px;line-height:1.25!important}
+.nfc-tpl[data-form="2"] table:is([data-record-page="outpatient-main"],[data-record-page="outpatient-figure"]) p:not(table[data-record-section="layout"]:has(.record-ids) *){line-height:${pitch(1.5)}!important}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-summary"] p:not(table[data-record-section="summary-files"] *){line-height:${pitch(1.35)}!important}
+.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h2{margin:6px 0 3px;line-height:${pitch(1.25)}!important}
 .nfc-tpl[data-form="2"] table[data-record-page^="outpatient"]>tbody>tr>td>p span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1,.nfc-tpl[data-form="2"] table[data-record-section="outpatient-summary-title"] h1{font-size:18px;line-height:1.15!important;margin:0}
 .nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] h1:has(+h1){margin-top:6px}
@@ -189,7 +224,7 @@ ${SHEET_FONT_FACE_CSS}
    paragraph rules above, which it overrides; the header table it sits in drops
    its drawn 675px to span the writing area. */
 .nfc-tpl table:has(.record-ids){width:100%!important}
-.nfc-tpl table[data-record-page="outpatient-main"] p.record-ids,.nfc-tpl:is([data-form="7"],[data-form="11"],[data-form="12"]) p.record-ids{display:grid;grid-template-columns:auto auto;column-gap:5px;row-gap:2px;align-items:baseline;width:max-content;max-width:100%;margin:0 0 0 auto;line-height:1.5!important}
+.nfc-tpl table[data-record-page="outpatient-main"] p.record-ids,.nfc-tpl:is([data-form="7"],[data-form="11"],[data-form="12"]) p.record-ids{display:grid;grid-template-columns:auto auto;column-gap:5px;row-gap:2px;align-items:baseline;width:max-content;max-width:100%;margin:0 0 0 auto;line-height:${pitch(1.5)}!important}
 .nfc-tpl .record-ids-label{white-space:nowrap}
 .nfc-tpl .record-ids>span:not(.record-ids-label){display:block;min-width:0}
 .nfc-tpl .record-ids .nfc-medical-record-text-field{width:100%;box-sizing:border-box}
@@ -198,7 +233,8 @@ ${SHEET_FONT_FACE_CSS}
    10 too, R-1079); the letterhead against the left margin and MS against the
    right; the first column of a borderless table on the left margin — on mẫu 6
    a box opening a line too. After the paragraph rules above, which it overrides. */
-.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h1:not([data-cover] *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h2{line-height:1.5!important}
+.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h2{line-height:${pitch(1.5)}!important}
+.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h1:not([data-cover] *){line-height:1.5!important}
 /* Mẫu 12's three-line title as the paper: 15pt (18pt read large), set close —
    the 1.5 pitch of the rule above spread it out — with the paper's room under
    it and between the name line and the count table (clinic 2026-11-16). */
@@ -216,11 +252,11 @@ ${SHEET_FONT_FACE_CSS}
    the stages' titles in rounded boxes joined by arrows; under them one ruled
    table, each column's sections split by a rule reaching the column's sides
    (.ss-rule); one italic signature line under each column. */
-.nfc-tpl[data-form="11"] p{line-height:1.46;margin-bottom:1px}
+.nfc-tpl[data-form="11"] p{line-height:${pitch(1.46)};margin-bottom:1px}
 .nfc-tpl[data-form="11"]>p{margin-bottom:12px}
 /* The stages' cells set tighter than the rest (clinic 2026-11-16: "margin top và bottom của từng cell
    hơi lớn, cần ít hơn để tạo gap cho phần bên trên") — the room goes above the table. */
-.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-stages"] p{line-height:1.36}
+.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-stages"] p{line-height:${pitch(1.36)}}
 .nfc-tpl[data-form="11"]>table{margin:0}
 .nfc-tpl[data-form="11"]>table[data-record-section="surgical-safety-header"]{margin-bottom:22px}
 .nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-header"]>tbody>tr>td{vertical-align:top;padding:0 4px}
@@ -290,7 +326,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl table[data-cover] h3{margin:4px 0 0;font-size:18pt;line-height:1.35}
 .nfc-tpl table[data-cover] h4{margin:0;font-size:11pt;line-height:1.45}
 .nfc-tpl table[data-cover] p{margin-bottom:6px;line-height:1.5}
-.nfc-tpl .nfc-medical-record-text-field{display:inline-block;min-width:72px;min-height:1.2em;line-height:1.2;padding:0 3px;white-space:pre-wrap;overflow-wrap:anywhere;border-bottom:1px dotted #000;background:#fffde7;outline:1px dashed #f4b942;vertical-align:baseline}
+.nfc-tpl .nfc-medical-record-text-field{display:inline-block;min-width:72px;min-height:${pitch(1.2, "em")};line-height:${pitch(1.2)};padding:0 3px;white-space:pre-wrap;overflow-wrap:anywhere;border-bottom:1px dotted #000;background:#fffde7;outline:1px dashed #f4b942;vertical-align:baseline}
 .nfc-tpl .nfc-medical-record-text-field[data-field-full-width="true"]{display:inline-block;width:100%;max-width:none;box-sizing:border-box}
 /* Saved medical-record templates may still carry a large inline min-width.
    Inside table cells, the cell must remain the width boundary. */
@@ -438,6 +474,19 @@ const SHEET_PRINT_CSS = String.raw`
       .nfc-tpl[data-form="2"]{page:outpatient-dental}
       .nfc-tpl[data-form="11"]{page:surgical-safety;width:auto;margin:0;padding:0}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
+      /* Nothing empty runs on to a page of its own (2026-11-21): the 7mm under
+         a 5mm sheet's last line, and a 3px gap closing a page, each moved whole
+         to a fresh page when the page was full to within a few px, and the
+         printer gave out a blank one. The paper's own 5mm still stands under
+         the last line. */
+      .nfc-tpl{padding-bottom:0}
+      .nfc-tpl>p[data-spacer]:is(:last-child,:has(+hr)){display:none}
+      /* The same for the bottom margin of the last box of a page — of the
+         sheet, kept inside it by its closing ::after (mẫu 9, a table ending
+         0.2px above the foot), or before a page break (mẫu 6, a page full to
+         the foot): it went on to a page of its own. */
+      .nfc-tpl>:not([data-spacer]):not(:has(~ :not([data-spacer]))),
+      .nfc-tpl>:not([data-spacer]):is(:has(+hr),:has(+p[data-spacer]+hr)){margin-bottom:0}
       .nfc-tpl .nfc-medical-record-checkbox{accent-color:#2671d8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
     }`;
 

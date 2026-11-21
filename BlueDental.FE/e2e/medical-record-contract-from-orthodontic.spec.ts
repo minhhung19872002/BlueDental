@@ -109,14 +109,23 @@ test.describe("Bệnh án — mẫu 10 filled from mẫu 3 of the set (R-1097)",
     await expect(blank(page, "orthodontic-contract.text.35")).toHaveText("45");
     for (const box of [1, 3, 4]) await expect(blank(page, `orthodontic-contract.checkbox.${box}`)).not.toBeChecked();
     for (const price of [34, 36, 37]) await expect(blank(page, `orthodontic-contract.text.${price}`)).toHaveText("");
-    // The row reads as on mẫu 3: two lines, neither running onto a third.
-    for (const box of [1, 3]) {
-      const lines = await blank(page, `orthodontic-contract.checkbox.${box}`).evaluate((input) => {
-        const row = input.closest("p")!;
-        return row.getBoundingClientRect().height / parseFloat(getComputedStyle(row).lineHeight);
-      });
-      expect(lines, `Loại mắc cài, line with box ${box}`).toBeLessThan(1.5);
-    }
+    // As the clinic's copy lays it out (R-1266): the label on a line of its own,
+    // under it two rows of two choices — each choice on one line, the two rows
+    // lined up in the same columns.
+    const choices = await sheet(page)
+      .locator('p[data-record-section="bracket-types"] .bracket-opt')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const box = node.getBoundingClientRect();
+          return { left: box.left, top: box.top, lines: box.height / parseFloat(getComputedStyle(node.closest("p")!).lineHeight) };
+        }),
+      );
+    expect(choices, "four choices").toHaveLength(4);
+    for (const [at, choice] of choices.entries()) expect(choice.lines, `choice ${at + 1} on one line`).toBeLessThan(1.5);
+    expect(choices[0].top, "Kim loại and Kim loại tự động on one row").toBeCloseTo(choices[1].top, 0);
+    expect(choices[2].top, "KLTĐ Cánh cam and Invisalign on the next").toBeGreaterThan(choices[0].top);
+    expect(choices[2].left, "the two rows in the same columns").toBeCloseTo(choices[0].left, 0);
+    expect(choices[3].left).toBeCloseTo(choices[1].left, 0);
     // Khí cụ is the contract's own; minivis and Bác sĩ stay on mẫu 3.
     await expect(blank(page, "orthodontic-contract.text.18")).toHaveText("");
 

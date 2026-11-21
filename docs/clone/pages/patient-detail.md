@@ -4495,3 +4495,65 @@ Hoàn tác (`sheetHistory.ts`):
 - Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z (và Undo / Redo của trình duyệt) hoàn tác được: dán, xoá vùng bôi đen, dòng Enter thêm, dòng thêm trống bị Backspace / Delete xoá. Dán đè vùng chọn là **một** bước.
 - Chữ gõ tay vẫn là của trình duyệt. Gõ sau khi dán thì Ctrl+Z gỡ chữ gõ trước, rồi mới tới lần dán. Gõ chữ mới thì không làm lại (Ctrl+Y) được nữa.
 - Giới hạn: bước gõ tay **trước** một lần dán, trong ô bị dán viết lại, không còn hoàn tác được.
+
+## Bệnh án — Ngắt trang khi in, và trang trắng thừa (phòng khám, 2026-11-20/21, R-1264)
+
+Phòng khám gửi ảnh mẫu 10 "Hợp đồng thỏa thuận niềng răng" đã điền Kế hoạch điều trị dài: trên màn hình
+vạch ngắt trang (vạch đứt xám = `<hr>` của mẫu) nằm sau "- Thời gian mang duy trì", nhưng bản in đã sang
+tờ 2 từ "- Khí cụ". Nguyên nhân: trang nào chứa nhiều hơn mẫu thiết kế thì dài hơn khổ A4, Chrome tự sang
+tờ trước `<hr>`; màn hình chỉ vẽ `<hr>`. Bản gốc không có tính năng này (mẫu 10 là biểu mẫu riêng của phòng
+khám), nên không có mục UNKNOWN_REFERENCE_BEHAVIOR.
+
+- **Đã thử rồi bỏ** (chủ dự án, 2026-11-21): vòng 1 vẽ vạch đỏ + nhãn "Trang N" chỗ máy in tự sang trang;
+  vòng 2 tách tờ trên màn hình thành từng trang A4 như Word. Cả hai bỏ theo yêu cầu — màn hình **giữ y như
+  cũ** (một tờ liền, vạch đứt xám ở `<hr>`), không vạch / nhãn nhận diện hết trang. Kinh nghiệm đo được (nếu
+  làm lại): tính trên bản sao dựng bằng CSS in trong document của app, vùng viết cao làm tròn **lên** px,
+  rộng làm tròn **xuống** px; ở tờ lề 15mm lề trên 6px của bảng đầu tờ vẫn chiếm chỗ đầu trang 1; đo thẳng
+  trên tờ màn hình lệch tới một dòng; hàng bảng nhiều cột cao hơn trang thì mỗi cột ngắt một chỗ.
+- **Giữ lại — hết trang trắng khi in**: khi nội dung đầy tới sát đáy, phần đệm 7mm cuối tờ (mẫu lề 5mm),
+  đoạn trống 3px `data-spacer` cuối trang, hoặc lề dưới của khối cuối tờ / khối ngay trước `<hr>` bị đẩy
+  sang tờ mới → máy in ra **một trang trắng chỉ có số trang** (mẫu 8 của bệnh nhân demo BD269006; mẫu 4/6/7/9
+  khi gần đầy). Khi in (`SHEET_PRINT_CSS`): `padding-bottom:0`, ẩn spacer cuối tờ / trước `<hr>`, khối cuối
+  tờ và khối trước `<hr>` không lề dưới. Lề giấy 5mm dưới dòng cuối vẫn còn; số trang mẫu trống không đổi.
+
+## Bệnh án — Nội dung mọi mẫu lên 17px, giữ bố cục (chủ dự án, 2026-11-21, R-1265)
+
+Chủ dự án: "cho nội dung lên hết 17px …, ráng phải giữ layout nhất có thể". Trước đó mỗi mẫu một cỡ
+(mẫu 2 14px, 3 15px, 4–5 16px, 6 15px, 7 14px, 8 14px, 9 15,5px, 10 15px, 11 13px, 12 14px; bìa 17px),
+cộng phần phóng nét chữ ~11% của R-1234 (`font-size-adjust` 0,5) — giữ nguyên.
+
+- **Cỡ chữ** (`sheetCss.ts`): `.nfc-tpl[data-form]{font-size:17px}` cho mọi mẫu, **trừ mẫu 10** (20px theo bản của phòng khám, R-1266 bên dưới) và **mẫu 11** (bảng kiểm an
+  toàn phẫu thuật, A4 ngang 3 cột hẹp): ở 17px — kể cả 14px — nó tràn 1/5 trang và gãy sang tờ 2 theo từng
+  cột, nên giữ 13px. Dòng "SỞ Y TẾ…" (10pt), MS (9pt) và tiêu đề lớn giữ cỡ riêng như cũ; tiêu đề mục theo
+  cỡ nội dung như trước.
+- **Giữ bước dòng cũ**: mọi giãn dòng của phần nội dung nhân `--nfc-pitch` = cỡ cũ / 17 (hàm `pitch()`),
+  nhưng không dưới 1,15 (giãn "single" của Word) để dòng không dính. Siết thêm cho vừa trang (đo trên bản
+  sao in): mẫu 2 theo bước 13px, mẫu 6 14,5px, mẫu 7 13,2px; ô bảng kẻ đệm trên/dưới 2px (mẫu 8: 1px);
+  đoạn trong mẫu 2 cách nhau 1px.
+- **Giữ dòng một dòng** (`drawnSizes.ts`, dùng chung `fitBlanks` / `holdLines`): dòng nào ở cỡ cũ nằm trên
+  một dòng thì vẫn một dòng — trước hết rút chấm điền (`fitBlanks`), còn rớt thì riêng dòng đó thu nét chữ,
+  thấp nhất về bằng cỡ cũ (`holdLines`; ví dụ mẫu 2 "9. Đối tượng … 4. Khác ☐"). Đoạn văn nhiều dòng giữ
+  17px và được phép dài thêm.
+- **Số trang** (bệnh nhân demo, đo trên PDF thật): bằng hệt trước — mẫu 1–12: 3/3/4/1/2/2/1/1/1/5 (mẫu 10
+  trống; phiếu demo điền thêm 9 dòng: 6)/1/1. Mẫu 10 sau đó đổi theo R-1266 (7 trang).
+
+## Bệnh án — Mẫu 10 theo bản của phòng khám `docs/mau10-mac-cai.html` (chủ dự án, 2026-11-21, R-1266)
+
+Chủ dự án gửi `docs/mau10-mac-cai.html` (bản lưu tờ mẫu 10 có chỉnh của phòng khám; có dữ liệu một bệnh nhân →
+**không commit**): "update font + style mẫu 10 cho giống". Chữ in sẵn hai bên giống hệt; khác về style và cấu trúc:
+
+- **20px**, giãn dòng **1,5** cố định cho mọi đoạn, quốc hiệu, tiêu đề, tiêu đề mục (`sheetCss.ts`, trong
+  `SHEET_CSS` để bản in cũng vậy). Mẫu 10 ra khỏi `drawnSizes.ts` (không thu chữ về cỡ cũ) và khỏi `--nfc-pitch`.
+- **Dòng nhãn + ô điền** (trừ dòng có ô tick và dòng "Hôm nay, ngày…"): `display:flex`, không xuống hàng, ô chấm
+  giãn tới lề phải (`width:100%`, bỏ độ rộng cố định). Chữ dài chảy sang dòng chấm kế tiếp (`flowLines`), như
+  "Họ tên cha mẹ/người giám hộ…" mà nhãn chiếm gần hết dòng.
+- **Bên A**: nhãn "Bên A:" và tên công ty in đậm; "Bên B: Khách hàng" in đậm.
+- **Loại mắc cài**: một đoạn `data-record-section="bracket-types"` — nhãn một dòng, dưới là lưới 2 hàng × 2 cột
+  (Kim loại | Kim loại tự động / KLTĐ Cánh cam | Invisalign), ô tiền co giãn. Mã ô giữ nguyên (`checkbox.1–4`,
+  `text.34–37`), dữ liệu đã lưu không đổi.
+- **Ngắt trang**: chỉ còn `<hr>` trước "BẢN THỎA THUẬN & ĐỒNG Ý…"; bỏ ba chỗ ngắt cố định trước "3. Cam kết…",
+  mục 17 và mục 5 — hợp đồng và bản thỏa thuận tự chảy sang trang. Mẫu trống in **7 trang** (trước 5).
+- **Lỗi gặp khi làm, đã sửa cho mọi mẫu** (`flowLines.ts`, `lineFit.ts`): canvas đo chữ không biết
+  `font-size-adjust` (chữ phóng ~11%, R-1234), nên dòng đầu của ô dài nhận quá nhiều chữ và gói lại trong ô thay vì
+  chảy xuống dòng chấm kế tiếp. Nay đo ở cỡ chữ hiển thị (`drawnLetterSize`, x-height Times New Roman 916/2048).
+  Chẩn đoán mẫu 5 (`consentLines`) tách theo 17px có phóng.

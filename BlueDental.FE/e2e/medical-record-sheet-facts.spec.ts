@@ -77,6 +77,16 @@ function wholeCell(page: Page, field: string) {
   return sheet(page).locator(`td:has([data-medical-record-field="${field}"])`);
 }
 
+/**
+ * `text` wherever the cell's lines broke it: a blank's text flows on to the
+ * cell's next dotted line where its line ends, and at 17px (R-1265) the lines
+ * of a narrow cell break between other words than they did.
+ */
+function acrossLines(text: string): RegExp {
+  const words = text.split(/\s+/).map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  return new RegExp(words.join("\\s*"));
+}
+
 /** Opens a form's first sheet in the set, adding one when the set has none. */
 async function openSheet(page: Page, form: string) {
   const row = page.locator(".pd-medical-form", { hasText: form });
@@ -303,8 +313,9 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "treatment-tracking.page-1.row-1.date-time")).toHaveText(
       new RegExp(`^${today.day}/${today.month}/${today.year} \\d{2}:\\d{2}$`),
     );
-    await expect(blank(page, "treatment-tracking.page-1.row-1.diagnosis-progress")).toContainText(
-      patient.diagnosisName,
+    // The whole cell: at 17px (R-1265) a long diagnosis flows onto the cell's next dotted line.
+    await expect(wholeCell(page, "treatment-tracking.page-1.row-1.diagnosis-progress")).toContainText(
+      acrossLines(patient.diagnosisName),
     );
     // One line a service and a tooth: the cell's blank flows onto dotted lines of its own.
     const detail = wholeCell(page, "treatment-tracking.page-1.row-1.treatment-detail");
@@ -314,7 +325,7 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     // The công đoạn are listed under their service with "-"; the service line takes none.
     await expect(detail).toContainText("Dịch vụ: ");
     await expect(detail).not.toContainText("- Dịch vụ: ");
-    await expect(detail).toContainText("- Răng 12 - Lấy tủy E2E");
+    await expect(detail).toContainText(acrossLines("- Răng 12 - Lấy tủy E2E"));
 
     // The other two slips finished too: now the cover shows the end, after a reload.
     await treat(page, patient, second.id, "Trám bít E2E");
@@ -330,7 +341,7 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
 
     // Every công đoạn was the same day and the same diagnosis: one row.
     await openSheet(page, "Phiếu theo dõi điều trị");
-    await expect(detail).toContainText("- Răng 11 - Trám bít E2E");
+    await expect(detail).toContainText(acrossLines("- Răng 11 - Trám bít E2E"));
     await expect(blank(page, "treatment-tracking.page-1.row-2.date-time")).toHaveText("");
 
     // Another branch cannot read the set's facts.
