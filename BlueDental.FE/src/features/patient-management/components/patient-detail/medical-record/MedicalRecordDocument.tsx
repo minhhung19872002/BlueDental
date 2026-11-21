@@ -26,6 +26,8 @@ import { holdLines } from "./holdLines";
 import { whenSheetTypeReady } from "./sheetFont";
 import { flowLongBlanks, flowedText, isPartOf, writeFlowed } from "./flowLines";
 import { attachMultiLineSelect } from "./multiLineSelect";
+import { attachSheetUndo, createSheetHistory } from "./sheetHistory";
+import { attachSheetPaste } from "./sheetPaste";
 import { SheetSuggestions } from "./suggestions/SheetSuggestions";
 import { useSheetSuggestions } from "./suggestions/useSheetSuggestions";
 
@@ -227,16 +229,23 @@ export function MedicalRecordDocument({
     const detachMaterials = editable ? attachMaterials(doc) : () => undefined;
     const detachSections = editable ? attachSections(doc) : () => undefined;
 
+    // Lines added or taken away, and writing the sheet does itself: an edit that changes how tall it is.
+    const changed = () => {
+      push();
+      window.requestAnimationFrame(measure);
+    };
+    // Ctrl+Z for what the sheet writes itself (a paste over lines, an erase, an added line); see sheetHistory.
+    const history = createSheetHistory(doc, changed);
+    const record = (action: () => void) => history.record(action);
+
     // Enter moves to the blank below, or adds one; see lineEditing.
-    const detachLines = editable
-      ? attachLineEditing(doc, () => {
-          push();
-          window.requestAnimationFrame(measure);
-        })
-      : () => undefined;
+    const detachLines = editable ? attachLineEditing(doc, changed, record) : () => undefined;
 
     // A selection can run across the sheet's lines, for copying; see multiLineSelect.
-    const detachSelect = editable ? attachMultiLineSelect(doc) : () => undefined;
+    const detachSelect = editable ? attachMultiLineSelect(doc, history) : () => undefined;
+    // Lines pasted go on lines of their own; see sheetPaste. After multiLineSelect, which erases a selection first.
+    const detachPaste = editable ? attachSheetPaste(doc, history, changed) : () => undefined;
+    const detachUndo = editable ? attachSheetUndo(doc, history) : () => undefined;
     // Typing in some blanks offers what the branch wrote there before; see useSheetSuggestions.
     const detachSuggestions = editable ? attachSuggestions(doc) : () => undefined;
 
@@ -250,6 +259,8 @@ export function MedicalRecordDocument({
         detachDrawing();
         detachLines();
         detachSelect();
+        detachPaste();
+        detachUndo();
         detachSuggestions();
         detachMaterials();
         detachSections();

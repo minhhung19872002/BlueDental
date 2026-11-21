@@ -196,6 +196,29 @@ async function hoverRow(page: Page, field: string) {
   await row.hover();
 }
 
+/** Puts `text` on the clipboard — with an HTML copy beside it, as a page copies, when `html` is given. */
+async function copyText(page: Page, text: string, html?: string) {
+  await page.evaluate(
+    async ({ text, html }) => {
+      if (html === undefined) return navigator.clipboard.writeText(text);
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/plain": new Blob([text], { type: "text/plain" }),
+          "text/html": new Blob([html], { type: "text/html" }),
+        }),
+      ]);
+    },
+    { text, html },
+  );
+}
+
+/** A blank's whole value, its own line and the lines it flowed onto joined by a space. */
+async function flowedValue(page: Page, field: string) {
+  return sheet(page)
+    .locator(`[data-medical-record-field="${field}"], [data-flow-of="${field}"]`)
+    .evaluateAll((nodes) => nodes.map((node) => node.textContent).join(" "));
+}
+
 test.describe("Bệnh án", () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -1701,6 +1724,280 @@ test.describe("Bệnh án", () => {
     await expect(blank(page, "outpatient-dental.text.31")).toHaveText("Sâu răng 36");
     await expect(blank(page, "outpatient-dental.text.37")).toHaveText("Răng 38 mọc lệch");
     await expect(blank(page, "outpatient-dental.text.38")).toHaveText("Nướu nề nhẹ");
+  });
+
+  /**
+   * Pasting several lines (clinic, 2026-11-21, R-1263: "copy đc nhiều dòng rồi
+   * nhưng paste lại vào hết 1 ô"): each line goes on a line of its own. An empty
+   * line for writing under the blank takes the next one; a line with writing,
+   * or one the form labels, gets a line added before it and moves down. What
+   * stood after the caret ends the last line pasted. Only the text is pasted.
+   */
+  test("lines pasted go on lines of their own, pushing down what is written and never into the next label", async ({
+    page,
+  }) => {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    const form = "Bệnh án ngoại trú Răng Hàm Mặt";
+    await openMedicalRecord(page);
+    await openFreshSheet(page, form, {
+      "outpatient-dental.text.43": "K02.1 - Sâu ngà",
+      "outpatient-dental.text.44": "Sâu răng 36 cần điều trị tủy",
+      "outpatient-dental.text.47": "Đã trám tạm",
+    });
+    const document = sheet(page);
+    const blanks = document.locator("[data-medical-record-field]");
+    const before = await blanks.count();
+    const pasteInto = async (field: string, text: string, html?: string) => {
+      await copyText(page, text, html);
+      await blank(page, field).click();
+      await page.keyboard.press("Control+v");
+    };
+    const line = (anchor: string, at: number) => blank(page, `custom.line.outpatient-dental.text.${anchor}.${at}`);
+
+    // Empty lines under the blank take the lines, one each; nothing is added.
+    await pasteInto("outpatient-dental.text.31", "Viêm lợi\nSâu răng 16\nMòn cổ răng");
+    await expect(blank(page, "outpatient-dental.text.31")).toHaveText("Viêm lợi");
+    await expect(blank(page, "outpatient-dental.text.32")).toHaveText("Sâu răng 16");
+    await expect(blank(page, "outpatient-dental.text.33")).toHaveText("Mòn cổ răng");
+    await expect(blank(page, "outpatient-dental.text.34")).toHaveText("");
+    await expect(blanks).toHaveCount(before);
+
+    // One line pastes where the caret is, as ever.
+    await copyText(page, "; R26");
+    await blank(page, "outpatient-dental.text.32").click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Control+v");
+    await expect(blank(page, "outpatient-dental.text.32")).toHaveText("Sâu răng 16; R26");
+    await expect(blanks).toHaveCount(before);
+
+    // More lines than "4. Tóm tắt bệnh án" has: lines are added under its last, "5. Chẩn đoán" keeps its own.
+    await pasteInto("outpatient-dental.text.37", "L1\nL2\nL3\nL4\nL5\nL6\nL7\nL8");
+    for (const [at, text] of [37, 38, 39, 40, 41, 42].map((field, index) => [field, `L${index + 1}`] as const)) {
+      await expect(blank(page, `outpatient-dental.text.${at}`)).toHaveText(text);
+    }
+    await expect(line("42", 1)).toHaveText("L7");
+    await expect(line("42", 2)).toHaveText("L8");
+    await expect(blank(page, "outpatient-dental.text.43")).toHaveText("K02.1 - Sâu ngà");
+    await expect(blanks).toHaveCount(before + 2);
+
+    // Pasted in the middle of what is written: the rest goes on after the last line, where the caret is left.
+    await blank(page, "outpatient-dental.text.44").click();
+    await page.keyboard.press("Home");
+    for (let step = 0; step < "Sâu răng 36".length; step += 1) await page.keyboard.press("ArrowRight");
+    await copyText(page, ", 37\nRăng 38 cũng");
+    await page.keyboard.press("Control+v");
+    await page.keyboard.type(" vẫn");
+    await expect(blank(page, "outpatient-dental.text.44")).toHaveText("Sâu răng 36, 37");
+    await expect(line("44", 1)).toHaveText("Răng 38 cũng vẫn cần điều trị tủy");
+    await expect(blank(page, "outpatient-dental.text.45"), "the next label's blank stays empty").toHaveText("");
+    await expect(blanks).toHaveCount(before + 3);
+
+    // A line with writing under the blank moves down: lines are added before it, in order.
+    await pasteInto("outpatient-dental.text.46", "Lấy tủy R36\nBơm rửa\nĐặt thuốc");
+    await expect(blank(page, "outpatient-dental.text.46")).toHaveText("Lấy tủy R36");
+    await expect(line("46", 1)).toHaveText("Bơm rửa");
+    await expect(line("46", 2)).toHaveText("Đặt thuốc");
+    await expect(blank(page, "outpatient-dental.text.47")).toHaveText("Đã trám tạm");
+    await expect(blanks).toHaveCount(before + 5);
+
+    // Copied off a page with its formatting: only the text comes, on its lines.
+    await pasteInto("outpatient-dental.text.49", "Răng 11\nRăng 21", "<b>Răng 11</b><br><i style=\"color:red\">Răng 21</i>");
+    await expect(blank(page, "outpatient-dental.text.49")).toHaveText("Răng 11");
+    await expect(blank(page, "outpatient-dental.text.50")).toHaveText("Răng 21");
+    await expect(document.locator('[data-medical-record-field^="outpatient-dental.text.49"] *, [data-medical-record-field^="outpatient-dental.text.50"] *')).toHaveCount(0);
+
+    // A line too long for its blank flows over lines of its own; the next pasted line goes under them.
+    await pasteInto("outpatient-dental.text.51", `${LONG_DIAGNOSIS}\nTái khám sau 1 tuần`);
+    expect(await document.locator('[data-flow-of="outpatient-dental.text.51"]').count()).toBeGreaterThanOrEqual(1);
+    expect(await flowedValue(page, "outpatient-dental.text.51")).toBe(LONG_DIAGNOSIS);
+    await expect(blank(page, "outpatient-dental.text.52")).toHaveText("Tái khám sau 1 tuần");
+
+    // A blank sharing its line with print ("Huyết áp __/__ mmHg"): the next line is added, "Nhịp thở" is not filled.
+    await pasteInto("outpatient-dental.text.26", "120\n80");
+    await expect(blank(page, "outpatient-dental.text.26")).toHaveText("120");
+    await expect(line("26", 1)).toHaveText("80");
+    await expect(blank(page, "outpatient-dental.text.27")).toHaveText("");
+    await expect(blank(page, "outpatient-dental.text.28")).toHaveText("");
+    await expect(blanks).toHaveCount(before + 6);
+    await save(page);
+
+    await page.reload();
+    await openLastSheet(page, form);
+    await expect(blank(page, "outpatient-dental.text.33")).toHaveText("Mòn cổ răng");
+    await expect(blank(page, "outpatient-dental.text.32")).toHaveText("Sâu răng 16; R26");
+    await expect(line("42", 2)).toHaveText("L8");
+    await expect(line("44", 1)).toHaveText("Răng 38 cũng vẫn cần điều trị tủy");
+    await expect(blank(page, "outpatient-dental.text.52")).toHaveText("Tái khám sau 1 tuần");
+    await expect(line("26", 1)).toHaveText("80");
+    const order = (
+      await document
+        .locator("[data-medical-record-field]")
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-medical-record-field") ?? ""))
+    ).filter((id) => /outpatient-dental\.text\.4\d(\.\d+)?$/.test(id));
+    expect(order).toEqual([
+      "outpatient-dental.text.40",
+      "outpatient-dental.text.41",
+      "outpatient-dental.text.42",
+      "custom.line.outpatient-dental.text.42.1",
+      "custom.line.outpatient-dental.text.42.2",
+      "outpatient-dental.text.43",
+      "outpatient-dental.text.44",
+      "custom.line.outpatient-dental.text.44.1",
+      "outpatient-dental.text.45",
+      "outpatient-dental.text.46",
+      "custom.line.outpatient-dental.text.46.1",
+      "custom.line.outpatient-dental.text.46.2",
+      "outpatient-dental.text.47",
+      "outpatient-dental.text.48",
+      "outpatient-dental.text.49",
+    ]);
+  });
+
+  /** A paste in a table cell keeps to the cell, as Enter does; Excel's and Word's line ends and tabs read as text. */
+  test("lines pasted in a table cell stay in the cell, whatever they were copied from", async ({ page }) => {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    const form = "Phiếu tư vấn và xác nhận đồng ý điều trị";
+    await openMedicalRecord(page);
+    await openFreshSheet(page, form);
+    const document = sheet(page);
+    const costRows = document.locator('table[data-record-section="consultation-cost"] tbody > tr');
+    const rowCount = await costRows.count();
+
+    // Copied off a spreadsheet: cells split by a tab, rows ended by CR LF, the last one too.
+    await copyText(page, "Cạo vôi\tx1\r\nĐánh bóng\r\n");
+    // The cell may already hold the record's own service: the paste goes on after it.
+    const own = (await blank(page, "consultation.text.22").textContent()) ?? "";
+    await blank(page, "consultation.text.22").click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Control+v");
+    await expect(blank(page, "consultation.text.22")).toHaveText(`${own}Cạo vôi x1`);
+    const added = blank(page, "custom.line.consultation.text.22.1");
+    await expect(added).toHaveText("Đánh bóng");
+    await expect(blank(page, "custom.line.consultation.text.22.2"), "no empty line for the last line end").toHaveCount(0);
+    await expect(costRows).toHaveCount(rowCount);
+    await expect(document.locator("td", { has: blank(page, "consultation.text.22") }).locator('[data-medical-record-field="custom.line.consultation.text.22.1"]')).toHaveCount(1);
+    await save(page);
+
+    await page.reload();
+    await openLastSheet(page, form);
+    await expect(blank(page, "consultation.text.22")).toHaveText(`${own}Cạo vôi x1`);
+    await expect(blank(page, "custom.line.consultation.text.22.1")).toHaveText("Đánh bóng");
+  });
+
+  /**
+   * Ctrl+Z / Ctrl+Y take back and redo what the sheet writes itself (R-1263): a
+   * paste over lines, an erase across lines, a line Enter adds or Backspace
+   * takes away — each one step. What is typed after is the browser's to undo
+   * first.
+   */
+  test("Ctrl+Z takes back a paste over lines, an erase and an added line; Ctrl+Y does them again", async ({ page }) => {
+    await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+    const form = "Bệnh án ngoại trú Răng Hàm Mặt";
+    await openMedicalRecord(page);
+    await openFreshSheet(page, form, {
+      "outpatient-dental.text.40": "Đã có sẵn",
+      "outpatient-dental.text.44": LONG_DIAGNOSIS,
+    });
+    const document = sheet(page);
+    const blanks = document.locator("[data-medical-record-field]");
+    const before = await blanks.count();
+    const text = (field: string) => blank(page, `outpatient-dental.text.${field}`);
+    const added = blank(page, "custom.line.outpatient-dental.text.39.1");
+    const pasted = async () => {
+      await expect(text("37")).toHaveText("U1");
+      await expect(text("38")).toHaveText("U2");
+      await expect(text("39")).toHaveText("U3");
+      await expect(added).toHaveText("U4");
+      await expect(text("40")).toHaveText("Đã có sẵn");
+      await expect(blanks).toHaveCount(before + 1);
+    };
+    const undone = async () => {
+      await expect(text("37")).toHaveText("");
+      await expect(text("38")).toHaveText("");
+      await expect(text("39")).toHaveText("");
+      await expect(added).toHaveCount(0);
+      await expect(text("40")).toHaveText("Đã có sẵn");
+      await expect(blanks).toHaveCount(before);
+    };
+
+    await copyText(page, "U1\nU2\nU3\nU4");
+    await text("37").click();
+    await page.keyboard.press("Control+v");
+    await pasted();
+    // The whole paste is one step, both ways, by either key for redo.
+    await page.keyboard.press("Control+z");
+    await undone();
+    await page.keyboard.press("Control+y");
+    await pasted();
+    await page.keyboard.press("Control+z");
+    await undone();
+    await page.keyboard.press("Control+Shift+z");
+    await pasted();
+
+    // Typed after the paste: Ctrl+Z takes back the typing first, then the paste.
+    await page.keyboard.type("!");
+    await expect(added).toHaveText("U4!");
+    await page.keyboard.press("Control+z");
+    await expect(added).toHaveText("U4");
+    await page.keyboard.press("Control+z");
+    await undone();
+    // Something written after an undo: there is nothing to redo.
+    await page.keyboard.type("q");
+    await page.keyboard.press("Control+y");
+    await expect(text("37")).toHaveText("q");
+    await expect(text("38")).toHaveText("");
+    await expect(added).toHaveCount(0);
+    await page.keyboard.press("Backspace");
+
+    // A line Enter adds goes again with Ctrl+Z; one Backspace took away comes back. Nothing is under "3." to step to.
+    await text("36").click();
+    await page.keyboard.press("Enter");
+    const enterLine = blank(page, "custom.line.outpatient-dental.text.36.1");
+    await expect(enterLine).toHaveCount(1);
+    await page.keyboard.press("Control+z");
+    await expect(enterLine).toHaveCount(0);
+    await page.keyboard.press("Control+y");
+    await expect(enterLine).toHaveCount(1);
+    await enterLine.click();
+    await page.keyboard.press("Backspace");
+    await expect(enterLine).toHaveCount(0);
+    await page.keyboard.press("Control+z");
+    await expect(enterLine).toHaveCount(1);
+    await page.keyboard.type("Thêm dòng");
+    await expect(enterLine).toHaveText("Thêm dòng");
+
+    // Erasing a selection across a long blank's lines comes back whole.
+    const flowed = document.locator('[data-flow-of="outpatient-dental.text.44"]');
+    expect(await flowed.count()).toBeGreaterThanOrEqual(1);
+    await flowed.first().click();
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Delete");
+    await expect(text("44")).toHaveText("");
+    await expect(flowed).toHaveCount(0);
+    await page.keyboard.press("Control+z");
+    expect(await flowedValue(page, "outpatient-dental.text.44")).toBe(LONG_DIAGNOSIS);
+    expect(await flowed.count()).toBeGreaterThanOrEqual(1);
+
+    // Pasted over that selection: it is replaced, and one Ctrl+Z gives it back.
+    await copyText(page, "V1\nV2");
+    await flowed.first().click();
+    await page.keyboard.press("Control+a");
+    await page.keyboard.press("Control+v");
+    await expect(text("44")).toHaveText("V1");
+    await expect(blank(page, "custom.line.outpatient-dental.text.44.1")).toHaveText("V2");
+    await expect(flowed).toHaveCount(0);
+    await page.keyboard.press("Control+z");
+    expect(await flowedValue(page, "outpatient-dental.text.44")).toBe(LONG_DIAGNOSIS);
+    await expect(blank(page, "custom.line.outpatient-dental.text.44.1")).toHaveCount(0);
+    await save(page);
+
+    await page.reload();
+    await openLastSheet(page, form);
+    await expect(text("37")).toHaveText("");
+    await expect(blank(page, "custom.line.outpatient-dental.text.39.1")).toHaveCount(0);
+    await expect(blank(page, "custom.line.outpatient-dental.text.36.1")).toHaveText("Thêm dòng");
+    expect(await flowedValue(page, "outpatient-dental.text.44")).toBe(LONG_DIAGNOSIS);
+    await expect(blank(page, "custom.line.outpatient-dental.text.44.1")).toHaveCount(0);
   });
 
   /**

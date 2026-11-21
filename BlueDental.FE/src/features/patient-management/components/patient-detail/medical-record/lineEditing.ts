@@ -1,3 +1,4 @@
+import { renameFlowed } from "./flowLines";
 import { FIELD_SELECTOR, GENERATED_ROW_ATTR } from "./rowEditing";
 
 /**
@@ -121,18 +122,43 @@ export function enterInBlank(blank: HTMLElement): HTMLElement | null {
     return next;
   }
 
+  const added = addLineAfter(blank, block);
+  if (added) placeCaret(added);
+  return added;
+}
+
+/** The blank a line grows from: the one it was added under, for a blank on an added line. */
+function anchorOf(blank: Element): string {
   const id = blank.getAttribute("data-medical-record-field") ?? "";
-  const anchor = parseLineKey(id)?.anchor ?? id;
+  return parseLineKey(id)?.anchor ?? id;
+}
+
+/**
+ * Adds a line grown from `blank`'s run right after `after`, numbered after the
+ * run's last — renumberLines puts the run back in order where it was added
+ * in the middle. Returns its blank, or null for a blank outside any block.
+ */
+export function addLineAfter(blank: Element, after: Element): HTMLElement | null {
+  const block = blockOf(blank);
+  if (!block) return null;
+  const anchor = anchorOf(blank);
   const highest = linesOf(block.ownerDocument, anchor).reduce(
     (most, node) => Math.max(most, parseLineKey(node.getAttribute("data-medical-record-field") ?? "")?.at ?? 0),
     0,
   );
 
   const line = newLine(block.ownerDocument, blank, block, lineKey(anchor, highest + 1));
-  block.insertAdjacentElement("afterend", line);
-  const added = line.firstElementChild as HTMLElement;
-  placeCaret(added);
-  return added;
+  after.insertAdjacentElement("afterend", line);
+  return line.firstElementChild as HTMLElement;
+}
+
+/**
+ * Numbers the lines grown from `blank`'s run 1, 2, 3… as they stand on the
+ * sheet, so applyStoredLines draws them back in that order.
+ */
+export function renumberLines(blank: Element) {
+  const anchor = anchorOf(blank);
+  renameFlowed(linesOf(blank.ownerDocument, anchor).map((field, at) => ({ field, id: lineKey(anchor, at + 1) })));
 }
 
 function lastBlankIn(block: Element | null): HTMLElement | null {
@@ -175,14 +201,24 @@ export function removeEmptyLine(blank: HTMLElement, direction: "backward" | "for
  * inside the blank. UNKNOWN_REFERENCE_BEHAVIOR: what the reference does with
  * it, and with Backspace / Delete (the owner's rule above stands in).
  */
-export function attachLineEditing(doc: Document, onChanged: () => void): () => void {
+export function attachLineEditing(
+  doc: Document,
+  onChanged: () => void,
+  record: (action: () => void) => void = (action) => action(),
+): () => void {
   const onKeyDown = (event: KeyboardEvent) => {
     if (event.isComposing) return;
     const blank = (event.target as Element | null)?.closest?.<HTMLElement>(TEXT_BLANK_SELECTOR);
     if (!blank) return;
 
     if (event.key === "Backspace" || event.key === "Delete") {
-      if (!removeEmptyLine(blank, event.key === "Delete" ? "forward" : "backward")) return;
+      // Only an empty added line goes; every other Backspace is the browser's, and its to undo.
+      if (!parseLineKey(blank.getAttribute("data-medical-record-field") ?? "") || blank.textContent !== "") return;
+      let removed = false;
+      record(() => {
+        removed = removeEmptyLine(blank, event.key === "Delete" ? "forward" : "backward");
+      });
+      if (!removed) return;
       event.preventDefault();
       onChanged();
       return;
@@ -191,7 +227,7 @@ export function attachLineEditing(doc: Document, onChanged: () => void): () => v
     if (event.key !== "Enter" || event.shiftKey) return;
     event.preventDefault();
     const before = doc.querySelectorAll(FIELD_SELECTOR).length;
-    enterInBlank(blank);
+    record(() => enterInBlank(blank));
     if (doc.querySelectorAll(FIELD_SELECTOR).length !== before) onChanged();
   };
 
