@@ -126,6 +126,16 @@ export function attachMultiLineSelect(doc: Document, history: SheetHistory): () 
     doc.getSelection()?.setBaseAndExtent(drag.from.node, drag.from.offset, to.node, to.offset);
   };
 
+  /**
+   * A drag whose first move already leaves its blank (a quick one, or mẫu 2's
+   * taller lines, R-1268) is selected by onMouseMove before the browser sees that
+   * move; the browser then finds the press inside a selection and drags it as
+   * text, cancelling every move after. The drag is a selection: not dragged.
+   */
+  const onDragStart = (event: DragEvent) => {
+    if (drag && holding) event.preventDefault();
+  };
+
   const onMouseUp = () => {
     drag = null;
     if (holding && doc.getSelection()?.isCollapsed) releaseToCaret();
@@ -194,6 +204,7 @@ export function attachMultiLineSelect(doc: Document, history: SheetHistory): () 
 
   doc.addEventListener("mousedown", onMouseDown, true);
   doc.addEventListener("mousemove", onMouseMove, true);
+  doc.addEventListener("dragstart", onDragStart, true);
   doc.addEventListener("mouseup", onMouseUp, true);
   // Before lineEditing's own, which reads Enter and Delete on the blank.
   doc.addEventListener("keydown", onKeyDown, true);
@@ -203,6 +214,7 @@ export function attachMultiLineSelect(doc: Document, history: SheetHistory): () 
   return () => {
     doc.removeEventListener("mousedown", onMouseDown, true);
     doc.removeEventListener("mousemove", onMouseMove, true);
+    doc.removeEventListener("dragstart", onDragStart, true);
     doc.removeEventListener("mouseup", onMouseUp, true);
     doc.removeEventListener("keydown", onKeyDown, true);
     doc.removeEventListener("copy", onCopy);

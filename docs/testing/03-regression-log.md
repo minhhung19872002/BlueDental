@@ -15793,5 +15793,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `outpatientDental.ts`: chỉ khoảng trắng — "MẶT -" → "MẶT", gộp `&nbsp;` thừa, bớt `<br>` trước "Họ và tên" ở ô chữ ký / bàn giao (khoảng cách như Word). Hai `<hr>` (trước "3. Hình vẽ", trước "TỔNG KẾT") **giữ nguyên vị trí cũ**.
   - Không theo BA: ngắt trang ép trước "IV. KHÁM BỆNH" (BA thêm) và một dòng chấm thêm ở mục 1 Tổng kết (nội dung) — không đưa vào.
   - E2E: tiêu đề mẫu 2 hai dòng 21,333px; "every form shares…" mẫu 2 = 16px, 5 trang.
-- **Kiểm thử**: so từng dòng PDF in (Chrome, @page 15/15/7mm) với PDF Word của BA — 5 trang; trang 4–5 lệch ≤ ~5pt, trừ mục 2–6 Tổng kết (−18pt, do BA thêm 1 dòng ở mục 1); trang 1–3 khác chỗ ngắt vì giữ ngắt trang cũ. Không có ô tràn lề. Hồi quy e2e: xem báo cáo commit.
+- **Kiểm thử**: so từng dòng PDF in (Chrome, @page 15/15/7mm) với PDF Word của BA — 5 trang; trang 4–5 lệch ≤ ~5pt, trừ mục 2–6 Tổng kết (−18pt, do BA thêm 1 dòng ở mục 1); trang 1–3 khác chỗ ngắt vì giữ ngắt trang cũ. Không có ô tràn lề.
+- **Bổ sung sau commit f8fa1653** (lỗi thật lộ ra do dòng mẫu 2 cao hơn): kéo chọn "Tóm tắt bệnh án" qua nhiều dòng chỉ chọn được tới dòng đầu. Khi lần di chuột đầu tiên sau khi bấm đã ra khỏi ô (kéo nhanh, hoặc dòng 27,6px của mẫu 2), `multiLineSelect` dựng vùng chọn trước khi trình duyệt xử lý lần di đó → Chrome thấy điểm bấm nằm trong vùng chọn nên bắt đầu kéo-thả chữ (`dragstart`, rồi `pointercancel`) và bỏ mọi lần di sau. Sửa: `multiLineSelect.ts` chặn `dragstart` khi đang giữ ô cho một lần kéo chọn. E2E 1594 kéo xuống giữa dòng tràn đầu tiên (thay vì +12px, nay vẫn nằm trong dòng của ô); "printed pages" mẫu 2 = 5.
+- **Hồi quy e2e** (bản build production, `vite preview` :8099): `patient-medical-record.spec.ts` 43/44 — đỏ còn lại là 2786 (chọn ngày, đỏ sẵn từ R-1267); `medical-record-drawing.spec.ts` 5/5; `tsc` sạch.
+- **Mức retest**: 2 (F-30 bệnh án — mẫu 2 màn hình và bản in, kéo chọn nhiều dòng).
+
+## R-1269 (2026-11-21, mức 2: Bệnh án — mẫu 2 theo bản Word BA chỉnh lần 2: khối MS 10pt + ngắt trang như Word; develop)
+
+- **Yêu cầu**: BA gửi `Mau-02-Benh-an-ngoai-tru-RHM (1).docx` ("chỉnh lại cỡ chữ cái bị nhảy", "check cái break page"). Chủ dự án: lần này **ngắt trang làm theo docx của BA** (đảo lại quyết định giữ `<hr>` cũ ở R-1268).
+- **So docx (1) với docx trước**: khác duy nhất ở ô phải phần đầu — "MS / Số ngoại trú / Số lưu trữ" 12pt → 10pt, tab 2125 → 1703 twips, thụt trái 708 → 569 twips. Ngắt trang hai bản như nhau: ép trước "IV. KHÁM BỆNH" (`w:br page`), `pageBreakBefore` ở "TỔNG KẾT BỆNH ÁN"; trước "7. Điều trị ngoại trú" và "Hồ sơ, phim, ảnh" là ngắt tự nhiên do nội dung dài; **không** ngắt trước "3. Hình vẽ".
+- **Thay đổi** (chỉ FE):
+  - `outpatientDental.ts`: bảng trang `outpatient-main` đóng sau "+ Gia đình"; `<hr>` mới trước "IV. KHÁM BỆNH", IV → 6 → 7 → chữ ký chung một bảng `outpatient-figure`; bỏ `<hr>` trước "3. Hình vẽ"; `<hr>` trước TỔNG KẾT giữ nguyên.
+  - `sheetCss.ts`: khối MS 13,333px (10pt), cột nhãn 75,6px (= 1703 − 569 twips), lề trái 43,4px.
+  - Câu hỏi "do thẻ `<br>`": không phải — chỗ lệch là ngắt trang `<hr>` cũ (trước "3. Hình vẽ") khác Word; `<br>` thừa ở ô chữ ký đã bớt từ R-1268.
+  - E2E: thêm khẳng định khối MS 13,333px và trang mới bắt đầu ở "IV. KHÁM BỆNH:" / "TỔNG KẾT BỆNH ÁN:".
+- **Kiểm thử**: PDF in Chrome so với PDF Word của docx (1): 5 trang, nội dung từng trang trùng — tr.1 I–III, tr.2 IV → 6 (4 dòng đầu của 6), tr.3 4 dòng còn lại của 6 + 7 + chữ ký, tr.4 Tổng kết, tr.5 Hồ sơ; khối MS chồng khít ảnh Word.
+- **Hồi quy e2e** (build production, `vite preview` :8099): `patient-medical-record.spec.ts` + `medical-record-drawing.spec.ts` 48/49 — đỏ còn lại là "picking the day…" (mẫu 3, đỏ sẵn từ R-1267); `tsc` sạch.
 - **Mức retest**: 2 (F-30 bệnh án — mẫu 2 màn hình và bản in).

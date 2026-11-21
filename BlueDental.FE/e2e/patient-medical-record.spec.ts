@@ -1618,7 +1618,11 @@ test.describe("Bệnh án", () => {
     const heightBefore = await sheetHeight();
     await page.mouse.move(from.x + 1, from.y + from.height / 2);
     await page.mouse.down();
-    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2 + 12, { steps: 2 });
+    // Onto the line under it: since mẫu 2's lines are taller (R-1268) a few px
+    // below the blank are still its own line, where the caret stays in it.
+    const next = await flowed.first().boundingBox();
+    if (!next) throw new Error("the summary's next line is not on screen");
+    await page.mouse.move(from.x + from.width / 2, next.y + next.height / 2, { steps: 2 });
     expect(await editable("outpatient-dental.text.38"), "held once the drag leaves its blank").toBe("false");
     expect((await blank(page, "outpatient-dental.text.37").boundingBox())?.y, "the sheet stays where it was").toBe(from.y);
     expect(await sheetHeight()).toBe(heightBefore);
@@ -2137,6 +2141,9 @@ test.describe("Bệnh án", () => {
             return line.getBoundingClientRect().height / parseFloat(getComputedStyle(line).lineHeight);
           })(),
           titles: Array.from(root.querySelectorAll('table[data-record-page="outpatient-main"] h1')).map((node) => getComputedStyle(node).fontSize),
+          // The MS block 10pt, and a page begun where the BA's Word copy begins one (R-1269).
+          idsSize: ids ? getComputedStyle(ids).fontSize : "",
+          pagesBegin: Array.from(root.querySelectorAll(":scope > hr")).map((hr) => hr.nextElementSibling?.querySelector("h1, h2")?.textContent?.trim() ?? ""),
         };
       });
 
@@ -2158,6 +2165,8 @@ test.describe("Bệnh án", () => {
     expect(layout.referralLines, "line 13 with its Tự đến box on one line").toBeLessThan(1.6);
     expect(layout.subjectLines, "9. Đối tượng with its four boxes on one line").toBeLessThan(1.6);
     expect(layout.titles, "the title, two 16pt lines").toEqual(["21.333px", "21.333px"]);
+    expect(layout.idsSize, "MS / Số ngoại trú / Số lưu trữ at 10pt").toBe("13.333px");
+    expect(layout.pagesBegin, "pages begin at IV. and at the summary").toEqual(["IV. KHÁM BỆNH:", "TỔNG KẾT BỆNH ÁN:"]);
 
     // On paper the margin is the page's, on every page: a page of its own — 15mm, 7mm at the foot since
     // 2026-11-12 (`@page outpatient-dental`) — and no padding on the sheet.
@@ -2555,7 +2564,8 @@ test.describe("Bệnh án", () => {
     await openFreshSheet(page, consent);
     expect(await printedPages([], true), `${consent} · printed pages`).toBe(2);
     await openFreshSheet(page, outpatient);
-    expect(await printedPages([], true), `${outpatient} · printed pages`).toBe(3);
+    // Five since the BA's Word sizes (R-1268).
+    expect(await printedPages([], true), `${outpatient} · printed pages`).toBe(5);
     // Mẫu 7 on the same 15mm page since R-1073.
     await openFreshSheet(page, procedure);
     expect(await printedPages([], true), `${procedure} · printed pages`).toBe(1);

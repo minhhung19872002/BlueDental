@@ -188,7 +188,9 @@ ${SHEET_FONT_FACE_CSS}
    in a wider column, the MS block's labels and blanks in Word's two tab
    stops; a checkbox line stands taller, as Word's ☐ makes it; "+ Bản thân:"
    on a line of its own, its blank under it; a line left before the
-   signatures. The sizes the template draws in its spans give way to these. */
+   signatures. The sizes the template draws in its spans give way to these.
+   Its second copy (Mau-02-...RHM (1).docx, R-1269): the MS block 10pt, its
+   tab stops at 569 and 1703 twips. */
 .nfc-tpl[data-form="2"]{--nfc-letter-height:none}
 .nfc-tpl[data-form="2"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="2"] :is(p,h1,h2){line-height:1.725!important;margin:0}
@@ -206,7 +208,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="2"] table:has(.record-ids)>colgroup>col:first-child{width:378px!important}
 .nfc-tpl[data-form="2"] table:has(.record-ids)>tbody>tr>td:first-child>p{white-space:nowrap}
 .nfc-tpl[data-form="2"] table:has(.record-ids)>colgroup>col:last-child{width:auto!important}
-.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] p.record-ids{grid-template-columns:94.4px minmax(0,1fr);column-gap:0;row-gap:0;width:auto;margin:0 0 0 52.7px;line-height:1.725!important}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] p.record-ids{grid-template-columns:75.6px minmax(0,1fr);column-gap:0;row-gap:0;width:auto;margin:0 0 0 43.4px;font-size:13.333px;line-height:1.725!important}
 .nfc-tpl[data-form="2"] p:has([data-medical-record-field="outpatient.patient.history"])>span{display:block}
 .nfc-tpl[data-form="2"] [data-medical-record-field="outpatient.patient.history"]{width:100%!important;min-width:0!important;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="general-exam"]>tbody>tr>td>p{line-height:32px!important;margin:0}
