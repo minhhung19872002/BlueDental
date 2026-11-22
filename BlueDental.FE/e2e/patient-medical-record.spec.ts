@@ -1462,8 +1462,8 @@ test.describe("Bệnh án", () => {
     const document = sheet(page);
     await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr')).toHaveCount(9);
     await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr').last()).toContainText("Tổng");
-    // As large as the first page allows (the print path is checked below).
-    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("16px");
+    // 12.5pt, as the BA's Word copy sets it (R-1274).
+    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("16.667px");
 
     const box = (field: string) => document.locator(`[data-medical-record-field="${field}"]`).boundingBox();
     const [scaling, other] = await Promise.all([box("consultation.checkbox.1"), box("consultation.checkbox.9")]);
@@ -2026,8 +2026,8 @@ test.describe("Bệnh án", () => {
       ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
       ["Bệnh án ngoại trú Răng Hàm Mặt", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 5],
       ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
-      ["Phiếu Tư Vấn Tổng Quát", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Phiếu Tư Vấn Tổng Quát", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
       ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
       ["Phiếu phẫu thuật/thủ thuật", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
@@ -2055,10 +2055,11 @@ test.describe("Bệnh án", () => {
       const lines = await tpl.evaluate((root) => {
         const style = (node: Element | null) => (node ? getComputedStyle(node).borderBottomStyle : null);
         return {
-          // Mẫu 2's vitals box and files table keep their dots, as its Word copy (R-1270).
+          // Mẫu 2's vitals box and files table keep their dots, as its Word copy (R-1270),
+          // and so do the blanks in the box on mẫu 1's cover (R-1271).
           inGrid: style(
             root.querySelector(
-              '[data-grid-cell] .nfc-medical-record-text-field:not(:is(table[data-record-section="vitals"], table[data-record-section="summary-files"]) *)',
+              '[data-grid-cell] .nfc-medical-record-text-field:not(:is(table[data-record-section="vitals"], table[data-record-section="summary-files"], table[data-cover]) *)',
             ),
           ),
           // MS is print, not a blank (R-1069): it has no line at all.

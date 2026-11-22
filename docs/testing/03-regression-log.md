@@ -15825,3 +15825,26 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kiểm thử**: PDF in thật (nút "In biểu mẫu") với Mạch/Bệnh chính/Số tờ/Người nhận có chữ: các ô đó không chấm, ô trống chấm nhỏ; phóng 500dpi chấm mịn hơn rõ.
 - **Hồi quy e2e** (build production, `vite preview` :8099): `patient-medical-record.spec.ts` + `medical-record-drawing.spec.ts` 48/49 — đỏ còn lại là "picking the day…" (đỏ sẵn từ R-1267); `tsc` sạch. Ghi chú: "mẫu 10: the contract…" có lúc đỏ do dữ liệu — ca "the record's address…" tạo bệnh nhân tên dài "Ràng Buộc … Địa Chỉ", tên tràn ô ký 180px sang dòng riêng (flowLines, đúng thiết kế); không liên quan R-1270.
 - **Mức retest**: 2 (F-30 bệnh án — bản in mọi mẫu, mẫu 2 màn hình và bản in).
+
+## R-1271 (2026-11-22, mức 2: Bệnh án — mẫu 1 Bìa hồ sơ theo bản Word BA gửi; develop)
+
+- **Yêu cầu**: BA sửa cỡ chữ / giãn dòng mẫu 1 trong Word (`Mau-01-Bia-benh-an.docx`), làm HTML khớp bản đó — chỉ cỡ chữ, giãn dòng, bố cục; không thêm nội dung.
+- **Thay đổi** (chỉ FE, `sheetCss.ts`): bìa — ba dòng tiêu đề 14pt dòng 1,5; MÃ BỆNH NHÂN / MÃ LƯU TRỮ dòng 1,5 của ô 12pt; NĂM 20 12pt; ô trong khung MÃ BỆNH in chấm ngang khung dưới nhãn. Trang 2–3: tiêu đề 16pt, chữ trong bảng giữa ô, cột danh sách theo Word, hàng giữ chiều cao cũ. E2E "every form shares…" chừa `table[data-cover]` khỏi luật "ô trong lưới in không chấm".
+- **Còn mở**: khung bìa cao hơn Word ~7mm; ô lưới trang 2–3 có cần chấm không — hỏi BA.
+
+## R-1272 (2026-11-22, mức 2: Bệnh án — mẫu 3 Bệnh án chỉnh nha theo bản Word BA; develop)
+
+- **Thay đổi** (chỉ FE, `sheetCss.ts`; `orthodontic.ts` bỏ gạch dưới tiêu đề phòng khám): chữ ngoài bảng khám 12.5pt dòng 1,5 Word (1,725), không cách đoạn; mục 14pt, tiêu đề 16pt, tiêu đề phòng khám 12pt đậm giữa cột 384px, MÃ NGOẠI TRÚ 10pt. Bảng khám giữ cỡ cũ (hàng 32px). Tab stop Word → cột lưới (Giới tính, ô tick khớp TMJ, Loại mắc cài); ô Word kéo tới lề phải thì kéo tới lề. Ngắt trang như bản BA: bỏ ngắt sau IV và trước VI, VIII vẫn sang trang; trang nối tiếp bắt đầu 5mm. Hàng ☐ cao như Word (line-height 1,725 + 4,5px).
+- **Giữ nguyên**: ô Lụp cụp / Lạo xạo.
+
+## R-1273 (2026-11-22, mức 2: Bệnh án — mẫu 4 Phiếu tư vấn theo bản Word BA; develop)
+
+- **Thay đổi** (chỉ FE, `sheetCss.ts`; `generalConsultation.ts` bỏ gạch dưới tiêu đề phòng khám): 12.5pt, dòng 1,35 của Word, không cách đoạn; "PHIẾU TƯ VẤN" 16pt, "NỘI DUNG TIẾP XÚC…" 14pt, tiêu đề phòng khám 11pt đậm giữa cột 407px; lề trên 10mm (màn hình và bản in). "Chúng tôi là:" theo tab Word ("Chức vụ:" ở 378px, "2." dưới "1."); các ô Word kéo tới lề phải thì kéo tới lề; ô sau "Đã tiếp xúc…" một dòng riêng. Giữ "Lúc … giờ" và chỗ ký; bỏ trang trắng cuối của Word. Sửa tràn màn hình 6px.
+
+## R-1274 (2026-11-22, mức 2: Bệnh án — mẫu 5 Phiếu tư vấn và xác nhận đồng ý điều trị theo bản Word BA; develop)
+
+- **Thay đổi** (chỉ FE, `sheetCss.ts`; `treatmentConsent.ts` bỏ gạch dưới tiêu đề phòng khám): 12.5pt dòng 1,5 Word, không cách đoạn; mục 14pt, tiêu đề 16pt dòng exact 28,8pt; tiêu đề phòng khám 12pt đậm dòng exact 15,6pt giữa cột 397px; "Mã hồ sơ" 10pt ở 445px, chấm chạy từ sau ":" tới lề như Word (tab); dòng thêm bằng Enter dưới nó vẫn xếp thẳng cột (padding 112,8px — TNR/Tinos cùng metric). Hàng ☐ cao như Word. Bảng chi phí, "(tổng tiền viết bằng chữ)", thân VII giữ 13.5pt như BA để lại. Chữ ký theo dòng exact Word, bỏ các dòng trống sau dòng đầu. Ô Họ tên / SĐT / Bác sĩ tư vấn đặt bề rộng để "Ngày sinh" / "CCCD" / "Ngày tư vấn" đúng vị trí Word; các ô cuối dòng kéo tới lề phải. Tiêu đề V không xuống dòng (letter-spacing −0,25px).
+- **Đo** (PDF in thật vs PDF Word của BA, pt): mọi dòng trang 1 lệch ≤ 1pt (SỞ 41,8/41,3 · tiêu đề 123,0/122,7 · IV 442,0/441,5 · Tổng 625,5/625,7); trang 2 lệch ≤ 1pt so với V. In đúng 2 trang; không tràn màn hình ở viewport mặc định, 1280, 900 (mẫu 3, 4, 5).
+- **E2E**: "mẫu 5 fits sections I–IV…" và "every form shares…" đổi cỡ mẫu 4/5 thành 16.667px (12.5pt).
+- **Hồi quy e2e** (build production, `vite preview` :8099): `patient-medical-record.spec.ts` 43/44 sau sửa — đỏ còn lại "picking the day…" (đỏ sẵn từ R-1267); "every sheet's name is shown in full" đỏ một lần khi chạy cả bộ, chạy lại xanh (thẻ tên ở trang chính, không thuộc sheetCss). `tsc` + `vite build` sạch.
+- **Mức retest**: 2 (F-30 bệnh án — mẫu 1, 3, 4, 5 màn hình và bản in).
