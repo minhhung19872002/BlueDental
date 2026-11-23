@@ -110,6 +110,8 @@ ${SHEET_FONT_FACE_CSS}
    doctor's column. On the cols, not the template, so saved sheets follow. */
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(1){width:168px!important}
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(4){width:230px!important}
+/* …and "- Khác ……" keeps its one line in the narrower Loại. */
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.108"]{min-width:100px!important}
 /* 15px from the clinic's own copy, inside 15mm margins (R-1068). */
 .nfc-tpl[data-form="6"]{font-size:15px}
 /* 14px from the clinic's own copy, inside 15mm margins (R-1073). */
