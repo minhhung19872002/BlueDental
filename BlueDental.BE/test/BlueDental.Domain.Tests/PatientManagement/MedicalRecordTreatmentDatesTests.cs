@@ -52,10 +52,11 @@ public class MedicalRecordTreatmentDatesTests
     }
 
     [Fact]
-    public void Outpatient_number_is_NGT_month_year_patient_and_a_four_digit_day_count()
+    public void Outpatient_number_is_NT_an_eight_digit_running_number_and_month_day()
     {
-        MedicalRecordSet.OutpatientNumberFor("DH264444", Oct18, 1).ShouldBe("NGT-1025DH264444-0001");
-        MedicalRecordSet.OutpatientNumberFor("DH264444", Nov02, 27).ShouldBe("NGT-1125DH264444-0027");
+        MedicalRecordSet.OutpatientNumberFor(Oct18, 1).ShouldBe("NT-000000011018");
+        MedicalRecordSet.OutpatientNumberFor(Nov02, 27).ShouldBe("NT-000000271102");
+        MedicalRecordSet.OutpatientNumberFor(Nov02, MedicalRecordSet.MaxOutpatientSequence).ShouldBe("NT-999999991102");
     }
 
     [Fact]

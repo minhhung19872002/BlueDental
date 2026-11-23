@@ -114,7 +114,7 @@ export interface SheetFactsVisitDto {
 export interface SheetFactsDto {
   /** Mã lưu trữ — NK-{MMyy}{patient code}{oldest slip}. */
   storageCode: string | null;
-  /** Số ngoại trú — NGT-{MMyy of the treatment start}{patient code}-{xxxx}. */
+  /** Số ngoại trú — NT-{xxxxxxxx running number}{MMdd of the treatment start}. */
   outpatientNumber: string | null;
   /** The year the oldest slip was opened. */
   year: number | null;

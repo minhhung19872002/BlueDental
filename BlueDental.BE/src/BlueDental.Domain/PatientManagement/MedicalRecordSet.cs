@@ -34,12 +34,16 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
     public MedicalRecordSetStatus Status { get; private set; }
 
     /// <summary>
-    /// The xxxx of Số ngoại trú <c>NGT-{MMyy}{patient code}-{xxxx}</c>: the sets
-    /// the branch had opened that clinic day, this one included. A running number
-    /// is kept, not worked out; the MMyy is read when printed, from the day
-    /// treatment started (save/P1810.drawio, owner 2026-10-19). 0 on none.
+    /// The xxxxxxxx of Số ngoại trú <c>NT-{xxxxxxxx}{MMdd}</c>: the sets the
+    /// branch has ever opened, this one included — one running count that never
+    /// starts over (clinic, 2026-11-23, R-1305; was a count per day under NGT-).
+    /// Kept, not worked out; the MMdd is read when printed, from the day
+    /// treatment started. 0 on none.
     /// </summary>
     public int OutpatientSequence { get; private set; }
+
+    /// <summary>The most eight digits hold.</summary>
+    public const int MaxOutpatientSequence = 99_999_999;
 
     /// <summary>
     /// The forms left out of the index, one bit per form (bit n-1 for form n).
@@ -72,7 +76,7 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
         int outpatientSequence = 0)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code), MaxCodeLength);
-        Check.Range(outpatientSequence, nameof(outpatientSequence), 0, 9999);
+        Check.Range(outpatientSequence, nameof(outpatientSequence), 0, MaxOutpatientSequence);
 
         var set = new MedicalRecordSet
         {
@@ -165,12 +169,13 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
         $"HS{patientCode}-{clinicDay:ddMMyyyy}-";
 
     /// <summary>
-    /// Số ngoại trú: <c>NGT-{MMyy}{patient code}-{xxxx}</c> — MMyy of the day
-    /// treatment started (the oldest công đoạn of every slip in the set), and
-    /// xxxx the set's <see cref="OutpatientSequence"/>.
+    /// Số ngoại trú: <c>NT-{xxxxxxxx}{MMdd}</c> — xxxxxxxx the set's
+    /// <see cref="OutpatientSequence"/> padded with zeros, MMdd of the day
+    /// treatment started (the oldest công đoạn of every slip in the set).
+    /// NT-000000011123. No patient code: shorter, so it fits its box (R-1305).
     /// </summary>
-    public static string OutpatientNumberFor(string patientCode, DateOnly treatmentStart, int sequence) =>
-        $"NGT-{treatmentStart:MMyy}{patientCode}-{sequence:D4}";
+    public static string OutpatientNumberFor(DateOnly treatmentStart, int sequence) =>
+        $"NT-{sequence:D8}{treatmentStart:MMdd}";
 
     /// <summary>
     /// Mã lưu trữ (also "Số lưu trữ" and "Tờ điều trị số"):

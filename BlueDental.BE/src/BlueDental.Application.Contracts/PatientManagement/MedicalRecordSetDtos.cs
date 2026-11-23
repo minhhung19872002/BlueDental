@@ -93,7 +93,7 @@ public class MedicalRecordSheetFactsDto
     /// <summary>Mã lưu trữ — <c>NK-{MMyy}{patient code}{oldest slip}</c>; null while the set holds no slip.</summary>
     public string? StorageCode { get; set; }
 
-    /// <summary>Số ngoại trú — <c>NGT-{MMyy of the treatment start}{patient code}-{xxxx}</c>.</summary>
+    /// <summary>Số ngoại trú — <c>NT-{xxxxxxxx running number}{MMdd of the treatment start}</c>.</summary>
     public string? OutpatientNumber { get; set; }
 
     /// <summary>"BỆNH ÁN NĂM 20__" — the year the oldest slip was opened.</summary>

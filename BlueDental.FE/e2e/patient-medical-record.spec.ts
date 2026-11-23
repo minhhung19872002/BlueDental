@@ -528,9 +528,9 @@ test.describe("Bệnh án", () => {
     await openMedicalRecord(page);
     await openFreshSheet(page, "Phiếu theo dõi điều trị");
 
-    // The set's Số ngoại trú, NGT-{MMyy}{mã KH}-{xxxx} (save/P1810.drawio) — never the bare patient code.
+    // The set's Số ngoại trú, NT-{xxxxxxxx}{MMdd} (R-1305) — never the bare patient code.
     const number = blank(page, "treatment-tracking.page-1.patient.code");
-    await expect(number).toHaveText(/^NGT-\d{4}\S+-\d{4}$/);
+    await expect(number).toHaveText(/^NT-\d{12}$/);
     await expect(number).not.toHaveAttribute("data-field-source", /.+/);
   });
 

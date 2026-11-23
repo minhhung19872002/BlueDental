@@ -200,11 +200,11 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     });
     expect(discounted.status, JSON.stringify(discounted.body)).toBe(200);
 
-    // The numbers: NK from the set's month and its oldest slip; NGT from the
-    // treatment start — before any công đoạn, the day the set was opened.
+    // The numbers: NK from the set's month and its oldest slip; NT's MMdd from
+    // the treatment start — before any công đoạn, the day the set was opened.
     let facts = await factsOf(page, setId);
     expect(facts.storageCode).toBe(`NK-${mmyy}${patient.code}${first.code}`);
-    expect(facts.outpatientNumber).toMatch(new RegExp(`^NGT-${mmyy}${patient.code}-\\d{4}$`));
+    expect(facts.outpatientNumber).toMatch(new RegExp(`^NT-\\d{8}${today.month}${today.day}$`));
     expect(facts.year).toBe(Number(today.year));
     expect(facts.services).toHaveLength(3);
     expect(facts.treatmentStartDate).toBeNull();
@@ -500,10 +500,8 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     expect(facts.treatmentEndDate, "a finished warranty, later than the work, still does not").toBe(yesterday.iso);
     expect(facts.treatmentStartDate).toBe(yesterday.iso);
     expect(today.iso).not.toBe(yesterday.iso);
-    // Số ngoại trú takes the month of that start, the day treatment began.
-    expect(facts.outpatientNumber).toMatch(
-      new RegExp(`^NGT-${yesterday.month}${yesterday.year.slice(2)}${warranted.code}-\\d{4}$`),
-    );
+    // Số ngoại trú takes the month and day of that start, the day treatment began.
+    expect(facts.outpatientNumber).toMatch(new RegExp(`^NT-\\d{8}${yesterday.month}${yesterday.day}$`));
 
     await page.reload();
     await openBenhAn(page, warranted.id);

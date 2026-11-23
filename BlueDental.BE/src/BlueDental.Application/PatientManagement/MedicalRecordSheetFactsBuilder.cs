@@ -109,10 +109,9 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
             StorageCode = first is null
                 ? null
                 : MedicalRecordSet.StorageCodeFor(ClinicDayOf(set.CreationTime), patient.PatientCode, first.Code),
-            // MMyy of the treatment start; before any công đoạn, of the day the set was opened.
+            // MMdd of the treatment start; before any công đoạn, of the day the set was opened.
             OutpatientNumber = set.OutpatientSequence > 0
-                ? MedicalRecordSet.OutpatientNumberFor(
-                    patient.PatientCode, start ?? ClinicDayOf(set.CreationTime), set.OutpatientSequence)
+                ? MedicalRecordSet.OutpatientNumberFor(start ?? ClinicDayOf(set.CreationTime), set.OutpatientSequence)
                 : null,
             Year = first is null ? null : ClinicDayOf(first.CreationTime).Year,
             TreatmentStartDate = start,

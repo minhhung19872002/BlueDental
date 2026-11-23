@@ -16120,3 +16120,11 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Nguyên nhân: (a) R-1268 thêm `p>input.nfc-medical-record-checkbox{margin:0 .9px}` cho mẫu 2, đè luật `margin-left:auto` của bảng `general-exam` → ☐ bám sát chữ. Word của BA đặt ☐ bằng tab phải 3230 twips (mép cột) → thẳng cột. (b) Dòng Huyết áp chia 164px cho "Huyết áp", 2 ô, "/", "mmHg" với khoảng cách 3px ×4 + đệm ô 3px mỗi bên → mỗi ô 22,5px, "120" cần 30px.
 - FE `sheetCss.ts` (khối mẫu 2): luật margin ☐ chừa `table[data-record-section="general-exam"]`; dòng Huyết áp `gap:0`, text.26/27 đệm 1px → ô 28,5px (Word: tab 1278/1770 twips ≈ 29px), "120/120" một dòng. Chỉ CSS.
 - E2E "mẫu 2: 15mm margins…": thêm Huyết áp "120"/"120" một dòng mỗi ô, 5 ☐ mỗi cột cùng mép phải.
+
+## R-1305 — Số ngoại trú `NT-{xxxxxxxx}{MMdd}`: số chạy 8 chữ số, bỏ mã KH (2026-11-23)
+
+- Nguồn: chat nhóm 2026-11-23 (anh An): `NGT-1126DH260003-0001` dài, rớt xuống 2 dòng ở ô MÃ NGOẠI TRÚ của mẫu 3 (Bệnh án chỉnh nha). Chốt `NT-xxxxxxxxmmdd` — xxxxxxxx số chạy tăng dần (BN khám ngày 1 → …001, ngày 2 → …002), đệm đủ số 0, 8 chữ số.
+- BE: `MedicalRecordSet.OutpatientNumberFor(treatmentStart, sequence)` = `NT-{sequence:D8}{MMdd}`; MMdd vẫn là ngày bắt đầu điều trị (công đoạn cũ nhất), chưa có công đoạn thì ngày mở bộ. `NextOutpatientSequenceAsync`: số lớn nhất của chi nhánh + 1 (tính cả bộ đã xoá), không reset theo ngày/năm (trước: đếm bộ chi nhánh mở trong ngày). `MaxOutpatientSequence` = 99.999.999.
+- Migration `20261123103000_OutpatientRunningNumberR1305` (chỉ SQL, model không đổi): đánh số lại mọi bộ theo chi nhánh, thứ tự CreationTime, Id. Down trả về đếm theo ngày như `20261019032741`. Local: 313 bộ chi nhánh 1 → 1..313, không trùng.
+- Số ghép lúc in nên mọi bộ cũ in ra cũng đổi sang NT-.
+- Kiểm thử: Domain **1473/1473**, Application `MedicalRecord` **20/20**. Đo trên trang (local, `NT-000000000000`/`NT-999999991123`): mẫu 3 ô 168px chữ 131px, mẫu 2 ô 179px chữ 101px, mẫu 8 ô 164px chữ 101px — đều 1 dòng (cũ: mẫu 3 cao 42,5px = 2 dòng). BE thật in `NT-000003131123` 1 dòng ở cả 3 mẫu. E2E `medical-record-sheet-facts` + `patient-medical-record` (preview :8097): **45 pass / 2 đỏ không liên quan** — "picking the day" (R-963 có sẵn) và `sheet-facts:303` Giảm giá mẫu 10 = 0 (sau assertion NT dòng 207 đã xanh; FE thay đổi lần này chỉ là comment).

@@ -210,21 +210,18 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
     }
 
     /// <summary>
-    /// The xxxx of Số ngoại trú: the sets the branch opened this clinic day,
-    /// deleted ones too, so a number is never given twice.
+    /// The xxxxxxxx of Số ngoại trú: one past the branch's highest, deleted
+    /// sets too, so a number is never given twice. It never starts over.
     /// </summary>
     private async Task<int> NextOutpatientSequenceAsync(Patient patient)
     {
-        var day = ClinicCalendar.DateOf(new DateTimeOffset(DateTime.SpecifyKind(Clock.Now, DateTimeKind.Utc)));
-        var from = ClinicCalendar.StartOfDay(day).UtcDateTime;
-        var to = ClinicCalendar.StartOfDay(day.AddDays(1)).UtcDateTime;
-
         using (DataFilter.Disable<ISoftDelete>())
         {
             var query = await _repository.GetQueryableAsync();
-            var opened = await AsyncExecuter.CountAsync(query.Where(x =>
-                x.ClinicBranchId == patient.BranchId && x.CreationTime >= from && x.CreationTime < to));
-            return opened + 1;
+            var highest = await AsyncExecuter.MaxAsync(query
+                .Where(x => x.ClinicBranchId == patient.BranchId)
+                .Select(x => (int?)x.OutpatientSequence));
+            return (highest ?? 0) + 1;
         }
     }
 
