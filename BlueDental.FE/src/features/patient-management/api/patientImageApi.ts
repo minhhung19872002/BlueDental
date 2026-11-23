@@ -105,6 +105,10 @@ const patientImageApi = {
     api.put(`${BASE}/reorder`, input).then(() => undefined),
 
   remove: (id: string): Promise<void> => api.delete(`${BASE}/${id}`).then(() => undefined),
+
+  /** All of them or none: one picture the server refuses keeps the whole lot (R-1277). */
+  removeMany: (ids: string[]): Promise<void> =>
+    api.post(`${BASE}/delete-many`, { ids }).then(() => undefined),
 };
 
 export const patientImageKeys = {
@@ -185,6 +189,11 @@ export function usePatientImageBatchUpload() {
 
 export function useDeletePatientImage() {
   return useImageMutation((id: string) => patientImageApi.remove(id));
+}
+
+/** "Xoá N ảnh" of the tab's selection, in one request. */
+export function useDeletePatientImages() {
+  return useImageMutation((ids: string[]) => patientImageApi.removeMany(ids));
 }
 
 /**

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
 using Volo.Abp.Application.Dtos;
@@ -79,6 +81,21 @@ public class ReorderPatientImageDto
     public int Ordering { get; set; }
 }
 
+/// <summary>
+/// "Xoá N ảnh" of the Hình ảnh tab's selection (R-1277): every picture goes, or
+/// none does.
+/// </summary>
+public class DeletePatientImagesDto
+{
+    /// <summary>The most one request may delete.</summary>
+    public const int MaxCount = 500;
+
+    [Required]
+    [MinLength(1)]
+    [MaxLength(MaxCount)]
+    public List<Guid> Ids { get; set; } = [];
+}
+
 public class GetPatientImageListInput : PagedAndSortedResultRequestDto
 {
     public Guid? PatientId { get; set; }
@@ -105,4 +122,5 @@ public interface IPatientImageAppService : IApplicationService
     Task<Stream> GetContentAsync(Guid id);
     Task ReorderAsync(ReorderPatientImageDto input);
     Task DeleteAsync(Guid id);
+    Task DeleteManyAsync(DeletePatientImagesDto input);
 }

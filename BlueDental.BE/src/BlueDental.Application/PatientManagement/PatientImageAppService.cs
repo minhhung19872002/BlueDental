@@ -9,6 +9,7 @@ using BlueDental.Organizations;
 using BlueDental.Permissions;
 using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Logging;
 using Volo.Abp;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp.Application.Services;
@@ -203,6 +204,64 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         await LogStagePictureAsync(image, TreatmentStageChangeAction.ImageRemoved);
         await _repository.DeleteAsync(id, autoSave: true);
         await _blobContainer.DeleteAsync(image.BlobName);
+    }
+
+    /// <summary>
+    /// The Hình ảnh tab's "Xoá N ảnh" (R-1277). Every picture is held to the
+    /// rules of a single delete — branch, upload day of a công đoạn picture
+    /// (R-1111), open line (R-1186) — before any is touched, so one refusal
+    /// keeps them all. The files go once the rows are committed: a rollback
+    /// never loses a picture the record still shows.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Delete)]
+    public async Task DeleteManyAsync(DeletePatientImagesDto input)
+    {
+        var ids = input.Ids.Distinct().ToList();
+        var images = await _repository.GetListAsync(x => ids.Contains(x.Id));
+        if (images.Count != ids.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.PatientManagement.PatientImageNotFound,
+                "Image not found.");
+        }
+
+        foreach (var branchId in images.Select(x => x.ClinicBranchId).Distinct())
+            await _branchAccess.CheckAsync(branchId);
+
+        var today = ClinicCalendar.DateOf(DateTimeOffset.UtcNow);
+        foreach (var image in images)
+            image.EnsureDeletableOn(today);
+
+        foreach (var stageId in images.Select(x => x.TreatmentStageId).Distinct())
+            await EnsureStageWritableAsync(stageId);
+
+        foreach (var image in images)
+            await LogStagePictureAsync(image, TreatmentStageChangeAction.ImageRemoved);
+
+        await _repository.DeleteManyAsync(images, autoSave: true);
+        DeleteFilesOnceCommitted(images.Select(x => x.BlobName).ToList());
+    }
+
+    private void DeleteFilesOnceCommitted(IReadOnlyList<string> blobNames)
+    {
+        var unitOfWork = UnitOfWorkManager.Current
+            ?? throw new InvalidOperationException("Deleting pictures needs a unit of work.");
+
+        unitOfWork.OnCompleted(async () =>
+        {
+            foreach (var blobName in blobNames)
+            {
+                try
+                {
+                    await _blobContainer.DeleteAsync(blobName);
+                }
+                catch (Exception exception)
+                {
+                    // The rows are gone already; a file left behind costs only storage.
+                    Logger.LogWarning(exception, "Could not delete patient image blob {BlobName}.", blobName);
+                }
+            }
+        });
     }
 
     /// <summary>

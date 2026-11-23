@@ -15868,3 +15868,43 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **E2E**: mẫu 12 — tiêu đề ≤ 40px (một dòng) thay vì ≤ 92px; bỏ "bảng cách dòng tên ≥ 8px", thay bằng: dòng tên một dòng (≤ 45px, ☐ Nữ cùng dòng), bảng ngay dưới (|gap| ≤ 1px).
 - **Kết quả E2E** (bản build production, preview :8099, BE thật + PostgreSQL thật): `medical-record-surgical-checklists.spec.ts` 3/3 xanh; `patient-medical-record.spec.ts` "index lists…", "every form draws the whole…", "every form shares…" 3/3 xanh.
 - **Mức retest**: 2 (F-30 bệnh án — mẫu 12). Ảnh hưởng: chỉ mẫu 12 (selector `[data-form="12"]`; LETTERHEAD chỉ mẫu 12 dùng).
+
+## R-1277 (2026-11-23, mức 2: Hồ sơ bệnh nhân — tab Hình ảnh, chọn nhiều ảnh để xoá một lần; develop)
+
+- **Yêu cầu** (phòng khám, qua chủ dự án): tải nhầm nhiều ảnh thì phải xoá từng ảnh một. Chủ dự án duyệt phương án kiểu Google Photos: ô chọn ở **góc dưới phải** (góc trên trái là nút kéo, góc trên phải là thùng rác).
+- **BE**: thêm `POST /api/v1/app/patient-images/delete-many` với body `{ ids }` (1–500 ảnh).
+  - Quyền `TreatmentImage.Delete` và kiểm tra chi nhánh của từng ảnh.
+  - Áp các luật R-1111 (ảnh công đoạn quá ngày tải lên) và R-1186 (công đoạn đã khoá).
+  - Xoá **tất cả hoặc không ảnh nào**: một id lạ, ảnh khác chi nhánh hoặc ảnh bị khoá là không xoá gì.
+  - Mỗi ảnh công đoạn ghi một dòng lịch sử, như khi xoá từng ảnh. File MinIO chỉ bị xoá sau khi commit.
+  - Không cần migration.
+- **FE**:
+  - **Vào chế độ chọn:** rê chuột vào thẻ ảnh thì hiện ô chọn; tick một ảnh là cột đó vào chế độ chọn (mỗi lần một cột). Trên màn cảm ứng: nhấn giữ 500ms.
+  - **Trong chế độ chọn:**
+    - bấm vào ảnh là chọn hoặc bỏ chọn; Shift+bấm chọn cả dãy;
+    - ẩn nút kéo, thùng rác và nút tải/chụp; tắt kéo sắp xếp;
+    - ảnh không xoá được bị làm mờ và hiện 🔒 kèm tooltip.
+  - **Chọn theo ngày / cột:** đầu ngày có ô "Chọn cả ngày". Thanh chọn thay cho đầu cột, gồm `✕ · N ảnh đã chọn · Chọn tất cả · Xoá N ảnh`.
+  - **Thoát chế độ chọn:** bấm Esc hoặc ✕, bỏ hết các ảnh đã chọn, hoặc đổi ô tìm kiếm / bộ lọc.
+  - **Hộp xác nhận "Xoá N ảnh?":** hiện ảnh nhỏ; nút khoá và có spinner trong lúc chờ; thông báo chỉ hiện sau khi server trả lời.
+  - Chi tiết UI: `docs/clone/pages/patient-detail.md` § "Chọn nhiều để xoá".
+- **Sửa theo góp ý của chủ dự án trong lúc làm**:
+  1. Đầu cột cao hơn khi vào chế độ chọn nên UI nhảy. Nguyên nhân: nút AntD 40px. Đã sửa: "Xoá N ảnh" cao 34px như "Tải ảnh", thanh chọn cao đúng bằng đầu cột (61px).
+  2. Ô chọn khó thấy trên ảnh trắng. Đã sửa: ô 22px, nền tối 65% như nút kéo, thêm vòng tối bên ngoài viền trắng.
+- **E2E mới** `e2e/patient-image-select-delete.spec.ts` (2 test, chạy thật, không chặn request):
+  1. **Luồng UI:**
+     - Thanh chọn cao bằng đầu cột, và vị trí ảnh so với cột không đổi.
+     - Khi đang chọn, các nút tải/kéo/xoá ẩn đi. Bấm vào ảnh là chọn, không mở trình xem.
+     - Shift+bấm chọn được cả dãy, bỏ chọn được từng ảnh, Esc thoát.
+     - "Chọn cả ngày" tick rồi bỏ tick được.
+     - Xoá 4/5 ảnh: hộp xác nhận có 4 ảnh nhỏ; request gửi đúng 4 id; hiện thông báo; sau khi tải lại trang và đọc lại API, 4 ảnh đã mất và ảnh còn lại vẫn còn.
+  2. **API:**
+     - Một id lạ: trả 4xx, không ảnh nào bị xoá.
+     - `ids: []`: trả 400.
+     - Tài khoản chi nhánh 2: trả 403, ảnh vẫn còn.
+     - Admin: xoá được, ảnh mất.
+- **Kết quả E2E**: bản build production, preview :8277 → host :5277, BE thật, PostgreSQL thật, MinIO thật.
+  - `patient-image-select-delete` 2/2.
+  - Hồi quy `patient-image.spec.ts`, `patient-image-batch.spec.ts`, `patient-image-capture.spec.ts`, `rich-image.spec.ts` — tổng cộng 18/18 xanh.
+  - `tsc -b` sạch.
+- **Mức retest**: 2 (tab Hình ảnh). Ảnh hưởng: chỉ tab Hình ảnh của hồ sơ bệnh nhân; xoá từng ảnh giữ nguyên.
