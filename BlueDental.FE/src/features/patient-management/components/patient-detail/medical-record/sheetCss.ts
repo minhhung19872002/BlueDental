@@ -106,7 +106,7 @@ ${SHEET_FONT_FACE_CSS}
    1mm to spare. */
 .nfc-tpl[data-form="2"]{font-size:14px}
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]{font-size:13px}
-/* "Ngày … tháng … năm …" on one line (R-1277): Loại gives 40px to the
+/* "Ngày … tháng … năm …" on one line (R-1278): Loại gives 40px to the
    doctor's column. On the cols, not the template, so saved sheets follow. */
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(1){width:168px!important}
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(4){width:230px!important}
