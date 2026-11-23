@@ -16106,3 +16106,17 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - BE: `PrescriptionItemDto.Unit` (chỉ đọc) — `PrescriptionAppService.MapManyAsync` đọc `CatalogEntry.Unit` hiện tại của thuốc (kể cả thuốc đã xoá mềm), không lưu vào đơn: điền ĐVT trong Danh mục thì đơn cũ cũng in ra. Không có migration.
 - FE: mỗi thuốc = tên đậm đánh số / cách dùng nghiêng (không còn "Sáng 1 · … · N ngày", xoá `utils/rxDose.ts` + key `Treatment:RxPrint:DoseDays`) / một dòng trống; số lượng canh phải, ĐVT canh trái ở cột kế (bảng Word 6954|1310|1375). Trang A4 `@page rx-a4`, lề 20mm/20mm/7,5mm, chữ 13pt, tiêu đề phòng khám 11pt, "ĐƠN THUỐC" 15pt; dòng chấm Địa chỉ xuống dòng riêng như Word; 3 dòng trống trước khối ký, 2 dòng trước tên bác sĩ. Đo so với PDF Word của BA: mọi dòng lệch ≤1pt. Dialog "Xem đơn thuốc" rộng 880.
 - E2E `prescription` (bản in): không còn liều, ĐVT trống → sửa ĐVT trong Danh mục → đơn đã lưu hiện "Viên"; khổ 794px / `rx-a4` / MediaBox 595.3×841.9.
+
+## R-1303 — mẫu 6 "Tôi đã được nghe … như:" theo Word vòng 2 của BA (2026-11-23)
+
+- Nguồn: BA chụp bản Word mẫu 6 cạnh prod/staging, khoanh đoạn "Tôi đã được nghe … như:" — "sao khác template BA gửi".
+- Khác ở 3 chỗ: (a) đoạn in đậm `text-align: left` nên không dàn đều, không nhận `word-spacing:-.9px` của mẫu 6 → "của" rớt xuống dòng 2; (b) `text.12` là ô 57px sau "như:" thay vì chấm tới lề phải (Word: tab chấm 10206 twips); (c) `text.13` đứng một dòng riêng **trước** "và mức độ thành công" — Word để "và mức độ thành công ……. Tôi đã hiểu …" (R-1275 đã cố ý giữ chỗ cũ; nay theo Word).
+- FE `templates/surgeryConsent.ts`: đoạn đậm tách đúng chỗ Word xuống dòng — "Tôi … sau phẫu" (`justify` + `text-align-last: justify`) / "thuật/thủ thuật như: [text.12]"; "và mức độ thành công [text.13]." một dòng, "Tôi đã hiểu lý do …" đoạn riêng. `sheetCss.ts`: text.12/text.13 vào hàng flex ô chấm tới lề của mẫu 6. Không thêm/bớt ô (vẫn 50), id giữ nguyên → phiếu cũ giữ giá trị, chỉ đổi chỗ hiển thị.
+- Kiểm thử: PDF in so với PDF Word của BA trang 2 — các dòng "Tôi … của" / "cuộc … phẫu" / "thuật/thủ thuật như: …" / "và mức độ thành công ….." / "Tôi đã hiểu … cho" / "tôi/thân nhân của tôi." trùng từng chữ cuối dòng (x lệch ≤1,3px; y lệch +1,1–1,3pt như toàn trang 2 từ R-1293); e2e "every form draws…", "mẫu 6: 15mm…", "every form shares…", "extension's block" xanh.
+
+## R-1304 — mẫu 2 Toàn thân: ô ☐ thẳng cột lại; Huyết áp chứa 3 số (2026-11-23)
+
+- Nguồn: BA chat 2026-11-23 trên staging — "mấy ô check này không cho ngay hàng nữa hả" (IV. 1. Toàn thân) và "cho chứa đc 3 số nha" (Huyết áp gõ "120" bị xuống dòng).
+- Nguyên nhân: (a) R-1268 thêm `p>input.nfc-medical-record-checkbox{margin:0 .9px}` cho mẫu 2, đè luật `margin-left:auto` của bảng `general-exam` → ☐ bám sát chữ. Word của BA đặt ☐ bằng tab phải 3230 twips (mép cột) → thẳng cột. (b) Dòng Huyết áp chia 164px cho "Huyết áp", 2 ô, "/", "mmHg" với khoảng cách 3px ×4 + đệm ô 3px mỗi bên → mỗi ô 22,5px, "120" cần 30px.
+- FE `sheetCss.ts` (khối mẫu 2): luật margin ☐ chừa `table[data-record-section="general-exam"]`; dòng Huyết áp `gap:0`, text.26/27 đệm 1px → ô 28,5px (Word: tab 1278/1770 twips ≈ 29px), "120/120" một dòng. Chỉ CSS.
+- E2E "mẫu 2: 15mm margins…": thêm Huyết áp "120"/"120" một dòng mỗi ô, 5 ☐ mỗi cột cùng mép phải.

@@ -2119,7 +2119,11 @@ test.describe("Bệnh án", () => {
   test("mẫu 2: 15mm margins, the MS block and the vital signs lined up", async ({ page }) => {
     const margin = (15 / 25.4) * 96;
     await openMedicalRecord(page);
-    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt", { "outpatient-dental.text.43": LONG_DIAGNOSIS });
+    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt", {
+      "outpatient-dental.text.43": LONG_DIAGNOSIS,
+      "outpatient-dental.text.26": "120",
+      "outpatient-dental.text.27": "120",
+    });
 
     const layout = await sheet(page)
       .locator(".nfc-tpl")
@@ -2168,6 +2172,15 @@ test.describe("Bệnh án", () => {
           // The MS block 10pt, and a page begun where the BA's Word copy begins one (R-1269).
           idsSize: ids ? getComputedStyle(ids).fontSize : "",
           pagesBegin: Array.from(root.querySelectorAll(":scope > hr")).map((hr) => hr.nextElementSibling?.querySelector("h1, h2")?.textContent?.trim() ?? ""),
+          // Huyết áp holds three digits a side, "120/120", on its line (BA, 2026-11-23, R-1304).
+          pressureLines: ["outpatient-dental.text.26", "outpatient-dental.text.27"].map((id) => {
+            const node = root.querySelector(`[data-medical-record-field="${id}"]`)!;
+            return node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight);
+          }),
+          // Toàn thân's boxes in a column each, on Word's right tab (BA, 2026-11-23, R-1304).
+          boxColumns: Array.from(root.querySelectorAll('table[data-record-section="general-exam"] > tbody > tr > td'))
+            .slice(0, 2)
+            .map((td) => Array.from(td.querySelectorAll("input")).map((box) => box.getBoundingClientRect().right)),
         };
       });
 
@@ -2189,6 +2202,9 @@ test.describe("Bệnh án", () => {
     expect(layout.referralLines, "line 13 with its Tự đến box on one line").toBeLessThan(1.6);
     expect(layout.subjectLines, "9. Đối tượng with its four boxes on one line").toBeLessThan(1.6);
     expect(layout.historyLines, "+ Bản thân: and its blank on one line").toBeLessThan(1.6);
+    for (const lines of layout.pressureLines) expect(lines, "120 on one line in each Huyết áp blank").toBeLessThan(1.6);
+    expect(layout.boxColumns.map((column) => column.length), "Toàn thân, five boxes a column").toEqual([5, 5]);
+    for (const column of layout.boxColumns) for (const right of column) expect(right, "boxes lined up").toBeCloseTo(column[0], 0);
     expect(layout.titles, "the title, two 16pt lines").toEqual(["21.333px", "21.333px"]);
     expect(layout.idsSize, "MS / Số ngoại trú / Số lưu trữ at 10pt").toBe("13.333px");
     expect(layout.pagesBegin, "pages begin at IV. and at the summary").toEqual(["IV. KHÁM BỆNH:", "TỔNG KẾT BỆNH ÁN:"]);
