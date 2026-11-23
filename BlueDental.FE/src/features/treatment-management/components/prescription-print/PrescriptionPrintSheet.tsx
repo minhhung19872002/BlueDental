@@ -22,10 +22,12 @@ function placedDate(value: string): string {
 }
 
 /**
- * "ĐƠN THUỐC" on an A5 page, laid out as the BA's second Word copy
- * (Downloads/Mau-Don-thuoc (1).docx, R-1300): the clinic letterhead — fixed
- * text by the BA's call, not the branch's data (R-1301) — and the slip code, the patient with address and guardian, the diagnosis names, the
- * numbered medicines with how to take each, the prescribing doctor's signature
+ * "ĐƠN THUỐC" on an A4 page, laid out as the BA's third Word copy
+ * (Downloads/Mau-Don-thuoc (2).docx, R-1302; A5 before): the clinic
+ * letterhead — fixed text by the BA's call, not the branch's data (R-1301) —
+ * and the slip code, the patient with address and guardian, the diagnosis
+ * names, the numbered medicines with how to take each (no doses) beside the
+ * quantity and the catalog's Đơn vị tính, the prescribing doctor's signature
  * block on the right, then the standing advice and "Khác" — the slip's own
  * advice, or a dotted line for the doctor to write one. The BA's copy has no
  * Tái khám line, so the follow-up date is not printed.

@@ -19,6 +19,8 @@ public class PrescriptionItemDto : EntityDto<Guid>
     public int Days { get; set; }
     /// <summary>Read side only — (Morning + Noon + Afternoon + Evening) × Days.</summary>
     public decimal Quantity { get; set; }
+    /// <summary>Read side only — the medicine's Đơn vị tính in the catalog now, null when none (R-1302).</summary>
+    public string? Unit { get; set; }
     public PrescriptionUsage Usage { get; set; }
     public string? OtherUsage { get; set; }
     public int SortOrder { get; set; }

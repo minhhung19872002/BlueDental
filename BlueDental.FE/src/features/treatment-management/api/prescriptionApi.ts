@@ -35,6 +35,8 @@ export interface PrescriptionItemDto extends PrescriptionSessionDose {
   medicationName: string;
   /** Computed by the server: (sáng + trưa + chiều + tối) × days. */
   quantity: number;
+  /** The medicine's Đơn vị tính in the catalog now; null when none (R-1302). */
+  unit: string | null;
   /** Flags of PRESCRIPTION_USAGE. */
   usage: number;
   otherUsage: string | null;

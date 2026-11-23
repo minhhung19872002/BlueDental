@@ -1,7 +1,6 @@
 import { usageLabel } from "@/components/prescription-lines";
 import { t } from "@/lib/i18n";
 import type { PrescriptionItemDto } from "../../api/prescriptionApi";
-import { doseText } from "../../utils/rxDose";
 
 /** What a fact shows with no value: a dash, a dotted line to write on, or nothing. */
 type EmptyFact = "dash" | "dots" | "blank";
@@ -32,17 +31,16 @@ function EmptyValue({ empty }: { empty: EmptyFact }) {
   return <strong>—</strong>;
 }
 
-/** "Sáng 1 · Tối 1 · 5 ngày · Sau khi ăn". */
-function directionsOf(item: PrescriptionItemDto): string {
-  const dose = doseText(item);
-  const usage = item.usage === 0 ? null : usageLabel(item);
-  return usage ? `${dose} · ${usage}` : dose;
+/** "Sau khi ăn" — how to take it; the doses are not printed (R-1302). */
+function usageOf(item: PrescriptionItemDto): string {
+  return item.usage === 0 ? "" : usageLabel(item);
 }
 
 /**
- * The medicines as the BA's second Word copy (R-1300): a numbered list with
- * no rules or header, each name bold over its directions in italics, the
- * quantity centred on the right.
+ * The medicines as the BA's third Word copy (R-1302): a numbered list with no
+ * rules or header, each name bold over how to take it in italics and a blank
+ * line, then the quantity and the medicine's Đơn vị tính in the catalog — left
+ * empty when the catalog has none.
  */
 export function RxSheetMedicines({ items }: { items: PrescriptionItemDto[] }) {
   return (
@@ -51,9 +49,10 @@ export function RxSheetMedicines({ items }: { items: PrescriptionItemDto[] }) {
         <li key={item.id} className="rx-sheet-med">
           <p className="rx-sheet-med-text">
             <strong>{item.medicationName}</strong>
-            <em>{directionsOf(item)}</em>
+            <em>{usageOf(item)}</em>
           </p>
           <span className="rx-sheet-qty">{item.quantity}</span>
+          <span className="rx-sheet-unit">{item.unit ?? ""}</span>
         </li>
       ))}
     </ol>

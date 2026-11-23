@@ -1,11 +1,11 @@
 /* "Xem đơn thuốc" and the ĐƠN THUỐC sheet it prints (bug list #23). Not in
    the reference — BlueDental's own layout, on the shared print mechanism
-   (`.pd-print-sheet`, `body.pd-printing` in index.css). Since R-1300 an A5
-   page laid out as the BA's second Word copy (Downloads/Mau-Don-thuoc (1).docx,
-   2026-11-23): Times New Roman 10pt, 8mm above, 10mm each side, 5mm below.
-   Word's single line is 1.15, its "auto 1.21" letterhead line 1.452 and
-   "auto 1.5" 1.725. The sheet is paper: black on white, no brand colour.
-   Prefix `rx-`. */
+   (`.pd-print-sheet`, `body.pd-printing` in index.css). Since R-1302 an A4
+   page laid out as the BA's third Word copy (Downloads/Mau-Don-thuoc (2).docx,
+   2026-11-23): Times New Roman 13pt, the letterhead 11pt, 20mm above and each
+   side, 7.5mm below. Word's single line is 1.15, its "auto 1.26" letterhead
+   line 1.452 and "auto 1.5" 1.725. The sheet is paper: black on white, no
+   brand colour. Prefix `rx-`. */
 
 .rx-view-dialog .ant-modal-body {
   max-height: calc(100vh - 220px);
@@ -22,33 +22,35 @@
   box-shadow: 0 1px 4px color-mix(in srgb, var(--bd-ink) 14%, transparent);
 }
 
-/* ---- The sheet: the A5 page itself, its margins as padding ---- */
+/* ---- The sheet: the A4 page itself, its margins as padding ---- */
 .rx-sheet {
   box-sizing: border-box;
   display: flex;
-  max-width: 148mm;
-  min-height: 210mm;
+  max-width: 210mm;
+  min-height: 297mm;
   margin: 0 auto;
   flex-direction: column;
-  padding: 8mm 10mm 5mm;
+  padding: 20mm 20mm 7.5mm;
   background: #fff;
   color: #000;
   font-family: "Times New Roman", Times, serif;
-  font-size: 10pt;
+  font-size: 13pt;
   line-height: 1.15;
 }
 .rx-sheet p {
   margin: 0;
 }
 
-/* Letterhead: Word's [5222 | 2036] twip table, the rule a bordered 8pt line under it. */
+/* Letterhead: Word's [6938 | 2701] twip table at 11pt, the rule a bordered
+   8pt line under it. */
 .rx-sheet-head {
   display: grid;
-  grid-template-columns: minmax(0, 348fr) minmax(0, 136fr);
+  grid-template-columns: minmax(0, 6938fr) minmax(0, 2701fr);
   align-items: start;
-  margin-top: -0.5px;
-  padding-bottom: 12px;
+  margin-top: -1.3px;
+  padding-bottom: 14px;
   border-bottom: 1px solid #000;
+  font-size: 11pt;
   line-height: 1.452;
 }
 .rx-sheet-clinic {
@@ -56,20 +58,17 @@
   min-width: 0;
   gap: 2px;
 }
-/* The bold name's line runs 1pt taller than Word's; pull the lines under it back. */
 .rx-sheet-clinic strong {
-  margin-bottom: -1.33px;
   text-transform: uppercase;
 }
 .rx-sheet-code {
-  font-size: 9pt;
   text-align: right;
   white-space: nowrap;
 }
 
 /* Word sets a line's extra space under the text, so the title sits high in its 1.5 lines. */
 .rx-sheet-title {
-  margin: 11px 0 6px;
+  margin: 10px 0 6px;
   font-family: inherit;
   font-size: 15pt;
   font-weight: 700;
@@ -77,7 +76,7 @@
   text-align: center;
 }
 
-/* Patient block: two 242px columns, the right one set in 6px. */
+/* Patient block: two 321px columns, the right one set in 6px. */
 .rx-sheet-facts {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -94,14 +93,10 @@
 .rx-sheet-fact--wide {
   grid-column: 1 / -1;
 }
-/* No address on the record: a dotted line to write it on, to 463px as Word's leader. */
-.rx-sheet-fact--dots {
-  display: flex;
-  padding-right: 21px;
-}
+/* No address on the record: a whole dotted line under the label to write it
+   on, where Word's dot leader breaks to. */
 .rx-sheet-fact--dots > .rx-sheet-dots {
-  flex: 1;
-  margin-left: 0.25em;
+  margin-left: 2px;
 }
 
 /* A dotted line made of full stops, as Word's dot leader. */
@@ -112,31 +107,30 @@
   white-space: nowrap;
 }
 .rx-sheet-dots::after {
-  content: "........................................................................................................................................................................................................";
+  content: "....................................................................................................................................................................................................................................................";
 }
 
-/* Medicines: Word's borderless [6091 | 1157] twip table of 11pt rows at
-   least 624 twips tall, its cells 108 twips in from each side. The name is a
-   numbered list item (number at 164 twips, text at 447), the directions set
-   in at 741 twips, the quantity centred and both middled in the row. */
+/* Medicines: Word's borderless [6954 | 1310 | 1375] twip table, its cells 108
+   twips in from each side. The name is a numbered list item (number at 164
+   twips, text at 447) over how to take it at 741 twips and a blank line; the
+   quantity sits right in its cell, the unit left in the next, both on the
+   name's line. */
 .rx-sheet-meds {
-  margin: 3.8px 0 0;
+  margin: 11.2px 0 0;
   padding: 0;
   list-style: none;
   counter-reset: rx-med;
-  font-size: 11pt;
 }
 .rx-sheet-med {
   display: grid;
-  grid-template-columns: minmax(0, 6091fr) minmax(0, 1157fr);
-  align-items: center;
-  min-height: 41.6px;
+  grid-template-columns: minmax(0, 6954fr) minmax(0, 1310fr) minmax(0, 1375fr);
+  align-items: start;
   break-inside: avoid;
   counter-increment: rx-med;
 }
 .rx-sheet-med-text {
   min-width: 0;
-  padding: 0 7.2px 0 37px;
+  padding: 0 7.2px 1.15em 37px;
 }
 .rx-sheet-med-text strong {
   display: block;
@@ -150,24 +144,30 @@
 }
 .rx-sheet-med-text em {
   display: block;
+  min-height: 1.15em;
   padding-left: 19.6px;
 }
 .rx-sheet-qty {
   padding: 0 7.2px;
-  text-align: center;
+  text-align: right;
+}
+.rx-sheet-unit {
+  min-width: 0;
+  padding: 0 7.2px;
+  overflow-wrap: anywhere;
 }
 .rx-sheet-count {
   font-style: italic;
   text-align: right;
 }
 
-/* Signature: the right [3358] of Word's [3900 | 3358] twip table, one blank
-   1.5 line of 10pt above it, two more between the hint and the name. */
+/* Signature: the right [4459] of Word's [5180 | 4459] twip table, three blank
+   1.5 lines above it, two more between the hint and the name. */
 .rx-sheet-sign {
   display: flex;
-  width: 46.27%;
+  width: 46.26%;
   min-width: 0;
-  margin-top: 19.1px;
+  margin-top: 84.4px;
   align-self: flex-end;
   flex-direction: column;
   align-items: center;
@@ -175,19 +175,16 @@
   text-align: center;
   break-inside: avoid;
 }
-.rx-sheet-sign-role {
-  font-size: 11pt;
-}
 .rx-sheet-signer {
-  margin-top: 46px;
+  margin-top: 59.8px;
   font-weight: 700;
 }
 
-/* Lời dặn bác sĩ and Khác, below four 4pt 1.5 lines; Khác's dots run to
-   3828 twips as Word's dot leader. */
+/* Lời dặn bác sĩ and Khác, one blank 1.5 line under the name; Khác's dots
+   run to 3828 twips as Word's dot leader. */
 .rx-sheet-advice {
   display: grid;
-  margin-top: 36.8px;
+  margin-top: 30.9px;
   font-style: italic;
   line-height: 1.725;
   break-inside: avoid;
@@ -208,22 +205,22 @@
   overflow-wrap: anywhere;
 }
 
-/* The printed copy: A5, the page margins carried by the sheet's padding. */
-@page rx-a5 {
-  size: A5;
+/* The printed copy: A4, the page margins carried by the sheet's padding. */
+@page rx-a4 {
+  size: A4;
   margin: 0;
 }
 .pd-print-sheet article.rx-sheet {
   max-width: none;
-  width: 148mm;
+  width: 210mm;
   min-height: 0;
-  padding: 8mm 10mm 5mm;
-  page: rx-a5;
+  padding: 20mm 20mm 7.5mm;
+  page: rx-a4;
 }
 @media print {
-  /* Whatever else is left on the page prints on the sheet's page, not a new A4 one. */
+  /* Whatever else is left on the page prints on the sheet's page, not a new one. */
   html:has(body.pd-printing > .rx-print-sheet) {
-    page: rx-a5;
+    page: rx-a4;
   }
   /* The app's tinted ground would print under the short sheet with background graphics on. */
   body.pd-printing:has(> .rx-print-sheet)::before {

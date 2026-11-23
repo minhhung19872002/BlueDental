@@ -470,7 +470,7 @@ test.describe.serial("Đơn thuốc", () => {
     await reopened.getByRole("button", { name: /Hủy$/ }).click();
   });
 
-  test("In đơn thuốc shows the slip read-only with the session doses, on A5 under the fixed clinic letterhead (R-1300, R-1301)", async ({
+  test("In đơn thuốc shows the slip read-only without doses, on A4 under the fixed clinic letterhead, the unit from Danh mục (R-1300..R-1302)", async ({
     page,
   }) => {
     await login(page);
@@ -493,10 +493,14 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(dialog.locator(".rx-sheet")).not.toContainText("(R36");
     await expect(dialog).toContainText("Địa chỉ:");
     await expect(dialog).toContainText("Người giám hộ:");
-    // The BA's second copy: numbered medicines, no table header, "Bác sĩ" to
-    // sign on the right, the standing advice and the slip's own as "Khác".
-    const medicines = dialog.locator(".rx-sheet-med");
-    await expect(medicines.filter({ hasText: medicine })).toContainText("Sáng 1 · Chiều 0.5 · Tối 1 · 3 ngày");
+    // The BA's third copy: numbered medicines with how to take them but no
+    // doses (R-1302), the quantity then the catalog's Đơn vị tính — blank while
+    // the medicine has none — no table header, "Bác sĩ" to sign on the right,
+    // the standing advice and the slip's own as "Khác".
+    const printedLine = dialog.locator(".rx-sheet-med").filter({ hasText: medicine });
+    await expect(printedLine).not.toContainText("Sáng");
+    await expect(printedLine).not.toContainText("ngày");
+    await expect(printedLine.locator(".rx-sheet-unit")).toHaveText("");
     await expect(dialog.locator(".rx-sheet th")).toHaveCount(0);
     await expect(dialog.locator(".rx-sheet-sign-role")).toHaveText("Bác sĩ");
     await expect(dialog.locator(".rx-sheet-advice")).toContainText("Lời dặn bác sĩ: Khám lại xin mang theo đơn này.");
@@ -522,25 +526,42 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(printed).toBeVisible();
     await expect(printed).toContainText(medicine);
     await expect(dialog).toBeHidden();
-    // A5: the sheet is 148mm wide (559px) and asks for the named A5 page.
+    // A4: the sheet is 210mm wide (794px) and asks for the named A4 page.
     const sheet = await printed.locator("article.rx-sheet").evaluate((el) => ({
       width: el.getBoundingClientRect().width,
       page: getComputedStyle(el).getPropertyValue("page"),
     }));
-    expect(Math.round(sheet.width)).toBe(559);
-    expect(sheet.page).toBe("rx-a5");
+    expect(Math.round(sheet.width)).toBe(794);
+    expect(sheet.page).toBe("rx-a4");
     const pdf = await page.pdf({ preferCSSPageSize: true });
     expect(pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).toHaveLength(1);
-    // A5 is 419.5 × 595.3pt; Chromium writes it in whole px, "0 0 420 594.96".
+    // A4 is 595.3 × 841.9pt; Chromium writes it in whole px, "0 0 594.96 841.92".
     const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(pdf.toString("latin1"));
-    expect(Math.abs(Number(box?.[1]) - 419.5)).toBeLessThan(1);
-    expect(Math.abs(Number(box?.[2]) - 595.3)).toBeLessThan(1);
+    expect(Math.abs(Number(box?.[1]) - 595.3)).toBeLessThan(1);
+    expect(Math.abs(Number(box?.[2]) - 841.9)).toBeLessThan(1);
     await page.emulateMedia({ media: "screen" });
 
     await dialog.locator("button").filter({ hasText: "Đóng" }).click();
     await expect(dialog).toBeHidden();
     await expect(printed).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveClass(/pd-printing/);
+
+    // The unit is read from Danh mục as it stands, not kept on the slip:
+    // filling it in now shows on this slip, saved before (R-1302).
+    await page.goto("/taxonomy/medicine");
+    const group = `NHOM RX ${id}`;
+    await page.getByLabel("Tìm nhóm...").fill(group);
+    await page.getByRole("button", { name: group, exact: true }).click();
+    await page.getByRole("row", { name: new RegExp(escapeRegExp(medicine)) }).getByRole("button").nth(1).click();
+    const editor = page.getByRole("dialog");
+    await editor.getByLabel(/Đơn vị tính/).fill("Viên");
+    await editor.getByRole("button", { name: /Lưu$/ }).click();
+    await expect(editor).toBeHidden();
+
+    await openPrescriptionTab(page, patientUrl);
+    await row.getByRole("button", { name: "In đơn thuốc" }).click();
+    await expect(printedLine.locator(".rx-sheet-unit")).toHaveText("Viên");
+    await expect(printedLine.locator(".rx-sheet-qty")).not.toBeEmpty();
   });
 
   test("Ngày lên đơn thuốc dates the slip back, never ahead, and the printed slip carries it", async ({

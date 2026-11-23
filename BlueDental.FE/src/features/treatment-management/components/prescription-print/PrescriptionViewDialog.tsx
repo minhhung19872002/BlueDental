@@ -18,7 +18,7 @@ interface Props {
 /**
  * "Xem đơn thuốc {mã}" — the printer button on a row of the Đơn thuốc tab.
  * Shows the slip read-only as it will come out on paper; "In đơn thuốc" opens
- * the browser's print preview with only that sheet on an A5 page (R-1300).
+ * the browser's print preview with only that sheet on an A4 page (R-1302).
  *
  * Mounted only while a slip is being viewed, so the print hook's cleanup runs
  * when it closes.
@@ -39,7 +39,7 @@ export function PrescriptionViewDialog({ patient, prescription, onClose }: Props
   return (
     <AppDialog
       open
-      width={640}
+      width={880}
       className="rx-view-dialog"
       title={t("Treatment:RxPrint:ViewTitle", prescription.code)}
       canSave

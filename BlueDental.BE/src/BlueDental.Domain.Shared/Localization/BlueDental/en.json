@@ -6072,7 +6072,6 @@
     "Treatment:Rx:Advice": "Advice",
     "Treatment:Rx:Medicines": "Medicines ({0})",
     "Treatment:Rx:AddOtherMedicine": "Add another medicine",
-    "Treatment:RxPrint:DoseDays": "{0} days",
     "Treatment:Tooth:SurfaceTitle": "Tooth {0} — {1}",
     "Treatment:Tooth:SelectWhole": "Select whole tooth {0}",
     "Treatment:Invoice:ShowRange": "Showing {0} of {1}",

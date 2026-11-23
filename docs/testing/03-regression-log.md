@@ -16099,3 +16099,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - BA (chat 2026-11-23): "E để cố định đi — mấy cái tên thay đổi, dynamic quá nó cũng phiền". Tiêu đề đơn thuốc in cố định "NHA KHOA ĐỨC HẠNH / Địa chỉ: 84 – 86 Phạm Ngọc Thạch, P. Xuân Hòa, TP HCM / Điện thoại: 0799.160.888 – 0767.080.333" (i18n `Treatment:RxPrint:Clinic*`), dòng ký "TP HCM, Ngày …" cố định — không đọc dữ liệu chi nhánh nữa.
 - Bỏ ô "Số điện thoại 2" của R-1300 (domain, DTO, AppService, FE Cấu hình, `useBranchInfo`, `BranchSecondPhoneTests`). Migration R-1300 đã lên UAT nên giữ file, thêm `20261123085541_DropBranchSecondPhoneR1301` xoá cột `PhoneNumber2`.
 - Build production :8090 → host :5000 → PostgreSQL thật: `prescription` + `prescription-allergy` + `branch-list` + `branch-switcher` 15/15; `tsc` + eslint sạch.
+
+## R-1302 — ĐƠN THUỐC A4 theo Word thứ ba của BA, Đơn vị tính từ Danh mục, bỏ liều (2026-11-23)
+
+- Nguồn: BA chat 2026-11-23 ("thêm đơn vị tính, khoảng trống", dòng liều gạch ngang = bỏ) + `Downloads/Mau-Don-thuoc (2).docx`. Chủ dự án chốt: ĐVT lấy từ Danh mục → Loại thuốc → "Đơn vị tính", trống thì để trống; khổ A4 theo file BA (thay A5 của R-1300).
+- BE: `PrescriptionItemDto.Unit` (chỉ đọc) — `PrescriptionAppService.MapManyAsync` đọc `CatalogEntry.Unit` hiện tại của thuốc (kể cả thuốc đã xoá mềm), không lưu vào đơn: điền ĐVT trong Danh mục thì đơn cũ cũng in ra. Không có migration.
+- FE: mỗi thuốc = tên đậm đánh số / cách dùng nghiêng (không còn "Sáng 1 · … · N ngày", xoá `utils/rxDose.ts` + key `Treatment:RxPrint:DoseDays`) / một dòng trống; số lượng canh phải, ĐVT canh trái ở cột kế (bảng Word 6954|1310|1375). Trang A4 `@page rx-a4`, lề 20mm/20mm/7,5mm, chữ 13pt, tiêu đề phòng khám 11pt, "ĐƠN THUỐC" 15pt; dòng chấm Địa chỉ xuống dòng riêng như Word; 3 dòng trống trước khối ký, 2 dòng trước tên bác sĩ. Đo so với PDF Word của BA: mọi dòng lệch ≤1pt. Dialog "Xem đơn thuốc" rộng 880.
+- E2E `prescription` (bản in): không còn liều, ĐVT trống → sửa ĐVT trong Danh mục → đơn đã lưu hiện "Viên"; khổ 794px / `rx-a4` / MediaBox 595.3×841.9.

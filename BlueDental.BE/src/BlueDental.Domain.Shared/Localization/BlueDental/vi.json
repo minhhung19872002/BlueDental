@@ -5971,7 +5971,6 @@
     "Treatment:Rx:Advice": "Lời dặn",
     "Treatment:Rx:Medicines": "Danh sách thuốc ({0})",
     "Treatment:Rx:AddOtherMedicine": "Thêm thuốc khác",
-    "Treatment:RxPrint:DoseDays": "{0} ngày",
     "Treatment:Tooth:SurfaceTitle": "Răng {0} — {1}",
     "Treatment:Tooth:SelectWhole": "Chọn cả răng {0}",
     "Treatment:Invoice:ShowRange": "Hiển thị {0} trên {1}",
