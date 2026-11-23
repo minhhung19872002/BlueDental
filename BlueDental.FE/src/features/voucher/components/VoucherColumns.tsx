@@ -15,6 +15,11 @@ function formatPublishedAt(value: string): string {
   return `${hh}:${mm} ${dd}/${mo}/${d.getFullYear()}`;
 }
 
+/** A voucher with no end date reads "Không giới hạn" (R-1279). */
+function formatEndDate(value: string | null): string {
+  return value ? formatDate(value) : t("Voucher:Unlimited");
+}
+
 interface VoucherTableHandlers {
   onPublish?: (id: string) => void;
   onUnpublish?: (id: string) => void;
@@ -106,7 +111,7 @@ function DisplayCell({
     return (
       <div className="voucher-terminal-card voucher-terminal-card--expired">
         <strong>{t("Voucher:ExpiredLabel")}</strong>
-        <span>{t("Voucher:EndDate")}: {formatDate(row.endDate)}</span>
+        <span>{t("Voucher:EndDate")}: {formatEndDate(row.endDate)}</span>
         {onEdit && (
           <a className="voucher-reactivate-link" onClick={() => onEdit(row)}>
             {t("Voucher:EditToReactivate")}
@@ -196,7 +201,7 @@ export function buildVoucherColumns(handlers: VoucherTableHandlers): ColumnsType
       key: "validity",
       width: 112,
       render: (_, row) =>
-        `${formatDate(row.startDate)} — ${formatDate(row.endDate)}`,
+        `${formatDate(row.startDate)} — ${formatEndDate(row.endDate)}`,
     },
     {
       title: t("Voucher:ColUsage"),

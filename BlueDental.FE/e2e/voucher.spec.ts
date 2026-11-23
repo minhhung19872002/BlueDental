@@ -1,5 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
+
+/** The "Không giới hạn" box that sits under the field labelled `fieldLabel`. */
+function unlimitedBox(dialog: Locator, fieldLabel: string): Locator {
+  return dialog
+    .locator(".voucher-unlimited-field")
+    .filter({ has: dialog.page().getByLabel(fieldLabel) })
+    .getByRole("checkbox", { name: "Không giới hạn" });
+}
 
 /**
  * Feature: Voucher khuyến mãi.
@@ -175,6 +183,114 @@ test.describe("Voucher", () => {
     await expect(page.getByText("Vui lòng nhập tên cho tất cả voucher")).toBeVisible();
     // The offending card is highlighted and nothing was created.
     await expect(dialog).toBeVisible();
+  });
+
+  // R-1279: "không giới hạn lượt, với không giới hạn thời gian".
+  test("creates a voucher with no use limit and no end date, then sets both back", async ({ page }) => {
+    const id = runId();
+    const code = `VOH-${id}`;
+    const name = `Vô hạn E2E ${id}`;
+
+    await page.goto("/voucher");
+    await assertRealApiTraffic(page, "/api/v1/app/vouchers");
+
+    await page.getByRole("button", { name: /Tạo voucher/ }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Mã ngẫu nhiên", { exact: true }).fill(code);
+    await dialog.getByLabel("Nhập tên voucher").fill(name);
+    await dialog.getByLabel("Mức giảm").fill("10");
+
+    // Both boxes start unticked, so the fields stay required.
+    const usageBox = unlimitedBox(dialog, "Nhập số lượt tối đa");
+    const endBox = unlimitedBox(dialog, "Ngày hết hạn");
+    await expect(usageBox).not.toBeChecked();
+    await expect(endBox).not.toBeChecked();
+
+    await usageBox.check();
+    await endBox.check();
+    await expect(dialog.getByLabel("Nhập số lượt tối đa")).toBeDisabled();
+    await expect(dialog.getByLabel("Ngày hết hạn")).toBeDisabled();
+
+    await dialog.getByRole("button", { name: "Tạo voucher" }).click();
+
+    const row = page.getByRole("row", { name: new RegExp(code) });
+    await expect(row).toContainText("0 / ∞");
+    await expect(row).toContainText("— Không giới hạn");
+
+    // Persisted as open-ended, and the edit dialog reopens with both ticked.
+    await page.reload();
+    const persisted = page.getByRole("row", { name: new RegExp(code) });
+    await expect(persisted).toContainText("0 / ∞");
+    await expect(persisted).toContainText("— Không giới hạn");
+
+    // Where vouchers get used — the plan and payment pickers read
+    // vouchers/available — a published open-ended voucher is still offered
+    // decades on.
+    await persisted.getByRole("switch").click();
+    await expect(persisted.getByText("Đang hiển thị")).toBeVisible();
+    const offered = await page.evaluate(async (wanted) => {
+      const res = await fetch("/api/v1/app/vouchers/available?orderAmount=1000000&onDate=2099-12-31", {
+        credentials: "include",
+      });
+      const list = (await res.json()) as { code: string; endDate: string | null; usageLimit: number | null }[];
+      return list.find((v) => v.code.endsWith(wanted)) ?? null;
+    }, code);
+    expect(offered, `${code} should still be offered in 2099`).toMatchObject({ endDate: null, usageLimit: null });
+
+    await persisted.locator(".voucher-actions button").first().click();
+    const edit = page.getByRole("dialog").filter({ hasText: "Chỉnh sửa voucher" });
+    await expect(unlimitedBox(edit, "Nhập số lượt tối đa")).toBeChecked();
+    await expect(unlimitedBox(edit, "Ngày hết hạn")).toBeChecked();
+
+    // Unticking makes the field required again.
+    await unlimitedBox(edit, "Nhập số lượt tối đa").uncheck();
+    await edit.getByRole("button", { name: "Lưu thay đổi" }).click();
+    await expect(edit.getByText("Vui lòng nhập số lượt")).toBeVisible();
+
+    await edit.getByLabel("Nhập số lượt tối đa").fill("20");
+    await edit.getByRole("button", { name: "Lưu thay đổi" }).click();
+    await expect(edit).toBeHidden();
+    await expect(page.getByRole("row", { name: new RegExp(code) })).toContainText("0 / 20");
+
+    await page.reload();
+    const edited = page.getByRole("row", { name: new RegExp(code) });
+    await expect(edited).toContainText("0 / 20");
+    await expect(edited).toContainText("— Không giới hạn");
+  });
+
+  test("a batch card configured on its own can be unlimited while the others keep a limit", async ({ page }) => {
+    const id = runId();
+
+    await page.goto("/voucher");
+    await page.getByRole("button", { name: /Tạo voucher/ }).click();
+    const dialog = page.getByRole("dialog");
+
+    await dialog.getByRole("tab", { name: "Tạo một lượt" }).click();
+    await dialog.getByLabel(/Nhập số lượng mã/).fill("2");
+    await dialog.getByLabel("Tên voucher #1").fill(`Lô vô hạn ${id} A`);
+    await dialog.getByLabel("Tên voucher #2").fill(`Lô vô hạn ${id} B`);
+
+    await dialog.getByLabel("Nhập số lượt tối đa").fill("30");
+    await dialog.getByText("#2").click();
+    await unlimitedBox(dialog, "Nhập số lượt tối đa").check();
+    await unlimitedBox(dialog, "Ngày hết hạn").check();
+
+    // Card #1 keeps its own 30 uses and date when shown again.
+    await dialog.getByText("#1").click();
+    await expect(unlimitedBox(dialog, "Nhập số lượt tối đa")).not.toBeChecked();
+    await expect(dialog.getByLabel("Nhập số lượt tối đa")).toHaveValue("30");
+
+    await dialog.getByRole("button", { name: "Tạo voucher" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByRole("row", { name: new RegExp(`Lô vô hạn ${id} B`) })).toContainText("0 / ∞");
+
+    await page.reload();
+    const rowA = page.getByRole("row", { name: new RegExp(`Lô vô hạn ${id} A`) });
+    const rowB = page.getByRole("row", { name: new RegExp(`Lô vô hạn ${id} B`) });
+    await expect(rowA).toContainText("0 / 30");
+    await expect(rowA).not.toContainText("Không giới hạn");
+    await expect(rowB).toContainText("0 / ∞");
+    await expect(rowB).toContainText("— Không giới hạn");
   });
 
   test("edits every field of a voucher through the edit dialog", async ({ page }) => {

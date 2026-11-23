@@ -61,8 +61,10 @@ export function VoucherEditDialog({ voucher, onClose }: Props) {
       targetIds: voucher.targetIds ?? [],
       minOrderValue: voucher.minOrderValue,
       startDate: dayjs(voucher.startDate),
-      endDate: dayjs(voucher.endDate),
+      endDate: voucher.endDate ? dayjs(voucher.endDate) : null,
+      noEndDate: voucher.endDate == null,
       usageLimit: voucher.usageLimit,
+      unlimitedUsage: voucher.usageLimit == null,
       perCustomerLimit: voucher.perCustomerLimit,
       isExclusive: voucher.isExclusive,
       customerTargets: voucher.customerTargets ?? ["new", "returning"],
@@ -112,8 +114,8 @@ export function VoucherEditDialog({ voucher, onClose }: Props) {
       daysOfWeek: values.daysOfWeek ?? [],
       displayOnNfcDental: values.displayOnNfcDental ?? true,
       startDate: values.startDate.toISOString(),
-      endDate: values.endDate.toISOString(),
-      usageLimit: values.usageLimit ?? null,
+      endDate: values.noEndDate || !values.endDate ? null : values.endDate.toISOString(),
+      usageLimit: values.unlimitedUsage ? null : (values.usageLimit ?? null),
     };
 
     try {

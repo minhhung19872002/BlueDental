@@ -33,7 +33,8 @@ export interface VoucherDto {
   scopeTarget: VoucherScopeTarget;
   targetIds: string[];
   startDate: string;
-  endDate: string;
+  /** Null = no end date ("Không giới hạn", R-1279). */
+  endDate: string | null;
   usageLimit: number | null;
   usedCount: number;
   status: VoucherStatus;
@@ -65,7 +66,8 @@ export interface CreateVoucherInput {
   targetIds: string[];
   minOrderValue?: number | null;
   startDate: string;
-  endDate: string;
+  /** Null = no end date ("Không giới hạn", R-1279). */
+  endDate: string | null;
   usageLimit?: number | null;
   perCustomerLimit?: number | null;
   isExclusive: boolean;
@@ -93,7 +95,7 @@ export interface VoucherBatchItemInput {
   targetIds?: string[];
   minOrderValue?: number | null;
   startDate?: string;
-  endDate?: string;
+  endDate?: string | null;
   usageLimit?: number | null;
   perCustomerLimit?: number | null;
   isExclusive?: boolean;
@@ -116,7 +118,8 @@ export interface CreateVoucherBatchInput {
   targetIds: string[];
   minOrderValue?: number | null;
   startDate: string;
-  endDate: string;
+  /** Null = no end date ("Không giới hạn", R-1279). */
+  endDate: string | null;
   usageLimit?: number | null;
   perCustomerLimit?: number | null;
   isExclusive: boolean;
@@ -152,7 +155,8 @@ export interface UpdateVoucherInput {
   daysOfWeek: number[];
   displayOnNfcDental: boolean;
   startDate: string;
-  endDate: string;
+  /** Null = no end date ("Không giới hạn", R-1279). */
+  endDate: string | null;
   usageLimit?: number | null;
 }
 

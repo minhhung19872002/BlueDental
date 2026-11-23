@@ -13,8 +13,13 @@ export interface VoucherFormValues {
   targetIds: string[];
   minOrderValue?: number | null;
   startDate: dayjs.Dayjs;
-  endDate: dayjs.Dayjs;
+  /** Empty once "Không giới hạn" (noEndDate) is ticked. */
+  endDate: dayjs.Dayjs | null;
+  /** "Không giới hạn" next to Ngày hết hạn (R-1279): the voucher has no end date. */
+  noEndDate: boolean;
   usageLimit?: number | null;
+  /** "Không giới hạn" under the max-uses field (R-1279): no use limit. */
+  unlimitedUsage: boolean;
   perCustomerLimit?: number | null;
   isExclusive: boolean;
   customerTargets: string[];
@@ -49,7 +54,9 @@ export const VOUCHER_FORM_DEFAULTS: VoucherFormValues = {
   minOrderValue: null,
   startDate: dayjs(),
   endDate: dayjs().add(30, "day"),
+  noEndDate: false,
   usageLimit: null,
+  unlimitedUsage: false,
   perCustomerLimit: null,
   isExclusive: false,
   customerTargets: ["new", "returning"],
@@ -71,7 +78,9 @@ export function pickBatchItemValues(v: VoucherFormValues): VoucherBatchItemValue
     minOrderValue: v.minOrderValue,
     startDate: v.startDate,
     endDate: v.endDate,
+    noEndDate: v.noEndDate,
     usageLimit: v.usageLimit,
+    unlimitedUsage: v.unlimitedUsage,
     perCustomerLimit: v.perCustomerLimit,
     isExclusive: v.isExclusive,
     customerTargets: v.customerTargets,

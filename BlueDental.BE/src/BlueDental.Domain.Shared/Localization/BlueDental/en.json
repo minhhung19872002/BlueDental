@@ -3206,6 +3206,7 @@
     "Voucher:StartDate": "Start date",
     "Voucher:DateRequired": "Please select a date",
     "Voucher:EndDateLabel": "End date",
+    "Voucher:Unlimited": "Unlimited",
     "Voucher:DiscountVND": "VND",
     "Voucher:DiscountRequired": "Please enter discount",
     "Voucher:DiscountMin": "Discount must be greater than 0",

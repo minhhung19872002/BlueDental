@@ -1,9 +1,9 @@
 import { Checkbox, Input, InputNumber } from "antd";
 import { Shuffle } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
 import type { BatchVoucherItem, VoucherBatchState } from "../hooks/useVoucherBatch";
+import { UsageLimitField } from "./UsageLimitField";
 
 interface CardProps {
   item: BatchVoucherItem;
@@ -120,17 +120,7 @@ export function VoucherBatchTab({ batch, prefixLabel }: Props) {
             />
           </FloatingField>
         )}
-        <FloatingField
-          name="usageLimit"
-          label={t("Voucher:MaxUsageLabel")}
-          required
-          rules={[
-            { required: true, message: t("Voucher:MaxUsageRequired") },
-            { type: "number", min: 1, message: t("Voucher:MaxUsageMin") },
-          ]}
-        >
-          <CurrencyInput />
-        </FloatingField>
+        <UsageLimitField />
       </div>
 
       {!configAll && (

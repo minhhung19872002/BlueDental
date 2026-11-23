@@ -40,8 +40,8 @@ function sharedFields(v: VoucherBatchItemValues) {
     targetIds: v.targetIds ?? [],
     minOrderValue: v.minOrderValue ?? null,
     startDate: v.startDate.toISOString(),
-    endDate: v.endDate.toISOString(),
-    usageLimit: v.usageLimit ?? null,
+    endDate: v.noEndDate || !v.endDate ? null : v.endDate.toISOString(),
+    usageLimit: v.unlimitedUsage ? null : (v.usageLimit ?? null),
     perCustomerLimit: v.perCustomerLimit ?? null,
     isExclusive: v.isExclusive ?? false,
     customerTargets: v.customerTargets ?? ["new", "returning"],
@@ -75,7 +75,9 @@ function findBatchProblem(
     return t("Voucher:DuplicateCode", `${prefixLabel}${dup}`);
   }
   if (!configAll) {
-    const noLimit = items.findIndex((it) => it.values.usageLimit == null);
+    const noLimit = items.findIndex(
+      (it) => !it.values.unlimitedUsage && it.values.usageLimit == null,
+    );
     if (noLimit >= 0) {
       return t("Voucher:NoLimitForCode", noLimit + 1);
     }

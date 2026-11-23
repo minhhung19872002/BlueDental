@@ -155,7 +155,9 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
                 item?.TargetIds ?? input.TargetIds,
                 ownConfig ? item!.MinOrderValue : input.MinOrderValue,
                 item?.StartDate ?? input.StartDate,
-                item?.EndDate ?? input.EndDate,
+                // A per-code blank end date is "Không giới hạn" (R-1279), so
+                // it must not fall back to the batch's date.
+                ownConfig ? item!.EndDate : input.EndDate,
                 ownConfig ? item!.UsageLimit : input.UsageLimit,
                 ownConfig ? item!.PerCustomerLimit : input.PerCustomerLimit,
                 item?.IsExclusive ?? input.IsExclusive,
@@ -217,7 +219,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
 
         voucher.Reschedule(
             DateOnly.FromDateTime(input.StartDate),
-            DateOnly.FromDateTime(input.EndDate));
+            ToValidTo(input.EndDate));
 
         if (input.UsageLimit != voucher.UsageLimit)
             voucher.UpdateUsageLimit(input.UsageLimit);
@@ -323,7 +325,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         string code, string name, string? prefix, string? description,
         string discountTypeStr, decimal discountValue, decimal? maxDiscountAmount,
         string scopeTargetStr, List<string> targetIds, decimal? minOrderValue,
-        DateTime startDate, DateTime endDate,
+        DateTime startDate, DateTime? endDate,
         int? usageLimit, int? perCustomerLimit,
         bool isExclusive, string[] customerTargets,
         bool isDaysOfWeekLimited, int[] daysOfWeek,
@@ -340,7 +342,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
             discountType,
             discountValue,
             DateOnly.FromDateTime(startDate),
-            DateOnly.FromDateTime(endDate),
+            ToValidTo(endDate),
             scopeTarget,
             clinicBranchId: branchId,
             prefix: prefix,
@@ -356,6 +358,10 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
             displayOnNfcDental: displayOnNfcDental,
             description: description);
     }
+
+    /// <summary>A blank end date is "Không giới hạn" (R-1279).</summary>
+    private static DateOnly? ToValidTo(DateTime? endDate) =>
+        endDate.HasValue ? DateOnly.FromDateTime(endDate.Value) : null;
 
     private async Task GuardDuplicateCodeAsync(string code)
     {
@@ -442,7 +448,7 @@ public class VoucherAppService : ApplicationService, IVoucherAppService
         ScopeTarget = MapScopeTarget(entity.ScopeTarget),
         TargetIds = entity.TargetIds.Select(x => x.ToString()).ToList(),
         StartDate = entity.ValidFrom.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-        EndDate = entity.ValidTo.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+        EndDate = entity.ValidTo?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
         UsageLimit = entity.UsageLimit,
         UsedCount = entity.UsedCount,
         Status = MapStatus(entity.Status),

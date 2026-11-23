@@ -26,7 +26,11 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
     public IReadOnlyList<Guid> TargetIds => _targetIds;
 
     public DateOnly ValidFrom { get; private set; }
-    public DateOnly ValidTo { get; private set; }
+    /// <summary>
+    /// Last day the voucher applies; null = no end date ("Không giới hạn",
+    /// R-1279). A null never compares below a date, so the expiry sweep skips it.
+    /// </summary>
+    public DateOnly? ValidTo { get; private set; }
 
     public int? UsageLimit { get; private set; }
     public int UsedCount { get; private set; }
@@ -60,7 +64,7 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
         DiscountType discountType,
         decimal discountValue,
         DateOnly validFrom,
-        DateOnly validTo,
+        DateOnly? validTo,
         VoucherScopeTarget scopeTarget,
         Guid? clinicBranchId = null,
         string? prefix = null,
@@ -88,7 +92,7 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
         if (discountType == DiscountType.Percentage && discountValue > 100m)
             throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidDiscount);
 
-        if (validTo < validFrom)
+        if (validTo.HasValue && validTo.Value < validFrom)
             throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidValidityWindow);
 
         if (usageLimit is <= 0)
@@ -213,15 +217,16 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
         return this;
     }
 
-    public Voucher Reschedule(DateOnly validFrom, DateOnly validTo)
+    public Voucher Reschedule(DateOnly validFrom, DateOnly? validTo)
     {
-        if (validTo < validFrom)
+        if (validTo.HasValue && validTo.Value < validFrom)
             throw new BusinessException(BlueDentalDomainErrorCodes.Promotions.InvalidValidityWindow);
 
         ValidFrom = validFrom;
         ValidTo = validTo;
 
-        if (Status == VoucherStatus.Expired && validTo >= DateOnly.FromDateTime(DateTime.UtcNow))
+        if (Status == VoucherStatus.Expired
+            && (!validTo.HasValue || validTo.Value >= DateOnly.FromDateTime(DateTime.UtcNow)))
             Status = VoucherStatus.Active;
 
         return this;
@@ -244,7 +249,7 @@ public class Voucher : FullAuditedAggregateRoot<Guid>
     {
         if (Status != VoucherStatus.Active) return false;
         if (!IsPublished) return false;
-        if (onDate < ValidFrom || onDate > ValidTo) return false;
+        if (onDate < ValidFrom || (ValidTo.HasValue && onDate > ValidTo.Value)) return false;
         if (IsExhausted) return false;
         if (MinOrderValue.HasValue && orderAmount < MinOrderValue.Value) return false;
         return true;
