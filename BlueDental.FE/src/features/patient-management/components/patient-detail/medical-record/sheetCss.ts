@@ -233,7 +233,8 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.99"]{min-width:24px!important}
 .nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.100"]{min-width:20px!important}
 .nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.101"]{min-width:28px!important}
-.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.108"]{min-width:140px!important}
+/* 100px, not Word's 140: Loại is 40px narrower so the date line holds (R-1278). */
+.nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.108"]{min-width:100px!important}
 /* Người nhận hồ sơ's "Họ tên ......" on one line, as in Word (R-1270). */
 .nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.107"]{min-width:120px!important}
 /* Mẫu 4 as the BA's Word copy (Mau-04-Phieu-tu-van.docx, 2026-11-22, R-1273), as mẫu

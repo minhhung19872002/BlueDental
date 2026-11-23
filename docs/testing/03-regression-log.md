@@ -15919,3 +15919,4 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Trước (main 6065ed92): ô ngày/tháng cùng hàng với chữ "Ngày", ô năm thấp hơn 20px (rớt dòng) — tái hiện đúng ảnh BA.
   - Sau: ba ô cùng đỉnh với "Ngày", ô năm kết thúc cách mép ô 17px (develop: 25px); cột Loại vẫn vừa "- Toàn bộ hồ sơ" trên 1 dòng.
 - **Mức retest**: 1 (CSS một bảng của mẫu 2, không đổi hành vi).
+- **Vòng 2** (BA, ảnh chụp sau vòng 1): ô nhập sau "- Khác" (cột Loại) rớt xuống dòng dưới — do vòng 1 thu cột Loại 40px, ô rộng cố định (main 155px, develop 140px theo Word) không còn vừa. Sửa: ô `outpatient-dental.text.108` `min-width:100px!important` (main thêm luật mới; develop đổi luật 140px của R-1270), Bản đã lưu cũng theo. Đo lại (màn hình + bản in, main + develop): ô Khác cùng dòng với chữ như trước vòng 1, dòng ngày vẫn 1 dòng.
