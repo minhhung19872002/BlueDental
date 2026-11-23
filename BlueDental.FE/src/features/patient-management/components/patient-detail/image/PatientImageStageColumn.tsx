@@ -3,6 +3,7 @@ import { t } from "@/lib/i18n";
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
 import type { CameraAvailability } from "../../../hooks/useCameraAvailability";
 import { useImageUploadPreview } from "../../../hooks/useImageUploadPreview";
+import { usePatientImageDownload } from "../../../hooks/usePatientImageDownload";
 import { usePatientImageGallery, type PatientImageGallery } from "../../../hooks/usePatientImageGallery";
 import type { PatientImagePermissions } from "../../../hooks/usePatientImagePermissions";
 import { usePatientImageReorder } from "../../../hooks/usePatientImageReorder";
@@ -70,6 +71,7 @@ export function PatientImageStageColumn({
   const uploading = upload.progress !== null;
   const preview = useImageUploadPreview(upload.upload, title);
   const { reordering, reorder } = usePatientImageReorder(patientId, stage.type, search);
+  const { download, downloading } = usePatientImageDownload();
 
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -112,8 +114,14 @@ export function PatientImageStageColumn({
           some={columnTick.some}
           onSelectAll={(on) => setMany(stage.type, columnTick.selectable, on)}
           onExit={clear}
-          onDelete={onDeleteMany}
-        />
+        >
+          <PatientImageSelectionBar.Download
+            count={selection.picked.length}
+            downloading={downloading}
+            onDownload={() => void download(selection.picked)}
+          />
+          <PatientImageSelectionBar.Delete count={selection.picked.length} onDelete={onDeleteMany} />
+        </PatientImageSelectionBar>
       ) : (
         <PatientImageStageHeader step={stage.step} title={title} summary={summaryOf(gallery, search)}>
           {permissions.canUpload && (

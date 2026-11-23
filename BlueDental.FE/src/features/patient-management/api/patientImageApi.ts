@@ -109,7 +109,34 @@ const patientImageApi = {
   /** All of them or none: one picture the server refuses keeps the whole lot (R-1277). */
   removeMany: (ids: string[]): Promise<void> =>
     api.post(`${BASE}/delete-many`, { ids }).then(() => undefined),
+
+  /** The picture's bytes, through axios so the auth cookie and branch header go along. */
+  content: (id: string): Promise<Blob> =>
+    api.get<Blob>(`${BASE}/${id}/content`, { responseType: "blob" }).then((r) => r.data),
 };
+
+export interface PatientImageFile {
+  fileName: string;
+  blob: Blob;
+}
+
+/** How many pictures "Tải xuống" fetches at once. */
+const DOWNLOAD_CONCURRENCY = 4;
+
+/** Every picture's bytes, in the order given, a few requests at a time. */
+async function fetchContents(images: { id: string; fileName: string }[]): Promise<PatientImageFile[]> {
+  const files = new Array<PatientImageFile>(images.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < images.length) {
+      const index = next++;
+      const image = images[index];
+      files[index] = { fileName: image.fileName, blob: await patientImageApi.content(image.id) };
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(DOWNLOAD_CONCURRENCY, images.length) }, worker));
+  return files;
+}
 
 export const patientImageKeys = {
   all: ["patient-images"] as const,
@@ -194,6 +221,11 @@ export function useDeletePatientImage() {
 /** "Xoá N ảnh" of the tab's selection, in one request. */
 export function useDeletePatientImages() {
   return useImageMutation((ids: string[]) => patientImageApi.removeMany(ids));
+}
+
+/** The selection's "Tải xuống": reads the pictures' bytes; changes nothing on the server. */
+export function useFetchPatientImageFiles() {
+  return useMutation({ mutationFn: fetchContents });
 }
 
 /**

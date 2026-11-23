@@ -700,6 +700,18 @@
 /* The column head while selecting: same box as .pi-stage-head, so nothing below moves. */
 .pi-stage-head--selecting {
   min-height: 61px;
+  container-type: inline-size;
+}
+/* Three columns on a laptop: the count, the box, "Tải xuống" and "Xoá N ảnh" do not fit with the box's label. */
+@container (max-width: 500px) {
+  .pi-select-all-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 /* As tall as "Tải ảnh" (34px), not AntD's 40px: a taller button grew the head and the tiles jumped. */
 .pi-stage-head--selecting .pi-select-delete {
@@ -708,6 +720,14 @@
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
+}
+/* "Tải xuống": a square as tall as "Xoá N ảnh", so the narrow column still fits both. */
+.pi-stage-head--selecting .pi-select-download {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 8px;
 }
 .pi-select-exit {
   display: grid;
@@ -728,6 +748,8 @@
 .pi-select-count {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--pi-ink);
   font-size: 15px;
   font-weight: 700;
