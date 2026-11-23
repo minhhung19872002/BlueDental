@@ -220,7 +220,8 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"] td{height:1.722em}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="diagnosis-code"] p{line-height:1.722!important;min-height:0}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]{width:100%!important}
-.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(1){width:207.4px!important}
+/* Loại 40px under the Word width so "Ngày … tháng … năm …" stays on one line (R-1277); the last col (auto) takes it. */
+.nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(1){width:167.4px!important}
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(2){width:75.6px!important}
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(3){width:189px!important}
 .nfc-tpl[data-form="2"] table[data-record-section="summary-files"]>colgroup>col:nth-child(4){width:auto!important}
