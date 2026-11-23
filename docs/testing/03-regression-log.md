@@ -15909,7 +15909,9 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `tsc -b` sạch.
 - **Mức retest**: 2 (tab Hình ảnh). Ảnh hưởng: chỉ tab Hình ảnh của hồ sơ bệnh nhân; xoá từng ảnh giữ nguyên.
 
-## R-1277 (2026-11-23, mức 1: Bệnh án — mẫu 2 dòng "Ngày … tháng … năm …" ở TỔNG KẾT nằm trên 1 dòng; main + develop)
+## R-1278 (2026-11-23, mức 1: Bệnh án — mẫu 2 dòng "Ngày … tháng … năm …" ở TỔNG KẾT nằm trên 1 dòng; main + develop)
+
+- **Đổi số**: commit đầu ghi R-1277 (main da47d378 / develop 34ca8829), trùng R-1277 tab Hình ảnh của develop 18a31069 → đổi thành R-1278.
 
 - **Yêu cầu BA** (ảnh chụp prod): ô "Ngày … tháng … năm" trên "Bác sỹ điều trị" (bảng Hồ sơ, phim, ảnh) bị rớt ô năm xuống dòng 2 → "cho ngày lên trên 1 dòng, có thể kéo bên hồ sơ (loại) lại bớt". Chủ dự án: không cần khớp vạch đỏ, chỉ cần 1 dòng.
 - **Thay đổi** (chỉ FE CSS, không API, không migration): `sheetCss.ts` — mẫu 2, `table[data-record-section="summary-files"]`: cột Loại 208 → 168px, cột Ngày / Bác sỹ điều trị 190 → 230px (`col` + `!important`, nên các Bản đã lưu cũng theo, không cần Đồng bộ phiếu). Số tờ và Người giao hồ sơ giữ nguyên, bảng vẫn 678px. Trên develop (cỡ chữ theo Word BA, R-1268) sửa thêm cột Loại ở khối cột R-1268 (207,4 → 167,4px, cột cuối `auto` tự nhận phần dư).
