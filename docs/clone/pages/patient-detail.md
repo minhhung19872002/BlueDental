@@ -1706,6 +1706,53 @@ bản gốc chọn file xong là gửi luôn.
   ghi "Không có ảnh khớp với tìm kiếm."
 - Tìm kiếm dùng chung được với bộ lọc giai đoạn.
 
+### Chọn nhiều để xoá (yêu cầu phòng khám, R-1277)
+
+Phòng khám hỏi 2026-11-23: tải nhầm nhiều ảnh thì phải xoá từng ảnh một. Bản
+gốc không có chức năng này. Đây là mở rộng: UNKNOWN_REFERENCE_BEHAVIOR không áp
+dụng vì không có gì để đối chiếu.
+
+- **Ô chọn** ở góc dưới phải thẻ ảnh. Góc trên trái đã có nút kéo, góc trên
+  phải có thùng rác.
+  - Ô tròn 22px, viền trắng, có vòng tối bên ngoài, nền tối như nút kéo. Nhờ
+    vậy ảnh trắng vẫn nhìn rõ ô chọn.
+  - Ô chỉ hiện khi rê chuột, và chỉ khi tài khoản có quyền xoá ảnh.
+  - Chip X-quang cùng góc thì ẩn đi khi đang rê chuột, và lên góc trên khi
+    đang chọn.
+- **Đang chọn** (theo từng cột, mỗi lần một cột):
+  - Bấm vào ảnh là chọn hoặc bỏ chọn, không mở trình xem. Shift+bấm chọn cả
+    dãy, tính từ ảnh chọn trước đó.
+  - Nút kéo, thùng rác và "Tải ảnh"/"Chụp ảnh" ẩn đi; kéo sắp xếp bị tắt.
+  - Ảnh đã chọn có viền xanh, lớp phủ và ☑.
+  - Ảnh công đoạn quá ngày tải lên không xoá được (R-1111). Ảnh đó bị làm mờ,
+    hiện 🔒, kèm tooltip "Ảnh công đoạn chỉ xoá được trong ngày tải lên".
+- **Đầu ngày** có ô "Chọn cả ngày". Ô hiện khi rê chuột vào đầu ngày, và luôn
+  hiện khi đang chọn.
+- **Thanh chọn** thay cho đầu cột và **cao đúng bằng đầu cột** (61px), để ảnh
+  bên dưới không nhảy. Nút "Xoá N ảnh" cao 34px như nút "Tải ảnh". Thanh gồm:
+  - `✕` thoát (Esc cũng thoát);
+  - "N ảnh đã chọn";
+  - ô "Chọn tất cả": chọn những ảnh đã tải về của cột;
+  - nút đỏ "Xoá N ảnh".
+  - Bỏ hết các ảnh đã chọn thì cũng thoát.
+- **Thoát chọn tự động** khi đổi ô tìm kiếm hoặc bộ lọc giai đoạn, để không xoá
+  những ảnh đã chọn mà không còn thấy trên màn hình.
+- **Điện thoại hoặc máy tính bảng:** nhấn giữ 500ms vào một ảnh là vào chế độ
+  chọn.
+- **Hộp xác nhận** "Xoá N ảnh?":
+  - hiện tối đa 8 ảnh nhỏ, phần còn lại ghi "+N";
+  - nút xoá bị khoá và có spinner trong lúc chờ;
+  - thông báo "Đã xoá N ảnh" chỉ hiện sau khi server trả lời;
+  - không hoàn tác được.
+- **API** `POST /api/v1/app/patient-images/delete-many` với body `{ ids: Guid[] }`
+  (1–500 ảnh).
+  - Quyền `TreatmentImage.Delete` và kiểm tra chi nhánh của từng ảnh.
+  - Áp các luật R-1111 (công đoạn quá ngày) và R-1186 (công đoạn đã khoá).
+  - **Tất cả hoặc không ảnh nào:** chỉ cần một ảnh sai id, khác chi nhánh hoặc
+    bị khoá là không xoá ảnh nào.
+  - File trên MinIO chỉ bị xoá sau khi giao dịch đã commit.
+  - Mỗi ảnh công đoạn ghi một dòng lịch sử, như khi xoá từng ảnh.
+
 ---
 
 ## Tab 6: Labo

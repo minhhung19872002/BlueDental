@@ -6,9 +6,12 @@ import { useImageUploadPreview } from "../../../hooks/useImageUploadPreview";
 import { usePatientImageGallery, type PatientImageGallery } from "../../../hooks/usePatientImageGallery";
 import type { PatientImagePermissions } from "../../../hooks/usePatientImagePermissions";
 import { usePatientImageReorder } from "../../../hooks/usePatientImageReorder";
+import type { PatientImageSelection } from "../../../hooks/usePatientImageSelection";
 import { usePatientImageUpload } from "../../../hooks/usePatientImageUpload";
 import { CameraCaptureDialog } from "./CameraCaptureDialog";
+import { ColumnSelectionProvider, tickStateOf, type ColumnSelection } from "./columnSelection";
 import { PatientImageCaptureButton } from "./PatientImageCaptureButton";
+import { PatientImageSelectionBar } from "./PatientImageSelectionBar";
 import { PatientImageStageHeader } from "./PatientImageStageHeader";
 import { PatientImageTimeline } from "./PatientImageTimeline";
 import { PatientImageUploadButton } from "./PatientImageUploadButton";
@@ -26,6 +29,9 @@ interface Props {
   /** A picture is being deleted: dim the column until the feed comes back. */
   deleting: boolean;
   onDelete: (image: PatientImageViewModel) => void;
+  /** The tab's "chọn nhiều để xoá", one column at a time (R-1277). */
+  selection: PatientImageSelection;
+  onDeleteMany: () => void;
 }
 
 /** "50 ảnh · 2 ngày chụp"; the day count only once every page is in. */
@@ -44,7 +50,8 @@ function emptyTextOf(gallery: PatientImageGallery, search: string): string {
 /**
  * One "Giai đoạn điều trị" of the Hình ảnh tab: its own feed, upload (through
  * the preview, one note for the batch) and camera — both filed under this
- * stage — drag-to-sort, and the viewer, which pages through this column only.
+ * stage — drag-to-sort, the viewer, which pages through this column only, and
+ * ticking pictures to delete several at once.
  */
 export function PatientImageStageColumn({
   patientId,
@@ -54,6 +61,8 @@ export function PatientImageStageColumn({
   cameraAvailability,
   deleting,
   onDelete,
+  selection,
+  onDeleteMany,
 }: Props) {
   const title = t(stage.labelKey);
   const gallery = usePatientImageGallery(patientId, stage.type, search);
@@ -65,12 +74,26 @@ export function PatientImageStageColumn({
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
 
-  /** The viewer pages through the column in the order it is drawn. */
+  /** The viewer pages through the column in the order it is drawn; Shift+click ranges over it too. */
   const shown = useMemo(() => gallery.days.flatMap((day) => day.images), [gallery.days]);
   const viewingIndex = viewingId ? shown.findIndex((image) => image.id === viewingId) : -1;
 
   const handleView = useCallback((image: PatientImageViewModel) => setViewingId(image.id), []);
   const closeViewer = useCallback(() => setViewingId(null), []);
+
+  const { toggle, setMany, isPicked, clear } = selection;
+  const selecting = selection.stage === stage.type;
+  const columnSelection = useMemo<ColumnSelection>(
+    () => ({
+      enabled: permissions.canDelete,
+      active: selecting,
+      isPicked,
+      toggle: (image, extend) => toggle(stage.type, image, shown, extend),
+      setMany: (images, on) => setMany(stage.type, images, on),
+    }),
+    [permissions.canDelete, selecting, isPicked, toggle, setMany, stage.type, shown],
+  );
+  const columnTick = tickStateOf(shown, isPicked);
 
   const busy =
     (gallery.isFetching && !gallery.isLoading && !gallery.isLoadingMore) || uploading || reordering || deleting;
@@ -82,32 +105,45 @@ export function PatientImageStageColumn({
       data-testid="patient-image-stage"
       data-stage={stage.modifier}
     >
-      <PatientImageStageHeader step={stage.step} title={title} summary={summaryOf(gallery, search)}>
-        {permissions.canUpload && (
-          <>
-            <PatientImageUploadButton progress={upload.progress} onPick={preview.pick} />
-            <PatientImageCaptureButton
-              availability={cameraAvailability}
-              busy={uploading}
-              onClick={() => setCapturing(true)}
-            />
-          </>
-        )}
-      </PatientImageStageHeader>
+      {selecting ? (
+        <PatientImageSelectionBar
+          count={selection.picked.length}
+          all={columnTick.all}
+          some={columnTick.some}
+          onSelectAll={(on) => setMany(stage.type, columnTick.selectable, on)}
+          onExit={clear}
+          onDelete={onDeleteMany}
+        />
+      ) : (
+        <PatientImageStageHeader step={stage.step} title={title} summary={summaryOf(gallery, search)}>
+          {permissions.canUpload && (
+            <>
+              <PatientImageUploadButton progress={upload.progress} onPick={preview.pick} />
+              <PatientImageCaptureButton
+                availability={cameraAvailability}
+                busy={uploading}
+                onClick={() => setCapturing(true)}
+              />
+            </>
+          )}
+        </PatientImageStageHeader>
+      )}
 
       <div className="pi-stage-body">
-        <PatientImageTimeline
-          days={gallery.days}
-          emptyText={emptyTextOf(gallery, search)}
-          isLoadingMore={gallery.isLoadingMore}
-          busy={busy}
-          sentinelRef={gallery.sentinelRef}
-          canSort={permissions.canSort}
-          canDelete={permissions.canDelete}
-          onView={handleView}
-          onDelete={onDelete}
-          onReorder={reorder}
-        />
+        <ColumnSelectionProvider value={columnSelection}>
+          <PatientImageTimeline
+            days={gallery.days}
+            emptyText={emptyTextOf(gallery, search)}
+            isLoadingMore={gallery.isLoadingMore}
+            busy={busy}
+            sentinelRef={gallery.sentinelRef}
+            canSort={permissions.canSort}
+            canDelete={permissions.canDelete}
+            onView={handleView}
+            onDelete={onDelete}
+            onReorder={reorder}
+          />
+        </ColumnSelectionProvider>
       </div>
 
       {viewingIndex >= 0 && (

@@ -610,6 +610,164 @@
   background: var(--bd-red-dark);
 }
 
+/* ---- Chọn nhiều để xoá (R-1277) ---- */
+/* The tick sits bottom right: the grip and the trash already hold the top corners. */
+.pi-card-tick {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  /* Dark as the grip, with a dark ring outside the white one: it reads on a white picture too. */
+  background: rgb(17 24 39 / 65%);
+  box-shadow: 0 0 0 1px rgb(17 24 39 / 55%), 0 1px 4px rgb(17 24 39 / 45%);
+  color: #fff;
+  pointer-events: none;
+}
+.pi-card-tick--offer {
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 0.15s ease;
+}
+.pi-card:hover .pi-card-tick--offer,
+.pi-card-tick--offer:focus-visible {
+  opacity: 1;
+}
+.pi-card-tick--offer:hover {
+  background: rgb(17 24 39 / 85%);
+}
+.pi-card-tick--on {
+  border-color: var(--bd-primary);
+  background: var(--bd-primary);
+}
+.pi-card-tick--locked {
+  border-color: transparent;
+  background: rgb(17 24 39 / 65%);
+  pointer-events: auto;
+}
+/* The X-ray chip shares the corner: it gives way while the tick is offered … */
+.pi-card--tickable:hover:not(.pi-card--selecting) .pi-card-xray {
+  opacity: 0;
+}
+/* … and moves to the top while selecting, where the grip and trash were. */
+.pi-card--selecting .pi-card-xray {
+  top: 4px;
+  bottom: auto;
+}
+.pi-card--picked .pi-card-picture {
+  border-color: var(--bd-primary);
+}
+.pi-card--picked .pi-card-picture::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: rgb(99 102 241 / 18%);
+  pointer-events: none;
+}
+.pi-card--locked .pi-card-picture {
+  cursor: not-allowed;
+}
+.pi-card--locked .pi-card-picture img {
+  opacity: 0.45;
+}
+.pi-card--selecting:not(.pi-card--locked) .pi-card-picture {
+  cursor: default;
+}
+
+/* "Chọn cả ngày": on hover of the day before a selection, always during one. */
+.pi-day-tick {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.pi-day-head:hover .pi-day-tick,
+.pi-day-tick:focus-within,
+.pi-day-head--selecting .pi-day-tick {
+  opacity: 1;
+}
+@media (hover: none) {
+  .pi-day-head:not(.pi-day-head--selecting) .pi-day-tick {
+    display: none;
+  }
+}
+
+/* The column head while selecting: same box as .pi-stage-head, so nothing below moves. */
+.pi-stage-head--selecting {
+  min-height: 61px;
+}
+/* As tall as "Tải ảnh" (34px), not AntD's 40px: a taller button grew the head and the tiles jumped. */
+.pi-stage-head--selecting .pi-select-delete {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.pi-select-exit {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--pi-ink);
+  cursor: pointer;
+}
+.pi-select-exit:hover {
+  background: rgb(17 24 39 / 8%);
+}
+.pi-select-count {
+  flex: 1;
+  min-width: 0;
+  color: var(--pi-ink);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pi-select-all {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* "Xoá N ảnh?": the ticked pictures, small, under the question. */
+.pi-bulk-question {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pi-bulk-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pi-bulk-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #e5e7eb;
+}
+.pi-bulk-more {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: var(--bd-bg-soft, #f3f4f6);
+  color: var(--pi-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .pi-sentinel {
   height: 16px;
 }

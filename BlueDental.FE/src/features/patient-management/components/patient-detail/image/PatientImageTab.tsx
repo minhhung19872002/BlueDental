@@ -8,7 +8,9 @@ import { useDeletePatientImage, type PatientImageType } from "../../../api/patie
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
 import { ezdentLinkOf, useXrayStationAvailable } from "../../../api/xrayStationApi";
 import { useCameraAvailability } from "../../../hooks/useCameraAvailability";
+import { usePatientImageBulkDelete } from "../../../hooks/usePatientImageBulkDelete";
 import { usePatientImagePermissions } from "../../../hooks/usePatientImagePermissions";
+import { PatientImageBulkDeleteDialog } from "./PatientImageBulkDeleteDialog";
 import { PatientImageStageColumn } from "./PatientImageStageColumn";
 import { PatientImageToolbar } from "./PatientImageToolbar";
 import { PATIENT_IMAGE_STAGES } from "./patientImageStages";
@@ -38,6 +40,7 @@ export function PatientImageTab({ patientId, patientCode }: Props) {
   // Asked of the server once typing pauses, not on every key.
   const settledSearch = useDebounce(search.trim(), 300);
   const [removing, setRemoving] = useState<PatientImageViewModel | null>(null);
+  const bulk = usePatientImageBulkDelete(`${filter ?? "all"}|${settledSearch}`);
 
   const stages = filter === null ? PATIENT_IMAGE_STAGES : PATIENT_IMAGE_STAGES.filter((s) => s.type === filter);
 
@@ -77,8 +80,10 @@ export function PatientImageTab({ patientId, patientCode }: Props) {
             search={settledSearch}
             permissions={permissions}
             cameraAvailability={cameraAvailability}
-            deleting={deleteImage.isPending}
+            deleting={deleteImage.isPending || bulk.pending}
             onDelete={setRemoving}
+            selection={bulk.selection}
+            onDeleteMany={bulk.ask}
           />
         ))}
       </div>
@@ -91,6 +96,13 @@ export function PatientImageTab({ patientId, patientCode }: Props) {
         pending={deleteImage.isPending}
         onConfirm={handleDelete}
         onClose={() => setRemoving(null)}
+      />
+
+      <PatientImageBulkDeleteDialog
+        images={bulk.confirming}
+        pending={bulk.pending}
+        onConfirm={() => void bulk.confirm()}
+        onClose={bulk.cancel}
       />
     </div>
   );

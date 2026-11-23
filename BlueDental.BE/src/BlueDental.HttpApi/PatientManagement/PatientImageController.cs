@@ -63,4 +63,8 @@ public sealed class PatientImageController(IPatientImageAppService service) : Bl
 
     [HttpDelete("{id:guid}")]
     public Task DeleteAsync(Guid id) => service.DeleteAsync(id);
+
+    /// <summary>The selection's "Xoá N ảnh" (R-1277); a POST, since a DELETE carries no body.</summary>
+    [HttpPost("delete-many")]
+    public Task DeleteManyAsync([FromBody] DeletePatientImagesDto input) => service.DeleteManyAsync(input);
 }
