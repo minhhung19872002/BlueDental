@@ -15869,7 +15869,7 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kết quả E2E** (bản build production, preview :8099, BE thật + PostgreSQL thật): `medical-record-surgical-checklists.spec.ts` 3/3 xanh; `patient-medical-record.spec.ts` "index lists…", "every form draws the whole…", "every form shares…" 3/3 xanh.
 - **Mức retest**: 2 (F-30 bệnh án — mẫu 12). Ảnh hưởng: chỉ mẫu 12 (selector `[data-form="12"]`; LETTERHEAD chỉ mẫu 12 dùng).
 
-## R-1277 (2026-11-23, mức 2: Hồ sơ bệnh nhân — tab Hình ảnh, chọn nhiều ảnh để xoá một lần; develop)
+## R-1277 (2026-11-23, mức 2: Hồ sơ bệnh nhân — tab Hình ảnh, chọn nhiều ảnh để xoá một lần; main + develop)
 
 - **Yêu cầu** (phòng khám, qua chủ dự án): tải nhầm nhiều ảnh thì phải xoá từng ảnh một. Chủ dự án duyệt phương án kiểu Google Photos: ô chọn ở **góc dưới phải** (góc trên trái là nút kéo, góc trên phải là thùng rác).
 - **BE**: thêm `POST /api/v1/app/patient-images/delete-many` với body `{ ids }` (1–500 ảnh).
