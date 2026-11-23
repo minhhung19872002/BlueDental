@@ -9,6 +9,8 @@ export interface BranchInfo {
   provinceId: string | null;
   wardId: string | null;
   phone: string | null;
+  /** Second clinic line (R-1300), printed after `phone`. */
+  phone2: string | null;
   email: string | null;
 }
 
@@ -19,6 +21,7 @@ interface BranchResponse {
   provinceId?: string | null;
   wardId?: string | null;
   phoneNumber?: string;
+  phoneNumber2?: string | null;
   email?: string;
 }
 
@@ -29,6 +32,7 @@ function toBranchInfo(branch: BranchResponse): BranchInfo {
     provinceId: branch.provinceId ?? null,
     wardId: branch.wardId ?? null,
     phone: branch.phoneNumber ?? null,
+    phone2: branch.phoneNumber2 ?? null,
     email: branch.email ?? null,
   };
 }

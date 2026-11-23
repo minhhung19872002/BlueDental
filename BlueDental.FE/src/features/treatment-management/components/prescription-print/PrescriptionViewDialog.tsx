@@ -2,6 +2,7 @@ import { createPortal } from "react-dom";
 import { PrinterOutlined } from "@ant-design/icons";
 import { AppDialog } from "@/components/AppDialog";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
+import { useFullAddress } from "@/hooks/useFullAddress";
 import { usePrintSheet } from "@/hooks/usePrintSheet";
 import { t } from "@/lib/i18n";
 import type { PrescriptionDto } from "../../api/prescriptionApi";
@@ -18,7 +19,7 @@ interface Props {
 /**
  * "Xem đơn thuốc {mã}" — the printer button on a row of the Đơn thuốc tab.
  * Shows the slip read-only as it will come out on paper; "In đơn thuốc" opens
- * the browser's print preview with only that sheet on an A4 page.
+ * the browser's print preview with only that sheet on an A5 page (R-1300).
  *
  * Mounted only while a slip is being viewed, so the print hook's cleanup runs
  * when it closes.
@@ -26,12 +27,22 @@ interface Props {
 export function PrescriptionViewDialog({ patient, prescription, onClose }: Props) {
   const clinic = useBranchInfo(prescription.clinicBranchId).data;
   const print = usePrintSheet();
-  const sheet = <PrescriptionPrintSheet clinic={clinic} patient={patient} prescription={prescription} />;
+  const { street, provinceCode, wardCode, oldAddress } = patient.address;
+  // The pre-2025 address only when the record has no current one.
+  const patientAddress = useFullAddress({ street, provinceCode, wardCode }) || (oldAddress?.trim() ?? "");
+  const sheet = (
+    <PrescriptionPrintSheet
+      clinic={clinic}
+      patient={patient}
+      patientAddress={patientAddress}
+      prescription={prescription}
+    />
+  );
 
   return (
     <AppDialog
       open
-      width={880}
+      width={640}
       className="rx-view-dialog"
       title={t("Treatment:RxPrint:ViewTitle", prescription.code)}
       canSave

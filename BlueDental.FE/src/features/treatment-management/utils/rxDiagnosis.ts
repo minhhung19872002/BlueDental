@@ -18,6 +18,25 @@ export function printedDiagnosisText(rows: RxDiagnosisRow[]): string {
     .join("; ");
 }
 
+/** " (R11, R12)" — the teeth suffix older slips stored in their printed text. */
+const STORED_TEETH = /\s*\(R\d+(?:,\s*R\d+)*\)/g;
+
+/**
+ * "DT03 – Viêm tủy răng; DT01 – Sâu ngà" — the ĐƠN THUỐC's Chẩn đoán since
+ * R-1300: the names only, no teeth. A slip saved before F-58 has no picked
+ * rows, so its stored text is used with any teeth suffix taken off.
+ */
+export function printedDiagnosisNames(
+  rows: readonly { planCode: string; diagnosisName: string; sortOrder: number }[],
+  storedText: string | null,
+): string {
+  if (rows.length === 0) return (storedText ?? "").replace(STORED_TEETH, "").trim();
+  return [...rows]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((row) => `${row.planCode} – ${row.diagnosisName}`)
+    .join("; ");
+}
+
 /**
  * "Ghi chú chẩn đoán" filled from the picked diagnoses' own notes: each
  * different note on its own line, a note repeated across picks only once.

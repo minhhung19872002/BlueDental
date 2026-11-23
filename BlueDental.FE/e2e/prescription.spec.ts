@@ -169,6 +169,26 @@ async function createMedicine(page: Page, id: string, name: string) {
   await expect(dialog).toBeHidden();
 }
 
+/** A synthetic second clinic line, and how the letterhead prints it (R-1300). */
+const SECOND_LINE = "0912345678";
+const SECOND_LINE_PRINTED = "0912.345.678";
+
+/** Cấu hình › Thông tin phòng khám's "Số điện thoại 2", on a fresh load of the tab. */
+async function clinicSecondPhone(page: Page): Promise<Locator> {
+  await page.goto("/settings?tab=clinic");
+  await assertRealApiTraffic(page, "/api/v1/app/clinic-branches");
+  const field = page.getByLabel("Số điện thoại 2", { exact: true });
+  await expect(field).toBeVisible();
+  return field;
+}
+
+async function saveClinicSecondPhone(page: Page, value: string) {
+  const field = await clinicSecondPhone(page);
+  await field.fill(value);
+  await page.getByRole("button", { name: "Lưu Thay Đổi" }).click();
+  await expect(page.getByText("Cập nhật thông tin phòng khám thành công")).toBeVisible();
+}
+
 async function openPrescriptionTab(page: Page, patientUrl: string) {
   await page.goto(`${patientUrl}?tab=prescription&branchId=${BRANCH_ONE}`);
   await assertRealApiTraffic(page, PRESCRIPTIONS_API);
@@ -470,10 +490,19 @@ test.describe.serial("Đơn thuốc", () => {
     await reopened.getByRole("button", { name: /Hủy$/ }).click();
   });
 
-  test("In đơn thuốc shows the slip read-only with the session doses", async ({ page }) => {
+  test("In đơn thuốc shows the slip read-only with the session doses, on A5 under both clinic lines (R-1300)", async ({
+    page,
+  }) => {
     await login(page);
-    await openPrescriptionTab(page, patientUrl);
+    // Cấu hình › Thông tin phòng khám: a second line, refused when malformed, kept after a reload.
+    const phone2 = await clinicSecondPhone(page);
+    const original = await phone2.inputValue();
+    await phone2.fill("123");
+    await expect(page.getByText("Số điện thoại không hợp lệ")).toBeVisible();
+    await saveClinicSecondPhone(page, SECOND_LINE);
+    await expect(await clinicSecondPhone(page)).toHaveValue(SECOND_LINE);
 
+    await openPrescriptionTab(page, patientUrl);
     const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(printedFirst)}(?!;)`) });
     const code = (await row.locator("td").first().textContent())?.trim() ?? "";
     await row.getByRole("button", { name: "In đơn thuốc" }).click();
@@ -481,10 +510,21 @@ test.describe.serial("Đơn thuốc", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText(`Xem đơn thuốc ${code}`);
     await expect(dialog).toContainText("ĐƠN THUỐC");
-    await expect(dialog).toContainText(printedFirst);
-    await expect(dialog).toContainText(medicine);
-    await expect(dialog).toContainText("Sáng 1 · Chiều 0.5 · Tối 1 · 3 ngày");
-    await expect(dialog).toContainText(`Lời dặn e2e ${id}`);
+    await expect(dialog.locator(".rx-sheet-clinic")).toContainText(`– ${SECOND_LINE_PRINTED}`);
+    // Chẩn đoán prints the names only — the list keeps the teeth.
+    await expect(dialog).toContainText(`Chẩn đoán: ${seed.planCode} – ${seed.first.name}`);
+    await expect(dialog.locator(".rx-sheet")).not.toContainText("(R36");
+    await expect(dialog).toContainText("Địa chỉ:");
+    await expect(dialog).toContainText("Người giám hộ:");
+    // The BA's second copy: numbered medicines, no table header, "Bác sĩ" to
+    // sign on the right, the standing advice and the slip's own as "Khác".
+    const medicines = dialog.locator(".rx-sheet-med");
+    await expect(medicines.filter({ hasText: medicine })).toContainText("Sáng 1 · Chiều 0.5 · Tối 1 · 3 ngày");
+    await expect(dialog.locator(".rx-sheet th")).toHaveCount(0);
+    await expect(dialog.locator(".rx-sheet-sign-role")).toHaveText("Bác sĩ");
+    await expect(dialog.locator(".rx-sheet-advice")).toContainText("Lời dặn bác sĩ: Khám lại xin mang theo đơn này.");
+    await expect(dialog.locator(".rx-sheet-other")).toHaveText(`Khác: Lời dặn e2e ${id}`);
+    await expect(dialog.locator(".rx-sheet")).not.toContainText("Tái khám");
     // Read-only: nothing on the sheet can be typed into.
     await expect(dialog.locator(".rx-sheet input, .rx-sheet textarea")).toHaveCount(0);
 
@@ -505,12 +545,29 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(printed).toBeVisible();
     await expect(printed).toContainText(medicine);
     await expect(dialog).toBeHidden();
+    // A5: the sheet is 148mm wide (559px) and asks for the named A5 page.
+    const sheet = await printed.locator("article.rx-sheet").evaluate((el) => ({
+      width: el.getBoundingClientRect().width,
+      page: getComputedStyle(el).getPropertyValue("page"),
+    }));
+    expect(Math.round(sheet.width)).toBe(559);
+    expect(sheet.page).toBe("rx-a5");
+    const pdf = await page.pdf({ preferCSSPageSize: true });
+    expect(pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).toHaveLength(1);
+    // A5 is 419.5 × 595.3pt; Chromium writes it in whole px, "0 0 420 594.96".
+    const box = /\/MediaBox\s*\[\s*0 0 ([\d.]+) ([\d.]+)\s*\]/.exec(pdf.toString("latin1"));
+    expect(Math.abs(Number(box?.[1]) - 419.5)).toBeLessThan(1);
+    expect(Math.abs(Number(box?.[2]) - 595.3)).toBeLessThan(1);
     await page.emulateMedia({ media: "screen" });
 
     await dialog.locator("button").filter({ hasText: "Đóng" }).click();
     await expect(dialog).toBeHidden();
     await expect(printed).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveClass(/pd-printing/);
+
+    // Put the branch back as it was ("" clears the line).
+    await saveClinicSecondPhone(page, original);
+    await expect(await clinicSecondPhone(page)).toHaveValue(original);
   });
 
   test("Ngày lên đơn thuốc dates the slip back, never ahead, and the printed slip carries it", async ({

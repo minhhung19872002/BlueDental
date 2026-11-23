@@ -16085,3 +16085,11 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Đo bản in so với PDF Word: trang 1 và 4 lệch ≤1pt; trang 5–7 ngắt đúng như Word, mọi dòng lệch đều +3,1pt ở đầu trang (nửa khoảng dòng CSS đặt trên dòng đầu trang tiếp nối — không chỉnh được bằng CSS ở điểm ngắt), khoảng cách giữa các dòng ±0,1pt; chữ ký ±0,2px. Vẫn 7 trang.
 - Khác biệt nội dung giữ nguyên (docx của BA khác bản đang chạy): bản mình còn khối "Loại mắc cài" 3 dòng (R-1097) và dòng text.6 "Trên tinh thần…", Bên A/Bên B đậm (Word không đậm) → trang 1–3 ngắt khác Word 1–2 dòng. Chờ chủ hệ thống quyết.
 - E2E: sửa assert mẫu 10 (17,333px, line-height 1,725, lề 20/10/20/17,5mm, tiêu đề 20px, trang in `orthodontic-contract`, 7 trang) — "mẫu 10: the contract…", "a page filled to its foot…", "a browser extension's block…", "the form index…" xanh trong lượt 5 bộ ở trên.
+
+## R-1300 — ĐƠN THUỐC theo Word của BA: A5, SĐT 2 chi nhánh, địa chỉ + người giám hộ (2026-11-23)
+
+- Nguồn: yêu cầu BA + `Downloads/Mau-Don-thuoc (1).docx` (bản thứ hai, 2026-11-23). Chủ dự án chốt: thêm ô "Số điện thoại 2" cho chi nhánh, chỉ khổ A5.
+- BE: `ClinicBranch.PhoneNumber2` (`SetSecondPhone`, max 50) + migration `20261123075435_BranchSecondPhoneR1300`; DTO regex `^(0\d{9,10})?$`, null = giữ, "" = xoá. `BranchSecondPhoneTests` 4/4.
+- FE: Cấu hình chi nhánh có ô SĐT 2; bản in "SĐT1 – SĐT2" dạng 0799.160.888; "Premium" bỏ bằng cách đổi tên chi nhánh (dữ liệu, không phải code). Thêm Địa chỉ bệnh nhân (trống → dòng chấm), Người giám hộ + SĐT, Chẩn đoán chỉ tên (bỏ răng, kể cả chữ cũ đã lưu).
+- Bố cục theo docx thứ hai: thuốc là danh sách đánh số không kẻ (tên đậm, cách dùng nghiêng, số lượng giữa), "Cộng khoản" phải; khối ký bên phải "TP.HCM, Ngày …" (nơi = đoạn cuối địa chỉ phòng khám) / Bác sĩ / (Ký, ghi rõ họ tên) / tên; dưới là "Lời dặn bác sĩ: Khám lại xin mang theo đơn này." và "Khác: {lời dặn của đơn}" hoặc dòng chấm. Bỏ dòng Tái khám (docx không có). A5 `@page rx-a5`, đo so với PDF Word lệch ≤1pt; ~5 thuốc vừa 1 trang.
+- E2E build production :8090 → host :5000 → PostgreSQL thật: `prescription` + `prescription-allergy` 11/11, `branch-*` 22/22; `tsc` sạch.

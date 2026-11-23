@@ -5869,6 +5869,10 @@ namespace BlueDental.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("PhoneNumber2")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("ProvinceId")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");

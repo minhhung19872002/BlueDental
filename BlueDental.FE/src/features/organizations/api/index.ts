@@ -10,6 +10,8 @@ export interface ClinicBranchDto {
   provinceId?: string;
   wardId?: string;
   phoneNumber?: string;
+  /** Second clinic line, printed after the first on the prescription (R-1300). */
+  phoneNumber2?: string | null;
   email?: string;
   slogan?: string;
   taxCode?: string;
@@ -32,6 +34,7 @@ export interface CreateClinicBranchDto {
   wardId?: string;
   address?: string;
   phoneNumber?: string;
+  phoneNumber2?: string;
   email?: string;
   slogan?: string;
   taxCode?: string;
@@ -49,6 +52,8 @@ export interface UpdateClinicBranchDto {
   wardId?: string;
   address?: string;
   phoneNumber?: string;
+  /** Omitted keeps the second phone; "" clears it. */
+  phoneNumber2?: string;
   email?: string;
   slogan?: string;
   taxCode?: string;
@@ -240,6 +245,8 @@ export interface UpdateClinicBranchInput {
   provinceId?: string;
   wardId?: string;
   phoneNumber?: string;
+  /** Omitted keeps the second phone; "" clears it. */
+  phoneNumber2?: string;
   email?: string;
   slogan?: string;
   taxCode?: string;

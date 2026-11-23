@@ -22,6 +22,7 @@ import {
   type TreatmentPlanSlipDto,
 } from "../../api/treatmentPlanApi";
 import type { PrescriptionPatientSummary } from "../../types/prescription";
+import { printedGuardian } from "../../utils/printedGuardian";
 import { PrescriptionDialog } from "../PrescriptionDialog";
 import { CancelServiceDialog } from "./CancelServiceDialog";
 import { DeleteServiceDialog } from "./DeleteServiceDialog";
@@ -66,6 +67,13 @@ function prescriptionPatient(patient: PatientDto): PrescriptionPatientSummary {
     dateOfBirth: patient.dateOfBirth,
     phoneNumber: patient.phoneNumber,
     diseaseHistoryEntryIds: patient.diseaseHistoryEntryIds,
+    address: {
+      street: patient.address,
+      provinceCode: patient.provinceCode,
+      wardCode: patient.wardCode,
+      oldAddress: patient.oldAddress,
+    },
+    guardian: printedGuardian(patient.guardians),
   };
 }
 

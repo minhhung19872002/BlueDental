@@ -1,55 +1,58 @@
-import { usageLabel } from "@/components/prescription-lines";
 import type { BranchInfo } from "@/hooks/useBranchInfo";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { printedDoctorName } from "@/utils/printedDoctorName";
-import {
-  PRESCRIPTION_TREATMENT_TYPE,
-  type PrescriptionDto,
-  type PrescriptionItemDto,
-} from "../../api/prescriptionApi";
+import { PRESCRIPTION_TREATMENT_TYPE, type PrescriptionDto } from "../../api/prescriptionApi";
 import type { PrescriptionPatientSummary } from "../../types/prescription";
 import { ageOf } from "../../utils/age";
-import { doseText } from "../../utils/rxDose";
+import { printedDiagnosisNames } from "../../utils/rxDiagnosis";
+import { RxSheetFact, RxSheetMedicines, RxSheetOtherAdvice } from "./RxSheetParts";
 
 interface Props {
   clinic: BranchInfo | undefined;
   patient: PrescriptionPatientSummary;
+  /** The record's address as printed, already resolved ("" when none). */
+  patientAddress: string;
   prescription: PrescriptionDto;
 }
 
-/** "Sáng 1 · Tối 1 · 5 ngày · Sau khi ăn". */
-function directionsOf(item: PrescriptionItemDto): string {
-  const dose = doseText(item);
-  const usage = item.usage === 0 ? null : usageLabel(item);
-  return usage ? `${dose} · ${usage}` : dose;
-}
-
-/** "Ngày 6 tháng 10 năm 2026" — the date the slip was written. */
-function longDate(value: string): string {
+/**
+ * "TP.HCM, Ngày 6 tháng 10 năm 2026" — the date the slip was written, after
+ * the place: the last part of the clinic's address, as the BA's "TP HCM" is
+ * the last part of theirs. An address without parts gives the date alone.
+ */
+function placedDate(value: string, clinicAddress: string | null | undefined): string {
   const date = new Date(value);
-  return t("Patient:Print:LongDate", date.getDate(), date.getMonth() + 1, date.getFullYear());
+  const day = t("Patient:Print:LongDate", date.getDate(), date.getMonth() + 1, date.getFullYear());
+  const parts = (clinicAddress ?? "").split(",").map((part) => part.trim());
+  const place = parts.length > 1 ? parts[parts.length - 1] : "";
+  return place ? t("Treatment:RxPrint:PlaceDate", place, day) : day;
 }
 
-function Fact({ label, value, wide }: { label: string; value: string; wide?: boolean }) {
-  return (
-    <p className={wide ? "rx-sheet-fact rx-sheet-fact--wide" : "rx-sheet-fact"}>
-      <span>{label}:</span> <strong>{value || "—"}</strong>
-    </p>
-  );
+/** "0799.160.888" — a ten-digit number in the BA's groups; anything else as stored. */
+function dottedPhone(phone: string): string {
+  return /^\d{10}$/.test(phone) ? `${phone.slice(0, 4)}.${phone.slice(4, 7)}.${phone.slice(7)}` : phone;
+}
+
+/** "0799.160.888 – 0767.080.333": the branch's lines, second one when set (R-1300). */
+function clinicPhones(clinic: BranchInfo | undefined): string {
+  return [clinic?.phone, clinic?.phone2].filter((phone): phone is string => Boolean(phone)).map(dottedPhone).join(" – ");
 }
 
 /**
- * "ĐƠN THUỐC" — one slip laid out as a Vietnamese outpatient prescription:
- * clinic letterhead and slip code, the patient, the diagnosis, the numbered
- * medicines with how to take each, the advice, the follow-up date and the
- * prescribing doctor's signature block.
+ * "ĐƠN THUỐC" on an A5 page, laid out as the BA's second Word copy
+ * (Downloads/Mau-Don-thuoc (1).docx, R-1300): the clinic letterhead and slip
+ * code, the patient with address and guardian, the diagnosis names, the
+ * numbered medicines with how to take each, the prescribing doctor's signature
+ * block on the right, then the standing advice and "Khác" — the slip's own
+ * advice, or a dotted line for the doctor to write one. The BA's copy has no
+ * Tái khám line, so the follow-up date is not printed.
  *
  * Rendered twice by PrescriptionViewDialog — once on screen, once in the
  * off-screen copy that reaches the printer — so it holds no state. Not in the
  * reference (bug list #23); BlueDental's own design.
  */
-export function PrescriptionPrintSheet({ clinic, patient, prescription }: Props) {
+export function PrescriptionPrintSheet({ clinic, patient, patientAddress, prescription }: Props) {
   const age = ageOf(patient.dateOfBirth);
   const birth = [
     patient.dateOfBirth ? formatDate(patient.dateOfBirth) : null,
@@ -61,6 +64,7 @@ export function PrescriptionPrintSheet({ clinic, patient, prescription }: Props)
     prescription.treatmentType === PRESCRIPTION_TREATMENT_TYPE.Inpatient
       ? t("Treatment:Prescription:Inpatient")
       : t("Treatment:Prescription:Outpatient");
+  const phones = clinicPhones(clinic);
 
   return (
     <article className="rx-sheet">
@@ -68,7 +72,7 @@ export function PrescriptionPrintSheet({ clinic, patient, prescription }: Props)
         <div className="rx-sheet-clinic">
           <strong>{clinic?.name ?? ""}</strong>
           {clinic?.address && <p>{t("Treatment:RxPrint:Address", clinic.address)}</p>}
-          {clinic?.phone && <p>{t("Treatment:RxPrint:Phone", clinic.phone)}</p>}
+          {phones && <p>{t("Treatment:RxPrint:Phone", phones)}</p>}
         </div>
         <p className="rx-sheet-code">
           {t("Treatment:RxPrint:Code")}: <strong>{prescription.code}</strong>
@@ -78,57 +82,39 @@ export function PrescriptionPrintSheet({ clinic, patient, prescription }: Props)
       <h1 className="rx-sheet-title">{t("Treatment:RxPrint:Title")}</h1>
 
       <div className="rx-sheet-facts">
-        <Fact label={t("Treatment:RxPrint:PatientName")} value={patient.fullName.toUpperCase()} />
-        <Fact label={t("Treatment:RxPrint:PatientCode")} value={patient.code} />
-        <Fact label={t("Treatment:RxPrint:DateOfBirth")} value={birth} />
-        <Fact label={t("Treatment:RxPrint:Gender")} value={patient.genderLabel} />
-        <Fact label={t("Treatment:RxPrint:PhoneLabel")} value={patient.phoneNumber ?? ""} />
-        <Fact label={t("Treatment:Prescription:TreatmentType")} value={treatment} />
-        <Fact wide label={t("Treatment:Diagnosis:Diagnosis")} value={prescription.diagnosisText ?? ""} />
+        <RxSheetFact label={t("Treatment:RxPrint:PatientName")} value={patient.fullName.toUpperCase()} />
+        <RxSheetFact label={t("Treatment:RxPrint:PatientCode")} value={patient.code} />
+        <RxSheetFact label={t("Treatment:RxPrint:DateOfBirth")} value={birth} />
+        <RxSheetFact label={t("Treatment:RxPrint:Gender")} value={patient.genderLabel} />
+        <RxSheetFact wide empty="dots" label={t("Treatment:RxPrint:PatientAddress")} value={patientAddress} />
+        <RxSheetFact label={t("Treatment:RxPrint:PhoneLabel")} value={patient.phoneNumber ?? ""} />
+        <RxSheetFact label={t("Treatment:Prescription:TreatmentType")} value={treatment} />
+        <RxSheetFact
+          wide
+          label={t("Treatment:Diagnosis:Diagnosis")}
+          value={printedDiagnosisNames(prescription.diagnoses, prescription.diagnosisText)}
+        />
+        <RxSheetFact empty="blank" label={t("Treatment:RxPrint:Guardian")} value={patient.guardian?.fullName ?? ""} />
+        <RxSheetFact empty="blank" label={t("Treatment:RxPrint:GuardianPhone")} value={patient.guardian?.phone ?? ""} />
       </div>
 
-      <table className="rx-sheet-table">
-        <thead>
-          <tr>
-            <th className="rx-sheet-no">{t("Treatment:RxPrint:No")}</th>
-            <th>{t("Treatment:RxPrint:Medicine")}</th>
-            <th className="rx-sheet-qty">{t("Common:Rx:Quantity")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {prescription.items.map((item, index) => (
-            <tr key={item.id}>
-              <td className="rx-sheet-no">{index + 1}</td>
-              <td>
-                <strong>{item.medicationName}</strong>
-                <em>{directionsOf(item)}</em>
-              </td>
-              <td className="rx-sheet-qty">{item.quantity}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <RxSheetMedicines items={prescription.items} />
       <p className="rx-sheet-count">{t("Treatment:RxPrint:Count", prescription.items.length)}</p>
 
-      <div className="rx-sheet-advice">
-        <p className="rx-sheet-note">
-          <strong>{t("Treatment:RxPrint:Advice")}:</strong> {prescription.note || "—"}
-        </p>
-        <p>
-          <strong>{t("Treatment:Prescription:TypeRecheck")}:</strong>{" "}
-          {prescription.followUpDate ? formatDate(prescription.followUpDate) : "—"}
-        </p>
-      </div>
-
-      <footer className="rx-sheet-foot">
-        <p className="rx-sheet-reminder">{t("Treatment:RxPrint:Reminder")}</p>
-        <div className="rx-sheet-sign">
-          <em>{longDate(prescription.issuedAt)}</em>
-          <strong>{t("Treatment:RxPrint:Doctor")}</strong>
-          <em>{t("Treatment:RxPrint:SignHint")}</em>
-          <strong className="rx-sheet-signer">{printedDoctorName(prescription.staffName, prescription.staffJobTitle) ?? ""}</strong>
-        </div>
+      <footer className="rx-sheet-sign">
+        <em>{placedDate(prescription.issuedAt, clinic?.address)}</em>
+        <span className="rx-sheet-sign-role">{t("Treatment:RxPrint:Doctor")}</span>
+        <em>{t("Treatment:RxPrint:SignHint")}</em>
+        <strong className="rx-sheet-signer">{printedDoctorName(prescription.staffName, prescription.staffJobTitle) ?? ""}</strong>
       </footer>
+
+      <div className="rx-sheet-advice">
+        <p>
+          <em>{t("Treatment:RxPrint:Advice")}</em>
+          <strong>:</strong> <em>{t("Treatment:RxPrint:Reminder")}</em>
+        </p>
+        <RxSheetOtherAdvice note={prescription.note} />
+      </div>
     </article>
   );
 }

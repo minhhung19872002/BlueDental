@@ -2,6 +2,7 @@ import { useState } from "react";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { PrescriptionPanel } from "@/features/treatment-management/components/PrescriptionPanel";
 import type { PrescriptionPatientSummary } from "@/features/treatment-management/types/prescription";
+import { printedGuardian } from "@/features/treatment-management/utils/printedGuardian";
 import { t } from "@/lib/i18n";
 import { GENDER, type GenderCode, type PatientDto } from "../../types/patient";
 import { InvoiceRequestPanel } from "./invoice-request/InvoiceRequestPanel";
@@ -23,6 +24,13 @@ export function PatientPrescriptionTab({ patient }: { patient: PatientDto }) {
     dateOfBirth: patient.dateOfBirth,
     phoneNumber: patient.phoneNumber,
     diseaseHistoryEntryIds: patient.diseaseHistoryEntryIds,
+    address: {
+      street: patient.address,
+      provinceCode: patient.provinceCode,
+      wardCode: patient.wardCode,
+      oldAddress: patient.oldAddress,
+    },
+    guardian: printedGuardian(patient.guardians),
   };
   return (
     <section className="pd-pane pd-pane--fill">

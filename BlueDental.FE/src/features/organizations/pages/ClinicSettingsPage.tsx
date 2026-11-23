@@ -428,6 +428,7 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
         code: branch.code ?? "",
         name: branch.name ?? "",
         phoneNumber: branch.phoneNumber ?? "",
+        phoneNumber2: branch.phoneNumber2 ?? "",
         email: branch.email ?? "",
         provinceId: branch.provinceId ?? undefined,
         wardId: branch.wardId ?? undefined,
@@ -453,6 +454,8 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
         input: {
           name: values.name,
           phoneNumber: clean(values.phoneNumber),
+          // Always sent: "" clears the second line (omitted = keep).
+          phoneNumber2: values.phoneNumber2?.trim() ?? "",
           email: clean(values.email),
           address: clean(values.address),
           provinceId: values.provinceId || undefined,
@@ -488,10 +491,17 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
         <Form.Item name="slogan" label={t("Organization:SloganLabel")} rules={[{ max: 500, message: t("Organization:SloganMaxLength") }]}>
           <Input placeholder={t("Organization:SloganPlaceholder")} />
         </Form.Item>
-        <div className="settings-row">
+        <div className="settings-row-3">
           <Form.Item
             name="phoneNumber"
             label={t("Organization:PhoneLabelField")}
+            rules={[{ pattern: /^0\d{9,10}$/, message: t("Organization:PhoneInvalid") }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="phoneNumber2"
+            label={t("Organization:Phone2Label")}
             rules={[{ pattern: /^0\d{9,10}$/, message: t("Organization:PhoneInvalid") }]}
           >
             <Input />

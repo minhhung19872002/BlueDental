@@ -13,6 +13,18 @@ export interface PrescriptionPatientSummary {
   phoneNumber: string | null;
   /** Lịch sử bệnh catalog entries ticked on the record. */
   diseaseHistoryEntryIds: string[];
+  /** The record's address, printed on the ĐƠN THUỐC (R-1300). */
+  address: PrescriptionPatientAddress;
+  /** The guardian the slip prints: the primary contact, else the first listed. */
+  guardian: { fullName: string; phone: string } | null;
+}
+
+/** Street plus ward/province codes; `oldAddress` is the pre-2025 one, used when the rest is empty. */
+export interface PrescriptionPatientAddress {
+  street: string | null;
+  provinceCode: string | null;
+  wardCode: string | null;
+  oldAddress: string | null;
 }
 
 /**
