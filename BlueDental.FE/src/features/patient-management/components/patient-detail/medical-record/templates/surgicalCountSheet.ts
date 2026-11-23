@@ -2,8 +2,8 @@ import { blank, box, header, signature, ticked } from "./sheetMarkup";
 
 /*
  * Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ (MS PT-06) — the clinic's own
- * paper form (2026-11-16), one A4 page upright, set like mẫu 7 (14px inside
- * 15mm margins). The reference has no such form.
+ * paper form (2026-11-16), one A4 page upright inside 15mm margins, at the
+ * sizes the BA set in Word (R-1276, sheetCss). The reference has no such form.
  *
  * The count table is a grid: its cells print without the dotted line, except
  * the gauze sizes ("Gạc …x…cm"), which the paper dots.
@@ -56,7 +56,7 @@ export const SURGICAL_COUNT_SHEET_TEMPLATE =
     ["Mã người bệnh:", blank(`${ID}.patient.code`, 120, { source: "patient.code" })],
   ]) +
   '<h1 data-record-section="surgical-count-title" style="text-align: center;"><span style="font-size: 15pt;"><strong>' +
-  "BẢNG KIỂM ĐẾM GẠC,<br>DỤNG CỤ SẮC NHỌN,<br>DỤNG CỤ</strong></span></h1>" +
+  "BẢNG KIỂM ĐẾM GẠC, DỤNG CỤ SẮC NHỌN, DỤNG CỤ</strong></span></h1>" +
   `<p>Họ và tên người bệnh: ${blank(`${ID}.patient.name`, 300, { source: "patient.nameUppercase" })}` +
   ` &nbsp;&nbsp; Tuổi: ${blank(`${ID}.patient.age`, 56, { source: "patient.age" })}` +
   ` &nbsp;&nbsp; ${ticked(`${ID}.patient.gender-male`, "Nam", "patient.genderMale")}` +

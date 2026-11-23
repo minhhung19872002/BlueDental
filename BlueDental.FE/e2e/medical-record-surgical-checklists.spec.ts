@@ -307,15 +307,18 @@ test.describe("Bệnh án — mẫu 11 and mẫu 12, the clinic's surgical check
     const table = sheet(page).locator('table[data-record-section="surgical-count"]');
     await expect(table.locator("tbody > tr")).toHaveCount(7);
     await expect(table.locator('[data-medical-record-field^="surgical-count.count."]')).toHaveCount(48);
-    // The title's three lines set close, the table clear of the name line, and the
-    // signers' names printed with no dotted line (clinic 2026-11-16).
+    // As the BA's Word copy (R-1276): the title on one line, the name line with
+    // Tuổi, Nam and Nữ on one line and the table right under it; the signers'
+    // names printed with no dotted line (clinic 2026-11-16).
     const title = sheet(page).locator('h1[data-record-section="surgical-count-title"]');
-    expect(Math.round((await title.boundingBox())?.height ?? 0)).toBeLessThanOrEqual(92);
+    expect(Math.round((await title.boundingBox())?.height ?? 0)).toBeLessThanOrEqual(40);
     const nameLine = sheet(page).locator("p", { has: blank(page, "surgical-count.patient.name") });
-    const gap =
-      ((await table.boundingBox())?.y ?? 0) -
-      (((await nameLine.boundingBox())?.y ?? 0) + ((await nameLine.boundingBox())?.height ?? 0));
-    expect(gap).toBeGreaterThanOrEqual(8);
+    const nameBox = await nameLine.boundingBox();
+    expect(Math.round(nameBox?.height ?? 0)).toBeLessThanOrEqual(45);
+    const female = await blank(page, "surgical-count.patient.gender-female").boundingBox();
+    expect(Math.abs((female?.y ?? 0) - (nameBox?.y ?? 0))).toBeLessThan(20);
+    const gap = ((await table.boundingBox())?.y ?? 0) - ((nameBox?.y ?? 0) + (nameBox?.height ?? 0));
+    expect(Math.abs(gap)).toBeLessThanOrEqual(1);
     await page.emulateMedia({ media: "print" });
     const signers = sheet(page).locator(
       'table[data-record-section="signature"] .nfc-medical-record-text-field',

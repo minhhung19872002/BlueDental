@@ -122,14 +122,13 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="10"] p[data-record-section="bracket-types"] .bracket-opt>.nfc-medical-record-checkbox{flex:none;margin:0 .15em 0 0;align-self:center}
 .nfc-tpl[data-form="10"] p[data-record-section="bracket-types"] .bracket-opt>span:has(>.nfc-medical-record-text-field){flex:1 1 0;min-width:2.5em}
 .nfc-tpl[data-form="10"] p[data-record-section="bracket-types"] .bracket-opt .nfc-medical-record-text-field{width:100%!important;min-width:0!important}
-/* The clinic's surgical checklists (2026-11-16): the count sheet (mẫu 12) set
-   like mẫu 7, 14px inside 15mm margins; the safety checklist (mẫu 11), three
+/* The clinic's surgical checklists (2026-11-16): the count sheet (mẫu 12) is
+   set at the BA's Word sizes further down (R-1276); the safety checklist (mẫu 11), three
    columns on A4 landscape inside 10mm, at 13px on 1.36 lines — 12px read too
    small, 14px a touch large (clinic 2026-11-16). The room left at the foot
    went into the line pitch and the gaps between sections ("hơi khít"), the
    sheet still one page with ~15px to spare. */
 .nfc-tpl[data-form="11"]{font-size:13px}
-.nfc-tpl[data-form="12"]{font-size:14px}
 /* Larger letters, same pages (clinic, 2026-11-14, R-1234: "in ra giấy nhìn nó
    nhỏ", the pages kept as they are). Times New Roman's lower case stands at
    0.45 of its size; font-size-adjust draws the letters as if it stood at
@@ -382,11 +381,6 @@ ${SHEET_FONT_FACE_CSS}
    right; the first column of a borderless table on the left margin — on mẫu 6
    a box opening a line too. After the paragraph rules above, which it overrides. */
 .nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h1:not([data-cover] *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h2{line-height:1.5!important}
-/* Mẫu 12's three-line title as the paper: 15pt (18pt read large), set close —
-   the 1.5 pitch of the rule above spread it out — with the paper's room under
-   it and between the name line and the count table (clinic 2026-11-16). */
-.nfc-tpl[data-form="12"]>h1[data-record-section="surgical-count-title"]{font-size:15pt;line-height:1.25!important;margin:12px 0 22px}
-.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]{margin-top:16px}
 .nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table:first-child>tbody>tr>td:first-child,
 .nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table[data-borderless]>tbody>tr>td:first-child{padding-left:0}
 .nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table:first-child>tbody>tr>td:last-child{padding-right:0}
@@ -474,6 +468,45 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]))>span:first-child{margin-right:-14.3px}
 .nfc-tpl.nfc-tpl[data-form="6"] :is([data-medical-record-field="surgery-consent.text.1"],[data-medical-record-field="surgery-consent.text.2"],[data-medical-record-field="surgery-consent.text.3"],[data-medical-record-field="surgery-consent.text.4"],[data-medical-record-field="surgery-consent.text.5"],[data-medical-record-field="surgery-consent.text.6"],[data-medical-record-field="surgery-consent.text.7"],[data-medical-record-field="surgery-consent.text.8"],[data-medical-record-field="surgery-consent.text.21"],[data-medical-record-field="surgery-consent.patient.name"],[data-medical-record-field="surgery-consent.patient.birth-year"],[data-medical-record-field="surgery-consent.text.9"],[data-medical-record-field="surgery-consent.text.10"],[data-medical-record-field="surgery-consent.text.11"]){width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="6"] .nfc-medical-record-text-field{min-height:1em}
+/* Mẫu 12 as the BA's Word copy (Mau-12-Bang-kiem-dem-gac-dung-cu.docx,
+   2026-11-23, R-1276): Times New Roman at its own height, 11.5pt on Word's 1.5
+   lines, no space around paragraphs; the letterhead 11pt bold, MS 10pt where
+   Word sets it; the title 16pt on one line; the count table's head on single
+   lines, its rows as they were; the tick rows as tall as Word draws them; the
+   blanks end where Word's tabs end them; the signatures on 1.5 lines, the
+   empty lines before the name gone, as in the BA's copy. */
+.nfc-tpl[data-form="12"]{--nfc-letter-height:none;font-size:15.333px}
+.nfc-tpl[data-form="12"] span[style*="font-size"]{font-size:inherit!important}
+.nfc-tpl.nfc-tpl[data-form="12"] :is(p,h1){line-height:1.725!important;margin:0}
+.nfc-tpl.nfc-tpl[data-form="12"]>table:first-child{margin:0}
+.nfc-tpl[data-form="12"]>table:first-child>colgroup>col:first-child{width:368.6px!important}
+.nfc-tpl.nfc-tpl[data-form="12"]>table:first-child>tbody>tr{height:90px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table:first-child>tbody>tr>td{padding:2px 0 0;vertical-align:top}
+.nfc-tpl.nfc-tpl[data-form="12"]>table:first-child>tbody>tr>td:first-child>p{font-size:14.667px;line-height:21px!important;margin-left:5.7px!important}
+.nfc-tpl.nfc-tpl[data-form="12"] p.record-ids{font-size:13.333px;line-height:21px!important;row-gap:0;column-gap:0;grid-template-columns:104px 1fr;width:auto;margin:0 0 0 56.6px}
+.nfc-tpl.nfc-tpl[data-form="12"] p.record-ids .nfc-medical-record-text-field{width:100%!important;min-width:0!important}
+.nfc-tpl.nfc-tpl[data-form="12"]>h1[data-record-section="surgical-count-title"]{font-size:21.333px;margin-top:7.9px}
+.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.name"]{display:inline-block;width:295.6px!important;min-width:0!important}
+.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.age"]{display:inline-block;width:49.8px!important;min-width:0!important}
+.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.gender-male"]{margin:0 4.7px 0 -11.7px}
+.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.gender-female"]{margin:0 5.8px 0 10px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]{margin-top:0}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:first-child p{line-height:1.15!important}
+.nfc-tpl.nfc-tpl[data-form="12"]>p:has([data-medical-record-field="surgical-count.patient.name"]){padding-bottom:10.2px!important}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:nth-child(n+4)>td:first-child{padding-top:2.8px;padding-bottom:5.2px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:first-child>td{padding-top:1.7px;padding-bottom:1.7px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]+p{margin-top:8.1px}
+.nfc-tpl.nfc-tpl[data-form="12"]>p:has(>input[type="checkbox"]){padding:2.2px 0 1.8px}
+.nfc-tpl.nfc-tpl[data-form="12"] p:is(:has(>span>[data-medical-record-field="surgical-count.text.2"]),:has(>span>[data-medical-record-field="surgical-count.text.3"]),:has(>span>[data-medical-record-field="surgical-count.text.5"])){display:flex;align-items:baseline;gap:.25em;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="12"] p:is(:has(>span>[data-medical-record-field="surgical-count.text.2"]),:has(>span>[data-medical-record-field="surgical-count.text.3"]),:has(>span>[data-medical-record-field="surgical-count.text.5"]))>span:last-child{flex:1 1 auto;min-width:0;margin-top:-1.35px}
+.nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.2"]){padding-right:49.1px}
+.nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.3"]){padding-right:56px}
+.nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.3"])>input[type="checkbox"]:first-child{margin-left:0}
+.nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.5"]){padding-right:35px}
+.nfc-tpl.nfc-tpl[data-form="12"] :is([data-medical-record-field="surgical-count.text.2"],[data-medical-record-field="surgical-count.text.3"],[data-medical-record-field="surgical-count.text.5"]){width:100%!important;min-width:0!important}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="signature"]{margin-top:28.6px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="signature"]>tbody>tr>td{padding-top:0;padding-bottom:0}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="signature"] p>em+br~br{display:none}
 @media print{
   .nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{border-bottom:0!important}
   .nfc-tpl table[data-record-section="surgical-count"] td:first-child .nfc-medical-record-text-field:not([data-field-full-width="true"]){border-bottom:1px dotted #000!important}

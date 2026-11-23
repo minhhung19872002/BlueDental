@@ -39,7 +39,7 @@ export function ticked(id: string, label: string, source?: string): string {
 /** The letterhead every form of the clinic opens with. */
 export const LETTERHEAD =
   '<p data-block-align="left" style="text-align: center; line-height: 1.25; display: table; max-width: 100%; margin-left: 0px; margin-right: auto;"><span style="font-size: 10pt;"><strong>' +
-  "SỞ Y TẾ THÀNH PHỐ HỒ CHÍ MINH<br>PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT -<br>THUỘC CÔNG TY CỔ PHẦN DỊCH VỤ<br>NHA KHOA ĐỨC HẠNH" +
+  "SỞ Y TẾ THÀNH PHỐ HỒ CHÍ MINH<br>PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT<br>THUỘC CÔNG TY CỔ PHẦN DỊCH VỤ<br>NHA KHOA ĐỨC HẠNH" +
   "</strong></span></p>";
 
 /** "MS:", "Mã người bệnh:" … in the right-hand corner, labels and blanks in two columns. */
