@@ -15495,7 +15495,7 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - tsc + eslint sạch.
 - **Mức retest**: 2.
 
-## R-1235 (2026-11-16, mức 2: Kế hoạch điều trị — "Thêm dịch vụ phát sinh" lấy Giá sau giảm; develop)
+## R-1235 (2026-11-16, mức 2: Kế hoạch điều trị — "Thêm dịch vụ phát sinh" lấy Giá sau giảm; develop + main)
 
 - **Yêu cầu BA**: "phần thêm dịch vụ phát sinh chưa lấy giá sau giảm nha". Dialog "Thêm dịch vụ" (nút "Thêm dịch vụ phát sinh" ở Chi tiết phiếu) điền giá gốc Danh mục (`price`), không phải "Giá sau giảm" (`serviceConfig.priceAfterDiscount`). Phiếu tư vấn và Chuyển đổi (R-1184) đã bán theo Giá sau giảm.
 - **Chủ dự án chốt**: áp cho cả hai chế độ của dialog (thực tế chế độ tạo phiếu mới không còn nút nào mở từ 2026-10-15, chỉ còn nút phát sinh); trần Đơn giá = Giá sau giảm (hạ được, không nâng được — như R-1184).

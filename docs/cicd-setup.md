@@ -7,13 +7,13 @@ Hai workflow trong `.github/workflows/`:
 | `ci.yml` | pull request, push (nhanh khac main/develop) | Lint + typecheck + format + unit test + build cho FE; build + test cho BE; build thu 2 Docker image |
 | `cd.yml` | push vao `main` / `develop`, hoac chay tay | Chay lai toan bo CI, roi SSH vao VM deploy va smoke test |
 
-**Image build o dau:** `main` (production) build ngay tren VM bang
-`docker compose build`. `develop` (staging) thi KHONG: job `images` cua
-`cd.yml` build tren GitHub Actions, day len GHCR
-(`ghcr.io/<owner>/bluedental-api|frontend:<sha>`), roi `deploy.sh` nhan
-`API_IMAGE` / `FRONTEND_IMAGE` va chi `docker pull`. VM staging dung chung voi
-nhieu app khac, 11 GB RAM, khong swap -- build .NET tren do an 3.5 GB va da lam
-treo ca may 2 lan ngay 2026-11-11. Package GHCR la private; job deploy dang nhap
+**Image build o dau:** ca `main` (production) lan `develop` (staging) deu
+KHONG build tren VM: job `images` cua `cd.yml` build tren GitHub Actions, day
+len GHCR (`ghcr.io/<owner>/bluedental-api|frontend:<sha>`), roi `deploy.sh`
+nhan `API_IMAGE` / `FRONTEND_IMAGE` va chi `docker pull`. Build .NET + Vite
+trong `docker compose build` an 3.5 GB+ RAM: da lam treo VM staging (11 GB,
+dung chung ~10 app) 2 lan ngay 2026-11-11, va treo VM production (8 GB, khong
+swap) ngay 2026-11-12 (run 43131543516, phai reboot). Package GHCR la private; job deploy dang nhap
 VM bang `GITHUB_TOKEN` cua chinh no vao `~/.cache/bluedental-ghcr` va xoa sau
 khi xong, khong can PAT hay secret nao them.
 
@@ -101,6 +101,20 @@ group `docker`:
 ```bash
 sudo usermod -aG docker hung   # da co san tren VM nay
 ```
+
+### Swap tren VM production
+
+VM production (bluestar-02) co 8 GB RAM. Tu 2026-11-12 co swap file 4 GB de
+may khong do cung khi RAM het (truoc do khong co swap):
+
+```bash
+sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+echo 'vm.swappiness=10' | sudo tee /etc/sysctl.d/99-swap.conf && sudo sysctl -p /etc/sysctl.d/99-swap.conf
+```
+
+Kiem tra: `swapon --show`, `free -m`.
 
 ## 5. File `.env` tren VM
 
