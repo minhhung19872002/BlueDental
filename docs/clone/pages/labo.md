@@ -1144,3 +1144,26 @@ What in §11–§14 no longer describes BlueDental (develop):
 - The Danh mục tab "Vật liệu nha khoa" (`/taxonomy`, group `dental_material`)
   is a different list. Only Bệnh án mẫu 5 uses it; Labo never reads it. This
   was answered to the BA.
+
+## 16. R-1288 — Mã số tự động (BA 2026-11-23, main + develop)
+
+- BA: "sao mã số này không cho tự động luôn". Chốt với BA: lưu
+  `{Mã bệnh nhân}-{yyyyMMdd}-{xxx}` (ví dụ `DH261083-20261123-001`), nhưng ô
+  Mã số và mọi màn hình chỉ hiện `yyyyMMdd-xxx` — mã BN đã có ngay bên dưới.
+  Cắt theo đuôi `-(8 số)-(3+ số)`, không theo mã BN hiện tại, nên mã gõ tay cũ
+  vẫn hiện nguyên.
+- `xxx` đếm theo bệnh nhân **suốt đời** (chủ dự án chọn "a"): không reset theo
+  ngày; số lớn nhất hiện có + 1, kể cả phiếu đã huỷ / đã xoá (số không tái
+  dùng). `yyyyMMdd` là ngày phòng khám lúc số được cấp.
+- Server cấp số khi lưu (Lưu nháp hay Gửi) nếu phiếu chưa có; phiếu đã có số
+  giữ nguyên. Ô Mã số chỉ đọc, hiện trước số mà lần lưu sẽ lấy
+  (`GET /api/v1/app/labo-orders/next-slip-no?patientId=`, quyền
+  `LaboOrders.Create`, bệnh nhân phải thuộc chi nhánh). Bỏ lỗi "Chưa nhập mã số".
+- Ai đó lấy mất số vừa hiện: lần lưu lấy số kế tiếp. Nhiều người lưu cùng lúc
+  cho một bệnh nhân: khoá `pg_advisory_xact_lock` theo bệnh nhân, lượt sau chờ
+  lượt trước commit rồi mới đếm — không trùng, không 500.
+- API vẫn nhận Mã số gửi kèm (import, phiếu cũ), vẫn không trùng trong chi nhánh
+  (`Labo:0043`). Tìm kiếm /labo khớp cả mã đầy đủ lẫn `yyyyMMdd-xxx`; Excel
+  xuất mã đầy đủ. Không migration.
+- Giới hạn: cột LabSlipNo dài 50 → mã BN quá ~37 ký tự sẽ tràn (mã DHyy… hiện
+  tại 8 ký tự).

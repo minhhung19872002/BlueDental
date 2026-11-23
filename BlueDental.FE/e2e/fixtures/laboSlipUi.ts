@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic } from "./auth";
 import { BRANCH_ONE, call, LABO_ORDERS, LaboStatus, type Paged } from "./laboApi";
-import type { SlipOrderView } from "./laboSlipApi";
+import { shownSlipNo, type SlipOrderView } from "./laboSlipApi";
 
 /**
  * Driving the Phiếu yêu cầu from the patient's Labo tab in a real browser
@@ -136,7 +136,10 @@ export async function chooseOption(page: Page, dialog: Locator, label: string, o
   await page.locator(".ant-select-dropdown:visible .ant-select-item-option").filter({ hasText: option }).click();
 }
 
-/** Everything «Tạo phiếu Labo» waits on, the doctor picked from the real list. */
+/**
+ * Everything «Tạo phiếu Labo» waits on, the doctor picked from the real list;
+ * `no` is the Mã số the slip is expected to show (R-1288: the server's, not typed).
+ */
 export async function fillRequired(
   page: Page,
   dialog: Locator,
@@ -146,10 +149,19 @@ export async function fillRequired(
 ) {
   await pickSupplier(page, dialog, supplier.name);
   await dialog.getByLabel("Màu thân gần").fill("a2");
-  await dialog.getByLabel("Mã số", { exact: true }).fill(no);
+  // Mã số is the server's (R-1288): shown locked, the patient code cut off.
+  await expectSlipNo(dialog, shownSlipNo(no));
   await dialog.getByLabel("Bác sĩ chỉ định").click();
   await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
   await typeDate(dialog.getByLabel("Ngày nhận dự kiến"), stamp(5));
   await pickTeeth(page, dialog, [16, 17]);
   await pickRestoration(page, dialog, material);
+}
+
+/** The slip's Mã số: read-only text, never an input (R-1288). */
+export async function expectSlipNo(dialog: Locator, shown: string) {
+  const field = dialog.getByRole("textbox", { name: "Mã số", exact: true });
+  await expect(field).toHaveText(shown);
+  await expect(field).toHaveAttribute("aria-readonly", "true");
+  await expect(dialog.locator("input[aria-label='Mã số']")).toHaveCount(0);
 }

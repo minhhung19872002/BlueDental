@@ -11,7 +11,7 @@ import {
   valuesOf,
   type TemplateView,
 } from "./fixtures/laboFormTemplateApi";
-import { newPatient, slipCatalog, slipNo } from "./fixtures/laboSlipApi";
+import { newPatient, nextSlipNo, shownSlipNo, slipCatalog } from "./fixtures/laboSlipApi";
 import { day, fillRequired, openLaboTab, ordersOf, patientRow, sentOrder, slipDialog, startSlip, typeDate } from "./fixtures/laboSlipUi";
 
 /**
@@ -239,7 +239,7 @@ test.describe.skip("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
   }) => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "extra-ui");
-    const no = slipNo("xui");
+    const no = await nextSlipNo(page, patientId);
     const section = (dialog: Locator) => dialog.getByRole("region", { name: "Thông tin bổ sung" });
     const status = (dialog: Locator) => dialog.getByRole("status");
 
@@ -329,7 +329,7 @@ test.describe.skip("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
       await setActive(page, template.id, false);
 
       await openLaboTab(page, patientId);
-      await patientRow(page, no).getByRole("button", { name: "Xem chi tiết" }).click();
+      await patientRow(page, shownSlipNo(no)).getByRole("button", { name: "Xem chi tiết" }).click();
       const dialog = slipDialog(page);
       const extra = section(dialog);
       await expect(dialog.locator(".rs-extra-pick")).toContainText(template.name);
@@ -385,7 +385,7 @@ test.describe.skip("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
 
     await test.step("the sent slip shows the answers, shut", async () => {
       await openLaboTab(page, patientId);
-      await patientRow(page, no).getByRole("button", { name: "Xem chi tiết" }).click();
+      await patientRow(page, shownSlipNo(no)).getByRole("button", { name: "Xem chi tiết" }).click();
       await page.getByRole("dialog").getByRole("tab", { name: "Đặt hàng" }).click();
       const dialog = slipDialog(page);
       const extra = section(dialog);
@@ -397,10 +397,10 @@ test.describe.skip("Labo Mẫu phiếu bổ sung UI (F-93)", () => {
 
     await test.step("In Phiếu Labo prints Thông tin bổ sung as the template lays it out (F-94)", async () => {
       await page.goto(`/labo?branchId=${BRANCH_ONE}`);
-      const row = page.locator(".bd-labo-screen tbody tr.ant-table-row").filter({ hasText: no }).first();
+      const row = page.locator(".bd-labo-screen tbody tr.ant-table-row").filter({ hasText: shownSlipNo(no) }).first();
       await row.getByRole("button", { name: "Xem", exact: true }).click();
       const sheet = page.locator(".pd-slip-print");
-      await expect(sheet).toContainText(`Mã số: ${no}`);
+      await expect(sheet).toContainText(`Mã số: ${shownSlipNo(no)}`);
       const extra = sheet.locator(".pd-slip-print-block").filter({ hasText: "Thông tin bổ sung" });
       await expect(extra).toHaveCount(1);
       await expect(extra).toContainText("Mã labo: ML-02");

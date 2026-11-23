@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button, Select } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import {
-  laboOrderNo,
+  laboOrderFullNo,
   useLaboOrderList,
   LABO_SAMPLE_FILTER,
   type LaboOrderDto,
@@ -58,7 +58,7 @@ function sampleTabs() {
 /** The reference exports the paired columns split apart — labo.md §2.8. */
 function exportOrders(items: LaboOrderDto[]) {
   const rows = items.map((row) => ({
-    orderCode: laboOrderNo(row),
+    orderCode: laboOrderFullNo(row),
     createdAt: formatDate(row.creationTime),
     patientName: row.patientName ?? "",
     sentDate: row.sentAt ? formatDate(row.sentAt) : "",

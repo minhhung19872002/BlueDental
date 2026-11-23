@@ -24,6 +24,12 @@ public interface ILaboAppService : IApplicationService
     /// </summary>
     Task<string> GetNextOrderCodeAsync();
 
+    /// <summary>
+    /// Mã số the patient's next Phiếu yêu cầu would take (R-1288), shown on
+    /// the new slip; the save hands out the final one.
+    /// </summary>
+    Task<string> GetNextLabSlipNoAsync(Guid patientId);
+
     /// <summary>The Đặt hàng tab saved again while the order is a Nháp.</summary>
     Task<LaboOrderDto> UpdateAsync(Guid id, UpdateLaboOrderDto input);
 

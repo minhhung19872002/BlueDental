@@ -32,7 +32,6 @@ import {
  */
 
 const code = (n: number) => `BlueDental:Labo:${String(n).padStart(4, "0")}`;
-const LAB_SLIP_NO_REQUIRED = code(42);
 const LAB_SLIP_NO_TAKEN = code(43);
 const RESTORATION_MISSING = code(44);
 const RESTORATION_INVALID = code(45);
@@ -134,7 +133,7 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
     }
   });
 
-  test("Lưu nháp needs no Mã số or supplier and carries no slip link", async ({ page }) => {
+  test("Lưu nháp needs no supplier, takes the server's Mã số (R-1288) and carries no slip link", async ({ page }) => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "draft");
     const made = await save(page, { patientId, dentistId: c.dentistId, teeth: [21], submit: false });
@@ -143,19 +142,21 @@ test.describe("Labo Phiếu yêu cầu API (F-91)", () => {
     const order = await readBack(page, made.body.id!);
     expect(order.status).toBe(LaboStatus.Draft);
     expect(order.layout).toBe(Layout.RequestSlip);
-    expect(order.labSlipNo).toBeNull();
+    expect(order.labSlipNo).toMatch(/^.+-\d{8}-001$/);
     expect(order.treatmentServiceId).toBeNull();
     expect(order.treatmentStageId).toBeNull();
     expect(order.labProviderName).toBe("");
     expect(order.supplierName).toBeNull();
   });
 
-  test("Gửi without Mã số is refused", async ({ page }) => {
+  test("Gửi without Mã số takes the server's one (R-1288)", async ({ page }) => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "nocode");
     const res = await save(page, fullSlip(c, patientId, ""));
-    expect(res.status).toBe(403);
-    expect(res.body.error?.code).toBe(LAB_SLIP_NO_REQUIRED);
+    expect(res.status, res.text).toBe(200);
+    const order = await readBack(page, res.body.id!);
+    expect(order.status).toBe(LaboStatus.Sent);
+    expect(order.labSlipNo).toMatch(/^.+-\d{8}-001$/);
   });
 
   test("a full Phiếu yêu cầu is sent and every tooth keeps the whole spec", async ({ page }) => {

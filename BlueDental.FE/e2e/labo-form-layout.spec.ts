@@ -17,8 +17,8 @@ import {
   type FieldInput,
   type TemplateView,
 } from "./fixtures/laboFormTemplateApi";
-import { fullSlip, newPatient, slipCatalog, slipNo } from "./fixtures/laboSlipApi";
-import { openLaboTab, patientRow, pickRestoration, pickTeeth, sentOrder, slipDialog, stamp, startSlip, typeDate } from "./fixtures/laboSlipUi";
+import { fullSlip, newPatient, nextSlipNo, shownSlipNo, slipCatalog, slipNo } from "./fixtures/laboSlipApi";
+import { expectSlipNo, openLaboTab, patientRow, pickRestoration, pickTeeth, sentOrder, slipDialog, stamp, startSlip, typeDate } from "./fixtures/laboSlipUi";
 
 /**
  * Feature F-94: the Mẫu phiếu lays out the whole Phiếu yêu cầu. The slip's own
@@ -422,7 +422,7 @@ test.describe.skip("Labo Mẫu phiếu layout UI (F-94)", () => {
   test("the slip and its print follow the order's layout: blocks in order, own headings, hidden ones left out", async ({ page }) => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "layout-ui");
-    const no = slipNo("layui");
+    const no = await nextSlipNo(page, patientId);
     const template = await layoutTemplate(
       page,
       "Phiếu bố cục",
@@ -462,7 +462,7 @@ test.describe.skip("Labo Mẫu phiếu layout UI (F-94)", () => {
 
     await test.step("filled without Màu răng, the slip is sent", async () => {
       const dialog = slipDialog(page);
-      await dialog.getByLabel("Mã số", { exact: true }).fill(no);
+      await expectSlipNo(dialog, shownSlipNo(no));
       await dialog.getByLabel("Bác sĩ chỉ định").click();
       await page.locator(".ant-select-dropdown:visible .ant-select-item-option").first().click();
       await typeDate(dialog.getByLabel("Ngày nhận dự kiến"), stamp(5));
@@ -490,7 +490,7 @@ test.describe.skip("Labo Mẫu phiếu layout UI (F-94)", () => {
     await test.step("reopened after a reload, the sent slip keeps the layout, shut", async () => {
       await openLaboTab(page, patientId);
       await page.reload();
-      await patientRow(page, no).getByRole("button", { name: "Xem chi tiết" }).click();
+      await patientRow(page, shownSlipNo(no)).getByRole("button", { name: "Xem chi tiết" }).click();
       await page.getByRole("dialog").getByRole("tab", { name: "Đặt hàng" }).click();
       const dialog = slipDialog(page);
       await expect(dialog.locator(".rs-blocks > .rs-block")).toHaveCount(5);
@@ -501,10 +501,10 @@ test.describe.skip("Labo Mẫu phiếu layout UI (F-94)", () => {
 
     await test.step("In Phiếu Labo prints the blocks in the same order under the same headings", async () => {
       await page.goto(`/labo?branchId=${BRANCH_ONE}`);
-      const row = page.locator(".bd-labo-screen tbody tr.ant-table-row").filter({ hasText: no }).first();
+      const row = page.locator(".bd-labo-screen tbody tr.ant-table-row").filter({ hasText: shownSlipNo(no) }).first();
       await row.getByRole("button", { name: "Xem", exact: true }).click();
       const sheet = page.locator(".pd-slip-print");
-      await expect(sheet).toContainText(`Mã số: ${no}`);
+      await expect(sheet).toContainText(`Mã số: ${shownSlipNo(no)}`);
       await expect(sheet.locator(".pd-slip-print-block > h3")).toHaveText([
         "Thông tin phiếu",
         "Răng làm",

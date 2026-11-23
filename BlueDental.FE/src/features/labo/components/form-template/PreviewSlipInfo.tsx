@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import { DatePicker, Input, Radio, Select } from "antd";
+import { DatePicker, Radio, Select } from "antd";
 import { t } from "@/lib/i18n";
 import { LABO_CASE_TYPE } from "@/features/labo/api/laboApi";
 
 /**
  * Thông tin phiếu in the preview (R-1202): the markup of RequestSlipInfo on a
- * new slip — Mã số still blank and marked, Loại phiếu on Ca mới, the read-only
+ * new slip — Mã số not yet assigned (R-1288), Loại phiếu on Ca mới, the read-only
  * parts grey — with no patient behind it. The preview is inert, so nothing
  * here takes input.
  */
@@ -27,8 +27,10 @@ export function PreviewSlipInfo({ title }: { title: string }) {
     <section className="rs-sec">
       <div className="rs-sech">{title}</div>
       <div className="rs-secb rs-info">
-        <Field label="Labo:Slip:SlipNo" required wide>
-          <Input className="rs-inp rs-err" tabIndex={-1} placeholder={t("Labo:Slip:SlipNoPlaceholder")} />
+        <Field label="Labo:Slip:SlipNo" wide>
+          <div className="rs-ro">
+            <span className="rs-ro-hint">{t("Labo:Slip:SlipNoPlaceholder")}</span>
+          </div>
         </Field>
         <Field label="Labo:Slip:CaseType" required wide>
           <Radio.Group className="rs-radios" value={LABO_CASE_TYPE.New}>

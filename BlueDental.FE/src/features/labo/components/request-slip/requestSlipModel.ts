@@ -160,7 +160,6 @@ const hidden = (values: Pick<RequestSlipValues, "extra">, kind: LaboBlockKind): 
 /** The i18n keys of what «Tạo phiếu Labo» still waits for, in the mock's order. */
 export function requestSlipErrors(values: RequestSlipValues): string[] {
   const errors: string[] = [];
-  if (!values.labSlipNo.trim()) errors.push("Labo:Slip:Err:SlipNo");
   if (!values.supplierId) errors.push("Labo:Slip:Err:Supplier");
   if (!values.dentistId) errors.push("Labo:Slip:Err:Dentist");
   if (isDueBad(values)) errors.push("Labo:Slip:Err:Due");
@@ -188,7 +187,6 @@ const blankToUndefined = (value: string) => value.trim() || undefined;
 export function requestSlipBody(values: RequestSlipValues) {
   const shown = (kind: LaboBlockKind) => !hidden(values, kind);
   return {
-    labSlipNo: blankToUndefined(values.labSlipNo),
     caseType: values.caseType,
     dentistId: values.dentistId,
     supplierId: values.supplierId,

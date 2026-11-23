@@ -9,14 +9,17 @@ import {
   MaterialGroup,
   newMaterial,
   newPatient,
+  nextSlipNo,
   readBack,
   save,
   slipCatalog,
+  shownSlipNo,
   slipNo,
 } from "./fixtures/laboSlipApi";
 import {
   chooseOption,
   day,
+  expectSlipNo,
   fillRequired,
   openLaboTab,
   ordersOf,
@@ -57,13 +60,17 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
   }) => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "ui");
-    const no = slipNo("ui");
+    const no = await nextSlipNo(page, patientId);
+    const shown = shownSlipNo(no);
     const dialog = await startSlip(page, patientId);
 
     await test.step("what is known is already filled", async () => {
       // Today and the hour it was opened (BA 2026-11-16).
       await expect(dialog.getByLabel("Ngày gửi")).toHaveValue(new RegExp(`^${day(0)} \\d{2}:\\d{2}$`));
       await expect(dialog.getByRole("radio", { name: "Ca mới" })).toBeChecked();
+      // Mã số is the server's (R-1288): the number the save will take, locked, patient code cut off.
+      await expectSlipNo(dialog, shown);
+      expect(shown).toMatch(/^\d{8}-001$/);
       await expect(dialog.getByRole("textbox", { name: "Bệnh nhân" })).toContainText("Phiếu YC ui");
       await expect(dialog.getByRole("button", { name: "Tạo phiếu Labo" })).toBeDisabled();
       // P1311: no supplier yet, so its address waits for one.
@@ -125,10 +132,11 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     // Back on the patient's own Labo tab, not /labo (owner, 2026-11-10).
     await expect(page).toHaveURL(new RegExp(`/patient/${patientId}\\?.*tab=labo`));
     await expect(slipDialog(page)).toBeHidden();
-    const row = page.locator(".pd-pane tbody tr.ant-table-row").filter({ hasText: no }).first();
+    const row = page.locator(".pd-pane tbody tr.ant-table-row").filter({ hasText: shown }).first();
     await expect(row).toContainText(c.ceramic.name);
     await expect(row).not.toContainText("trên implant");
     await expect(row).toContainText("Đã gửi");
+    await expect(row.locator(".pd-labo-code")).toHaveText(shown);
 
     await test.step("stored once per tooth, no plan, the supplier picked", async () => {
       const [made] = await ordersOf(page, patientId);
@@ -158,17 +166,17 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
       await page.goto(`/labo?branchId=${BRANCH_ONE}`);
       const again = page
         .locator(".bd-labo-screen tbody tr.ant-table-row")
-        .filter({ hasText: no })
+        .filter({ hasText: shown })
         .first();
       await again.getByRole("button", { name: "Xem", exact: true }).click();
-      const detail = page.getByRole("dialog").filter({ hasText: no });
+      const detail = page.getByRole("dialog").filter({ hasText: shown });
       for (const fact of [c.ceramic.name, c.rhythm.name, c.bite.name]) await expect(detail).toContainText(fact);
       await expect(detail).not.toContainText("trên implant");
       await expect(detail.getByRole("button", { name: "In Phiếu Labo" })).toBeVisible();
 
       const sheet = page.locator(".pd-slip-print");
       await expect(sheet).toContainText("PHIẾU YÊU CẦU LABO");
-      await expect(sheet).toContainText(`Mã số: ${no}`);
+      await expect(sheet).toContainText(`Mã số: ${shown}`);
       for (const fact of [c.finishLines[0].name, c.rhythm.name, c.bite.name]) await expect(sheet).toContainText(fact);
       expect((await sheet.locator(".is-picked").allTextContents()).sort()).toEqual(["16", "17"]);
     });
@@ -179,31 +187,35 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
       await page.evaluate(() => {
         window.print = () => undefined;
       });
-      const detail = page.getByRole("dialog").filter({ hasText: no });
+      const detail = page.getByRole("dialog").filter({ hasText: shown });
       await detail.getByRole("button", { name: "In Phiếu Labo" }).click();
       const pdf = await page.pdf({ width: "105mm", height: "148mm", preferCSSPageSize: true });
       expect(pdfShape(pdf)).toEqual({ pages: 1, size: [595, 842] });
     });
   });
 
-  test("a Mã số already on another order of the branch is refused and nothing is made", async ({
+  test("the Mã số previewed is taken by another slip meanwhile: the save takes the next one (R-1288)", async ({
     page,
   }) => {
     const c = await slipCatalog(page);
-    const no = slipNo("dup");
-    const first = await save(page, fullSlip(c, await newPatient(page, "dup-a"), no));
-    expect(first.status, first.text).toBe(200);
-
-    const patientId = await newPatient(page, "dup-b");
+    const patientId = await newPatient(page, "race");
+    const previewed = await nextSlipNo(page, patientId);
     const dialog = await startSlip(page, patientId);
-    await fillRequired(page, dialog, no, c.ceramic, c.supplier);
-    await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
+    await fillRequired(page, dialog, previewed, c.ceramic, c.supplier);
 
-    await expect(
-      page.getByText(`Mã số ${no} đã có trên phiếu Labo khác của chi nhánh.`),
-    ).toBeVisible();
-    await expect(dialog).toBeVisible();
-    expect(await ordersOf(page, patientId)).toHaveLength(0);
+    // Someone else's slip for the same patient lands first and takes that number.
+    const other = await save(page, fullSlip(c, patientId, ""));
+    expect(other.status, other.text).toBe(200);
+    expect(other.body.labSlipNo).toBe(previewed);
+
+    await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
+    await expect(page).toHaveURL(new RegExp(`/patient/${patientId}\\?.*tab=labo`));
+    await expect(slipDialog(page)).toBeHidden();
+    const next = previewed.replace(/-001$/, "-002");
+    expect(next).not.toBe(previewed);
+    const made = await sentOrder(page, patientId, next);
+    expect(made.id).not.toBe(other.body.id);
+    await expect(patientRow(page, shownSlipNo(next)).locator(".pd-labo-code")).toHaveText(shownSlipNo(next));
   });
 
   /** R-1106 carried onto the Phiếu yêu cầu: kept by the owner's F-91 decisions. */
@@ -217,7 +229,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     expect(earlier.status, earlier.text).toBe(200);
 
     const dialog = await startSlip(page, patientId);
-    const no = slipNo("prior-b");
+    const no = await nextSlipNo(page, patientId);
     await fillRequired(page, dialog, no, c.ceramic, c.supplier);
 
     // R16 sits on the earlier order: the box names it, R17 is not in it.
@@ -234,7 +246,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     await page.keyboard.press("Escape");
     await expect(detail).toBeHidden();
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByLabel("Mã số", { exact: true })).toHaveValue(no);
+    await expectSlipNo(dialog, shownSlipNo(no));
 
     // Only a warning: Tạo phiếu Labo still sends it.
     await dialog.getByRole("button", { name: "Tạo phiếu Labo" }).click();
@@ -244,7 +256,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     expect(made.status).toBe(LaboStatus.Sent);
   });
 
-  test("a draft without Mã số reopens refilled; a sent slip opens locked with Hủy phiếu and In phiếu", async ({
+  test("a draft reopens refilled under its own Mã số; a sent slip opens locked with Hủy phiếu and In phiếu", async ({
     page,
   }) => {
     const c = await slipCatalog(page);
@@ -265,11 +277,11 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     await openLaboTab(page, patientId);
 
     await test.step("the draft comes back as it was left", async () => {
-      await patientRow(page, draft.body.orderCode!)
+      await patientRow(page, shownSlipNo(draft.body.labSlipNo!))
         .getByRole("button", { name: "Xem chi tiết" })
         .click();
       const dialog = slipDialog(page);
-      await expect(dialog.getByLabel("Mã số", { exact: true })).toHaveValue("");
+      await expectSlipNo(dialog, shownSlipNo(draft.body.labSlipNo!));
       await expect(dialog.locator(".rs-teeth .pd-labo-toothchip")).toHaveText(["R21"]);
       await expect(dialog.getByLabel("Màu rìa cắn xa")).toHaveValue("B1");
       const rows = restorationRows(dialog);
@@ -286,8 +298,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
       await patientRow(page, sentNo).getByRole("button", { name: "Xem chi tiết" }).click();
       await page.getByRole("dialog").getByRole("tab", { name: "Đặt hàng" }).click();
       const dialog = slipDialog(page);
-      await expect(dialog.getByLabel("Mã số", { exact: true })).toHaveValue(sentNo);
-      await expect(dialog.getByLabel("Mã số", { exact: true })).toBeDisabled();
+      await expectSlipNo(dialog, sentNo);
       await expect(
         dialog.locator(".rs-teeth").getByRole("button", { name: "Chọn răng", exact: true }),
       ).toHaveCount(0);
@@ -356,7 +367,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     });
 
     await test.step("sent with both on every tooth, both read back on the reopened slip", async () => {
-      const no = slipNo("pick");
+      const no = await nextSlipNo(page, patientId);
       // fillRequired ticks the ceramic again, which it already holds.
       await fillRequired(page, dialog, no, c.ceramic, c.supplier);
       await expect(rows.chips).toHaveCount(2);
@@ -367,7 +378,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
         expect(tooth.restorations.map((r) => r.materialId).sort()).toEqual([c.ceramic.id, second.id].sort());
       expect([order.rhythmName, order.biteName]).toEqual([null, null]);
 
-      await patientRow(page, no).getByRole("button", { name: "Xem chi tiết" }).click();
+      await patientRow(page, shownSlipNo(no)).getByRole("button", { name: "Xem chi tiết" }).click();
       await page.getByRole("dialog").getByRole("tab", { name: "Đặt hàng" }).click();
       const again = restorationRows(slipDialog(page));
       await expect(again.chips).toHaveText([c.ceramic.name, second.name], { useInnerText: true });
@@ -383,7 +394,7 @@ test.describe("Labo Phiếu yêu cầu UI (F-91)", () => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "sup");
     const dialog = await startSlip(page, patientId);
-    const no = slipNo("sup");
+    const no = await nextSlipNo(page, patientId);
     await fillRequired(page, dialog, no, c.ceramic, c.supplier);
     await expect(dialog.getByRole("status")).toHaveText("Phiếu đã đủ thông tin.");
 
