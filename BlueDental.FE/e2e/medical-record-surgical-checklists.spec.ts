@@ -248,8 +248,8 @@ test.describe("Bệnh án — mẫu 11 and mẫu 12, the clinic's surgical check
         name: "Xác nhận lại họ tên người bệnh và vị trí rạch da bằng lời",
       }),
     ).toHaveCount(1);
-    // In print the signers' names have no dotted line (the room above is for the
-    // signature); the six note lines under the third stage do.
+    // In print the signers' names have their dotted line, as the BA's Word copy (owner,
+    // 2026-11-23, R-1285; none before, clinic 2026-11-16); so do the six note lines.
     await page.emulateMedia({ media: "print" });
     const borders = (fields: typeof stagesTable) =>
       fields.evaluateAll((els) => els.map((el) => getComputedStyle(el).borderBottomStyle));
@@ -257,7 +257,7 @@ test.describe("Bệnh án — mẫu 11 and mẫu 12, the clinic's surgical check
       'table[data-record-section="signature"] .nfc-medical-record-text-field',
     );
     await expect(names).toHaveCount(3);
-    expect(await borders(names)).toEqual(["none", "none", "none"]);
+    expect(await borders(names)).toEqual(["dotted", "dotted", "dotted"]);
     const notes = stageCell("Đối với PTV, BS gây mê, điều dưỡng:").locator(
       ".ss-note .nfc-medical-record-text-field",
     );

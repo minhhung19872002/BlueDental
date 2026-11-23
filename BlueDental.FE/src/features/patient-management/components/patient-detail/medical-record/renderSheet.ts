@@ -186,6 +186,18 @@ function closeUpGaps(root: Element) {
   });
 }
 
+/**
+ * A line the form used to print and its Word copy no longer does (mẫu 7's
+ * tenth TRÌNH TỰ line, R-1280): kept on a sheet already written on it, gone
+ * from one that is not — gone, not hidden, so Enter on the line above adds a
+ * line rather than stepping into one nobody can see.
+ */
+function dropUnwrittenSpareLines(root: Element) {
+  root.querySelectorAll("[data-spare-line]").forEach((line) => {
+    if (!line.textContent?.trim()) line.remove();
+  });
+}
+
 /** The filled body of one record, ready to be dropped into the sheet frame. */
 export function renderSheetHtml(template: string, options: RenderOptions): string {
   const parsed = new DOMParser().parseFromString(`<div>${template}</div>`, "text/html");
@@ -201,6 +213,7 @@ export function renderSheetHtml(template: string, options: RenderOptions): strin
   markGridCells(root);
   closeUpGaps(root);
   fillFields(root, options);
+  dropUnwrittenSpareLines(root);
   // After the boxes are ticked: the parts that show only for a ticked box.
   applySections(root);
   fillTokens(root, { ...options.auto, ...options.stored });

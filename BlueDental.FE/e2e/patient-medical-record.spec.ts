@@ -309,10 +309,13 @@ test.describe("Bệnh án", () => {
       { form: "Phiếu tư vấn và xác nhận đồng ý điều trị", blanks: 75, boxes: 17, pages: 2 },
       // The reference's 49, plus a blank after "Tê môi, tê lưỡi" (BA, 2026-11-02, R-1132).
       { form: "Giấy đồng ý thực hiện phẫu thuật/thủ thuật", blanks: 50, boxes: 26, pages: 2 },
-      // 38 of the reference's, plus our drawing blank for "Lược đồ".
+      // 38 of the reference's, plus our drawing blank for "Lược đồ"; since the BA's
+      // Word copy (R-1280) a blank for the place before the signing day, and the
+      // tenth TRÌNH TỰ line only on a sheet already written on it.
       { form: "Phiếu phẫu thuật/thủ thuật", blanks: 39, boxes: 2, pages: 1 },
-      { form: "Phiếu theo dõi điều trị", blanks: 111, boxes: 2, pages: 1 },
-      { form: "Phiếu chăm sóc", blanks: 118, boxes: 2, pages: 1 },
+      // The BA's Word copies: seventeen log rows on mẫu 8 (R-1281), twenty on mẫu 9 (R-1282).
+      { form: "Phiếu theo dõi điều trị", blanks: 75, boxes: 2, pages: 1 },
+      { form: "Phiếu chăm sóc", blanks: 108, boxes: 2, pages: 1 },
       // The clinic's .docx (2026-10-29): every dotted line a blank; Loại mắc cài
       // as on mẫu 3, four boxes and their prices (BA, 2026-11-01, R-1097). Since
       // the clinic's own copy (R-1266) one break only: the contract, then the
@@ -2029,9 +2032,9 @@ test.describe("Bệnh án", () => {
       ["Phiếu Tư Vấn Tổng Quát", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
       ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Phiếu phẫu thuật/thủ thuật", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu chăm sóc", "15.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu phẫu thuật/thủ thuật", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu theo dõi điều trị", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu chăm sóc", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
     ];
     for (const [form, size, letterhead, pages] of expected) {
       // Blank, so what other tests wrote on the sheet does not add lines.
@@ -2062,6 +2065,13 @@ test.describe("Bệnh án", () => {
               '[data-grid-cell] .nfc-medical-record-text-field:not(:is(table[data-record-section="vitals"], table[data-record-section="summary-files"], table[data-cover]) *)',
             ),
           ),
+          // …and its dots, drawn by ::after (R-1284), are clear too (but see mẫu 7, 8, 9 below).
+          gridDots: (() => {
+            const blank = root.querySelector(
+              '[data-grid-cell]:not(:last-child) .nfc-medical-record-text-field:not(:is(table[data-record-section="vitals"], table[data-record-section="summary-files"], table[data-cover], table[data-record-section="surgical-count"]) *)',
+            );
+            return blank ? getComputedStyle(blank, "::after").opacity : null;
+          })(),
           // MS is print, not a blank (R-1069): it has no line at all.
           outside: style(
             Array.from(root.querySelectorAll(".nfc-medical-record-text-field:not([data-form-code])")).find(
@@ -2071,7 +2081,10 @@ test.describe("Bệnh án", () => {
         };
       });
       await page.emulateMedia({ media: "screen" });
-      if (lines.inGrid !== null) expect(lines.inGrid, `${form} · grid blank on paper`).toBe("none");
+      // Mẫu 7, 8 and 9 print the dots their Word copies have in every table blank (R-1286).
+      const dottedTables = [7, 8, 9].includes(FORM_NUMBER[form]);
+      if (lines.inGrid !== null) expect(lines.inGrid, `${form} · grid blank on paper`).toBe(dottedTables ? "dotted" : "none");
+      if (lines.gridDots !== null) expect(lines.gridDots, `${form} · grid blank's dots on paper`).toBe(dottedTables ? "1" : "0");
       if (lines.outside !== null) expect(lines.outside, `${form} · other blank on paper`).toBe("dotted");
 
       // Every page fits its sheet of A4: the print job has exactly the pages the form is drawn with.
@@ -2214,15 +2227,17 @@ test.describe("Bệnh án", () => {
           });
         })(),
         codeWidth: node.querySelector('table[data-record-section="diagnosis-code"]')!.getBoundingClientRect().width,
-        // Finer dots, drawn by ::after at 0.6 scale over a clear border; none on a blank written in (R-1270).
+        // Dots as Word prints them — full stops on the line, drawn by ::after over a clear
+        // border (R-1284; finer border dots at R-1270); none on a blank written in.
         dots: ["outpatient-dental.text.25", "outpatient-dental.text.43"].map((id) => {
           const field = node.querySelector(`[data-medical-record-field="${id}"]`)!;
           const after = getComputedStyle(field, "::after");
           return {
             border: getComputedStyle(field).borderBottomColor,
             shown: after.display,
-            style: after.borderBottomStyle,
-            scale: after.transform,
+            stops: /^"\.{100,}"$/.test(after.content),
+            opacity: after.opacity,
+            top: after.top,
           };
         }),
       };
@@ -2243,11 +2258,13 @@ test.describe("Bệnh án", () => {
     expect(boxes.codeWidth, "the code boxes as wide as Word's, 1740 twips").toBeCloseTo(116, 0);
     // BA, 2026-11-22: "dấu chấm này chỉnh nhỏ hơn"; "nếu như có data bỏ hết dấu ... đi".
     const [empty, written] = boxes.dots;
-    expect(empty, "an empty blank: finer dots").toEqual({
+    // Owner, 2026-11-23: "chỗ trống là dấu chấm chứ đâu phải line ngang".
+    expect(empty, "an empty blank: Word's full stops on its own line").toEqual({
       border: "rgba(0, 0, 0, 0)",
       shown: "block",
-      style: "dotted",
-      scale: "matrix(0.6, 0, 0, 0.6, 0, 0)",
+      stops: true,
+      opacity: "1",
+      top: "0px",
     });
     expect(written.shown, "a blank written in: no dots").toBe("none");
   });
@@ -2331,16 +2348,17 @@ test.describe("Bệnh án", () => {
   });
 
   /**
-   * Mẫu 7 as the clinic's own copy (2026-10-29, R-1073): 14px type, 15mm on
-   * every edge of the sheet and of every printed page, a line and a half
-   * between lines; the letterhead on the left margin; MS / Mã người bệnh a
+   * Mẫu 7 as the clinic's own copy (2026-10-29, R-1073), then the BA's Word
+   * copy (R-1280): 12.5pt type; 12.5mm above, 7.5mm below and 15mm at the sides
+   * of the sheet and of every printed page; Word's 1.5 lines (1.725 × the
+   * size); the letterhead on the left margin; MS / Mã người bệnh a
    * column of labels and a column of blanks against the right margin; the
    * blanks after Chẩn đoán sau … Số đăng ký running to the right margin on the
    * line they start on, and the lines a long Chẩn đoán trước goes on to
    * reaching it too.
    */
-  test("mẫu 7: 15mm margins, the letterhead, the MS block and the blanks to the right margin", async ({ page }) => {
-    const margin = (15 / 25.4) * 96;
+  test("mẫu 7: Word's margins, the letterhead, the MS block and the blanks to the right margin", async ({ page }) => {
+    const mm = (value: number) => (value / 25.4) * 96;
     await openMedicalRecord(page);
     await openFreshSheet(page, "Phiếu phẫu thuật/thủ thuật", { "procedure-record.text.1": LONG_DIAGNOSIS });
 
@@ -2375,9 +2393,10 @@ test.describe("Bệnh án", () => {
         };
       });
 
-    expect(layout.fontSize, "type").toBe("14px");
-    for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
-    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
+    expect(layout.fontSize, "type").toBe("16.667px");
+    const margins = [mm(12.5), mm(15), mm(7.5), mm(15)];
+    layout.padding.forEach((edge, at) => expect(edge, "sheet margin").toBeCloseTo(margins[at], 1));
+    expect(layout.lineHeight, "Word's 1.5 lines").toBeCloseTo(1.725, 2);
     expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
     expect(layout.labels, "MS labels").toHaveLength(2);
     for (const at of layout.labels) expect(at, "labels in one column").toBeCloseTo(layout.labels[0], 0);
@@ -2404,7 +2423,7 @@ test.describe("Bệnh án", () => {
     });
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
-    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+    expect(printed).toEqual({ page: "procedure-record", padding: "0px" });
   });
 
   /**
@@ -2633,7 +2652,7 @@ test.describe("Bệnh án", () => {
     await openFreshSheet(page, outpatient);
     // Five since the BA's Word sizes (R-1268).
     expect(await printedPages([], true), `${outpatient} · printed pages`).toBe(5);
-    // Mẫu 7 on the same 15mm page since R-1073.
+    // Mẫu 7 on the 15mm page since R-1073, on a page of its own (12.5mm / 7.5mm) since R-1280.
     await openFreshSheet(page, procedure);
     expect(await printedPages([], true), `${procedure} · printed pages`).toBe(1);
     // Mẫu 10 on the 15mm page too, its five pages unchanged by Loại mắc cài (R-1097).

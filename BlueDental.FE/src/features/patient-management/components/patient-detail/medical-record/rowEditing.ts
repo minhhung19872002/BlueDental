@@ -258,7 +258,10 @@ export function applyStoredRows(root: ParentNode, stored: Record<string, unknown
     }, 0);
 
     // Clone from the last row each time, so the copy keeps the table's shape.
-    for (let count = rows.length; count < wanted; count += 1) {
+    // Counted by the highest row number there, not by how many rows: Phiếu
+    // chăm sóc prints rows 1 and 53–72 (R-1282), and a word on row 72 asked for
+    // fifty rows nobody wrote on.
+    for (let highest = highestRowNumber(root, kind); highest < wanted; highest += 1) {
       const last = rowsOfKind(root, kind).at(-1);
       if (!last || !addRowAfter(root, last, { remember: false })) break;
     }

@@ -8,14 +8,15 @@ import { blank, box, ticked } from "./sheetMarkup";
  * Laid out as the paper is (clinic 2026-11-16, "chưa giống lắm"): the clinic's
  * name in small mixed case on the left (its Sở Y tế line bold), the title
  * beside it, only "MS: PT-04" in the corner (the patient's code is on the name
- * line). The three stages' titles stand in boxes of their own joined by hollow
- * block arrows; under them one ruled table of three columns (four rows, see
- * below), each opening with who checks it in italics. The
+ * line). The three stages' titles stand in boxes of their own (the BA's Word
+ * copy, R-1283, draws no arrows between them); under them one ruled table of
+ * three columns (four rows, see below), each opening with who checks it in italics. The
  * answers sit on a line of their own under each question, the second answer at
  * a set place (`ss-opt`). One italic signature line under each column.
  *
  * The words and where each line breaks are the paper's (`BR`, clinic
- * 2026-11-16: "nội dung, xuống dòng, chưa thực sự khớp 100%"); the first column
+ * 2026-11-16: "nội dung, xuống dòng, chưa thực sự khớp 100%") — where the
+ * BA's Word copy (R-1283) lets a line wrap on its own, so does the sheet; the first column
  * is a little wider so its longest line ("… người bệnh và") holds.
  *
  * The tick boxes and blanks are numbered in the order of the first layout, so
@@ -76,7 +77,7 @@ const A2 = p(bold("Vùng mổ được đánh dấu:")) + both("Có", "Không á
 const A3 =
   p(bold("Thuốc và thiết bị gây mê đầy đủ và sẵn sàng:")) +
   p(tick("Có")) +
-  p(bold(`Máy đo bão hòa oxy trong máu gắn trên người bệnh và${BR}hoạt động bình thường:`)) +
+  p(bold("Máy đo bão hòa oxy trong máu gắn trên người bệnh và hoạt động bình thường:")) +
   p(tick("Có"));
 /** Row 4: the patient's risks. */
 const A4 =
@@ -97,14 +98,7 @@ const A4 =
 const B1 =
   who("Điều dưỡng phòng mổ, Bác sĩ gây mê, PTV") +
   p(bold(tick("Các thành viên trong kíp giới thiệu tên, nhiệm vụ"))) +
-  p(
-    bold(
-      tick(
-        "Xác nhận lại họ tên người bệnh và vị trí rạch da bằng lời",
-        `Xác nhận lại họ tên người bệnh và vị trí rạch da${BR}bằng lời`,
-      ),
-    ),
-  ) +
+  p(bold(tick("Xác nhận lại họ tên người bệnh và vị trí rạch da bằng lời"))) +
   section(bold("Kháng sinh dự phòng:")) +
   both("Có", "Không áp dụng");
 /** Rows 2–4: Dự kiến down to Chẩn đoán hình ảnh. */
@@ -118,13 +112,8 @@ const B2 =
   p(bold("Đối với Bác sỹ gây mê:")) +
   p(tick("Điều cần chú ý trong gây mê ở người bệnh")) +
   p(bold("Đối với nhóm Điều dưỡng:")) +
-  p(
-    tick(
-      "Xác nhận tình trạng vô khuẩn bằng lời với các loại dụng cụ dùng cho phẫu thuật",
-      `Xác nhận tình trạng vô khuẩn bằng lời với các loại${BR}dụng cụ dùng cho phẫu thuật`,
-    ),
-  ) +
-  p(`Thiết bị bị hỏng, bị thiếu:${GAP}${tick("Có")}${GAP}${tick("Không")}`) +
+  p(tick("Xác nhận tình trạng vô khuẩn bằng lời với các loại dụng cụ dùng cho phẫu thuật")) +
+  p(`Thiết bị bị hỏng, bị thiếu:&nbsp;&nbsp;${tick("Có")}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${tick("Không")}`) +
   section(bold("Chẩn đoán hình ảnh thiết yếu được chiếu:")) +
   both("Có", "Không áp dụng");
 
@@ -143,7 +132,7 @@ const C1 =
 /** Rows 3–4: the notes after the operation. */
 const C2 =
   p(bold("Đối với PTV, BS gây mê, điều dưỡng:")) +
-  p(`Những vấn đề cần lưu ý đặc biệt về hồi tỉnh và chăm${BR}sóc sau mổ`) +
+  p("Những vấn đề cần lưu ý đặc biệt về hồi tỉnh và chăm sóc sau mổ") +
   [1, 2, 3, 4, 5, 9].map(notesLine).join("");
 
 const cell = (body: string) => `<td colspan="1" rowspan="1">${body}</td>`;
@@ -155,20 +144,16 @@ const stage = (column: number, body: string, rows = 1) =>
 const COLUMNS = '<col style="width: 35%;"><col style="width: 33%;"><col style="width: 32%;">';
 
 const stageHead = (title: string) => cell(`<p>${bold(title)}</p>`);
-/** The paper's arrow: a hollow block arrow, outlined in black. */
-const ARROW = cell(
-  '<p><svg class="ss-arrow" viewBox="0 0 46 22" aria-hidden="true">' +
-    '<path d="M1 6.5H29V1L45 11L29 21V15.5H1Z" fill="none" stroke="#000" stroke-width="1.3" stroke-linejoin="miter"/>' +
-    "</svg></p>",
-);
+/** Between two boxes: room, and nothing in it — the BA's Word copy draws no arrow (R-1283). */
+const GAP_CELL = cell("<p></p>");
 
-/** The stages' titles, each in its own box, an arrow between them. */
+/** The stages' titles, each in its own box. */
 const STAGE_HEADS =
   '<table data-borderless="true" data-record-section="surgical-safety"><colgroup>' +
-  // Boxes narrower than the columns under them, so each arrow has room either side (clinic 2026-11-16).
+  // Boxes narrower than the columns under them, a gap between them, as Word's columns (27% / 9.5%).
   '<col style="width: 27%;"><col style="width: 9.5%;"><col style="width: 27%;"><col style="width: 9.5%;"><col style="width: 27%;">' +
   "</colgroup><tbody><tr>" +
-  `${stageHead("TRƯỚC GÂY TÊ, GÂY MÊ")}${ARROW}${stageHead("TRƯỚC KHI RẠCH DA")}${ARROW}` +
+  `${stageHead("TRƯỚC GÂY TÊ, GÂY MÊ")}${GAP_CELL}${stageHead("TRƯỚC KHI RẠCH DA")}${GAP_CELL}` +
   `${stageHead("TRƯỚC KHI RỜI KHỎI PHÒNG MỔ")}</tr></tbody></table>`;
 
 /** The three stages under their titles, one ruled table. */
@@ -197,7 +182,7 @@ const HEADER =
   '<col style="width: 30%;"><col style="width: 52%;"><col style="width: 18%;">' +
   "</colgroup><tbody><tr>" +
   cell(
-    '<p class="ss-clinic"><strong>Sở Y tế Thành Phố Hồ Chí Minh</strong><br>Phòng khám Chuyên khoa Răng Hàm Mặt –<br>' +
+    '<p class="ss-clinic"><strong>Sở Y tế Thành Phố Hồ Chí Minh</strong><br>Phòng khám Chuyên khoa Răng Hàm Mặt<br>' +
       "thuộc Công ty Cổ phần Dịch vụ Nha Khoa Đức Hạnh</p>",
   ) +
   cell('<h1 style="text-align: center;"><strong>BẢNG KIỂM AN TOÀN PHẪU THUẬT</strong></h1>') +

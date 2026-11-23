@@ -15932,3 +15932,64 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - PostgreSQL thật `VoucherOpenEndedTests` 3/3: NULL lưu/đọc lại; sweep hết hạn bỏ qua voucher không ngày cuối nhưng vẫn hết hạn voucher có ngày; voucher vô hạn redeem 25 lần vào 31/12/2099 vẫn Đang hoạt động.
   - E2E thật (`vite preview` :8097 → host :5000 → DB thật, không chặn API) `voucher.spec.ts` 9/9: 7 ca cũ + 2 ca mới — tạo voucher tick cả hai, reload, đăng, `vouchers/available?onDate=2099-12-31` vẫn trả voucher; sửa bỏ tick lượt → báo "Vui lòng nhập số lượt", nhập 20 → "0 / 20" sau reload; lô 2 thẻ: thẻ #2 vô hạn, thẻ #1 giữ 30 lượt.
 - **Mức retest**: 2 (voucher). Ảnh hưởng: picker voucher ở Tư vấn / Thanh toán (chỉ đọc qua `IsAvailableFor`, đã phủ bằng test trên). Phân quyền và phạm vi chi nhánh không đổi.
+
+## R-1280 (2026-11-23, mức 2: Bệnh án — mẫu 7 Phiếu phẫu thuật/thủ thuật theo bản Word BA; develop)
+
+- **Yêu cầu chủ dự án**: sửa các mẫu bệnh án hiện có cho giống các file Word mẫu 7, 8, 9, 11, 12 trong `docs/`; sau đó "mẫu 12 thì chừa lại" — loạt R-1280…R-1283 không đụng mẫu 12 (mẫu 12 do đồng nghiệp làm riêng ở R-1276).
+- **Thay đổi** (chỉ FE, không API, không migration): `sheetCss.ts` khối mẫu 7 — Times New Roman cỡ thật 12,5pt, dòng 1,5 Word (1,725), không cách đoạn; tiêu đề 18pt; tiêu đề phòng khám 11pt đậm dòng exact 15,75pt; MS / Mã người bệnh 11pt đậm, nhãn ở 444px và ô ở tab Word (133px sau nhãn), ô kéo tới lề phải; "Họ và tên / Tuổi / Giới tính ☐Nam ☐Nữ" đúng tab Word; các ô sau nhãn kéo tới lề phải; "Thời gian làm thủ thuật" đúng tab Word; bảng Lược đồ/Trình tự ô đệm 5,4pt, 9 dòng trong ô "Trình tự" như Word; các dòng dưới bảng giãn 1,4 Word (1,61); chữ ký: dòng ngày "…, … Giờ, ngày …/…/20…" theo độ dài chấm của Word, dòng chấm tên 233px. Lề trang mới `@page procedure-record` 12,5mm trên / 7,5mm dưới / 15mm hai bên (cả màn hình và bản in, `medical-record.css` cho trang cuối).
+- **Template** `surgeryRecord.ts`: bỏ "-" sau "RĂNG HÀM MẶT"; thêm ô nơi ký `procedure-record.text.42` + ", " trước giờ và "Ngày" → ", ngày" như Word; dòng Trình tự thứ 10 (`text.30`) đánh dấu `data-spare-line` — `renderSheet.dropUnwrittenSpareLines` bỏ dòng đó khi trống (Word chỉ có 9 dòng), giữ lại trên phiếu cũ đã viết vào; bỏ hẳn khỏi DOM chứ không ẩn, để Enter ở dòng 9 thêm dòng mới chứ không nhảy vào ô vô hình.
+- **Đo** (PDF in thật bằng nút "In biểu mẫu" vs PDF Word xuất từ docx, pt): mọi dòng lệch ≤ 1pt theo chiều dọc (SỞ 48,0/48,2 · tiêu đề 128,2/128,3 · 1. Thông tin 154,5/154,1 · Các biến chứng 600,7/601,1 · Bác sỹ thực hiện 723,7/723,3); Tuổi 304,6/304,75, Nam 453,5/453,6, Nữ 517,3/517,4; dòng ngày ký "," 377,7/378,7, "Giờ," 404,0/405,0, "/" 477,8/477,6, "/20" 500,5/500,3. 1 trang.
+- **Mức retest**: 2 (F-30 bệnh án — mẫu 7 màn hình và bản in).
+
+## R-1281 (2026-11-23, mức 2: Bệnh án — mẫu 8 Phiếu theo dõi điều trị theo bản Word BA; develop)
+
+- **Thay đổi** (chỉ FE): `sheetCss.ts` khối mẫu 8 — 12,5pt, tiêu đề 18pt dòng exact 25,2pt; tiêu đề phòng khám 10pt đậm dòng exact 13,7pt, giữa cột 351,5px như Word; khối MS / Tờ điều trị số / Số ngoại trú 10pt, dòng 16,15pt, nhãn ở 444,7px, ô ở tab Word và kéo tới lề phải (số dài như `NK-…-0024` một dòng); bảng theo cột Word (18,78 / 31,42 / 26,74 / 23,06%), đầu bảng chữ thường không đậm, "(Ký và ghi rõ họ tên)" không nghiêng, hàng đầu 45,5pt, hàng 34,5pt, ô viết giữa hàng. Đệm ô 3px (Word 5,4pt) + đệm trong ô chữ 1px: ở cột Ngày, giờ rộng như Word, "23/11/2026 08:30" thiếu 0,4px nên giờ rớt xuống dòng chấm kế tiếp — lộ ra ở `medical-record-sheet-facts.spec` (đỏ), nay một dòng.
+- **Template** `treatmentFollowUp.ts`: bỏ "-" sau "RĂNG HÀM MẶT"; khối MS thành cột nhãn/ô (`record-ids`); "Chẩn đoán/ Diễn biến bệnh" → "Chẩn đoán, Diễn biến bệnh" như Word; bảng còn **17 hàng** như Word (26 trước). Nhật ký điều trị dài hơn 17 hàng vẫn mọc thêm hàng như cũ (`applyStoredRows`); phiếu cũ có chữ ở hàng 18–26 vẫn hiện đủ.
+- **Đo**: đường kẻ bảng trùng Word ≤ 0,5pt (165,0/165,5 · 210,8/211,0 · … · 797,2/797,5); tiêu đề phòng khám, MS, tiêu đề, Họ và tên lệch ≤ 0,7pt; Tuổi / Nam / Nữ ≤ 1pt. 1 trang.
+- **Mức retest**: 2 (F-30 bệnh án — mẫu 8).
+
+## R-1282 (2026-11-23, mức 2: Bệnh án — mẫu 9 Phiếu chăm sóc theo bản Word BA; thêm hàng theo số hàng cao nhất; develop)
+
+- **Thay đổi** (chỉ FE): `sheetCss.ts` khối mẫu 9 — 12,5pt, tiêu đề 18pt; tiêu đề phòng khám 11pt đậm dòng exact 15,1pt; MS / Mã người bệnh 13pt đậm canh phải ở tab Word, ô kéo tới lề phải; "Điều dưỡng ghi phiếu số" thụt như Word; Họ và tên / Tuổi / ☐Nam ☐Nữ đúng tab Word; Chẩn đoán hai dòng chấm như Word (dòng thứ hai vẽ khi chẩn đoán chưa tràn sang dòng riêng); bảng theo cột Word, chữ 13pt đậm ở đầu bảng ("THEO DÕI" / "DIỄN BIẾN" hai dòng), hàng đầu 51,8pt, 20 hàng 27,15pt.
+- **Template** `careSheet.ts`: bỏ "-"; khối MS dạng `record-ids`; bảng còn **20 hàng** như Word (22 trước, bỏ `care.row-73/74`).
+- **Sửa lỗi có sẵn** (`rowEditing.applyStoredRows`): bảng mẫu 9 đánh số hàng 1, 53–72, nên số hàng cần mọc thêm phải so với **số hàng cao nhất đang có**, không phải số hàng đang có — trước đây một chữ ở hàng 74 khi mở lại làm mọc thêm ~50 hàng trống. Với mẫu 5 và mẫu 8 (đánh số liền) kết quả như cũ.
+- **Màn hình = bản in**: bản in nằm trong tài liệu của app (`box-sizing: border-box` toàn cục), tờ trên màn hình trong iframe (`content-box`) — ô có chiều cao cố định + đệm cao hơn trên màn hình (mẫu 9 1233px thay vì 1123px). Các ô cố định chiều cao của mẫu 7/8/9/11 đặt `box-sizing: border-box` tường minh: màn hình đúng khổ A4, bản in không đổi.
+- **Đo**: đường kẻ bảng trùng Word ≤ 0,5pt (227,2/227,2 · 279,0/279,0 · … · 822,0/822,0); mọi dòng chữ ≤ 1pt. 1 trang.
+- **Mức retest**: 2 (F-30 bệnh án — mẫu 9; thêm/bớt hàng mẫu 5, 8, 9).
+
+## R-1283 (2026-11-23, mức 2: Bệnh án — mẫu 11 Bảng kiểm an toàn phẫu thuật theo bản Word BA; develop)
+
+- **Thay đổi** (chỉ FE): `sheetCss.ts` khối mẫu 11 (đè lên bố cục phòng khám R-1241) — 12pt dòng đơn Word (13,8pt), dòng có ☐ cao như Word; dòng Họ và tên / Chẩn đoán giãn 1,5; tên phòng khám 10pt dòng exact, tiêu đề 16pt, MS 11pt; tiêu đề ba giai đoạn 12,5pt đậm trong **khung vuông**, giữa hai khung **không có mũi tên** (Word không vẽ); ô bảng đệm như Word (chữ được lấn lề phải ô như `ind.right` của Word); đáp án thứ hai ở tab Word (143 / 110,4 / 97,5px); chữ ký 11pt nghiêng, ô tên đúng chỗ dòng chấm của Word. Lề trang `surgical-safety` 10mm trên / 5mm dưới / 10mm hai bên (trước 5mm trên).
+- **Template** `surgicalSafetyChecklist.ts`: bỏ "–" sau "Răng Hàm Mặt"; bỏ hình mũi tên (ô trống giữ chỗ); bỏ bốn chỗ ngắt dòng ép mà Word để chữ tự xuống dòng ("…vị trí rạch | da bằng lời", "…với các | loại dụng cụ…", "…trên người | bệnh và…", "…hồi tỉnh và | chăm sóc sau mổ" — giờ xuống dòng đúng chỗ Word); "Thiết bị bị hỏng, bị thiếu: ☐Có ☐Không" theo khoảng cách Word. Thứ tự / số ô tick giữ nguyên.
+- **Đo**: mọi dòng chữ lệch ≤ 1pt dọc, ≤ 2pt ngang; dòng chấm tên 565,5/565,0. 1 trang A4 ngang.
+- **Khác bản BA (không đổi)**: Word có dòng chấm trong mọi ô bảng (mẫu 7 Trình tự, mẫu 8, mẫu 9) — giữ luật phòng khám: ô trong bảng in không chấm (2026-10-16), trừ cột ký tên (R-1285).
+- **Mức retest**: 2 (F-30 bệnh án — mẫu 11).
+
+**Kết quả chung R-1280…R-1285** (build production, `vite preview` :8080, BE thật + PostgreSQL thật, rebase lên develop `2710e017`): `patient-medical-record` + `medical-record-surgical-checklists` + `medical-record-drawing` + `medical-record-sheet-facts` + `medical-record-set` 55/58, rồi chạy lại 8 ca liên quan 8/8 sau khi sửa: (a) ô MS mất `outline:none` do thiếu dấu ";" khi thêm `--nfc-dots` — đã sửa; (b) "mẫu 10: the contract…" đỏ chập chờn do dữ liệu (tên test dài tràn ô ký, như R-1270) — chạy lại xanh. Đỏ còn lại có sẵn: "picking the day…" (mẫu 5, từ R-1267). `medical-record-sheet-facts` 3/3. `tsc` + `vite build` sạch. Đo bản in mẫu 7/8/9/11 so với PDF Word của BA: không dòng nào lệch quá 2,5pt dọc / 4pt ngang; 12 mẫu giữ số trang; màn hình đúng khổ A4, không ô tràn lề.
+
+## R-1284 (2026-11-23, mức 2: Bệnh án — chỗ trống in ra dấu chấm như Word, mọi mẫu; develop)
+
+- **Yêu cầu chủ dự án**: "các mẫu khi in những cái chỗ trống kia là dấu chấm chứ đâu phải line ngang như hiện tại".
+- **Nguyên nhân**: từ R-1270 ô trống in bằng viền chấm 1px thu nhỏ 0,6 — chấm 0,6px sát nhau, nằm dưới chân chữ, nhìn như một đường kẻ mảnh. Word in dot leader: dấu "." thưa (~3pt), nằm trên dòng chữ.
+- **Thay đổi** (chỉ FE, `sheetCss.ts`, `@media print`): `::after` của ô trống là một chuỗi dấu "." (chữ thật, không phải viền / ảnh — in sắc nét bất kể "Background graphics"), cùng dòng chữ của ô (`top:0; line-height:inherit`) nên đứng trên chân chữ, cắt ở cuối ô. Ô nào có chấm vẫn do các luật cũ quyết định; mỗi luật đặt thêm `--nfc-dots` 0/1 cạnh `border-bottom` (ô bảng, tên ký mẫu 11/12, mã MS = 0; bảng sinh hiệu / hồ sơ mẫu 2, khung bìa mẫu 1, cột 1 mẫu 12, dòng ghi chú mẫu 11 = 1). Ô có chữ vẫn không chấm (R-1270). Dòng chấm thứ hai "Chẩn đoán" mẫu 9 cũng bằng dấu ".".
+- **Đo** (PDF in thật cả 12 mẫu): số trang không đổi (3, 5, 4, 1, 2, 2, 1, 1, 1, 7, 1, 1); mọi chuỗi chấm nằm đúng chân chữ của dòng (lệch 0pt), như PDF Word.
+- **E2E**: ca mẫu 2 kiểm `::after` là chuỗi "." mờ đục 1, `top:0` (thay cho scale 0,6); "every form shares…" kiểm thêm chấm của ô bảng trong suốt (opacity 0).
+- **Mức retest**: 2 (F-30 bệnh án — bản in mọi mẫu; màn hình không đổi).
+
+## R-1285 (2026-11-23, mức 2: Bệnh án — dòng chấm dưới chỗ ký tên mẫu 7, 8, 9, 11 như docx; develop)
+
+- **Yêu cầu chủ dự án**: "các chỗ trống dấu chấm dưới chỗ ký tên ở các mẫu 7 8 9 11 thì cũng làm như file … docx".
+- **Thay đổi** (chỉ FE, `sheetCss.ts`, `@media print`): cột "Bác sĩ (Ký và ghi rõ họ tên)" mẫu 8 và "KÝ TÊN (Ghi rõ họ tên)" mẫu 9 in có chấm (thoát luật ô bảng không chấm); ba dòng tên dưới chữ ký mẫu 11 in có chấm (thoát luật 2026-11-16; mẫu 12 giữ luật của nó, R-1276); mẫu 7 dòng tên dưới "Bác sỹ thực hiện" vốn đã có chấm. Ô phút hẹp giữa "Giờ" và ", ngày" mẫu 7 không in chấm (Word không có ô này).
+- **E2E**: `medical-record-surgical-checklists.spec.ts` — tên người ký mẫu 11 in **có** chấm.
+- **Mức retest**: 2 (F-30 bệnh án — mẫu 7, 8, 9, 11 bản in).
+
+## R-1286 (2026-11-23, mức 2: Bệnh án — mẫu 7/8/9 ô bảng in có chấm, mẫu 11 cột giữa bỏ hai đường kẻ thừa; develop)
+
+- **Yêu cầu chủ dự án** (ảnh bản in so với Word): "ở phiếu số 8 / số 9 thì trong table sao không có các dấu chấm"; "mẫu 11 thì cell bị chia cắt bởi line ngang"; "ở phiếu số 7 thì khi preview in bị qua trang khác".
+- **Thay đổi** (chỉ FE, `sheetCss.ts`, `@media print`): mọi ô viết trong bảng mẫu 8, mẫu 9 và các dòng TRÌNH TỰ mẫu 7 in dấu chấm như Word (mở rộng R-1285 từ cột ký tên ra cả bảng; bỏ phần đệm 1px thay viền ở mẫu 7 vì viền đã quay lại). Mẫu 11: cột giữa chỉ còn đường kẻ ở ranh giới hàng (trên "Dự kiến") như Word — bỏ đường `ss-rule` trên "Kháng sinh dự phòng" và "Chẩn đoán hình ảnh thiết yếu được chiếu" (lớp vẫn giữ cho e2e / cấu trúc). Mẫu 12 không đổi.
+- **Mẫu 7 sang trang**: không phải lỗi bố cục — phiếu mẫu 7 của bệnh nhân test có "Chẩn đoán trước" dài 5 bệnh do e2e "mẫu 7: Word's margins…" ghi vào (LONG_DIAGNOSIS), thêm 3 dòng nên tràn trang 2 (phiếu trống còn dư ~1 dòng như bản Word). Đã xoá dữ liệu test đó; phiếu in 1 trang.
+- **Đo**: mẫu 7/8/9/11 mỗi mẫu 1 trang, không dòng nào lệch quá 2,5pt so với PDF Word.
+- **E2E**: "every form shares…" — mẫu 7/8/9 ô bảng in `dotted`, chấm opacity 1; các mẫu khác như cũ.
+- **Kết quả E2E** (build production, `vite preview` :8080, BE thật + PostgreSQL thật): 5 file spec bệnh án 56/58 — 2 đỏ có sẵn ("every sheet's name is shown in full", "picking the day…"). Rebase lên develop `ed1d3c53` (R-1279 voucher, không đụng bệnh án) trước khi commit.
+- **Mức retest**: 2 (F-30 bệnh án — bản in mẫu 7, 8, 9, 11).
+
