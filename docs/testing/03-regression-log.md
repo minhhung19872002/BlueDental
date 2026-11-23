@@ -16011,3 +16011,77 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `labo-request-slip-api` 13/13 (2 ca cũ "Gửi thiếu Mã số bị chặn" → "lấy số server"); `labo-request-slip-ui` + `labo-form-layout` + `labo-form-template-ui` + `labo-request-rich-text` 17 xanh / 4 skip (skip có sẵn: `describe.skip` Mẫu phiếu ẩn). Ca UI mới: số xem trước bị lượt lưu API lấy mất → bấm Tạo phiếu Labo nhận số kế tiếp.
   - Hồi quy Labo còn lại (labo-api, labo-detail, labo-form-template-api, labo-material-search, labo-orders-actions, labo-orders-permissions, labo-supplier-color, labo-tab-list, labo-workflow, labo.spec): 56 pass, 3 skip có sẵn (test.skip trong labo-material-search:208, labo-workflow:733 + 773), 0 fail.
 - **Mức retest**: 2 (Labo). Ảnh hưởng: mọi chỗ hiện Mã số (đã phủ). Phân quyền và phạm vi chi nhánh không đổi (endpoint mới có test chi nhánh).
+
+## R-1289 (2026-11-23, mức 2: Bệnh án — mẫu 1 Bìa hồ sơ theo bản Word BA gửi lại: chữ 13pt; develop)
+
+- **Yêu cầu BA** (gửi lại 10 file Word `Mau-06-Giay-dong-y-thuc-hien-phau-thuat-thu-thuat/`): "paragraph lên 13, title là 15" — trừ mẫu 11; chủ dự án: "làm hết các mẫu BA vừa gửi đi và ngắt trang theo word mới luôn, nhớ check kỹ". Mẫu 2 và 10 ngoài phạm vi.
+- **Thay đổi** (chỉ FE, `sheetCss.ts`, không API, không migration): mẫu 1 — chữ 13pt, tiêu đề 13pt đậm (đúng bản Word), các dòng/ô/ngắt trang khớp Word. 3 trang như Word.
+- **Cách đo**: in PDF bản của mình (tắt fitBlanks) và PDF Word của file BA, so toạ độ y/x từng dòng; mọi dòng lệch ≤ 1pt.
+- **Mức retest**: 2 (F-30 bệnh án — bản in).
+
+## R-1290 (2026-11-23, mức 2: Bệnh án — mẫu 3 Bệnh án chỉnh nha theo bản Word BA gửi lại: 13pt / tiêu đề 15pt; develop)
+
+- **Thay đổi** (`sheetCss.ts`): chữ 13pt trên dòng 1,5 Word, đề mục 13pt, tiêu đề 15pt; ngắt trang theo Word mới — trước "Kích thước môi" và trước "Thắng lưỡi". 4 trang như Word. Lệch ≤ 1pt mỗi dòng.
+- **Mức retest**: 2 (F-30).
+
+## R-1291 (2026-11-23, mức 2: Bệnh án — mẫu 4 Phiếu tư vấn theo bản Word BA gửi lại; develop)
+
+- **Thay đổi** (`sheetCss.ts` + `templates/generalConsultation.ts`): chữ và ô 13pt, "PHIẾU TƯ VẤN" 15pt, dòng 1,3 Word; "Chúng tôi là:" theo tab Word. **Nội dung**: dòng thời gian thành "… giờ, ngày …" như bản Word BA — bỏ ô trống `general-consultation.text.2` (ô phút giữa "giờ" và "Ngày"); phiếu cũ đã ghi ô này sẽ không còn hiện giá trị đó. 1 trang như Word.
+- **E2E**: assert cỡ chữ mẫu 4 `17.333px` (13pt).
+- **Mức retest**: 2 (F-30).
+
+## R-1292 (2026-11-23, mức 2: Bệnh án — mẫu 5 Phiếu tư vấn và xác nhận đồng ý điều trị theo bản Word BA gửi lại; develop)
+
+- **Thay đổi** (`sheetCss.ts`): 13pt dòng 1,5, tiêu đề 15pt trên dòng exact 28,8pt; dòng chi phí, "(tổng tiền viết bằng chữ)" và mục VII cũng 13pt; trang 2 bắt đầu ở mục V như Word. 2 trang. Lệch ≤ 1pt.
+- **Mức retest**: 2 (F-30).
+
+## R-1293 (2026-11-23, mức 2: Bệnh án — mẫu 6 Giấy đồng ý PT/TT theo bản Word BA gửi lại; develop)
+
+- **Thay đổi** (`sheetCss.ts`): 13pt dòng 1,3 Word, Quốc hiệu 14pt, tiêu đề 15pt, I./II. 13pt; thân chạy lấn lề phải 6px như thụt lề −91 twips của Word và khoảng trắng hẹp 0,9px để xuống dòng đúng chỗ Word; trang 1 dừng giữa "Chúng tôi cam kết…" như Word (không ép ngắt trước II). 2 trang.
+- **Khác biệt nội dung còn lại** (không sửa, chỉ style): bản Word BA có chữ "như/và mức độ" khác câu trong mẫu của mình — báo chủ dự án.
+- **Mức retest**: 2 (F-30).
+
+## R-1294 (2026-11-23, mức 2: Bệnh án — mẫu 7 Phiếu phẫu thuật/thủ thuật theo bản Word BA gửi lại; develop)
+
+- **Thay đổi** (`sheetCss.ts`): 13pt dòng 1,5, tiêu đề 15pt; dòng tên ký ngay dưới "(Ký, ghi rõ họ tên)" vì bản mới không còn dòng trống. 1 trang.
+- **E2E**: assert `layout.fontSize` mẫu 7 `17.333px`.
+- **Mức retest**: 2 (F-30).
+
+## R-1295 (2026-11-23, mức 2: Bệnh án — mẫu 8 Phiếu theo dõi điều trị theo bản Word BA gửi lại; develop)
+
+- **Thay đổi** (`sheetCss.ts`): 13pt, tiêu đề 15pt dòng exact 25,2pt; đầu bảng chữ thường; 17 hàng 34,5pt; đệm ô hơi nhỏ hơn Word để "23/11/2026 08:30" nằm 1 dòng trong cột Ngày, giờ. Dòng chấm trong bảng vẫn thấp trong hàng khi in (R-1287, quyết định chủ dự án — khác Word). 1 trang.
+- **Mức retest**: 2 (F-30).
+
+## R-1296 (2026-11-23, mức 2: Bệnh án — mẫu 9 Phiếu chăm sóc theo bản Word BA gửi lại; develop)
+
+- **Thay đổi** (`sheetCss.ts`): 13pt dòng 1,5, tiêu đề 15pt; MS / Mã người bệnh 13pt đậm **canh trái thẳng một mép như Word BA** (trước canh theo tab); bảng 13pt, hàng đầu 47,85pt, 20 hàng 27,15pt; dòng chấm thấp trong hàng (R-1287). 1 trang.
+- **Mức retest**: 2 (F-30).
+
+## R-1297 (2026-11-23, mức 2: Bệnh án — mẫu 11 Bảng kiểm an toàn phẫu thuật theo bản Word BA gửi lại; develop)
+
+- **Thay đổi** (`sheetCss.ts`): theo BA, thân giữ 12pt; chỉ tên phòng khám 10→11pt và tiêu đề 16→15pt. Sửa luôn độ trôi dọc tích luỹ so với Word (dòng ☐ cao 16pt như Word, không sàn 1,2em). 1 trang ngang.
+- **Mức retest**: 2 (F-30).
+
+## R-1298 (2026-11-23, mức 2: Bệnh án — mẫu 12 Bảng kiểm đếm gạc, dụng cụ theo bản Word BA gửi lại; develop)
+
+- **Thay đổi** (`sheetCss.ts`): 13pt dòng 1,5, tiêu đề 15pt 1 dòng; đầu bảng đếm 13pt dòng đơn, xuống dòng đúng chỗ Word (đệm ô riêng cột 1/2/5); hàng cao đúng dòng exact Word — ô trống cố định 18,4px để không đội hàng (ô inline-block rỗng có baseline ở đáy, cỡ chữ to lên làm hàng cao ra); ô Họ tên/Tuổi hẹp lại để "Nữ" không rớt dòng. Dòng chấm chữ ký vẫn ẩn (quyết định phòng khám 2026-11-16). Lệch ≤ 0,6pt mỗi dòng, 1 trang.
+- **Khác Word có chủ ý**: tab stop trong docx BA đặt cho 11,5pt; ở 13pt chữ tràn qua tab nên trong PDF Word một số ☐ đứng tách khỏi nhãn (Kết thúc / XQ / Thông báo). Bản mình giữ ☐ sát nhãn như R-1276.
+- **Mức retest**: 2 (F-30).
+
+## R-1289..R-1298 — kiểm thử chung
+
+- `tsc -b` sạch; build production (outDir scratchpad vì `dist` đang bị preview phiên khác khoá).
+- Số trang mình = Word: 1=3, 3=4, 4=1, 5=2, 6=2, 7=1, 8=1, 9=1, 11=1, 12=1.
+- E2E (build production `vite preview` :8099 → host :5000 → PostgreSQL thật, đăng nhập thật, không chặn API): 5 bộ `patient-medical-record` + `medical-record-surgical-checklists` + `medical-record-sheet-facts` + `medical-record-drawing` + `medical-record-set` (cùng lượt R-1299): 53/58, rồi chạy lại riêng từng ca đỏ. "the outpatient form draws the two figures" và "every sheet's name is shown in full" xanh khi chạy riêng (đỏ do 2 worker chạy song song). "mẫu 6: 15mm margins…" sửa assert theo Word vòng 2 (letterhead 11pt, khối −3,6px, chữ −3,3px như Word; MS 463px; thân bài lấn 6px vào lề phải theo indent −91 twips; trang in `consent-form`) → xanh. Đỏ còn lại không do loạt này: "picking the day…" (có sẵn từ R-1267); `medical-record-sheet-facts:181` đỏ ngay ở API (POST `/patient-treatments/{id}/discount` trả 200 nhưng facts trả `discountAmount` 0) — trước khi vẽ trang, loạt này không đụng BE/API.
+- Sửa thêm trong lượt kiểm: mẫu 5 ô "Khác" lệch trái 6px (padding shorthand của mẫu 5 đè padding-left chung → thêm padding-left:6px riêng); mẫu 7 letterhead lệch lề 3,9px → .6px như Word; mẫu 6 in kèm khối của extension ra trang trắng thứ 3 vì `html` vẫn mang tên trang `margin-15mm` trong khi tờ mẫu 6 đã là `consent-form` (R-1293) → `medical-record.css` đặt tên trang `html` theo đúng mẫu.
+- Số trang chân trang mẫu 12 lệch −11,2pt so với Word — có sẵn từ trước (HEAD như vậy), không thuộc loạt này.
+
+## R-1299 — Mẫu 10 (Hợp đồng thỏa thuận niềng răng) theo Word của BA (2026-11-23)
+
+- Nguồn: `Downloads/Hợp Đồng thỏa thuận niềng răng (1).docx` (BA gửi 2026-11-23). Chỉ cỡ chữ, giãn dòng, lề, ngắt trang — không đổi nội dung.
+- `sheetCss.ts`: thân 13pt (17,333px) trên dòng 1,5 của Word (line-height 1,725), không cách đoạn; Quốc hiệu 14pt, hai tiêu đề 15pt (h1 tự mang 2em → đặt lại 20px), đề mục cỡ thân bài. Bỏ chữ to thêm 1/8 (`--nfc-letter-height:none`, R-1264/R-1266 giữ cho mẫu 10 trước đây) vì Word không có — trước đó mỗi dòng rộng hơn Word 12%.
+- Lề 20mm trên/dưới, 17,5mm trái, 10mm phải: `@page orthodontic-contract` + padding trên màn hình/bản in; `medical-record.css` đặt tên trang `html` khớp (tránh trang trắng khi có khối extension).
+- Word dồn khoảng dòng dư xuống dưới chữ, CSS chia nửa lên trên: dòng đầu −5px, tiêu đề "BẢN THỎA THUẬN" sau `<hr>` −5,7px. Word ngắt "… MẮC CÀI" sang dòng 2 (CSS vừa khít 0,4px) → đề mục đó bớt 1px chỗ. Cột chữ ký căn giữa như ô bảng Word (padding trong ô, không nới bảng — nới bảng tràn lề làm Chrome thu nhỏ cả trang).
+- Đo bản in so với PDF Word: trang 1 và 4 lệch ≤1pt; trang 5–7 ngắt đúng như Word, mọi dòng lệch đều +3,1pt ở đầu trang (nửa khoảng dòng CSS đặt trên dòng đầu trang tiếp nối — không chỉnh được bằng CSS ở điểm ngắt), khoảng cách giữa các dòng ±0,1pt; chữ ký ±0,2px. Vẫn 7 trang.
+- Khác biệt nội dung giữ nguyên (docx của BA khác bản đang chạy): bản mình còn khối "Loại mắc cài" 3 dòng (R-1097) và dòng text.6 "Trên tinh thần…", Bên A/Bên B đậm (Word không đậm) → trang 1–3 ngắt khác Word 1–2 dòng. Chờ chủ hệ thống quyết.
+- E2E: sửa assert mẫu 10 (17,333px, line-height 1,725, lề 20/10/20/17,5mm, tiêu đề 20px, trang in `orthodontic-contract`, 7 trang) — "mẫu 10: the contract…", "a page filled to its foot…", "a browser extension's block…", "the form index…" xanh trong lượt 5 bộ ở trên.

@@ -93,27 +93,53 @@ ${SHEET_FONT_FACE_CSS}
    - a blank in a grid cell prints with no dotted line — the cell's borders
      already say where to write. renderSheet marks those cells; a table that
      only lays the page out is not one, and its blanks keep the line. */
-.nfc-tpl[data-form="1"]{font-size:17px}
+.nfc-tpl[data-form="1"]{font-size:17.333px}
 .nfc-tpl[data-form="4"],.nfc-tpl[data-form="5"]{font-size:16px}
 .nfc-tpl[data-form="9"]{font-size:15.5px}
-.nfc-tpl[data-form="3"]{font-size:15px}
+.nfc-tpl[data-form="3"]{font-size:17.333px}
 .nfc-tpl[data-form="8"]{font-size:14px}
 /* Mẫu 2 at the BA's 12pt (R-1268, block further down). */
 .nfc-tpl[data-form="2"]{font-size:16px}
 /* 14px from the clinic's own copy, inside 15mm margins (R-1073). */
 .nfc-tpl[data-form="7"]{font-size:14px}
-/* Mẫu 10, the clinic's contract, as the clinic's own copy of it
-   (docs/mau10-mac-cai.html, 2026-11-21): 20px on lines a line and a half
-   apart — paragraphs, the national heading, the titles, the section heads;
-   each line of a label and a blank on one line, the dotted blank stretching
-   to the right margin; Bên A's company in bold; "Loại mắc cài" a label line
-   over two rows of two choices lined up. In SHEET_CSS, so the print copy
-   draws it too. */
-.nfc-tpl[data-form="10"]{font-size:20px}
-.nfc-tpl.nfc-tpl[data-form="10"] :is(p,h1,h2){line-height:1.5!important}
+/* Mẫu 10, the clinic's contract, at the BA's Word sizes (R-1299, 2026-11-23):
+   Times New Roman 13pt on Word's lines a line and a half apart (1.725), no
+   space between paragraphs; the national heading 14pt, an 8pt line under it,
+   both titles 15pt, the section heads at the body's size; 20mm above and
+   below, 17.5mm left, 10mm right (@page orthodontic-contract); a paragraph
+   runs on over a page as in Word. Still as the clinic's own copy
+   (docs/mau10-mac-cai.html, 2026-11-21): each label and its blank on one
+   line, the dotted blank stretching to the right margin; Bên A's company in
+   bold; "Loại mắc cài" a label line over two rows of two choices lined up;
+   plain Times New Roman, not the letters an eighth larger (R-1264) Word has not.
+   Word sets a line's extra space under its text, CSS half of it above: the
+   first line and the agreement's title (at the top of a page, after the <hr>)
+   are lifted by it. Word wraps "… MẮC CÀI" that CSS fits by 0.4px, hence 1px
+   less room on that heading. The signature columns centre where Word's
+   table cells do, 7.5px further apart than half the line each.
+   In SHEET_CSS, so the print copy draws it too. */
+.nfc-tpl[data-form="10"]{--nfc-letter-height:none;font-size:17.333px}
+.nfc-tpl.nfc-tpl[data-form="10"] :is(p,h1,h2){line-height:1.725!important;margin:0}
+.nfc-tpl.nfc-tpl[data-form="10"]>h1{font-size:20px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child{margin-top:-5px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child>span{font-size:18.667px!important}
+.nfc-tpl.nfc-tpl[data-form="10"]>h1>span{font-size:20px!important}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child+h1{margin-top:18.4px}
+.nfc-tpl.nfc-tpl[data-form="10"]>h1+p{margin-top:1.3px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr+h1{margin-top:-5.7px}
+.nfc-tpl.nfc-tpl[data-form="10"]>h2:nth-of-type(5){padding-right:1px}
+.nfc-tpl.nfc-tpl[data-form="10"]>h2{font-size:17.333px}
+.nfc-tpl.nfc-tpl[data-form="10"]>:is(p,h2){break-inside:auto;page-break-inside:auto;orphans:2;widows:2}
+.nfc-tpl.nfc-tpl[data-form="10"]>p[style*="text-indent"]:has(+h2){text-indent:.5em!important}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]{margin:13.8px 0 0}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]>tbody>tr>td{padding:0}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]>tbody>tr>td:first-child{padding-right:7.4px}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]>tbody>tr>td:last-child{padding-left:7.6px}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"] td:first-child br:nth-of-type(3){display:none}
 .nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"])){display:flex;align-items:baseline;gap:.3em;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"]))>span{flex:1 1 auto;min-width:0;white-space:pre-wrap}
 .nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"]))>span>.nfc-medical-record-text-field{width:100%!important;min-width:0!important;max-width:none}
+.nfc-tpl.nfc-tpl[data-form="10"] .nfc-medical-record-text-field{margin-bottom:-.8px}
 .nfc-tpl[data-form="10"] [data-medical-record-field="orthodontic-contract.party-a.name"]{font-weight:700}
 .nfc-tpl[data-form="10"] p[data-record-section="bracket-types"]{display:grid;grid-template-columns:1.5em minmax(0,1fr) minmax(0,1fr);column-gap:1.5em;align-items:baseline;white-space:nowrap}
 .nfc-tpl[data-form="10"] p[data-record-section="bracket-types"]>.bracket-label{grid-column:1/-1}
@@ -233,61 +259,73 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.108"]{min-width:100px!important}
 /* Người nhận hồ sơ's "Họ tên ......" on one line, as in Word (R-1270). */
 .nfc-tpl.nfc-tpl[data-form="2"] [data-medical-record-field="outpatient-dental.text.107"]{min-width:120px!important}
-/* Mẫu 4 as the BA's Word copy (Mau-04-Phieu-tu-van.docx, 2026-11-22, R-1273), as mẫu
-   2 above: Times New Roman at its own height; every line 1.35 of Word's (1.5525
-   × the size), no space around paragraphs or under the titles; the text and
-   blanks 12.5pt, "PHIẾU TƯ VẤN" 16pt, "NỘI DUNG TIẾP XÚC…" 14pt, the
-   letterhead 11pt bold centred in Word's 407px column; 10mm above the page.
-   "Chúng tôi là:" in Word's tab stops — "Chức vụ:" at 378px, "2." under "1." —
-   and the blanks Word draws to the right margin (both rows, Địa chỉ, Số hồ sơ
-   y tế, Ngày thực hiện) stretch to it; the one after "Đã tiếp xúc…" is a line
-   of its own. The signatures keep their room to sign. */
-.nfc-tpl[data-form="4"]{--nfc-letter-height:none;font-size:16.667px}
+/* Mẫu 4 as the BA's Word copy (Mau-04-Phieu-tu-van.docx, R-1273; again 2026-11-23,
+   R-1291: paragraphs 13pt, titles 15pt), as mẫu 2 above: Times New Roman at its
+   own height; every line Word's 1.3 (1.495 × the size), no space around
+   paragraphs or under the titles; the text and blanks 13pt, "PHIẾU TƯ VẤN" 15pt,
+   "NỘI DUNG TIẾP XÚC…" 13pt, the letterhead 11pt bold on 1.5525 lines, centred in
+   Word's 407px column 6px left of the margin; 10mm above the page. "Chúng tôi
+   là:" in Word's tab stops — "1." and "2." at 104px, "Chức vụ:" at 378px — and
+   the blanks Word draws to the right margin (both rows, Địa chỉ, Số hồ sơ y tế,
+   Ngày thực hiện) stretch to it; the one after "Đã tiếp xúc…" is a line of its
+   own. The signatures sit 2px into their cells (Word's cell margin) and keep
+   their room to sign. */
+.nfc-tpl[data-form="4"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="4"] span[style*="font-size"]{font-size:inherit!important}
-.nfc-tpl.nfc-tpl[data-form="4"] :is(p,h1,h2){line-height:1.5525!important;margin:0}
-.nfc-tpl.nfc-tpl[data-form="4"]>p:first-child{display:block!important;width:407px;font-size:14.667px}
-.nfc-tpl.nfc-tpl[data-form="4"]>h1{font-size:21.333px}
-.nfc-tpl.nfc-tpl[data-form="4"]>h2{font-size:18.667px}
+.nfc-tpl.nfc-tpl[data-form="4"] :is(p,h1,h2){line-height:1.495!important;margin:0}
+.nfc-tpl.nfc-tpl[data-form="4"]>p:first-child{display:block!important;width:407px;margin-left:-6px!important;font-size:14.667px;line-height:1.5525!important}
+.nfc-tpl.nfc-tpl[data-form="4"]>h1{font-size:20px}
+.nfc-tpl.nfc-tpl[data-form="4"]>h2{font-size:17.333px}
 .nfc-tpl.nfc-tpl[data-form="4"]>:is(h1,h2)>br,.nfc-tpl.nfc-tpl[data-form="4"]>p[data-spacer]{display:none}
 .nfc-tpl.nfc-tpl[data-form="4"]>table{margin:0}
 .nfc-tpl.nfc-tpl[data-form="4"]>table>tbody>tr>td{padding-top:0;padding-bottom:0}
 .nfc-tpl.nfc-tpl[data-form="4"]>table:first-of-type>tbody>tr>td:first-child{padding-left:0}
-.nfc-tpl[data-form="4"]>table:first-of-type>colgroup>col:first-child{width:384px!important}
+.nfc-tpl[data-form="4"]>table:first-of-type>colgroup>col:first-child{width:372px!important}
 .nfc-tpl[data-form="4"]>table:first-of-type>colgroup>col:last-child{width:auto!important}
-.nfc-tpl.nfc-tpl[data-form="4"]>table:first-of-type>tbody>tr:nth-child(2)>td:first-child>p{padding-left:91.2px}
+.nfc-tpl.nfc-tpl[data-form="4"]>table:first-of-type>tbody>tr:nth-child(2)>td:first-child>p{padding-left:104px}
+.nfc-tpl.nfc-tpl[data-form="4"]>table:first-of-type>tbody>tr:first-child>td:first-child>p>span:first-child{flex:none;width:calc(104px - .3em)}
 .nfc-tpl[data-form="4"]>p:has(+table:last-of-type)>br:last-child{display:none}
+.nfc-tpl.nfc-tpl[data-form="4"]>table:last-of-type>tbody>tr>td{padding-top:2px}
 .nfc-tpl.nfc-tpl[data-form="4"] p:has(>span>:is([data-medical-record-field="general-consultation.text.6"],[data-medical-record-field="general-consultation.text.7"],[data-medical-record-field="general-consultation.text.8"],[data-medical-record-field="general-consultation.text.9"],[data-medical-record-field="general-consultation.text.12"],[data-medical-record-field="general-consultation.text.13"],[data-medical-record-field="general-consultation.text.14"])){display:flex;align-items:baseline;gap:.3em;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="4"] p:has(>span>:is([data-medical-record-field="general-consultation.text.6"],[data-medical-record-field="general-consultation.text.7"],[data-medical-record-field="general-consultation.text.8"],[data-medical-record-field="general-consultation.text.9"],[data-medical-record-field="general-consultation.text.12"],[data-medical-record-field="general-consultation.text.13"],[data-medical-record-field="general-consultation.text.14"]))>span:last-of-type{flex:1 1 auto;min-width:0;white-space:pre-wrap}
 .nfc-tpl.nfc-tpl[data-form="4"] :is([data-medical-record-field="general-consultation.text.6"],[data-medical-record-field="general-consultation.text.7"],[data-medical-record-field="general-consultation.text.8"],[data-medical-record-field="general-consultation.text.9"],[data-medical-record-field="general-consultation.text.12"],[data-medical-record-field="general-consultation.text.13"],[data-medical-record-field="general-consultation.text.14"]){width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="4"] .nfc-medical-record-text-field{min-height:1em}
-.nfc-tpl.nfc-tpl[data-form="4"] [data-medical-record-field="general-consultation.text.10"]{display:block;width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box;min-height:1.5525em;line-height:1.5525}
+.nfc-tpl.nfc-tpl[data-form="4"] [data-medical-record-field="general-consultation.text.10"]{display:block;width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box;min-height:1.495em;line-height:1.495}
 /* Mẫu 3 as the BA's Word copy (Mau-03-Ho-so-benh-nhan-chinh-nha.docx,
-   2026-11-22, R-1272), as mẫu 4: the lines outside the exam tables in Times New Roman
-   at its own height, 12.5pt on Word's 1.5 lines (1.725 × the size), no space
-   around paragraphs; the headings 14pt, the title 16pt, the letterhead 12pt
-   bold centred in Word's 384px column with MÃ NGOẠI TRÚ 10pt beside it. The
-   exam tables keep their type. Word's tab stops become grid columns: Giới
-   tính, the TMJ ticks, Loại mắc cài; and the blanks Word draws to the right
-   margin stretch to it. The pages break where the BA's copy breaks them: no
-   longer after IV (the export left that break out, and at these sizes it
-   left Cằm alone on a page) nor before VI; VIII still starts a page. */
-.nfc-tpl.nfc-tpl[data-form="3"]>:is(p,h1,h2,h3),.nfc-tpl.nfc-tpl[data-form="3"]>table:is(:first-of-type,:last-of-type){font-size:16.667px;font-size-adjust:none}
+   2026-11-22, R-1272; again 2026-11-23, R-1290): Times New Roman at its own
+   height and its own width (no font-size-adjust), 13pt on Word's 1.5 lines (1.725
+   × the size), no space around paragraphs; the headings 13pt, the title 15pt,
+   the letterhead 12pt bold centred in Word's 384px column with MÃ NGOẠI TRÚ
+   10pt beside it. The exam tables as Word's cells: 4px over the text, the row
+   its trHeight + 5px, a label on a 16.87px line and a blank on 18px under 3.07px,
+   centred in the row (so no 1.2em least height on the cell's p). The ☐ lines
+   stand as tall as Word's, whose tick glyph needs room above. Word's tab stops
+   become grid columns: Giới tính, the TMJ ticks, Loại mắc cài; the blanks Word
+   draws to the right margin stretch to it. The pages break where the BA's copy
+   does — before Kích thước môi and before Thắng lưỡi; the template's old <hr>
+   breaks are gone. The gaps after the tables are Word's empty lines. */
+.nfc-tpl.nfc-tpl[data-form="3"]>:is(p,h1,h2,h3),.nfc-tpl.nfc-tpl[data-form="3"]>table:is(:first-of-type,:last-of-type){font-size:17.333px;font-size-adjust:none}
 .nfc-tpl.nfc-tpl[data-form="3"]>:is(p,h1,h2,h3){line-height:1.725!important;margin:0}
 .nfc-tpl.nfc-tpl[data-form="3"]>:is(h1,h2) span[style*="font-size"]{font-size:inherit!important}
-.nfc-tpl.nfc-tpl[data-form="3"]>h1{font-size:21.333px;margin:7.9px 0 4.1px}
-.nfc-tpl.nfc-tpl[data-form="3"]>h2{font-size:18.667px}
-.nfc-tpl.nfc-tpl[data-form="3"]>h2:nth-of-type(4){margin-top:11.73px;line-height:24.27px!important}
-.nfc-tpl.nfc-tpl[data-form="3"]>h2:nth-of-type(6){margin-top:18.5px}
-.nfc-tpl.nfc-tpl[data-form="3"]>h2:nth-of-type(7){margin-top:10.35px}
-.nfc-tpl.nfc-tpl[data-form="3"]>h3{margin-top:12.65px}
-.nfc-tpl.nfc-tpl[data-form="3"]>h1>br,.nfc-tpl.nfc-tpl[data-form="3"]>p[data-spacer]:not(table+p),.nfc-tpl.nfc-tpl[data-form="3"]>hr:first-of-type,.nfc-tpl.nfc-tpl[data-form="3"]>[data-page-break]{display:none!important}
+.nfc-tpl.nfc-tpl[data-form="3"]>h1{font-size:20px;margin:7.9px 0 4.1px}
+.nfc-tpl.nfc-tpl[data-form="3"]>h2{font-size:17.333px}
+.nfc-tpl.nfc-tpl[data-form="3"]>h2:nth-of-type(4){margin-top:11.73px;line-height:21.51px!important}
+.nfc-tpl.nfc-tpl[data-form="3"]>h2:nth-of-type(6){margin-top:14.23px}
+.nfc-tpl.nfc-tpl[data-form="3"]>h2:nth-of-type(7){margin-top:26.88px}
+.nfc-tpl.nfc-tpl[data-form="3"]>h2:nth-of-type(8){margin-top:15.07px}
+.nfc-tpl.nfc-tpl[data-form="3"]>h3{margin-top:25.72px}
+.nfc-tpl.nfc-tpl[data-form="3"]>h1>br,.nfc-tpl.nfc-tpl[data-form="3"]>p[data-spacer]:not(table+p),.nfc-tpl.nfc-tpl[data-form="3"]>hr,.nfc-tpl.nfc-tpl[data-form="3"]>[data-page-break]{display:none!important}
 .nfc-tpl.nfc-tpl[data-form="3"]>:is(h2,h3){break-after:avoid-page;page-break-after:avoid}
-.nfc-tpl.nfc-tpl[data-form="3"]>p:has(>input){padding-bottom:1.85px}
-.nfc-tpl.nfc-tpl[data-form="3"]>p:is(:has(>input[data-medical-record-field="orthodontic.checkbox.1"]),:has(>input[data-medical-record-field="orthodontic.checkbox.6"]),:has(>input[data-medical-record-field="orthodontic.checkbox.46"])){padding-bottom:4.5px}
+.nfc-tpl.nfc-tpl[data-form="3"]>p:has(>input){padding:1.9px 0 1.85px}
+.nfc-tpl.nfc-tpl[data-form="3"]>p:has(>span>[data-medical-record-field="orthodontic.patient.name"]){padding-top:0}
+.nfc-tpl.nfc-tpl[data-form="3"]>p:is(:has(>input[data-medical-record-field="orthodontic.checkbox.1"]),:has(>input[data-medical-record-field="orthodontic.checkbox.6"]),:has(>input[data-medical-record-field="orthodontic.checkbox.43"])){padding-bottom:4.5px!important}
 .nfc-tpl.nfc-tpl[data-form="3"]>table+p[data-spacer]{height:10px}
 .nfc-tpl.nfc-tpl[data-form="3"]>table{margin:1.5px 0 0}
 .nfc-tpl.nfc-tpl[data-form="3"]>table:first-of-type{margin:5.9px 0 0}
 .nfc-tpl.nfc-tpl[data-form="3"]>table:nth-of-type(3){margin-top:6px}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:nth-of-type(2){margin-top:-2px}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:nth-of-type(6){margin-top:4.17px}
+.nfc-tpl.nfc-tpl[data-form="3"]>table>tbody>tr:is(:has([data-medical-record-field="orthodontic.checkbox.34"]),:has([data-medical-record-field="orthodontic.text.53"])){break-before:page;page-break-before:always}
 .nfc-tpl[data-form="3"]>table:first-of-type>colgroup>col:first-child{width:384px!important}
 .nfc-tpl[data-form="3"]>table:first-of-type>colgroup>col:last-child{width:auto!important}
 .nfc-tpl.nfc-tpl[data-form="3"]>table:first-of-type>tbody>tr{height:84px}
@@ -298,6 +336,16 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="3"]>table:first-of-type>tbody>tr>td:last-child span[style*="font-size"]{font-size:13.333px!important}
 .nfc-tpl.nfc-tpl[data-form="3"]>table:first-of-type>tbody>tr>td:last-child>p>span:last-child{flex:1 1 auto;min-width:0;margin-left:.3em}
 .nfc-tpl.nfc-tpl[data-form="3"]>table:last-of-type p{line-height:1.725!important}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:not(:first-of-type,:last-of-type)>tbody>tr>:is(td,th){padding:4px 8px 0;height:26px;vertical-align:middle}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:not(:first-of-type,:last-of-type)>tbody>tr:has(.nfc-medical-record-text-field)>:is(td,th){height:30px}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:not(:first-of-type,:last-of-type)>tbody>tr:has(br)>:is(td,th){height:52px!important}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:not(:first-of-type,:last-of-type)>tbody>tr:has(br~br)>:is(td,th){height:62px!important}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:not(:first-of-type,:last-of-type)>tbody>tr>:is(td,th)>p{line-height:16.867px!important;margin:0 -6px 0 0;min-height:0;font-size-adjust:none}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:not(:first-of-type,:last-of-type)>tbody>tr>:is(td,th)>p:has(.nfc-medical-record-text-field){line-height:18px!important;margin-top:3.07px}
+.nfc-tpl.nfc-tpl[data-form="3"] :is([data-medical-record-field="orthodontic.text.11"],[data-medical-record-field="orthodontic.text.12"],[data-medical-record-field="orthodontic.text.13"],[data-medical-record-field="orthodontic.text.14"]){width:28.5px!important;min-width:28.5px!important}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:nth-of-type(4){margin-top:6px}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:nth-of-type(4)>tbody>tr:first-child>:first-child>p{margin-top:-5.06px!important}
+.nfc-tpl.nfc-tpl[data-form="3"]>table:nth-of-type(5){margin-top:-0.5px}
 .nfc-tpl.nfc-tpl[data-form="3"]>p[data-record-section="orthodontic-agreement"]{margin-top:0}
 .nfc-tpl.nfc-tpl[data-form="3"]>p:has(>span>:is([data-medical-record-field="orthodontic.text.2"],[data-medical-record-field="orthodontic.patient.job"],[data-medical-record-field="orthodontic.patient.address"],[data-medical-record-field="orthodontic.patient.phone"],[data-medical-record-field="orthodontic.text.5"],[data-medical-record-field="orthodontic.text.6"],[data-medical-record-field="orthodontic.text.7"],[data-medical-record-field="orthodontic.text.8"],[data-medical-record-field="orthodontic.text.21"])){display:flex;align-items:baseline;gap:.25em;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="3"]>p:has(>span>:is([data-medical-record-field="orthodontic.text.2"],[data-medical-record-field="orthodontic.patient.job"],[data-medical-record-field="orthodontic.patient.address"],[data-medical-record-field="orthodontic.patient.phone"],[data-medical-record-field="orthodontic.text.5"],[data-medical-record-field="orthodontic.text.6"],[data-medical-record-field="orthodontic.text.7"],[data-medical-record-field="orthodontic.text.8"],[data-medical-record-field="orthodontic.text.21"]))>span:last-child{flex:1 1 auto;min-width:0}
@@ -306,20 +354,21 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="3"] :is([data-medical-record-field="orthodontic.text.3"],[data-medical-record-field="orthodontic.text.4"]){min-width:102px!important}
 .nfc-tpl.nfc-tpl[data-form="3"] .nfc-medical-record-text-field{min-height:1em}
 /* Mẫu 5 as the BA's Word copy (Mau-05-Phieu-tu-van-va-xac-nhan-dong-y-dieu-
-   tri.docx, 2026-11-22, R-1274), as mẫu 3: Times New Roman at its own height, 12.5pt on
-   Word's 1.5 lines, no space around paragraphs; the headings 14pt, the title
-   16pt on Word's exact 28.8pt line; the letterhead 12pt bold on exact 15.6pt
-   lines centred in Word's 397px column, "Mã hồ sơ" 10pt at Word's 445px. The
-   tick rows are as tall as Word draws them (its tick glyph stands above the
-   line). The BA left the cost rows, "(tổng tiền viết bằng chữ)" and VII's
-   text at the form's old 13.5pt, so they stay at it. The signatures in Word's
-   exact lines, the empty lines after the first gone, as in the BA's copy; the
-   blanks run to the right margin, as on mẫu 3 and 4. */
-.nfc-tpl[data-form="5"]{--nfc-letter-height:none;font-size:16.667px}
+   tri.docx, R-1274; again 2026-11-23, R-1292: paragraphs 13pt, titles 15pt), as
+   mẫu 3: Times New Roman at its own height, 13pt on Word's 1.5 lines, no space
+   around paragraphs; the headings 13pt on the same lines, the title 15pt on
+   Word's exact 28.8pt line; the letterhead 11pt bold on exact 15.6pt lines
+   centred in Word's 397px column, "Mã hồ sơ" 10pt at Word's 445px. The tick
+   rows are as tall as Word draws them, half the extra above the line and half
+   below. The cost rows, "(tổng tiền viết bằng chữ)" (Word's right indent) and
+   VII's text 13pt too. The signatures in Word's exact lines, the empty lines
+   after the first gone, as in the BA's copy; the blanks run to the right
+   margin, as on mẫu 3 and 4. Page 2 starts at V, as in Word. */
+.nfc-tpl[data-form="5"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="5"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="5"]>:is(p,h1,h2){line-height:1.725!important;margin:0}
-.nfc-tpl.nfc-tpl[data-form="5"]>h1{font-size:21.333px;line-height:22px!important;margin:23.2px 0 0}
-.nfc-tpl.nfc-tpl[data-form="5"]>h2{font-size:18.667px;line-height:29.5px!important;padding-bottom:2.7px}
+.nfc-tpl.nfc-tpl[data-form="5"]>h1{font-size:20px;line-height:22px!important;margin:23.2px 0 0}
+.nfc-tpl.nfc-tpl[data-form="5"]>h2{font-size:17.333px;line-height:1.725!important;padding-bottom:0}
 .nfc-tpl.nfc-tpl[data-form="5"]>p[data-spacer]{display:none}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type{margin:0}
 .nfc-tpl[data-form="5"]>table:first-of-type>colgroup>col:first-child{width:395px!important}
@@ -327,7 +376,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td{padding:0;vertical-align:top}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:first-child{padding-top:9.3px}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:first-child>p{display:block!important;white-space:nowrap;line-height:20.8px!important}
-.nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:first-child span[style*="font-size"]{font-size:16px!important}
+.nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:first-child span[style*="font-size"]{font-size:14.667px!important}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:last-child>p{display:flex;align-items:baseline;white-space:nowrap;text-align:left;margin:0;padding:7.4px 0 0 49.7px;line-height:20.8px!important}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:last-child span[style*="font-size"]{font-size:13.333px!important}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:last-child>p>span:last-child{flex:1 1 auto;min-width:0;margin-left:.3em}
@@ -335,19 +384,20 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:last-child>p[data-medical-record-generated-row]{padding:0 0 0 112.8px}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr>td:last-child>p[data-medical-record-generated-row]>span{margin-left:0}
 .nfc-tpl.nfc-tpl[data-form="5"]>table:first-of-type>tbody>tr{height:89.2px}
-.nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-methods"] p,.nfc-tpl.nfc-tpl[data-form="5"]>p[data-record-section="consultation-other"],.nfc-tpl.nfc-tpl[data-form="5"]>p:has(>input){line-height:1.725!important;padding-bottom:4.5px}
-.nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"] td,.nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"] tr:last-child>th,.nfc-tpl.nfc-tpl[data-form="5"]>table[data-record-section="consultation-cost"]+p,.nfc-tpl.nfc-tpl[data-form="5"]>h2:nth-of-type(7)~p{font-size:18px}
+.nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-methods"] p,.nfc-tpl.nfc-tpl[data-form="5"]>p[data-record-section="consultation-other"],.nfc-tpl.nfc-tpl[data-form="5"]>p:has(>input){line-height:1.725!important;padding:2.2px 0 2.3px}
+.nfc-tpl.nfc-tpl[data-form="5"]>p[data-record-section="consultation-other"]{padding-left:6px}
+.nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"] td,.nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"] tr:last-child>th,.nfc-tpl.nfc-tpl[data-form="5"]>table[data-record-section="consultation-cost"]+p,.nfc-tpl.nfc-tpl[data-form="5"]>h2:nth-of-type(7)~p{font-size:17.333px}
 .nfc-tpl.nfc-tpl[data-form="5"]>table[data-borderless]:not(:first-of-type):not([data-record-section]){margin:0 0 -3.3px}
-.nfc-tpl.nfc-tpl[data-form="5"]>table[data-borderless]:not(:first-of-type):not([data-record-section])>tbody>tr>td{padding-top:6.9px}
-.nfc-tpl.nfc-tpl[data-form="5"]>table[data-borderless]:not(:first-of-type):not([data-record-section]):last-of-type>tbody>tr>td{padding-top:10.1px}
+.nfc-tpl.nfc-tpl[data-form="5"]>table[data-borderless]:not(:first-of-type):not([data-record-section])>tbody>tr>td{padding-top:8.2px}
+.nfc-tpl.nfc-tpl[data-form="5"]>table[data-borderless]:not(:first-of-type):not([data-record-section]):last-of-type>tbody>tr>td{padding-top:8.2px}
 .nfc-tpl.nfc-tpl[data-form="5"]>h2:nth-of-type(5){letter-spacing:-.25px;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="5"]>table[data-borderless]:not(:first-of-type):not([data-record-section]) p{line-height:20.8px!important}
 .nfc-tpl.nfc-tpl[data-form="5"] .nfc-medical-record-text-field{min-height:1em}
 .nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"] p{line-height:23.4px!important}
 .nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"] tr:first-child p{line-height:21.9px!important}
-.nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"]{margin:4.1px 0 4px}
+.nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"]{margin:5.3px 0 5.7px}
 .nfc-tpl.nfc-tpl[data-form="5"] table[data-record-section="consultation-cost"] .nfc-medical-record-text-field{display:block!important;min-height:23.4px;line-height:23.4px}
-.nfc-tpl.nfc-tpl[data-form="5"]>table[data-record-section="consultation-cost"]+p{display:flex;align-items:baseline;gap:.4em;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="5"]>table[data-record-section="consultation-cost"]+p{display:flex;align-items:baseline;gap:.4em;white-space:nowrap;padding-right:14.5px}
 .nfc-tpl.nfc-tpl[data-form="5"]>table[data-record-section="consultation-cost"]+p>span:first-child{flex:1 1 auto;min-width:0}
 .nfc-tpl.nfc-tpl[data-form="5"] [data-medical-record-field="consultation.text.47"]{width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="5"]>p:is(:has(>span>[data-medical-record-field="consultation.patient.name"]),:has(>span>[data-medical-record-field="consultation.patient.address"]),:has(>span>[data-medical-record-field="consultation.patient.phone"]),:has(>span>[data-medical-record-field="consultation.text.3"]),:has(>span>[data-medical-record-field="consultation.text.7"]),:has(>span>[data-medical-record-field="consultation.text.8"]),:has(>span>[data-medical-record-field="consultation.text.48"]),:has(>span>[data-medical-record-field="consultation.text.49"])){display:flex;align-items:baseline;gap:.25em;white-space:nowrap}
@@ -375,10 +425,11 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl .record-ids .nfc-medical-record-text-field{width:100%;box-sizing:border-box}
 /* Mẫu 6 as the clinic's own copy (2026-10-29, R-1068), and mẫu 7 as its own
    (2026-10-29, R-1073): a line and a half between lines, titles included (mẫu
-   10 too, R-1079); the letterhead against the left margin and MS against the
-   right; the first column of a borderless table on the left margin — on mẫu 6
-   a box opening a line too. After the paragraph rules above, which it overrides. */
-.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h1:not([data-cover] *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]) h2{line-height:1.5!important}
+   10 too from R-1079 until its own Word lines, R-1299); the letterhead
+   against the left margin and MS against the right; the first column of a
+   borderless table on the left margin — on mẫu 6 a box opening a line too.
+   After the paragraph rules above, which it overrides. */
+.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="12"]) p:not(:is([data-cover],[data-grid-cell]) *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="12"]) h1:not([data-cover] *),.nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="12"]) h2{line-height:1.5!important}
 .nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table:first-child>tbody>tr>td:first-child,
 .nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table[data-borderless]>tbody>tr>td:first-child{padding-left:0}
 .nfc-tpl:is([data-form="6"],[data-form="7"],[data-form="11"],[data-form="12"])>table:first-child>tbody>tr>td:last-child{padding-right:0}
@@ -428,37 +479,44 @@ ${SHEET_FONT_FACE_CSS}
    margin, as the clinic's copies of mẫu 2 and mẫu 7 draw them (2026-10-29,
    R-1073). The text on them still breaks where the blank's first line did. */
 .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="11"],[data-form="12"]) [data-flow-of]{width:100%;min-width:0!important;max-width:none;box-sizing:border-box}
-/* Mẫu 6 as the BA's Word copy (Mau-06-Giay-dong-y-thuc-hien-phau-thuat-thu-
-   thuat.docx, 2026-11-23, R-1275), as mẫu 3/4/5: Times New Roman at its own
-   height, 12pt on Word's 1.3 lines, no space around paragraphs; the letterhead
-   10pt bold on Word's 1.5 lines, MS 10pt where Word sets it; the Quốc hiệu 16pt
-   and the title 14pt on 1.5 lines, I. and II. 14pt; the tick rows as tall as
+/* Mẫu 6 as the BA's Word copy (R-1275, sizes again R-1293 2026-11-23): Times
+   New Roman at its own height, 13pt on Word's 1.3 lines, no space around
+   paragraphs; the letterhead 11pt bold on Word's 1.5 lines; the Quốc hiệu 14pt
+   and the title 15pt on 1.5 lines, I. and II. 13pt; the tick rows as tall as
    Word draws them; the signatures on 1.5 lines, the empty lines before the
-   dotted name gone, as in the BA's copy; the blanks run to the right margin. */
-.nfc-tpl[data-form="6"]{--nfc-letter-height:none;font-size:16px}
+   dotted name gone. The body runs 6px into the right margin as Word's -91
+   twips indent (the page gives those 6px back so print never shrinks) and its
+   spaces close up .9px, so its lines break where Word's do; page 1 ends inside
+   "Chúng tôi cam kết…" as in Word, no forced break before II. */
+.nfc-tpl[data-form="6"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="6"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="6"] :is(p,h1,h2){line-height:1.495!important;margin:0}
-.nfc-tpl.nfc-tpl[data-form="6"]>:is(h1,h2){font-size:18.667px}
-.nfc-tpl.nfc-tpl[data-form="6"]>h1{line-height:1.725!important;margin:18.7px 0 2.8px}
+.nfc-tpl.nfc-tpl[data-form="6"]>:is(h1,h2){font-size:17.333px}
+.nfc-tpl.nfc-tpl[data-form="6"]>h1{font-size:20px;line-height:1.725!important;margin:6.2px 0 4px}
 .nfc-tpl.nfc-tpl[data-form="6"]>h1>br{display:none}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:first-child{margin:0}
-.nfc-tpl[data-form="6"]>table:first-child>colgroup>col:first-child{width:321px!important}
+.nfc-tpl[data-form="6"]>table:first-child>colgroup>col:first-child{width:350px!important}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr{height:96px}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td{padding:0;vertical-align:top}
-.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child p{font-size:13.333px;line-height:1.725!important;white-space:nowrap}
-.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:first-child>p{margin-left:-1.8px!important}
-.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:last-child>p{text-align:left!important;padding-left:161px}
-.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child+p{font-size:21.333px;line-height:1.725!important;margin-top:1.5px}
-.nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type){margin:1.3px 0 1.2px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child p{font-size:14.667px;line-height:1.725!important;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:first-child>p{margin-left:-3.6px!important;margin-top:-1.6px!important;margin-bottom:1.6px!important}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:last-child>p{text-align:left!important;padding-left:113px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:last-child>p:first-child>*{font-size:13.333px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child+p{font-size:18.667px;line-height:1.725!important;margin-top:1.5px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type){margin:1.3px 0 -.7px}
 .nfc-tpl.nfc-tpl[data-form="6"]>p:has(>input[data-medical-record-field="surgery-consent.checkbox.12"]){padding:2.3px 0 1.2px}
 .nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type)>tbody>tr>td{padding-top:0;padding-bottom:0}
-.nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type) p{line-height:30.6px!important}
-.nfc-tpl.nfc-tpl[data-form="6"]>hr+h2{margin-top:-2.9px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type) p{line-height:32px!important}
+.nfc-tpl.nfc-tpl[data-form="6"]>:is(hr,p:empty:has(+hr)){display:none!important}
+.nfc-tpl.nfc-tpl[data-form="6"]>p{break-inside:auto;page-break-inside:auto;orphans:2;widows:2}
+.nfc-tpl.nfc-tpl[data-form="6"]>:is(p:not(table:first-child+p),h2){margin-right:-6px}
+.nfc-tpl.nfc-tpl[data-form="6"]>p[style*="justify"]{word-spacing:-.9px}
 .nfc-tpl.nfc-tpl[data-form="6"]>p:has(>input[data-medical-record-field="surgery-consent.checkbox.25"]){padding:2.9px 0 4.5px}
 .nfc-tpl.nfc-tpl[data-form="6"]>p:has(>input[data-medical-record-field="surgery-consent.checkbox.26"]){padding-bottom:1.6px}
-.nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type{margin-top:24.7px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type{margin-top:3px}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type p{line-height:1.725!important}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type p>em+br~br{display:none}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type p>em~span>.nfc-medical-record-text-field{position:relative;top:2.9px}
 .nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.text.1"]),:has(>span>[data-medical-record-field="surgery-consent.text.2"]),:has(>span>[data-medical-record-field="surgery-consent.text.3"]),:has(>span>[data-medical-record-field="surgery-consent.text.4"]),:has(>span>[data-medical-record-field="surgery-consent.text.5"]),:has(>span>[data-medical-record-field="surgery-consent.text.6"]),:has(>span>[data-medical-record-field="surgery-consent.text.7"]),:has(>span>[data-medical-record-field="surgery-consent.text.8"]),:has(>span>[data-medical-record-field="surgery-consent.text.21"]),:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]),:has(>span>[data-medical-record-field="surgery-consent.text.11"])){display:flex;align-items:baseline;gap:.25em;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.text.1"]),:has(>span>[data-medical-record-field="surgery-consent.text.2"]),:has(>span>[data-medical-record-field="surgery-consent.text.3"]),:has(>span>[data-medical-record-field="surgery-consent.text.4"]),:has(>span>[data-medical-record-field="surgery-consent.text.5"]),:has(>span>[data-medical-record-field="surgery-consent.text.6"]),:has(>span>[data-medical-record-field="surgery-consent.text.7"]),:has(>span>[data-medical-record-field="surgery-consent.text.8"]),:has(>span>[data-medical-record-field="surgery-consent.text.21"]),:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]),:has(>span>[data-medical-record-field="surgery-consent.text.11"]))>span{flex:1 1 auto;min-width:0}
 .nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]))>span:last-child{flex:0 0 196px;margin:0 4.6px 0 4.1px}
@@ -466,13 +524,15 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="6"] :is([data-medical-record-field="surgery-consent.text.1"],[data-medical-record-field="surgery-consent.text.2"],[data-medical-record-field="surgery-consent.text.3"],[data-medical-record-field="surgery-consent.text.4"],[data-medical-record-field="surgery-consent.text.5"],[data-medical-record-field="surgery-consent.text.6"],[data-medical-record-field="surgery-consent.text.7"],[data-medical-record-field="surgery-consent.text.8"],[data-medical-record-field="surgery-consent.text.21"],[data-medical-record-field="surgery-consent.patient.name"],[data-medical-record-field="surgery-consent.patient.birth-year"],[data-medical-record-field="surgery-consent.text.9"],[data-medical-record-field="surgery-consent.text.10"],[data-medical-record-field="surgery-consent.text.11"]){width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="6"] .nfc-medical-record-text-field{min-height:1em}
 /* Mẫu 12 as the BA's Word copy (Mau-12-Bang-kiem-dem-gac-dung-cu.docx,
-   2026-11-23, R-1276): Times New Roman at its own height, 11.5pt on Word's 1.5
-   lines, no space around paragraphs; the letterhead 11pt bold, MS 10pt where
-   Word sets it; the title 16pt on one line; the count table's head on single
-   lines, its rows as they were; the tick rows as tall as Word draws them; the
-   blanks end where Word's tabs end them; the signatures on 1.5 lines, the
-   empty lines before the name gone, as in the BA's copy. */
-.nfc-tpl[data-form="12"]{--nfc-letter-height:none;font-size:15.333px}
+   2026-11-23, R-1276; sizes again R-1298 2026-11-23): Times New Roman at its
+   own height, 13pt on Word's 1.5 lines, no space around paragraphs; the
+   letterhead 11pt bold, MS 10pt where Word sets it; the title 15pt on one line;
+   the count table's head 13pt on single lines, broken where Word breaks it;
+   its rows as tall as Word's exact lines, the empty blanks no taller than
+   them; the tick rows as tall as Word draws them; the blanks end where Word's
+   tabs end them; the signatures on 1.5 lines, the empty lines before the name
+   gone, as in the BA's copy. */
+.nfc-tpl[data-form="12"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="12"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="12"] :is(p,h1){line-height:1.725!important;margin:0}
 .nfc-tpl.nfc-tpl[data-form="12"]>table:first-child{margin:0}
@@ -482,26 +542,31 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="12"]>table:first-child>tbody>tr>td:first-child>p{font-size:14.667px;line-height:21px!important;margin-left:5.7px!important}
 .nfc-tpl.nfc-tpl[data-form="12"] p.record-ids{font-size:13.333px;line-height:21px!important;row-gap:0;column-gap:0;grid-template-columns:104px 1fr;width:auto;margin:0 0 0 56.6px}
 .nfc-tpl.nfc-tpl[data-form="12"] p.record-ids .nfc-medical-record-text-field{width:100%!important;min-width:0!important}
-.nfc-tpl.nfc-tpl[data-form="12"]>h1[data-record-section="surgical-count-title"]{font-size:21.333px;margin-top:7.9px}
-.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.name"]{display:inline-block;width:295.6px!important;min-width:0!important}
-.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.age"]{display:inline-block;width:49.8px!important;min-width:0!important}
+.nfc-tpl.nfc-tpl[data-form="12"]>h1[data-record-section="surgical-count-title"]{font-size:20px;margin-top:7.9px}
+.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.name"]{display:inline-block;width:270.9px!important;min-width:0!important}
+.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.age"]{display:inline-block;width:42.9px!important;min-width:0!important}
 .nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.gender-male"]{margin:0 4.7px 0 -11.7px}
-.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.gender-female"]{margin:0 5.8px 0 10px}
+.nfc-tpl.nfc-tpl[data-form="12"] [data-medical-record-field="surgical-count.patient.gender-female"]{margin:0 5.8px 0 4.9px}
 .nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]{margin-top:0}
 .nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:first-child p{line-height:1.15!important}
 .nfc-tpl.nfc-tpl[data-form="12"]>p:has([data-medical-record-field="surgical-count.patient.name"]){padding-bottom:10.2px!important}
 .nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:nth-child(n+4)>td:first-child{padding-top:2.8px;padding-bottom:5.2px}
 .nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:first-child>td{padding-top:1.7px;padding-bottom:1.7px}
-.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]+p{margin-top:8.1px}
-.nfc-tpl.nfc-tpl[data-form="12"]>p:has(>input[type="checkbox"]){padding:2.2px 0 1.8px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:first-child>td:first-child{padding-left:2px;padding-right:2px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:first-child>td:is(:nth-child(2),:nth-child(5)){padding-left:5px;padding-right:5px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:nth-child(n+2) p{line-height:26.45px!important}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:nth-child(n+2) .nfc-medical-record-text-field{line-height:18.4px!important;min-height:0!important;height:18.4px!important}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]>tbody>tr:nth-child(n+2)>td:first-child>p{position:relative;top:-4.8px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="surgical-count"]+p{margin-top:22.5px}
+.nfc-tpl.nfc-tpl[data-form="12"]>p:has(>input[type="checkbox"]){padding:2.5px 0 2.1px}
 .nfc-tpl.nfc-tpl[data-form="12"] p:is(:has(>span>[data-medical-record-field="surgical-count.text.2"]),:has(>span>[data-medical-record-field="surgical-count.text.3"]),:has(>span>[data-medical-record-field="surgical-count.text.5"])){display:flex;align-items:baseline;gap:.25em;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="12"] p:is(:has(>span>[data-medical-record-field="surgical-count.text.2"]),:has(>span>[data-medical-record-field="surgical-count.text.3"]),:has(>span>[data-medical-record-field="surgical-count.text.5"]))>span:last-child{flex:1 1 auto;min-width:0;margin-top:-1.35px}
 .nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.2"]){padding-right:49.1px}
-.nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.3"]){padding-right:56px}
+.nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.3"]){padding:2px 56px 1px 0!important}
 .nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.3"])>input[type="checkbox"]:first-child{margin-left:0}
 .nfc-tpl.nfc-tpl[data-form="12"] p:has(>span>[data-medical-record-field="surgical-count.text.5"]){padding-right:35px}
 .nfc-tpl.nfc-tpl[data-form="12"] :is([data-medical-record-field="surgical-count.text.2"],[data-medical-record-field="surgical-count.text.3"],[data-medical-record-field="surgical-count.text.5"]){width:100%!important;min-width:0!important}
-.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="signature"]{margin-top:28.6px}
+.nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="signature"]{margin-top:31.3px}
 .nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="signature"]>tbody>tr>td{padding-top:0;padding-bottom:0}
 .nfc-tpl.nfc-tpl[data-form="12"]>table[data-record-section="signature"] p>em+br~br{display:none}
 @media print{
@@ -514,23 +579,27 @@ ${SHEET_FONT_FACE_CSS}
   .nfc-tpl .nfc-material-add{display:none}
 }
 /* Mẫu 7 as the BA's Word copy (Mau-07-Phieu-phau-thuat-thu-thuat.docx,
-   2026-11-23, R-1280), as mẫu 5: Times New Roman at its own height, 12.5pt on
-   Word's 1.5 lines (1.725 × the size), no space around paragraphs; the title
-   18pt; the letterhead 11pt bold on Word's exact 15.75pt lines, MS and Mã
-   người bệnh 11pt bold at Word's tab stops; the page 12.5mm above, 7.5mm
-   below, 15mm at the sides. The lines under the table at Word's 1.4 spacing;
-   nine TRÌNH TỰ lines, as Word — a tenth shows only once something is
-   written on it — dotted on paper as Word's (R-1286). */
-.nfc-tpl[data-form="7"]{--nfc-letter-height:none;font-size:16.667px}
+   2026-11-23, R-1280; sizes again R-1294 2026-11-23), as mẫu 5: Times New
+   Roman at its own height, 13pt on Word's 1.5 lines (1.725 × the size), no
+   space around paragraphs; the title 15pt; the letterhead 11pt bold on Word's
+   exact 15.75pt lines, centred where Word centres it, MS and Mã người bệnh
+   11pt bold at Word's tab stops; the page 12.5mm above, 7.5mm below, 15mm at
+   the sides. The lines under the table at Word's 1.4 spacing; nine TRÌNH TỰ
+   lines, as Word — a tenth shows only once something is written on it —
+   dotted on paper as Word's (R-1286), their dots on the text's line as Word's,
+   the header row as tall as Word's and the row's foot as deep. The signature
+   line's blanks as wide as Word's dots, the dotted name straight under "(Ký,
+   ghi rõ họ tên)" as the new copy has no empty lines before it. */
+.nfc-tpl[data-form="7"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="7"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="7"] :is(p,h1,h2){line-height:1.725!important;margin:0}
-.nfc-tpl.nfc-tpl[data-form="7"]>h2{font-size:16.667px}
-.nfc-tpl.nfc-tpl[data-form="7"]>h1{font-size:24px;margin:9.9px 0 2.4px}
+.nfc-tpl.nfc-tpl[data-form="7"]>h2{font-size:17.333px}
+.nfc-tpl.nfc-tpl[data-form="7"]>h1{font-size:20px;margin:9.9px 0 2.4px}
 .nfc-tpl.nfc-tpl[data-form="7"]>h1>br{display:none}
 .nfc-tpl.nfc-tpl[data-form="7"]>table:first-child{margin:0}
 .nfc-tpl[data-form="7"]>table:first-child>colgroup>col:first-child{width:359px!important}
 .nfc-tpl.nfc-tpl[data-form="7"]>table:first-child>tbody>tr>td{padding:0;vertical-align:top}
-.nfc-tpl.nfc-tpl[data-form="7"]>table:first-child>tbody>tr>td:first-child>p{font-size:14.667px;line-height:21px!important;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="7"]>table:first-child>tbody>tr>td:first-child>p{font-size:14.667px;line-height:21px!important;white-space:nowrap;margin-left:.6px!important}
 .nfc-tpl.nfc-tpl[data-form="7"]>table:first-child>tbody>tr>td:first-child{padding-top:2.3px}
 .nfc-tpl.nfc-tpl[data-form="7"] p.record-ids{font-size:14.667px;line-height:20px!important;grid-template-columns:133.3px minmax(0,1fr);column-gap:0;row-gap:0;width:auto;margin:0 0 0 85.4px;padding-top:3.3px}
 .nfc-tpl.nfc-tpl[data-form="7"] p.record-ids .nfc-medical-record-text-field{min-width:0!important;min-height:1em;line-height:20px}
@@ -539,10 +608,10 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="7"] :is([data-medical-record-field="procedure-record.text.1"],[data-medical-record-field="procedure-record.text.2"],[data-medical-record-field="procedure-record.text.3"],[data-medical-record-field="procedure-record.text.4"],[data-medical-record-field="procedure-record.text.5"],[data-medical-record-field="procedure-record.text.6"],[data-medical-record-field="procedure-record.text.11"],[data-medical-record-field="procedure-record.text.31"],[data-medical-record-field="procedure-record.text.33"],[data-medical-record-field="procedure-record.text.34"],[data-medical-record-field="procedure-record.text.35"]){width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="7"] .nfc-medical-record-text-field{min-height:1em}
 .nfc-tpl.nfc-tpl[data-form="7"]>p:has(>input){padding:2.4px 0 1.9px}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.patient.name"]{min-width:258px!important}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.patient.age"]{min-width:38.5px!important}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.patient.gender-male"]{margin-left:19px}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.patient.gender-female"]{margin-left:16.9px}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.patient.name"]{min-width:262.8px!important;margin:0 -18.1px 0 3.8px}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.patient.age"]{min-width:42.9px!important;margin:0 -10.5px 0 -2.2px}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.patient.gender-male"]{margin-left:11.9px}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.patient.gender-female"]{margin-left:14.2px}
 .nfc-tpl.nfc-tpl[data-form="7"]>p:has(>span>[data-medical-record-field="procedure-record.text.7"]){display:flex;align-items:baseline;white-space:pre}
 .nfc-tpl.nfc-tpl[data-form="7"]>p:has(>span>[data-medical-record-field="procedure-record.text.7"])>span:last-child{flex:1 1 auto;min-width:0}
 .nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.7"]{width:40px!important;min-width:0!important}
@@ -551,50 +620,54 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.10"]{width:45.2px!important;min-width:0!important}
 .nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]){margin:1.4px 0 0}
 .nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) :is(th,td){padding:0 7.2px}
-.nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) th{font-weight:700;vertical-align:middle;height:24.8px;box-sizing:border-box}
-.nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) td p,.nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) td .nfc-medical-record-text-field{line-height:1.725!important;min-height:0}
+.nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) th{font-weight:700;vertical-align:middle;height:24.8px;box-sizing:border-box;padding-bottom:1.3px}
+.nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) td p{line-height:1.725!important;min-height:0}
+.nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) td .nfc-medical-record-text-field{line-height:1.725!important}
 .nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless])~p{line-height:1.61!important}
-.nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) td:not(.nfc-medical-record-drawing-cell){padding-bottom:3.5px}
+.nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless]) td:not(.nfc-medical-record-drawing-cell){padding-bottom:12.6px}
 .nfc-tpl.nfc-tpl[data-form="7"]>table:not([data-borderless])~p>br:last-child{display:none}
 .nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type{margin:0}
 .nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type>tbody>tr>td{padding:0}
 .nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type p{line-height:1.725!important}
-.nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type p>br:is(:nth-of-type(2),:nth-of-type(5)){display:none}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.42"]{min-width:75.7px!important}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.36"]{min-width:22.6px!important}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.37"]{min-width:0!important;padding:0 1px}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.38"]{min-width:26px!important}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.39"]{min-width:25.7px!important}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.40"]{min-width:19px!important}
-.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.41"]{min-width:229px!important;margin-top:5.7px}
+.nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type p>br:is(:nth-of-type(2),:nth-of-type(4),:nth-of-type(5)){display:none}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.42"]{min-width:68.9px!important;margin-right:2px}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.36"]{min-width:21px!important;margin:0 -2.4px 0 -3.5px}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.37"]{min-width:0!important;padding:0}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.38"]{min-width:20.4px!important;margin:0 1px 0 -3.3px}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.39"]{min-width:16.5px!important;margin-left:2.3px}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.40"]{min-width:16.5px!important;margin-left:4px}
+.nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type p:has([data-medical-record-field="procedure-record.text.42"]){text-indent:8.1px}
+.nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type p:has([data-medical-record-field="procedure-record.text.42"]) .nfc-medical-record-text-field{text-indent:0}
+.nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.41"]{min-width:229px!important;margin-left:-1.7px;position:relative;top:2.9px}
 .nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type+p{display:none}
 /* Mẫu 8 as the BA's Word copy (Mau-08-Phieu-theo-doi-dieu-tri.docx,
-   2026-11-23, R-1281), as mẫu 7: Times New Roman at its own height, 12.5pt;
-   the title 18pt; the letterhead 10pt bold on Word's exact 13.7pt lines,
-   centred in Word's column; MS, Tờ điều trị số and Số ngoại trú 10pt on
+   2026-11-23, R-1281; sizes again R-1295 2026-11-23), as mẫu 7: Times New
+   Roman at its own height, 13pt; the title 15pt on Word's exact 25.2pt line;
+   the letterhead 11pt bold on Word's exact 13.7pt lines, centred in Word's
+   column; MS, Tờ điều trị số and Số ngoại trú 10pt on
    16.15pt lines, the labels at Word's indent, their blanks lined up at its
    tab and running to the right margin. The table in Word's columns: its head
    in plain type, seventeen rows of 34.5pt, dotted on paper as Word's
    (R-1286) — on paper low in its row, room above it to write by hand
    (R-1287); the cells' padding a little
    under Word's, so "23/11/2026 08:30" holds one line in Ngày, giờ. */
-.nfc-tpl[data-form="8"]{--nfc-letter-height:none;font-size:16.667px}
+.nfc-tpl[data-form="8"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="8"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="8"] :is(p,h1,h2){margin:0}
-.nfc-tpl.nfc-tpl[data-form="8"]>h1{font-size:24px;line-height:33.6px!important;margin:15.6px 0 0}
+.nfc-tpl.nfc-tpl[data-form="8"]>h1{font-size:20px;line-height:33.6px!important;margin:18.4px 0 0}
 .nfc-tpl.nfc-tpl[data-form="8"]>h1>br{display:none}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:first-child{margin:0}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:first-child>colgroup>col:first-child{width:351.5px!important}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:first-child>tbody>tr>td{padding:0;vertical-align:top}
-.nfc-tpl.nfc-tpl[data-form="8"]>table:first-child>tbody>tr>td:first-child{padding-top:9.3px}
-.nfc-tpl.nfc-tpl[data-form="8"]>table:first-child>tbody>tr>td:first-child>p{display:block!important;width:347.8px;font-size:13.333px;line-height:18.27px!important;white-space:nowrap}
-.nfc-tpl.nfc-tpl[data-form="8"] p.record-ids{display:grid;grid-template-columns:94.7px minmax(0,1fr);column-gap:0;row-gap:0;align-items:baseline;width:auto;margin:0 0 0 93.2px;padding:11.1px 0 0;font-size:13.333px;line-height:21.5px!important}
+.nfc-tpl.nfc-tpl[data-form="8"]>table:first-child>tbody>tr>td:first-child{padding-top:7.7px}
+.nfc-tpl.nfc-tpl[data-form="8"]>table:first-child>tbody>tr>td:first-child>p{display:block!important;width:347.8px;font-size:14.667px;line-height:18.27px!important;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="8"] p.record-ids{display:grid;grid-template-columns:94.7px minmax(0,1fr);column-gap:0;row-gap:0;align-items:baseline;width:auto;margin:0 0 0 93.2px;padding:10.3px 0 0;font-size:13.333px;line-height:21.5px!important}
 .nfc-tpl.nfc-tpl[data-form="8"] p.record-ids .nfc-medical-record-text-field{min-width:0!important;min-height:1em;line-height:1.2;white-space:nowrap}
-.nfc-tpl.nfc-tpl[data-form="8"]>p:has(>input){line-height:1.725!important;margin-top:3.5px}
+.nfc-tpl.nfc-tpl[data-form="8"]>p:has(>input){line-height:1.725!important;margin-top:1.2px}
 .nfc-tpl.nfc-tpl[data-form="8"] [data-medical-record-field="treatment-tracking.page-1.patient.name"]{min-width:215.6px!important}
 .nfc-tpl.nfc-tpl[data-form="8"] [data-medical-record-field="treatment-tracking.page-1.patient.age"]{min-width:72px!important}
 .nfc-tpl.nfc-tpl[data-form="8"] .nfc-medical-record-text-field{min-height:1em}
-.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless]){margin:11px 0 0}
+.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless]){margin:12.7px 0 0}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(1){width:18.78%!important}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(2){width:31.42%!important}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(3){width:26.74%!important}
@@ -606,39 +679,40 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless]) td .nfc-medical-record-text-field{padding:0 1px}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless]) td p,.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless]) td .nfc-medical-record-text-field{line-height:18.2px!important;min-height:0}
 /* Mẫu 9 as the BA's Word copy (Mau-09-Phieu-cham-soc.docx, 2026-11-23,
-   R-1282), as mẫu 7: Times New Roman at its own height, 12.5pt on Word's 1.5
-   lines, no space around paragraphs; the title 18pt; the letterhead 11pt bold
-   on Word's exact 15.1pt lines; MS and Mã người bệnh 13pt bold, right-aligned
-   at Word's tab, their blanks to the right margin; "Điều dưỡng ghi phiếu số" at
+   R-1282; sizes again R-1296 2026-11-23), as mẫu 7: Times New Roman at its
+   own height, 13pt on Word's 1.5 lines, no space around paragraphs; the title
+   15pt; the letterhead 11pt bold on Word's exact 15.1pt lines; MS and Mã người
+   bệnh 13pt bold, left-aligned on one edge as Word's, their blanks to the
+   right margin; "Điều dưỡng ghi phiếu số" at
    Word's indent; Chẩn đoán over two dotted lines, the second one drawn until a
    long diagnosis writes on lines of its own. The table in Word's columns and
    13pt: a header row of 47.85pt, twenty rows of 27.15pt, dotted on paper as
    Word's (R-1286) — on paper low in its row, room above it to write by
    hand (R-1287). */
-.nfc-tpl[data-form="9"]{--nfc-letter-height:none;font-size:16.667px}
+.nfc-tpl[data-form="9"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="9"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="9"] :is(p,h1,h2){line-height:1.725!important;margin:0}
-.nfc-tpl.nfc-tpl[data-form="9"]>h1{font-size:24px;margin:0 0 2.4px}
+.nfc-tpl.nfc-tpl[data-form="9"]>h1{font-size:20px;margin:0 0 2.4px}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:first-child{margin:0}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:first-child>tbody>tr>td{padding:0;vertical-align:top}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:first-child>tbody>tr>td:first-child{padding:8.3px 0 0 5.7px}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:first-child>tbody>tr>td:first-child>p{font-size:14.667px;line-height:20.13px!important;white-space:nowrap}
-.nfc-tpl.nfc-tpl[data-form="9"] p.record-ids{display:grid;grid-template-columns:192px minmax(0,1fr);column-gap:5px;row-gap:0;align-items:baseline;width:auto;margin:0;padding:11.9px 5px 0 0;font-size:17.333px;line-height:24.8px!important}
-.nfc-tpl.nfc-tpl[data-form="9"] p.record-ids .record-ids-label{justify-self:end}
+.nfc-tpl.nfc-tpl[data-form="9"] p.record-ids{display:grid;grid-template-columns:129.6px minmax(0,1fr);column-gap:5px;row-gap:0;align-items:baseline;width:auto;margin:0;padding:11.9px 8.6px 0 67.9px;font-size:17.333px;line-height:24.8px!important}
+.nfc-tpl.nfc-tpl[data-form="9"] p.record-ids .record-ids-label{justify-self:start}
 .nfc-tpl.nfc-tpl[data-form="9"] p.record-ids .nfc-medical-record-text-field{min-width:0!important;min-height:1em;line-height:1.2}
 .nfc-tpl.nfc-tpl[data-form="9"]>p:has(>span>[data-medical-record-field="care.record-number"]){text-align:left!important;padding-left:195.3px}
-.nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.record-number"]{min-width:118.8px!important}
+.nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.record-number"]{min-width:110px!important}
 .nfc-tpl.nfc-tpl[data-form="9"]>p:has(>input){padding:2.4px 0 1.9px}
-.nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.patient.name"]{min-width:292.3px!important}
-.nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.patient.age"]{min-width:52.3px!important}
+.nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.patient.name"]{min-width:279.7px!important}
+.nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.patient.age"]{min-width:44px!important}
 .nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.patient.gender-male"]{margin-left:15.2px}
-.nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.patient.gender-female"]{margin-left:5px}
+.nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.patient.gender-female"]{margin-left:2.9px}
 .nfc-tpl.nfc-tpl[data-form="9"]>p:has(>span>[data-medical-record-field="care.diagnosis"]){display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .3em;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="9"]>p:has(>span>[data-medical-record-field="care.diagnosis"])>span{flex:1 1 0;min-width:0;white-space:pre-wrap}
 .nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.diagnosis"]{width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="9"]>p:has(>span>[data-medical-record-field="care.diagnosis"]):not(:has(+p[data-flow-line]))::after{content:"${".".repeat(320)}";flex:0 0 100%;min-width:0;overflow:hidden;white-space:nowrap;font-style:normal}
 .nfc-tpl.nfc-tpl[data-form="9"] .nfc-medical-record-text-field{min-height:1em}
-.nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]){margin:5.75px 0 0;font-size:17.333px}
+.nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]){margin:7.1px 0 0;font-size:17.333px}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless])>colgroup>col:nth-child(1){width:16.4%!important}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless])>colgroup>col:nth-child(2){width:10.99%!important}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless])>colgroup>col:nth-child(3){width:27.46%!important}
@@ -649,10 +723,12 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]) td{box-sizing:border-box;height:36.2px;padding:3.2px 7.2px 0;vertical-align:top}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]) td p,.nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]) td .nfc-medical-record-text-field{line-height:18.6px!important;min-height:0}
 /* Mẫu 11 as the BA's Word copy (Mau-11-Bang-kiem-an-toan-phau-thuat.docx,
-   2026-11-23, R-1283), over the clinic's layout above: Times New Roman at its
-   own height, 12pt on Word's single lines (13.8pt), a tick line as tall as
-   Word's ☐ makes it; the name and diagnosis lines 1.5 apart; the clinic's
-   name 10pt on Word's exact lines, the title 16pt, MS 11pt; the stages' titles
+   2026-11-23, R-1283; again R-1297 2026-11-23), over the clinic's layout
+   above: Times New Roman at its own height, 12pt on Word's single lines
+   (13.8pt, no 1.2em floor), a tick line as tall as Word's ☐ makes it (16pt
+   apart); the name and diagnosis lines 1.5 apart; the clinic's name 11pt on
+   Word's exact lines, 6px past its cell on each side as Word's indent, the
+   title 15pt, MS 11pt; the stages' titles
    12.5pt bold in square boxes and nothing between them; the second answer of
    a pair at Word's tab; the second column ruled only where its rows meet
    (above Dự kiến) — not above Kháng sinh nor Chẩn đoán hình ảnh (R-1286);
@@ -663,19 +739,22 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="11"] p{line-height:18.4px!important;margin:0}
 .nfc-tpl.nfc-tpl[data-form="11"] p:has(input){padding-top:2.4px}
 .nfc-tpl.nfc-tpl[data-form="11"]>p{line-height:27.6px!important}
-.nfc-tpl.nfc-tpl[data-form="11"]>p:first-of-type{margin-top:4.6px}
+.nfc-tpl.nfc-tpl[data-form="11"]>p:first-of-type{margin-top:2.5px}
+.nfc-tpl.nfc-tpl[data-form="11"]>p:nth-of-type(2){padding-top:1.5px}
 .nfc-tpl.nfc-tpl[data-form="11"]>table{margin:0}
 .nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="surgical-safety-header"]{margin:0}
 .nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="surgical-safety-header"]>tbody>tr>td{padding:0}
-.nfc-tpl.nfc-tpl[data-form="11"] .ss-clinic{font-size:13.333px;line-height:15.6px!important}
-.nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-header"] h1{font-size:21.333px;line-height:26.4px!important;margin:14.9px 0 0}
+.nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="surgical-safety-header"]>tbody>tr>td:first-child{padding-right:4px}
+.nfc-tpl.nfc-tpl[data-form="11"] .ss-clinic{font-size:14.667px;line-height:15.6px!important;margin:0 -6px;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-header"] h1{font-size:20px;line-height:26.4px!important;margin:14.9px 0 0}
 .nfc-tpl.nfc-tpl[data-form="11"] .ss-code{font-size:14.667px;line-height:16.3px!important}
-.nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety"]{margin:9.1px 0 21.2px;border-collapse:collapse}
+.nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety"]{margin:7.6px 0 21.2px;border-collapse:collapse}
 .nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety"]>tbody>tr>td:nth-child(odd){border:1px solid #000;border-radius:0;padding:0;height:27.5px;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety"] td:nth-child(odd) p{font-size:16.667px;line-height:28.75px!important}
 .nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety"] td:nth-child(5) p{font-size:16px}
 .nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-stages"]>tbody>tr>td{padding:0 1.2px 3.6px 9.2px}
-.nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-stages"] p:has(input){padding-left:2.5px}
+.nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-stages"] p{min-height:0}
+.nfc-tpl.nfc-tpl[data-form="11"] table[data-record-section="surgical-safety-stages"] p:has(input){padding:2.8px 0 0 2.5px}
 .nfc-tpl.nfc-tpl[data-form="11"] .ss-rule{margin:0;padding:0;border-top:0}
 .nfc-tpl.nfc-tpl[data-form="11"] .ss-col1 .ss-opt{min-width:143px}
 .nfc-tpl.nfc-tpl[data-form="11"] .ss-col2 .ss-opt{min-width:110.4px}
@@ -683,7 +762,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="signature"]{margin-top:5.5px}
 .nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="signature"] p{font-size:14.667px;line-height:16.3px!important}
 .nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="signature"] p>br:nth-of-type(n+2){display:none}
-.nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="signature"] .nfc-medical-record-text-field{min-width:160px!important;margin-top:33px}
+.nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="signature"] .nfc-medical-record-text-field{min-width:160px!important;margin-top:37px}
 /* The dots the BA's Word copies print in their tables and under where people
    sign (owner, 2026-11-23, R-1285, R-1286: "trong table sao không có các dấu
    chấm"): every blank of mẫu 7's TRÌNH TỰ, of mẫu 8's and mẫu 9's tables, and
@@ -728,24 +807,61 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl table[data-cover] h3{margin:4px 0 0;font-size:18pt;line-height:1.35}
 .nfc-tpl table[data-cover] h4{margin:0;font-size:11pt;line-height:1.45}
 .nfc-tpl table[data-cover] p{margin-bottom:6px;line-height:1.5}
-/* Mẫu 1 at the BA's Word sizes (BA, 2026-11-22, R-1271). The cover: the three
-   letterhead lines 14pt on 1.5 lines, MÃ BỆNH NHÂN / MÃ LƯU TRỮ on 1.5 lines of
-   their 12pt blank, NĂM 20 at 12pt, and the MÃ BỆNH box's blanks a dotted line
-   across the box, under their label. Pages 2 and 3: the titles at 16pt, the
-   tables' text in the middle of its cells, the list's columns as Word's and its
-   rows at the height they had. */
+/* Mẫu 1 at the BA's Word sizes (BA, 2026-11-22, R-1271; again 2026-11-23,
+   R-1289: the text 13pt, the titles 13pt bold). The cover: the three letterhead
+   lines 14pt on 1.5 lines, MÃ BỆNH NHÂN / MÃ LƯU TRỮ on 1.5 lines of their 13pt
+   blank, NĂM 20 at 12pt, the cover's frame and padding as Word's, and the MÃ
+   BỆNH box's blanks a dotted line across the box, under their label. Pages 2
+   and 3: Word's cells (4px over the text, 8px each side, the row at its
+   trHeight + 5px), the text in the middle of its cell, the list's columns as
+   Word's; the titles squeezed 2% so they hold one line as in Word. */
 .nfc-tpl[data-form="1"] table[data-cover] h4{font-size:18.667px;line-height:1.725}
 .nfc-tpl[data-form="1"] table[data-cover] :is(h4,h3>span) span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl[data-form="1"] table[data-cover] h3>span[style*="font-size"]{font-size:16px!important}
 .nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"]{line-height:1.725}
 .nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) .nfc-medical-record-text-field{display:block;width:100%;box-sizing:border-box}
-.nfc-tpl[data-form="1"]>h2{font-size:21.333px}
-.nfc-tpl[data-form="1"]>table:is(:nth-of-type(2),:nth-of-type(3),:nth-of-type(4))>tbody>tr>td{vertical-align:middle}
+.nfc-tpl[data-form="1"]>h2{font-size:17.333px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td{padding:25.2px 32.2px 1px 31.8px}
+.nfc-tpl[data-form="1"] table[data-cover],.nfc-tpl[data-form="1"] table[data-cover]>colgroup>col{width:682px!important;max-width:none!important}
+.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]{margin-bottom:0}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]){margin-left:-2.7px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>h4:nth-child(2){margin-top:1px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:empty{margin-bottom:7.4px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>h4+p:empty{margin-bottom:6.5px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>h3~p:empty{margin-bottom:5.6px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:has(input)~p:empty{margin-bottom:5.9px}
+.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"]{margin-bottom:3.2px}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:first-child{margin-bottom:3.9px}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:has(.nfc-medical-record-text-field):not(:last-child){margin-bottom:9.3px}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:last-child{margin-bottom:11.1px}
+.nfc-tpl[data-form="1"] table[data-cover] p:not([style*="text-align: right"]):has(.nfc-medical-record-text-field,input){font-size:17.333px;margin-bottom:3.5px}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless])>tbody>tr>td{font-size:17.333px}
+.nfc-tpl[data-form="1"] table[data-cover] :is([data-medical-record-field="cover.patient.ward"],[data-medical-record-field="cover.patient.province"]){min-width:181px!important}
+.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"] .nfc-medical-record-text-field{min-width:179.8px!important}
+/* "NĂM 20" + the year blank read as one number, "NĂM 2026" (BA, 2026-11-23: "cho sát vô"):
+   the h3's centring put the digits in the middle of the blank, a gap after "20".
+   The digits start at the blank's left edge; the blank keeps its width (left
+   padding moved right), written or not. */
+.nfc-tpl .nfc-medical-record-text-field[data-medical-record-field="cover.year"]{padding:0 6px 0 0;text-align:left}
+.nfc-tpl[data-form="1"]>table:is(:nth-of-type(2),:nth-of-type(3),:nth-of-type(4))>tbody>tr>:is(td,th){vertical-align:middle}
+.nfc-tpl[data-form="1"]>table:not([data-cover],[data-borderless])>tbody>tr>:is(td,th){padding:8.6px 8px 0}
+.nfc-tpl[data-form="1"]>table:not([data-cover],[data-borderless])>tbody>tr>:is(td,th)>p{line-height:20.5px!important;margin:0 -6px 3px 0}
+.nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr>:is(td,th){padding:4px 8px 0}
+.nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr>:is(td,th)>p{line-height:18.133px!important;margin-bottom:0}
+.nfc-tpl[data-form="1"]>table[data-borderless]>tbody>tr>td{padding:2px 5px 0 7px}
+.nfc-tpl[data-form="1"]>table[data-borderless]>tbody>tr>td>p{line-height:22.13px!important;margin:0}
+.nfc-tpl[data-form="1"]>table[data-borderless]>tbody>tr>td>p:first-child{margin-top:0.23px}
+.nfc-tpl[data-form="1"]>table:not([data-cover])>tbody>tr>th>p{margin-right:0}
+.nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:first-child>th:is(:nth-child(1),:nth-child(2))>p{margin-top:3.4px}
+.nfc-tpl[data-form="1"]>h2{transform:scaleX(.98)}
+.nfc-tpl[data-form="1"]>h2:nth-of-type(1){line-height:1.725;margin:2.75px 0 7.05px}
+.nfc-tpl[data-form="1"]>h2:nth-of-type(2){line-height:20px;margin:7.7px 0 2.4px}
+.nfc-tpl[data-form="1"]>table:nth-of-type(2){width:680px!important}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>colgroup>col:nth-child(1){width:8.26%!important}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>colgroup>col:nth-child(2){width:41.7%!important}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>colgroup>col:nth-child(3){width:23.62%!important}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>colgroup>col:nth-child(4){width:auto!important}
-.nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:first-child>td{height:54.2px}
+.nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:first-child>:is(td,th){height:54.2px}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:nth-child(2)>td{height:89.5px}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:nth-child(n+3)>td{height:69.2px}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:is(:nth-child(7),:nth-child(9))>td{height:48.8px}
@@ -908,8 +1024,10 @@ const SHEET_FIELD_CSS = String.raw`
 const SHEET_PRINT_CSS = String.raw`
     @page{size:A4;margin:5mm;@top-center{content:""}@bottom-right{content:counter(page);font-family:${SHEET_FONT_FAMILY};font-size:10pt;color:#000}}
     @page margin-15mm{margin:15mm}
+    @page consent-form{margin:15mm calc(15mm - 6px) 12.5mm 15mm}
     @page outpatient-dental{margin:15mm 15mm 7mm}
     @page procedure-record{margin:12.5mm 15mm 7.5mm}
+    @page orthodontic-contract{margin:20mm 10mm 20mm 17.5mm}
     @page surgical-safety{size:A4 landscape;margin:10mm 10mm 5mm}
     @media print{
       .nfc-tpl{page:margin-5mm;width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
@@ -917,9 +1035,12 @@ const SHEET_PRINT_CSS = String.raw`
       .nfc-tpl[data-form="2"]{page:outpatient-dental}
       /* Mẫu 7: 12.5mm above, 7.5mm below, as the BA's Word copy (R-1280). */
       .nfc-tpl[data-form="7"]{page:procedure-record}
+      /* Mẫu 10: 20mm above and below, 17.5mm left, 10mm right, as the BA's Word copy (R-1299). */
+      .nfc-tpl[data-form="10"]{page:orthodontic-contract}
+      .nfc-tpl[data-form="6"]{page:consent-form;padding-right:6px}
       /* Mẫu 4: 10mm above the page, as the BA's Word copy (2026-11-22). */
-      .nfc-tpl[data-form="4"]{padding-top:5mm}
-      .nfc-tpl[data-form="11"]{page:surgical-safety;width:auto;margin:0;padding:0}
+      .nfc-tpl[data-form="4"]{padding-top:calc(5mm - 2px)}
+      .nfc-tpl[data-form="11"]{page:surgical-safety;width:auto;min-height:0;margin:0;padding:0}
       .nfc-tpl>hr{height:0;margin:0;border:0;break-after:page;page-break-after:always}
       /* Nothing empty runs on to a page of its own (2026-11-21): the 7mm under
          a 5mm sheet's last line, and a 3px gap closing a page, each moved whole
@@ -947,6 +1068,7 @@ export const SHEET_PAGE_CSS = String.raw`    html,body{margin:0;min-height:100%;
     .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]){padding:15mm}
     .nfc-tpl[data-form="4"]{padding-top:10mm}
     .nfc-tpl[data-form="7"]{padding:12.5mm 15mm 7.5mm}
+    .nfc-tpl[data-form="10"]{padding:20mm 10mm 20mm 17.5mm}
     .nfc-tpl[data-form="11"]{width:297mm;min-height:210mm;padding:10mm 10mm 5mm}
     .nfc-tpl>hr{margin:28px 0;border:0;border-top:2px dashed #b7c0ce}
     ${SHEET_FIELD_CSS}
@@ -967,6 +1089,7 @@ export const PRINT_COPY_CSS = String.raw`${SHEET_CSS}
     .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]){padding:15mm}
     .nfc-tpl[data-form="4"]{padding-top:10mm}
     .nfc-tpl[data-form="7"]{padding:12.5mm 15mm 7.5mm}
+    .nfc-tpl[data-form="10"]{padding:20mm 10mm 20mm 17.5mm}
     .nfc-tpl[data-form="11"]{width:297mm;padding:10mm 10mm 5mm}
     .nfc-tpl>hr{margin:0;border:0}
 ${SHEET_FIELD_CSS}

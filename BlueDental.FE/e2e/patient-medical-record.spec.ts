@@ -302,7 +302,7 @@ test.describe("Bệnh án", () => {
       { form: "Bệnh án ngoại trú Răng Hàm Mặt", blanks: 140, boxes: 18, pages: 3 },
       // Plus "Tôi …" and the patient's name under NGƯỜI BỆNH/THÂN NHÂN (clinic, 2026-11-10, R-1191).
       { form: "Bệnh án chỉnh nha", blanks: 184, boxes: 64, pages: 3 },
-      { form: "Phiếu Tư Vấn Tổng Quát", blanks: 23, boxes: 0, pages: 1 },
+      { form: "Phiếu Tư Vấn Tổng Quát", blanks: 22, boxes: 0, pages: 1 },
       // The reference's 82, less the cost table's eighth line: seven and Tổng, as on paper (2026-10-16).
       // Since 2026-10-16: "Loại" comes from Danh mục (Zirconia…Khác and the implant's typed type
       // became one blank each) and "Niềng răng" joined Phương pháp điều trị.
@@ -1465,8 +1465,8 @@ test.describe("Bệnh án", () => {
     const document = sheet(page);
     await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr')).toHaveCount(9);
     await expect(document.locator('table[data-record-section="consultation-cost"] tbody > tr').last()).toContainText("Tổng");
-    // 12.5pt, as the BA's Word copy sets it (R-1274).
-    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("16.667px");
+    // 13pt, as the BA's Word copy sets it (R-1274, sizes again R-1291).
+    expect(await document.locator(".nfc-tpl").evaluate((tpl) => getComputedStyle(tpl).fontSize)).toBe("17.333px");
 
     const box = (field: string) => document.locator(`[data-medical-record-field="${field}"]`).boundingBox();
     const [scaling, other] = await Promise.all([box("consultation.checkbox.1"), box("consultation.checkbox.9")]);
@@ -2026,15 +2026,15 @@ test.describe("Bệnh án", () => {
     await openMedicalRecord(page);
 
     const expected: Array<[string, string, string, number]> = [
-      ["Bìa hồ sơ bệnh án", "17px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
+      ["Bìa hồ sơ bệnh án", "17.333px", "PHÒNG KHÁM CHUYÊN KHOA RĂNG HÀM MẶT", 3],
       ["Bệnh án ngoại trú Răng Hàm Mặt", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 5],
-      ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
-      ["Phiếu Tư Vấn Tổng Quát", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Phiếu phẫu thuật/thủ thuật", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu theo dõi điều trị", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
-      ["Phiếu chăm sóc", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Bệnh án chỉnh nha", "17.333px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
+      ["Phiếu Tư Vấn Tổng Quát", "17.333px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu tư vấn và xác nhận đồng ý điều trị", "17.333px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "17.333px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Phiếu phẫu thuật/thủ thuật", "17.333px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu theo dõi điều trị", "17.333px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
+      ["Phiếu chăm sóc", "17.333px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
     ];
     for (const [form, size, letterhead, pages] of expected) {
       // Blank, so what other tests wrote on the sheet does not add lines.
@@ -2274,8 +2274,8 @@ test.describe("Bệnh án", () => {
    * the sheet and of every printed page; the boxes that open a line on the left
    * margin; the blanks after "Tôi tên là", "Chức danh", "Chẩn đoán" running to the
    * right margin, on the line they start on. Type and spacing as the BA's Word copy
-   * (R-1275): Word's 1.3 lines (1.495), the letterhead at 10pt where Word sets it
-   * (its widest line 1.8px past the margin) and MS where Word's tab puts it, 482px in.
+   * (R-1275, R-1293): Word's 1.3 lines (1.495), the letterhead at 11pt where Word sets it
+   * (its widest line 3.3px past the margin, as Word prints it) and MS where Word's tab puts it, 463px in (R-1293).
    */
   test("mẫu 6: 15mm margins, the letterhead, MS and the boxes on the margins", async ({ page }) => {
     const margin = (15 / 25.4) * 96;
@@ -2318,16 +2318,17 @@ test.describe("Bệnh án", () => {
 
     for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
     expect(layout.lineHeight, "Word's 1.3 lines").toBeCloseTo(1.495, 2);
-    expect(layout.letterheadSize, "letterhead at 10pt").toBeCloseTo((10 * 4) / 3, 2);
-    expect(Math.abs(layout.letterhead + 1.8), "letterhead where Word sets it").toBeLessThan(1);
-    expect(Math.abs(layout.ms - 482), "MS where Word's tab puts it").toBeLessThan(1.5);
+    expect(layout.letterheadSize, "letterhead at 11pt").toBeCloseTo((11 * 4) / 3, 2);
+    expect(Math.abs(layout.letterhead + 3.6), "letterhead where Word sets it").toBeLessThan(1);
+    expect(Math.abs(layout.ms - 463), "MS where Word's tab puts it").toBeLessThan(1.5);
     // Chẩn đoán … Kết quả, the first column of the two lists, Không, 1. and 2.
     expect(layout.boxes.length, "boxes opening a line").toBeGreaterThanOrEqual(14);
     for (const gap of layout.boxes) expect(Math.abs(gap), "box on the left margin").toBeLessThan(1);
     for (const { right, lines } of layout.reaching) {
       expect(lines, "the blank stays on its line").toBeLessThan(1.6);
-      expect(right, "the blank runs to the right margin").toBeGreaterThanOrEqual(-1);
-      expect(right, "the blank runs to the right margin").toBeLessThan(24);
+      // 6px into the margin, as Word's -91 twips indent (R-1293).
+      expect(right, "the blank runs to the right margin").toBeGreaterThanOrEqual(-7);
+      expect(right, "the blank runs to the right margin").toBeLessThan(18);
     }
 
     // On paper the margin is the page's, on every page: a page of its own, and no padding on the sheet.
@@ -2344,7 +2345,7 @@ test.describe("Bệnh án", () => {
     });
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
-    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
+    expect(printed).toEqual({ page: "consent-form", padding: "0px" });
   });
 
   /**
@@ -2393,7 +2394,7 @@ test.describe("Bệnh án", () => {
         };
       });
 
-    expect(layout.fontSize, "type").toBe("16.667px");
+    expect(layout.fontSize, "type").toBe("17.333px");
     const margins = [mm(12.5), mm(15), mm(7.5), mm(15)];
     layout.padding.forEach((edge, at) => expect(edge, "sheet margin").toBeCloseTo(margins[at], 1));
     expect(layout.lineHeight, "Word's 1.5 lines").toBeCloseTo(1.725, 2);
@@ -2428,15 +2429,16 @@ test.describe("Bệnh án", () => {
 
   /**
    * Mẫu 10 — Hợp đồng thỏa thuận niềng răng, the clinic's own form (.docx,
-   * 2026-10-29): the contract and the Bản thỏa thuận attached to it, set like
-   * mẫu 6 (R-1079) — 15px, a line and a half, 15mm on the sheet and on every
-   * printed page, the titles at 18pt. Bên B is answered from the record — the
+   * 2026-10-29): the contract and the Bản thỏa thuận attached to it, at the
+   * BA's Word sizes (R-1299) — 13pt on Word's line and a half, the titles at
+   * 15pt, 20mm above and below, 17.5mm left and 10mm right on the sheet and on
+   * every printed page. Bên B is answered from the record — the
    * name in capitals, the code, CCCD — and so is the customer under III. Đồng ý
    * điều trị; a dotted line after a label runs to the right margin, and what the
    * clinic writes on the sheet comes back after a reload.
    */
-  test("mẫu 10: the contract is filled from the record, keeps what is written and prints like mẫu 6", async ({ page }) => {
-    const margin = (15 / 25.4) * 96;
+  test("mẫu 10: the contract is filled from the record, keeps what is written and prints as the BA's Word", async ({ page }) => {
+    const margins = [20, 10, 20, 17.5].map((mm) => (mm / 25.4) * 96);
     const form = "Hợp đồng thỏa thuận niềng răng";
     await openMedicalRecord(page);
     const patientId = new URL(page.url()).pathname.split("/")[2];
@@ -2496,11 +2498,11 @@ test.describe("Bệnh án", () => {
           reaching,
         };
       });
-    expect(layout.fontSize, "20px, as the clinic's own copy (R-1266)").toBe("20px");
-    for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
-    expect(layout.contract, "the contract a line and a half").toBeCloseTo(1.5, 2);
-    expect(layout.agreement, "the agreement too").toBeCloseTo(1.5, 2);
-    expect(layout.titles, "both titles at 18pt, as on the other forms").toEqual(["24px", "24px"]);
+    expect(layout.fontSize, "13pt, as the BA's Word (R-1299)").toBe("17.333px");
+    layout.padding.forEach((edge, at) => expect(edge, "sheet margin").toBeCloseTo(margins[at], 1));
+    expect(layout.contract, "the contract on Word's line and a half").toBeCloseTo(1.725, 2);
+    expect(layout.agreement, "the agreement too").toBeCloseTo(1.725, 2);
+    expect(layout.titles, "both titles at 15pt").toEqual(["20px", "20px"]);
     // The record answers several of them (Bên B, Chẩn đoán, the plan, the costs).
     expect(layout.reaching.length, "the dotted lines that end a line").toBeGreaterThanOrEqual(8);
     for (const { id, right, lines } of layout.reaching) {
@@ -2535,8 +2537,8 @@ test.describe("Bệnh án", () => {
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
-    expect(printed).toEqual({ page: "margin-15mm", padding: "0px" });
-    // 20px on a line and a half, one page break only (R-1266): seven pages.
+    expect(printed).toEqual({ page: "orthodontic-contract", padding: "0px" });
+    // One page break only (R-1266), at the BA's Word sizes (R-1299): seven pages.
     expect((pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length, "printed pages").toBe(7);
   });
 
@@ -2655,7 +2657,7 @@ test.describe("Bệnh án", () => {
     // Mẫu 7 on the 15mm page since R-1073, on a page of its own (12.5mm / 7.5mm) since R-1280.
     await openFreshSheet(page, procedure);
     expect(await printedPages([], true), `${procedure} · printed pages`).toBe(1);
-    // Mẫu 10 on the 15mm page too, its five pages unchanged by Loại mắc cài (R-1097).
+    // Mẫu 10 on a page of its own (20mm / 10mm / 20mm / 17.5mm) since R-1299.
     await openFreshSheet(page, contract);
     expect(await printedPages([], true), `${contract} · printed pages`).toBe(7);
 
