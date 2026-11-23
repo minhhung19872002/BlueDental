@@ -1,7 +1,6 @@
 import { createPortal } from "react-dom";
 import { PrinterOutlined } from "@ant-design/icons";
 import { AppDialog } from "@/components/AppDialog";
-import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useFullAddress } from "@/hooks/useFullAddress";
 import { usePrintSheet } from "@/hooks/usePrintSheet";
 import { t } from "@/lib/i18n";
@@ -25,14 +24,12 @@ interface Props {
  * when it closes.
  */
 export function PrescriptionViewDialog({ patient, prescription, onClose }: Props) {
-  const clinic = useBranchInfo(prescription.clinicBranchId).data;
   const print = usePrintSheet();
   const { street, provinceCode, wardCode, oldAddress } = patient.address;
   // The pre-2025 address only when the record has no current one.
   const patientAddress = useFullAddress({ street, provinceCode, wardCode }) || (oldAddress?.trim() ?? "");
   const sheet = (
     <PrescriptionPrintSheet
-      clinic={clinic}
       patient={patient}
       patientAddress={patientAddress}
       prescription={prescription}

@@ -1,4 +1,3 @@
-import type { BranchInfo } from "@/hooks/useBranchInfo";
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import { printedDoctorName } from "@/utils/printedDoctorName";
@@ -9,40 +8,23 @@ import { printedDiagnosisNames } from "../../utils/rxDiagnosis";
 import { RxSheetFact, RxSheetMedicines, RxSheetOtherAdvice } from "./RxSheetParts";
 
 interface Props {
-  clinic: BranchInfo | undefined;
   patient: PrescriptionPatientSummary;
   /** The record's address as printed, already resolved ("" when none). */
   patientAddress: string;
   prescription: PrescriptionDto;
 }
 
-/**
- * "TP.HCM, Ngày 6 tháng 10 năm 2026" — the date the slip was written, after
- * the place: the last part of the clinic's address, as the BA's "TP HCM" is
- * the last part of theirs. An address without parts gives the date alone.
- */
-function placedDate(value: string, clinicAddress: string | null | undefined): string {
+/** "TP HCM, Ngày 6 tháng 10 năm 2026" — where and when the slip was written. */
+function placedDate(value: string): string {
   const date = new Date(value);
   const day = t("Patient:Print:LongDate", date.getDate(), date.getMonth() + 1, date.getFullYear());
-  const parts = (clinicAddress ?? "").split(",").map((part) => part.trim());
-  const place = parts.length > 1 ? parts[parts.length - 1] : "";
-  return place ? t("Treatment:RxPrint:PlaceDate", place, day) : day;
-}
-
-/** "0799.160.888" — a ten-digit number in the BA's groups; anything else as stored. */
-function dottedPhone(phone: string): string {
-  return /^\d{10}$/.test(phone) ? `${phone.slice(0, 4)}.${phone.slice(4, 7)}.${phone.slice(7)}` : phone;
-}
-
-/** "0799.160.888 – 0767.080.333": the branch's lines, second one when set (R-1300). */
-function clinicPhones(clinic: BranchInfo | undefined): string {
-  return [clinic?.phone, clinic?.phone2].filter((phone): phone is string => Boolean(phone)).map(dottedPhone).join(" – ");
+  return t("Treatment:RxPrint:PlaceDate", t("Treatment:RxPrint:ClinicPlace"), day);
 }
 
 /**
  * "ĐƠN THUỐC" on an A5 page, laid out as the BA's second Word copy
- * (Downloads/Mau-Don-thuoc (1).docx, R-1300): the clinic letterhead and slip
- * code, the patient with address and guardian, the diagnosis names, the
+ * (Downloads/Mau-Don-thuoc (1).docx, R-1300): the clinic letterhead — fixed
+ * text by the BA's call, not the branch's data (R-1301) — and the slip code, the patient with address and guardian, the diagnosis names, the
  * numbered medicines with how to take each, the prescribing doctor's signature
  * block on the right, then the standing advice and "Khác" — the slip's own
  * advice, or a dotted line for the doctor to write one. The BA's copy has no
@@ -52,7 +34,7 @@ function clinicPhones(clinic: BranchInfo | undefined): string {
  * off-screen copy that reaches the printer — so it holds no state. Not in the
  * reference (bug list #23); BlueDental's own design.
  */
-export function PrescriptionPrintSheet({ clinic, patient, patientAddress, prescription }: Props) {
+export function PrescriptionPrintSheet({ patient, patientAddress, prescription }: Props) {
   const age = ageOf(patient.dateOfBirth);
   const birth = [
     patient.dateOfBirth ? formatDate(patient.dateOfBirth) : null,
@@ -64,15 +46,14 @@ export function PrescriptionPrintSheet({ clinic, patient, patientAddress, prescr
     prescription.treatmentType === PRESCRIPTION_TREATMENT_TYPE.Inpatient
       ? t("Treatment:Prescription:Inpatient")
       : t("Treatment:Prescription:Outpatient");
-  const phones = clinicPhones(clinic);
 
   return (
     <article className="rx-sheet">
       <header className="rx-sheet-head">
         <div className="rx-sheet-clinic">
-          <strong>{clinic?.name ?? ""}</strong>
-          {clinic?.address && <p>{t("Treatment:RxPrint:Address", clinic.address)}</p>}
-          {phones && <p>{t("Treatment:RxPrint:Phone", phones)}</p>}
+          <strong>{t("Treatment:RxPrint:ClinicName")}</strong>
+          <p>{t("Treatment:RxPrint:Address", t("Treatment:RxPrint:ClinicAddress"))}</p>
+          <p>{t("Treatment:RxPrint:Phone", t("Treatment:RxPrint:ClinicPhones"))}</p>
         </div>
         <p className="rx-sheet-code">
           {t("Treatment:RxPrint:Code")}: <strong>{prescription.code}</strong>
@@ -102,7 +83,7 @@ export function PrescriptionPrintSheet({ clinic, patient, patientAddress, prescr
       <p className="rx-sheet-count">{t("Treatment:RxPrint:Count", prescription.items.length)}</p>
 
       <footer className="rx-sheet-sign">
-        <em>{placedDate(prescription.issuedAt, clinic?.address)}</em>
+        <em>{placedDate(prescription.issuedAt)}</em>
         <span className="rx-sheet-sign-role">{t("Treatment:RxPrint:Doctor")}</span>
         <em>{t("Treatment:RxPrint:SignHint")}</em>
         <strong className="rx-sheet-signer">{printedDoctorName(prescription.staffName, prescription.staffJobTitle) ?? ""}</strong>

@@ -22,7 +22,6 @@ interface BranchFormValues {
   taxCode?: string;
   email?: string;
   phoneNumber?: string;
-  phoneNumber2?: string;
   contactPerson?: string;
   provinceId?: string;
   wardId?: string;
@@ -92,7 +91,6 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
           taxCode: branch.taxCode ?? "",
           email: branch.email ?? "",
           phoneNumber: branch.phoneNumber ?? "",
-          phoneNumber2: branch.phoneNumber2 ?? "",
           contactPerson: branch.contactPerson ?? "",
           provinceId: branch.provinceId ?? undefined,
           wardId: branch.wardId ?? undefined,
@@ -116,8 +114,6 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
       ...values,
       address: clean(values.address),
       phoneNumber: clean(values.phoneNumber),
-      // Always sent: "" clears the second line (omitted = keep).
-      phoneNumber2: values.phoneNumber2?.trim() ?? "",
       email: clean(values.email),
       taxCode: clean(values.taxCode),
       contactPerson: clean(values.contactPerson),
@@ -140,7 +136,6 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             wardId: payload.wardId,
             address: payload.address,
             phoneNumber: payload.phoneNumber,
-            phoneNumber2: payload.phoneNumber2,
             email: payload.email,
             taxCode: payload.taxCode,
             contactPerson: payload.contactPerson,
@@ -202,7 +197,7 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             <Input placeholder={t("Organization:ContactPersonPlaceholder")} />
           </Form.Item>
         </div>
-        <div className="settings-row-3">
+        <div className="settings-row">
           <Form.Item
             name="email"
             label={t("Email")}
@@ -216,13 +211,6 @@ export function BranchEditorModal({ open, branch, onClose }: BranchEditorModalPr
             rules={[{ pattern: /^0\d{9,10}$/, message: t("Organization:PhoneInvalid") }]}
           >
             <Input placeholder={t("Organization:PhonePlaceholder")} />
-          </Form.Item>
-          <Form.Item
-            name="phoneNumber2"
-            label={t("Organization:Phone2Label")}
-            rules={[{ pattern: /^0\d{9,10}$/, message: t("Organization:PhoneInvalid") }]}
-          >
-            <Input placeholder={t("Organization:Phone2Label")} />
           </Form.Item>
         </div>
         <div className="settings-row">

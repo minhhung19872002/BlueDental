@@ -12,7 +12,6 @@ public class ClinicBranchDto : FullAuditedEntityDto<Guid>
     public string? ProvinceId { get; set; }
     public string? WardId { get; set; }
     public string? PhoneNumber { get; set; }
-    public string? PhoneNumber2 { get; set; }
     public string? Email { get; set; }
     public string? Slogan { get; set; }
     public string? TaxCode { get; set; }
@@ -52,14 +51,6 @@ public class CreateClinicBranchDto
     [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
     public string? PhoneNumber { get; set; }
-
-    /// <summary>
-    /// Second clinic line. On update null keeps the current number and ""
-    /// clears it (Cài đặt → Thông tin cá nhân saves the branch without it).
-    /// </summary>
-    [RegularExpression(@"^(0\d{9,10})?$", ErrorMessage = "Số điện thoại 2 không hợp lệ.")]
-    [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
-    public string? PhoneNumber2 { get; set; }
 
     [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     [StringLength(100, ErrorMessage = "Email tối đa 100 ký tự.")]
@@ -105,14 +96,6 @@ public class UpdateClinicBranchDto
     [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
     public string? PhoneNumber { get; set; }
-
-    /// <summary>
-    /// Second clinic line. On update null keeps the current number and ""
-    /// clears it (Cài đặt → Thông tin cá nhân saves the branch without it).
-    /// </summary>
-    [RegularExpression(@"^(0\d{9,10})?$", ErrorMessage = "Số điện thoại 2 không hợp lệ.")]
-    [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
-    public string? PhoneNumber2 { get; set; }
 
     [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     [StringLength(100, ErrorMessage = "Email tối đa 100 ký tự.")]

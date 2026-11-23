@@ -16093,3 +16093,9 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - FE: Cấu hình chi nhánh có ô SĐT 2; bản in "SĐT1 – SĐT2" dạng 0799.160.888; "Premium" bỏ bằng cách đổi tên chi nhánh (dữ liệu, không phải code). Thêm Địa chỉ bệnh nhân (trống → dòng chấm), Người giám hộ + SĐT, Chẩn đoán chỉ tên (bỏ răng, kể cả chữ cũ đã lưu).
 - Bố cục theo docx thứ hai: thuốc là danh sách đánh số không kẻ (tên đậm, cách dùng nghiêng, số lượng giữa), "Cộng khoản" phải; khối ký bên phải "TP.HCM, Ngày …" (nơi = đoạn cuối địa chỉ phòng khám) / Bác sĩ / (Ký, ghi rõ họ tên) / tên; dưới là "Lời dặn bác sĩ: Khám lại xin mang theo đơn này." và "Khác: {lời dặn của đơn}" hoặc dòng chấm. Bỏ dòng Tái khám (docx không có). A5 `@page rx-a5`, đo so với PDF Word lệch ≤1pt; ~5 thuốc vừa 1 trang.
 - E2E build production :8090 → host :5000 → PostgreSQL thật: `prescription` + `prescription-allergy` 11/11, `branch-*` 22/22; `tsc` sạch.
+
+## R-1301 — ĐƠN THUỐC: tiêu đề phòng khám cố định, bỏ SĐT 2 chi nhánh (2026-11-23)
+
+- BA (chat 2026-11-23): "E để cố định đi — mấy cái tên thay đổi, dynamic quá nó cũng phiền". Tiêu đề đơn thuốc in cố định "NHA KHOA ĐỨC HẠNH / Địa chỉ: 84 – 86 Phạm Ngọc Thạch, P. Xuân Hòa, TP HCM / Điện thoại: 0799.160.888 – 0767.080.333" (i18n `Treatment:RxPrint:Clinic*`), dòng ký "TP HCM, Ngày …" cố định — không đọc dữ liệu chi nhánh nữa.
+- Bỏ ô "Số điện thoại 2" của R-1300 (domain, DTO, AppService, FE Cấu hình, `useBranchInfo`, `BranchSecondPhoneTests`). Migration R-1300 đã lên UAT nên giữ file, thêm `20261123085541_DropBranchSecondPhoneR1301` xoá cột `PhoneNumber2`.
+- Build production :8090 → host :5000 → PostgreSQL thật: `prescription` + `prescription-allergy` + `branch-list` + `branch-switcher` 15/15; `tsc` + eslint sạch.

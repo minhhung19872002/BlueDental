@@ -23,8 +23,6 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
     public string? ProvinceId { get; private set; }
     public string? WardId { get; private set; }
     public string? PhoneNumber { get; private set; }
-    /// <summary>A second clinic line, printed after the first ("A – B") on the prescription letterhead (R-1300).</summary>
-    public string? PhoneNumber2 { get; private set; }
     public string? Email { get; private set; }
     public string? Slogan { get; private set; }
     public string? TaxCode { get; private set; }
@@ -143,12 +141,6 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 
         OpeningTime = opening;
         ClosingTime = closing;
-        return this;
-    }
-
-    public ClinicBranch SetSecondPhone(string? phoneNumber)
-    {
-        PhoneNumber2 = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim();
         return this;
     }
 

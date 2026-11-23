@@ -169,26 +169,6 @@ async function createMedicine(page: Page, id: string, name: string) {
   await expect(dialog).toBeHidden();
 }
 
-/** A synthetic second clinic line, and how the letterhead prints it (R-1300). */
-const SECOND_LINE = "0912345678";
-const SECOND_LINE_PRINTED = "0912.345.678";
-
-/** Cấu hình › Thông tin phòng khám's "Số điện thoại 2", on a fresh load of the tab. */
-async function clinicSecondPhone(page: Page): Promise<Locator> {
-  await page.goto("/settings?tab=clinic");
-  await assertRealApiTraffic(page, "/api/v1/app/clinic-branches");
-  const field = page.getByLabel("Số điện thoại 2", { exact: true });
-  await expect(field).toBeVisible();
-  return field;
-}
-
-async function saveClinicSecondPhone(page: Page, value: string) {
-  const field = await clinicSecondPhone(page);
-  await field.fill(value);
-  await page.getByRole("button", { name: "Lưu Thay Đổi" }).click();
-  await expect(page.getByText("Cập nhật thông tin phòng khám thành công")).toBeVisible();
-}
-
 async function openPrescriptionTab(page: Page, patientUrl: string) {
   await page.goto(`${patientUrl}?tab=prescription&branchId=${BRANCH_ONE}`);
   await assertRealApiTraffic(page, PRESCRIPTIONS_API);
@@ -490,18 +470,10 @@ test.describe.serial("Đơn thuốc", () => {
     await reopened.getByRole("button", { name: /Hủy$/ }).click();
   });
 
-  test("In đơn thuốc shows the slip read-only with the session doses, on A5 under both clinic lines (R-1300)", async ({
+  test("In đơn thuốc shows the slip read-only with the session doses, on A5 under the fixed clinic letterhead (R-1300, R-1301)", async ({
     page,
   }) => {
     await login(page);
-    // Cấu hình › Thông tin phòng khám: a second line, refused when malformed, kept after a reload.
-    const phone2 = await clinicSecondPhone(page);
-    const original = await phone2.inputValue();
-    await phone2.fill("123");
-    await expect(page.getByText("Số điện thoại không hợp lệ")).toBeVisible();
-    await saveClinicSecondPhone(page, SECOND_LINE);
-    await expect(await clinicSecondPhone(page)).toHaveValue(SECOND_LINE);
-
     await openPrescriptionTab(page, patientUrl);
     const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(printedFirst)}(?!;)`) });
     const code = (await row.locator("td").first().textContent())?.trim() ?? "";
@@ -510,7 +482,12 @@ test.describe.serial("Đơn thuốc", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toContainText(`Xem đơn thuốc ${code}`);
     await expect(dialog).toContainText("ĐƠN THUỐC");
-    await expect(dialog.locator(".rx-sheet-clinic")).toContainText(`– ${SECOND_LINE_PRINTED}`);
+    // The letterhead is the clinic's fixed text, not the branch's data (R-1301).
+    const letterhead = dialog.locator(".rx-sheet-clinic");
+    await expect(letterhead).toContainText("Nha Khoa Đức Hạnh");
+    await expect(letterhead).toContainText("Địa chỉ: 84 – 86 Phạm Ngọc Thạch, P. Xuân Hòa, TP HCM");
+    await expect(letterhead).toContainText("Điện thoại: 0799.160.888 – 0767.080.333");
+    await expect(dialog.locator(".rx-sheet-sign")).toContainText("TP HCM, Ngày ");
     // Chẩn đoán prints the names only — the list keeps the teeth.
     await expect(dialog).toContainText(`Chẩn đoán: ${seed.planCode} – ${seed.first.name}`);
     await expect(dialog.locator(".rx-sheet")).not.toContainText("(R36");
@@ -564,10 +541,6 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(dialog).toBeHidden();
     await expect(printed).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveClass(/pd-printing/);
-
-    // Put the branch back as it was ("" clears the line).
-    await saveClinicSecondPhone(page, original);
-    await expect(await clinicSecondPhone(page)).toHaveValue(original);
   });
 
   test("Ngày lên đơn thuốc dates the slip back, never ahead, and the printed slip carries it", async ({

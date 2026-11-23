@@ -126,7 +126,6 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
             input.PhoneNumber,
             input.Email);
         branch.SetContactInfo(input.PhoneNumber, input.Email, input.Address, input.ProvinceId, input.WardId);
-        branch.SetSecondPhone(input.PhoneNumber2);
         branch.SetSlogan(input.Slogan);
         branch.SetTaxCode(input.TaxCode);
         branch.SetContactPerson(input.ContactPerson);
@@ -155,12 +154,6 @@ public class ClinicBranchAppService : ApplicationService, IClinicBranchAppServic
         branch.SetSlogan(input.Slogan);
         branch.SetTaxCode(input.TaxCode);
         branch.SetContactPerson(input.ContactPerson);
-
-        // Null leaves the second phone alone, "" clears it (R-1300).
-        if (input.PhoneNumber2 is not null)
-        {
-            branch.SetSecondPhone(input.PhoneNumber2);
-        }
 
         // Null leaves the list alone: Cài đặt → Thông tin phòng khám saves the
         // branch without it. The branch dialog sends "" to clear it.
