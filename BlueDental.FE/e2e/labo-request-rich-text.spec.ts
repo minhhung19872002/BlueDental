@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { login } from "./fixtures/auth";
 import { BRANCH_ONE } from "./fixtures/laboApi";
-import { fullSlip, newPatient, readBack, save, slipCatalog, slipNo } from "./fixtures/laboSlipApi";
+import { fullSlip, newPatient, nextSlipNo, readBack, save, shownSlipNo, slipCatalog, slipNo } from "./fixtures/laboSlipApi";
 import { fillRequired, openLaboTab, ordersOf, patientRow, sentOrder, slipDialog, startSlip } from "./fixtures/laboSlipUi";
 
 /**
@@ -18,7 +18,7 @@ const plain = (html: string | null | undefined) =>
 /** Xem chi tiết on the patient's Labo tab, then the slip itself (tab Đặt hàng). */
 async function reopenSlip(page: Page, patientId: string, no: string) {
   await openLaboTab(page, patientId);
-  await patientRow(page, no).getByRole("button", { name: "Xem chi tiết" }).click();
+  await patientRow(page, shownSlipNo(no)).getByRole("button", { name: "Xem chi tiết" }).click();
   await page.getByRole("dialog").getByRole("tab", { name: "Đặt hàng" }).click();
   const dialog = slipDialog(page);
   await expect(dialog).toBeVisible();
@@ -28,9 +28,9 @@ async function reopenSlip(page: Page, patientId: string, no: string) {
 /** «Xem» on /labo: the slip's facts with its print sheet beside them. */
 async function viewOnLaboScreen(page: Page, no: string) {
   await page.goto(`/labo?branchId=${BRANCH_ONE}`);
-  const row = page.locator(".bd-labo-screen tbody tr.ant-table-row").filter({ hasText: no }).first();
+  const row = page.locator(".bd-labo-screen tbody tr.ant-table-row").filter({ hasText: shownSlipNo(no) }).first();
   await row.getByRole("button", { name: "Xem", exact: true }).click();
-  const detail = page.getByRole("dialog").filter({ hasText: no });
+  const detail = page.getByRole("dialog").filter({ hasText: shownSlipNo(no) });
   await expect(detail).toBeVisible();
   return detail;
 }
@@ -45,7 +45,7 @@ test.describe("Labo Phiếu yêu cầu — Yêu cầu as rich text (P1211, R-121
   }) => {
     const c = await slipCatalog(page);
     const patientId = await newPatient(page, "rt");
-    const no = slipNo("rt");
+    const no = await nextSlipNo(page, patientId);
     const dialog = await startSlip(page, patientId);
     const note = dialog.locator(".rs-note");
     const body = dialog.getByLabel("Yêu cầu", { exact: true });

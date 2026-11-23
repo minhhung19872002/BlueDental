@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import { DatePicker, Input, Radio, Select } from "antd";
+import { DatePicker, Radio, Select } from "antd";
 import dayjs from "dayjs";
 import { t } from "@/lib/i18n";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { useFullAddress } from "@/hooks/useFullAddress";
 import { PATIENT_GENDER_CODE, usePatientBrief, type PatientBrief } from "@/hooks/usePatientBrief";
 import type { PickerOption } from "@/hooks/useLaboPickers";
-import { LABO_CASE_TYPE } from "@/features/labo/api/laboApi";
+import { LABO_CASE_TYPE, labSlipNoShown, useNextLabSlipNo } from "@/features/labo/api/laboApi";
 import { isDueBad, type RequestSlipValues } from "./requestSlipModel";
 import { SupplierField } from "./SupplierField";
 
@@ -52,9 +52,9 @@ function Field({ label, required, wide, children }: { label: string; required?: 
   );
 }
 
-const ReadOnly = ({ label, text }: { label: string; text: string }) => (
+const ReadOnly = ({ label, text, placeholder }: { label: string; text: string; placeholder?: string }) => (
   <div className="rs-ro" role="textbox" aria-readonly="true" aria-label={label} title={text}>
-    {text}
+    {text || (placeholder && <span className="rs-ro-hint">{placeholder}</span>)}
   </div>
 );
 
@@ -69,21 +69,17 @@ export function RequestSlipInfo({ branchId, patient, dentists, values, editable,
   });
   const brief = usePatientBrief(patient.id).data;
   const dueBad = isDueBad(values);
+  // Mã số is the server's (R-1288): a slip without one previews the number its save will take.
+  const savedSlipNo = values.labSlipNo.trim();
+  const nextSlipNo = useNextLabSlipNo(patient.id, editable && !savedSlipNo).data;
+  const shownSlipNo = labSlipNoShown(savedSlipNo || (editable ? (nextSlipNo ?? "") : ""));
 
   return (
     <section className="rs-sec">
       <div className="rs-sech">{title ?? t("Labo:Slip:Info")}</div>
       <div className="rs-secb rs-info">
-        <Field label={t("Labo:Slip:SlipNo")} required wide>
-          <Input
-            className={inputClass(editable && !values.labSlipNo.trim())}
-            value={values.labSlipNo}
-            maxLength={64}
-            disabled={!editable}
-            placeholder={t("Labo:Slip:SlipNoPlaceholder")}
-            aria-label={t("Labo:Slip:SlipNo")}
-            onChange={(event) => onChange({ labSlipNo: event.target.value })}
-          />
+        <Field label={t("Labo:Slip:SlipNo")} wide>
+          <ReadOnly label={t("Labo:Slip:SlipNo")} text={shownSlipNo} placeholder={t("Labo:Slip:SlipNoPlaceholder")} />
         </Field>
         <Field label={t("Labo:Slip:CaseType")} required wide>
           <Radio.Group

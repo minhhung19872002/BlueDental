@@ -31,6 +31,9 @@ public sealed class LaboController(ILaboAppService service) : BlueDentalControll
     [HttpGet("next-code")]
     public Task<string> GetNextOrderCodeAsync() => service.GetNextOrderCodeAsync();
 
+    [HttpGet("next-slip-no")]
+    public Task<string> GetNextLabSlipNoAsync([FromQuery] Guid patientId) => service.GetNextLabSlipNoAsync(patientId);
+
     /// <summary>JSON create, without pictures.</summary>
     [HttpPost]
     [Consumes("application/json")]

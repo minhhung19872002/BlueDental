@@ -207,6 +207,12 @@
   text-overflow: ellipsis;
 }
 
+/* Mã số before the server has one to show (R-1288). */
+.rs-ro-hint {
+  color: var(--rs-muted);
+  font-style: italic;
+}
+
 .rs-radios {
   display: flex;
   align-items: center;

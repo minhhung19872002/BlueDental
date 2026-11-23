@@ -600,6 +600,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         await EnsureServiceLineOpenAsync(input.PatientId, input.TreatmentServiceId);
         await EnsureStageNotDateLockedAsync(input.TreatmentStageId);
 
+        await AssignLabSlipNoAsync(input, input.PatientId, current: null);
         await EnsureLabSlipNoFreeAsync(input, branchId, exceptOrderId: null);
 
         var code = await ResolveOrderCodeAsync(input.OrderCode);
@@ -622,6 +623,7 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
     {
         var order = await GetInBranchAsync(id);
         await EnsureServiceLineOpenAsync(order.PatientId, input.TreatmentServiceId);
+        await AssignLabSlipNoAsync(input, order.PatientId, current: order);
         await EnsureLabSlipNoFreeAsync(input, order.BranchId, exceptOrderId: order.Id);
         order.UpdateDraft(await ToDetailsAsync(input, order.BranchId, order.ExtraForm));
 
@@ -880,6 +882,62 @@ public class LaboAppService : BlueDentalAppService, ILaboAppService
         }
 
         return LaboExtraForm.From(template, answers);
+    }
+
+    [Authorize(BlueDentalPermissions.LaboOrders.Create)]
+    public async Task<string> GetNextLabSlipNoAsync(Guid patientId)
+    {
+        var branchId = _branchResolver.GetRequiredClinicBranchId();
+        var patient = await _patientRepository.FindAsync(patientId);
+        if (patient is null || patient.BranchId != branchId)
+        {
+            throw new Volo.Abp.Domain.Entities.EntityNotFoundException(typeof(PatientManagement.Patient), patientId);
+        }
+
+        return await NextLabSlipNoAsync(patient);
+    }
+
+    /// <summary>
+    /// Mã số is the server's (R-1288). A Phiếu yêu cầu saved without one gets
+    /// the patient's next number, dated the clinic day it is handed out (the day
+    /// a new slip is created; an old blank Nháp takes the day of its save, so the
+    /// number previewed on the dialog is the one saved); a
+    /// saved slip keeps the number it has. One sent explicitly (the API, an
+    /// import) is kept as before, under the same uniqueness rule.
+    /// </summary>
+    private async Task AssignLabSlipNoAsync(SaveLaboOrderDto input, Guid patientId, LaboOrder? current)
+    {
+        if (input.Layout != LaboOrderLayout.RequestSlip || !string.IsNullOrWhiteSpace(input.LabSlipNo))
+        {
+            return;
+        }
+
+        if (current?.LabSlipNo is { } kept)
+        {
+            input.LabSlipNo = kept;
+            return;
+        }
+
+        // Two saves for the patient at once: the second waits here until the
+        // first has committed, then reads its number and takes the next.
+        await LazyServiceProvider.LazyGetRequiredService<ILaboSlipNumberLock>().WaitForPatientAsync(patientId);
+        var patient = await _patientRepository.GetAsync(patientId);
+        input.LabSlipNo = await NextLabSlipNoAsync(patient);
+    }
+
+    private async Task<string> NextLabSlipNoAsync(PatientManagement.Patient patient)
+    {
+        List<string> used;
+        using (DataFilter.Disable<ISoftDelete>())
+        {
+            var query = await _repository.GetQueryableAsync();
+            used = await AsyncExecuter.ToListAsync(query
+                .Where(x => x.PatientId == patient.Id && x.LabSlipNo != null)
+                .Select(x => x.LabSlipNo!));
+        }
+
+        var createdOn = ClinicCalendar.DateOf(new DateTimeOffset(DateTime.SpecifyKind(Clock.Now, DateTimeKind.Utc)));
+        return LaboSlipNumber.Format(patient.PatientCode, createdOn, LaboSlipNumber.NextSequence(used));
     }
 
     /// <summary>

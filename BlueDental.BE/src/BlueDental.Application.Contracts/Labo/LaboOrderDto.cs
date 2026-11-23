@@ -332,7 +332,11 @@ public class SaveLaboOrderDto
     /// </summary>
     public LaboOrderLayout Layout { get; set; } = LaboOrderLayout.Classic;
 
-    /// <summary>Mã số, typed by hand; required to send, kept exactly as typed (trimmed).</summary>
+    /// <summary>
+    /// Mã số. Left blank, the server hands out the patient's next
+    /// "{Mã BN}-{yyyyMMdd}-{xxx}" (R-1288), and a saved slip keeps its own; one
+    /// sent explicitly is kept as sent (trimmed), unique in the branch.
+    /// </summary>
     [StringLength(50)]
     public string? LabSlipNo { get; set; }
     public LaboCaseType CaseType { get; set; } = LaboCaseType.New;

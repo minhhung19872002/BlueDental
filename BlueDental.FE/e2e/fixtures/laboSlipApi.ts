@@ -247,3 +247,15 @@ export function fullSlip(c: SlipCatalog, patientId: string, labSlipNo: string, e
 export function slipNo(tag: string): string {
   return `F91-${tag}-${runId()}${Math.floor(Math.random() * 100)}`;
 }
+
+/** The Mã số the patient's next Phiếu yêu cầu takes (R-1288): "{Mã BN}-{yyyyMMdd}-{xxx}". */
+export async function nextSlipNo(page: Page, patientId: string, branchId = BRANCH_ONE): Promise<string> {
+  const res = await call<string>(page, `${LABO_ORDERS}/next-slip-no?patientId=${patientId}`, { branchId });
+  expect(res.status, res.text).toBe(200);
+  return res.body as string;
+}
+
+/** What the screens show of a server-made Mã số: its "yyyyMMdd-xxx", the patient code cut off (R-1288). */
+export function shownSlipNo(labSlipNo: string): string {
+  return /^.+-(\d{8}-\d{3,9})$/.exec(labSlipNo)?.[1] ?? labSlipNo;
+}

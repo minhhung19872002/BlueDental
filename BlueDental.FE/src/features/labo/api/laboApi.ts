@@ -319,8 +319,25 @@ export interface LaboStatsParams {
 
 export const LABO_ORDERS_URL = "/v1/app/labo-orders";
 
-/** The number an order is known by: its Mã số when one was typed (F-91), else Số phiếu. */
+/** A server-made Mã số "{Mã BN}-yyyyMMdd-xxx" (R-1288); group 1 is its "yyyyMMdd-xxx". */
+const SERVER_SLIP_NO = /^.+-(\d{8}-\d{3,9})$/;
+
+/**
+ * Mã số as the screens show it (R-1288): the server's number without its
+ * patient code, since the patient sits next to it everywhere. A number typed
+ * by hand before R-1288 shows as typed.
+ */
+export const labSlipNoShown = (labSlipNo: string): string => {
+  const no = labSlipNo.trim();
+  return SERVER_SLIP_NO.exec(no)?.[1] ?? no;
+};
+
+/** The number an order is known by on screen: its Mã số (F-91, R-1288), else Số phiếu. */
 export const laboOrderNo = (order: Pick<LaboOrderDto, "orderCode" | "labSlipNo">): string =>
+  order.labSlipNo?.trim() ? labSlipNoShown(order.labSlipNo) : order.orderCode;
+
+/** The whole stored number, patient code included — for the Excel file, read away from the patient. */
+export const laboOrderFullNo = (order: Pick<LaboOrderDto, "orderCode" | "labSlipNo">): string =>
   order.labSlipNo?.trim() || order.orderCode;
 
 export const isRequestSlip = (order: Pick<LaboOrderDto, "layout"> | null | undefined): boolean =>
@@ -335,6 +352,9 @@ export const laboApi = {
 
   get: (id: string): Promise<LaboOrderDto> =>
     api.get(`${LABO_ORDERS_URL}/${id}`).then((r) => r.data),
+
+  nextSlipNo: (patientId: string): Promise<string> =>
+    api.get(`${LABO_ORDERS_URL}/next-slip-no`, { params: { patientId } }).then((r) => r.data),
 };
 
 // ── Hooks ─────────────────────────────────────────────────────────────────
@@ -387,6 +407,18 @@ export function useLaboOrderList(params: LaboOrderListParams = {}) {
     // Paging and switching filters should narrow the table in place rather
     // than blank it.
     placeholderData: (previous) => previous,
+  });
+}
+
+/**
+ * Mã số the patient's next Phiếu yêu cầu would take (R-1288), shown on a new
+ * slip. Under the orders key, so a save elsewhere moves it on.
+ */
+export function useNextLabSlipNo(patientId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["labo-orders", "next-slip-no", patientId],
+    queryFn: () => laboApi.nextSlipNo(patientId),
+    enabled: enabled && Boolean(patientId),
   });
 }
 
