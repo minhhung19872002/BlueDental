@@ -100,8 +100,6 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="8"]{font-size:14px}
 /* Mẫu 2 at the BA's 12pt (R-1268, block further down). */
 .nfc-tpl[data-form="2"]{font-size:16px}
-/* 15px from the clinic's own copy, inside 15mm margins (R-1068). */
-.nfc-tpl[data-form="6"]{font-size:15px}
 /* 14px from the clinic's own copy, inside 15mm margins (R-1073). */
 .nfc-tpl[data-form="7"]{font-size:14px}
 /* Mẫu 10, the clinic's contract, as the clinic's own copy of it
@@ -439,6 +437,43 @@ ${SHEET_FONT_FACE_CSS}
    margin, as the clinic's copies of mẫu 2 and mẫu 7 draw them (2026-10-29,
    R-1073). The text on them still breaks where the blank's first line did. */
 .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="11"],[data-form="12"]) [data-flow-of]{width:100%;min-width:0!important;max-width:none;box-sizing:border-box}
+/* Mẫu 6 as the BA's Word copy (Mau-06-Giay-dong-y-thuc-hien-phau-thuat-thu-
+   thuat.docx, 2026-11-23, R-1275), as mẫu 3/4/5: Times New Roman at its own
+   height, 12pt on Word's 1.3 lines, no space around paragraphs; the letterhead
+   10pt bold on Word's 1.5 lines, MS 10pt where Word sets it; the Quốc hiệu 16pt
+   and the title 14pt on 1.5 lines, I. and II. 14pt; the tick rows as tall as
+   Word draws them; the signatures on 1.5 lines, the empty lines before the
+   dotted name gone, as in the BA's copy; the blanks run to the right margin. */
+.nfc-tpl[data-form="6"]{--nfc-letter-height:none;font-size:16px}
+.nfc-tpl[data-form="6"] span[style*="font-size"]{font-size:inherit!important}
+.nfc-tpl.nfc-tpl[data-form="6"] :is(p,h1,h2){line-height:1.495!important;margin:0}
+.nfc-tpl.nfc-tpl[data-form="6"]>:is(h1,h2){font-size:18.667px}
+.nfc-tpl.nfc-tpl[data-form="6"]>h1{line-height:1.725!important;margin:18.7px 0 2.8px}
+.nfc-tpl.nfc-tpl[data-form="6"]>h1>br{display:none}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child{margin:0}
+.nfc-tpl[data-form="6"]>table:first-child>colgroup>col:first-child{width:321px!important}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr{height:96px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td{padding:0;vertical-align:top}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child p{font-size:13.333px;line-height:1.725!important;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:first-child>p{margin-left:-1.8px!important}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:last-child>p{text-align:left!important;padding-left:161px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child+p{font-size:21.333px;line-height:1.725!important;margin-top:1.5px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type){margin:1.3px 0 1.2px}
+.nfc-tpl.nfc-tpl[data-form="6"]>p:has(>input[data-medical-record-field="surgery-consent.checkbox.12"]){padding:2.3px 0 1.2px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type)>tbody>tr>td{padding-top:0;padding-bottom:0}
+.nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type) p{line-height:30.6px!important}
+.nfc-tpl.nfc-tpl[data-form="6"]>hr+h2{margin-top:-2.9px}
+.nfc-tpl.nfc-tpl[data-form="6"]>p:has(>input[data-medical-record-field="surgery-consent.checkbox.25"]){padding:2.9px 0 4.5px}
+.nfc-tpl.nfc-tpl[data-form="6"]>p:has(>input[data-medical-record-field="surgery-consent.checkbox.26"]){padding-bottom:1.6px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type{margin-top:24.7px}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type p{line-height:1.725!important}
+.nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type p>em+br~br{display:none}
+.nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.text.1"]),:has(>span>[data-medical-record-field="surgery-consent.text.2"]),:has(>span>[data-medical-record-field="surgery-consent.text.3"]),:has(>span>[data-medical-record-field="surgery-consent.text.4"]),:has(>span>[data-medical-record-field="surgery-consent.text.5"]),:has(>span>[data-medical-record-field="surgery-consent.text.6"]),:has(>span>[data-medical-record-field="surgery-consent.text.7"]),:has(>span>[data-medical-record-field="surgery-consent.text.8"]),:has(>span>[data-medical-record-field="surgery-consent.text.21"]),:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]),:has(>span>[data-medical-record-field="surgery-consent.text.11"])){display:flex;align-items:baseline;gap:.25em;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.text.1"]),:has(>span>[data-medical-record-field="surgery-consent.text.2"]),:has(>span>[data-medical-record-field="surgery-consent.text.3"]),:has(>span>[data-medical-record-field="surgery-consent.text.4"]),:has(>span>[data-medical-record-field="surgery-consent.text.5"]),:has(>span>[data-medical-record-field="surgery-consent.text.6"]),:has(>span>[data-medical-record-field="surgery-consent.text.7"]),:has(>span>[data-medical-record-field="surgery-consent.text.8"]),:has(>span>[data-medical-record-field="surgery-consent.text.21"]),:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]),:has(>span>[data-medical-record-field="surgery-consent.text.11"]))>span{flex:1 1 auto;min-width:0}
+.nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]))>span:last-child{flex:0 0 196px;margin:0 4.6px 0 4.1px}
+.nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]))>span:first-child{margin-right:-14.3px}
+.nfc-tpl.nfc-tpl[data-form="6"] :is([data-medical-record-field="surgery-consent.text.1"],[data-medical-record-field="surgery-consent.text.2"],[data-medical-record-field="surgery-consent.text.3"],[data-medical-record-field="surgery-consent.text.4"],[data-medical-record-field="surgery-consent.text.5"],[data-medical-record-field="surgery-consent.text.6"],[data-medical-record-field="surgery-consent.text.7"],[data-medical-record-field="surgery-consent.text.8"],[data-medical-record-field="surgery-consent.text.21"],[data-medical-record-field="surgery-consent.patient.name"],[data-medical-record-field="surgery-consent.patient.birth-year"],[data-medical-record-field="surgery-consent.text.9"],[data-medical-record-field="surgery-consent.text.10"],[data-medical-record-field="surgery-consent.text.11"]){width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
+.nfc-tpl.nfc-tpl[data-form="6"] .nfc-medical-record-text-field{min-height:1em}
 @media print{
   .nfc-tpl [data-grid-cell] .nfc-medical-record-text-field{border-bottom:0!important}
   .nfc-tpl table[data-record-section="surgical-count"] td:first-child .nfc-medical-record-text-field:not([data-field-full-width="true"]){border-bottom:1px dotted #000!important}

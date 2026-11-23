@@ -2028,7 +2028,7 @@ test.describe("Bệnh án", () => {
       ["Bệnh án chỉnh nha", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 4],
       ["Phiếu Tư Vấn Tổng Quát", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu tư vấn và xác nhận đồng ý điều trị", "16.667px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
-      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "15px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
+      ["Giấy đồng ý thực hiện phẫu thuật/thủ thuật", "16px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 2],
       ["Phiếu phẫu thuật/thủ thuật", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu theo dõi điều trị", "14px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
       ["Phiếu chăm sóc", "15.5px", "Phòng khám Chuyên khoa Răng Hàm Mặt", 1],
@@ -2254,10 +2254,11 @@ test.describe("Bệnh án", () => {
 
   /**
    * Mẫu 6 as the clinic's own copy (2026-10-29, R-1068): 15mm on every edge of
-   * the sheet and of every printed page; a line and a half between lines; the
-   * letterhead at 10pt on the left margin and MS on the right; the boxes that
-   * open a line on the left margin; the blanks after "Tôi tên là", "Chức danh",
-   * "Chẩn đoán" running to the right margin, on the line they start on.
+   * the sheet and of every printed page; the boxes that open a line on the left
+   * margin; the blanks after "Tôi tên là", "Chức danh", "Chẩn đoán" running to the
+   * right margin, on the line they start on. Type and spacing as the BA's Word copy
+   * (R-1275): Word's 1.3 lines (1.495), the letterhead at 10pt where Word sets it
+   * (its widest line 1.8px past the margin) and MS where Word's tab puts it, 482px in.
    */
   test("mẫu 6: 15mm margins, the letterhead, MS and the boxes on the margins", async ({ page }) => {
     const margin = (15 / 25.4) * 96;
@@ -2292,17 +2293,17 @@ test.describe("Bệnh án", () => {
           lineHeight: parseFloat(getComputedStyle(blank("text.1").closest("p")!).lineHeight) / parseFloat(style.fontSize),
           letterheadSize: parseFloat(getComputedStyle(letterhead!.querySelector("span")!).fontSize),
           letterhead: rect(letterhead!).left - left,
-          ms: right - rect(ms!).right,
+          ms: rect(ms!).left - left,
           boxes: opening.map((node) => node.getBoundingClientRect().left - left),
           reaching,
         };
       });
 
     for (const edge of layout.padding) expect(edge, "sheet margin").toBeCloseTo(margin, 1);
-    expect(layout.lineHeight, "a line and a half").toBeCloseTo(1.5, 2);
+    expect(layout.lineHeight, "Word's 1.3 lines").toBeCloseTo(1.495, 2);
     expect(layout.letterheadSize, "letterhead at 10pt").toBeCloseTo((10 * 4) / 3, 2);
-    expect(Math.abs(layout.letterhead), "letterhead on the left margin").toBeLessThan(1);
-    expect(Math.abs(layout.ms), "MS on the right margin").toBeLessThan(1);
+    expect(Math.abs(layout.letterhead + 1.8), "letterhead where Word sets it").toBeLessThan(1);
+    expect(Math.abs(layout.ms - 482), "MS where Word's tab puts it").toBeLessThan(1.5);
     // Chẩn đoán … Kết quả, the first column of the two lists, Không, 1. and 2.
     expect(layout.boxes.length, "boxes opening a line").toBeGreaterThanOrEqual(14);
     for (const gap of layout.boxes) expect(Math.abs(gap), "box on the left margin").toBeLessThan(1);
