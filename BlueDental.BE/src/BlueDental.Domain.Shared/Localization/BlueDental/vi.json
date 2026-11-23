@@ -3105,6 +3105,7 @@
     "Voucher:StartDate": "Ngày bắt đầu",
     "Voucher:DateRequired": "Vui lòng chọn ngày",
     "Voucher:EndDateLabel": "Ngày hết hạn",
+    "Voucher:Unlimited": "Không giới hạn",
     "Voucher:DiscountVND": "VNĐ",
     "Voucher:DiscountRequired": "Vui lòng nhập mức giảm",
     "Voucher:DiscountMin": "Mức giảm phải lớn hơn 0",

@@ -71,6 +71,59 @@ public class VoucherTests
     }
 
     [Fact]
+    public void A_Voucher_With_No_End_Date_Applies_On_Any_Later_Day()
+    {
+        // R-1279 "không giới hạn thời gian".
+        var voucher = Voucher.Issue(
+            Guid.NewGuid(), "OPEN", "Không giới hạn", DiscountType.Percentage, 10m,
+            _from, null, VoucherScopeTarget.Treatment);
+        voucher.Publish();
+
+        Assert.Null(voucher.ValidTo);
+        Assert.True(voucher.IsAvailableFor(new DateOnly(2099, 12, 31), 1_000_000m));
+        Assert.False(voucher.IsAvailableFor(new DateOnly(2026, 7, 31), 1_000_000m));
+    }
+
+    [Fact]
+    public void A_Voucher_With_No_Use_Limit_Never_Runs_Out()
+    {
+        // R-1279 "không giới hạn lượt".
+        var voucher = Issue(DiscountType.Money, 100_000m, usageLimit: null);
+        voucher.Publish();
+
+        for (var i = 0; i < 50; i++) voucher.Redeem(_inWindow, 1_000_000m);
+
+        Assert.Equal(50, voucher.UsedCount);
+        Assert.Null(voucher.RemainingUses);
+        Assert.False(voucher.IsExhausted);
+        Assert.Equal(VoucherStatus.Active, voucher.Status);
+    }
+
+    [Fact]
+    public void Dropping_The_End_Date_Reopens_An_Expired_Voucher()
+    {
+        var voucher = Issue();
+        voucher.Expire();
+
+        voucher.Reschedule(_from, null);
+
+        Assert.Null(voucher.ValidTo);
+        Assert.Equal(VoucherStatus.Active, voucher.Status);
+    }
+
+    [Fact]
+    public void Setting_A_Limit_Again_Brings_Back_The_End_Date_Check()
+    {
+        var voucher = Issue();
+        voucher.Reschedule(_from, null);
+
+        voucher.Reschedule(_from, _to);
+
+        Assert.Equal(_to, voucher.ValidTo);
+        Assert.Throws<BusinessException>(() => voucher.Reschedule(_to, _from));
+    }
+
+    [Fact]
     public void Should_Respect_The_Minimum_Order_Value()
     {
         var voucher = Issue(minOrderValue: 2_000_000m);

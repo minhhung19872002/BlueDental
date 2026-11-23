@@ -18,7 +18,8 @@ public class VoucherDto : FullAuditedEntityDto<Guid>
     public string ScopeTarget { get; set; } = string.Empty;
     public List<string> TargetIds { get; set; } = [];
     public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
+    /// <summary>Null = no end date ("Không giới hạn", R-1279).</summary>
+    public DateTime? EndDate { get; set; }
     public int? UsageLimit { get; set; }
     public int UsedCount { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -64,8 +65,8 @@ public class CreateVoucherDto
     [Required]
     public DateTime StartDate { get; set; }
 
-    [Required]
-    public DateTime EndDate { get; set; }
+    /// <summary>Null = no end date ("Không giới hạn", R-1279).</summary>
+    public DateTime? EndDate { get; set; }
 
     public int? UsageLimit { get; set; }
     public int? PerCustomerLimit { get; set; }
@@ -137,8 +138,8 @@ public class CreateVoucherBatchDto
     [Required]
     public DateTime StartDate { get; set; }
 
-    [Required]
-    public DateTime EndDate { get; set; }
+    /// <summary>Null = no end date ("Không giới hạn", R-1279).</summary>
+    public DateTime? EndDate { get; set; }
 
     public int? UsageLimit { get; set; }
     public int? PerCustomerLimit { get; set; }
@@ -191,8 +192,8 @@ public class UpdateVoucherDto
     [Required]
     public DateTime StartDate { get; set; }
 
-    [Required]
-    public DateTime EndDate { get; set; }
+    /// <summary>Null = no end date ("Không giới hạn", R-1279).</summary>
+    public DateTime? EndDate { get; set; }
 
     public int? UsageLimit { get; set; }
 }

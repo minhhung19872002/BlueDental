@@ -6,6 +6,7 @@ import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
 import type { VoucherFormValues } from "../types/voucherForm";
 import { VoucherServicePicker } from "./VoucherServicePicker";
+import { UnlimitedCheckbox } from "./UnlimitedCheckbox";
 import { DATE_INPUT_FORMAT } from "@/utils/dateInput";
 
 const DAY_LABEL_KEYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"] as const;
@@ -59,6 +60,7 @@ export function VoucherFormFields({ form }: Props) {
   const discountType = Form.useWatch("discountType", form) ?? "percentage";
   const scopeTarget = Form.useWatch("scopeTarget", form) ?? "service";
   const isDaysLimited = Form.useWatch("isDaysOfWeekLimited", form) ?? false;
+  const noEndDate = Form.useWatch("noEndDate", form) === true;
 
   return (
     <>
@@ -72,14 +74,17 @@ export function VoucherFormFields({ form }: Props) {
         >
           <DatePicker format={DATE_INPUT_FORMAT} />
         </FloatingField>
-        <FloatingField
-          name="endDate"
-          label={t("Voucher:EndDateLabel")}
-          required
-          rules={[{ required: true, message: t("Voucher:DateRequired") }]}
-        >
-          <DatePicker format={DATE_INPUT_FORMAT} />
-        </FloatingField>
+        <div className="voucher-unlimited-field">
+          <FloatingField
+            name="endDate"
+            label={t("Voucher:EndDateLabel")}
+            required={!noEndDate}
+            rules={noEndDate ? [] : [{ required: true, message: t("Voucher:DateRequired") }]}
+          >
+            <DatePicker format={DATE_INPUT_FORMAT} disabled={noEndDate} />
+          </FloatingField>
+          <UnlimitedCheckbox name="noEndDate" />
+        </div>
       </div>
 
       {/* ── Discount: %/VNĐ toggle + value + max discount ── */}

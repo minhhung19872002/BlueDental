@@ -3,10 +3,10 @@ import { Form, Input } from "antd";
 import type { FormInstance } from "antd";
 import { Shuffle } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { CurrencyInput } from "@/components/CurrencyInput";
 import { FloatingField } from "@/components/FloatingField";
 import type { VoucherFormValues } from "../types/voucherForm";
 import { generateRandomCode } from "../utils/voucherCode";
+import { UsageLimitField } from "./UsageLimitField";
 
 interface Props {
   form: FormInstance<VoucherFormValues>;
@@ -55,17 +55,7 @@ export function VoucherSingleTab({ form }: Props) {
       >
         <Input />
       </FloatingField>
-      <FloatingField
-        name="usageLimit"
-        label={t("Voucher:MaxUsageLabel")}
-        required
-        rules={[
-          { required: true, message: t("Voucher:MaxUsageRequired") },
-          { type: "number", min: 1, message: t("Voucher:MaxUsageMin") },
-        ]}
-      >
-        <CurrencyInput />
-      </FloatingField>
+      <UsageLimitField />
     </div>
   );
 }

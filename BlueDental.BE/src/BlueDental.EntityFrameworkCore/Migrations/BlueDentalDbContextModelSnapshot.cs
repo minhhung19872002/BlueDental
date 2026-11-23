@@ -6915,7 +6915,7 @@ namespace BlueDental.Migrations
                     b.Property<DateOnly>("ValidFrom")
                         .HasColumnType("date");
 
-                    b.Property<DateOnly>("ValidTo")
+                    b.Property<DateOnly?>("ValidTo")
                         .HasColumnType("date");
 
                     b.HasKey("Id");
