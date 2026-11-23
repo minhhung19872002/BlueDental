@@ -574,8 +574,9 @@ ${SHEET_FONT_FACE_CSS}
    centred in Word's column; MS, Tờ điều trị số and Số ngoại trú 10pt on
    16.15pt lines, the labels at Word's indent, their blanks lined up at its
    tab and running to the right margin. The table in Word's columns: its head
-   in plain type, seventeen rows of 34.5pt, the blank in the middle, dotted
-   on paper as Word's (R-1286); the cells' padding a little
+   in plain type, seventeen rows of 34.5pt, dotted on paper as Word's
+   (R-1286) — on paper low in its row, room above it to write by hand
+   (R-1287); the cells' padding a little
    under Word's, so "23/11/2026 08:30" holds one line in Ngày, giờ. */
 .nfc-tpl[data-form="8"]{--nfc-letter-height:none;font-size:16.667px}
 .nfc-tpl[data-form="8"] span[style*="font-size"]{font-size:inherit!important}
@@ -612,7 +613,8 @@ ${SHEET_FONT_FACE_CSS}
    Word's indent; Chẩn đoán over two dotted lines, the second one drawn until a
    long diagnosis writes on lines of its own. The table in Word's columns and
    13pt: a header row of 47.85pt, twenty rows of 27.15pt, dotted on paper as
-   Word's (R-1286). */
+   Word's (R-1286) — on paper low in its row, room above it to write by
+   hand (R-1287). */
 .nfc-tpl[data-form="9"]{--nfc-letter-height:none;font-size:16.667px}
 .nfc-tpl[data-form="9"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="9"] :is(p,h1,h2){line-height:1.725!important;margin:0}
@@ -636,7 +638,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="9"] [data-medical-record-field="care.diagnosis"]{width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="9"]>p:has(>span>[data-medical-record-field="care.diagnosis"]):not(:has(+p[data-flow-line]))::after{content:"${".".repeat(320)}";flex:0 0 100%;min-width:0;overflow:hidden;white-space:nowrap;font-style:normal}
 .nfc-tpl.nfc-tpl[data-form="9"] .nfc-medical-record-text-field{min-height:1em}
-.nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]){margin:9px 0 0;font-size:17.333px}
+.nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]){margin:5.75px 0 0;font-size:17.333px}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless])>colgroup>col:nth-child(1){width:16.4%!important}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless])>colgroup>col:nth-child(2){width:10.99%!important}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless])>colgroup>col:nth-child(3){width:27.46%!important}
@@ -690,6 +692,10 @@ ${SHEET_FONT_FACE_CSS}
 @media print{
   .nfc-tpl.nfc-tpl:is([data-form="7"],[data-form="8"],[data-form="9"])>table:not([data-borderless]) [data-grid-cell] .nfc-medical-record-text-field,
   .nfc-tpl.nfc-tpl[data-form="11"]>table[data-record-section="signature"] .nfc-medical-record-text-field{border-bottom:1px dotted #000!important;--nfc-dots:1!important}
+  /* Mẫu 8's and 9's blanks low in their rows on paper, the room above them to write by hand; on screen they stay where they were (R-1287). */
+  .nfc-tpl.nfc-tpl:is([data-form="8"],[data-form="9"])>table:not([data-borderless])>tbody>tr>td{vertical-align:bottom;padding-top:0;padding-bottom:7px}
+  /* Mẫu 9's rows are lower (27pt against 34.5pt): its line as far down its row as mẫu 8's, three quarters of the way. */
+  .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless])>tbody>tr>td{padding-bottom:5px}
   /* Mẫu 7's minute slot between "Giờ" and ", ngày" is a hair wide, as Word has none: no stray dot in it. */
   .nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.37"]{--nfc-dots:0!important}
 }

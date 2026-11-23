@@ -15993,3 +15993,11 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - **Kết quả E2E** (build production, `vite preview` :8080, BE thật + PostgreSQL thật): 5 file spec bệnh án 56/58 — 2 đỏ có sẵn ("every sheet's name is shown in full", "picking the day…"). Rebase lên develop `ed1d3c53` (R-1279 voucher, không đụng bệnh án) trước khi commit.
 - **Mức retest**: 2 (F-30 bệnh án — bản in mẫu 7, 8, 9, 11).
 
+## R-1287 (2026-11-23, mức 1: Bệnh án — mẫu 8, 9: khi in, dòng chấm trong bảng thấp trong hàng, chừa chỗ viết tay; develop)
+
+- **Yêu cầu chủ dự án** (ảnh bản in mẫu 8): "khi preview in ra thì nên cho các dấu chấm trong table nằm gần bottom hơn để tạo khoảng trống cho người dùng nếu muốn viết tay"; sau đó: "khi preview in thì nó mới nằm gần bottom … nhích lên 1 xíu đi, còn ở dạng web thì để như cũ".
+- **Thay đổi** (chỉ FE, `sheetCss.ts`, chỉ `@media print`): ô viết trong bảng mẫu 8 và mẫu 9 canh đáy hàng — chân dòng chấm cách đường kẻ đáy ~9pt ở mẫu 8 (hàng 34,5pt, đệm dưới 7px) và ~7,4pt ở mẫu 9 (hàng thấp hơn, 27pt, đệm dưới 5px) — cả hai ở ~74% chiều cao hàng tính từ trên; phần trên hàng để trống viết tay. (Một lượt giữa đặt mẫu 9 ở ~12pt, tức gần giữa hàng — hiểu sai ý chủ dự án, đã sửa.) Màn hình giữ như trước (mẫu 8 giữa hàng, mẫu 9 sát trên). Hàng giữ chiều cao nên số trang và đường kẻ bảng không đổi. Mẫu 7: các dòng TRÌNH TỰ là các dòng liền trong một ô, giữ nguyên.
+- **Kèm**: mẫu 9 bảng lùi lên 3,25px — dòng chấm thứ hai của "Chẩn đoán" từ R-1284 là chữ (cao 1 dòng 28,75px) thay cho viền 25,5px, đẩy bảng xuống 2,3pt; đường kẻ bảng lại trùng Word (227,2 / 279,0 / 306,0 …).
+- **E2E** (build production, `vite preview` :8080, BE thật + PostgreSQL thật): các ca bảng / thêm-bớt hàng / "every form…" / sheet-facts 13/13.
+- **Mức retest**: 1 (F-30 bệnh án — bản in mẫu 8, 9).
+
