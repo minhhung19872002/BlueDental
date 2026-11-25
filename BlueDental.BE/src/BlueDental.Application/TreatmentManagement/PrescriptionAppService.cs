@@ -442,6 +442,11 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
         return (await MapManyAsync([prescription]))[0];
     }
 
+    private static string? TrimmedOrNull(string? text)
+    {
+        return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+    }
+
     private async Task<List<PrescriptionDto>> MapManyAsync(IReadOnlyList<Prescription> prescriptions)
     {
         var staffIds = prescriptions.Select(p => p.StaffId).Distinct().ToList();
@@ -449,17 +454,19 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
         var staffNames = staff.ToDictionary(u => u.Id, u => u.Name ?? u.UserName);
         var jobTitles = StaffJobTitles.Of(staff);
 
-        // Đơn vị tính is read from the medicine's catalog entry as it stands now, not
-        // snapshotted: filling it in Danh mục shows on slips written before (R-1302).
-        // A medicine deleted from the catalog since still prints its unit.
+        // Đơn vị tính, Cách dùng and Lưu ý sử dụng are read from the medicine's catalog
+        // entry as it stands now, not snapshotted: filling them in Danh mục shows on
+        // slips written before (R-1302, R-1313). A medicine deleted from the catalog
+        // since still prints them.
         var medicationIds = prescriptions.SelectMany(p => p.Items).Select(i => i.MedicationId).Distinct().ToList();
-        var units = new Dictionary<Guid, string?>();
+        var catalog = new Dictionary<Guid, CatalogEntry>();
         if (medicationIds.Count > 0)
         {
             using (DataFilter.Disable<ISoftDelete>())
             {
-                var medicines = await _catalogRepository.GetListAsync(c => medicationIds.Contains(c.Id));
-                units = medicines.ToDictionary(c => c.Id, c => string.IsNullOrWhiteSpace(c.Unit) ? null : c.Unit.Trim());
+                var medicines = await _catalogRepository.GetListAsync(
+                    c => medicationIds.Contains(c.Id), includeDetails: true);
+                catalog = medicines.ToDictionary(c => c.Id);
             }
         }
 
@@ -510,7 +517,9 @@ public class PrescriptionAppService : ApplicationService, IPrescriptionAppServic
                     Evening = i.Evening,
                     Days = i.Days,
                     Quantity = i.Quantity,
-                    Unit = units.GetValueOrDefault(i.MedicationId),
+                    Unit = TrimmedOrNull(catalog.GetValueOrDefault(i.MedicationId)?.Unit),
+                    MedicineUsage = TrimmedOrNull(catalog.GetValueOrDefault(i.MedicationId)?.Medicine?.Usage),
+                    MedicineUsageNote = TrimmedOrNull(catalog.GetValueOrDefault(i.MedicationId)?.Medicine?.UsageNote),
                     Usage = i.Usage,
                     OtherUsage = i.OtherUsage,
                     SortOrder = i.SortOrder

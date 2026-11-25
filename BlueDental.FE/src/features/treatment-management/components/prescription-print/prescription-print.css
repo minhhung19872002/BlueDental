@@ -112,7 +112,8 @@
 
 /* Medicines: Word's borderless [6954 | 1310 | 1375] twip table, its cells 108
    twips in from each side. The name is a numbered list item (number at 164
-   twips, text at 447) over how to take it at 741 twips and a blank line; the
+   twips, text at 447) over how to take it at 741 twips and a line for the
+   catalog's Lưu ý sử dụng, blank when none (R-1313); the
    quantity sits right in its cell, the unit left in the next, both on the
    name's line. */
 .rx-sheet-meds {
@@ -130,7 +131,7 @@
 }
 .rx-sheet-med-text {
   min-width: 0;
-  padding: 0 7.2px 1.15em 37px;
+  padding: 0 7.2px 0 37px;
 }
 .rx-sheet-med-text strong {
   display: block;
@@ -146,6 +147,18 @@
   display: block;
   min-height: 1.15em;
   padding-left: 19.6px;
+  overflow-wrap: anywhere;
+}
+/* The third line: the catalog's Lưu ý sử dụng in 11pt italics (R-1313), never
+   less than the 13pt blank line Word leaves there, so a medicine without one
+   keeps its spacing. */
+.rx-sheet-med-note {
+  display: block;
+  min-height: 14.95pt;
+  padding-left: 19.6px;
+  font-size: 11pt;
+  font-style: italic;
+  overflow-wrap: anywhere;
 }
 .rx-sheet-qty {
   padding: 0 7.2px;

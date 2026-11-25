@@ -21,6 +21,10 @@ public class PrescriptionItemDto : EntityDto<Guid>
     public decimal Quantity { get; set; }
     /// <summary>Read side only — the medicine's Đơn vị tính in the catalog now, null when none (R-1302).</summary>
     public string? Unit { get; set; }
+    /// <summary>Read side only — the medicine's Cách dùng in the catalog now, null when none (R-1313).</summary>
+    public string? MedicineUsage { get; set; }
+    /// <summary>Read side only — the medicine's Lưu ý sử dụng in the catalog now, null when none (R-1313).</summary>
+    public string? MedicineUsageNote { get; set; }
     public PrescriptionUsage Usage { get; set; }
     public string? OtherUsage { get; set; }
     public int SortOrder { get; set; }

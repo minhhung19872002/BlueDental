@@ -37,6 +37,10 @@ export interface PrescriptionItemDto extends PrescriptionSessionDose {
   quantity: number;
   /** The medicine's Đơn vị tính in the catalog now; null when none (R-1302). */
   unit: string | null;
+  /** The medicine's Cách dùng in the catalog now; null when none (R-1313). */
+  medicineUsage: string | null;
+  /** The medicine's Lưu ý sử dụng in the catalog now; null when none (R-1313). */
+  medicineUsageNote: string | null;
   /** Flags of PRESCRIPTION_USAGE. */
   usage: number;
   otherUsage: string | null;

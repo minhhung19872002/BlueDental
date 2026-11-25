@@ -470,7 +470,7 @@ test.describe.serial("Đơn thuốc", () => {
     await reopened.getByRole("button", { name: /Hủy$/ }).click();
   });
 
-  test("In đơn thuốc shows the slip read-only without doses, on A4 under the fixed clinic letterhead, the unit from Danh mục (R-1300..R-1302)", async ({
+  test("In đơn thuốc shows the slip read-only without doses, on A4 under the fixed clinic letterhead, the unit, Cách dùng and Lưu ý from Danh mục (R-1300..R-1302, R-1313)", async ({
     page,
   }) => {
     await login(page);
@@ -501,6 +501,9 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(printedLine).not.toContainText("Sáng");
     await expect(printedLine).not.toContainText("ngày");
     await expect(printedLine.locator(".rx-sheet-unit")).toHaveText("");
+    // No Cách dùng / Lưu ý sử dụng in the catalog yet: both lines stay blank (R-1313).
+    await expect(printedLine.locator("em")).toHaveText("");
+    await expect(printedLine.locator(".rx-sheet-med-note")).toHaveText("");
     await expect(dialog.locator(".rx-sheet th")).toHaveCount(0);
     await expect(dialog.locator(".rx-sheet-sign-role")).toHaveText("Bác sĩ");
     await expect(dialog.locator(".rx-sheet-advice")).toContainText("Lời dặn bác sĩ: Khám lại xin mang theo đơn này.");
@@ -546,8 +549,9 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(printed).toHaveCount(0);
     await expect(page.locator("body")).not.toHaveClass(/pd-printing/);
 
-    // The unit is read from Danh mục as it stands, not kept on the slip:
-    // filling it in now shows on this slip, saved before (R-1302).
+    // The unit, Cách dùng and Lưu ý sử dụng are read from Danh mục as they
+    // stand, not kept on the slip: filling them in now shows on this slip,
+    // saved before (R-1302, R-1313).
     await page.goto("/taxonomy/medicine");
     const group = `NHOM RX ${id}`;
     await page.getByLabel("Tìm nhóm...").fill(group);
@@ -555,6 +559,8 @@ test.describe.serial("Đơn thuốc", () => {
     await page.getByRole("row", { name: new RegExp(escapeRegExp(medicine)) }).getByRole("button").nth(1).click();
     const editor = page.getByRole("dialog");
     await editor.getByLabel(/Đơn vị tính/).fill("Viên");
+    await editor.getByLabel("Cách dùng", { exact: true }).fill(`Ngậm ${id}`);
+    await editor.getByLabel("Lưu ý sử dụng", { exact: true }).fill(`Không nuốt ${id}`);
     await editor.getByRole("button", { name: /Lưu$/ }).click();
     await expect(editor).toBeHidden();
 
@@ -562,6 +568,18 @@ test.describe.serial("Đơn thuốc", () => {
     await row.getByRole("button", { name: "In đơn thuốc" }).click();
     await expect(printedLine.locator(".rx-sheet-unit")).toHaveText("Viên");
     await expect(printedLine.locator(".rx-sheet-qty")).not.toBeEmpty();
+    // The slip itself names no usage, so line 2 is the catalog's Cách dùng alone,
+    // no "–"; Lưu ý goes on line 3 in brackets, italic and smaller (R-1313).
+    await expect(printedLine.locator("em")).toHaveText(`Ngậm ${id}`);
+    const usageNote = printedLine.locator(".rx-sheet-med-note");
+    await expect(usageNote).toHaveText(`(Không nuốt ${id})`);
+    const noteStyle = await usageNote.evaluate((el) => ({
+      size: parseFloat(getComputedStyle(el).fontSize),
+      style: getComputedStyle(el).fontStyle,
+      usageSize: parseFloat(getComputedStyle(el.previousElementSibling ?? el).fontSize),
+    }));
+    expect(noteStyle.style).toBe("italic");
+    expect(noteStyle.size).toBeLessThan(noteStyle.usageSize);
   });
 
   test("Ngày lên đơn thuốc dates the slip back, never ahead, and the printed slip carries it", async ({

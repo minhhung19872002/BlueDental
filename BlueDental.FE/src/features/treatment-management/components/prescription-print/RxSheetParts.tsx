@@ -31,16 +31,27 @@ function EmptyValue({ empty }: { empty: EmptyFact }) {
   return <strong>—</strong>;
 }
 
-/** "Sau khi ăn" — how to take it; the doses are not printed (R-1302). */
+/**
+ * "Uống – Sau khi ăn": the medicine's Cách dùng in the catalog, then how the
+ * slip says to take it, each left out when empty (R-1313). The doses are not
+ * printed (R-1302).
+ */
 function usageOf(item: PrescriptionItemDto): string {
-  return item.usage === 0 ? "" : usageLabel(item);
+  const slipUsage = item.usage === 0 ? "" : usageLabel(item);
+  return [item.medicineUsage, slipUsage].filter(Boolean).join(" – ");
+}
+
+/** "(Không dùng cho phụ nữ có thai)" — the catalog's Lưu ý sử dụng, or nothing. */
+function noteOf(item: PrescriptionItemDto): string {
+  return item.medicineUsageNote ? `(${item.medicineUsageNote})` : "";
 }
 
 /**
  * The medicines as the BA's third Word copy (R-1302): a numbered list with no
- * rules or header, each name bold over how to take it in italics and a blank
- * line, then the quantity and the medicine's Đơn vị tính in the catalog — left
- * empty when the catalog has none.
+ * rules or header, each name bold over how to take it in italics and a third
+ * line holding the catalog's Lưu ý sử dụng in smaller italics, blank when none
+ * (R-1313); then the quantity and the medicine's Đơn vị tính in the catalog —
+ * left empty when the catalog has none.
  */
 export function RxSheetMedicines({ items }: { items: PrescriptionItemDto[] }) {
   return (
@@ -50,6 +61,7 @@ export function RxSheetMedicines({ items }: { items: PrescriptionItemDto[] }) {
           <p className="rx-sheet-med-text">
             <strong>{item.medicationName}</strong>
             <em>{usageOf(item)}</em>
+            <span className="rx-sheet-med-note">{noteOf(item)}</span>
           </p>
           <span className="rx-sheet-qty">{item.quantity}</span>
           <span className="rx-sheet-unit">{item.unit ?? ""}</span>
