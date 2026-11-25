@@ -16238,3 +16238,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `labo-workflow.spec.ts` "Hủy phiếu…": phiếu dùng chung nên sau khi hủy chỉ khẳng định dòng không còn `.pdt-labo`, và nếu cột còn hiện (dòng khác có labo) thì ô ghi "Không áp dụng".
 - Kiểm tra local (build production, preview riêng :8111, BE thật :5000 + PostgreSQL thật): spec mới 1/1 xanh; `treatment-plan-detail` + `labo-workflow` + `warranty-stage` + `plan-warranty-tab` 26 xanh, 2 skip sẵn có. `tsc -b` sạch.
 - Mức retest: 2 (chỉ bảng dịch vụ trang Chi tiết điều trị).
+
+## R-1319 — ĐƠN THUỐC: dòng chấm Địa chỉ chỉ 1 dòng; Người giám hộ / Số điện thoại trống → dòng chấm (2026-11-25, mức 2: Đơn thuốc — bản in)
+
+- Nguồn: user 2026-11-25, tin BA "Địa chỉ nếu k có thì để 1 line "......." ở trên thôi" + ảnh DT26-0004 khoanh đỏ Người giám hộ / Số điện thoại; user chốt "làm 1,2; 3 bỏ qua" (mục 3 = nét đỏ ở cột Chẩn đoán màn danh sách — bỏ qua).
+- FE `RxSheetParts.tsx` / `PrescriptionPrintSheet.tsx` / `prescription-print.css`:
+  - Địa chỉ trống → chỉ còn dòng chấm nối từ "Địa chỉ:" tới lề phải (bỏ dòng chấm thứ hai của R-1317; bỏ prop `dotLines`).
+  - Người giám hộ trống → chấm tới hết cột trái, chừa 12px trước "Số điện thoại:"; Số điện thoại trống → chấm tới lề phải. Có giá trị vẫn in đậm như cũ. Bỏ kiểu `empty="blank"` (không còn chỗ dùng).
+- E2E `prescription.spec.ts` test "In đơn thuốc…": mọi ô `.rx-sheet-fact--dots` có đúng 1 dòng chấm; Người giám hộ trống → mép phải dòng chấm < mép trái nhãn "Số điện thoại:" − 4px, có giá trị → `strong` không rỗng; đo cũ (mọi dòng chấm ≤ lề phải) giữ nguyên.
+- Kiểm tra local (build production, preview riêng :8121, BE thật :5000 + PostgreSQL thật): `prescription.spec.ts` 8/8 xanh; ảnh chụp khối bệnh nhân (BN không địa chỉ, không người giám hộ) đúng ý BA. `tsc -b` + eslint sạch.
+- Mức retest: 2 (chỉ bản in Đơn thuốc).
