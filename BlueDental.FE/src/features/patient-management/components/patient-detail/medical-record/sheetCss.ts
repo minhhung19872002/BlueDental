@@ -728,6 +728,25 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]) th p{line-height:18.6px!important;text-align:center}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]) td{box-sizing:border-box;height:36.2px;padding:3.2px 7.2px 0;vertical-align:top}
 .nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]) td p,.nfc-tpl.nfc-tpl[data-form="9"]>table:not([data-borderless]) td .nfc-medical-record-text-field{line-height:18.6px!important;min-height:0}
+/* The letterhead — "SỞ Y TẾ … NHA KHOA ĐỨC HẠNH", four bold lines — set as
+   mẫu 9's on every form that carries it (clinic, 2026-11-25): Times New Roman
+   11pt bold on 20.13px lines, each line centred on the longest, which starts
+   the block. Each form had it at its own Word copy's size and spacing (12pt on
+   mẫu 2 and 3, lines from 18.3px to 27.6px apart). Mẫu 1 has its own three-line
+   heading on the cover, mẫu 10 none, mẫu 11 its own (clinic: not mẫu 11).
+   The block keeps the height it had on each form, so nothing under it moves:
+   the lines below were matched to the BA's Word copies, and a shorter or
+   taller letterhead would carry them all up or down. */
+.nfc-tpl.nfc-tpl.nfc-tpl[data-form] p[data-block-align="left"][style*="display: table"]{display:block!important;width:max-content!important;max-width:none!important;height:var(--nfc-letterhead-height,auto);margin-right:auto!important;font-size:14.667px!important;font-size-adjust:none!important;line-height:20.13px!important;letter-spacing:normal!important;word-spacing:normal!important;white-space:nowrap!important}
+.nfc-tpl.nfc-tpl.nfc-tpl[data-form] p[data-block-align="left"][style*="display: table"] :is(span[style*="font-size"],strong){font-size:inherit!important}
+.nfc-tpl.nfc-tpl.nfc-tpl[data-form="4"]>p[data-block-align="left"][style*="display: table"]{margin-left:0!important}
+.nfc-tpl[data-form="2"]{--nfc-letterhead-height:110.4px}
+.nfc-tpl[data-form="3"]{--nfc-letterhead-height:78.4px}
+.nfc-tpl[data-form="4"]{--nfc-letterhead-height:91.1px}
+.nfc-tpl[data-form="5"]{--nfc-letterhead-height:83.2px}
+.nfc-tpl[data-form="6"]{--nfc-letterhead-height:101.2px}
+.nfc-tpl:is([data-form="7"],[data-form="12"]){--nfc-letterhead-height:84px}
+.nfc-tpl[data-form="8"]{--nfc-letterhead-height:73.1px}
 /* Mẫu 11 as the BA's Word copy (Mau-11-Bang-kiem-an-toan-phau-thuat.docx,
    2026-11-23, R-1283; again R-1297 2026-11-23), over the clinic's layout
    above: Times New Roman at its own height, 12pt on Word's single lines
