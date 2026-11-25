@@ -568,8 +568,9 @@ test.describe.serial("Kế hoạch điều trị và Chi phí — phiếu theo B
         }
         await expect(others.getByRole("button", { name: /^Đổi trạng thái/ })).toHaveCount(through ? 0 : 1);
         await expect(others.getByRole("button", { name: "Xoá" })).toHaveCount(through ? 0 : 1);
-        // Paid on for real, so no pencil for anyone — though the member is sent 0.
-        await expect(others.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(0);
+        // Paid on for real: since R-1314 that no longer hides the pencil (the dialog locks
+        // the money instead), so whoever sees the whole slip has it — no one seeing it through lines.
+        await expect(others.getByRole("button", { name: "Chỉnh sửa" })).toHaveCount(through ? 0 : 1);
         await expect(own.getByRole("button", { name: /^Đổi trạng thái/ })).toHaveCount(1);
         await expect(own.getByRole("button", { name: "Xoá" })).toHaveCount(deletes ? 1 : 0);
         // A masked line's 0 would be saved as its price, and Chuyển đổi is all about what was paid on it.

@@ -252,22 +252,23 @@ public class TreatmentService : FullAuditedEntity<Guid>
     }
 
     /// <summary>
-    /// "Chỉnh sửa" — the plan table's pencil, which turns a saved line back into
-    /// the inline row. Measured on staging 2026-09-24 (the plan detail's own
-    /// column builder, in its published chunk):
+    /// "Chỉnh sửa" — the plan table's pencil. Measured on staging 2026-09-24
+    /// (the plan detail's own column builder, in its published chunk), then
+    /// widened by the BA on 2026-11-25 (R-1314):
     /// <list type="bullet">
-    ///   <item>the pencil is offered only while the line is not done, cancelled
-    ///         or converted **and** nothing has been paid on it;</item>
-    ///   <item>a line in treatment keeps its diagnosis and its price — the cells
-    ///         read "Không thể đổi chẩn đoán/giá khi đang điều trị";</item>
-    ///   <item>teeth that already have a công đoạn stay picked — "Răng … đang
-    ///         điều trị — không thể bỏ chọn".</item>
+    ///   <item>a done, cancelled or converted line cannot be edited;</item>
+    ///   <item>a line in treatment keeps its diagnosis, its price and its
+    ///         discount — the cells read "Không thể đổi chẩn đoán/giá khi đang
+    ///         điều trị";</item>
+    ///   <item>a line paid on (the reference hides the pencil there) can be
+    ///         edited too, but keeps its diagnosis, price, **quantity** and
+    ///         discount, so what it charges never moves under the money taken;</item>
+    ///   <item>its teeth always move, even those a công đoạn already holds (the
+    ///         reference's "Răng … đang điều trị — không thể bỏ chọn" is dropped).
+    ///         The công đoạn keep the teeth they were written with.</item>
     /// </list>
-    /// The "Chỉnh sửa" modal (owner 2026-10-15) also rewrites the line's own
-    /// discount; a line in treatment keeps it, as it keeps its price.
     /// </summary>
     /// <param name="paidOnLine">Đã thu on this line, net of refunds.</param>
-    /// <param name="stagedTeeth">Tooth codes the line's công đoạn hold.</param>
     /// <param name="discount">The new discount; null leaves the line's as it is.</param>
     public TreatmentService Revise(
         decimal price,
@@ -275,18 +276,28 @@ public class TreatmentService : FullAuditedEntity<Guid>
         IEnumerable<ToothSelection> teeth,
         Guid? diagnosisId,
         decimal paidOnLine,
-        IReadOnlySet<int> stagedTeeth,
         (DiscountType Type, decimal Value)? discount = null)
     {
         var (discountType, discountValue) = discount ?? (DiscountType, DiscountValue);
 
         if (Status is TreatmentServiceStatus.Done or TreatmentServiceStatus.Cancelled
-                or TreatmentServiceStatus.Replaced
-            || paidOnLine > 0m)
+                or TreatmentServiceStatus.Replaced)
         {
             throw new BusinessException(
                 BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineNotEditable,
                 "This service line can no longer be edited.");
+        }
+
+        if (paidOnLine > 0m
+            && (price != Price
+                || quantity != Quantity
+                || diagnosisId != DiagnosisId
+                || discountType != DiscountType
+                || discountValue != DiscountValue))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLinePaidPricingLocked,
+                "A line paid on keeps its diagnosis, its price, its quantity and its discount.");
         }
 
         if (Status == TreatmentServiceStatus.InProgress
@@ -321,13 +332,6 @@ public class TreatmentService : FullAuditedEntity<Guid>
         }
 
         var toothList = teeth.ToList();
-        var kept = toothList.Select(t => t.ToothCode).ToHashSet();
-        if (stagedTeeth.Any(code => !kept.Contains(code)))
-        {
-            throw new BusinessException(
-                BlueDentalDomainErrorCodes.TreatmentManagement.StagedToothLocked,
-                "A tooth that has a công đoạn stays on the line.");
-        }
 
         Price = price;
         Quantity = quantity;

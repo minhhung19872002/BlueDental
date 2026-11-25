@@ -21,8 +21,10 @@ interface Props {
    * a saved line's what it was sold at: the ceiling "Đơn giá" may not rise above (0 = none).
    */
   originalPrice: number;
-  /** "Chỉnh sửa" on a line in treatment: price and discount stay as they are (Treatment:0038). */
+  /** "Chỉnh sửa" on a line in treatment or paid on: price and discount stay as they are (Treatment:0038 / 0069). */
   locked?: boolean;
+  /** "Chỉnh sửa" on a paid line: Số lượng stays too, so the amount never moves (R-1314). */
+  quantityLocked?: boolean;
 }
 
 /**
@@ -34,7 +36,7 @@ interface Props {
  * slip's plan line refuses that (Treatment:0040), the same rule plan detail's
  * rows check on ✓.
  */
-export function PlanPricingFields({ form, totals, originalPrice, locked = false }: Props) {
+export function PlanPricingFields({ form, totals, originalPrice, locked = false, quantityLocked = false }: Props) {
   const discountType = Form.useWatch("discountType", form) ?? DISCOUNT_TYPE.Percentage;
 
   return (
@@ -65,7 +67,7 @@ export function PlanPricingFields({ form, totals, originalPrice, locked = false 
             { type: "number", min: 1, message: t("Treatment:Pricing:QuantityMin") },
           ]}
         >
-          <InputNumber min={1} precision={0} className="tp-input-full" />
+          <InputNumber min={1} precision={0} disabled={quantityLocked} className="tp-input-full" />
         </FloatingField>
       </div>
       <div className="tp-create-discount">
