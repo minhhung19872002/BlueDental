@@ -15,6 +15,8 @@ namespace BlueDental.Domain.Tests.TreatmentManagement;
 /// </summary>
 public class TreatmentServiceReviseTests
 {
+    private static readonly HashSet<int> NothingStaged = [];
+
     private static List<ToothSelection> Teeth(params int[] codes) =>
         codes.Select(code => new ToothSelection(code, selected: true)).ToList();
 
@@ -38,7 +40,7 @@ public class TreatmentServiceReviseTests
         var line = Line();
         var diagnosis = Guid.NewGuid();
 
-        line.Revise(900_000m, 3, Teeth(11, 21, 22), diagnosis, 0m);
+        line.Revise(900_000m, 3, Teeth(11, 21, 22), diagnosis, 0m, NothingStaged);
 
         line.Price.ShouldBe(900_000m);
         line.Quantity.ShouldBe(3);
@@ -53,44 +55,16 @@ public class TreatmentServiceReviseTests
     public void A_closed_line_cannot_be_edited(TreatmentServiceStatus status)
     {
         Should.Throw<BusinessException>(() =>
-                Line(status).Revise(1_000_000m, 2, Teeth(11, 21), null, 0m))
+                Line(status).Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineNotEditable);
     }
 
-    // R-1314 (BA 2026-11-25): a line paid on is edited too, but what it
-    // charges stays — teeth and nothing that moves the money.
-    [Theory]
-    [InlineData(TreatmentServiceStatus.Created)]
-    [InlineData(TreatmentServiceStatus.InProgress)]
-    public void A_line_paid_on_changes_its_teeth_and_keeps_its_charge(TreatmentServiceStatus status)
-    {
-        var line = Line(status);
-
-        line.Revise(1_000_000m, 2, Teeth(11, 12, 13), null, 500_000m, (DiscountType.None, 0m));
-
-        line.Teeth.Select(t => t.ToothCode).ShouldBe([11, 12, 13]);
-        line.Quantity.ShouldBe(2);
-        line.EffectiveAmount.ShouldBe(2_000_000m);
-    }
-
     [Fact]
-    public void A_line_paid_on_keeps_its_quantity_price_discount_and_diagnosis()
+    public void A_line_paid_on_cannot_be_edited()
     {
-        var line = Line();
-        const string locked = BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLinePaidPricingLocked;
-
         Should.Throw<BusinessException>(() =>
-                line.Revise(1_000_000m, 3, Teeth(11, 21), null, 500_000m)).Code.ShouldBe(locked);
-        Should.Throw<BusinessException>(() =>
-                line.Revise(900_000m, 2, Teeth(11, 21), null, 500_000m)).Code.ShouldBe(locked);
-        Should.Throw<BusinessException>(() =>
-                line.Revise(1_000_000m, 2, Teeth(11, 21), null, 500_000m, (DiscountType.Percentage, 5m)))
-            .Code.ShouldBe(locked);
-        Should.Throw<BusinessException>(() =>
-                line.Revise(1_000_000m, 2, Teeth(11, 21), Guid.NewGuid(), 500_000m)).Code.ShouldBe(locked);
-
-        line.Quantity.ShouldBe(2);
-        line.Price.ShouldBe(1_000_000m);
+                Line().Revise(1_000_000m, 2, Teeth(11, 21), null, 500_000m, NothingStaged))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineNotEditable);
     }
 
     [Fact]
@@ -99,14 +73,14 @@ public class TreatmentServiceReviseTests
         var line = Line(TreatmentServiceStatus.InProgress);
 
         Should.Throw<BusinessException>(() =>
-                line.Revise(800_000m, 2, Teeth(11, 21), null, 0m))
+                line.Revise(800_000m, 2, Teeth(11, 21), null, 0m, NothingStaged))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineLockedInTreatment);
         Should.Throw<BusinessException>(() =>
-                line.Revise(1_000_000m, 2, Teeth(11, 21), Guid.NewGuid(), 0m))
+                line.Revise(1_000_000m, 2, Teeth(11, 21), Guid.NewGuid(), 0m, NothingStaged))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineLockedInTreatment);
 
         // Everything else still moves.
-        line.Revise(1_000_000m, 3, Teeth(11, 21, 22), null, 0m);
+        line.Revise(1_000_000m, 3, Teeth(11, 21, 22), null, 0m, NothingStaged);
         line.Quantity.ShouldBe(3);
     }
 
@@ -117,13 +91,13 @@ public class TreatmentServiceReviseTests
     {
         var line = Line();
 
-        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, (DiscountType.Percentage, 10m));
+        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.Percentage, 10m));
 
         line.DiscountType.ShouldBe(DiscountType.Percentage);
         line.DiscountValue.ShouldBe(10m);
         line.EffectiveAmount.ShouldBe(1_800_000m);
 
-        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, (DiscountType.None, 0m));
+        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.None, 0m));
         line.EffectiveAmount.ShouldBe(2_000_000m);
     }
 
@@ -131,9 +105,9 @@ public class TreatmentServiceReviseTests
     public void Without_a_discount_the_line_keeps_its_own()
     {
         var line = Line();
-        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, (DiscountType.Money, 300_000m));
+        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.Money, 300_000m));
 
-        line.Revise(1_000_000m, 3, Teeth(11, 21), null, 0m);
+        line.Revise(1_000_000m, 3, Teeth(11, 21), null, 0m, NothingStaged);
 
         line.DiscountType.ShouldBe(DiscountType.Money);
         line.DiscountValue.ShouldBe(300_000m);
@@ -147,7 +121,7 @@ public class TreatmentServiceReviseTests
     public void An_invalid_discount_is_refused(DiscountType type, int value)
     {
         Should.Throw<BusinessException>(() =>
-                Line().Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, (type, value)))
+                Line().Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (type, value)))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.InvalidDiscount);
     }
 
@@ -157,25 +131,21 @@ public class TreatmentServiceReviseTests
         var line = Line(TreatmentServiceStatus.InProgress);
 
         Should.Throw<BusinessException>(() =>
-                line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, (DiscountType.Percentage, 5m)))
+                line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.Percentage, 5m)))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.ServiceLineLockedInTreatment);
 
         // Sending the discount it already has is not a change.
-        line.Revise(1_000_000m, 3, Teeth(11, 21), null, 0m, (DiscountType.None, 0m));
+        line.Revise(1_000_000m, 3, Teeth(11, 21), null, 0m, NothingStaged, (DiscountType.None, 0m));
         line.Quantity.ShouldBe(3);
     }
 
-    // R-1314: a line in treatment may drop or swap any tooth, a staged one too
-    // (the reference's "Răng … đang điều trị — không thể bỏ chọn" is gone).
     [Fact]
-    public void A_line_in_treatment_changes_its_teeth()
+    public void A_tooth_with_a_stage_stays_on_the_line()
     {
-        var line = Line(TreatmentServiceStatus.InProgress);
-
-        line.Revise(1_000_000m, 2, Teeth(21, 22), null, 0m);
-
-        line.Teeth.Select(t => t.ToothCode).ShouldBe([21, 22]);
-        line.Price.ShouldBe(1_000_000m);
+        Should.Throw<BusinessException>(() =>
+                Line(TreatmentServiceStatus.InProgress)
+                    .Revise(1_000_000m, 1, Teeth(21), null, 0m, new HashSet<int> { 11 }))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.StagedToothLocked);
     }
 
     // Staging 2026-09-28: a 1.000.000 line edited to 910.000 reads Đơn giá
@@ -187,7 +157,7 @@ public class TreatmentServiceReviseTests
     {
         var line = Line();
 
-        line.Revise(910_000m, 2, Teeth(11, 21), null, 0m);
+        line.Revise(910_000m, 2, Teeth(11, 21), null, 0m, NothingStaged);
 
         line.OriginalPrice.ShouldBe(1_000_000m);
         line.ListAmount.ShouldBe(2_000_000m);
@@ -200,14 +170,14 @@ public class TreatmentServiceReviseTests
     public void The_unit_price_never_rises_above_the_original()
     {
         var line = Line();
-        line.Revise(910_000m, 2, Teeth(11, 21), null, 0m);
+        line.Revise(910_000m, 2, Teeth(11, 21), null, 0m, NothingStaged);
 
         Should.Throw<BusinessException>(() =>
-                line.Revise(1_100_000m, 2, Teeth(11, 21), null, 0m))
+                line.Revise(1_100_000m, 2, Teeth(11, 21), null, 0m, NothingStaged))
             .Code.ShouldBe(BlueDentalDomainErrorCodes.TreatmentManagement.UnitPriceAboveOriginal);
 
         // Back up to the giá gốc is fine — the discount goes away.
-        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m);
+        line.Revise(1_000_000m, 2, Teeth(11, 21), null, 0m, NothingStaged);
         line.ServiceDiscountAmount.ShouldBe(0m);
     }
 
@@ -251,7 +221,7 @@ public class TreatmentServiceReviseTests
             Guid.NewGuid(), Guid.NewGuid(), null, 1_000_000m, 1, DiscountType.None, 0m,
             originalPrice: 1_000_000m);
         plan.ApplyVoucher(100_000m);
-        line.Revise(910_000m, 1, [], null, 0m);
+        line.Revise(910_000m, 1, [], null, 0m, NothingStaged);
 
         var parts = plan.DiscountShareParts()[line.Id];
 

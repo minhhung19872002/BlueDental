@@ -51,25 +51,9 @@ export function lineAdvisors({ service, advise, planAdvisorId, planAdvisorName }
   return { firstId: planAdvisorId, firstName: planAdvisorName, secondId: null, secondName: null };
 }
 
-/**
- * A line a receipt has settled — cash, or the TN giảm / voucher a paid receipt
- * let it off (P2910). The server counts the same two (Treatment:0069).
- */
-export function isLinePaid(service: TreatmentServiceDto): boolean {
-  return service.paidAmount + service.reliefAmount > 0;
-}
-
-/**
- * A line in treatment keeps its price and its discount (Treatment:0038); a
- * paid line keeps them too, so what it charges never moves (R-1314).
- */
+/** A line in treatment keeps its price and its discount (Treatment:0038). */
 export function isPricingLocked(service: TreatmentServiceDto): boolean {
-  return service.status === SERVICE_LINE_STATUS.InProgress || isLinePaid(service);
-}
-
-/** A paid line keeps its Số lượng as well — the BA, R-1314 (Treatment:0069). */
-export function isQuantityLocked(service: TreatmentServiceDto): boolean {
-  return isLinePaid(service);
+  return service.status === SERVICE_LINE_STATUS.InProgress;
 }
 
 /** The line's service, which may have left the catalog since, for the locked picker. */
@@ -99,24 +83,23 @@ export function lineToFormValues(target: LineEditTarget): CreatePlanValues {
 /**
  * The PUT body. The server rewrites every detail it is sent, so what this
  * dialog does not show — diagnosis, dentist, the diagnosing staff — goes back
- * as the line holds it. What is locked — a line in treatment's price and
- * discount, a paid line's quantity too — goes back as the line holds it.
+ * as the line holds it. A line in treatment sends its own discount untouched.
  */
 export function lineToUpdateInput(
   service: TreatmentServiceDto,
   values: CreatePlanValues,
   teeth: ToothPickerValue,
 ): UpdateTreatmentServiceInput {
-  const pricing = isPricingLocked(service)
-    ? { price: service.price, discountType: service.discountType, discountValue: service.discountValue }
+  const discount = isPricingLocked(service)
+    ? { discountType: service.discountType, discountValue: service.discountValue }
     : {
-        price: values.price ?? service.price,
         discountType: values.discountValue ? values.discountType : DISCOUNT_TYPE.None,
         discountValue: values.discountValue ?? 0,
       };
   return {
-    ...pricing,
-    quantity: isQuantityLocked(service) ? service.quantity : (values.quantity ?? service.quantity),
+    price: values.price ?? service.price,
+    quantity: values.quantity ?? service.quantity,
+    ...discount,
     teeth: toothValueToDtos(teeth),
     diagnosisId: service.diagnosisId,
     dentistId: service.dentistId,
