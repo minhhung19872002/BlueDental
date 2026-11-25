@@ -1753,6 +1753,22 @@ dụng vì không có gì để đối chiếu.
   - File trên MinIO chỉ bị xoá sau khi giao dịch đã commit.
   - Mỗi ảnh công đoạn ghi một dòng lịch sử, như khi xoá từng ảnh.
 
+
+### Thư mục (nhóm phòng khám, F-98 / R-1323)
+
+- Mỗi cột giai đoạn có nút **Thư mục mới** cạnh Tải ảnh / Chụp ảnh. Chỉ một
+  cấp. Lưới thư mục nằm trên cùng thân cột; ảnh lẻ vẫn chia theo ngày bên dưới.
+- Biểu tượng thư mục kiểu Windows: có ảnh thì ló ảnh mới nhất giữa hai lớp bìa,
+  trống thì vàng trơn và ghi "Trống"; có ảnh ghi "N ảnh".
+- Bấm thư mục để mở: đầu cột thành "← {tên}" + "{giai đoạn} · N ảnh". Tải ảnh,
+  Chụp ảnh và sắp xếp đều làm trong thư mục đang mở.
+- Nút ⋯ trên thư mục: **Đổi tên** (quyền sửa), **Xoá thư mục** (quyền xoá) —
+  ảnh trong thư mục được đưa ra ngoài cột, không ảnh nào bị xoá.
+- Thanh chọn có **Chuyển vào thư mục**: chọn thư mục khác của cùng cột, hoặc
+  "Đưa ra ngoài thư mục" khi đang ở trong một thư mục.
+- Tìm kiếm ở gốc cột quét cả ảnh trong thư mục (lưới thư mục ẩn khi đang tìm).
+- Đây là yêu cầu của phòng khám, không phải quan sát từ bản gốc.
+
 ---
 
 ## Tab 6: Labo

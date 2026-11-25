@@ -32,7 +32,8 @@ public sealed class PatientImageController(IPatientImageAppService service) : Bl
         [FromForm] Guid? treatmentPlanId,
         [FromForm] Guid? treatmentStageId,
         [FromForm] string? note,
-        [FromForm] PatientImageType? type)
+        [FromForm] PatientImageType? type,
+        [FromForm] Guid? folderId)
     {
         return service.UploadAsync(new UploadPatientImageDto
         {
@@ -42,6 +43,7 @@ public sealed class PatientImageController(IPatientImageAppService service) : Bl
             TreatmentStageId = treatmentStageId,
             Note = note,
             Type = type ?? PatientImageType.Before,
+            FolderId = folderId,
             File = new RemoteStreamContent(
                 file.OpenReadStream(),
                 file.FileName,
@@ -67,4 +69,8 @@ public sealed class PatientImageController(IPatientImageAppService service) : Bl
     /// <summary>The selection's "Xoá N ảnh" (R-1277); a POST, since a DELETE carries no body.</summary>
     [HttpPost("delete-many")]
     public Task DeleteManyAsync([FromBody] DeletePatientImagesDto input) => service.DeleteManyAsync(input);
+
+    /// <summary>The selection's "Chuyển vào thư mục" (F-98).</summary>
+    [HttpPost("move")]
+    public Task MoveManyAsync([FromBody] MovePatientImagesDto input) => service.MoveManyAsync(input);
 }

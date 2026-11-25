@@ -168,6 +168,14 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A công đoạn picture may only be deleted on the day it was uploaded (P0111_02).</summary>
         public const string StageImageDeleteExpired = "BlueDental:Patient:0036";
+
+        /// <summary>The stage column already has a folder by that name (F-98).</summary>
+        public const string DuplicateImageFolderName = "BlueDental:Patient:0037";
+
+        public const string PatientImageFolderNotFound = "BlueDental:Patient:0038";
+
+        /// <summary>A picture may only go into a folder of its own patient, branch and stage column (F-98).</summary>
+        public const string ImageFolderMismatch = "BlueDental:Patient:0039";
     }
 
     public static class Appointments

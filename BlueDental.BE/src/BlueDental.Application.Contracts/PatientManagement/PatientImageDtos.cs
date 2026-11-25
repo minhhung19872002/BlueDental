@@ -41,6 +41,9 @@ public class PatientImageDto : FullAuditedEntityDto<Guid>
 
     /// <summary>Xóa ảnh is offered: false on a công đoạn picture once its upload day is over (R-1111).</summary>
     public bool Deletable { get; set; }
+
+    /// <summary>The "Thư mục" the picture is filed in (F-98); null in the column itself.</summary>
+    public Guid? FolderId { get; set; }
 }
 
 public class UploadPatientImageDto
@@ -67,6 +70,9 @@ public class UploadPatientImageDto
 
     /// <summary>Giai đoạn điều trị; the tab sends the stage of the column the upload came from.</summary>
     public PatientImageType Type { get; set; } = PatientImageType.Before;
+
+    /// <summary>The "Thư mục" open in that column when the upload was made (F-98).</summary>
+    public Guid? FolderId { get; set; }
 
     /// <summary>The uploaded file itself.</summary>
     public IRemoteStreamContent File { get; set; } = default!;
@@ -108,6 +114,30 @@ public class GetPatientImageListInput : PagedAndSortedResultRequestDto
     /// any case and with or without Vietnamese marks.
     /// </summary>
     public string? Filter { get; set; }
+
+    /// <summary>Only the pictures filed in this "Thư mục" (F-98).</summary>
+    public Guid? FolderId { get; set; }
+
+    /// <summary>
+    /// Only the pictures in no folder — the column itself, under its folders
+    /// (F-98). Ignored when <see cref="FolderId"/> is given.
+    /// </summary>
+    public bool OutsideFolders { get; set; }
+}
+
+/// <summary>
+/// "Chuyển vào thư mục" of the Hình ảnh tab's selection (F-98): every picture
+/// moves, or none does.
+/// </summary>
+public class MovePatientImagesDto
+{
+    [Required]
+    [MinLength(1)]
+    [MaxLength(DeletePatientImagesDto.MaxCount)]
+    public List<Guid> Ids { get; set; } = [];
+
+    /// <summary>The folder they go into; null takes them out of their folder, back into the column.</summary>
+    public Guid? FolderId { get; set; }
 }
 
 /// <summary>
@@ -123,4 +153,5 @@ public interface IPatientImageAppService : IApplicationService
     Task ReorderAsync(ReorderPatientImageDto input);
     Task DeleteAsync(Guid id);
     Task DeleteManyAsync(DeletePatientImagesDto input);
+    Task MoveManyAsync(MovePatientImagesDto input);
 }

@@ -7,7 +7,8 @@ const EDGE = 40;
 /** The fastest the box scrolls, in pixels per frame, with the mouse at (or past) its edge. */
 const MAX_SPEED = 18;
 /** Controls that keep their own meaning under a press; the picture itself is not one of them. */
-const OWN_CONTROLS = "button:not(.pi-card-picture), input, label, a, [role='checkbox'], .ant-checkbox-wrapper";
+const OWN_CONTROLS =
+  "button:not(.pi-card-picture), input, label, a, [role='checkbox'], .ant-checkbox-wrapper, .pi-folders";
 
 interface Point {
   x: number;

@@ -1,3 +1,4 @@
+using System.Linq;
 using BlueDental.EntityFrameworkCore;
 using BlueDental.PatientManagement;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,21 @@ public class PatientImageMappingTests
         var entity = ctx.Model.FindEntityType(typeof(PatientImage))!;
         var type = entity.FindProperty(nameof(PatientImage.Type)).ShouldNotBeNull();
         type.GetProviderClrType().ShouldBe(typeof(short));
+    }
+
+    [Fact]
+    public void PatientImageFolder_Maps_To_Its_Table_And_Pictures_Point_At_It_With_Set_Null()
+    {
+        using var ctx = CreateContext();
+        var folder = ctx.Model.FindEntityType(typeof(PatientImageFolder))!;
+        folder.GetTableName().ShouldBe("bd_patient_image_folders");
+        folder.FindProperty(nameof(PatientImageFolder.Name))!.GetMaxLength().ShouldBe(PatientImageFolder.MaxNameLength);
+        folder.FindProperty(nameof(PatientImageFolder.Type))!.GetProviderClrType().ShouldBe(typeof(short));
+
+        var image = ctx.Model.FindEntityType(typeof(PatientImage))!;
+        var foreignKey = image.GetForeignKeys().Single(fk => fk.PrincipalEntityType == folder);
+        foreignKey.Properties.Single().Name.ShouldBe(nameof(PatientImage.FolderId));
+        foreignKey.DeleteBehavior.ShouldBe(DeleteBehavior.SetNull);
     }
 
     [Fact]

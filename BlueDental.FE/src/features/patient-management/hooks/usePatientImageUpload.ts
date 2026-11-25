@@ -70,7 +70,8 @@ export function acceptImageFiles(files: File[]): File[] {
 /**
  * "Tải ảnh" and "Chụp ảnh": any number of files, each scaled down on the
  * client, then sent one at a time, tagged with the "Giai đoạn điều trị" of
- * the column they were sent from and the one note given for the batch. One
+ * the column they were sent from — and its open thư mục, if any (F-98) — and
+ * the one note given for the batch. One
  * failure stops the batch and says how far it got; the files already sent stay
  * sent. The feed is refreshed once, when the batch is over.
  */
@@ -78,6 +79,7 @@ export function usePatientImageUpload(
   patientId: string,
   clinicBranchId: string,
   type: PatientImageType,
+  folderId: string | null,
 ): PatientImageUpload {
   const { send, refresh } = usePatientImageBatchUpload();
   const [progress, setProgress] = useState<UploadProgress | null>(null);
@@ -93,7 +95,14 @@ export function usePatientImageUpload(
         for (const file of valid) {
           setProgress({ sending: sent.length + 1, total: valid.length });
           const prepared = await shrinkImageFile(file);
-          await send({ patientId, clinicBranchId, type, note: trimmedNote, file: prepared });
+          await send({
+            patientId,
+            clinicBranchId,
+            type,
+            folderId: folderId ?? undefined,
+            note: trimmedNote,
+            file: prepared,
+          });
           sent.push(file);
         }
       } catch {
@@ -109,7 +118,7 @@ export function usePatientImageUpload(
       }
       return sent;
     },
-    [patientId, clinicBranchId, type, send, refresh],
+    [patientId, clinicBranchId, type, folderId, send, refresh],
   );
 
   return { progress, upload };

@@ -93,3 +93,23 @@ card, the sortable row or the reorder hook is a Level 3 change, and both
 `e2e/patient-image.spec.ts` and the consulting specs in `e2e/patient.spec.ts`
 have to be green before either is called verified. Both suites were run on the
 production build on 2026-09-08 and are green.
+
+## 2026-11-25 — Thư mục (F-98, R-1323)
+
+Each stage column can hold one level of thư mục. Rules under test, all in
+`e2e/patient-image-folder.spec.ts` against the real API:
+
+- "Thư mục mới": blank name refused in the dialog; inner spaces folded; a name
+  already used in the column refused by the server (`Patient:0037`) with **one**
+  toast, the dialog staying open.
+- Inside a thư mục the head shows "{stage} · N ảnh", "Tải ảnh" files into it
+  (dialog title "{stage} / {name}"), and its pictures are not loose at the root.
+- The tile counts its pictures and shows the newest as a cover; empty = "Trống".
+- The selection bar moves ticked pictures into another thư mục or back out.
+  A move into another stage's thư mục is refused (`Patient:0039`, all or none).
+- Rename via the tile's ⋯ menu; delete puts the pictures back at the root, none
+  is deleted; both survive a reload and are checked in the database.
+- A search at the column's root reaches into every thư mục and hides the grid.
+
+Retest: a change to `PatientImage`, its list filter or the move endpoint is a
+Level 2 change for F-24 + F-98 together — run every `e2e/patient-image*.spec.ts`.

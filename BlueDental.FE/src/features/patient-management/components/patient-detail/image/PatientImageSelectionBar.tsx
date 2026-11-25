@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Button, Checkbox, Tooltip } from "antd";
 import { Download, Trash2, X } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { PatientImageSelectionMove } from "./PatientImageSelectionMove";
 
 interface Props {
   count: number;
@@ -10,7 +11,7 @@ interface Props {
   some: boolean;
   onSelectAll: (on: boolean) => void;
   onExit: () => void;
-  /** What may be done with the ticked pictures: "Tải xuống", "Xoá N ảnh". */
+  /** What may be done with the ticked pictures: "Chuyển vào thư mục", "Tải xuống", "Xoá N ảnh". */
   children: ReactNode;
 }
 
@@ -83,3 +84,4 @@ function SelectionDelete({ count, onDelete }: DeleteProps) {
 
 PatientImageSelectionBar.Download = SelectionDownload;
 PatientImageSelectionBar.Delete = SelectionDelete;
+PatientImageSelectionBar.Move = PatientImageSelectionMove;

@@ -37,6 +37,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
     private readonly StageLineGuard _lineGuard;
     private readonly PatientImageWriter _writer;
     private readonly IRepository<XrayDevice, Guid> _xrayDevices;
+    private readonly IRepository<PatientImageFolder, Guid> _folders;
 
     public PatientImageAppService(
         IRepository<PatientImage, Guid> repository,
@@ -47,7 +48,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         TreatmentStageChangeRecorder stageChanges,
         StageLineGuard lineGuard,
         PatientImageWriter writer,
-        IRepository<XrayDevice, Guid> xrayDevices)
+        IRepository<XrayDevice, Guid> xrayDevices,
+        IRepository<PatientImageFolder, Guid> folders)
     {
         _repository = repository;
         _blobContainer = blobContainer;
@@ -58,6 +60,7 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
         _lineGuard = lineGuard;
         _writer = writer;
         _xrayDevices = xrayDevices;
+        _folders = folders;
     }
 
     [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Read)]
@@ -74,6 +77,12 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             query = query.Where(x => x.TreatmentStageId == input.TreatmentStageId.Value);
         if (input.Type.HasValue)
             query = query.Where(x => x.Type == input.Type.Value);
+        // Thư mục (F-98): inside a folder only its pictures; at the column's root
+        // only the pictures no folder holds.
+        if (input.FolderId.HasValue)
+            query = query.Where(x => x.FolderId == input.FolderId.Value);
+        else if (input.OutsideFolders)
+            query = query.Where(x => x.FolderId == null);
         if (!string.IsNullOrWhiteSpace(input.Filter))
         {
             // Inner runs of spaces folded to one, and unaccent() on both sides,
@@ -142,6 +151,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             input.LaboToothNumber,
             input.WarrantyCardSide,
             input.ServiceWarrantyCardId);
+        if (input.FolderId is { } folderId)
+            image.FileInto(await LoadFolderAsync(folderId));
 
         buffer.Position = 0;
         await _blobContainer.SaveAsync(blobName, buffer, overrideExisting: true);
@@ -240,6 +251,44 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
 
         await _repository.DeleteManyAsync(images, autoSave: true);
         DeleteFilesOnceCommitted(images.Select(x => x.BlobName).ToList());
+    }
+
+    /// <summary>
+    /// The Hình ảnh tab's "Chuyển vào thư mục" (F-98): files the pictures into
+    /// a folder of their column, or back out to the column when no folder is
+    /// given. One picture of another patient, branch or column refuses them all.
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.TreatmentImage.Update)]
+    public async Task MoveManyAsync(MovePatientImagesDto input)
+    {
+        var ids = input.Ids.Distinct().ToList();
+        var images = await _repository.GetListAsync(x => ids.Contains(x.Id));
+        if (images.Count != ids.Count)
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.PatientManagement.PatientImageNotFound,
+                "Image not found.");
+        }
+
+        foreach (var branchId in images.Select(x => x.ClinicBranchId).Distinct())
+            await _branchAccess.CheckAsync(branchId);
+
+        var folder = input.FolderId is { } folderId ? await LoadFolderAsync(folderId) : null;
+        foreach (var image in images)
+            image.FileInto(folder);
+
+        await _repository.UpdateManyAsync(images, autoSave: true);
+    }
+
+    private async Task<PatientImageFolder> LoadFolderAsync(Guid id)
+    {
+        var folder = await _folders.FindAsync(id)
+            ?? throw new BusinessException(
+                BlueDentalDomainErrorCodes.PatientManagement.PatientImageFolderNotFound,
+                "Folder not found.");
+
+        await _branchAccess.CheckAsync(folder.ClinicBranchId);
+        return folder;
     }
 
     private void DeleteFilesOnceCommitted(IReadOnlyList<string> blobNames)
@@ -341,7 +390,8 @@ public class PatientImageAppService : ApplicationService, IPatientImageAppServic
             TakenAt = x.TakenAt,
             Type = x.Type,
             Ordering = x.Ordering,
-            Url = $"/api/v1/app/patient-images/{x.Id}/content",
+            FolderId = x.FolderId,
+            Url =$"/api/v1/app/patient-images/{x.Id}/content",
             StaffName = x.StaffId is { } staffId && staffNames.TryGetValue(staffId, out var staff) ? staff : null,
             Deletable = x.IsDeletableOn(today),
             CreationTime = x.CreationTime,

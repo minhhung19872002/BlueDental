@@ -6,8 +6,8 @@ import { PatientImageDayRow } from "./PatientImageDayRow";
 
 interface Props {
   days: PatientImageDay[];
-  /** Shown in place of the days while there are none: loading, none yet, or none match. */
-  emptyText: string;
+  /** Shown in place of the days while there are none: loading, none yet, or none match; null shows nothing (the thư mục above say it). */
+  emptyText: string | null;
   isLoadingMore: boolean;
   /** Something is being fetched, uploaded, moved or deleted: dim the timeline. */
   busy: boolean;
@@ -33,6 +33,7 @@ export function PatientImageTimeline({
   ...rowProps
 }: Props) {
   if (days.length === 0) {
+    if (emptyText === null) return null;
     return (
       <p className="pi-empty" role="status" data-testid="patient-image-empty">
         {emptyText}
