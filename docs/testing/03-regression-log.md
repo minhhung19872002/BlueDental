@@ -16136,3 +16136,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Bố cục: ở 1280px ba cột, thêm nút làm "1 ảnh đã chọn" đè lên "Chọn tất cả" → thanh chọn là container (`container-type: inline-size`), ≤500px thì ẩn chữ "Chọn tất cả" (vẫn còn cho screen reader + `title`), chỉ giữ ô tick; số đếm có ellipsis dự phòng. Chiều cao thanh không đổi (e2e R-1277 vẫn đo).
 - Giới hạn còn lại: chỉ chọn được ảnh xoá được (ảnh công đoạn đã qua ngày tải bị khoá) và chỉ tài khoản có quyền xoá mới vào được chế độ chọn — nên các ảnh/tài khoản đó chưa tải xuống hàng loạt được.
 - E2E mới `patient-image-download.spec.ts` (thật, không intercept): 1 ảnh → file đúng tên, đúng bytes; 3 ảnh → một zip `hinh-anh-…zip` chứa đủ 3 tên, bytes khớp ảnh đã tải lên. Toàn bộ `patient-image*` (17 test) xanh trên `vite preview` :8080.
+
+## R-1307 — mọi mẫu bệnh án căn đều 2 bên khi in (2026-11-25, mức 1: Bệnh án — in)
+
+- Nguồn: yêu cầu của user 2026-11-25 — "nội dung tất cả các mẫu được căn đều 2 bên để khi in nhìn không bị lệch quá".
+- FE `sheetCss.ts` (khối in `SHEET_PRINT_CSS`, chỉ `@media print`): `.nfc-tpl{text-align:justify}` đặt trên tờ để các đoạn **thừa kế** — chỗ nào tự khai báo căn lề (tiêu đề, dòng căn giữa/phải, ô tiêu đề bảng, các dòng đã khớp Word của BA) giữ nguyên. Trên màn hình không đổi (thay đổi chỉ cho bản in).
+- Đo trên local, cả 12 mẫu ở chế độ in: bật/tắt luật mới → **0** khối `p/td/th/h1–h3/li/hr` đổi vị trí hay chiều cao, chiều cao từng tờ giữ nguyên; justify chỉ giãn khoảng trắng trong dòng đã xuống dòng, không đổi chỗ ngắt dòng/trang. ~200 đoạn nhiều dòng được dàn đều.
+- E2E `patient-medical-record` + `medical-record-surgical-checklists` (preview): 44 xanh; 3 đỏ không liên quan (`picking the day` có sẵn, số NT- do API local chưa có R-1305, tên mục lục bị test khác đổi).

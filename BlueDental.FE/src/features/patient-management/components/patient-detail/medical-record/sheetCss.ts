@@ -1062,6 +1062,13 @@ const SHEET_PRINT_CSS = String.raw`
       .nfc-tpl>:not([data-spacer]):not(:has(~ :not([data-spacer]))),
       .nfc-tpl>:not([data-spacer]):is(:has(+hr),:has(+p[data-spacer]+hr)){margin-bottom:0}
       .nfc-tpl .nfc-medical-record-checkbox{accent-color:#2671d8;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+      /* Every form's text justified on paper (clinic, 2026-11-25): a paragraph
+         running onto a second line printed with a ragged right edge. Set on
+         the sheet so it is inherited — whatever states its own alignment (the
+         titles, the centred and right-hand lines, the header cells, the lines
+         matched to the BA's Word) keeps it. Justifying only spreads the spaces
+         of a line that already wraps: no line breaks, so no page, moves. */
+      .nfc-tpl{text-align:justify}
     }`;
 
 /*
