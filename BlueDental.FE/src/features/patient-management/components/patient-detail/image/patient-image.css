@@ -210,6 +210,32 @@
   scrollbar-width: thin;
   /* The tiles' running number counts down the whole column. */
   counter-reset: pi-tile;
+  /* The "bôi để chọn" marquee is placed in the scrolled content. */
+  position: relative;
+}
+/* "Bôi để chọn" (R-1322): the rectangle swept with the mouse, above the tiles and the day heads. */
+.pi-marquee {
+  display: none;
+  position: absolute;
+  left: var(--pi-marquee-x, 0);
+  top: var(--pi-marquee-y, 0);
+  width: var(--pi-marquee-w, 0);
+  height: var(--pi-marquee-h, 0);
+  z-index: 4;
+  border: 1px solid var(--bd-primary);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--bd-primary) 14%, transparent);
+  pointer-events: none;
+}
+.pi-stage-body[data-marquee="on"] {
+  user-select: none;
+  cursor: crosshair;
+}
+.pi-stage-body[data-marquee="on"] .pi-marquee {
+  display: block;
+}
+.pi-stage-body[data-marquee="on"] .pi-card-picture {
+  cursor: crosshair;
 }
 
 /* ---- "Chụp ảnh" dialog (portalled outside .pi-tab: --bd-* tokens only) ---- */

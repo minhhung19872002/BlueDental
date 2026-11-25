@@ -5,6 +5,7 @@ import type { CameraAvailability } from "../../../hooks/useCameraAvailability";
 import { useImageUploadPreview } from "../../../hooks/useImageUploadPreview";
 import { usePatientImageDownload } from "../../../hooks/usePatientImageDownload";
 import { usePatientImageGallery, type PatientImageGallery } from "../../../hooks/usePatientImageGallery";
+import { usePatientImageMarquee } from "../../../hooks/usePatientImageMarquee";
 import type { PatientImagePermissions } from "../../../hooks/usePatientImagePermissions";
 import { usePatientImageReorder } from "../../../hooks/usePatientImageReorder";
 import type { PatientImageSelection } from "../../../hooks/usePatientImageSelection";
@@ -52,7 +53,8 @@ function emptyTextOf(gallery: PatientImageGallery, search: string): string {
  * One "Giai đoạn điều trị" of the Hình ảnh tab: its own feed, upload (through
  * the preview, one note for the batch) and camera — both filed under this
  * stage — drag-to-sort, the viewer, which pages through this column only, and
- * ticking pictures to delete several at once.
+ * ticking pictures — one by one, or by sweeping a marquee over them — to
+ * delete several at once.
  */
 export function PatientImageStageColumn({
   patientId,
@@ -96,6 +98,7 @@ export function PatientImageStageColumn({
     [permissions.canDelete, selecting, isPicked, toggle, setMany, stage.type, shown],
   );
   const columnTick = tickStateOf(shown, isPicked);
+  const marquee = usePatientImageMarquee({ stage: stage.type, shown, selection, enabled: permissions.canDelete });
 
   const busy =
     (gallery.isFetching && !gallery.isLoading && !gallery.isLoadingMore) || uploading || reordering || deleting;
@@ -137,7 +140,8 @@ export function PatientImageStageColumn({
         </PatientImageStageHeader>
       )}
 
-      <div className="pi-stage-body">
+      <div ref={marquee.scrollRef} className="pi-stage-body" onPointerDown={marquee.onPointerDown}>
+        <div ref={marquee.boxRef} className="pi-marquee" data-testid="patient-image-marquee" />
         <ColumnSelectionProvider value={columnSelection}>
           <PatientImageTimeline
             days={gallery.days}
