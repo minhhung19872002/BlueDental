@@ -16158,3 +16158,16 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - FE `templates/outpatientDental.ts`: 3 dòng trống (`<br>` ×3) giữa chức danh và "Họ (và) tên" ở cả 5 chỗ, như `signature()` của mẫu 11/12. Id ô không đổi → phiếu cũ giữ giá trị (template dựng lại từ code, DB chỉ lưu giá trị).
 - Đo trên local (in): khối chữ ký cuối phần IV cao thêm 82,8px, đáy ở 350px của tờ 1039px (trước 271px) — vẫn cùng tờ, sau nó là ngắt trang; bảng hồ sơ phim ảnh chỉ cao thêm 3,8px (ô Người nhận), hai ô kia dùng chỗ trống sẵn có; đáy bảng ở 199px của tờ — không thêm trang.
 - E2E: assertion "Người nhận hồ sơ, then Họ tên on one line" đổi ngưỡng 2,6 → 4,4–5,6 dòng (chức danh + 3 dòng ký + Họ tên một dòng); test xanh.
+
+## R-1310 — mẫu 1 (bìa): tiêu đề "BỆNH ÁN RĂNG HÀM MẶT / NGOẠI TRÚ", khung MÃ BỆNH nằm ngang (2026-11-25, mức 1: Bệnh án — mẫu 1)
+
+- Nguồn: user 2026-11-25, 2 ảnh — khung "MÃ BỆNH / SỐ PHIM XQ / CT / KHÁC" nằm ngang, mỗi nhãn có dòng chấm ngay sau; tiêu đề đổi thành "BỆNH ÁN RĂNG HÀM MẶT" / "NGOẠI TRÚ", giữ cỡ chữ.
+- FE `templates/cover.ts`: tiêu đề h1 "BỆNH ÁN" → "BỆNH ÁN RĂNG HÀM MẶT<br>NGOẠI TRÚ" (24pt như cũ). `sheetCss.ts`: cột giữa bảng chứa khung rộng 330px; mỗi dòng có ô là hàng flex — nhãn rồi ô chấm tới gần mép phải (trước: ô chấm xuống dòng riêng dưới nhãn, R-1271). Khung 193×209px → 318×144px.
+- Khung thấp đi 65px, tiêu đề thêm 1 dòng (52px) → 13px dư đặt trên khung (`margin-top:19.1px`), khung bìa vẫn cao 1019,8px như cũ, trang 1 dùng 1046,3/1084,7px không đổi. In PDF thật (Chromium `page.pdf`): bìa 3 trang như cũ.
+
+## R-1311 — chừa chỗ ký: mẫu 1, 6, 7; mẫu 1 cột checkbox hẹp lại; mẫu 6 lề dưới 7,5mm (2026-11-25, mức 1: Bệnh án — in)
+
+- Nguồn: user 2026-11-25 — "mẫu 6 và 7 cũng chưa có khoảng trống để ký tên", "mẫu 1 cũng chưa có chỗ cho ký tên, với trong 2 table có cột checkbox, thì cho cột checkbox hẹp lại", "mẫu số 6 có thể margin bottom ít hơn một chút để tạo thêm khoảng trống cho chỗ ký tên".
+- Mẫu 6/7: template vốn có 2 dòng trống trước dòng họ tên, CSS ẩn đi để khớp Word (R-1275/R-1280). Mẫu 6: bỏ luật ẩn — 2 dòng trống, khoảng ký ~70px; `@page consent-form` lề dưới 12,5mm → 7,5mm (như mẫu 7) để trang 2 đủ chỗ. Đo bằng PDF thật: với lề 12,5mm chỉ thêm 1 dòng cũng đẩy chữ ký sang trang 3; với 7,5mm vẫn 2 trang, còn dư >45px. Mẫu 7: chỉ hiện 1 trong 2 dòng trống (khoảng ký ~40px) — trang còn dư 34px, 2 dòng sẽ sang trang 2.
+- Mẫu 1 trang 3: cột "Đầy đủ/Đạt" 175,5px → 106px (tiêu đề 1 dòng), cột tick bảng Phân loại 234px → 60px, phần dư cho cột chữ (bảng kiểm soát 712 → 631px, Phân loại 195 → 136px); khối Người giao/Người nhận hồ sơ thêm 66,4px (3 dòng) dưới "(Ký, ghi rõ họ tên)" — `<br>` cuối đoạn bị renderSheet bỏ nên dùng padding. Trang 3 dùng 943/1084,7px.
+- Kiểm tra: in PDF thật (Chromium `page.pdf`, như helper `printedPages`) trên bệnh nhân local có đủ 12 mẫu: mẫu 1 = 3 trang, mẫu 2 = 5, mẫu 6 = 2, mẫu 7 = 1, mẫu 12 = 1 — như trước. E2E `patient-medical-record` + `medical-record-surgical-checklists` (preview): 41 xanh, 6 đỏ không liên quan (như R-1308; 2 test đếm trang dừng ở mẫu 4/mẫu 7 y hệt bản build develop gốc — dữ liệu e2e dùng chung).

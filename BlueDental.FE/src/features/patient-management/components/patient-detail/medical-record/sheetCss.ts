@@ -489,8 +489,10 @@ ${SHEET_FONT_FACE_CSS}
    New Roman at its own height, 13pt on Word's 1.3 lines, no space around
    paragraphs; the letterhead 11pt bold on Word's 1.5 lines; the Quốc hiệu 14pt
    and the title 15pt on 1.5 lines, I. and II. 13pt; the tick rows as tall as
-   Word draws them; the signatures on 1.5 lines, the empty lines before the
-   dotted name gone. The body runs 6px into the right margin as Word's -91
+   Word draws them; the signatures on 1.5 lines, with the template's two empty
+   lines before the dotted name kept — room to sign (clinic, 2026-11-25; Word
+   has none). They fit on page 2 since the page's foot is 7.5mm, not 12.5mm
+   (SHEET_PRINT_CSS). The body runs 6px into the right margin as Word's -91
    twips indent (the page gives those 6px back so print never shrinks) and its
    spaces close up .9px, so its lines break where Word's do; page 1 ends inside
    "Chúng tôi cam kết…" as in Word, no forced break before II. */
@@ -521,7 +523,6 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="6"]>p:has(>input[data-medical-record-field="surgery-consent.checkbox.26"]){padding-bottom:1.6px}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type{margin-top:3px}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type p{line-height:1.725!important}
-.nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type p>em+br~br{display:none}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:last-of-type p>em~span>.nfc-medical-record-text-field{position:relative;top:2.9px}
 .nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.text.1"]),:has(>span>[data-medical-record-field="surgery-consent.text.2"]),:has(>span>[data-medical-record-field="surgery-consent.text.3"]),:has(>span>[data-medical-record-field="surgery-consent.text.4"]),:has(>span>[data-medical-record-field="surgery-consent.text.5"]),:has(>span>[data-medical-record-field="surgery-consent.text.6"]),:has(>span>[data-medical-record-field="surgery-consent.text.7"]),:has(>span>[data-medical-record-field="surgery-consent.text.8"]),:has(>span>[data-medical-record-field="surgery-consent.text.21"]),:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]),:has(>span>[data-medical-record-field="surgery-consent.text.11"]),:has(>span>[data-medical-record-field="surgery-consent.text.12"]),:has(>span>[data-medical-record-field="surgery-consent.text.13"])){display:flex;align-items:baseline;gap:.25em;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="6"] p:is(:has(>span>[data-medical-record-field="surgery-consent.text.1"]),:has(>span>[data-medical-record-field="surgery-consent.text.2"]),:has(>span>[data-medical-record-field="surgery-consent.text.3"]),:has(>span>[data-medical-record-field="surgery-consent.text.4"]),:has(>span>[data-medical-record-field="surgery-consent.text.5"]),:has(>span>[data-medical-record-field="surgery-consent.text.6"]),:has(>span>[data-medical-record-field="surgery-consent.text.7"]),:has(>span>[data-medical-record-field="surgery-consent.text.8"]),:has(>span>[data-medical-record-field="surgery-consent.text.21"]),:has(>span>[data-medical-record-field="surgery-consent.patient.name"]),:has(>span>[data-medical-record-field="surgery-consent.text.9"]),:has(>span>[data-medical-record-field="surgery-consent.text.11"]),:has(>span>[data-medical-record-field="surgery-consent.text.12"]),:has(>span>[data-medical-record-field="surgery-consent.text.13"]))>span{flex:1 1 auto;min-width:0}
@@ -594,8 +595,10 @@ ${SHEET_FONT_FACE_CSS}
    lines, as Word — a tenth shows only once something is written on it —
    dotted on paper as Word's (R-1286), their dots on the text's line as Word's,
    the header row as tall as Word's and the row's foot as deep. The signature
-   line's blanks as wide as Word's dots, the dotted name straight under "(Ký,
-   ghi rõ họ tên)" as the new copy has no empty lines before it. */
+   line's blanks as wide as Word's dots; one empty line between "(Ký, ghi rõ
+   họ tên)" and the dotted name, room to sign (clinic, 2026-11-25; the Word
+   copy has none) — one, not the template's two, as that is all the page has
+   left: a second would carry the signature on to a page of its own. */
 .nfc-tpl[data-form="7"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="7"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="7"] :is(p,h1,h2){line-height:1.725!important;margin:0}
@@ -635,7 +638,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type{margin:0}
 .nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type>tbody>tr>td{padding:0}
 .nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type p{line-height:1.725!important}
-.nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type p>br:is(:nth-of-type(2),:nth-of-type(4),:nth-of-type(5)){display:none}
+.nfc-tpl.nfc-tpl[data-form="7"]>table[data-borderless]:last-of-type p>br:is(:nth-of-type(2),:nth-of-type(5)){display:none}
 .nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.42"]{min-width:68.9px!important;margin-right:2px}
 .nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.36"]{min-width:21px!important;margin:0 -2.4px 0 -3.5px}
 .nfc-tpl.nfc-tpl[data-form="7"] [data-medical-record-field="procedure-record.text.37"]{min-width:0!important;padding:0}
@@ -845,6 +848,16 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="1"] table[data-cover] h3>span[style*="font-size"]{font-size:16px!important}
 .nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"]{line-height:1.725}
 .nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) .nfc-medical-record-text-field{display:block;width:100%;box-sizing:border-box}
+/* The MÃ BỆNH box laid flat (clinic, 2026-11-25): wider than tall, each label
+   with its dotted blank after it on the same line — "SỐ PHIM XQ: ………" —
+   rather than the blank on a line of its own under the label (R-1271). The
+   box comes out 65px shorter and the title takes a second line ("BỆNH ÁN RĂNG
+   HÀM MẶT / NGOẠI TRÚ", 52px); the 13px left over goes above the box, so the
+   cover's frame still runs to where Word ends it. */
+.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]{margin-top:19.1px}
+.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]>colgroup>col:nth-child(2){width:330px!important}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:has(.nfc-medical-record-text-field){display:flex;align-items:baseline;white-space:nowrap;padding-right:16px}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p>span:has(.nfc-medical-record-text-field){flex:1 1 auto;min-width:0;margin-left:.3em}
 .nfc-tpl[data-form="1"]>h2{font-size:17.333px}
 .nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td{padding:25.2px 32.2px 1px 31.8px}
 .nfc-tpl[data-form="1"] table[data-cover],.nfc-tpl[data-form="1"] table[data-cover]>colgroup>col{width:682px!important;max-width:none!important}
@@ -890,6 +903,16 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:nth-child(2)>td{height:89.5px}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:nth-child(n+3)>td{height:69.2px}
 .nfc-tpl[data-form="1"]>table:nth-of-type(2)>tbody>tr:is(:nth-child(7),:nth-child(9))>td{height:48.8px}
+/* Page 3 (clinic, 2026-11-25): the tick columns only as wide as they need —
+   "Đầy đủ/Đạt" on one line; the Phân loại ticks, which have no heading, a box
+   wide — and the rest to the text beside them, so it wraps less. Then room to
+   sign under "(Ký, ghi rõ họ tên)" of Người giao / Người nhận hồ sơ. */
+.nfc-tpl[data-form="1"]>table:nth-of-type(3)>colgroup>col:is(:nth-child(2),:nth-child(4)){width:106px!important}
+.nfc-tpl[data-form="1"]>table:nth-of-type(3)>colgroup>col:is(:nth-child(1),:nth-child(3)){width:auto!important}
+.nfc-tpl[data-form="1"]>table:nth-of-type(4)>colgroup>col:nth-child(2){width:60px!important}
+.nfc-tpl[data-form="1"]>table:nth-of-type(4)>colgroup>col:nth-child(3){width:234px!important}
+.nfc-tpl[data-form="1"]>table:nth-of-type(4)>colgroup>col:nth-child(1){width:auto!important}
+.nfc-tpl[data-form="1"]>table[data-borderless]:last-of-type td>p{padding-bottom:66.4px}
 @media print{
   .nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) .nfc-medical-record-text-field{border-bottom:1px dotted #000!important;--nfc-dots:1!important}
 }
@@ -1049,7 +1072,7 @@ const SHEET_FIELD_CSS = String.raw`
 const SHEET_PRINT_CSS = String.raw`
     @page{size:A4;margin:5mm;@top-center{content:""}@bottom-right{content:counter(page);font-family:${SHEET_FONT_FAMILY};font-size:10pt;color:#000}}
     @page margin-15mm{margin:15mm}
-    @page consent-form{margin:15mm calc(15mm - 6px) 12.5mm 15mm}
+    @page consent-form{margin:15mm calc(15mm - 6px) 7.5mm 15mm}
     @page outpatient-dental{margin:15mm 15mm 7mm}
     @page procedure-record{margin:12.5mm 15mm 7.5mm}
     @page orthodontic-contract{margin:20mm 10mm 20mm 17.5mm}
@@ -1062,6 +1085,8 @@ const SHEET_PRINT_CSS = String.raw`
       .nfc-tpl[data-form="7"]{page:procedure-record}
       /* Mẫu 10: 20mm above and below, 17.5mm left, 10mm right, as the BA's Word copy (R-1299). */
       .nfc-tpl[data-form="10"]{page:orthodontic-contract}
+      /* Mẫu 6: 7.5mm below (12.5mm before, clinic 2026-11-25), as mẫu 7 — the
+         room it gives page 2 goes to the signatures. */
       .nfc-tpl[data-form="6"]{page:consent-form;padding-right:6px}
       /* Mẫu 4: 10mm above the page, as the BA's Word copy (2026-11-22). */
       .nfc-tpl[data-form="4"]{padding-top:calc(5mm - 2px)}
