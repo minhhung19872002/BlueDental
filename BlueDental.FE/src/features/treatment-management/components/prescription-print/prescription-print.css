@@ -42,10 +42,11 @@
 }
 
 /* Letterhead: Word's [6938 | 2701] twip table at 11pt, the rule a bordered
-   8pt line under it. */
+   8pt line under it. The right column holds Mã đơn over Mã bệnh nhân (R-1317)
+   and takes the room they need, so neither runs past the right margin. */
 .rx-sheet-head {
   display: grid;
-  grid-template-columns: minmax(0, 6938fr) minmax(0, 2701fr);
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: start;
   margin-top: -1.3px;
   padding-bottom: 14px;
@@ -61,7 +62,14 @@
 .rx-sheet-clinic strong {
   text-transform: uppercase;
 }
+/* The clinic's address line in bold, by the BA's mark-up (R-1317). */
+.rx-sheet-clinic-address {
+  font-weight: 700;
+}
 .rx-sheet-code {
+  display: grid;
+  gap: 2px;
+  padding-left: 16px;
   text-align: right;
   white-space: nowrap;
 }
@@ -93,10 +101,18 @@
 .rx-sheet-fact--wide {
   grid-column: 1 / -1;
 }
-/* No address on the record: a whole dotted line under the label to write it
-   on, where Word's dot leader breaks to. */
+/* Nothing on the record (address, diagnosis): dots from the label to the
+   right margin, then whole dotted lines under it, to write it by hand (R-1317). */
+.rx-sheet-fact--dots {
+  display: flex;
+  flex-wrap: wrap;
+}
 .rx-sheet-fact--dots > .rx-sheet-dots {
-  margin-left: 2px;
+  flex: 1 1 100%;
+}
+.rx-sheet-fact--dots > .rx-sheet-dots:nth-child(2) {
+  flex-basis: 0;
+  margin-left: 4px;
 }
 
 /* A dotted line made of full stops, as Word's dot leader. */
@@ -114,9 +130,13 @@
    twips in from each side. The name is a numbered list item (number at 164
    twips, text at 447) over how to take it at 741 twips and a line for the
    catalog's Lưu ý sử dụng, blank when none (R-1313); the
-   quantity sits right in its cell, the unit left in the next, both on the
-   name's line. */
+   quantity sits right in its column, the unit left in the next, both on the
+   name's line. Since R-1317 the two columns share one grid across the list
+   (subgrid), as wide as their longest entry, so the unit column ends on the
+   right margin, level with Mã đơn. */
 .rx-sheet-meds {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   margin: 11.2px 0 0;
   padding: 0;
   list-style: none;
@@ -124,7 +144,8 @@
 }
 .rx-sheet-med {
   display: grid;
-  grid-template-columns: minmax(0, 6954fr) minmax(0, 1310fr) minmax(0, 1375fr);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: start;
   break-inside: avoid;
   counter-increment: rx-med;
@@ -166,7 +187,7 @@
 }
 .rx-sheet-unit {
   min-width: 0;
-  padding: 0 7.2px;
+  padding: 0 0 0 7.2px;
   overflow-wrap: anywhere;
 }
 .rx-sheet-count {
@@ -174,33 +195,37 @@
   text-align: right;
 }
 
-/* Signature: the right [4459] of Word's [5180 | 4459] twip table, three blank
-   1.5 lines above it, two more between the hint and the name. */
+/* Word's [5180 | 4459] twip table, three blank 1.5 lines above it: Lời dặn bác
+   sĩ and Khác on the left, the signature on the right. Both sit on the
+   table's foot, so Khác is level with the doctor's name (R-1317; below the
+   signature before). */
+.rx-sheet-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 5180fr) minmax(0, 4459fr);
+  align-items: end;
+  margin-top: 84.4px;
+  line-height: 1.725;
+  break-inside: avoid;
+}
+
+/* Two blank 1.5 lines between the hint and the name. */
 .rx-sheet-sign {
   display: flex;
-  width: 46.26%;
   min-width: 0;
-  margin-top: 84.4px;
-  align-self: flex-end;
   flex-direction: column;
   align-items: center;
-  line-height: 1.725;
   text-align: center;
-  break-inside: avoid;
 }
 .rx-sheet-signer {
   margin-top: 59.8px;
   font-weight: 700;
 }
 
-/* Lời dặn bác sĩ and Khác, one blank 1.5 line under the name; Khác's dots
-   run to 3828 twips as Word's dot leader. */
+/* Khác's dots run to 3828 twips as Word's dot leader. */
 .rx-sheet-advice {
   display: grid;
-  margin-top: 30.9px;
+  min-width: 0;
   font-style: italic;
-  line-height: 1.725;
-  break-inside: avoid;
 }
 .rx-sheet-advice strong {
   font-style: normal;
@@ -256,7 +281,11 @@
   .rx-sheet-code {
     text-align: left;
   }
+  .rx-sheet-foot {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
   .rx-sheet-sign {
-    width: 100%;
+    order: -1;
   }
 }
