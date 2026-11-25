@@ -16248,3 +16248,12 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - E2E `prescription.spec.ts` test "In đơn thuốc…": mọi ô `.rx-sheet-fact--dots` có đúng 1 dòng chấm; Người giám hộ trống → mép phải dòng chấm < mép trái nhãn "Số điện thoại:" − 4px, có giá trị → `strong` không rỗng; đo cũ (mọi dòng chấm ≤ lề phải) giữ nguyên.
 - Kiểm tra local (build production, preview riêng :8121, BE thật :5000 + PostgreSQL thật): `prescription.spec.ts` 8/8 xanh; ảnh chụp khối bệnh nhân (BN không địa chỉ, không người giám hộ) đúng ý BA. `tsc -b` + eslint sạch.
 - Mức retest: 2 (chỉ bản in Đơn thuốc).
+
+## R-1320 — Đơn thuốc: cột Chẩn đoán ở danh sách chỉ còn tên chẩn đoán (2026-11-25, mức 2: Đơn thuốc — danh sách)
+
+- Nguồn: user 2026-11-25, ảnh tab Đơn thuốc khoanh đỏ "DT01" và gạch cụm "(R11, R12, …)" ở cột Chẩn đoán; user chốt "1. chỉ sửa ngoài list 2. vẫn hiện toàn bộ k gộp".
+- FE `utils/rxDiagnosis.ts` thêm `listedDiagnosisNames`: tên chẩn đoán theo thứ tự chọn, nối "; ", không mã phiếu, không răng; hai chẩn đoán trùng tên vẫn hiện cả hai. Đơn cũ không có `diagnoses` → lấy `diagnosisText` đã lưu, bỏ "(R…)" và "DTxx – " ở đầu mỗi phần.
+- `PrescriptionPanel.tsx`: cột Chẩn đoán render từ `listedDiagnosisNames(row.diagnoses, row.diagnosisText)` thay cho `diagnosisText`. Không đổi BE, không đổi dữ liệu đã lưu; bản in ĐƠN THUỐC giữ nguyên "DT01 – tên" (R-1300).
+- E2E `prescription.spec.ts`: dòng trong bảng tìm theo tên (`listedFirst` / `listedBoth`); test tạo đơn kiểm ô Chẩn đoán đúng bằng "tên 1; tên 2". `printedBoth` vẫn dùng cho "Trên đơn in" và payload `diagnosisText`.
+- Kiểm tra local (build production, preview riêng :8123, BE thật :5000 + PostgreSQL thật): `prescription.spec.ts` 8/8 xanh. `tsc -b` + eslint sạch.
+- Mức retest: 2 (chỉ danh sách Đơn thuốc).

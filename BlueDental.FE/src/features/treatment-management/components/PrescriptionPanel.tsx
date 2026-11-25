@@ -15,6 +15,7 @@ import {
   type PrescriptionDto,
 } from "../api/prescriptionApi";
 import type { PrescriptionPatientSummary } from "../types/prescription";
+import { listedDiagnosisNames } from "../utils/rxDiagnosis";
 import { PrescriptionDialog } from "./PrescriptionDialog";
 import { PrescriptionViewDialog } from "./prescription-print/PrescriptionViewDialog";
 import "./prescription.css";
@@ -77,9 +78,10 @@ export function PrescriptionPanel({ patient }: { patient: PrescriptionPatientSum
     },
     {
       title: t("Treatment:Diagnosis:Diagnosis"),
-      dataIndex: "diagnosisText",
+      key: "diagnoses",
       ellipsis: true,
-      render: (value: string | null) => value || "—",
+      render: (_: unknown, row: PrescriptionDto) =>
+        listedDiagnosisNames(row.diagnoses, row.diagnosisText) || "—",
     },
     {
       title: t("Treatment:Prescription:TypeRecheck"),

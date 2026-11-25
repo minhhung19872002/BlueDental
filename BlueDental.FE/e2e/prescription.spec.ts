@@ -212,6 +212,9 @@ test.describe.serial("Đơn thuốc", () => {
   /** "DT05 – Viêm tủy (R36, R37); DT05 – Sâu ngà (R11, R12)" — what the list and the print show. */
   let printedBoth = "";
   let printedFirst = "";
+  /** "Viêm tủy; Sâu ngà" — the list's Chẩn đoán, names only, no slip code or teeth (R-1320). */
+  let listedBoth = "";
+  let listedFirst = "";
 
   test("the tab lists the columns of the reference and opens the dialog from the URL", async ({
     page,
@@ -221,6 +224,8 @@ test.describe.serial("Đơn thuốc", () => {
     patientUrl = `/patient/${seed.patientId}`;
     printedFirst = `${seed.planCode} – ${seed.first.name} (R36, R37)`;
     printedBoth = `${printedFirst}; ${seed.planCode} – ${seed.second.name} (R11, R12)`;
+    listedFirst = seed.first.name;
+    listedBoth = `${listedFirst}; ${seed.second.name}`;
 
     await openPrescriptionTab(page, patientUrl);
     await expect(page.getByRole("button", { name: "Tạo đơn thuốc" })).toBeVisible();
@@ -399,13 +404,15 @@ test.describe.serial("Đơn thuốc", () => {
 
     await expect(dialog).toBeHidden();
     await expect(page).not.toHaveURL(/create=true/);
-    const row = page.getByRole("row", { name: new RegExp(escapeRegExp(printedBoth)) });
+    const row = page.getByRole("row", { name: new RegExp(escapeRegExp(listedBoth)) });
     await expect(row).toBeVisible();
     await expect(row).toContainText(/DT\d{2}-\d{4}/);
+    // The list's Chẩn đoán is the names alone: no slip code, no teeth (R-1320).
+    await expect(row.locator("td").nth(2)).toHaveText(listedBoth);
 
     await page.reload();
     await assertRealApiTraffic(page, PRESCRIPTIONS_API);
-    await expect(page.getByRole("row", { name: new RegExp(escapeRegExp(printedBoth)) })).toBeVisible();
+    await expect(page.getByRole("row", { name: new RegExp(escapeRegExp(listedBoth)) })).toBeVisible();
 
     // The template the tick made is offered on the next slip with the very
     // same sessions — the template doses by session too (R-884) — advice included.
@@ -429,7 +436,7 @@ test.describe.serial("Đơn thuốc", () => {
     await openPrescriptionTab(page, patientUrl);
 
     await page
-      .getByRole("row", { name: new RegExp(escapeRegExp(printedBoth)) })
+      .getByRole("row", { name: new RegExp(escapeRegExp(listedBoth)) })
       .getByRole("button", { name: "Sửa" })
       .click();
     const dialog = page.getByRole("dialog");
@@ -459,9 +466,9 @@ test.describe.serial("Đơn thuốc", () => {
 
     await page.reload();
     await assertRealApiTraffic(page, PRESCRIPTIONS_API);
-    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(printedFirst)}(?!;)`) });
+    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(listedFirst)}(?!;)`) });
     await expect(row).toBeVisible();
-    await expect(page.getByRole("row", { name: new RegExp(escapeRegExp(printedBoth)) })).toHaveCount(0);
+    await expect(page.getByRole("row", { name: new RegExp(escapeRegExp(listedBoth)) })).toHaveCount(0);
 
     await row.getByRole("button", { name: "Sửa" }).click();
     const reopened = page.getByRole("dialog");
@@ -475,7 +482,7 @@ test.describe.serial("Đơn thuốc", () => {
   }) => {
     await login(page);
     await openPrescriptionTab(page, patientUrl);
-    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(printedFirst)}(?!;)`) });
+    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(listedFirst)}(?!;)`) });
     const code = (await row.locator("td").first().textContent())?.trim() ?? "";
     await row.getByRole("button", { name: "In đơn thuốc" }).click();
 
@@ -645,7 +652,7 @@ test.describe.serial("Đơn thuốc", () => {
     const shown = (day: Date) => iso(day).split("-").reverse().join("/");
     const past = shift(-6);
 
-    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(printedFirst)}(?!;)`) });
+    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(listedFirst)}(?!;)`) });
     await row.getByRole("button", { name: "Sửa" }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog.getByText("Cập nhật đơn thuốc")).toBeVisible();
@@ -784,7 +791,7 @@ test.describe.serial("Đơn thuốc", () => {
 
     await page.goto(`${patientUrl}?tab=prescription`);
     await expect(page.locator("body")).not.toContainText("Unexpected Application Error");
-    await expect(page.getByRole("row", { name: new RegExp(escapeRegExp(printedFirst)) })).toHaveCount(0);
+    await expect(page.getByRole("row", { name: new RegExp(escapeRegExp(listedFirst)) })).toHaveCount(0);
     await page.close();
   });
 
@@ -792,7 +799,7 @@ test.describe.serial("Đơn thuốc", () => {
     await login(page);
     await openPrescriptionTab(page, patientUrl);
 
-    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(printedFirst)}(?!;)`) });
+    const row = page.getByRole("row", { name: new RegExp(`${escapeRegExp(listedFirst)}(?!;)`) });
     await row.getByRole("button", { name: "Xóa" }).click();
     const confirm = page.getByRole("dialog");
     await expect(confirm).toContainText(/DT\d{2}-\d{4}/);
@@ -805,7 +812,7 @@ test.describe.serial("Đơn thuốc", () => {
 
     await page.reload();
     await assertRealApiTraffic(page, PRESCRIPTIONS_API);
-    await expect(page.getByRole("row", { name: new RegExp(`${escapeRegExp(printedFirst)}(?!;)`) })).toHaveCount(0);
+    await expect(page.getByRole("row", { name: new RegExp(`${escapeRegExp(listedFirst)}(?!;)`) })).toHaveCount(0);
   });
 });
 

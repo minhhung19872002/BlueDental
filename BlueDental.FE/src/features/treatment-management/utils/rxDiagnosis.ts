@@ -37,6 +37,33 @@ export function printedDiagnosisNames(
     .join("; ");
 }
 
+/** "DT03 – " — the phiếu điều trị code older slips stored ahead of each name. */
+const STORED_PLAN_CODE = /^[A-Z]+\d+\s+–\s+/;
+
+/**
+ * "Viêm tủy răng; Sâu ngà" — the Đơn thuốc list's Chẩn đoán (R-1320): the
+ * names only, no slip code and no teeth, each pick shown even when two share
+ * a name. A slip with no picked rows falls back to its stored text, each part
+ * stripped of its code and teeth.
+ */
+export function listedDiagnosisNames(
+  rows: readonly { diagnosisName: string; sortOrder: number }[],
+  storedText: string | null,
+): string {
+  if (rows.length > 0) {
+    return [...rows]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((row) => row.diagnosisName)
+      .join("; ");
+  }
+  return (storedText ?? "")
+    .replace(STORED_TEETH, "")
+    .split(";")
+    .map((part) => part.trim().replace(STORED_PLAN_CODE, ""))
+    .filter(Boolean)
+    .join("; ");
+}
+
 /**
  * "Ghi chú chẩn đoán" filled from the picked diagnoses' own notes: each
  * different note on its own line, a note repeated across picks only once.
