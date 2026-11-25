@@ -30,9 +30,11 @@ import { RestoreServiceDialog } from "./RestoreServiceDialog";
 import { ConvertServiceDialog } from "./convert/ConvertServiceDialog";
 import { CreatePlanDialog } from "../plan/CreatePlanDialog";
 import type { LineEditTarget } from "../plan/lineEditing";
+import { hasStandingLaboOrder } from "./PlanLaboCell";
 import { PlanServicesToolbar } from "./PlanServicesToolbar";
 import { PlanSlipDialog } from "./PlanSlipDialog";
 import { PlanStageSection } from "./PlanStageSection";
+import { hasWarrantyChip } from "./PlanWarrantyChips";
 import { ServiceCardList } from "./ServiceCardList";
 import { ServiceDetailDialog } from "./ServiceDetailDialog";
 import type { ServiceAction } from "./ServiceStatusMenu";
@@ -176,10 +178,17 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
     [plan.id, canEditLines, consultation.canDelete, canReadLabo],
   );
   const warranty = usePlanWarrantyOverview(plan.id);
+  // Phiếu Labo / Bảo hành only when a line on the slip — any page — fills them (R-1318).
+  const showLabo = rows.some(hasStandingLaboOrder);
   const columns = useMemo(() => {
-    const rows = new Map((warranty.data?.rows ?? []).map((row) => [row.lineId, row]));
-    return buildServiceColumns(actions, (lineId) => rows.get(lineId));
-  }, [actions, warranty.data]);
+    const warrantyRows = warranty.data?.rows ?? [];
+    const byLine = new Map(warrantyRows.map((row) => [row.lineId, row]));
+    return buildServiceColumns(actions, {
+      warrantyOf: (lineId) => byLine.get(lineId),
+      showLabo,
+      showWarranty: warrantyRows.some(hasWarrantyChip),
+    });
+  }, [actions, warranty.data, showLabo]);
 
   // Held steady between renders: the form refills itself whenever this changes.
   const editTarget = useMemo<LineEditTarget | null>(
@@ -220,6 +229,7 @@ export function PlanServicesTab({ patient, plan, branchId }: Props) {
           pagination={pagination}
           actions={actions}
           showTotal={showTotal}
+          showLabo={showLabo}
         />
       ) : (
         <div className="bd-cat-card tp-table pdt-table">

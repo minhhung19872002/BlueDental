@@ -12,6 +12,11 @@ function standingOrders(row: PlanDetailRow): TreatmentServiceLaboOrderDto[] {
   return row.service.labOrders.filter((order) => order.status !== LABO_STATUS.Cancelled);
 }
 
+/** Whether the line has a Labo order still standing — the slip shows "Phiếu Labo" only when one does (R-1318). */
+export function hasStandingLaboOrder(row: PlanDetailRow): boolean {
+  return standingOrders(row).length > 0;
+}
+
 /** "Đã nhận: dd/MM/yyyy" once it came back, "Dự kiến giao: dd/MM/yyyy" before — days only (REQ-C2, R-1092). */
 function OrderDate({ order }: { order: TreatmentServiceLaboOrderDto }) {
   if (order.receivedAt) {

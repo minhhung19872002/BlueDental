@@ -976,9 +976,13 @@ test.describe("Labo workflow on screen (P2910_03)", () => {
     expect(await actionNames(cancelled)).toEqual(["Xem chi tiết"]);
     expect((await read(page, sent.id)).status).toBe(LaboStatus.Cancelled);
 
-    // Only cancelled orders left on the line: the slip reads Không áp dụng.
+    // Only cancelled orders left on the line: no order on it. The slip is shared with
+    // other specs, so Phiếu Labo reads Không áp dụng while another line keeps an order
+    // standing, and is gone altogether when none does (R-1318).
     const row = await planLaboCell(page, line);
-    await expect(row.locator(".pdt-labo-none")).toHaveText("Không áp dụng");
+    await expect(row.locator(".pdt-labo")).toHaveCount(0);
+    const laboHeader = page.locator(".pdt-table thead th", { hasText: /^Phiếu Labo$/ });
+    if ((await laboHeader.count()) > 0) await expect(row.locator(".pdt-labo-none")).toHaveText("Không áp dụng");
   });
 
   test("the Labo tab and Kiểm tra Labo follow the treatmentLabo leaves", async ({ page, browser }) => {
