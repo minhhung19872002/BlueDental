@@ -836,46 +836,59 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl table[data-cover] h4{margin:0;font-size:11pt;line-height:1.45}
 .nfc-tpl table[data-cover] p{margin-bottom:6px;line-height:1.5}
 /* Mẫu 1 at the BA's Word sizes (BA, 2026-11-22, R-1271; again 2026-11-23,
-   R-1289: the text 13pt, the titles 13pt bold). The cover: the three letterhead
-   lines 14pt on 1.5 lines, MÃ BỆNH NHÂN / MÃ LƯU TRỮ on 1.5 lines of their 13pt
-   blank, NĂM 20 at 12pt, the cover's frame and padding as Word's, and the MÃ
-   BỆNH box's blanks a dotted line across the box, under their label. Pages 2
-   and 3: Word's cells (4px over the text, 8px each side, the row at its
-   trHeight + 5px), the text in the middle of its cell, the list's columns as
-   Word's; the titles squeezed 2% so they hold one line as in Word. */
-.nfc-tpl[data-form="1"] table[data-cover] h4{font-size:18.667px;line-height:1.725}
-.nfc-tpl[data-form="1"] table[data-cover] :is(h4,h3>span) span[style*="font-size"]{font-size:inherit!important}
-.nfc-tpl[data-form="1"] table[data-cover] h3>span[style*="font-size"]{font-size:16px!important}
-.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"]{line-height:1.725}
-.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) .nfc-medical-record-text-field{display:block;width:100%;box-sizing:border-box}
-/* The MÃ BỆNH box laid flat (clinic, 2026-11-25): wider than tall, each label
-   with its dotted blank after it on the same line — "SỐ PHIM XQ: ………" —
-   rather than the blank on a line of its own under the label (R-1271). The
-   box comes out 65px shorter and the title takes a second line ("BỆNH ÁN RĂNG
-   HÀM MẶT / NGOẠI TRÚ", 52px); the 13px left over goes above the box, so the
-   cover's frame still runs to where Word ends it. */
-.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]{margin-top:19.1px}
-.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]>colgroup>col:nth-child(2){width:330px!important}
-.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:has(.nfc-medical-record-text-field){display:flex;align-items:baseline;white-space:nowrap;padding-right:16px}
-.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p>span:has(.nfc-medical-record-text-field){flex:1 1 auto;min-width:0;margin-left:.3em}
+   R-1289: the text 13pt, the titles 13pt bold). Pages 2 and 3: Word's cells
+   (4px over the text, 8px each side, the row at its trHeight + 5px), the text
+   in the middle of its cell, the list's columns as Word's; the titles
+   squeezed 2% so they hold one line as in Word. */
 .nfc-tpl[data-form="1"]>h2{font-size:17.333px}
-.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td{padding:25.2px 32.2px 1px 31.8px}
-.nfc-tpl[data-form="1"] table[data-cover],.nfc-tpl[data-form="1"] table[data-cover]>colgroup>col{width:682px!important;max-width:none!important}
-.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]{margin-bottom:0}
-.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]){margin-left:-2.7px}
-.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>h4:nth-child(2){margin-top:1px}
-.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:empty{margin-bottom:7.4px}
-.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>h4+p:empty{margin-bottom:6.5px}
-.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>h3~p:empty{margin-bottom:5.6px}
-.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:has(input)~p:empty{margin-bottom:5.9px}
-.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"]{margin-bottom:3.2px}
-.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:first-child{margin-bottom:3.9px}
-.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:has(.nfc-medical-record-text-field):not(:last-child){margin-bottom:9.3px}
-.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:last-child{margin-bottom:11.1px}
-.nfc-tpl[data-form="1"] table[data-cover] p:not([style*="text-align: right"]):has(.nfc-medical-record-text-field,input){font-size:17.333px;margin-bottom:3.5px}
-.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless])>tbody>tr>td{font-size:17.333px}
-.nfc-tpl[data-form="1"] table[data-cover] :is([data-medical-record-field="cover.patient.ward"],[data-medical-record-field="cover.patient.province"]){min-width:181px!important}
-.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"] .nfc-medical-record-text-field{min-width:179.8px!important}
+/* The cover (page 1) as the clinic's HC-01 "Bìa hồ sơ bệnh án" (2026-11-25):
+   only how it looks — every blank and box stays. Word draws it inside 10mm /
+   20mm margins: a 3pt navy frame 688 × 1048px from x 73.6, y 35.8 of the
+   page, so the frame stands out of the sheet's 12mm margin, which pages 2
+   and 3 keep. Inside it, each line on Word's own baseline (px from the
+   frame's inner top): the letterhead 11pt bold on 1.5 lines (51.9, 77.2,
+   102.5), centred where Word's text box is; MÃ BỆNH NHÂN 11pt plain, flush
+   right 41.8px in (162.8), MÃ LƯU TRỮ — not in HC-01 — on the box's second
+   line under it; the title 34pt (350.7, 423.9); NĂM 20 at 20pt plain (479.8);
+   the patient's lines 13pt, 34px in, on 1.5 lines 10pt apart, each blank
+   running to 41.6px from the frame (594.7, 640.0, 683.3), Phường/Xã — not in
+   HC-01 — at the same pitch, the treatment dates on single lines; the MÃ
+   BỆNH box 12pt in a 1px frame 270.9 × 161px, 213.3px in, its blanks ending
+   58px short of its right side, the box 22px lower than Word's for the extra
+   Phường/Xã line. Empty paragraphs give no gap: the margins below do. */
+.nfc-tpl[data-form="1"] table[data-cover]{border-collapse:separate;border-spacing:0;border:4px solid #1c334e!important;margin:-9.55px 0 0 28.25px;width:688px!important;max-width:none!important;min-height:0}
+.nfc-tpl[data-form="1"] table[data-cover]>colgroup>col{width:680px!important;max-width:none!important}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td{border:0!important;padding:0;height:1040px;font-size:17.333px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:is(:empty,[data-spacer]){display:none}
+.nfc-tpl[data-form="1"] table[data-cover] h4{font-size:14.667px;line-height:25.3px;margin:0;padding-right:13.4px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>h4:first-child{margin-top:34.3px}
+.nfc-tpl[data-form="1"] table[data-cover] :is(h4,h3>span,h1) span[style*="font-size"]{font-size:inherit!important}
+.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"]{font-size:14.667px;line-height:25.3px!important;margin:0;padding-right:41.8px}
+.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"]:has([data-medical-record-field="cover.patient.code"]){margin-top:35px}
+.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"] strong{font-weight:400}
+.nfc-tpl[data-form="1"] table[data-cover] p[style*="text-align: right"] span[style*="font-size"]{font-size:inherit!important}
+.nfc-tpl[data-form="1"] table[data-cover] h1{font-size:45.333px;line-height:73.2px!important;margin:103px 0 0}
+.nfc-tpl[data-form="1"] table[data-cover] h3{font-size:26.667px;line-height:35.2px;margin:8px 0 0;font-weight:400}
+.nfc-tpl[data-form="1"] table[data-cover] h3>span[style*="font-size"]{font-size:inherit!important}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:not([style*="text-align"]){font-size:17.333px;line-height:29.9px!important;margin:0 0 13.4px;padding:0 45px 0 34px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:has([data-medical-record-field="cover.patient.name"]){margin:85.5px 0 15.4px;padding-right:41.6px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:has([data-medical-record-field="cover.patient.ward"]){margin-bottom:18.5px}
+/* Nam / Nữ as HC-01's ⬜ (clinic, 2026-11-25: "ô checkbox chỗ bìa nên to hơn"):
+   18px, its foot 3px under the line's baseline, ~7.5px before its label — the
+   cover only; every other box, page 3's too, stays the forms' 12px. */
+.nfc-tpl[data-form="1"] table[data-cover] .nfc-medical-record-checkbox{width:18px;height:18px;margin:0 3px 0 1px;vertical-align:-3px}
+.nfc-tpl[data-form="1"] table[data-cover]>tbody>tr>td>p:has(:is([data-medical-record-field="cover.text.2"],[data-medical-record-field="cover.text.5"])){line-height:19.9px!important}
+.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]{margin:31.2px 0 0;width:100%}
+.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]>colgroup>col:nth-child(1){width:213.3px!important}
+.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]>colgroup>col:nth-child(2){width:270.9px!important}
+.nfc-tpl[data-form="1"] table[data-cover] table[data-borderless]>tbody>tr>td{padding:0}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]){margin:0;border:1px solid #000}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless])>tbody>tr>td{font-size:16px;padding:8.7px 0 16px 9.8px}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p{line-height:27.6px!important;margin:0 0 8px}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:last-child{margin-bottom:0}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) .nfc-medical-record-text-field{display:block;width:100%;box-sizing:border-box}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p:has(.nfc-medical-record-text-field){display:flex;align-items:baseline;white-space:nowrap;padding-right:57.7px}
+.nfc-tpl[data-form="1"] table[data-cover] table:not([data-borderless]) td>p>span:has(.nfc-medical-record-text-field){flex:1 1 auto;min-width:0;margin-left:.3em}
 /* "NĂM 20" + the year blank read as one number, "NĂM 2026" (BA, 2026-11-23: "cho sát vô"):
    the h3's centring put the digits in the middle of the blank, a gap after "20".
    The digits start at the blank's left edge; the blank keeps its width (left
