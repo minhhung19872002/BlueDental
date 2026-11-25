@@ -232,7 +232,11 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="2"] table:has(.record-ids)>colgroup>col:first-child{width:378px!important}
 .nfc-tpl[data-form="2"] table:has(.record-ids)>tbody>tr>td:first-child>p{white-space:nowrap}
 .nfc-tpl[data-form="2"] table:has(.record-ids)>colgroup>col:last-child{width:auto!important}
-.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] p.record-ids{grid-template-columns:75.6px minmax(0,1fr);column-gap:0;row-gap:0;width:auto;margin:0 0 0 43.4px;font-size:13.333px;line-height:1.725!important}
+/* The MS block as wide as its numbers and against the right margin; the boxes
+   as wide as the longest number and one character more, "NK-1126DH269999DT01" on
+   one line (BA, 2026-11-25, R-1321) — before that 43.4px into the column, boxes 128px. */
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] p.record-ids{grid-template-columns:75.6px minmax(60px,max-content);column-gap:0;row-gap:0;width:max-content;margin:0 0 0 auto;font-size:13.333px;line-height:1.725!important}
+.nfc-tpl.nfc-tpl[data-form="2"] table[data-record-page="outpatient-main"] p.record-ids .nfc-medical-record-text-field{min-width:0!important;max-width:none!important;width:100%;white-space:nowrap;padding-right:calc(1ch + 3px)}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="general-exam"]>tbody>tr>td>p{line-height:32px!important;margin:0}
 .nfc-tpl.nfc-tpl[data-form="2"] table[data-record-section="vitals"] td>p:has([data-medical-record-field="outpatient-dental.text.26"]){gap:0}
 .nfc-tpl.nfc-tpl[data-form="2"] :is([data-medical-record-field="outpatient-dental.text.26"],[data-medical-record-field="outpatient-dental.text.27"]){padding-left:1px;padding-right:1px}
@@ -508,7 +512,8 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td{padding:0;vertical-align:top}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:first-child p{font-size:14.667px;line-height:1.725!important;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:first-child>p{margin-left:-3.6px!important;margin-top:-1.6px!important;margin-bottom:1.6px!important}
-.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:last-child>p{text-align:left!important;padding-left:113px}
+/* "MS: 01/BV2" against the right margin (BA, 2026-11-25, R-1321) — was 113px in, at the Word copy's tab. */
+.nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:last-child>p{text-align:right!important;padding-left:0}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:first-child>tbody>tr>td:last-child>p:first-child>*{font-size:13.333px}
 .nfc-tpl.nfc-tpl[data-form="6"]>table:first-child+p{font-size:18.667px;line-height:1.725!important;margin-top:1.5px}
 .nfc-tpl.nfc-tpl[data-form="6"]>table[data-borderless]:not(:first-child):not(:last-of-type){margin:1.3px 0 -.7px}

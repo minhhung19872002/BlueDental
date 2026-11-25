@@ -2175,6 +2175,8 @@ test.describe("Bệnh án", () => {
       "outpatient-dental.text.43": LONG_DIAGNOSIS,
       "outpatient-dental.text.26": "120",
       "outpatient-dental.text.27": "120",
+      "outpatient-dental.text.1": "NT-000000751116",
+      "outpatient-dental.text.2": "NK-1126DH269999DT01",
     });
 
     const layout = await sheet(page)
@@ -2198,6 +2200,15 @@ test.describe("Bệnh án", () => {
           labels: Array.from(ids?.querySelectorAll(".record-ids-label") ?? []).map((node) => node.getBoundingClientRect().left),
           blanks: Array.from(ids?.querySelectorAll(".nfc-medical-record-text-field") ?? []).map((node) => node.getBoundingClientRect().left),
           idsRight: right - (ids?.getBoundingClientRect().right ?? 0),
+          // Số ngoại trú / Số lưu trữ boxes to the right margin, a long number on one line (BA, 2026-11-25, R-1321).
+          idBoxes: ["outpatient-dental.text.1", "outpatient-dental.text.2"].map((id) => {
+            const node = root.querySelector(`[data-medical-record-field="${id}"]`)!;
+            return {
+              right: right - node.getBoundingClientRect().right,
+              lines: node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight),
+              room: node.getBoundingClientRect().width - rect(node).width,
+            };
+          }),
           vitalLines: vitals.map((node) => node.getBoundingClientRect().height / parseFloat(getComputedStyle(node).lineHeight)),
           unitsRight: vitals.map((node) => (cell ? cell.getBoundingClientRect().right - parseFloat(getComputedStyle(cell).paddingRight) - rect(node.lastChild!).right : NaN)),
           reaching: ["outpatient.patient.address", "outpatient.patient.history", "outpatient-dental.text.23"].map((id) => {
@@ -2242,6 +2253,13 @@ test.describe("Bệnh án", () => {
     for (const at of layout.labels) expect(at, "labels in one column").toBeCloseTo(layout.labels[0], 0);
     for (const at of layout.blanks) expect(at, "blanks in one column").toBeCloseTo(layout.blanks[0], 0);
     expect(Math.abs(layout.idsRight), "MS block on the right margin").toBeLessThan(1);
+    for (const { right, lines } of layout.idBoxes) {
+      expect(Math.abs(right), "Số ngoại trú / Số lưu trữ box to the right margin").toBeLessThan(1);
+      expect(lines, "its number on one line").toBeLessThan(1.6);
+    }
+    // As wide as the longer number, Số lưu trữ, and one character more (½em in Times) — no wider.
+    expect(layout.idBoxes[1].room, "Số lưu trữ box one character to spare").toBeGreaterThan(6);
+    expect(layout.idBoxes[1].room, "Số lưu trữ box no wider").toBeLessThan(15);
     expect(layout.vitalLines, "vital signs").toHaveLength(5);
     for (const lines of layout.vitalLines) expect(lines, "one line each").toBeLessThan(1.6);
     for (const gap of layout.unitsRight) expect(Math.abs(gap), "units against the cell's edge").toBeLessThan(1);
@@ -2345,7 +2363,8 @@ test.describe("Bệnh án", () => {
    * margin; the blanks after "Tôi tên là", "Chức danh", "Chẩn đoán" running to the
    * right margin, on the line they start on. Type and spacing as the BA's Word copy
    * (R-1275, R-1293): Word's 1.3 lines (1.495), the letterhead at 11pt where Word sets it
-   * (its widest line 3.3px past the margin, as Word prints it) and MS where Word's tab puts it, 463px in (R-1293).
+   * (its widest line 3.3px past the margin, as Word prints it); MS against the right margin (BA, 2026-11-25, R-1321 —
+   * before that where Word's tab put it, 463px in, R-1293).
    */
   test("mẫu 6: 15mm margins, the letterhead, MS and the boxes on the margins", async ({ page }) => {
     const margin = (15 / 25.4) * 96;
@@ -2380,7 +2399,7 @@ test.describe("Bệnh án", () => {
           lineHeight: parseFloat(getComputedStyle(blank("text.1").closest("p")!).lineHeight) / parseFloat(style.fontSize),
           letterheadSize: parseFloat(getComputedStyle(letterhead!.querySelector("span")!).fontSize),
           letterhead: rect(letterhead!).left - left,
-          ms: rect(ms!).left - left,
+          ms: right - rect(ms!).right,
           boxes: opening.map((node) => node.getBoundingClientRect().left - left),
           reaching,
         };
@@ -2390,7 +2409,7 @@ test.describe("Bệnh án", () => {
     expect(layout.lineHeight, "Word's 1.3 lines").toBeCloseTo(1.495, 2);
     expect(layout.letterheadSize, "letterhead at 11pt").toBeCloseTo((11 * 4) / 3, 2);
     expect(Math.abs(layout.letterhead + 3.6), "letterhead where Word sets it").toBeLessThan(1);
-    expect(Math.abs(layout.ms - 463), "MS where Word's tab puts it").toBeLessThan(1.5);
+    expect(Math.abs(layout.ms), "MS against the right margin").toBeLessThan(1);
     // Chẩn đoán … Kết quả, the first column of the two lists, Không, 1. and 2.
     expect(layout.boxes.length, "boxes opening a line").toBeGreaterThanOrEqual(14);
     for (const gap of layout.boxes) expect(Math.abs(gap), "box on the left margin").toBeLessThan(1);
