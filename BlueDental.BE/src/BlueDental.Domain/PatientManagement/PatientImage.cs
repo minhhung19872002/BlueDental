@@ -59,6 +59,12 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
     /// <summary>The dental warranty card ("Bảo hành nha khoa") this photo shows a face of.</summary>
     public Guid? ServiceWarrantyCardId { get; private set; }
 
+    /// <summary>
+    /// The "Thư mục" of its stage column the picture is filed in (F-98); null
+    /// while it sits in the column itself.
+    /// </summary>
+    public Guid? FolderId { get; private set; }
+
     /// <summary>Name of the blob in object storage.</summary>
     public string BlobName { get; private set; } = string.Empty;
 
@@ -188,6 +194,24 @@ public class PatientImage : FullAuditedAggregateRoot<Guid>
                 BlueDentalDomainErrorCodes.PatientManagement.StageImageDeleteExpired,
                 "A treatment-stage picture can only be deleted on the day it was uploaded.");
         }
+    }
+
+    /// <summary>
+    /// Files the picture into <paramref name="folder"/>, or back into its
+    /// column when null. Only a folder of the same patient, branch and stage
+    /// column takes it.
+    /// </summary>
+    public PatientImage FileInto(PatientImageFolder? folder)
+    {
+        if (folder is not null && !folder.CanHold(this))
+        {
+            throw new BusinessException(
+                BlueDentalDomainErrorCodes.PatientManagement.ImageFolderMismatch,
+                "A picture can only go into a folder of its own patient and stage.");
+        }
+
+        FolderId = folder?.Id;
+        return this;
     }
 
     public PatientImage UpdateNote(string? note)

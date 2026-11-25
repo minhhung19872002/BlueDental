@@ -16298,3 +16298,24 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - `patient-image`, `patient-image-batch`, `patient-image-download`, `patient-image-capture` 15/15 xanh.
   - `tsc -b` và eslint sạch.
 - Mức retest: 2 (chỉ tab Hình ảnh).
+
+## R-1323 — Hình ảnh: thư mục trong từng cột giai đoạn (2026-11-25, mức 2: Bệnh nhân — tab Hình ảnh, F-98)
+
+- Nguồn: nhóm phòng khám 2026-11-25 (ảnh chat): mỗi cột 1 Trước / 2 Trong / 3 Sau điều trị có "thư mục" để gom ảnh, biểu tượng thư mục kiểu Windows; thư mục có ảnh thì ló ảnh mới nhất, thư mục trống chỉ màu vàng.
+- User chốt (AskUserQuestion):
+  - ảnh không thuộc thư mục nào vẫn hiện theo ngày, **dưới** lưới thư mục;
+  - xoá thư mục thì ảnh trong đó **trả ra ngoài cột**, không ảnh nào bị xoá;
+  - tên thư mục do người dùng đặt, đổi tên được.
+- Mặc định tự chọn (ghi lại để BA xem):
+  - chỉ một cấp, không thư mục con; tên trùng trong cùng cột (không phân biệt hoa thường, gộp khoảng trắng) bị chặn `Patient:0037`;
+  - tìm kiếm ở gốc cột quét cả ảnh trong thư mục; tìm trong thư mục chỉ trong thư mục đó;
+  - chuyển ảnh bằng thanh chọn ("Chuyển vào thư mục" / "Đưa ra ngoài thư mục"); kéo-thả vào thư mục **hoãn**;
+  - ảnh công đoạn không xoá được thì không tick được nên chưa chuyển được (giới hạn v1);
+  - quyền dùng lại `treatmentImage`: create = Thư mục mới, update = đổi tên / chuyển ảnh, delete = xoá thư mục; phạm vi chi nhánh như ảnh.
+- BE: entity `PatientImageFolder` (PatientId, ClinicBranchId, Type, Name), `PatientImage.FolderId` (nullable) + `FileInto`; `PatientImageFolderAppService` (list có đếm ảnh + ảnh bìa mới nhất, create, rename, delete trả ảnh ra ngoài); `PatientImageAppService` lọc `FolderId` / `OutsideFolders`, upload nhận `folderId`, `MoveManyAsync` (`POST patient-images/move`) — tất cả hoặc không, ảnh khác bệnh nhân / khác giai đoạn bị chặn `Patient:0039`, thư mục không thấy `Patient:0038`. Migration `20261125082829_AddPatientImageFoldersF98`.
+- FE: lưới `PatientImageFolderGrid` / `PatientImageFolderTile` / `PatientImageFolderIcon` (SVG 2 lớp, ảnh bìa kẹp giữa), đầu cột khi mở thư mục `PatientImageFolderHeader` (nút quay lại), dialog tên `PatientImageFolderDialog` (zod, Enter để lưu), xoá bằng `ConfirmDeleteDialog` (ghi số ảnh sẽ được đưa ra ngoài), `PatientImageSelectionBar.Move`. Tải ảnh / Chụp ảnh / sắp xếp làm việc trong thư mục đang mở; tiêu đề dialog tải ảnh "Trước điều trị / {tên}".
+- Lỗi bắt được khi viết E2E: lưu tên trùng hiện **2 toast** (toast chung của MutationCache + toast của hook) → các mutation thư mục và `move` đặt `meta.skipGlobalErrorToast`.
+- E2E thật `e2e/patient-image-folder.spec.ts` (2): tạo (tên trống bị chặn, khoảng trắng gộp, trùng tên bị server chặn, dialog giữ nguyên) → mở thư mục, tải 2 ảnh vào → quay lại thấy "2 ảnh" + ảnh bìa, ảnh không nằm ở gốc → chuyển 1 ảnh từ gốc vào → đổi tên → đưa 1 ảnh ra ngoài → kiểm DB → tải lại → xoá thư mục, ảnh về gốc, tải lại + kiểm DB; ca 2: server chặn chuyển vào thư mục khác giai đoạn (`0039`), tìm ở gốc thấy ảnh trong thư mục và lưới thư mục ẩn.
+- Kiểm tra local (build production, preview riêng :8094, BE thật :5000 + PostgreSQL thật, không chặn request): `patient-image*` 6 spec 20/20 xanh. BE Domain.Tests + EntityFrameworkCore.Tests (PatientImageFolder, PatientImageMapping) xanh. `tsc` + eslint sạch.
+- Mức retest: 2 (chỉ tab Hình ảnh; `PatientImage` thêm cột → F-24 + picker "Chọn ảnh hiển thị" đọc cùng danh sách, không lọc thư mục nên vẫn thấy mọi ảnh).
+- CHỈ develop (user: "push lên develop trước để t test", chưa đẩy main).

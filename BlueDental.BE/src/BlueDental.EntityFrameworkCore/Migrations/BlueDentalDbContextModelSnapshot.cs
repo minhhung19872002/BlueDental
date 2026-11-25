@@ -6544,6 +6544,9 @@ namespace BlueDental.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<Guid?>("FolderId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -6606,6 +6609,8 @@ namespace BlueDental.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("FolderId");
+
                     b.HasIndex("ServiceWarrantyCardId");
 
                     b.HasIndex("TreatmentStageId");
@@ -6619,6 +6624,76 @@ namespace BlueDental.Migrations
                     b.HasIndex("LaboOrderId", "LaboRoundNo", "LaboToothNumber");
 
                     b.ToTable("bd_patient_images", (string)null);
+                });
+
+            modelBuilder.Entity("BlueDental.PatientManagement.PatientImageFolder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicBranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("ConcurrencyStamp");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("CreationTime");
+
+                    b.Property<Guid?>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("CreatorId");
+
+                    b.Property<Guid?>("DeleterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("DeleterId");
+
+                    b.Property<DateTime?>("DeletionTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("DeletionTime");
+
+                    b.Property<string>("ExtraProperties")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ExtraProperties");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("IsDeleted");
+
+                    b.Property<DateTime?>("LastModificationTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("LastModificationTime");
+
+                    b.Property<Guid?>("LastModifierId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("LastModifierId");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Type")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicBranchId");
+
+                    b.HasIndex("PatientId", "Type");
+
+                    b.ToTable("bd_patient_image_folders", (string)null);
                 });
 
             modelBuilder.Entity("BlueDental.PatientManagement.PatientMedicalRecord", b =>
@@ -12735,6 +12810,14 @@ namespace BlueDental.Migrations
                         .HasForeignKey("PatientId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("BlueDental.PatientManagement.PatientImage", b =>
+                {
+                    b.HasOne("BlueDental.PatientManagement.PatientImageFolder", null)
+                        .WithMany()
+                        .HasForeignKey("FolderId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("BlueDental.PatientManagement.PatientMedicalRecord", b =>

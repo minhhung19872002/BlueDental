@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { formatDateTime } from "@/utils/format";
 import type { PatientImageDto, PatientImageType } from "./patientImageApi";
+import type { PatientImageFolderDto } from "./patientImageFolderApi";
 
 export interface PatientImageViewModel {
   id: string;
@@ -64,4 +65,16 @@ export function groupImagesByDay(images: PatientImageViewModel[]): PatientImageD
   return [...byDay.values()]
     .sort((a, b) => (a.key < b.key ? 1 : -1))
     .map((day) => ({ ...day, images: [...day.images].sort((a, b) => a.ordering - b.ordering) }));
+}
+
+export interface PatientImageFolderViewModel {
+  id: string;
+  name: string;
+  imageCount: number;
+  /** The picture peeking out of the folder; null draws it plain, empty. */
+  coverUrl: string | null;
+}
+
+export function adaptPatientImageFolder(dto: PatientImageFolderDto): PatientImageFolderViewModel {
+  return { id: dto.id, name: dto.name, imageCount: dto.imageCount, coverUrl: dto.coverUrl };
 }

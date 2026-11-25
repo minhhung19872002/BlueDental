@@ -3,8 +3,10 @@ import { t } from "@/lib/i18n";
 import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
 import type { CameraAvailability } from "../../../hooks/useCameraAvailability";
 import { useImageUploadPreview } from "../../../hooks/useImageUploadPreview";
-import { usePatientImageDownload } from "../../../hooks/usePatientImageDownload";
-import { usePatientImageGallery, type PatientImageGallery } from "../../../hooks/usePatientImageGallery";
+import { usePatientImageFolderBrowser } from "../../../hooks/usePatientImageFolderBrowser";
+import { usePatientImageFolderEditor } from "../../../hooks/usePatientImageFolderEditor";
+import { usePatientImageFolderRemoval } from "../../../hooks/usePatientImageFolderRemoval";
+import { usePatientImageGallery } from "../../../hooks/usePatientImageGallery";
 import { usePatientImageMarquee } from "../../../hooks/usePatientImageMarquee";
 import type { PatientImagePermissions } from "../../../hooks/usePatientImagePermissions";
 import { usePatientImageReorder } from "../../../hooks/usePatientImageReorder";
@@ -13,8 +15,11 @@ import { usePatientImageUpload } from "../../../hooks/usePatientImageUpload";
 import { CameraCaptureDialog } from "./CameraCaptureDialog";
 import { ColumnSelectionProvider, tickStateOf, type ColumnSelection } from "./columnSelection";
 import { PatientImageCaptureButton } from "./PatientImageCaptureButton";
-import { PatientImageSelectionBar } from "./PatientImageSelectionBar";
-import { PatientImageStageHeader } from "./PatientImageStageHeader";
+import { PatientImageColumnSelectionHead } from "./PatientImageColumnSelectionHead";
+import { PatientImageColumnTitle } from "./PatientImageColumnTitle";
+import { PatientImageFolderDialogs } from "./PatientImageFolderDialogs";
+import { PatientImageFolderGrid } from "./PatientImageFolderGrid";
+import { emptyTextOf, summaryOf } from "./patientImageColumnText";
 import { PatientImageTimeline } from "./PatientImageTimeline";
 import { PatientImageUploadButton } from "./PatientImageUploadButton";
 import { PatientImageUploadDialog } from "./PatientImageUploadDialog";
@@ -36,25 +41,13 @@ interface Props {
   onDeleteMany: () => void;
 }
 
-/** "50 ảnh · 2 ngày chụp"; the day count only once every page is in. */
-function summaryOf(gallery: PatientImageGallery, search: string): string {
-  if (search) return t("Patient:Image:SearchCount", gallery.total);
-  if (gallery.hasMore) return t("Patient:Image:DayCount", gallery.total);
-  return t("Patient:Image:StageCount", gallery.total, gallery.days.length);
-}
-
-function emptyTextOf(gallery: PatientImageGallery, search: string): string {
-  if (gallery.isLoading) return t("Patient:Image:LoadingText");
-  if (search) return t("Patient:Image:SearchEmpty");
-  return t("Patient:Image:StageEmpty");
-}
-
 /**
  * One "Giai đoạn điều trị" of the Hình ảnh tab: its own feed, upload (through
  * the preview, one note for the batch) and camera — both filed under this
  * stage — drag-to-sort, the viewer, which pages through this column only, and
  * ticking pictures — one by one, or by sweeping a marquee over them — to
- * delete several at once.
+ * delete, download or move several at once. Its thư mục (F-98) sit above the
+ * pictures that lie in none; one opened takes the column over.
  */
 export function PatientImageStageColumn({
   patientId,
@@ -68,12 +61,19 @@ export function PatientImageStageColumn({
   onDeleteMany,
 }: Props) {
   const title = t(stage.labelKey);
-  const gallery = usePatientImageGallery(patientId, stage.type, search);
-  const upload = usePatientImageUpload(patientId, gallery.branchId, stage.type);
+  const browser = usePatientImageFolderBrowser(patientId, stage.type, selection);
+  const folder = browser.openFolder;
+  const folderId = folder?.id ?? null;
+  /** Where an upload files to: "Trước điều trị / Răng cửa". */
+  const place = folder ? `${title} / ${folder.name}` : title;
+  const gallery = usePatientImageGallery(patientId, stage.type, search, folderId);
+  const upload = usePatientImageUpload(patientId, gallery.branchId, stage.type, folderId);
   const uploading = upload.progress !== null;
-  const preview = useImageUploadPreview(upload.upload, title);
-  const { reordering, reorder } = usePatientImageReorder(patientId, stage.type, search);
-  const { download, downloading } = usePatientImageDownload();
+  const preview = useImageUploadPreview(upload.upload, place);
+  const { reordering, reorder } = usePatientImageReorder(patientId, stage.type, search, folderId);
+  const editor = usePatientImageFolderEditor(patientId, gallery.branchId, stage.type);
+  const removal = usePatientImageFolderRemoval();
+  const showFolders = !folder && !search;
 
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -85,7 +85,7 @@ export function PatientImageStageColumn({
   const handleView = useCallback((image: PatientImageViewModel) => setViewingId(image.id), []);
   const closeViewer = useCallback(() => setViewingId(null), []);
 
-  const { toggle, setMany, isPicked, clear } = selection;
+  const { toggle, setMany, isPicked } = selection;
   const selecting = selection.stage === stage.type;
   const columnSelection = useMemo<ColumnSelection>(
     () => ({
@@ -111,22 +111,23 @@ export function PatientImageStageColumn({
       data-stage={stage.modifier}
     >
       {selecting ? (
-        <PatientImageSelectionBar
-          count={selection.picked.length}
-          all={columnTick.all}
-          some={columnTick.some}
-          onSelectAll={(on) => setMany(stage.type, columnTick.selectable, on)}
-          onExit={clear}
-        >
-          <PatientImageSelectionBar.Download
-            count={selection.picked.length}
-            downloading={downloading}
-            onDownload={() => void download(selection.picked)}
-          />
-          <PatientImageSelectionBar.Delete count={selection.picked.length} onDelete={onDeleteMany} />
-        </PatientImageSelectionBar>
+        <PatientImageColumnSelectionHead
+          stageType={stage.type}
+          selection={selection}
+          tick={columnTick}
+          folders={browser.folders}
+          currentFolderId={folderId}
+          canMove={permissions.canSort}
+          onDeleteMany={onDeleteMany}
+        />
       ) : (
-        <PatientImageStageHeader step={stage.step} title={title} summary={summaryOf(gallery, search)}>
+        <PatientImageColumnTitle
+          stage={stage}
+          folder={folder}
+          summary={summaryOf(gallery, search, folder ? title : null)}
+          onBack={browser.close}
+          onNewFolder={permissions.canUpload && !folder ? editor.startCreate : undefined}
+        >
           {permissions.canUpload && (
             <>
               <PatientImageUploadButton progress={upload.progress} onPick={preview.pick} />
@@ -137,15 +138,25 @@ export function PatientImageStageColumn({
               />
             </>
           )}
-        </PatientImageStageHeader>
+        </PatientImageColumnTitle>
       )}
 
       <div ref={marquee.scrollRef} className="pi-stage-body" onPointerDown={marquee.onPointerDown}>
         <div ref={marquee.boxRef} className="pi-marquee" data-testid="patient-image-marquee" />
+        {showFolders && (
+          <PatientImageFolderGrid
+            folders={browser.folders}
+            canRename={permissions.canSort}
+            canDelete={permissions.canDelete}
+            onOpen={browser.open}
+            onRename={editor.startRename}
+            onDelete={removal.ask}
+          />
+        )}
         <ColumnSelectionProvider value={columnSelection}>
           <PatientImageTimeline
             days={gallery.days}
-            emptyText={emptyTextOf(gallery, search)}
+            emptyText={emptyTextOf(gallery, search, folder !== null, showFolders ? browser.folders.length : 0)}
             isLoadingMore={gallery.isLoadingMore}
             busy={busy}
             sentinelRef={gallery.sentinelRef}
@@ -164,7 +175,7 @@ export function PatientImageStageColumn({
 
       {preview.open && (
         <PatientImageUploadDialog
-          stageLabel={title}
+          stageLabel={place}
           pictures={preview.pictures}
           progress={upload.progress}
           onAdd={preview.pick}
@@ -176,12 +187,14 @@ export function PatientImageStageColumn({
 
       {capturing && (
         <CameraCaptureDialog
-          stageLabel={title}
+          stageLabel={place}
           progress={upload.progress}
           onUpload={upload.upload}
           onClose={() => setCapturing(false)}
         />
       )}
+
+      <PatientImageFolderDialogs editor={editor} removal={removal} />
     </section>
   );
 }

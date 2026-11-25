@@ -47,6 +47,8 @@ export interface PatientImageDto {
   staffName: string | null;
   /** Xóa ảnh is offered: false on a công đoạn picture once its upload day is over (R-1111). */
   deletable: boolean;
+  /** The column's thư mục it is filed in; null while it lies in the column itself (F-98). */
+  folderId: string | null;
 }
 
 export interface UploadPatientImageInput {
@@ -57,6 +59,8 @@ export interface UploadPatientImageInput {
   /** Ties the picture to a plan, and to one công đoạn when it is known. */
   treatmentPlanId?: string;
   treatmentStageId?: string;
+  /** Filed straight into this thư mục of the column (F-98). */
+  folderId?: string;
   file: File;
 }
 
@@ -83,6 +87,10 @@ const patientImageApi = {
     type?: PatientImageType;
     /** Matched against the "Ghi chú", any case, with or without marks. */
     filter?: string;
+    /** Only the pictures of this thư mục (F-98). */
+    folderId?: string;
+    /** Only the pictures in no thư mục — the column's own (F-98). */
+    outsideFolders?: boolean;
     skipCount?: number;
     maxResultCount?: number;
   }): Promise<PagedResult<PatientImageDto>> =>
@@ -97,6 +105,7 @@ const patientImageApi = {
     if (input.type) form.append("type", String(input.type));
     if (input.treatmentPlanId) form.append("treatmentPlanId", input.treatmentPlanId);
     if (input.treatmentStageId) form.append("treatmentStageId", input.treatmentStageId);
+    if (input.folderId) form.append("folderId", input.folderId);
 
     return api.post<PatientImageDto>(BASE, form).then((r) => r.data);
   },
@@ -109,6 +118,10 @@ const patientImageApi = {
   /** All of them or none: one picture the server refuses keeps the whole lot (R-1277). */
   removeMany: (ids: string[]): Promise<void> =>
     api.post(`${BASE}/delete-many`, { ids }).then(() => undefined),
+
+  /** Files the pictures into a thư mục of their column, or back into the column with `null` (F-98). */
+  move: (ids: string[], folderId: string | null): Promise<void> =>
+    api.post(`${BASE}/move`, { ids, folderId }).then(() => undefined),
 
   /** The picture's bytes, through axios so the auth cookie and branch header go along. */
   content: (id: string): Promise<Blob> =>
@@ -141,9 +154,21 @@ async function fetchContents(images: { id: string; fileName: string }[]): Promis
 export const patientImageKeys = {
   all: ["patient-images"] as const,
   list: (patientId: string) => [...patientImageKeys.all, "list", patientId] as const,
-  pages: (patientId: string, type: PatientImageType | null, filter = "") =>
-    [...patientImageKeys.all, "pages", patientId, type ?? "all", filter] as const,
+  pages: (patientId: string, type: PatientImageType | null, filter = "", folderId: string | null = null) =>
+    [...patientImageKeys.all, "pages", patientId, type ?? "all", filter, folderId ?? "root"] as const,
+  folders: (patientId: string, type: PatientImageType) =>
+    [...patientImageKeys.all, "folders", patientId, type] as const,
 };
+
+/**
+ * Which pictures a column shows (F-98): those of the open thư mục; at the
+ * column's root only the ones in no thư mục — except while searching, when the
+ * search reaches into every thư mục too.
+ */
+function scopeOf(filter: string, folderId: string | null): { folderId?: string; outsideFolders?: boolean } {
+  if (folderId) return { folderId };
+  return filter ? {} : { outsideFolders: true };
+}
 
 /** Every image at once, for the consulting tab's "Chọn ảnh hiển thị" dialog. */
 export function usePatientImages(patientId: string, clinicBranchId: string) {
@@ -156,22 +181,25 @@ export function usePatientImages(patientId: string, clinicBranchId: string) {
 
 /**
  * A Hình ảnh column's feed: newest first, a page at a time as the column is
- * scrolled, narrowed to the pictures whose note matches `filter` when one is typed.
+ * scrolled, narrowed to the pictures whose note matches `filter` when one is
+ * typed, and to the open thư mục, `folderId`, when there is one (F-98).
  */
 export function usePatientImagePages(
   patientId: string,
   clinicBranchId: string,
   type: PatientImageType | null,
   filter = "",
+  folderId: string | null = null,
 ) {
   return useInfiniteQuery({
-    queryKey: patientImageKeys.pages(patientId, type, filter),
+    queryKey: patientImageKeys.pages(patientId, type, filter, folderId),
     queryFn: ({ pageParam }) =>
       patientImageApi.list({
         patientId,
         clinicBranchId,
         type: type ?? undefined,
         filter: filter || undefined,
+        ...scopeOf(filter, folderId),
         skipCount: pageParam,
         maxResultCount: PATIENT_IMAGE_PAGE_SIZE,
       }),
@@ -221,6 +249,18 @@ export function useDeletePatientImage() {
 /** "Xoá N ảnh" of the tab's selection, in one request. */
 export function useDeletePatientImages() {
   return useImageMutation((ids: string[]) => patientImageApi.removeMany(ids));
+}
+
+/** The selection's "Chuyển vào thư mục" (F-98); the thư mục's counts and covers refresh with the feeds. */
+export function useMovePatientImages() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, folderId }: { ids: string[]; folderId: string | null }) =>
+      patientImageApi.move(ids, folderId),
+    // usePatientImageMove shows the server's message itself; one toast, not two.
+    meta: { skipGlobalErrorToast: true },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: patientImageKeys.all }),
+  });
 }
 
 /** The selection's "Tải xuống": reads the pictures' bytes; changes nothing on the server. */

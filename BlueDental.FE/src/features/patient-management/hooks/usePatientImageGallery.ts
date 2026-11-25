@@ -30,15 +30,17 @@ export interface PatientImageGallery {
 /**
  * One "Giai đoạn điều trị" column of the Hình ảnh tab, reading side: its
  * paged feed — only the pictures whose note matches `search`, when one is
- * typed — and the day-by-day grouping the column draws.
+ * typed, and those of the open thư mục `folderId` (F-98) — and the day-by-day
+ * grouping the column draws.
  */
 export function usePatientImageGallery(
   patientId: string,
   type: PatientImageType,
   search: string,
+  folderId: string | null,
 ): PatientImageGallery {
   const branchId = useCurrentBranchId();
-  const query = usePatientImagePages(patientId, branchId, type, search);
+  const query = usePatientImagePages(patientId, branchId, type, search, folderId);
 
   const images = useMemo(
     () => (query.data?.pages ?? []).flatMap((page) => page.items).map(adaptPatientImage),

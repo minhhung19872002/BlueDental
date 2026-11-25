@@ -1308,6 +1308,22 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.HasIndex(x => new { x.LaboOrderId, x.LaboRoundNo, x.LaboToothNumber });
             entity.HasIndex(x => x.ServiceWarrantyCardId);
             entity.HasIndex(x => x.XrayDeviceId);
+            entity.HasIndex(x => x.FolderId);
+            entity.HasOne<PatientImageFolder>()
+                .WithMany()
+                .HasForeignKey(x => x.FolderId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Thu muc anh trong tung giai doan cua tab Hinh anh (F-98)
+        builder.Entity<PatientImageFolder>(entity =>
+        {
+            entity.ToTable("bd_patient_image_folders");
+            entity.ConfigureByConvention();
+            entity.Property(x => x.Name).HasMaxLength(PatientImageFolder.MaxNameLength).IsRequired();
+            entity.Property(x => x.Type).HasConversion<short>();
+            entity.HasIndex(x => new { x.PatientId, x.Type });
+            entity.HasIndex(x => x.ClinicBranchId);
         });
 
         // Phieu benh an cua benh nhan

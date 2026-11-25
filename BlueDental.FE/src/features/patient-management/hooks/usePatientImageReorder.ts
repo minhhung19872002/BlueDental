@@ -82,13 +82,17 @@ function useReorderWithCache<TData>(key: QueryKey, patch: Patch<TData>): Patient
   return { reordering: mutation.isPending, reorder };
 }
 
-/** One Hình ảnh stage column: its cache is the paged feed for that stage and search. */
+/** One Hình ảnh stage column: its cache is the paged feed for that stage, search and open thư mục. */
 export function usePatientImageReorder(
   patientId: string,
   type: PatientImageType,
   search: string,
+  folderId: string | null,
 ): PatientImageReorder {
-  const key = useMemo(() => patientImageKeys.pages(patientId, type, search), [patientId, type, search]);
+  const key = useMemo(
+    () => patientImageKeys.pages(patientId, type, search, folderId),
+    [patientId, type, search, folderId],
+  );
   return useReorderWithCache(key, patchPages);
 }
 
