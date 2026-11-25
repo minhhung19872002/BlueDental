@@ -16210,3 +16210,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 
 - R-1314 (sửa Răng khi đang điều trị / dòng đã thu, develop 31d2cdac / main 0e63fcab) đã được revert trên cả develop và main. Lý do: không cần nữa (user 2026-11-25).
 - Trở về như trước: răng đã lên công đoạn khoá bỏ chọn (`Treatment:0039`), dòng đã thu không có bút chì sửa. Mã `Treatment:0069` bị gỡ — id còn trống để dùng lại.
+
+## R-1317 — ĐƠN THUỐC theo ảnh BA đánh dấu (2026-11-25, mức 2: Đơn thuốc — bản in)
+
+- Nguồn: user 2026-11-25, hai ảnh "Xem đơn thuốc" BA khoanh đỏ; chốt: bong bóng "In…" ở dòng Địa chỉ phòng khám = in đậm; bỏ dòng Điều trị; "Khác" ngang hàng tên bác sĩ; Địa chỉ / Chẩn đoán thêm dòng chấm như hình (khi trống).
+- FE `PrescriptionPrintSheet.tsx` / `RxSheetParts.tsx` / `prescription-print.css`:
+  - Đầu trang: dòng Địa chỉ phòng khám in đậm; cột phải = "Mã đơn" trên "Mã bệnh nhân" (cột `max-content`, không lố lề phải).
+  - Khối bệnh nhân: Họ tên | Giới tính; Ngày sinh | Điện thoại; Địa chỉ (trống → chấm nối từ nhãn tới lề + 1 dòng chấm nguyên); Chẩn đoán (trống → dòng chấm, trước là "—"); Người giám hộ | Số điện thoại. Bỏ dòng "Điều trị".
+  - Thuốc: lưới chung cả danh sách (subgrid), cột SL + ĐVT rộng theo mục dài nhất, ĐVT kết thúc đúng lề phải ("15 viên" sát biên, thẳng Mã đơn).
+  - Cuối trang: bảng [5180 | 4459] — Lời dặn bác sĩ + Khác bên trái, chữ ký bên phải, canh đáy → dòng "Khác" ngang hàng tên bác sĩ (trước nằm dưới chữ ký). Màn hình ≤ 640px xếp chữ ký trên, lời dặn dưới.
+- E2E `prescription.spec.ts` test "In đơn thuốc…": Mã bệnh nhân trong `.rx-sheet-code`, không còn trong khối bệnh nhân, không có "Điều trị:", Giới tính là ô thứ 2, Địa chỉ phòng khám font-weight 700, Địa chỉ trống → 2 dòng chấm; đo: mép phải Mã đơn / Mã bệnh nhân / ĐVT = lề phải (< 1px), mọi dòng chấm ≤ lề, đáy "Khác" = đáy tên bác sĩ (< 1px), lời dặn bên trái chữ ký.
+- Kiểm tra local (build production, preview riêng :8117, BE thật :5000 + PostgreSQL thật): `prescription.spec.ts` 8/8 xanh; ảnh chụp đầu đơn + chân đơn khớp ảnh BA. `tsc -b` + eslint sạch. Vẫn 1 trang A4.
+- Mức retest: 2 (chỉ bản in Đơn thuốc).

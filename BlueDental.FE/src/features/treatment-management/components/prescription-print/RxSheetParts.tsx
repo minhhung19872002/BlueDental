@@ -11,24 +11,31 @@ interface FactProps {
   /** Spans both columns. */
   wide?: boolean;
   empty?: EmptyFact;
+  /** With `empty="dots"`: how many lines to write on — the rest of the label's, then whole ones (R-1317). */
+  dotLines?: number;
 }
 
 /** "Họ tên: NGUYỄN VĂN A" — one fact of the ĐƠN THUỐC's patient block. */
-export function RxSheetFact({ label, value, wide, empty = "dash" }: FactProps) {
-  const className = ["rx-sheet-fact", wide && "rx-sheet-fact--wide", !value && empty === "dots" && "rx-sheet-fact--dots"]
+export function RxSheetFact({ label, value, wide, empty = "dash", dotLines = 1 }: FactProps) {
+  const dotted = !value && empty === "dots";
+  const className = ["rx-sheet-fact", wide && "rx-sheet-fact--wide", dotted && "rx-sheet-fact--dots"]
     .filter(Boolean)
     .join(" ");
+  if (dotted) {
+    return (
+      <p className={className}>
+        <span>{label}:</span>
+        {Array.from({ length: dotLines }, (_, line) => (
+          <span key={line} className="rx-sheet-dots" aria-hidden />
+        ))}
+      </p>
+    );
+  }
   return (
     <p className={className}>
-      <span>{label}:</span> {value ? <strong>{value}</strong> : <EmptyValue empty={empty} />}
+      <span>{label}:</span> {value ? <strong>{value}</strong> : empty === "dash" && <strong>—</strong>}
     </p>
   );
-}
-
-function EmptyValue({ empty }: { empty: EmptyFact }) {
-  if (empty === "dots") return <span className="rx-sheet-dots" aria-hidden />;
-  if (empty === "blank") return null;
-  return <strong>—</strong>;
 }
 
 /**

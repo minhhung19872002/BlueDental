@@ -470,7 +470,7 @@ test.describe.serial("Đơn thuốc", () => {
     await reopened.getByRole("button", { name: /Hủy$/ }).click();
   });
 
-  test("In đơn thuốc shows the slip read-only without doses, on A4 under the fixed clinic letterhead, the unit, Cách dùng and Lưu ý from Danh mục (R-1300..R-1302, R-1313)", async ({
+  test("In đơn thuốc shows the slip read-only without doses, on A4 under the fixed clinic letterhead, the unit, Cách dùng and Lưu ý from Danh mục (R-1300..R-1302, R-1313, R-1317)", async ({
     page,
   }) => {
     await login(page);
@@ -509,6 +509,20 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(dialog.locator(".rx-sheet-advice")).toContainText("Lời dặn bác sĩ: Khám lại xin mang theo đơn này.");
     await expect(dialog.locator(".rx-sheet-other")).toHaveText(`Khác: Lời dặn e2e ${id}`);
     await expect(dialog.locator(".rx-sheet")).not.toContainText("Tái khám");
+    // The BA's mark-up of 2026-11-25 (R-1317): Mã bệnh nhân under Mã đơn on the
+    // letterhead, Giới tính beside Họ tên, no Điều trị line; an empty address
+    // leaves two dotted lines, an empty diagnosis one.
+    await expect(dialog.locator(".rx-sheet-code")).toContainText(`Mã đơn: ${code}`);
+    await expect(dialog.locator(".rx-sheet-code")).toContainText("Mã bệnh nhân: ");
+    await expect(dialog.locator(".rx-sheet-facts")).not.toContainText("Mã bệnh nhân");
+    await expect(dialog.locator(".rx-sheet")).not.toContainText("Điều trị:");
+    await expect(dialog.locator(".rx-sheet-fact").nth(1)).toContainText("Giới tính:");
+    const addressLine = letterhead.locator("p").filter({ hasText: "Địa chỉ:" });
+    expect(await addressLine.evaluate((el) => getComputedStyle(el).fontWeight)).toBe("700");
+    const address = dialog.locator(".rx-sheet-fact").filter({ hasText: /^Địa chỉ:/ });
+    if (await address.evaluate((el) => el.classList.contains("rx-sheet-fact--dots"))) {
+      await expect(address.locator(".rx-sheet-dots")).toHaveCount(2);
+    }
     // Read-only: nothing on the sheet can be typed into.
     await expect(dialog.locator(".rx-sheet input, .rx-sheet textarea")).toHaveCount(0);
 
@@ -568,6 +582,30 @@ test.describe.serial("Đơn thuốc", () => {
     await row.getByRole("button", { name: "In đơn thuốc" }).click();
     await expect(printedLine.locator(".rx-sheet-unit")).toHaveText("Viên");
     await expect(printedLine.locator(".rx-sheet-qty")).not.toBeEmpty();
+    // "15 viên" ends on the right margin, level with Mã đơn and Mã bệnh nhân;
+    // no dotted line runs past it; Khác sits beside the signature, level with
+    // the doctor's name (R-1317).
+    const edges = await page.getByRole("dialog").locator(".rx-sheet").evaluate((sheet) => {
+      const box = sheet.getBoundingClientRect();
+      const margin = box.right - parseFloat(getComputedStyle(sheet).paddingRight);
+      const right = (selector: string) => [...sheet.querySelectorAll(selector)].map((el) => el.getBoundingClientRect().right);
+      const bottom = (selector: string) => sheet.querySelector(selector)?.getBoundingClientRect().bottom ?? 0;
+      const left = (selector: string) => sheet.querySelector(selector)?.getBoundingClientRect().left ?? 0;
+      return {
+        margin,
+        codes: right(".rx-sheet-code > p"),
+        units: right(".rx-sheet-unit"),
+        dots: right(".rx-sheet-dots"),
+        otherBottom: bottom(".rx-sheet-other"),
+        signerBottom: bottom(".rx-sheet-signer"),
+        adviceLeft: left(".rx-sheet-advice"),
+        signLeft: left(".rx-sheet-sign"),
+      };
+    });
+    for (const edge of [...edges.codes, ...edges.units]) expect(Math.abs(edge - edges.margin)).toBeLessThan(1);
+    for (const edge of edges.dots) expect(edge).toBeLessThanOrEqual(edges.margin + 0.5);
+    expect(Math.abs(edges.otherBottom - edges.signerBottom)).toBeLessThan(1);
+    expect(edges.adviceLeft).toBeLessThan(edges.signLeft);
     // The slip itself names no usage, so line 2 is the catalog's Cách dùng alone,
     // no "–"; Lưu ý goes on line 3 in brackets, italic and smaller (R-1313).
     await expect(printedLine.locator("em")).toHaveText(`Ngậm ${id}`);
