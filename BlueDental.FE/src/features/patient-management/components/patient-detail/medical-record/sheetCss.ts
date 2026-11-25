@@ -671,7 +671,7 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:first-child>tbody>tr>td:first-child{padding-top:7.7px}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:first-child>tbody>tr>td:first-child>p{display:block!important;width:347.8px;font-size:14.667px;line-height:18.27px!important;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="8"] p.record-ids{display:grid;grid-template-columns:94.7px minmax(0,1fr);column-gap:0;row-gap:0;align-items:baseline;width:auto;margin:0 0 0 93.2px;padding:10.3px 0 0;font-size:13.333px;line-height:21.5px!important}
-.nfc-tpl.nfc-tpl[data-form="8"] p.record-ids .nfc-medical-record-text-field{min-width:0!important;min-height:1em;line-height:1.2;white-space:nowrap}
+.nfc-tpl.nfc-tpl[data-form="8"] p.record-ids .nfc-medical-record-text-field{min-width:0!important;min-height:1em;line-height:1.2;white-space:pre-wrap;overflow-wrap:anywhere}
 .nfc-tpl.nfc-tpl[data-form="8"]>p:has(>input){line-height:1.725!important;margin-top:1.2px}
 .nfc-tpl.nfc-tpl[data-form="8"] [data-medical-record-field="treatment-tracking.page-1.patient.name"]{min-width:215.6px!important}
 .nfc-tpl.nfc-tpl[data-form="8"] [data-medical-record-field="treatment-tracking.page-1.patient.age"]{min-width:72px!important}

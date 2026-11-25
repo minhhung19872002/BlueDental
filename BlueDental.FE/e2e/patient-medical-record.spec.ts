@@ -1594,6 +1594,54 @@ test.describe("Bệnh án", () => {
    * selection (R-1221), and a letter typed over it (R-1223) — the test after
    * this one.
    */
+  /**
+   * Clinic, 2026-11-25: a blank after a label grew with what was typed in it to
+   * the width of the whole line, and ran past the right margin by the label's
+   * width — "1. Quá trình bệnh lý: aaaa…", "+ Bản thân: …thường0000…". A blank
+   * takes at most the rest of its line; long writing wraps there, and once
+   * saved goes on to lines of its own, never past the margin.
+   */
+  test("a blank written past its line stays inside the margin, typed and after a reload", async ({ page }) => {
+    await openMedicalRecord(page);
+    await openFreshSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+    const ids = ["outpatient-dental.text.20", "outpatient.patient.history"];
+
+    /** How far each blank's box and writing run past the edge of its line, at most. */
+    const overrun = () =>
+      sheet(page)
+        .locator("body")
+        .evaluate((body, fields) => {
+          const doc = body.ownerDocument;
+          const tpl = doc.querySelector<HTMLElement>(".nfc-tpl")!;
+          const edge = tpl.getBoundingClientRect().right - parseFloat(getComputedStyle(tpl).paddingRight);
+          return fields.map((id) => {
+            const parts = [
+              doc.querySelector(`[data-medical-record-field="${id}"]`)!,
+              ...Array.from(doc.querySelectorAll(`[data-flow-of="${id}"]`)),
+            ];
+            return Math.max(
+              ...parts.flatMap((part) => {
+                const range = doc.createRange();
+                range.selectNodeContents(part);
+                return [part.getBoundingClientRect().right, ...Array.from(range.getClientRects()).map((box) => box.right)];
+              }),
+            ) - edge;
+          });
+        }, ids);
+
+    await blank(page, ids[0]).click();
+    await page.keyboard.type("a".repeat(170));
+    await blank(page, ids[1]).click();
+    await page.keyboard.press("End");
+    await page.keyboard.type(" Chưa phát hiện gì bất thường" + "0".repeat(90));
+    for (const over of await overrun()) expect(over, "typed: inside the margin").toBeLessThanOrEqual(1);
+
+    await save(page);
+    await page.reload();
+    await openLastSheet(page, "Bệnh án ngoại trú Răng Hàm Mặt");
+    for (const over of await overrun()) expect(over, "after a reload: inside the margin").toBeLessThanOrEqual(1);
+  });
+
   test("a summary written over several lines can be selected and copied whole", async ({ page }) => {
     await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
     const summary =
