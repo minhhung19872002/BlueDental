@@ -21,6 +21,7 @@ import {
 import { MaterialTypeDialog } from "./materials/MaterialTypeDialog";
 import { useSheetMaterials } from "./materials/useSheetMaterials";
 import { attachSections } from "./sheetSections";
+import { capBlanksToLines } from "./capBlanks";
 import { fitBlanksToLines } from "./fitBlanks";
 import { holdLines } from "./holdLines";
 import { whenSheetTypeReady } from "./sheetFont";
@@ -191,7 +192,10 @@ export function MedicalRecordDocument({
     // Laid out now: the lines keep to one line in the larger letters, then a
     // blank whose text runs past its line goes on to lines of its own, then a
     // line the larger letters still break takes its letters down until it holds.
+    // Each blank may grow only to the end of its line, so writing never runs
+    // past the margin.
     fitBlanksToLines(doc);
+    capBlanksToLines(doc);
     flowLongBlanks(doc);
     holdLines(doc);
 
