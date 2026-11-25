@@ -2265,8 +2265,10 @@ test.describe("Bệnh án", () => {
     expect(new Set(boxes.vitals), "the vitals keep their dots").toEqual(new Set(["dotted"]));
     expect(boxes.files.length, "the files table's blanks").toBeGreaterThanOrEqual(10);
     expect(new Set(boxes.files), "the files table keeps its dots").toEqual(new Set(["dotted"]));
-    // "Người nhận hồ sơ:", then "Họ tên ......" on the line under it, not wrapped on to a third.
-    expect(boxes.receiverLines, "Người nhận hồ sơ, then Họ tên on one line").toBeLessThan(2.6);
+    // "Người nhận hồ sơ:", three empty lines to sign on (clinic, 2026-11-25), then
+    // "Họ tên ......" on one line, not wrapped on to another.
+    expect(boxes.receiverLines, "Người nhận hồ sơ, room to sign, then Họ tên on one line").toBeGreaterThan(4.4);
+    expect(boxes.receiverLines, "Người nhận hồ sơ, room to sign, then Họ tên on one line").toBeLessThan(5.6);
     for (const { top, height } of boxes.codeRows) {
       expect(Math.abs(top), "a code row on its line").toBeLessThan(1.5);
       expect(Math.abs(height), "a code row a line tall").toBeLessThan(1.5);

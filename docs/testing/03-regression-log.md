@@ -16151,3 +16151,10 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - FE `sheetCss.ts`: một luật chung cho đoạn `p[data-block-align="left"][style*="display: table"]` (đúng 1 đoạn mỗi mẫu = cụm này): Times New Roman 14,667px đậm, dòng 20,13px, không xuống dòng, khối ôm theo dòng dài nhất, các dòng căn giữa — như mẫu 9. Mẫu 4 bỏ `margin-left:-6px` của khối 407px cũ. Mỗi mẫu **giữ chiều cao khối cũ** (`--nfc-letterhead-height`) để phần thân đã khớp Word không xê dịch. Phạm vi: mẫu 2–9 và 12; mẫu 1 có tiêu đề bìa 3 dòng riêng, mẫu 10 không có cụm này, mẫu 11 theo yêu cầu không đổi.
 - Đo trên local (màn hình + in): cả 9 mẫu cùng cỡ/khoảng dòng/độ đậm/vị trí từng dòng với mẫu 9 (lệch 0); khối đầu trang, vị trí phần thân và chiều cao từng tờ không đổi (lệch tối đa 0,1px làm tròn); bản sao in trong document app cũng không đổi chiều cao.
 - E2E `patient-medical-record` + `medical-record-surgical-checklists` (preview): 41 xanh, 6 đỏ không liên quan — 2 test đếm trang (mẫu 4/mẫu 7 in 2 trang) đỏ y hệt trên bản build develop gốc (dữ liệu e2e dùng chung), 2 test tên "Bìa hồ sơ" bị test khác đổi, số NT- (API local chưa có R-1305), `picking the day` có sẵn.
+
+## R-1309 — mẫu 2: chừa khoảng trống để ký tên (2026-11-25, mức 2: Bệnh án — mẫu 2)
+
+- Nguồn: user 2026-11-25, ảnh mẫu 2 — "các chỗ chưa chừa khoảng trống để người dùng ký tên": GIÁM ĐỐC PHÒNG KHÁM / BÁC SỸ KHÁM BỆNH (cuối phần IV) và trong TỔNG KẾT BỆNH ÁN: Người giao hồ sơ, Bác sỹ điều trị, Người nhận hồ sơ — "Họ (và) tên" nằm ngay dưới chức danh.
+- FE `templates/outpatientDental.ts`: 3 dòng trống (`<br>` ×3) giữa chức danh và "Họ (và) tên" ở cả 5 chỗ, như `signature()` của mẫu 11/12. Id ô không đổi → phiếu cũ giữ giá trị (template dựng lại từ code, DB chỉ lưu giá trị).
+- Đo trên local (in): khối chữ ký cuối phần IV cao thêm 82,8px, đáy ở 350px của tờ 1039px (trước 271px) — vẫn cùng tờ, sau nó là ngắt trang; bảng hồ sơ phim ảnh chỉ cao thêm 3,8px (ô Người nhận), hai ô kia dùng chỗ trống sẵn có; đáy bảng ở 199px của tờ — không thêm trang.
+- E2E: assertion "Người nhận hồ sơ, then Họ tên on one line" đổi ngưỡng 2,6 → 4,4–5,6 dòng (chức danh + 3 dòng ký + Họ tên một dòng); test xanh.
