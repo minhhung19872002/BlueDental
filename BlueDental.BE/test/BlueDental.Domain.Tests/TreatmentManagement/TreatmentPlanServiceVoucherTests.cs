@@ -317,7 +317,7 @@ public class TreatmentPlanServiceVoucherTests
         var plan = OpenPlan((Whitening, 1_000_000m), (Filling, 500_000m));
         Redeem(plan, null, ForServices("TRU-800", [Whitening], DiscountType.Money, 800_000m));
 
-        Line(plan, Whitening).Revise(600_000m, 1, [], null, 0m);
+        Line(plan, Whitening).Revise(600_000m, 1, [], null, 0m, new HashSet<int>());
 
         plan.ServiceVoucherOf(Line(plan, Whitening)).ShouldBe(600_000m);
         plan.ChargedAmountOf(Line(plan, Whitening)).ShouldBe(0m);

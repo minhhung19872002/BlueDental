@@ -310,8 +310,8 @@ public static class BlueDentalDomainErrorCodes
         public const string WarrantySourceInvalid = "BlueDental:Treatment:0036";
 
         /// <summary>
-        /// "Chỉnh sửa" on a line that is finished, cancelled or converted. A line
-        /// paid on is editable since R-1314, within <see cref="ServiceLinePaidPricingLocked"/>.
+        /// "Chỉnh sửa" on a line that is finished, cancelled, converted or already
+        /// paid — the reference offers the pencil on none of those.
         /// </summary>
         public const string ServiceLineNotEditable = "BlueDental:Treatment:0037";
 
@@ -321,10 +321,7 @@ public static class BlueDentalDomainErrorCodes
         /// </summary>
         public const string ServiceLineLockedInTreatment = "BlueDental:Treatment:0038";
 
-        /// <summary>
-        /// A tooth that already has a công đoạn cannot be taken off the line.
-        /// No longer raised: the BA lets a line's teeth change in treatment (R-1314).
-        /// </summary>
+        /// <summary>A tooth that already has a công đoạn cannot be taken off the line.</summary>
         public const string StagedToothLocked = "BlueDental:Treatment:0039";
 
         /// <summary>
@@ -440,13 +437,6 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>"Khôi phục dịch vụ" on a slip that was itself cancelled (R-1230).</summary>
         public const string ServiceRestorePlanCancelled = "BlueDental:Treatment:0068";
-
-        /// <summary>
-        /// "Chỉnh sửa" on a line paid on: its teeth and note move, but its
-        /// diagnosis, price, quantity and discount stay so its charge does not
-        /// (BA 2026-11-25, R-1314).
-        /// </summary>
-        public const string ServiceLinePaidPricingLocked = "BlueDental:Treatment:0069";
     }
 
     public static class Billing

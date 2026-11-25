@@ -149,14 +149,6 @@ own quantity field, as the new-service row always has. What the reference's ✕
 does on an edited row (it shares one cancel handler with the new row) is not
 known; BlueDental just leaves edit mode — nothing is deleted.
 
-**R-1314 (BA 2026-11-25, overrides the reference):** a line in treatment edits
-its **Răng** freely — a tooth with a công đoạn may be dropped too (e.g. Hai hàm →
-Hàm trên); the old công đoạn keep their own teeth. `Treatment:0039` is no longer
-raised and the tooth dialog lost its lock note. A **paid** line (Cash + Relief
-settled > 0) keeps its pencil too: Răng, Ghi chú and the advisors change, while
-Đơn giá, Số lượng, Giảm giá and Chẩn đoán stay (dialog fields disabled; server
-refuses with `Treatment:0069`), so what the line charges never moves.
-
 ### Đơn giá · Tổng giảm giá · Thành tiền — giá gốc và bốn khoản giảm (staging 2026-09-28)
 
 Read-only: one existing line (catalog 1.000.000, unit price edited to 910.000,
