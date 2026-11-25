@@ -27,8 +27,9 @@ function placedDate(value: string): string {
  * up on 2026-11-25 (R-1317): the clinic letterhead — fixed text by the BA's
  * call, not the branch's data (R-1301) — with the slip and patient codes on
  * its right; Giới tính and Điện thoại beside the name and birth date, the
- * address (two dotted lines when none), the diagnosis names (a dotted line
- * when none), the guardian, and no Điều trị line. The numbered medicines with
+ * address and the diagnosis names, the guardian and their phone — each a
+ * dotted line to write on when the record has none (one line only, R-1319) —
+ * and no Điều trị line. The numbered medicines with
  * how to take each (no doses), the quantity and the catalog's Đơn vị tính
  * against the right margin. Then the standing advice and "Khác" — the slip's
  * own advice, or a dotted line for the doctor to write one — on the left
@@ -75,21 +76,15 @@ export function PrescriptionPrintSheet({ patient, patientAddress, prescription }
         <RxSheetFact label={t("Treatment:RxPrint:Gender")} value={patient.genderLabel} />
         <RxSheetFact label={t("Treatment:RxPrint:DateOfBirth")} value={birth} />
         <RxSheetFact label={t("Treatment:RxPrint:PhoneLabel")} value={patient.phoneNumber ?? ""} />
-        <RxSheetFact
-          wide
-          empty="dots"
-          dotLines={2}
-          label={t("Treatment:RxPrint:PatientAddress")}
-          value={patientAddress}
-        />
+        <RxSheetFact wide empty="dots" label={t("Treatment:RxPrint:PatientAddress")} value={patientAddress} />
         <RxSheetFact
           wide
           empty="dots"
           label={t("Treatment:Diagnosis:Diagnosis")}
           value={printedDiagnosisNames(prescription.diagnoses, prescription.diagnosisText)}
         />
-        <RxSheetFact empty="blank" label={t("Treatment:RxPrint:Guardian")} value={patient.guardian?.fullName ?? ""} />
-        <RxSheetFact empty="blank" label={t("Treatment:RxPrint:GuardianPhone")} value={patient.guardian?.phone ?? ""} />
+        <RxSheetFact empty="dots" label={t("Treatment:RxPrint:Guardian")} value={patient.guardian?.fullName ?? ""} />
+        <RxSheetFact empty="dots" label={t("Treatment:RxPrint:GuardianPhone")} value={patient.guardian?.phone ?? ""} />
       </div>
 
       <RxSheetMedicines items={prescription.items} />

@@ -470,7 +470,7 @@ test.describe.serial("Đơn thuốc", () => {
     await reopened.getByRole("button", { name: /Hủy$/ }).click();
   });
 
-  test("In đơn thuốc shows the slip read-only without doses, on A4 under the fixed clinic letterhead, the unit, Cách dùng and Lưu ý from Danh mục (R-1300..R-1302, R-1313, R-1317)", async ({
+  test("In đơn thuốc shows the slip read-only without doses, on A4 under the fixed clinic letterhead, the unit, Cách dùng and Lưu ý from Danh mục (R-1300..R-1302, R-1313, R-1317, R-1319)", async ({
     page,
   }) => {
     await login(page);
@@ -509,9 +509,10 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(dialog.locator(".rx-sheet-advice")).toContainText("Lời dặn bác sĩ: Khám lại xin mang theo đơn này.");
     await expect(dialog.locator(".rx-sheet-other")).toHaveText(`Khác: Lời dặn e2e ${id}`);
     await expect(dialog.locator(".rx-sheet")).not.toContainText("Tái khám");
-    // The BA's mark-up of 2026-11-25 (R-1317): Mã bệnh nhân under Mã đơn on the
-    // letterhead, Giới tính beside Họ tên, no Điều trị line; an empty address
-    // leaves two dotted lines, an empty diagnosis one.
+    // The BA's mark-up of 2026-11-25 (R-1317, R-1319): Mã bệnh nhân under Mã đơn
+    // on the letterhead, Giới tính beside Họ tên, no Điều trị line; whatever the
+    // record lacks — address, diagnosis, guardian, their phone — gets one dotted
+    // line after its label, never a second.
     await expect(dialog.locator(".rx-sheet-code")).toContainText(`Mã đơn: ${code}`);
     await expect(dialog.locator(".rx-sheet-code")).toContainText("Mã bệnh nhân: ");
     await expect(dialog.locator(".rx-sheet-facts")).not.toContainText("Mã bệnh nhân");
@@ -519,9 +520,17 @@ test.describe.serial("Đơn thuốc", () => {
     await expect(dialog.locator(".rx-sheet-fact").nth(1)).toContainText("Giới tính:");
     const addressLine = letterhead.locator("p").filter({ hasText: "Địa chỉ:" });
     expect(await addressLine.evaluate((el) => getComputedStyle(el).fontWeight)).toBe("700");
-    const address = dialog.locator(".rx-sheet-fact").filter({ hasText: /^Địa chỉ:/ });
-    if (await address.evaluate((el) => el.classList.contains("rx-sheet-fact--dots"))) {
-      await expect(address.locator(".rx-sheet-dots")).toHaveCount(2);
+    const dottedFacts = dialog.locator(".rx-sheet-fact--dots");
+    for (const fact of await dottedFacts.all()) await expect(fact.locator(".rx-sheet-dots")).toHaveCount(1);
+    const guardian = dialog.locator(".rx-sheet-fact").filter({ hasText: /^Người giám hộ:/ });
+    const guardianPhone = dialog.locator(".rx-sheet-fact").filter({ hasText: /^Số điện thoại:/ });
+    if (await guardian.evaluate((el) => el.classList.contains("rx-sheet-fact--dots"))) {
+      // The guardian's line stops short of "Số điện thoại:" beside it.
+      const dotsRight = await guardian.locator(".rx-sheet-dots").evaluate((el) => el.getBoundingClientRect().right);
+      const phoneLeft = await guardianPhone.locator("span").first().evaluate((el) => el.getBoundingClientRect().left);
+      expect(dotsRight).toBeLessThan(phoneLeft - 4);
+    } else {
+      await expect(guardian.locator("strong")).not.toBeEmpty();
     }
     // Read-only: nothing on the sheet can be typed into.
     await expect(dialog.locator(".rx-sheet input, .rx-sheet textarea")).toHaveCount(0);

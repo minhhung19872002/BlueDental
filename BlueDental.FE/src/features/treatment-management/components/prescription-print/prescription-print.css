@@ -101,18 +101,19 @@
 .rx-sheet-fact--wide {
   grid-column: 1 / -1;
 }
-/* Nothing on the record (address, diagnosis): dots from the label to the
-   right margin, then whole dotted lines under it, to write it by hand (R-1317). */
+/* Nothing on the record (address, diagnosis, guardian, their phone): one
+   dotted line from the label to the end of its column, to write it by hand
+   (R-1317, R-1319). The left column's line stops short of the right one. */
 .rx-sheet-fact--dots {
   display: flex;
-  flex-wrap: wrap;
 }
 .rx-sheet-fact--dots > .rx-sheet-dots {
-  flex: 1 1 100%;
-}
-.rx-sheet-fact--dots > .rx-sheet-dots:nth-child(2) {
-  flex-basis: 0;
+  flex: 1 1 0;
+  min-width: 0;
   margin-left: 4px;
+}
+.rx-sheet-fact--dots:not(.rx-sheet-fact--wide):nth-child(odd of :not(.rx-sheet-fact--wide)) > .rx-sheet-dots {
+  margin-right: 12px;
 }
 
 /* A dotted line made of full stops, as Word's dot leader. */

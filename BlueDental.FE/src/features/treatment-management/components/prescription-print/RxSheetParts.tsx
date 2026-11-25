@@ -2,8 +2,8 @@ import { usageLabel } from "@/components/prescription-lines";
 import { t } from "@/lib/i18n";
 import type { PrescriptionItemDto } from "../../api/prescriptionApi";
 
-/** What a fact shows with no value: a dash, a dotted line to write on, or nothing. */
-type EmptyFact = "dash" | "dots" | "blank";
+/** What a fact shows with no value: a dash, or one dotted line to write on (R-1317, R-1319). */
+type EmptyFact = "dash" | "dots";
 
 interface FactProps {
   label: string;
@@ -11,12 +11,10 @@ interface FactProps {
   /** Spans both columns. */
   wide?: boolean;
   empty?: EmptyFact;
-  /** With `empty="dots"`: how many lines to write on — the rest of the label's, then whole ones (R-1317). */
-  dotLines?: number;
 }
 
 /** "Họ tên: NGUYỄN VĂN A" — one fact of the ĐƠN THUỐC's patient block. */
-export function RxSheetFact({ label, value, wide, empty = "dash", dotLines = 1 }: FactProps) {
+export function RxSheetFact({ label, value, wide, empty = "dash" }: FactProps) {
   const dotted = !value && empty === "dots";
   const className = ["rx-sheet-fact", wide && "rx-sheet-fact--wide", dotted && "rx-sheet-fact--dots"]
     .filter(Boolean)
@@ -25,9 +23,7 @@ export function RxSheetFact({ label, value, wide, empty = "dash", dotLines = 1 }
     return (
       <p className={className}>
         <span>{label}:</span>
-        {Array.from({ length: dotLines }, (_, line) => (
-          <span key={line} className="rx-sheet-dots" aria-hidden />
-        ))}
+        <span className="rx-sheet-dots" aria-hidden />
       </p>
     );
   }
