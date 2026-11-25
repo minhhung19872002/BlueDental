@@ -16257,3 +16257,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - E2E `prescription.spec.ts`: dòng trong bảng tìm theo tên (`listedFirst` / `listedBoth`); test tạo đơn kiểm ô Chẩn đoán đúng bằng "tên 1; tên 2". `printedBoth` vẫn dùng cho "Trên đơn in" và payload `diagnosisText`.
 - Kiểm tra local (build production, preview riêng :8123, BE thật :5000 + PostgreSQL thật): `prescription.spec.ts` 8/8 xanh. `tsc -b` + eslint sạch.
 - Mức retest: 2 (chỉ danh sách Đơn thuốc).
+
+## R-1321 — Bệnh án mẫu 2 / mẫu 6: khối mã số sát lề phải, ô Số ngoại trú / Số lưu trữ vừa đủ số (2026-11-25, mức 2: Bệnh án — bản in mẫu 2, mẫu 6)
+
+- Nguồn: BA 2026-11-25 "cho xác biên phải, mở rộng ô thêm để chứa đủ nha" (ảnh mẫu 2: "NK-1126DH269999DT01" xuống dòng; mẫu 6: "MS: 01/BV2" chưa sát lề phải). User chốt: chỉ mẫu 2 và mẫu 6; "sát biên phải" = lề viết 15mm, không phải mép giấy; được bỏ vị trí theo bản Word của BA (R-1268 / R-1275). Sau đó user thêm: ô mã số mẫu 2 "width vừa đủ thôi", cả khối sát qua phải, rồi "dài 1 chút cho dư 1 ký tự".
+- `sheetCss.ts`:
+  - Mẫu 2 `p.record-ids`: grid `75.6px minmax(60px,max-content)`, `width:max-content`, `margin-left:auto` → cả khối MS / Số ngoại trú / Số lưu trữ sát lề phải (trước đó lùi 43.4px vào cột). Ô trong khối bỏ min/max-width 128px của fitBlanks (`!important`), rộng 100% cột = số dài nhất, `nowrap`, `padding-right: calc(1ch + 3px)` → dư đúng ~1 ký tự.
+  - Mẫu 6: ô "MS:" ở góc phải đổi `text-align:right`, bỏ `padding-left:113px` (vị trí tab của bản Word, R-1293).
+- E2E `patient-medical-record.spec.ts`:
+  - Test "mẫu 2: 15mm margins…": ghi sẵn Số ngoại trú "NT-000000751116" và Số lưu trữ "NK-1126DH269999DT01". Kiểm tra: hai ô sát lề phải (< 1px); số nằm trên 1 dòng; ô Số lưu trữ rộng hơn chữ 6–15px.
+  - Test "mẫu 6: 15mm margins…": MS sát lề phải (< 1px), thay cho phép đo 463px cũ.
+- Kiểm tra local (build production, preview riêng :8151, BE thật :5000 + PostgreSQL thật): 4 test xanh, gồm "print their MS", "mẫu 2: 15mm…", "mẫu 6: 15mm…", "mẫu 7: Word's…". `tsc -b` sạch.
+- Mức retest: 2 (chỉ bản in mẫu 2 và mẫu 6; CSS có scope `data-form="2"` / `data-form="6"`).
