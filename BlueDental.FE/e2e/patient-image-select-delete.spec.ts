@@ -193,6 +193,95 @@ test.describe("Hình ảnh — chọn nhiều để xoá (R-1277)", () => {
     }
   });
 
+  test("R-1322: sweep a marquee over pictures to tick them, sweep again to add, then delete them", async ({ page }) => {
+    await login(page);
+    const patientId = await openImageTab(page);
+    const id = runId();
+    const names = Array.from({ length: 4 }, (_, i) => `boi-${id}-${i + 1}.png`);
+    const stored = collectStored(page);
+
+    try {
+      await uploadPictures(page, stored, names);
+      const column = beforeColumn(page);
+      const box = async (name: string) => {
+        const rect = await cardOf(page, name).boundingBox();
+        if (!rect) throw new Error(`no box for ${name}`);
+        return rect;
+      };
+      /** Presses the mouse inside `from` and lets go inside `to`, in small steps, as a hand would. */
+      const sweep = async (from: string, to: string) => {
+        const a = await box(from);
+        const b = await box(to);
+        await page.mouse.move(a.x + a.width * 0.3, a.y + a.height * 0.3);
+        await page.mouse.down();
+        await page.mouse.move(b.x + b.width * 0.6, b.y + b.height * 0.6, { steps: 12 });
+        await expect(column.getByTestId("patient-image-marquee")).toBeVisible();
+        await page.mouse.up();
+        await expect(column.getByTestId("patient-image-marquee")).toBeHidden();
+      };
+
+      // The newest upload is drawn first, so pick a neighbouring pair as they lie on screen.
+      const order = await column
+        .getByTestId("patient-image-card")
+        .locator("img")
+        .evaluateAll((imgs) => imgs.map((img) => img.getAttribute("alt") ?? ""));
+      const ours = order.filter((name) => names.includes(name));
+      expect(ours).toHaveLength(4);
+
+      // Sweep only along a row of ours, so the rectangle never reaches a picture the test did not upload.
+      const rows: string[][] = [];
+      let rowTop = NaN;
+      for (const name of ours) {
+        const top = Math.round((await box(name)).y);
+        if (top === rowTop) rows[rows.length - 1].push(name);
+        else rows.push([name]);
+        rowTop = top;
+      }
+      const [first, second] = rows.length === 1 ? [ours.slice(0, 2), ours.slice(2)] : [rows[0], rows.slice(1).flat()];
+      expect(rows.length).toBeLessThanOrEqual(2);
+
+      // A sweep across pictures ticks them all — and opens no viewer.
+      await sweep(first[0], first[first.length - 1]);
+      await expect(page.locator(".pi-viewer, [data-testid='patient-image-viewer']")).toHaveCount(0);
+      await expect(selectionBar(page)).toContainText(`${first.length} ảnh đã chọn`);
+      for (const name of first) {
+        await expect(column.getByRole("button", { name: `Chọn ảnh ${name}` })).toHaveAttribute("aria-pressed", "true");
+      }
+
+      // A second sweep adds to what is ticked; it never drops the first ones.
+      await sweep(second[0], second[second.length - 1]);
+      await expect(selectionBar(page)).toContainText("4 ảnh đã chọn");
+      for (const name of ours) {
+        await expect(column.getByRole("button", { name: `Chọn ảnh ${name}` })).toHaveAttribute("aria-pressed", "true");
+      }
+
+      // A plain click still ticks (or unticks) one picture.
+      await column.getByRole("button", { name: `Chọn ảnh ${ours[3]}` }).click();
+      await expect(selectionBar(page)).toContainText("3 ảnh đã chọn");
+      const doomed = ours.slice(0, 3);
+
+      await selectionBar(page).getByRole("button", { name: "Xoá 3 ảnh" }).click();
+      const dialog = page.getByRole("dialog", { name: "Xoá 3 ảnh?" });
+      const deleted = page.waitForResponse(
+        (res) => res.request().method() === "POST" && new URL(res.url()).pathname === DELETE_MANY,
+      );
+      await dialog.getByRole("button", { name: "Xoá 3 ảnh" }).click();
+      const answer = await deleted;
+      expect(answer.status()).toBeLessThan(300);
+      const doomedIds = stored.filter((image) => doomed.includes(image.fileName)).map((image) => image.id);
+      expect([...(answer.request().postDataJSON() as { ids: string[] }).ids].sort()).toEqual([...doomedIds].sort());
+
+      // It is the database talking.
+      await page.reload();
+      await expect(cardOf(page, ours[3])).toBeVisible({ timeout: 15_000 });
+      for (const name of doomed) await expect(cardOf(page, name)).toHaveCount(0);
+      const left = await storedIds(page, patientId);
+      for (const doomedId of doomedIds) expect(left).not.toContain(doomedId);
+    } finally {
+      await removeLeftovers(page, patientId, stored);
+    }
+  });
+
   test("the server deletes all or none, refuses an empty list and another branch's account", async ({ page, browser }) => {
     await login(page);
     const patientId = await openImageTab(page);

@@ -16269,3 +16269,32 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Test "mẫu 6: 15mm margins…": MS sát lề phải (< 1px), thay cho phép đo 463px cũ.
 - Kiểm tra local (build production, preview riêng :8151, BE thật :5000 + PostgreSQL thật): 4 test xanh, gồm "print their MS", "mẫu 2: 15mm…", "mẫu 6: 15mm…", "mẫu 7: Word's…". `tsc -b` sạch.
 - Mức retest: 2 (chỉ bản in mẫu 2 và mẫu 6; CSS có scope `data-form="2"` / `data-form="6"`).
+
+## R-1322 — Hình ảnh: bôi để chọn nhiều ảnh (2026-11-25, mức 2: Bệnh nhân — tab Hình ảnh)
+
+- Nguồn: phòng khám 2026-11-25, "cho phép bôi để chọn nhiều ảnh nữa nha". User chốt theo đề xuất:
+  - bôi lại thì **cộng thêm** vào lựa chọn cũ (không thay);
+  - được bắt đầu kéo **ngay trên ảnh**, không chỉ chỗ trống.
+- Cách dùng: giữ chuột trái trong thân một cột rồi kéo. Khung bôi bắt mọi ảnh nó chạm vào ngay khi đang kéo, qua được nhiều ngày trong cùng cột.
+  - Mỗi lần chỉ chọn trong một cột, như R-1277: bôi ở cột khác thì lựa chọn bắt đầu lại ở cột đó.
+  - Kéo tới mép trên/dưới thì cột tự cuộn.
+  - Ảnh không xoá được thì bỏ qua. Chỉ người có quyền xoá mới bôi được.
+  - Muốn bỏ chọn một ảnh thì vẫn bấm vào ảnh hoặc dấu tick của nó.
+- Điều kiện để thành thao tác bôi:
+  - Chỉ áp dụng cho chuột. Ngón tay trên màn cảm ứng vẫn cuộn, còn nhấn giữ vẫn là cách chọn như cũ.
+  - Chuột đi chưa tới 6px thì vẫn tính là click, nên bấm ảnh vẫn mở trình xem. Click kết thúc một lần bôi bị chặn, nên không mở trình xem.
+  - Không bắt đầu bôi khi bấm vào nút ⋮⋮ sắp xếp, thùng rác, dấu tick hay ô "Chọn cả ngày".
+- Code (chỉ FE):
+  - `hooks/useMarqueeSelect.ts`: khung bôi chung, đo theo toạ độ nội dung của ô cuộn, tự cuộn ở mép (40px), chỉ báo khi tập ảnh bị bắt thay đổi.
+  - `hooks/usePatientImageMarquee.ts`: nối khung bôi với cột, cộng với lựa chọn có sẵn lúc bắt đầu kéo.
+  - `usePatientImageSelection.mark`: gán lựa chọn của cột đúng bằng một tập ảnh.
+  - Khung `.pi-marquee` nằm trong `.pi-stage-body`, giờ có `position: relative`. Vị trí khung truyền qua CSS custom property.
+- E2E `patient-image-select-delete.spec.ts`, test "R-1322: sweep a marquee…":
+  - Chỉ bôi dọc một hàng ảnh do test tự tải lên.
+  - Bôi lần 1 thì các ảnh đó được chọn và không mở trình xem. Bôi lần 2 thì cộng thêm, đủ 4 ảnh.
+  - Click bỏ 1 ảnh, xoá 3 ảnh, kiểm request `delete-many` đúng id, tải lại trang rồi kiểm DB.
+- Kiểm tra local (build production, preview riêng :8131, BE thật :5000 + PostgreSQL thật):
+  - `patient-image-select-delete.spec.ts` 3/3 xanh.
+  - `patient-image`, `patient-image-batch`, `patient-image-download`, `patient-image-capture` 15/15 xanh.
+  - `tsc -b` và eslint sạch.
+- Mức retest: 2 (chỉ tab Hình ảnh).

@@ -22,6 +22,8 @@ export interface PatientImageSelection {
   toggle: (stage: PatientImageType, image: PatientImageViewModel, ordered: PatientImageViewModel[], extend: boolean) => void;
   /** "Chọn cả ngày" / "Chọn tất cả", and their undoing. */
   setMany: (stage: PatientImageType, images: PatientImageViewModel[], on: boolean) => void;
+  /** "Bôi để chọn" (R-1322): the column's picks become exactly `images` (the deletable ones), in that order. */
+  mark: (stage: PatientImageType, images: PatientImageViewModel[]) => void;
   clear: () => void;
 }
 
@@ -75,6 +77,14 @@ export function usePatientImageSelection(): PatientImageSelection {
     });
   }, []);
 
+  const mark = useCallback<PatientImageSelection["mark"]>((stage, images) => {
+    setState((prev) => {
+      const picked = new Map(images.filter((each) => each.deletable).map((each) => [each.id, each]));
+      if (picked.size === 0) return null;
+      return { stage, picked, anchorId: prev?.stage === stage ? prev.anchorId : null };
+    });
+  }, []);
+
   const clear = useCallback(() => setState(null), []);
 
   return useMemo(
@@ -84,8 +94,9 @@ export function usePatientImageSelection(): PatientImageSelection {
       isPicked: (id: string) => state?.picked.has(id) ?? false,
       toggle,
       setMany,
+      mark,
       clear,
     }),
-    [state, toggle, setMany, clear],
+    [state, toggle, setMany, mark, clear],
   );
 }
