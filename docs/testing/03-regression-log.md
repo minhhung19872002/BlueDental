@@ -16222,3 +16222,19 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - E2E `prescription.spec.ts` test "In đơn thuốc…": Mã bệnh nhân trong `.rx-sheet-code`, không còn trong khối bệnh nhân, không có "Điều trị:", Giới tính là ô thứ 2, Địa chỉ phòng khám font-weight 700, Địa chỉ trống → 2 dòng chấm; đo: mép phải Mã đơn / Mã bệnh nhân / ĐVT = lề phải (< 1px), mọi dòng chấm ≤ lề, đáy "Khác" = đáy tên bác sĩ (< 1px), lời dặn bên trái chữ ký.
 - Kiểm tra local (build production, preview riêng :8117, BE thật :5000 + PostgreSQL thật): `prescription.spec.ts` 8/8 xanh; ảnh chụp đầu đơn + chân đơn khớp ảnh BA. `tsc -b` + eslint sạch. Vẫn 1 trang A4.
 - Mức retest: 2 (chỉ bản in Đơn thuốc).
+
+## R-1318 — Chi tiết điều trị: cột Phiếu Labo / Bảo hành chỉ hiện khi có dòng cần (2026-11-25, mức 2: Kế hoạch điều trị — bảng dịch vụ)
+
+- Nguồn: nhóm chat 2026-11-25 (anh Định hỏi 2 cột "Phiếu Labo" / "Bảo hành" trên bảng Chi tiết điều trị, vd. phiếu chỉ có trám răng thì không cần labo; AnTran chốt "ktra nào có labo thì hiện lên, ko có ẩn đi"). User chốt: (a) áp cho cả 2 cột; (b) khi cột đang hiện, dòng không có labo vẫn ghi "Không áp dụng" như hiện tại, cột Bảo hành vẫn "–"; (c) develop + cherry-pick main.
+- FE `plan-detail/`:
+  - `PlanLaboCell.tsx` `hasStandingLaboOrder(row)` — dòng có phiếu Labo chưa hủy.
+  - `PlanWarrantyChips.tsx` `hasWarrantyChip(row)` — dòng có chip Nha khoa hoặc Labo (warranty-overview khác None).
+  - `serviceColumns.tsx` `buildServiceColumns(actions, { warrantyOf, showLabo, showWarranty })` bỏ cột `labo` / `warranty` khi cờ tắt.
+  - `PlanServicesTab.tsx`: `showLabo` xét **mọi** dòng của phiếu (không chỉ trang đang xem); `showWarranty` từ warranty-overview (ẩn tới khi overview về). Thẻ điện thoại (`ServiceCardList`) bỏ dòng Phiếu Labo cùng quy tắc.
+  - Không đổi BE / DB / i18n. Nội dung ô khi cột hiện giữ nguyên (R-1121: phiếu chưa "Chờ kiểm tra" vẫn ô trống).
+- E2E:
+  - Mới `plan-detail-optional-columns.spec.ts`: phiếu riêng, 1 dòng DV LABO E2E (0 ngày BH, không labo) → 9 cột, không có Phiếu Labo / Bảo hành; thêm dòng DV BẢO HÀNH E2E (365 ngày) → có Bảo hành ("Nha khoa · Chưa đủ điều kiện", dòng kia "–"), vẫn không Phiếu Labo; gửi phiếu Labo cho dòng đầu → 11 cột đúng thứ tự cũ, dòng không labo ghi "Không áp dụng", dòng có labo có chip Labo.
+  - `treatment-plan-detail.spec.ts` test 1: tiêu đề cột không còn Phiếu Labo (phiếu mới không có labo); Bảo hành theo warranty-overview đọc từ chính response trang tải.
+  - `labo-workflow.spec.ts` "Hủy phiếu…": phiếu dùng chung nên sau khi hủy chỉ khẳng định dòng không còn `.pdt-labo`, và nếu cột còn hiện (dòng khác có labo) thì ô ghi "Không áp dụng".
+- Kiểm tra local (build production, preview riêng :8111, BE thật :5000 + PostgreSQL thật): spec mới 1/1 xanh; `treatment-plan-detail` + `labo-workflow` + `warranty-stage` + `plan-warranty-tab` 26 xanh, 2 skip sẵn có. `tsc -b` sạch.
+- Mức retest: 2 (chỉ bảng dịch vụ trang Chi tiết điều trị).

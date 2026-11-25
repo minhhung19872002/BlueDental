@@ -36,6 +36,15 @@ export interface ServiceRowActions {
   onLabo?: (orderId: string) => void;
 }
 
+export interface ServiceColumnOptions {
+  /** The line's row of the Bảo hành tab. */
+  warrantyOf: (lineId: string) => WarrantyServiceRowDto | undefined;
+  /** "Phiếu Labo" — some line on the slip has a Labo order still standing. */
+  showLabo: boolean;
+  /** "Bảo hành" — some line on the slip carries a Nha khoa or Labo chip. */
+  showWarranty: boolean;
+}
+
 /**
  * "Đổi trạng thái" on a row, its menu wired to {@link ServiceRowActions.onStatus};
  * only when the user may move lines and this one is still open. No "Chuyển đổi"
@@ -214,13 +223,14 @@ function LineActions({ row, actions }: { row: PlanDetailRow; actions: ServiceRow
 /**
  * The BA's nine columns (2026-10-15), Phiếu Labo after Trạng thái (P2910_03) and Bảo hành after it (P3110):
  * the reference's fifteen cut down, Chẩn đoán moved after Bác sĩ điều trị and the status pulled out of the name
- * cell. No drag grip — the order is the slip's. `warrantyOf` reads the line's row of the Bảo hành tab.
+ * cell. No drag grip — the order is the slip's. Phiếu Labo and Bảo hành come only when some line on the slip
+ * fills them (BA 2026-11-25, R-1318): a slip of fillings alone has neither.
  */
 export function buildServiceColumns(
   actions: ServiceRowActions,
-  warrantyOf: (lineId: string) => WarrantyServiceRowDto | undefined = () => undefined,
+  { warrantyOf, showLabo, showWarranty }: ServiceColumnOptions,
 ): TableColumnsType<PlanDetailRow> {
-  return [
+  const columns: TableColumnsType<PlanDetailRow> = [
     column("service", t("Treatment:Service:Service"), 240, (row) => <ServiceNameCell row={row} />),
     column("dentist", t("Treatment:PlanDetail:Col:Dentist"), 160, dentistOf),
     column("diagnosis", t("Treatment:PlanDetail:Col:Diagnosis"), 180, diagnosisOf),
@@ -243,4 +253,5 @@ export function buildServiceColumns(
       fixed: "right",
     }),
   ];
+  return columns.filter((col) => (col.key !== "labo" || showLabo) && (col.key !== "warranty" || showWarranty));
 }

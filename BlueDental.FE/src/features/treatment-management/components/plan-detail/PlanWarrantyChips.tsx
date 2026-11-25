@@ -27,6 +27,11 @@ function Chip({ kind, state }: { kind: "dental" | "labo"; state: WarrantyCellSta
   );
 }
 
+/** Whether the line carries a Nha khoa or Labo chip — the slip shows "Bảo hành" only when one does (R-1318). */
+export function hasWarrantyChip(row: WarrantyServiceRowDto): boolean {
+  return row.dental !== WARRANTY_CELL.None || row.labo !== WARRANTY_CELL.None;
+}
+
 /**
  * "Bảo hành" on the slip's service table (P3110 REQ-A10, m390): up to two
  * chips — Nha khoa, and Labo only on a line with a Labo order — in the Bảo

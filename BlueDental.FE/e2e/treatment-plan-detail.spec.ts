@@ -195,6 +195,9 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     const slip = page.waitForResponse(
       (res) => res.url().includes(`${PLANS_API}/`) && res.request().method() === "GET",
     );
+    const warrantyOverview = page.waitForResponse(
+      (res) => res.url().includes("/warranty-overview") && res.request().method() === "GET",
+    );
     await page.locator(".tp-table .tp-code", { hasText: planCode }).click();
     await expect(page).toHaveURL(DETAIL_URL);
     expect((await slip).ok()).toBeTruthy();
@@ -263,6 +266,11 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
     await expect(toolbar.getByRole("button", { name: "Thêm công đoạn" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Tạo Đơn Thuốc" })).toBeVisible();
     await expect(page.getByRole("button", { name: "In Hóa Đơn" })).toBeVisible();
+    // R-1318 (BA 2026-11-25): Phiếu Labo (F-85) and Bảo hành (F-86) only when a
+    // line on the slip fills them. The fresh line has no Labo order, so no Phiếu
+    // Labo; Bảo hành follows the service's warranty days as the server reads them.
+    const overview = (await (await warrantyOverview).json()) as { rows: { dental: number; labo: number }[] };
+    const hasWarranty = overview.rows.some((row) => row.dental !== 0 || row.labo !== 0);
     const headers = await page.locator(".pdt-table thead th").allInnerTexts();
     expect(headers.map((h) => h.trim())).toEqual([
       "Dịch vụ",
@@ -270,10 +278,7 @@ test.describe("Chi tiết kế hoạch điều trị", () => {
       "Chẩn đoán",
       "Răng",
       "Trạng thái",
-      // F-85 (P2910_03): the Labo order of each line, "Không áp dụng" when none.
-      "Phiếu Labo",
-      // F-86 (P3110 REQ-A10): the line's warranty chips, "–" when none.
-      "Bảo hành",
+      ...(hasWarranty ? ["Bảo hành"] : []),
       "Đơn giá",
       "Giảm giá",
       "Thành tiền",
