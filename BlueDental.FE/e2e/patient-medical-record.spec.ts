@@ -2091,9 +2091,13 @@ test.describe("Bệnh án", () => {
       const tpl = document.locator(".nfc-tpl");
       expect(await tpl.evaluate((node) => getComputedStyle(node).fontSize), `${form} · type`).toBe(size);
 
+      // Mẫu 1's first box is the cover's Nam, drawn as HC-01's 18px ⬜ (R-1316); its page 3 keeps 12px.
       const box = document.locator(".nfc-medical-record-checkbox").first();
       if ((await box.count()) > 0) {
-        expect((await box.boundingBox())?.width, `${form} · box`).toBeCloseTo(12, 0);
+        expect((await box.boundingBox())?.width, `${form} · box`).toBeCloseTo(FORM_NUMBER[form] === 1 ? 18 : 12, 0);
+      }
+      if (FORM_NUMBER[form] === 1) {
+        expect((await document.locator('[data-medical-record-field="cover.checkbox.1"]').boundingBox())?.width, `${form} · page 3 box`).toBeCloseTo(12, 0);
       }
 
       const weight = await document
