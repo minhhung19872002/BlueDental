@@ -5,7 +5,7 @@ import { FloatingField } from "@/components/FloatingField";
 import { t } from "@/lib/i18n";
 import { DISCOUNT_TYPE, type PatientAdviseDto } from "../../api/consultingApi";
 import { withAdviseService } from "./adviseEditing";
-import { isPricingLocked, lineAdvisors, lineServiceOption, type LineEditTarget } from "./lineEditing";
+import { isPricingLocked, isQuantityLocked, lineAdvisors, lineServiceOption, type LineEditTarget } from "./lineEditing";
 import { PlanAdvisorFields } from "./PlanAdvisorFields";
 import { PlanPricingFields } from "./PlanPricingFields";
 import { PlanServicePicker, sellingPrice } from "./PlanServicePicker";
@@ -196,6 +196,7 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
             totals={totals}
             originalPrice={state.selectedService ? sellingPrice(state.selectedService) : 0}
             locked={Boolean(lineService && isPricingLocked(lineService))}
+            quantityLocked={Boolean(lineService && isQuantityLocked(lineService))}
           />
         </div>
       </Form>
@@ -203,7 +204,6 @@ export function CreatePlanDialog({ open, patientId, branchId, advise, quote, pla
       <ToothPickerDialog
         open={state.toothPickerOpen}
         value={teeth}
-        lockedTeeth={lineService?.stagedTeeth}
         onConfirm={(next) => {
           state.setTeeth(next);
           state.setToothPickerOpen(false);

@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { BRANCH2_USER, assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { clinicToday } from "./fixtures/laboApi";
+import { PAYMENTS_API, settleReceipt } from "./fixtures/ledgerReceipt";
 import { openStageDialog, reopenStageDialog, stagePanel } from "./fixtures/stageDialog";
 
 /**
@@ -738,7 +739,9 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
   // The row's pencil stays but no longer edits inline (R-957); its edit
   // dialog comes in a task of its own. Until then the server's guards are
   // checked directly.
-  test("a line in treatment keeps its price and its staged teeth", async ({
+  // R-1314 (BA 2026-11-25): the staged teeth no longer stay — a line in
+  // treatment may drop a tooth a công đoạn holds; only its price is kept.
+  test("a line in treatment keeps its price, but its staged teeth move", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1800, height: 950 });
@@ -754,15 +757,17 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     // Put 11 to work: the line is now in treatment.
     await stageOn(page, line, [11], false);
 
-    // The server holds the same line.
+    // The server lets the staged 11 go; the công đoạn keeps it.
     const dropped = await call(page, "PUT", `/api/v1/app/patient-treatments/${line.planId}/services/${line.lineId}`, {
       price: line.price,
       quantity: 1,
       teeth: [{ toothCode: 12, selected: true, top: false, right: false, bottom: false, left: false, center: false }],
       diagnosisId: null,
     });
-    expect(dropped.status).not.toBe(200);
-    expect(dropped.text).toContain("BlueDental:Treatment:0039");
+    expect(dropped.status, dropped.text).toBe(200);
+    await page.reload();
+    await expect(row.locator("td").nth(3)).toHaveText("12", { timeout: 20_000 });
+
     const repriced = await call(page, "PUT", `/api/v1/app/patient-treatments/${line.planId}/services/${line.lineId}`, {
       price: 1,
       quantity: 2,
@@ -774,6 +779,109 @@ test.describe("Chi tiết phiếu — công đoạn theo răng, tiếp tục và
     });
     expect(repriced.status).not.toBe(200);
     expect(repriced.text).toContain("BlueDental:Treatment:0038");
+  });
+
+  // R-1314, the BA's own case: "Niềng răng" on Hai hàm, in treatment on the
+  // whole mouth and already paid on. The pencil stays; the dialog locks Đơn
+  // giá, Số lượng and Giảm giá so the amount cannot move (BA: "số lượng vẫn giữ
+  // nguyên để không làm thay đổi số tiền"), and the jaw changes to Hàm trên.
+  test("a paid line in treatment on Hai hàm moves to Hàm trên, its money locked (R-1314)", async ({ page }) => {
+    await page.setViewportSize({ width: 1800, height: 950 });
+    const upper = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
+    const lower = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
+    const [line] = await freshLines(page, [{ teeth: [...upper, ...lower].map((code) => ({ code })) }]);
+    const lineUrl = `/api/v1/app/patient-treatments/${line.planId}/services/${line.lineId}`;
+    const PAID = 100_000;
+
+    await stageOn(page, line, [...upper, ...lower], false);
+    const receipt = await call(page, "POST", PAYMENTS_API, {
+      patientId: line.patientId,
+      clinicBranchId: line.branchId,
+      treatmentPlanId: line.planId,
+      treatmentServiceIds: [line.lineId],
+      kind: 1,
+      method: 1,
+      amount: PAID,
+      staffId: await staffId(page),
+    });
+    expect(receipt.status, receipt.text).toBe(200);
+    const receiptId = (receipt.json as { id: string }).id;
+    await settleReceipt(page, { id: receiptId, clinicBranchId: line.branchId });
+
+    type SavedLine = { id: string; price: number; quantity: number; paidAmount: number; effectiveAmount: number; teeth: { toothCode: number }[] };
+    const readLine = async () => {
+      const slip = await call(page, "GET", `/api/v1/app/patient-treatments/${line.planId}`);
+      return (slip.json as { services: SavedLine[] }).services.find((item) => item.id === line.lineId)!;
+    };
+    try {
+      const before = await readLine();
+      expect(before.paidAmount).toBe(PAID);
+      expect(before.quantity).toBe(32);
+
+      // The server holds the money still: neither the quantity nor the price may move (Treatment:0069).
+      const teethDto = (codes: number[]) =>
+        codes.map((code) => ({ toothCode: code, selected: true, top: false, right: false, bottom: false, left: false, center: false }));
+      for (const change of [{ quantity: 16 }, { price: line.price - 1 }]) {
+        const refused = await call(page, "PUT", lineUrl, {
+          price: line.price,
+          quantity: 32,
+          teeth: teethDto(upper),
+          diagnosisId: null,
+          ...change,
+        });
+        expect(refused.status, JSON.stringify(change)).not.toBe(200);
+        expect(refused.text).toContain("BlueDental:Treatment:0069");
+      }
+
+      await page.goto(`/patient/${line.patientId}/treatment-plan/${line.planId}?branchId=${line.branchId}`);
+      const row = page.locator(`.pdt-table tbody tr[data-row-key="${line.lineId}"]`);
+      await expect(row).toBeVisible({ timeout: 20_000 });
+      await expect(row.locator("td").nth(3)).toHaveText("Hai hàm");
+      await row.getByRole("button", { name: "Chỉnh sửa" }).click();
+
+      const dialog = page.getByRole("dialog", { name: "Chỉnh sửa dịch vụ" });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByLabel("Số lượng")).toHaveValue("32");
+      await expect(dialog.getByLabel("Số lượng")).toBeDisabled();
+      await expect(dialog.getByLabel("Đơn giá")).toBeDisabled();
+      await expect(dialog.getByRole("textbox", { name: "Giảm giá" })).toBeDisabled();
+      await expect(dialog.locator(".tp-create-teeth")).toContainText("Hai hàm");
+
+      // Every tooth is staged, yet the jaw changes freely.
+      await dialog.getByRole("button", { name: "Chọn răng" }).click();
+      const picker = page.locator(".tp-teeth-dialog");
+      await expect(picker).toBeVisible();
+      await expect(picker.locator(".tp-teeth-locked")).toHaveCount(0);
+      await picker.getByRole("tab", { name: "Hàm Trên" }).click();
+      await picker.locator(".tp-teeth-foot").getByRole("button", { name: "Chọn răng" }).click();
+      await expect(picker).toBeHidden();
+      await expect(dialog.locator(".tp-create-teeth")).toContainText("Hàm trên");
+
+      // The advisor stays open on a paid line too (a fresh line has none, and the form asks for one).
+      await dialog.getByRole("combobox", { name: /Bác sĩ tư vấn(?! 2)/ }).click();
+      const advisor = page
+        .locator(".ant-select-dropdown:not(.ant-select-dropdown-hidden) .ant-select-item-option")
+        .first();
+      await expect(advisor).toBeVisible();
+      await advisor.click();
+
+      const saved = page.waitForResponse((res) => res.url().endsWith(lineUrl) && res.request().method() === "PUT");
+      await dialog.getByRole("button", { name: "Lưu" }).click();
+      expect((await saved).status()).toBe(200);
+      await expect(dialog).toBeHidden();
+
+      // Persisted, read back by a separate request and after a reload; Đã thu and the amount untouched.
+      const after = await readLine();
+      expect(after.teeth.map((tooth) => tooth.toothCode).sort((a, b) => a - b)).toEqual([...upper].sort((a, b) => a - b));
+      expect(after.quantity).toBe(before.quantity);
+      expect(after.price).toBe(before.price);
+      expect(after.effectiveAmount).toBe(before.effectiveAmount);
+      expect(after.paidAmount).toBe(PAID);
+      await page.reload();
+      await expect(row.locator("td").nth(3)).toHaveText("Hàm trên", { timeout: 20_000 });
+    } finally {
+      await call(page, "POST", `${PAYMENTS_API}/${receiptId}/cancel`, { reasonCode: 4, reason: "e2e cleanup" });
+    }
   });
 
   test("another branch may not continue a công đoạn it cannot see", async ({ page, browser }) => {

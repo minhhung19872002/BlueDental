@@ -377,9 +377,6 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             .GetValueOrDefault(line.Id, LineSettlement.None);
         var paidOnLine = settled.Cash + settled.Relief;
 
-        var stageQuery = await _stageRepository.GetQueryableAsync();
-        var lineStages = stageQuery.Where(s => s.TreatmentServiceId == line.Id).ToList();
-        var staged = _teethPolicy.CoveredTeeth(line.Teeth, lineStages);
         var before = await LineDiscountAsync(line);
         var slipBefore = PlanDiscountOf(plan);
 
@@ -389,7 +386,6 @@ public class PatientTreatmentAppService : BlueDentalAppService, IPatientTreatmen
             PatientDiagnosisAppService.ToToothSelections(input.Teeth),
             input.DiagnosisId,
             paidOnLine,
-            staged,
             input.DiscountType is { } discountType
                 ? (discountType, input.DiscountValue ?? 0m)
                 : null);

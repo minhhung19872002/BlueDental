@@ -83,19 +83,20 @@ export function isLineRestorable(row: PlanDetailRow): boolean {
 }
 
 /**
- * Whether the line carries the pencil — staging's own rule, read off its
- * column builder 2026-09-24: not done, cancelled or converted, and nothing
- * paid on it yet. Never on a line whose money is masked (BA bug 40): its
- * amounts arrive as 0, so "nothing paid" cannot be told and the dialog would
- * save 0 as the price.
+ * Whether the line carries the pencil: not done, cancelled or converted.
+ * Staging also hid it once anything was paid on the line (column builder,
+ * 2026-09-24); the BA lifted that (R-1314) — a paid line opens with its price,
+ * quantity and discount locked, so only its teeth, note and advisors move.
+ * Never on a line whose money is masked (BA bug 40): its amounts arrive as 0,
+ * so "paid" cannot be told and the dialog would save 0 as the price.
  */
 export function isLineEditable(row: PlanDetailRow): boolean {
-  const { status, paidAmount, moneyHidden } = row.service;
+  const { status, moneyHidden } = row.service;
   const closed =
     status === SERVICE_LINE_STATUS.Done ||
     status === SERVICE_LINE_STATUS.Cancelled ||
     status === SERVICE_LINE_STATUS.Replaced;
-  return !closed && !moneyHidden && paidAmount <= 0;
+  return !closed && !moneyHidden;
 }
 
 type Column = TableColumnsType<PlanDetailRow>[number];
