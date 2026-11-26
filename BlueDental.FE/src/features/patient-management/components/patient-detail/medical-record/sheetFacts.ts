@@ -1,7 +1,6 @@
 import dayjs from "dayjs";
 import type {
   SheetFactsDto,
-  SheetFactsPlanDto,
   SheetFactsServiceDto,
   SheetFactsVisitDto,
 } from "../../../api/medicalRecordSetApi";
@@ -35,16 +34,6 @@ const CONSENT_DIAGNOSIS_LINES = ["consultation.text.5", "consultation.text.6"];
 
 /** Bệnh án chỉnh nha, IX. Kế hoạch điều trị: the seven lines under "Loại mắc cài". */
 const ORTHODONTIC_PLAN_LINES = Array.from({ length: 7 }, (_, at) => `orthodontic.text.${105 + at}`);
-
-/** Mẫu 10, "- Kế hoạch điều trị:": the blank after the label and the four lines under it. */
-const CONTRACT_PLAN_LINES = Array.from({ length: 5 }, (_, at) => `orthodontic-contract.text.${11 + at}`);
-
-/** Mẫu 10, II. Chi phí niềng răng: Chi phí ban đầu, Giảm giá, Chi phí sau giảm giá. */
-const CONTRACT_COST = {
-  gross: "orthodontic-contract.text.25",
-  discount: "orthodontic-contract.text.26",
-  total: "orthodontic-contract.text.27",
-} as const;
 
 const TRACKING_ROW = (row: number, cell: string) => `treatment-tracking.page-1.row-${row}.${cell}`;
 
@@ -152,24 +141,6 @@ function planLines(facts: SheetFactsDto, teeth: TeethLabel): string[] {
 function orthodonticValues(facts: SheetFactsDto, values: FieldValues, teeth: TeethLabel) {
   putLines(values, ORTHODONTIC_PLAN_LINES, planLines(facts, teeth));
   put(values, "orthodontic.text.112", facts.plans[0]?.dentistName);
-}
-
-/**
- * Hợp đồng thỏa thuận niềng răng (mẫu 10): "- Kế hoạch điều trị" as mẫu 3's IX
- * lists it, and II. Chi phí as the slips' own totals on Kế hoạch điều trị,
- * added up over the set — "45.000.000đ", as the contract writes its fees.
- * Once the set has a mẫu 3, the plan lines are read off that sheet instead
- * (contractFromOrthodontic, R-1097).
- */
-function orthodonticContractValues(facts: SheetFactsDto, values: FieldValues, formats: SheetFactFormats) {
-  putLines(values, CONTRACT_PLAN_LINES, planLines(facts, formats.teeth));
-  if (facts.plans.length === 0) return;
-
-  const sum = (amount: (plan: SheetFactsPlanDto) => number) =>
-    facts.plans.reduce((total, plan) => total + amount(plan), 0);
-  put(values, CONTRACT_COST.gross, `${formats.money(sum((plan) => plan.grossAmount))}đ`);
-  put(values, CONTRACT_COST.discount, `${formats.money(sum((plan) => plan.discountAmount))}đ`);
-  put(values, CONTRACT_COST.total, `${formats.money(sum((plan) => plan.totalAmount))}đ`);
 }
 
 /**
@@ -308,6 +279,8 @@ export function sheetFactFieldValues(facts: SheetFactsDto | undefined, formats: 
   generalConsultationValues(facts, values);
   treatmentConsentValues(facts, values, formats);
   treatmentTrackingValues(facts, values, formats.teeth);
-  orthodonticContractValues(facts, values, formats);
+  // Hợp đồng thỏa thuận niềng răng (mẫu 10) takes nothing from the slips: it
+  // is for braces alone, and the slips carry every other service too — its
+  // Kế hoạch điều trị and II. Chi phí are written by hand (BA, 2026-11-26, R-1324).
   return values;
 }

@@ -12,8 +12,9 @@ import {
 
 /**
  * Feature: Hợp đồng thỏa thuận niềng răng (mẫu 10) filled from Bệnh án chỉnh
- * nha (mẫu 3) of the same set (BA, 2026-11-01, R-1097) — Chẩn đoán, Nhổ răng,
- * Kế hoạch điều trị, Thời gian điều trị dự kiến and the new Loại mắc cài row.
+ * nha (mẫu 3) of the same set (BA, 2026-11-01, R-1097) — Nhổ răng, Thời gian
+ * điều trị dự kiến and the new Loại mắc cài row. Chẩn đoán and Kế hoạch điều
+ * trị are not taken (BA, 2026-11-26, R-1324): the contract is for braces alone.
  * One way only; what is typed on mẫu 10 wins; the newest mẫu 3 not cancelled.
  *
  * Real stack: a patient of the run's own with one treatment slip and a set
@@ -70,7 +71,7 @@ test.describe("Bệnh án — mẫu 10 filled from mẫu 3 of the set (R-1097)",
     patient = await seedPatientWithSlips(page, 1);
   });
 
-  test("mẫu 3's diagnosis, extraction, plan, time and bracket reach mẫu 10; mẫu 10's own writing wins; a cancelled mẫu 3 gives way", async ({
+  test("mẫu 3's extraction, time and bracket reach mẫu 10, its diagnosis and plan do not; mẫu 10's own writing wins; a cancelled mẫu 3 gives way", async ({
     page,
   }) => {
     const made = await call<{ id: string }>(page, SETS_API, {
@@ -94,15 +95,15 @@ test.describe("Bệnh án — mẫu 10 filled from mẫu 3 of the set (R-1097)",
     await write(page, "orthodontic.text.101", "45");
     await save(page);
 
-    // Mẫu 10, without a reload: every one of them, in its own blank.
+    // Mẫu 10, without a reload: each one in its own blank — but not Chẩn đoán
+    // nor Kế hoạch điều trị, which hold more than braces and are left for the pen (R-1324).
     await addSheet(page, CONTRACT);
     await openNewest(page, CONTRACT);
-    await expect(blank(page, "orthodontic-contract.text.7")).toContainText(patient.diagnosisName);
-    await expect(blank(page, "orthodontic-contract.text.8")).toHaveText("Hạng II xương");
-    await expect(blank(page, "orthodontic-contract.text.9")).toHaveText("Chen chúc răng cửa dưới");
-    await expect(blank(page, "custom.line.orthodontic-contract.text.9.1")).toHaveText("Cắn sâu");
+    for (const line of [7, 8, 9, 11, 12]) await expect(blank(page, `orthodontic-contract.text.${line}`)).toHaveText("");
+    await expect(blank(page, "custom.line.orthodontic-contract.text.9.1")).toHaveCount(0);
+    await expect(sheet(page).locator("body")).not.toContainText(patient.diagnosisName);
+    await expect(sheet(page).locator("body")).not.toContainText("Hạng II xương");
     await expect(blank(page, "orthodontic-contract.text.10")).toHaveText("14, 24");
-    await expect(blank(page, "orthodontic-contract.text.11")).toContainText("Răng 12 - ");
     await expect(blank(page, "orthodontic-contract.text.19")).toHaveText("24 tháng");
     // Loại mắc cài: Kim loại tự động ticked at 45 triệu, the other three untouched.
     await expect(blank(page, "orthodontic-contract.checkbox.2")).toBeChecked();
@@ -147,7 +148,6 @@ test.describe("Bệnh án — mẫu 10 filled from mẫu 3 of the set (R-1097)",
     await save(page);
     await openNewest(page, CONTRACT);
     await expect(blank(page, "orthodontic-contract.text.10")).toHaveText("15, 25");
-    await expect(blank(page, "orthodontic-contract.text.8")).toHaveText("");
 
     // Cancelled, it gives way to the older one again.
     const sheets = await call<{ items: { id: string; form: number; creationTime: string; cancelledAt: string | null }[] }>(
@@ -164,7 +164,7 @@ test.describe("Bệnh án — mẫu 10 filled from mẫu 3 of the set (R-1097)",
     await openBenhAn(page, patient.id);
     await openNewest(page, CONTRACT);
     await expect(blank(page, "orthodontic-contract.text.10")).toHaveText("14, 24");
-    await expect(blank(page, "orthodontic-contract.text.8")).toHaveText("Hạng II xương");
+    await expect(blank(page, "orthodontic-contract.text.8")).toHaveText("");
 
     // Mẫu 3 itself was never written back to.
     await openNewest(page, ORTHODONTIC);

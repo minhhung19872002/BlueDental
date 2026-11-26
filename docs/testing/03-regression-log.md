@@ -16331,3 +16331,31 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Chưa xử lý (cần đổi bố cục, đã hỏi user): mẫu 2 TỔNG KẾT "Họ tên" (Người giao hồ sơ / Bác sỹ điều trị / Người nhận hồ sơ, text.98/102/107) nằm trong cột 189px sau nhãn "Họ tên" nên tên dài vẫn xuống dòng. Cột chữ ký theo từng dòng của mẫu 8/9 cũng hẹp, vẫn gãy trong ô.
 - Mức retest: 2 (mọi mẫu bệnh án dùng chung `capBlanksToLines`; dòng căn trái không đổi).
 - Số R-1324 đang được session khác giữ (Hợp đồng chỉnh nha bỏ Chẩn đoán / Kế hoạch điều trị), nên mục này lấy R-1325.
+
+## R-1324 — Bệnh án mẫu 10 Hợp đồng niềng răng: bỏ tự điền Chẩn đoán / Kế hoạch điều trị / Chi phí (2026-11-26, mức 2: Bệnh nhân — tab Bệnh án)
+
+- Nguồn: BA 2026-11-26 (ảnh chat, mẫu 10): "bỏ auto fill đi, do này hợp đồng niềng răng nên chỉ dv niềng thôi" — Chẩn đoán và II. Chi phí kéo mọi chẩn đoán / mọi dịch vụ của bệnh nhân (nhổ răng khôn, viêm quanh cuống…), không chỉ dịch vụ niềng.
+- User chốt (5 điểm):
+  1. bỏ hẳn tự điền, để trống cho gõ tay — không lọc theo dịch vụ niềng;
+  2. bỏ luôn tự điền "- Kế hoạch điều trị";
+  3. vẫn chép từ mẫu 3 cùng bộ: Nhổ răng, Thời gian điều trị dự kiến, Loại mắc cài (ô tick + giá). Không chép Chẩn đoán (VIII) và Kế hoạch điều trị (IX) của mẫu 3 nữa;
+  4. hợp đồng đã lưu chỉ giữ chữ người dùng tự gõ. Đã kiểm: bản lưu chỉ chứa giá trị khác bản tự điền, nên không có chữ tự điền nào bị "đóng băng";
+  5. develop rồi cherry-pick main.
+- FE:
+  - `fieldValues.ts`: bỏ `orthodontic-contract.text.7` khỏi `DIAGNOSIS_FIELDS`.
+  - `sheetFacts.ts`: bỏ `orthodonticContractValues` (Kế hoạch từ các phiếu R-1094 + Chi phí ban đầu / Giảm giá / Chi phí sau giảm giá).
+  - `contractFromOrthodontic.ts`: chỉ còn `SAME_BLANK` (95→10, mắc cài 61-64→1-4, giá 100-103→34-37) + Thời gian 99→19.
+  - BE không đổi: sheet facts vẫn gửi `grossAmount` / `discountAmount` / `totalAmount`, FE hợp đồng không dùng nữa.
+- E2E thật:
+  - `medical-record-contract-from-orthodontic.spec.ts`: kiểm mẫu 3 có chẩn đoán + 3 dòng gõ tay mà mẫu 10 vẫn trống ô 7/8/9/11/12, không thêm dòng `text.9.n`. Nhổ răng / Thời gian / Loại mắc cài vẫn sang.
+  - `medical-record-sheet-facts.spec.ts`: mẫu 10 ô 7, 11-13, 25-27 trống, không có "Răng 12 - " / "Phiếu điều trị".
+  - `patient-medical-record.spec.ts`: "address and diagnoses reach every form" đổi kỳ vọng `orthodontic-contract.text.7` thành "".
+- Kiểm tra local (build production, preview riêng :8098, BE thật :5000 + PostgreSQL thật, không chặn request):
+  - contract-from-orthodontic + sheet-facts 4/4 xanh.
+  - party-a + patient-medical-record + medical-record-set: mọi ca liên quan xanh.
+  - 3 đỏ có sẵn, giống hệt trên build HEAD 844a419b sạch (:8092):
+    - "every form shares mẫu 5's … letterhead and print rules" và "mẫu 10: a page filled to its foot prints no blank page": cùng lỗi Phiếu phẫu thuật/thủ thuật in 2 trang ≠ 1;
+    - "picking the day prints it on the sheet, and it survives a reload": consultation.text.4.
+  - Bỏ riêng phần Phiếu phẫu thuật thì 2 ca mẫu 10 xanh: hợp đồng 7 trang, ô chấm trống kéo tới lề phải.
+  - `tsc` + eslint sạch.
+- Mức retest: 2 (chỉ mẫu 10. `DIAGNOSIS_FIELDS` / `sheetFactFieldValues` dùng chung, nhưng chỉ gỡ khoá của mẫu 10; mẫu 3 vẫn dùng `planLines` / `putLines`).
