@@ -609,6 +609,20 @@
   border-radius: 16px;
   box-shadow: 0 2px 6px rgba(27, 42, 65, 0.06);
 }
+/* Bác sĩ phụ trách and Nội dung read in bold and one size up, the Trạng thái
+   pill too (R-1329). Body cells only — the header row keeps its own weight. */
+.pd-appointment-tab .ant-table-tbody > tr > td.pd-appt-strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bd-ink);
+}
+.pd-appointment-tab .ant-table-tbody > tr > td.pd-appt-status .ant-tag {
+  padding: 3px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  border-radius: 8px;
+}
 /* Ghi chú, edited in its cell (R-1063): the text with its line breaks kept,
    the pencil at the right; editing swaps both for the box and its two buttons. */
 .pd-appt-note {
