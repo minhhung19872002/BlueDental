@@ -240,7 +240,7 @@
     page: consent-form;
   }
 
-  /* Mẫu 10: 20mm above and below, 17.5mm left, 10mm right (R-1299). */
+  /* Mẫu 10: 18mm above and below, 22mm left, 20mm right (R-1327). */
   html:has(.mr-print-copy > .nfc-tpl:last-child[data-form="10"]) {
     page: orthodontic-contract;
   }

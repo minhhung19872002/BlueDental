@@ -102,45 +102,93 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl[data-form="2"]{font-size:16px}
 /* 14px from the clinic's own copy, inside 15mm margins (R-1073). */
 .nfc-tpl[data-form="7"]{font-size:14px}
-/* Mẫu 10, the clinic's contract, at the BA's Word sizes (R-1299, 2026-11-23):
-   Times New Roman 13pt on Word's lines a line and a half apart (1.725), no
-   space between paragraphs; the national heading 14pt, an 8pt line under it,
-   both titles 15pt, the section heads at the body's size; 20mm above and
-   below, 17.5mm left, 10mm right (@page orthodontic-contract); a paragraph
-   runs on over a page as in Word. Still as the clinic's own copy
-   (docs/mau10-mac-cai.html, 2026-11-21): each label and its blank on one
-   line, the dotted blank stretching to the right margin; Bên A's company in
-   bold; "Loại mắc cài" a label line over two rows of two choices lined up;
-   plain Times New Roman, not the letters an eighth larger (R-1264) Word has not.
-   Word sets a line's extra space under its text, CSS half of it above: the
-   first line and the agreement's title (at the top of a page, after the <hr>)
-   are lifted by it. Word wraps "… MẮC CÀI" that CSS fits by 0.4px, hence 1px
-   less room on that heading. The signature columns centre where Word's
-   table cells do, 7.5px further apart than half the line each.
-   In SHEET_CSS, so the print copy draws it too. */
+/* Mẫu 10, the clinic's contract, as docs/Hợp Đồng thỏa thuận niềng răng (1).docx
+   (2026-11-26, R-1327): only how it is set — every word, blank and box stays.
+   Times New Roman 13pt; 18mm above and below, 22mm left, 20mm right
+   (@page orthodontic-contract). Word's lines, Times New Roman's single line
+   being 1.15 of the size: the contract on 1.3 lines (1.495), the agreement
+   single (1.15) to item 16, then Word's Normal 1.08 lines (1.241) from item 17
+   to "4. Mỗi lần hẹn…", then 1.3 lines again from "5. Nha khoa…". The space
+   after each paragraph is Word's own: 4pt (5.333px) mostly, 3pt (4px) under
+   Bên B's lines, the dotted lines that close a block, the agreement's items 1–16
+   and the customer's lines under III; the section heads 7pt above and 5pt
+   below, as padding so it adds to the line before's as in Word. The national
+   heading 14pt with 2pt between its lines and 14pt under, the contract's title
+   15pt with 16pt under, the agreement's title 15pt, flush left as in Word, 8pt
+   under. Word draws "SỰ ĐỒNG Ý …" at 90% width and item 19 at 95%, each on one
+   line: tighter letter spacing here, the same width. Word sets a line's extra
+   space under its text, CSS half of it above: the first line on each page
+   start is raised by that half, and where the line spacing changes the next
+   paragraph makes up the difference. One page break only, before the
+   agreement, as the .docx's own; everything else runs on (R-1266). Word's
+   widow control moves item 17 whole to the next page where Chrome, at
+   widows 2, left its last line alone at the top (Chrome keeps orphans here,
+   not widows): orphans and widows 3 on the agreement give Word's pages,
+   measured against the .docx with its other breaks taken out. The signatures where Word puts them:
+   ĐẠI DIỆN CÔNG TY centred 174px in, KHÁCH HÀNG 482px in, the name 104.5px in
+   and 117px under its heading. Bold only where Word is: the headings,
+   "Lưu ý:", "Trách nhiệm của bên A/B", the signatures — "Bên A:", its company
+   and "Bên B: Khách hàng" plain (the <strong> stays in the form, drawn 400).
+   On paper the contract is flush left and the agreement justified up to
+   "4. Mỗi lần hẹn…", as Word, not R-1307's justify for every form. Still:
+   each label and its blank on one line, the dotted blank to the right margin;
+   "Loại mắc cài" a label line over two rows of two choices; plain Times New
+   Roman, not the letters an eighth larger (R-1264). In SHEET_CSS, so the print
+   copy draws it too. */
 .nfc-tpl[data-form="10"]{--nfc-letter-height:none;font-size:17.333px}
-.nfc-tpl.nfc-tpl[data-form="10"] :is(p,h1,h2){line-height:1.725!important;margin:0}
-.nfc-tpl.nfc-tpl[data-form="10"]>h1{font-size:20px}
-.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child{margin-top:-5px}
-.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child>span{font-size:18.667px!important}
-.nfc-tpl.nfc-tpl[data-form="10"]>h1>span{font-size:20px!important}
-.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child+h1{margin-top:18.4px}
-.nfc-tpl.nfc-tpl[data-form="10"]>h1+p{margin-top:1.3px}
-.nfc-tpl.nfc-tpl[data-form="10"]>hr+h1{margin-top:-5.7px}
-.nfc-tpl.nfc-tpl[data-form="10"]>h2:nth-of-type(5){padding-right:1px}
-.nfc-tpl.nfc-tpl[data-form="10"]>h2{font-size:17.333px}
+.nfc-tpl.nfc-tpl[data-form="10"] :is(p,h1,h2){line-height:1.495!important;margin:0}
+.nfc-tpl.nfc-tpl[data-form="10"]>:is(p,h1,h2){margin:0 0 5.333px}
 .nfc-tpl.nfc-tpl[data-form="10"]>:is(p,h2){break-inside:auto;page-break-inside:auto;orphans:2;widows:2}
-.nfc-tpl.nfc-tpl[data-form="10"]>p[style*="text-indent"]:has(+h2){text-indent:.5em!important}
-.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]{margin:13.8px 0 0}
+.nfc-tpl.nfc-tpl[data-form="10"]>h1{font-size:20px}
+.nfc-tpl.nfc-tpl[data-form="10"]>h1>span{font-size:20px!important}
+.nfc-tpl.nfc-tpl[data-form="10"]>h2{font-size:17.333px;margin:9.333px 0 6.667px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child{margin:-2.84px 0 18.667px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child>span{font-size:18.667px!important}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child strong{display:block}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child br{display:none}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child strong+br+strong{margin-top:2.667px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:first-child+h1{margin-bottom:21.333px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:has([data-medical-record-field="orthodontic-contract.text.1"]){margin-bottom:6.667px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:has([data-medical-record-field="orthodontic-contract.party-a.representative"]){margin-bottom:9.333px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:has(:is([data-medical-record-field="orthodontic-contract.patient.name"],[data-medical-record-field="orthodontic-contract.patient.code"],[data-medical-record-field="orthodontic-contract.patient.phone"],[data-medical-record-field="orthodontic-contract.patient.address"],[data-medical-record-field="orthodontic-contract.patient.cccd"],[data-medical-record-field="orthodontic-contract.text.6"],[data-medical-record-field="orthodontic-contract.text.8"],[data-medical-record-field="orthodontic-contract.text.9"],[data-medical-record-field="orthodontic-contract.text.15"],[data-medical-record-field="orthodontic-contract.text.17"])){margin-bottom:4px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:has([data-medical-record-field="orthodontic-contract.text.17"]){line-height:1.241!important;padding-top:2.2px;margin-bottom:1.8px!important}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:has([data-medical-record-field="orthodontic-contract.text.6"])+p{margin-bottom:10.667px}
+.nfc-tpl.nfc-tpl[data-form="10"]>p:has(+table[data-record-section="signature"]){margin-bottom:32px}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]{margin:0}
 .nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]>tbody>tr>td{padding:0}
-.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]>tbody>tr>td:first-child{padding-right:7.4px}
-.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]>tbody>tr>td:last-child{padding-left:7.6px}
-.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"] td:first-child br:nth-of-type(3){display:none}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]>tbody>tr>td:first-child{padding-left:30.9px}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"]>tbody>tr>td:last-child{padding-left:10.9px}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"] strong{display:block}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"] br{display:none}
+.nfc-tpl.nfc-tpl[data-form="10"]>table[data-record-section="signature"] td:first-child strong+br~strong{margin-top:91.24px;text-align:left;padding-left:73.6px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~*{line-height:1.15!important}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~p{orphans:3;widows:3}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr+h1{text-align:left!important;margin:.4px 0 10.667px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~p[style*="text-indent"]:not(hr~h2~h2~*):not(:has(+h2),:has(+p+h2),:has(+p+p+h2)){margin-bottom:4px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~p:is(:has(+h2),:has(+p+h2),:has(+p+p+h2)):not(hr~h2~h2~*),.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2,.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2~*{line-height:1.241!important;margin-bottom:5.333px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~p:has(+p+p+h2):not(hr~h2~h2~*){margin-top:-.8px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2{margin-bottom:6.667px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~p:has(+h2):not(hr~h2~h2~*){text-indent:8.2px!important;letter-spacing:-.346px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2:not(hr~h2~h2~h2){letter-spacing:-1.058px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2~h2+p+p+p+p+p+p,.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2~h2+p+p+p+p+p+p~*{line-height:1.495!important}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2~h2+p+p+p+p+p+p:not(hr~h2~h2~h2~h2~*){margin-top:-2.2px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2~h2~h2{margin-bottom:6.667px}
+/* "- Khách hàng tự ý ngưng điều trị, … cho nha khoa." holds one line in the
+   clinic's PDF, 5pt over Chrome's line: a hair tighter, as there. */
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~h2~h2~h2+p+p+p+p+p+p+p+p+p+p+p{letter-spacing:-.08px}
+.nfc-tpl.nfc-tpl[data-form="10"]>hr~p:has(:is([data-medical-record-field="orthodontic-contract.patient.signer-name"],[data-medical-record-field="orthodontic-contract.text.28"],[data-medical-record-field="orthodontic-contract.text.29"],[data-medical-record-field="orthodontic-contract.text.30"],[data-medical-record-field="orthodontic-contract.text.31"],[data-medical-record-field="orthodontic-contract.text.32"],[data-medical-record-field="orthodontic-contract.text.33"])){margin-bottom:4px}
 .nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"])){display:flex;align-items:baseline;gap:.3em;white-space:nowrap}
 .nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"]))>span{flex:1 1 auto;min-width:0;white-space:pre-wrap}
 .nfc-tpl.nfc-tpl[data-form="10"] p:has(> span > .nfc-medical-record-text-field):not(:has(> input,[data-medical-record-field="orthodontic-contract.text.1"]))>span>.nfc-medical-record-text-field{width:100%!important;min-width:0!important;max-width:none}
 .nfc-tpl.nfc-tpl[data-form="10"] .nfc-medical-record-text-field{margin-bottom:-.8px}
-.nfc-tpl[data-form="10"] [data-medical-record-field="orthodontic-contract.party-a.name"]{font-weight:700}
+/* Each label and its dotted blank on one line, the blank to the right margin,
+   as the clinic's PDF of the form (docs/Hợp Đồng thỏa thuận niềng răng.pdf,
+   2026-11-26) — no line holding a stray "." as the .docx's overlong dots
+   gave. Word's empty paragraph before "- Phục hồi – Phục hình" is its room
+   above that line. */
+.nfc-tpl.nfc-tpl[data-form="10"]>p:has(>span>[data-medical-record-field="orthodontic-contract.text.16"]){margin-top:35.25px}
+
+.nfc-tpl.nfc-tpl[data-form="10"]>p:has([data-medical-record-field="orthodontic-contract.party-a.name"])>strong,.nfc-tpl.nfc-tpl[data-form="10"]>p:has([data-medical-record-field="orthodontic-contract.party-a.representative"])+p>strong{font-weight:400}
 .nfc-tpl[data-form="10"] p[data-record-section="bracket-types"]{display:grid;grid-template-columns:1.5em minmax(0,1fr) minmax(0,1fr);column-gap:1.5em;align-items:baseline;white-space:nowrap}
 .nfc-tpl[data-form="10"] p[data-record-section="bracket-types"]>.bracket-label{grid-column:1/-1}
 .nfc-tpl[data-form="10"] p[data-record-section="bracket-types"]>.bracket-opt:is(:nth-child(2),:nth-child(5)){grid-column:2}
@@ -1093,7 +1141,7 @@ const SHEET_PRINT_CSS = String.raw`
     @page consent-form{margin:15mm calc(15mm - 6px) 7.5mm 15mm}
     @page outpatient-dental{margin:15mm 15mm 7mm}
     @page procedure-record{margin:12.5mm 15mm 7.5mm}
-    @page orthodontic-contract{margin:20mm 10mm 20mm 17.5mm}
+    @page orthodontic-contract{margin:18mm 20mm 18mm 22mm}
     @page surgical-safety{size:A4 landscape;margin:10mm 10mm 5mm}
     @media print{
       .nfc-tpl{page:margin-5mm;width:200mm;height:auto;min-height:0;margin:0 auto;padding:7mm;box-shadow:none}
@@ -1101,7 +1149,7 @@ const SHEET_PRINT_CSS = String.raw`
       .nfc-tpl[data-form="2"]{page:outpatient-dental}
       /* Mẫu 7: 12.5mm above, 7.5mm below, as the BA's Word copy (R-1280). */
       .nfc-tpl[data-form="7"]{page:procedure-record}
-      /* Mẫu 10: 20mm above and below, 17.5mm left, 10mm right, as the BA's Word copy (R-1299). */
+      /* Mẫu 10: 18mm above and below, 22mm left, 20mm right, as the clinic's .docx (R-1327). */
       .nfc-tpl[data-form="10"]{page:orthodontic-contract}
       /* Mẫu 6: 7.5mm below (12.5mm before, clinic 2026-11-25), as mẫu 7 — the
          room it gives page 2 goes to the signatures. */
@@ -1131,6 +1179,9 @@ const SHEET_PRINT_CSS = String.raw`
          matched to the BA's Word) keeps it. Justifying only spreads the spaces
          of a line that already wraps: no line breaks, so no page, moves. */
       .nfc-tpl{text-align:justify}
+      /* Mẫu 10 as the clinic's .docx (R-1327): the contract flush left; the
+         agreement's paragraphs carry their own justify. */
+      .nfc-tpl[data-form="10"]{text-align:left}
     }`;
 
 /*
@@ -1143,7 +1194,7 @@ export const SHEET_PAGE_CSS = String.raw`    html,body{margin:0;min-height:100%;
     .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]){padding:15mm}
     .nfc-tpl[data-form="4"]{padding-top:10mm}
     .nfc-tpl[data-form="7"]{padding:12.5mm 15mm 7.5mm}
-    .nfc-tpl[data-form="10"]{padding:20mm 10mm 20mm 17.5mm}
+    .nfc-tpl[data-form="10"]{padding:18mm 20mm 18mm 22mm}
     .nfc-tpl[data-form="11"]{width:297mm;min-height:210mm;padding:10mm 10mm 5mm}
     .nfc-tpl>hr{margin:28px 0;border:0;border-top:2px dashed #b7c0ce}
     ${SHEET_FIELD_CSS}
@@ -1164,7 +1215,7 @@ export const PRINT_COPY_CSS = String.raw`${SHEET_CSS}
     .nfc-tpl:is([data-form="2"],[data-form="6"],[data-form="7"],[data-form="10"],[data-form="12"]){padding:15mm}
     .nfc-tpl[data-form="4"]{padding-top:10mm}
     .nfc-tpl[data-form="7"]{padding:12.5mm 15mm 7.5mm}
-    .nfc-tpl[data-form="10"]{padding:20mm 10mm 20mm 17.5mm}
+    .nfc-tpl[data-form="10"]{padding:18mm 20mm 18mm 22mm}
     .nfc-tpl[data-form="11"]{width:297mm;padding:10mm 10mm 5mm}
     .nfc-tpl>hr{margin:0;border:0}
 ${SHEET_FIELD_CSS}
