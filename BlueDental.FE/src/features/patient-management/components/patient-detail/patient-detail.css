@@ -290,6 +290,10 @@
   color: var(--bd-sub);
   font-weight: 500;
 }
+/* Tiểu sử bệnh on record — only the value, the label keeps its grey. */
+.pd-fact-alert {
+  color: var(--bd-red);
+}
 
 /* ── Lịch hẹn gần nhất ────────────────────────────────────────────────── */
 .pd-appt-facts {
