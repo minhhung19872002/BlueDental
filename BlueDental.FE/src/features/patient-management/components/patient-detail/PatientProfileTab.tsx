@@ -444,7 +444,11 @@ export function PatientProfileTab({ patient }: Props) {
           <FactItem
             icon={<MedicineBoxOutlined />}
             label={t("Patient:Tab:DiseaseHistory")}
-            value={disease === "—" ? t("Patient:Misc:EmptyData") : disease}
+            value={
+              // Red once there is something on record (BA 2026-11-26, R-1332);
+              // "Chưa có dữ liệu" stays grey.
+              disease === "—" ? t("Patient:Misc:EmptyData") : <span className="pd-fact-alert">{disease}</span>
+            }
           />
           <FactItem
             icon={<EyeOutlined />}

@@ -16436,3 +16436,12 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Test: Domain `MedicalRecordSetTests` 15/15 (thêm test cờ + guard). E2E mới trong `medical-record-set.spec.ts` (tạo qua UI box tick sẵn → API true; 2 bản Bìa, hủy Bản 01 → còn 1 thẻ "Bản 02", đếm "1 bản", Toàn bộ không có "Phiếu đã hủy", giữ sau reload; bỏ tick → API false, 2 thẻ, "Bản 01" đã hủy, "2 bản · 1 đã hủy"; POST không có cờ → false).
 - Kiểm tra local (build production preview riêng :8131, BE dựng riêng :5331 từ working tree, PostgreSQL thật, migration đã áp): `medical-record-set.spec.ts` 4/4 xanh. Retest các spec Bệnh án khác (10 file): 65 xanh; 2 đỏ khi chạy song song xanh lại khi chạy riêng (:469, :1133 — tải); 4 đỏ ổn định (`patient-medical-record` :2073, :2696 số trang in Phiếu phẫu thuật/thủ thuật; :2970 "picking the day"; `printed-doctor-title` :128) đỏ y hệt trên bản build HEAD 800309fb → có sẵn, không do R-1331. Ảnh chụp dialog: checkbox nằm cùng dòng sau tiêu đề mục 2. `tsc -b` sạch.
 - Mức retest: 2.
+
+## R-1332 — Hồ sơ bệnh nhân, Lý do đến khám: Tiểu sử bệnh chữ đỏ (2026-11-26, mức 1: tab Hồ sơ trong hồ sơ bệnh nhân)
+
+- Nguồn: ảnh BA khoanh dòng "Tiểu sử bệnh: Bệnh huyết áp cao" ở cột LÝ DO ĐẾN KHÁM — "cho text màu đỏ".
+- Chủ dự án xác nhận: chỉ tô đỏ phần tên bệnh (nhiều bệnh thì cả chuỗi "A, B"), nhãn "Tiểu sử bệnh:" giữ xám; chỉ ở hồ sơ, dòng Tiểu sử bệnh trên Thêm/Cập nhật đơn thuốc không đổi.
+- "Chưa có dữ liệu" (chưa tick bệnh nào) vẫn xám. Về KH, Nguồn đến không đổi.
+- FE: giá trị bọc `span.pd-fact-alert` (`color: var(--bd-red)`) trong `PatientProfileTab`; CSS ở `patient-detail.css`.
+- Kiểm tra local (dev :5173 + BE thật, PostgreSQL thật): spec tạm tạo bệnh nhân có/không có Tiểu sử bệnh qua API — có bệnh: giá trị rgb(229, 72, 77), nhãn không đỏ; không bệnh: không có `.pd-fact-alert`. Ảnh chụp đúng. `tsc -b` sạch. Spec tạm đã xoá (thay đổi thuần màu chữ, retest mức 1).
+- Mức retest: 1.
