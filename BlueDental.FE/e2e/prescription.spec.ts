@@ -281,6 +281,14 @@ test.describe.serial("Đơn thuốc", () => {
 
     // "Chẩn đoán" opens unfolded, folds and unfolds again.
     const section = dialog.getByRole("region", { name: "Chẩn đoán" });
+
+    // R-1330: Danh sách thuốc sits above Chẩn đoán; Lời dặn stays below it.
+    const medsTop = (await dialog.getByRole("region", { name: /^Danh sách thuốc/ }).boundingBox())?.y ?? NaN;
+    const dxTop = (await section.boundingBox())?.y ?? NaN;
+    const adviceTop = (await dialog.getByLabel("Nhập lời dặn").boundingBox())?.y ?? NaN;
+    expect(medsTop).toBeLessThan(dxTop);
+    expect(dxTop).toBeLessThan(adviceTop);
+
     const icdSearch = section.getByLabel("Gõ mã ICD-10, tên bệnh hoặc số răng để thêm…");
     await expect(icdSearch).toBeVisible();
     await section.getByRole("button", { name: "Thu gọn", exact: true }).click();

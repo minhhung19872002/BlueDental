@@ -485,6 +485,22 @@
   width: 260px;
 }
 
+/* The line table runs to the frame's foot: its white ground (and a hovered
+   last row) takes the frame's rounded corners instead of squaring them over
+   the border (R-1330). */
+.rx-meds .ant-table,
+.rx-meds .ant-table-container {
+  border-radius: 0 0 calc(var(--bd-radius-card) - 1px) calc(var(--bd-radius-card) - 1px);
+}
+
+.rx-meds .ant-table-tbody > tr:last-child > td:first-child {
+  border-bottom-left-radius: calc(var(--bd-radius-card) - 1px);
+}
+
+.rx-meds .ant-table-tbody > tr:last-child > td:last-child {
+  border-bottom-right-radius: calc(var(--bd-radius-card) - 1px);
+}
+
 @media (max-width: 640px) {
   .rx-head-pair {
     grid-template-columns: minmax(0, 1fr);
