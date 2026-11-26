@@ -2520,15 +2520,15 @@ test.describe("Bệnh án", () => {
   /**
    * Mẫu 10 — Hợp đồng thỏa thuận niềng răng, the clinic's own form (.docx,
    * 2026-10-29): the contract and the Bản thỏa thuận attached to it, at the
-   * BA's Word sizes (R-1299) — 13pt on Word's line and a half, the titles at
-   * 15pt, 20mm above and below, 17.5mm left and 10mm right on the sheet and on
-   * every printed page. Bên B is answered from the record — the
+   * clinic's .docx (R-1327) — 13pt, the contract on Word's 1.3 lines and the
+   * agreement single, the titles at 15pt, 18mm above and below, 22mm left and
+   * 20mm right on the sheet and on every printed page. Bên B is answered from the record — the
    * name in capitals, the code, CCCD — and so is the customer under III. Đồng ý
    * điều trị; a dotted line after a label runs to the right margin, and what the
    * clinic writes on the sheet comes back after a reload.
    */
   test("mẫu 10: the contract is filled from the record, keeps what is written and prints as the BA's Word", async ({ page }) => {
-    const margins = [20, 10, 20, 17.5].map((mm) => (mm / 25.4) * 96);
+    const margins = [18, 20, 18, 22].map((mm) => (mm / 25.4) * 96);
     const form = "Hợp đồng thỏa thuận niềng răng";
     await openMedicalRecord(page);
     const patientId = new URL(page.url()).pathname.split("/")[2];
@@ -2588,10 +2588,10 @@ test.describe("Bệnh án", () => {
           reaching,
         };
       });
-    expect(layout.fontSize, "13pt, as the BA's Word (R-1299)").toBe("17.333px");
+    expect(layout.fontSize, "13pt, as the clinic's .docx (R-1327)").toBe("17.333px");
     layout.padding.forEach((edge, at) => expect(edge, "sheet margin").toBeCloseTo(margins[at], 1));
-    expect(layout.contract, "the contract on Word's line and a half").toBeCloseTo(1.725, 2);
-    expect(layout.agreement, "the agreement too").toBeCloseTo(1.725, 2);
+    expect(layout.contract, "the contract on Word's 1.3 lines").toBeCloseTo(1.495, 2);
+    expect(layout.agreement, "the agreement single").toBeCloseTo(1.15, 2);
     expect(layout.titles, "both titles at 15pt").toEqual(["20px", "20px"]);
     // The record answers several of them (Bên B, Chẩn đoán, the plan, the costs).
     expect(layout.reaching.length, "the dotted lines that end a line").toBeGreaterThanOrEqual(8);
@@ -2628,8 +2628,9 @@ test.describe("Bệnh án", () => {
     await page.emulateMedia({ media: "screen" });
     await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
     expect(printed).toEqual({ page: "orthodontic-contract", padding: "0px" });
-    // One page break only (R-1266), at the BA's Word sizes (R-1299): seven pages.
-    expect((pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length, "printed pages").toBe(7);
+    // As the clinic's PDF of the form (R-1327): six pages, the contract three
+    // and the agreement three.
+    expect((pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length, "printed pages").toBe(6);
   });
 
   /**
@@ -2657,13 +2658,13 @@ test.describe("Bệnh án", () => {
       return pdfPageTexts(pdf);
     };
 
-    expect(await printJob(), "the blank form").toHaveLength(7);
+    expect(await printJob(), "the blank form").toHaveLength(6);
 
     // Each Enter under the last line of page 1 adds a line there (lineEditing).
     let last = "orthodontic-contract.text.20";
     await blank(page, last).click();
     await page.keyboard.type("Hàm duy trì trong suốt");
-    let pages = 7;
+    let pages = 6;
     for (let line = 1; line <= 30; line += 1) {
       // Printing took the caret out of the sheet: back to the end of the last line.
       await blank(page, last).click();
@@ -2680,7 +2681,7 @@ test.describe("Bệnh án", () => {
       });
       pages = printed.length;
     }
-    expect(pages, "thirty more lines run the contract onto a sheet more").toBeGreaterThan(7);
+    expect(pages, "thirty more lines run the contract onto a sheet more").toBeGreaterThan(6);
   });
 
   /**
@@ -2747,9 +2748,9 @@ test.describe("Bệnh án", () => {
     // Mẫu 7 on the 15mm page since R-1073, on a page of its own (12.5mm / 7.5mm) since R-1280.
     await openFreshSheet(page, procedure);
     expect(await printedPages([], true), `${procedure} · printed pages`).toBe(1);
-    // Mẫu 10 on a page of its own (20mm / 10mm / 20mm / 17.5mm) since R-1299.
+    // Mẫu 10 on a page of its own (18mm / 20mm / 18mm / 22mm) since R-1327.
     await openFreshSheet(page, contract);
-    expect(await printedPages([], true), `${contract} · printed pages`).toBe(7);
+    expect(await printedPages([], true), `${contract} · printed pages`).toBe(6);
 
     // Mẫu 5 on the 5mm page, then mẫu 6 on the 15mm one: as many pages as the two print without the blocks.
     await openFreshSheet(page, treatment);
