@@ -463,7 +463,9 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="5"] :is([data-medical-record-field="consultation.patient.date-of-birth"],[data-medical-record-field="consultation.patient.address"],[data-medical-record-field="consultation.text.2"],[data-medical-record-field="consultation.text.4"],[data-medical-record-field="consultation.text.7"],[data-medical-record-field="consultation.text.8"],[data-medical-record-field="consultation.text.48"],[data-medical-record-field="consultation.text.49"]){width:100%!important;min-width:0!important;max-width:none;box-sizing:border-box}
 .nfc-tpl.nfc-tpl[data-form="5"] [data-medical-record-field="consultation.patient.name"]{min-width:285px!important}
 .nfc-tpl.nfc-tpl[data-form="5"] [data-medical-record-field="consultation.patient.phone"]{min-width:188px!important}
-.nfc-tpl.nfc-tpl[data-form="5"] [data-medical-record-field="consultation.text.3"]{min-width:215px!important}
+/* Bác sĩ tư vấn reaches as far as Họ tên: Ngày tư vấn starts under Ngày sinh, and a
+   doctor's full name stays on one line (clinic, 2026-11-26, R-1328). */
+.nfc-tpl.nfc-tpl[data-form="5"] [data-medical-record-field="consultation.text.3"]{min-width:253.9px!important}
 .nfc-tpl.nfc-tpl[data-form="3"]>p:is(:has(>span>[data-medical-record-field="orthodontic.patient.name"]),:has(>input[data-medical-record-field="orthodontic.checkbox.40"]),:has(>input[data-medical-record-field="orthodontic.checkbox.43"]),:has(>input[data-medical-record-field="orthodontic.checkbox.46"]),:has(>input[data-medical-record-field="orthodontic.checkbox.61"]),:has(>input[data-medical-record-field="orthodontic.checkbox.63"])){display:grid;grid-auto-flow:column;grid-auto-columns:max-content;align-items:baseline;justify-content:start;white-space:nowrap;text-align:left}
 .nfc-tpl.nfc-tpl[data-form="3"]>p:has(>span>[data-medical-record-field="orthodontic.patient.name"]){grid-template-columns:auto minmax(0,1fr) 85px 31.6px 53.6px 21.9px 69.8px;justify-content:stretch}
 .nfc-tpl.nfc-tpl[data-form="3"]>p:has(>span>[data-medical-record-field="orthodontic.patient.name"])>span{margin-left:.25em}

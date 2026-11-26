@@ -3076,4 +3076,55 @@ test.describe("Bệnh án", () => {
     }
     expect(checked, "names under signatures checked").toBeGreaterThan(10);
   });
+
+  /**
+   * Clinic, 2026-11-26 (R-1328): on mẫu 5, "BS. PHẠM THỊ THANH / HƯƠNG" broke
+   * over two lines in the Bác sĩ tư vấn blank — "Ngày tư vấn" stood well left
+   * of "Ngày sinh" above it. Ngày tư vấn now starts where Ngày sinh starts, so
+   * the consultant's blank reaches as far as the name's, and the name holds.
+   */
+  test("mẫu 5: Ngày tư vấn starts under Ngày sinh, and a long consultant name stays on one line", async ({ page }) => {
+    const NAME = "BS. PHẠM THỊ THANH HƯƠNG";
+    const form = "Phiếu tư vấn và xác nhận đồng ý điều trị";
+
+    /** Where the label after the blank starts — the text right after the blank's own span. */
+    const measure = () =>
+      sheet(page)
+        .locator("body")
+        .evaluate((body) => {
+          const doc = body.ownerDocument;
+          const labelLeft = (id: string) => {
+            const span = doc.querySelector(`[data-medical-record-field="${id}"]`)!.parentElement!;
+            let node = span.nextSibling;
+            while (node && node.nodeType !== Node.TEXT_NODE) node = node.nextSibling;
+            const text = node!.textContent!;
+            const at = text.search(/\S/u);
+            const range = doc.createRange();
+            range.setStart(node!, at);
+            range.setEnd(node!, at + 1);
+            return range.getBoundingClientRect().left;
+          };
+          const consultant = doc.querySelector<HTMLElement>('[data-medical-record-field="consultation.text.3"]')!;
+          const style = doc.defaultView!.getComputedStyle(consultant);
+          const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2;
+          return {
+            dateOfBirth: labelLeft("consultation.patient.name"),
+            consulted: labelLeft("consultation.text.3"),
+            oneLine: consultant.getBoundingClientRect().height < lineHeight * 1.6,
+            height: Math.ceil(doc.documentElement.scrollHeight),
+          };
+        });
+
+    await openMedicalRecord(page);
+    await openFreshSheet(page, form);
+    const empty = await measure();
+    expect(Math.abs(empty.consulted - empty.dateOfBirth), "Ngày tư vấn under Ngày sinh").toBeLessThan(1);
+
+    await openFreshSheet(page, form, { "consultation.text.3": NAME });
+    const filled = await measure();
+    await expect(blank(page, "consultation.text.3")).toHaveText(NAME);
+    expect(filled.oneLine, "the consultant's name on one line").toBe(true);
+    expect(Math.abs(filled.consulted - filled.dateOfBirth), "still under Ngày sinh").toBeLessThan(1);
+    expect(filled.height, "the sheet as tall as with it empty").toBe(empty.height);
+  });
 });
