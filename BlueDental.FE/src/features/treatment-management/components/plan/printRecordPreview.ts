@@ -59,6 +59,7 @@ export function previewSheet(
     cancelledAt: null,
     cancellerName: null,
     cancelReason: null,
+    serviceIds: null,
     creationTime: "",
     lastModificationTime: null,
   };

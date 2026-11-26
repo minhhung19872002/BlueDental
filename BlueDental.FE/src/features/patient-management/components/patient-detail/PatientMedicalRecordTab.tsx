@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input, Spin, Tooltip } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
-import { Maximize2, Minimize2, Minus, Plus, Printer, RefreshCw, Save } from "lucide-react";
+import { ListChecks, Maximize2, Minimize2, Minus, Plus, Printer, RefreshCw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { SegmentedTabs } from "@/components/SegmentedTabs";
 import { AppDialog } from "@/components/AppDialog";
@@ -34,6 +34,8 @@ import { isCancelledSet } from "./medical-record-set/recordSetView";
 import { useRecordSetWorkflow } from "./medical-record-set/useRecordSetWorkflow";
 import "./medical-record-set/record-set.css";
 import { MedicalRecordCanvasHead } from "./medical-record/MedicalRecordCanvasHead";
+import { ConsentServiceDialog } from "./medical-record/ConsentServiceDialog";
+import { useConsentServicePick } from "./medical-record/useConsentServicePick";
 import { PrintSheetPicker } from "./medical-record/PrintSheetPicker";
 import { useSheetFieldValues } from "./medical-record/useSheetFieldValues";
 import { useSheetDiagnoses } from "./medical-record/useSheetDiagnoses";
@@ -122,7 +124,12 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   const auto = useSheetFieldValues(patient, branchId);
   const diagnosesFrom = useSheetDiagnoses(patientId, branchId);
   /** What the open set's treatment slips answer (save/P1810.drawio). */
-  const factValues = useSheetFactValues(activeSet?.id);
+  const { factValues, consentValuesOf } = useSheetFactValues(activeSet?.id);
+  /** …and on a mẫu 5 copy, what its own services answer (R-1326). */
+  const factsOf = (sheet: PatientMedicalRecordDto): FieldValues =>
+    sheet.form === MEDICAL_RECORD_FORM.TreatmentConsent
+      ? { ...factValues, ...consentValuesOf(sheet.serviceIds) }
+      : factValues;
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mode, setMode] = useState<ViewMode>("single");
@@ -197,7 +204,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     if (picked) return picked;
 
     // What the sheet holds, else what the set's slips say — Ngày tư vấn.
-    return printedDayOf(formSpecOf(sheet.form), { ...factValues, ...valuesOf(sheet) }) ?? dayjs();
+    return printedDayOf(formSpecOf(sheet.form), { ...factsOf(sheet), ...valuesOf(sheet) }) ?? dayjs();
   };
 
   /**
@@ -210,7 +217,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     const spec = formSpecOf(sheet.form);
     const day = spec.dateLabel ? dateOf(sheet) : undefined;
     const dated = day ? dayFieldValues(spec, day) : {};
-    return { ...auto, ...diagnosisFieldValues(diagnosesFrom(day)), ...factValues, ...dated };
+    return { ...auto, ...diagnosisFieldValues(diagnosesFrom(day)), ...factsOf(sheet), ...dated };
   };
 
   /** The set's newest mẫu 3 not cancelled — what mẫu 10 is filled from (R-1097). */
@@ -291,15 +298,36 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     }, active ? [active.id] : []);
   };
 
-  const handleAdd = async (spec: MedicalRecordFormSpec) => {
-    if (!activeSet) return;
+  const createSheet = async (spec: MedicalRecordFormSpec, serviceIds?: string[]): Promise<boolean> => {
+    if (!activeSet) return false;
     try {
-      const created = await addSheet.mutateAsync({ recordSetId: activeSet.id, form: spec.form, title: spec.label });
+      const created = await addSheet.mutateAsync({
+        recordSetId: activeSet.id,
+        form: spec.form,
+        title: spec.label,
+        serviceIds,
+      });
       openSheet(created.id);
       toast.success(t("Patient:MedRecord:Added"));
+      return true;
     } catch (error) {
       notifyError(extractApiError(error));
+      return false;
     }
+  };
+
+  /** Mẫu 5 asks which services the new copy prints before it is added (R-1326). */
+  const consentPick = useConsentServicePick({
+    patientId,
+    setId: activeSet?.id,
+    sheets,
+    ordinalOf,
+    create: createSheet,
+  });
+
+  const handleAdd = (spec: MedicalRecordFormSpec) => {
+    if (spec.form === MEDICAL_RECORD_FORM.TreatmentConsent) consentPick.openAdd(spec);
+    else void createSheet(spec);
   };
 
   /** Saves what is written on one sheet; answers whether it went through. */
@@ -443,7 +471,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
           collapsed={collapsed}
           adding={addSheet.isPending}
           onToggleCollapse={() => setCollapsed((value) => !value)}
-          onAdd={ability.canCreate && !setLocked ? (spec) => void handleAdd(spec) : undefined}
+          onAdd={ability.canCreate && !setLocked ? handleAdd : undefined}
           actions={{
             onSelect: (sheet) => openSheet(sheet.id),
             onPrint: (sheet) => {
@@ -477,6 +505,15 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
                 date={dateOf(active)}
                 onDateChange={readOnly(active) ? undefined : (next) => handleDateChange(active, next)}
                 notice={readOnlyNotice(active)}
+                tools={
+                  active.form === MEDICAL_RECORD_FORM.TreatmentConsent &&
+                  ability.canUpdate &&
+                  !readOnly(active) && (
+                    <Button icon={<ListChecks size={14} />} onClick={() => consentPick.openEdit(active)}>
+                      {t("Patient:MedRecord:ConsentServices")}
+                    </Button>
+                  )
+                }
               />
             )}
 
@@ -602,6 +639,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
       </AppDialog>
 
       <UnsavedSheetDialog {...unsaved.dialog} />
+
+      <ConsentServiceDialog pick={consentPick.dialog} />
 
       {cancelling && (
         <CancelSheetDialog

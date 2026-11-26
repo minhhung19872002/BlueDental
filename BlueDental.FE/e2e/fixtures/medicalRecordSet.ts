@@ -132,6 +132,37 @@ export async function cancelSheet(
     .status;
 }
 
+export const CONSENT_FORM = "Phiếu tư vấn và xác nhận đồng ý điều trị";
+
+/** mẫu 5's "Dịch vụ của phiếu" dialog (R-1326). */
+export function consentPicker(page: Page) {
+  return page
+    .getByRole("dialog")
+    .filter({ has: page.getByRole("heading", { name: "Dịch vụ của phiếu" }) });
+}
+
+/**
+ * Clicks a form row's "Thêm". mẫu 5 first asks which services the new copy
+ * prints (R-1326); this keeps what the dialog offers — on a set's first copy,
+ * every service — and adds it.
+ */
+export async function clickAddSheet(page: Page, form: string): Promise<void> {
+  await page.locator(".pd-medical-form", { hasText: form }).getByRole("button", { name: "Thêm" }).click();
+  if (form !== CONSENT_FORM) return;
+  const picker = consentPicker(page);
+  await expect(picker).toBeVisible();
+  // The services land after the dialog opens; until then nothing is ticked.
+  await expect(picker.locator(".mr-consent-list, .mr-consent-empty").first()).toBeVisible();
+  const add = picker.getByRole("button", { name: "Thêm phiếu" });
+  // Every service already on another copy: tick them all, so the spec still
+  // gets a new copy as it did before the picker.
+  if (await add.isDisabled()) {
+    await picker.getByRole("checkbox", { name: "Tất cả dịch vụ" }).check();
+  }
+  await add.click();
+  await expect(picker).toBeHidden();
+}
+
 export interface SeededPatient {
   id: string;
   code: string;

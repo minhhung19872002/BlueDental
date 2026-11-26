@@ -1,0 +1,83 @@
+/* "Dịch vụ của phiếu" — the mẫu 5 service picker (R-1326). */
+
+.mr-consent-loading,
+.mr-consent-empty {
+  display: flex;
+  min-height: 120px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+
+.mr-consent-list {
+  display: flex;
+  max-height: 420px;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.mr-consent-all {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--bd-line);
+  padding: 4px 8px 10px;
+  color: var(--bd-title);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.mr-consent-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--bd-title);
+  cursor: pointer;
+}
+
+.mr-consent-row:hover {
+  background: var(--bd-hover-tint);
+}
+
+.mr-consent-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mr-consent-name {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.mr-consent-meta {
+  color: var(--bd-muted);
+  font-size: 12px;
+}
+
+.mr-consent-held {
+  color: var(--bd-amber);
+  font-size: 12px;
+}
+
+.mr-consent-amount {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mr-consent-count {
+  color: var(--bd-muted);
+  font-size: 13px;
+}

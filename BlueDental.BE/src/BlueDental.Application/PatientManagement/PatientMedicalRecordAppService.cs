@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BlueDental.Organizations;
 using BlueDental.Permissions;
+using BlueDental.TreatmentManagement;
 using Microsoft.AspNetCore.Authorization;
 using Volo.Abp.Application.Dtos;
 using Volo.Abp;
@@ -37,6 +38,7 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
     private readonly ICurrentClinicBranchResolver _branchResolver;
     private readonly IMedicalRecordFieldHistory _fieldHistory;
     private readonly IBlobContainer _blobContainer;
+    private readonly IRepository<TreatmentPlan, Guid> _planRepository;
 
     public PatientMedicalRecordAppService(
         IRepository<PatientMedicalRecord, Guid> repository,
@@ -46,11 +48,13 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         BranchAccessChecker branchAccess,
         ICurrentClinicBranchResolver branchResolver,
         IMedicalRecordFieldHistory fieldHistory,
-        IBlobContainer blobContainer)
+        IBlobContainer blobContainer,
+        IRepository<TreatmentPlan, Guid> planRepository)
     {
         _repository = repository;
         _patientRepository = patientRepository;
         _setRepository = setRepository;
+        _planRepository = planRepository;
         _userRepository = userRepository;
         _branchAccess = branchAccess;
         _branchResolver = branchResolver;
@@ -156,13 +160,17 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
 
         // A sheet goes into one of the patient's own live sets — never another
         // patient's, never a cancelled one.
-        var set = await _setRepository.FindAsync(input.RecordSetId, includeDetails: false);
+        var set = await _setRepository.FindAsync(input.RecordSetId, includeDetails: input.ServiceIds is not null);
         if (set is null || set.PatientId != patient.Id)
         {
             throw new EntityNotFoundException(typeof(MedicalRecordSet), input.RecordSetId);
         }
 
         set.EnsureActive();
+        if (input.ServiceIds is not null)
+        {
+            await EnsureLinesOfSetAsync(set, input.ServiceIds);
+        }
 
         var query = await _repository.GetQueryableAsync();
         var nextOrder = await AsyncExecuter.CountAsync(
@@ -176,9 +184,55 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
             input.Form,
             input.Title,
             nextOrder);
+        if (input.ServiceIds is not null)
+        {
+            record.PickServices(input.ServiceIds);
+        }
 
         await _repository.InsertAsync(record, autoSave: true);
         return MapToDto(record);
+    }
+
+    /// <summary>
+    /// "Dịch vụ của phiếu" is part of writing on the sheet, so it asks for the
+    /// same right a save does, and is kept the moment it is picked rather than
+    /// with the next "Lưu".
+    /// </summary>
+    [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
+    public async Task<PatientMedicalRecordDto> SetServicesAsync(Guid id, SetPatientMedicalRecordServicesDto input)
+    {
+        var record = await _repository.GetAsync(id);
+        await GuardBranchAccessAsync(record);
+        record.EnsureNotCancelled();
+
+        var set = await _setRepository.GetAsync(record.RecordSetId, includeDetails: true);
+        set.EnsureActive();
+        await EnsureLinesOfSetAsync(set, input.ServiceIds);
+
+        record.PickServices(input.ServiceIds);
+        await _repository.UpdateAsync(record, autoSave: true);
+        return MapToDto(record);
+    }
+
+    /// <summary>
+    /// A copy picks only lines of the slips its set holds — never another
+    /// patient's, nor a slip since taken out of the set.
+    /// </summary>
+    private async Task EnsureLinesOfSetAsync(MedicalRecordSet set, IReadOnlyCollection<Guid> serviceIds)
+    {
+        if (serviceIds.Count == 0) return;
+
+        var planIds = set.HeldPlans.Select(plan => plan.TreatmentPlanId).ToList();
+        var plans = await _planRepository.GetQueryableAsync();
+        var lineIds = await AsyncExecuter.ToListAsync(
+            plans.Where(plan => planIds.Contains(plan.Id))
+                .SelectMany(plan => plan.Services)
+                .Select(line => line.Id));
+
+        if (serviceIds.Except(lineIds).Any())
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PatientManagement.MedicalRecordServiceNotInSet);
+        }
     }
 
     [Authorize(BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
@@ -355,6 +409,7 @@ public class PatientMedicalRecordAppService : ApplicationService, IPatientMedica
         CancelledAt = entity.CancelledAt,
         CancelledById = entity.CancelledById,
         CancelReason = entity.CancelReason,
+        ServiceIds = entity.ServiceIds?.ToList(),
         CreationTime = entity.CreationTime,
         CreatorId = entity.CreatorId,
         LastModificationTime = entity.LastModificationTime,

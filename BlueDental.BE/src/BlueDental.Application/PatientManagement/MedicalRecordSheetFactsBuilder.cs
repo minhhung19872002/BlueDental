@@ -142,6 +142,7 @@ public class MedicalRecordSheetFactsBuilder : ITransientDependency
                 var diagnosis = CatalogOf(catalog, DiagnosisOf(line));
                 return new MedicalRecordSheetServiceDto
                 {
+                    Id = line.Id,
                     TreatmentPlanId = line.TreatmentPlanId,
                     ServiceName = CatalogOf(catalog, line.ServiceId)?.Name ?? string.Empty,
                     ToothCodes = line.Teeth.Select(tooth => tooth.ToothCode).ToList(),

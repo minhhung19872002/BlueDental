@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Volo.Abp;
 using Volo.Abp.Domain.Entities.Auditing;
 
@@ -23,6 +25,9 @@ public class PatientMedicalRecord : FullAuditedAggregateRoot<Guid>
     public const int MaxContentLength = 200_000;
 
     public const int MaxCancelReasonLength = 1000;
+
+    /// <summary>Guards a runaway pick; a bộ hồ sơ holds a few dozen services at most.</summary>
+    public const int MaxServiceCount = 200;
 
     public Guid PatientId { get; private set; }
     public Guid ClinicBranchId { get; private set; }
@@ -51,6 +56,14 @@ public class PatientMedicalRecord : FullAuditedAggregateRoot<Guid>
     public string? CancelReason { get; private set; }
 
     public bool IsCancelled => CancelledAt.HasValue;
+
+    /// <summary>
+    /// Phiếu tư vấn và xác nhận đồng ý điều trị (mẫu 5) only: the lines of the
+    /// set's treatment slips this copy is about — Bản 01 the braces package, Bản 02
+    /// a later service (R-1326). Null on a copy made before a pick existed: it
+    /// prints every service of the set, as it always did, until one is picked.
+    /// </summary>
+    public List<Guid>? ServiceIds { get; private set; }
 
     protected PatientMedicalRecord() { }
 
@@ -101,6 +114,29 @@ public class PatientMedicalRecord : FullAuditedAggregateRoot<Guid>
         EnsureNotCancelled();
         Check.NotNullOrWhiteSpace(title, nameof(title));
         Title = title.Trim();
+        return this;
+    }
+
+    /// <summary>
+    /// "Dịch vụ của phiếu": which of the set's service lines this mẫu 5 copy
+    /// prints. The caller checks the ids are lines of the set's slips.
+    /// </summary>
+    public PatientMedicalRecord PickServices(IEnumerable<Guid> serviceIds)
+    {
+        EnsureNotCancelled();
+
+        if (Form != MedicalRecordForm.TreatmentConsent)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PatientManagement.MedicalRecordServicesNotPickable);
+        }
+
+        var picked = serviceIds.Distinct().ToList();
+        if (picked.Count > MaxServiceCount)
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.PatientManagement.MedicalRecordServiceNotInSet);
+        }
+
+        ServiceIds = picked;
         return this;
     }
 

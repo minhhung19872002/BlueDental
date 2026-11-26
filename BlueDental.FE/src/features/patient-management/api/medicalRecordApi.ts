@@ -44,6 +44,11 @@ export interface PatientMedicalRecordDto {
   cancelledAt: string | null;
   cancellerName: string | null;
   cancelReason: string | null;
+  /**
+   * The slip lines a mẫu 5 copy prints (R-1326). Null on a copy made before it
+   * picked — that one prints every service of the set.
+   */
+  serviceIds: string[] | null;
   creationTime: string;
   lastModificationTime: string | null;
 }
@@ -86,8 +91,13 @@ const medicalRecordApi = {
     recordSetId: string;
     form: MedicalRecordForm;
     title: string;
+    serviceIds?: string[];
   }): Promise<PatientMedicalRecordDto> =>
     api.post<PatientMedicalRecordDto>(BASE, input).then((r) => r.data),
+
+  /** "Dịch vụ của phiếu" — the services a mẫu 5 copy prints (R-1326). */
+  setServices: (id: string, serviceIds: string[]): Promise<PatientMedicalRecordDto> =>
+    api.put<PatientMedicalRecordDto>(`${BASE}/${id}/services`, { serviceIds }).then((r) => r.data),
 
   update: (
     id: string,
@@ -204,8 +214,16 @@ function useRecordMutation<TVariables, TData>(
 }
 
 export function useAddMedicalRecord(patientId: string) {
-  return useRecordMutation(patientId, (input: { recordSetId: string; form: MedicalRecordForm; title: string }) =>
-    medicalRecordApi.create({ patientId, ...input }),
+  return useRecordMutation(
+    patientId,
+    (input: { recordSetId: string; form: MedicalRecordForm; title: string; serviceIds?: string[] }) =>
+      medicalRecordApi.create({ patientId, ...input }),
+  );
+}
+
+export function useSetMedicalRecordServices(patientId: string) {
+  return useRecordMutation(patientId, (input: { id: string; serviceIds: string[] }) =>
+    medicalRecordApi.setServices(input.id, input.serviceIds),
   );
 }
 

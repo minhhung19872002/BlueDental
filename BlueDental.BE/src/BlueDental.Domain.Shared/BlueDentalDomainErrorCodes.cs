@@ -176,6 +176,12 @@ public static class BlueDentalDomainErrorCodes
 
         /// <summary>A picture may only go into a folder of its own patient, branch and stage column (F-98).</summary>
         public const string ImageFolderMismatch = "BlueDental:Patient:0039";
+
+        /// <summary>Only a Phiếu tư vấn và xác nhận đồng ý điều trị (mẫu 5) picks its services (R-1326).</summary>
+        public const string MedicalRecordServicesNotPickable = "BlueDental:Patient:0040";
+
+        /// <summary>A picked service is not a line of the bộ hồ sơ's treatment slips (R-1326).</summary>
+        public const string MedicalRecordServiceNotInSet = "BlueDental:Patient:0041";
     }
 
     public static class Appointments

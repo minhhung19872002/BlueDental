@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { DatePicker } from "antd";
 import type { Dayjs } from "dayjs";
 import { FloatingLabel } from "@/components/FloatingLabel";
@@ -19,6 +20,8 @@ interface Props {
   onDateChange?: (date: Dayjs | null) => void;
   /** Says why the sheet is read-only — a cancelled sheet or set. */
   notice?: string;
+  /** More tools before the date — mẫu 5's "Dịch vụ của phiếu" (R-1326). */
+  tools?: ReactNode;
 }
 
 /**
@@ -32,7 +35,7 @@ interface Props {
  * writes them onto the sheet; confirming that means picking on a live record,
  * which would write. See docs/clone/unknowns.md.
  */
-export function MedicalRecordCanvasHead({ ordinal, title, dateLabel, date, onDateChange, notice }: Props) {
+export function MedicalRecordCanvasHead({ ordinal, title, dateLabel, date, onDateChange, notice, tools }: Props) {
   return (
     <header className="pd-medical-canvas-head">
       <div className="pd-medical-canvas-title">
@@ -44,6 +47,7 @@ export function MedicalRecordCanvasHead({ ordinal, title, dateLabel, date, onDat
       </div>
 
       <div className="pd-medical-canvas-tools">
+        {tools}
         {dateLabel && (
           <FloatingLabel label={t(dateLabel)} floated className="pd-medical-date">
             <DatePicker

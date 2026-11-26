@@ -81,6 +81,8 @@ export interface SheetFactsPlanDto {
 }
 
 export interface SheetFactsServiceDto {
+  /** The slip's line — what a mẫu 5 copy picks by (R-1326). */
+  id: string;
   treatmentPlanId: string;
   serviceName: string;
   toothCodes: number[];

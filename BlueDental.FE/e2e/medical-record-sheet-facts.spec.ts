@@ -4,6 +4,7 @@ import { APPOINTMENTS, bookVisitToday } from "./fixtures/receptionBoard";
 import { call } from "./fixtures/timekeepingStaff";
 import {
   SETS_API,
+  clickAddSheet,
   openBenhAn,
   seedPatientWithSlips,
   type SeededPatient,
@@ -89,7 +90,7 @@ async function openSheet(page: Page, form: string) {
   const row = page.locator(".pd-medical-form", { hasText: form });
   const cards = row.locator(LIVE_CARD);
   if ((await cards.count()) === 0) {
-    await row.getByRole("button", { name: "Thêm" }).click();
+    await clickAddSheet(page, form);
     await expect(page.getByText("Đã thêm phiếu bệnh án").first()).toBeVisible();
   }
   await cards.first().locator(".pd-sheet-open").click();

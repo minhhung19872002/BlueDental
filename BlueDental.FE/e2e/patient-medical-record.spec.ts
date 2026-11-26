@@ -1,7 +1,7 @@
 import { expect, test, type FrameLocator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 import { createSlipViaApi } from "./fixtures/ledgerReceipt";
-import { SETS_API, openRecordWithSet } from "./fixtures/medicalRecordSet";
+import { SETS_API, clickAddSheet, openRecordWithSet } from "./fixtures/medicalRecordSet";
 import { firstLineOf, pdfPageTexts } from "./fixtures/pdfText";
 import { call, firstBranchId } from "./fixtures/timekeepingStaff";
 
@@ -50,7 +50,7 @@ function blank(page: Page, field: string) {
 async function openSheet(page: Page, form: string) {
   const cards = cardsUnder(page, form);
   if ((await cards.count()) === 0) {
-    await page.locator(".pd-medical-form", { hasText: form }).getByRole("button", { name: "Thêm" }).click();
+    await clickAddSheet(page, form);
     // Adding several forms in a row stacks their toasts; the newest is the one meant.
     await expect(page.getByText("Đã thêm phiếu bệnh án").first()).toBeVisible();
   }
@@ -126,7 +126,7 @@ async function openFreshSheet(page: Page, form: string, written: Record<string, 
   const cards = row.locator(LIVE_CARD);
 
   if ((await cards.count()) === 0) {
-    await row.getByRole("button", { name: "Thêm" }).click();
+    await clickAddSheet(page, form);
     await expect(cards).toHaveCount(1);
   }
 

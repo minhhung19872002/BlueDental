@@ -155,6 +155,9 @@ public class MedicalRecordSheetPlanDto
 
 public class MedicalRecordSheetServiceDto
 {
+    /// <summary>The slip's line — what a mẫu 5 copy picks by (R-1326).</summary>
+    public Guid Id { get; set; }
+
     public Guid TreatmentPlanId { get; set; }
     public string ServiceName { get; set; } = string.Empty;
     public List<int> ToothCodes { get; set; } = new();
