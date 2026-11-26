@@ -16418,3 +16418,12 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Kiểm tra local (build production, preview riêng :8094, BE thật :5000 + PostgreSQL thật): `prescription.spec.ts` + `prescription-allergy.spec.ts` 11/11 xanh (`E2E_PASSWORD=Admin@123456` — biến môi trường máy đang là mật khẩu khác). Ảnh chụp cận góc dưới khung sau sửa: bo tròn, không còn nền vuông. `tsc` + eslint sạch.
 - Ghi chú số: R-1329 đang được một phiên khác dùng (tab Lịch hẹn bệnh nhân, chưa commit) nên lấy R-1330.
 - Mức retest: 2 (chỉ dialog Đơn thuốc).
+
+## R-1329 — Hồ sơ bệnh nhân, tab Lịch hẹn: Bác sĩ phụ trách / Nội dung in đậm, nhãn Trạng thái to hơn (2026-11-26, mức 1: tab Lịch hẹn trong hồ sơ bệnh nhân)
+
+- Nguồn: ảnh BA khoanh 3 cột của bảng Lịch hẹn trong hồ sơ bệnh nhân.
+- Bác sĩ phụ trách và Nội dung: chữ 14px (trước 13px), đậm 600, màu `--bd-ink` — class `pd-appt-strong` trên cột, chỉ ô thân bảng, dòng tiêu đề giữ nguyên.
+- Trạng thái: nhãn chữ 13px đậm, cao 26px (padding 3px 12px, line-height 20px), bo 8px; cột rộng 96 → 108px. Chỉ áp trong `.pd-appointment-tab`, `StatusBadge` ở màn khác không đổi.
+- Ngày/giờ, Ghi chú, Thao tác không đổi.
+- Kiểm tra local (FE + BE thật): `tsc` sạch; đo cỡ chữ từng cột trên tab Lịch hẹn — hai cột đậm 14px/600, các cột khác 13px; ảnh chụp đúng. Thay đổi thuần CSS + class nên retest mức 1, không chạy e2e.
+- Mức retest: 1.

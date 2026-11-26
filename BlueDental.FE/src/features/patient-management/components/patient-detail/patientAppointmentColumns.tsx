@@ -71,11 +71,17 @@ export function buildAppointmentColumns({
         </div>
       ),
     },
-    { title: t("Patient:QuoteSheet:InChargeDoctor"), dataIndex: "doctorName", width: 160 },
+    {
+      title: t("Patient:QuoteSheet:InChargeDoctor"),
+      dataIndex: "doctorName",
+      width: 160,
+      className: "pd-appt-strong",
+    },
     {
       title: t("Patient:Library:Content"),
       dataIndex: "reason",
       width: 220,
+      className: "pd-appt-strong",
       render: (value: string | null) => value ?? "—",
     },
     {
@@ -94,7 +100,8 @@ export function buildAppointmentColumns({
     {
       title: t("Patient:Misc:StatusLabel"),
       dataIndex: "status",
-      width: 96,
+      width: 108,
+      className: "pd-appt-status",
       render: (value: AppointmentStatus) => {
         const tone = statusTones()[value];
         return <StatusBadge label={t(tone.label)} bg={tone.bg} color={tone.color} />;
