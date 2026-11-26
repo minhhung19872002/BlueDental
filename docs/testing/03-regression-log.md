@@ -16319,3 +16319,15 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Kiểm tra local (build production, preview riêng :8094, BE thật :5000 + PostgreSQL thật, không chặn request): `patient-image*` 6 spec 20/20 xanh. BE Domain.Tests + EntityFrameworkCore.Tests (PatientImageFolder, PatientImageMapping) xanh. `tsc` + eslint sạch.
 - Mức retest: 2 (chỉ tab Hình ảnh; `PatientImage` thêm cột → F-24 + picker "Chọn ảnh hiển thị" đọc cùng danh sách, không lọc thư mục nên vẫn thấy mọi ảnh).
 - CHỈ develop (user: "push lên develop trước để t test", chưa đẩy main).
+
+## R-1325 — Bệnh án: tên dưới chữ ký nằm một dòng trên mọi mẫu (2026-11-26, mức 2: Bệnh nhân — tab Bệnh án)
+
+- Nguồn: BA 2026-11-26 (ảnh chat, mẫu 5): "BÁC SĨ ĐIỀU TRỊ (ký, ghi rõ họ tên)" — "BS. PHẠM THỊ THANH HƯƠNG" gãy thành "BS. PHẠM THỊ THANH / HƯƠNG" dù cột còn trống nửa bên trái; "mấy chỗ tên cho dài xíu nha".
+- User chốt: phạm vi toàn bộ mẫu, **không** làm nhảy trang hay đổi bố cục; lên cả main và develop.
+- Nguyên nhân: `capBlanksToLines` (R-1312) cho mỗi ô chỉ dài tới "phần còn lại bên phải dòng". Dòng căn giữa nở về cả hai phía, nên ô tên dưới chữ ký chỉ được khoảng (rộng cột + rộng vẽ)/2, rồi `flowLongBlanks` đẩy phần dư xuống dòng mới.
+- Sửa (FE, `capBlanks.ts`): đo cả mép trái lẫn mép phải của dòng (`lineExtent`). Dòng căn giữa hoặc căn phải được tính thêm khoảng trống trước nó (`growsLeft` + `startOf`, giới hạn trong ô bảng). Dòng căn trái giữ như cũ. Ô trống hoặc tên ngắn vẫn rộng như trước, nên tờ không đổi chiều cao.
+- E2E thật `patient-medical-record.spec.ts` "a long name under a signature stays on one line on every form, and nothing on the sheet moves": quét 12 mẫu, tự tìm ô nằm một mình trên dòng căn giữa dưới "(ký, ghi rõ họ tên)", ghi tên dài qua API, tải lại. Kiểm: text đúng, một dòng, không có dòng tràn `data-flow-of`, chiều cao tờ bằng lúc để trống. Với `capBlanks` cũ, test đỏ ("BS. PHẠM THỊ THANH" ở consultation.text.51).
+- Kiểm tra local (dev :5173, BE thật + PostgreSQL thật, không chặn request): test mới + R-1312 "past its line stays inside the margin" + mẫu 2/6/7 lề — 5/5 xanh. `tsc` + eslint sạch.
+- Chưa xử lý (cần đổi bố cục, đã hỏi user): mẫu 2 TỔNG KẾT "Họ tên" (Người giao hồ sơ / Bác sỹ điều trị / Người nhận hồ sơ, text.98/102/107) nằm trong cột 189px sau nhãn "Họ tên" nên tên dài vẫn xuống dòng. Cột chữ ký theo từng dòng của mẫu 8/9 cũng hẹp, vẫn gãy trong ô.
+- Mức retest: 2 (mọi mẫu bệnh án dùng chung `capBlanksToLines`; dòng căn trái không đổi).
+- Số R-1324 đang được session khác giữ (Hợp đồng chỉnh nha bỏ Chẩn đoán / Kế hoạch điều trị), nên mục này lấy R-1325.

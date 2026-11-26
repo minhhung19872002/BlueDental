@@ -8,7 +8,8 @@
  *
  * So once the sheet is laid out, each line's blanks share the room the line
  * has: measured with every blank held at its drawn width, it is what is left
- * between the line's end and the edge of its block (or cell). A blank keeps
+ * between the line's end and the edge of its block (or cell) — on a centred
+ * or right-aligned line, what is left before its start as well. A blank keeps
  * the width it is drawn at with what it holds now — all of them less, in
  * proportion, if together they already run past the edge — and the last blank
  * on the line takes what room is left over. Past its cap a blank wraps inside
@@ -72,13 +73,14 @@ function onLine(box: DOMRect, line: DOMRect): boolean {
 }
 
 /**
- * How far right anything on the line runs: the block's own text and boxes,
- * a box's right margin included. What is written inside a blank does not
+ * How far left and right anything on the line runs: the block's own text and
+ * boxes, a box's margins included. What is written inside a blank does not
  * count — only the blank's box, held at its drawn width.
  */
-function lineRight(block: Element, line: DOMRect): number {
+function lineExtent(block: Element, line: DOMRect): { left: number; right: number } {
   const doc = block.ownerDocument;
   const view = doc.defaultView;
+  let left = Number.POSITIVE_INFINITY;
   let right = Number.NEGATIVE_INFINITY;
 
   const walker = doc.createTreeWalker(block, NodeFilter.SHOW_TEXT);
@@ -87,22 +89,50 @@ function lineRight(block: Element, line: DOMRect): number {
     if (node.parentElement?.closest(TEXT_BLANK_SELECTOR)) continue;
     range.selectNodeContents(node);
     for (const box of Array.from(range.getClientRects())) {
-      if (onLine(box, line)) right = Math.max(right, box.right);
+      if (!onLine(box, line)) continue;
+      left = Math.min(left, box.left);
+      right = Math.max(right, box.right);
     }
   }
 
   for (const element of Array.from(block.querySelectorAll("*"))) {
     if (element.parentElement?.closest(TEXT_BLANK_SELECTOR)) continue;
     const box = element.getBoundingClientRect();
-    if (onLine(box, line)) right = Math.max(right, box.right + px(view?.getComputedStyle(element).marginRight ?? ""));
+    if (!onLine(box, line)) continue;
+    const style = view?.getComputedStyle(element);
+    left = Math.min(left, box.left - px(style?.marginLeft ?? ""));
+    right = Math.max(right, box.right + px(style?.marginRight ?? ""));
   }
-  return right;
+  return { left, right };
 }
 
 /** The right edge of a box's writing area: inside its padding and border. */
 function innerRight(box: Element): number {
   const style = box.ownerDocument.defaultView?.getComputedStyle(box);
   return box.getBoundingClientRect().right - px(style?.paddingRight ?? "") - px(style?.borderRightWidth ?? "");
+}
+
+/** The left edge of a box's writing area: inside its padding and border. */
+function innerLeft(box: Element): number {
+  const style = box.ownerDocument.defaultView?.getComputedStyle(box);
+  return box.getBoundingClientRect().left + px(style?.paddingLeft ?? "") + px(style?.borderLeftWidth ?? "");
+}
+
+/** Where the line may start: its block's edge, or its cell's if the block runs past it. */
+function startOf(block: Element): number {
+  const cell = block.closest("td, th");
+  return cell && cell !== block ? Math.max(innerLeft(block), innerLeft(cell)) : innerLeft(block);
+}
+
+/**
+ * A centred or right-aligned line grows to its left as well, so the room
+ * before it is the blank's too: a name under a signature, centred in its
+ * column, takes the column's whole width before it wraps — not only the right
+ * half of it (clinic, 2026-11-26, R-1325).
+ */
+function growsLeft(block: Element): boolean {
+  const align = block.ownerDocument.defaultView?.getComputedStyle(block).textAlign ?? "";
+  return align === "center" || align === "-webkit-center" || align === "right" || align === "end";
 }
 
 /** Where the line ends: its block's edge, or its cell's if the block runs past it. */
@@ -171,9 +201,11 @@ function shortened(line: Blank[], over: number): number[] {
 /** Each blank's cap on its line: what it uses now, scaled down if the line runs over, the rest to the last. */
 function capsOf(line: Blank[]): number[] {
   const last = line[line.length - 1];
-  const free = edgeOf(last.block) - lineRight(last.block, last.held);
+  const extent = lineExtent(last.block, last.held);
+  const free = edgeOf(last.block) - extent.right;
   if (free < -1) return shortened(line, -free);
-  const room = Math.max(0, free);
+  const before = growsLeft(last.block) ? Math.max(0, extent.left - startOf(last.block)) : 0;
+  const room = Math.max(0, free) + before;
   const grown = line.map((blank) => Math.max(0, blank.natural - blank.held.width));
   const used = grown.reduce((sum, width) => sum + width, 0);
   const scale = used > room ? room / used : 1;

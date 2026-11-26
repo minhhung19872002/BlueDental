@@ -2984,4 +2984,94 @@ test.describe("Bệnh án", () => {
     await expect(blank(page, "consultation.text.4")).toHaveText("15/08/2026");
     await expect(page.locator(".pd-medical-date input")).toHaveValue("15/08/2026");
   });
+
+  /**
+   * Clinic, 2026-11-26 (R-1325): a name under a signature, centred in its
+   * column, broke "BS. PHẠM THỊ THANH / HƯƠNG" over two lines with half the
+   * column still free — a blank was let grow only to the right of where it
+   * stood. On every form, a long name in a blank on a centred line of its own
+   * stays on one line, and the sheet is exactly as tall as with it empty.
+   */
+  test("a long name under a signature stays on one line on every form, and nothing on the sheet moves", async ({
+    page,
+  }) => {
+    test.setTimeout(240_000);
+    const NAME = "BS. PHẠM THỊ THANH HƯƠNG";
+    const forms: Array<[string, number]> = [
+      ...Object.entries(FORM_NUMBER),
+      ["Bảng kiểm an toàn phẫu thuật", 11],
+      ["Bảng kiểm đếm gạc, dụng cụ sắc nhọn, dụng cụ", 12],
+    ];
+    for (const [form, number] of forms) FORM_NUMBER[form] = number;
+
+    /** The blanks on a centred line of their own — the names under signatures — and how tall the sheet is. */
+    const measure = () =>
+      sheet(page)
+        .locator("body")
+        .evaluate((body) => {
+          const doc = body.ownerDocument;
+          const view = doc.defaultView!;
+          const ids = Array.from(doc.querySelectorAll<HTMLElement>('[data-medical-record-field][data-field-type="text"]'))
+            .filter((field) => {
+              const block = field.parentElement?.closest("p");
+              if (!block || !["center", "-webkit-center"].includes(view.getComputedStyle(block).textAlign)) return false;
+              // Under a signature: "(Ký, ghi rõ họ tên)" in its cell, or on a line just above it.
+              const cell = block.closest("td");
+              const above: Element[] = [block];
+              for (let prev = block.previousElementSibling; prev && above.length < 5; prev = prev.previousElementSibling) {
+                above.push(prev);
+              }
+              const signed = (cell ? [cell] : above).some((part) => part.textContent?.toLowerCase().includes("ký"));
+              if (!signed) return false;
+              const box = field.getBoundingClientRect();
+              // Nothing else written on the blank's line.
+              const range = doc.createRange();
+              const walker = doc.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+              for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+                if (node.parentElement?.closest("[data-medical-record-field]") || !node.textContent?.trim()) continue;
+                range.selectNodeContents(node);
+                const onLine = Array.from(range.getClientRects()).some(
+                  (rect) => rect.width > 0 && rect.top < box.bottom - 1 && rect.bottom > box.top + 1,
+                );
+                if (onLine) return false;
+              }
+              return true;
+            })
+            .map((field) => field.getAttribute("data-medical-record-field")!);
+          return { ids, height: Math.ceil(doc.documentElement.scrollHeight) };
+        });
+
+    /** Each name blank: on one line, nothing flowed on under it. */
+    const lines = (ids: string[]) =>
+      sheet(page)
+        .locator("body")
+        .evaluate((body, ids) => {
+          const doc = body.ownerDocument;
+          const view = doc.defaultView!;
+          return ids.map((id) => {
+            const field = doc.querySelector<HTMLElement>(`[data-medical-record-field="${id}"]`)!;
+            const style = view.getComputedStyle(field);
+            const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2;
+            const flowed = doc.querySelectorAll(`[data-flow-of="${id}"]`).length;
+            return { id, text: field.textContent, oneLine: field.getBoundingClientRect().height < lineHeight * 1.6 && flowed === 0 };
+          });
+        }, ids);
+
+    await openMedicalRecord(page);
+    let checked = 0;
+    for (const [form] of forms) {
+      await openFreshSheet(page, form);
+      const empty = await measure();
+      if (empty.ids.length === 0) continue;
+
+      await openFreshSheet(page, form, Object.fromEntries(empty.ids.map((id) => [id, NAME])));
+      for (const name of await lines(empty.ids)) {
+        expect(name.text, `${form} ${name.id}`).toBe(NAME);
+        expect(name.oneLine, `${form} ${name.id}: one line`).toBe(true);
+        checked += 1;
+      }
+      expect((await measure()).height, `${form}: as tall as with the names empty`).toBe(empty.height);
+    }
+    expect(checked, "names under signatures checked").toBeGreaterThan(10);
+  });
 });
