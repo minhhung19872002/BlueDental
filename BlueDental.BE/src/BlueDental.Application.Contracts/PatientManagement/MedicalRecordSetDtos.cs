@@ -24,6 +24,9 @@ public class MedicalRecordSetDto : CreationAuditedEntityDto<Guid>
     /// <summary>The forms its index shows ("Mục hiển thị"), in index order.</summary>
     public List<MedicalRecordForm> VisibleForms { get; set; } = new();
 
+    /// <summary>"Ẩn hồ sơ đã hủy": the index leaves out the set's cancelled sheets (R-1331).</summary>
+    public bool HideCancelledSheets { get; set; }
+
     /// <summary>
     /// Newest slip first. A live set lists the slips it holds; a cancelled one
     /// the slips it was opened for, though it no longer holds them.
@@ -73,6 +76,9 @@ public class CreateMedicalRecordSetDto
 
     /// <summary>Empty means every form.</summary>
     public List<MedicalRecordForm> VisibleForms { get; set; } = new();
+
+    /// <summary>"Ẩn hồ sơ đã hủy" — the dialog ticks it on a new set; left out, false.</summary>
+    public bool HideCancelledSheets { get; set; }
 }
 
 public class UpdateMedicalRecordSetDto
@@ -81,6 +87,9 @@ public class UpdateMedicalRecordSetDto
     public List<Guid> TreatmentPlanIds { get; set; } = new();
 
     public List<MedicalRecordForm> VisibleForms { get; set; } = new();
+
+    /// <summary>"Ẩn hồ sơ đã hủy"; null keeps what the set has.</summary>
+    public bool? HideCancelledSheets { get; set; }
 }
 
 /// <summary>

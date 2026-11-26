@@ -52,6 +52,13 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
     /// </summary>
     public int HiddenFormMask { get; private set; }
 
+    /// <summary>
+    /// "Ẩn hồ sơ đã hủy": the index leaves out the sheets cancelled in this set
+    /// (R-1331). Nothing is removed — unticked, they show again, marked Đã hủy.
+    /// The dialog ticks it on a new set; a set made before reads false.
+    /// </summary>
+    public bool HideCancelledSheets { get; private set; }
+
     public DateTime? CancelledAt { get; private set; }
     public Guid? CancelledById { get; private set; }
 
@@ -73,7 +80,8 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
         Guid clinicBranchId,
         string code,
         IEnumerable<MedicalRecordForm> visibleForms,
-        int outpatientSequence = 0)
+        int outpatientSequence = 0,
+        bool hideCancelledSheets = false)
     {
         Check.NotNullOrWhiteSpace(code, nameof(code), MaxCodeLength);
         Check.Range(outpatientSequence, nameof(outpatientSequence), 0, MaxOutpatientSequence);
@@ -85,6 +93,7 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
             ClinicBranchId = clinicBranchId,
             Code = code,
             OutpatientSequence = outpatientSequence,
+            HideCancelledSheets = hideCancelledSheets,
             Status = MedicalRecordSetStatus.Active,
         };
         set.ShowOnly(visibleForms);
@@ -103,6 +112,14 @@ public class MedicalRecordSet : FullAuditedAggregateRoot<Guid>
         }
 
         HiddenFormMask = AllForms.Where(form => !shown.Contains(form)).Aggregate(0, (mask, form) => mask | BitOf(form));
+        return this;
+    }
+
+    /// <summary>"Ẩn hồ sơ đã hủy" — whether the index leaves out the set's cancelled sheets.</summary>
+    public MedicalRecordSet HideCancelled(bool hide)
+    {
+        EnsureActive();
+        HideCancelledSheets = hide;
         return this;
     }
 

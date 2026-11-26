@@ -52,6 +52,10 @@ function initialForms(mode: RecordSetDialogMode): Set<MedicalRecordForm> {
 export function RecordSetDialog({ mode, patientLabel, plans, saving, onSubmit, onClose }: Props) {
   const [slips, setSlips] = useState(() => initialSlips(mode));
   const [forms, setForms] = useState(() => initialForms(mode));
+  /** "Ẩn hồ sơ đã hủy" — ticked on a new set (R-1331). */
+  const [hideCancelled, setHideCancelled] = useState(() =>
+    mode.kind === "edit" ? mode.set.hideCancelledSheets : true,
+  );
   /** The set being edited; null while a new one is made. */
   const setId = mode.kind === "edit" ? mode.set.id : null;
 
@@ -86,6 +90,7 @@ export function RecordSetDialog({ mode, patientLabel, plans, saving, onSubmit, o
     onSubmit({
       treatmentPlanIds: [...slips],
       visibleForms: ALL_FORMS.filter((form) => forms.has(form)),
+      hideCancelledSheets: hideCancelled,
     });
 
   const creating = mode.kind === "create";
@@ -141,10 +146,19 @@ export function RecordSetDialog({ mode, patientLabel, plans, saving, onSubmit, o
 
       <section className="rs-dialog-section">
         <header>
-          <h3>
-            {t("Patient:RecordSet:Section2")}
-            <small> · {t("Patient:RecordSet:ShownCount", forms.size, ALL_FORMS.length)}</small>
-          </h3>
+          <div className="rs-dialog-section-title">
+            <h3>
+              {t("Patient:RecordSet:Section2")}
+              <small> · {t("Patient:RecordSet:ShownCount", forms.size, ALL_FORMS.length)}</small>
+            </h3>
+            <Checkbox
+              className="rs-hide-cancelled"
+              checked={hideCancelled}
+              onChange={(event) => setHideCancelled(event.target.checked)}
+            >
+              {t("Patient:RecordSet:HideCancelled")}
+            </Checkbox>
+          </div>
           <span className="rs-dialog-links">
             <Button type="link" size="small" onClick={() => setForms(new Set(ALL_FORMS))}>
               {t("Patient:RecordSet:SelectAll")}

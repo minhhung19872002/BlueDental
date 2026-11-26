@@ -108,7 +108,8 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
             patient.BranchId,
             await NextCodeAsync(patient),
             VisibleFormsOf(input.VisibleForms),
-            await NextOutpatientSequenceAsync(patient));
+            await NextOutpatientSequenceAsync(patient),
+            input.HideCancelledSheets);
 
         await HoldExactlyAsync(set, input.TreatmentPlanIds);
         await _repository.InsertAsync(set, autoSave: true);
@@ -121,6 +122,7 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
         var set = await GetInBranchAsync(id);
 
         set.ShowOnly(VisibleFormsOf(input.VisibleForms));
+        if (input.HideCancelledSheets.HasValue) set.HideCancelled(input.HideCancelledSheets.Value);
         await HoldExactlyAsync(set, input.TreatmentPlanIds);
 
         await _repository.UpdateAsync(set, autoSave: true);
@@ -277,6 +279,7 @@ public class MedicalRecordSetAppService : ApplicationService, IMedicalRecordSetA
                 CancelledById = set.CancelledById,
                 CancellerName = set.CancelledById.HasValue ? cancellers.GetValueOrDefault(set.CancelledById.Value) : null,
                 VisibleForms = set.VisibleForms.ToList(),
+                HideCancelledSheets = set.HideCancelledSheets,
                 CreationTime = set.CreationTime,
                 CreatorId = set.CreatorId,
                 Plans = links

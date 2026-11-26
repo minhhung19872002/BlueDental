@@ -16427,3 +16427,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Ngày/giờ, Ghi chú, Thao tác không đổi.
 - Kiểm tra local (FE + BE thật): `tsc` sạch; đo cỡ chữ từng cột trên tab Lịch hẹn — hai cột đậm 14px/600, các cột khác 13px; ảnh chụp đúng. Thay đổi thuần CSS + class nên retest mức 1, không chạy e2e.
 - Mức retest: 1.
+
+## R-1331 — Bộ hồ sơ bệnh án: checkbox "Ẩn hồ sơ đã hủy" (2026-11-26, mức 2: Bệnh nhân — tab Bệnh án, bộ hồ sơ)
+
+- Nguồn: BA — thêm checkbox "Ẩn hồ sơ đã hủy" ngay sau "2. Mục hiển thị · hiển thị x/12" trong dialog Tạo/Sửa bộ hồ sơ, mặc định tick khi tạo; BA chỉ rõ (ảnh khoanh) là ẩn các **bản phiếu** "Đã hủy" trong mục lục (vd "Bệnh án chỉnh nha · Bản 02 · Đã hủy"), không phải ẩn bộ hồ sơ.
+- Quyết định chủ dự án: bộ hồ sơ có sẵn KHÔNG tick (cột mới mặc định false); khi đang ẩn, dòng đếm dưới tên mẫu chỉ đếm các bản đang hiện ("1 bản", không "· 1 đã hủy").
+- BE: `MedicalRecordSet.HideCancelledSheets` (lưu theo bộ), `Open(..., hideCancelledSheets)`, `HideCancelled(bool)` có guard bộ đã hủy (`MedicalRecordSetCancelled`). DTO Create mặc định false khi không gửi (client/spec cũ giữ nguyên), Update `bool?` — null giữ giá trị cũ. Migration `HideCancelledSheetsR1331` (cột bool not null default false trên `bd_medical_record_sets`).
+- FE: dialog gửi `hideCancelledSheets` (tạo mới = true, sửa = giá trị của bộ). Tab Bệnh án lọc bản đã hủy cho mục lục, chế độ "Toàn bộ" và chọn phiếu in; số "Bản NN" vẫn đếm trên mọi bản (không đánh số lại — Bản 01 ẩn thì bản sau vẫn là Bản 02). Dòng mẫu vẫn hiện kể cả khi mọi bản đều đã hủy. Không xoá gì: bỏ tick là hiện lại.
+- Test: Domain `MedicalRecordSetTests` 15/15 (thêm test cờ + guard). E2E mới trong `medical-record-set.spec.ts` (tạo qua UI box tick sẵn → API true; 2 bản Bìa, hủy Bản 01 → còn 1 thẻ "Bản 02", đếm "1 bản", Toàn bộ không có "Phiếu đã hủy", giữ sau reload; bỏ tick → API false, 2 thẻ, "Bản 01" đã hủy, "2 bản · 1 đã hủy"; POST không có cờ → false).
+- Kiểm tra local (build production preview riêng :8131, BE dựng riêng :5331 từ working tree, PostgreSQL thật, migration đã áp): `medical-record-set.spec.ts` 4/4 xanh. Retest các spec Bệnh án khác (10 file): 65 xanh; 2 đỏ khi chạy song song xanh lại khi chạy riêng (:469, :1133 — tải); 4 đỏ ổn định (`patient-medical-record` :2073, :2696 số trang in Phiếu phẫu thuật/thủ thuật; :2970 "picking the day"; `printed-doctor-title` :128) đỏ y hệt trên bản build HEAD 800309fb → có sẵn, không do R-1331. Ảnh chụp dialog: checkbox nằm cùng dòng sau tiêu đề mục 2. `tsc -b` sạch.
+- Mức retest: 2.

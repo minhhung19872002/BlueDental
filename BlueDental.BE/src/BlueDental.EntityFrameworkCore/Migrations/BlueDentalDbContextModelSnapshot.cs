@@ -6068,6 +6068,9 @@ namespace BlueDental.Migrations
                     b.Property<int>("HiddenFormMask")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("HideCancelledSheets")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")

@@ -28,8 +28,10 @@ interface Props {
   head: ReactNode;
   /** The forms the set shows ("Mục hiển thị"), in index order. */
   forms: MedicalRecordFormSpec[];
-  /** The set's sheets. */
+  /** The set's sheets the index lists — without the cancelled ones when the set hides them. */
   sheets: PatientMedicalRecordDto[];
+  /** `Bản NN` of a sheet, counted over every sheet of its form, hidden ones too. */
+  ordinalOf: (sheet: PatientMedicalRecordDto) => number;
   activeId: string | null;
   collapsed: boolean;
   adding: boolean;
@@ -51,6 +53,7 @@ export function MedicalRecordIndex({
   head,
   forms,
   sheets,
+  ordinalOf,
   activeId,
   collapsed,
   adding,
@@ -84,9 +87,9 @@ export function MedicalRecordIndex({
 
       <ul id="pd-medical-forms" className="pd-medical-forms">
         {forms.map((spec) => {
-          // Sheets keep the order the server lists them in, so the ordinal a
-          // card shows is stable: the first one made is always Bản 01, and a
-          // cancelled copy keeps its number.
+          // The ordinal a card shows is stable: the first one made is always
+          // Bản 01, and a cancelled copy keeps its number — hidden or not, the
+          // copies after it are not renumbered (R-1331).
           const own = sheets.filter((sheet) => sheet.form === spec.form);
 
           return (
@@ -123,12 +126,12 @@ export function MedicalRecordIndex({
                 )}
               </div>
 
-              {own.map((sheet, position) => (
+              {own.map((sheet) => (
                 <MedicalRecordSheetCard
                   key={sheet.id}
                   sheet={sheet}
                   spec={spec}
-                  ordinal={position + 1}
+                  ordinal={ordinalOf(sheet)}
                   active={sheet.id === activeId}
                   actions={actions}
                 />
