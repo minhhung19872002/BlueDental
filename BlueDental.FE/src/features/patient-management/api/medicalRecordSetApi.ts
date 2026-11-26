@@ -50,6 +50,8 @@ export interface RecordSetDto {
   cancelledAt: string | null;
   cancellerName: string | null;
   visibleForms: MedicalRecordForm[];
+  /** "Ẩn hồ sơ đã hủy": the index leaves out the set's cancelled sheets (R-1331). */
+  hideCancelledSheets: boolean;
   /** Newest slip first. */
   plans: RecordSetPlanDto[];
   creationTime: string;
@@ -58,6 +60,7 @@ export interface RecordSetDto {
 export interface RecordSetInput {
   treatmentPlanIds: string[];
   visibleForms: MedicalRecordForm[];
+  hideCancelledSheets: boolean;
 }
 
 /** A slip of the set, as its sheets print it. */

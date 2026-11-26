@@ -48,6 +48,22 @@ public class MedicalRecordSetTests
     }
 
     [Fact]
+    public void Hiding_cancelled_sheets_is_kept_on_the_set_and_refused_once_it_is_cancelled()
+    {
+        ASet().HideCancelledSheets.ShouldBeFalse();
+
+        var set = MedicalRecordSet.Open(
+            Guid.NewGuid(), _patientId, _branchId, "HSBD260001-26112026-01", MedicalRecordSet.AllForms,
+            hideCancelledSheets: true);
+        set.HideCancelledSheets.ShouldBeTrue();
+        set.HideCancelled(false).HideCancelledSheets.ShouldBeFalse();
+
+        set.Cancel(DateTime.UtcNow, null);
+        Should.Throw<BusinessException>(() => set.HideCancelled(true))
+            .Code.ShouldBe(BlueDentalDomainErrorCodes.PatientManagement.MedicalRecordSetCancelled);
+    }
+
+    [Fact]
     public void A_set_saved_before_mau_10_existed_shows_it_and_keeps_what_it_hid()
     {
         // Saved when there were nine forms, with mẫu 2 and mẫu 9 unticked: bits 1 and 8.

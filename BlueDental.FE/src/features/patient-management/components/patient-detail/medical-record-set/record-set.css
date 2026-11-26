@@ -377,6 +377,18 @@
   display: flex;
   gap: 4px;
 }
+/* "2. Mục hiển thị · hiển thị x/12" with "Ẩn hồ sơ đã hủy" right after it (R-1331). */
+.rs-dialog-section-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+}
+.rs-hide-cancelled {
+  color: var(--bd-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
 .rs-dialog-summary {
   color: var(--bd-muted);
   font-size: 13px;

@@ -16,6 +16,8 @@ export interface RecordSet {
   code: string;
   status: number;
   visibleForms: number[];
+  /** "Ẩn hồ sơ đã hủy" (R-1331). */
+  hideCancelledSheets: boolean;
   plans: { treatmentPlanId: string; planCode: string; diagnosisSlipCode: string | null }[];
 }
 

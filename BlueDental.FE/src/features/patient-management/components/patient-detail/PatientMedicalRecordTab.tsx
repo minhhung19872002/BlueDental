@@ -121,6 +121,15 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
         a.creationTime.localeCompare(b.creationTime),
     );
   }, [query.data, forms, activeSet?.id]);
+  /**
+   * What the index, the canvas and Toàn bộ show: the same, less the cancelled
+   * sheets when the set hides them ("Ẩn hồ sơ đã hủy", R-1331). Numbering still
+   * counts them — see `ordinalOf`.
+   */
+  const listed = useMemo(
+    () => (activeSet?.hideCancelledSheets ? sheets.filter((sheet) => !sheet.cancelledAt) : sheets),
+    [sheets, activeSet?.hideCancelledSheets],
+  );
   const auto = useSheetFieldValues(patient, branchId);
   const diagnosesFrom = useSheetDiagnoses(patientId, branchId);
   /** What the open set's treatment slips answer (save/P1810.drawio). */
@@ -183,7 +192,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
   /** The day each dated sheet is filled in for, until it is saved onto the sheet. */
   const [dates, setDates] = useState<Record<string, Dayjs>>({});
 
-  const active = sheets.find((sheet) => sheet.id === activeId) ?? sheets[0] ?? null;
+  const active = listed.find((sheet) => sheet.id === activeId) ?? listed[0] ?? null;
   /** A cancelled sheet, or any sheet of a cancelled set, is only read and printed. */
   const readOnly = (sheet: PatientMedicalRecordDto) => setLocked || Boolean(sheet.cancelledAt);
   const readOnlyNotice = (sheet: PatientMedicalRecordDto) => {
@@ -263,7 +272,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     setEdits((current) => ({ ...current, [sheet.id]: { ...next, ...kept } }));
   };
 
-  /** `Bản NN` for a sheet: its position among the sheets of its own form. */
+  /** `Bản NN` for a sheet: its position among the sheets of its own form, hidden cancelled ones included. */
   const ordinalOf = (sheet: PatientMedicalRecordDto) =>
     sheets.filter((item) => item.form === sheet.form).findIndex((item) => item.id === sheet.id) + 1;
 
@@ -394,7 +403,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
     }
   };
 
-  const shown = mode === "all" ? sheets : active ? [active] : [];
+  const shown = mode === "all" ? listed : active ? [active] : [];
 
   const restorePage = useRef<(() => void) | null>(null);
 
@@ -466,7 +475,8 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
         <MedicalRecordIndex
           head={indexHead}
           forms={forms}
-          sheets={sheets}
+          sheets={listed}
+          ordinalOf={ordinalOf}
           activeId={active?.id ?? null}
           collapsed={collapsed}
           adding={addSheet.isPending}
@@ -587,7 +597,7 @@ export function PatientMedicalRecordTab({ patientId, patient }: TabProps) {
 
               {mode === "all" ? (
                 <PrintSheetPicker
-                  sheets={sheets}
+                  sheets={listed}
                   ordinalOf={ordinalOf}
                   onPrint={(ids) => void printSheets(ids)}
                 />

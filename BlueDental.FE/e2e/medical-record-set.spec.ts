@@ -235,6 +235,74 @@ test.describe("Bộ hồ sơ bệnh án", () => {
     ).toBeGreaterThanOrEqual(400);
   });
 
+  test("Ẩn hồ sơ đã hủy is ticked on a new set, hides cancelled copies without renumbering, and unticked shows them again (R-1331)", async ({
+    page,
+  }) => {
+    await openBenhAn(page, patient.id);
+    const free = page.locator(".rs-free");
+    await free.getByRole("checkbox", { name: patient.slips[0].code }).check();
+    await free.getByRole("button", { name: "Tạo hồ sơ" }).click();
+
+    const dialog = page.getByRole("dialog", { name: /Tạo bộ hồ sơ bệnh án mới/ });
+    await expect(dialog.getByRole("checkbox", { name: "Ẩn hồ sơ đã hủy" })).toBeChecked();
+    await dialog.getByRole("button", { name: "Tạo bộ hồ sơ" }).click();
+    await expect(page.getByText("Đã tạo bộ hồ sơ").first()).toBeVisible();
+    const [set] = await setsOf(page, patient.id);
+    expect(set.hideCancelledSheets).toBe(true);
+
+    // Two copies of the cover; Bản 01 is cancelled.
+    const cover = () => page.locator(".pd-medical-form", { hasText: "Bìa hồ sơ bệnh án" });
+    await cover().getByRole("button", { name: "Thêm" }).click();
+    await expect(cover().locator(".pd-sheet-card")).toHaveCount(1);
+    await cover().getByRole("button", { name: "Thêm" }).click();
+    await expect(cover().locator(".pd-sheet-card")).toHaveCount(2);
+    await cover()
+      .locator(".pd-sheet-card")
+      .first()
+      .getByRole("button", { name: "Hủy Bìa hồ sơ bệnh án" })
+      .click();
+    const cancel = page.getByRole("dialog", { name: /Hủy phiếu/ });
+    await cancel.getByLabel("Lý do hủy").fill("Tạo trùng");
+    await cancel.getByRole("button", { name: "Hủy phiếu" }).click();
+    await expect(page.getByText("Đã hủy phiếu").first()).toBeVisible();
+
+    // Gone from the index at once and after a reload; Bản 02 keeps its number,
+    // and the count reads only what is shown.
+    for (const reload of [false, true]) {
+      if (reload) await page.reload();
+      await expect(cover().locator(".pd-sheet-card")).toHaveCount(1);
+      await expect(cover().locator(".pd-sheet-card")).toContainText("Bản 02");
+      await expect(cover().locator(".pd-sheet-card--cancelled")).toHaveCount(0);
+      await expect(cover().locator(".pd-medical-form-count")).toHaveText("1 bản");
+    }
+    // Toàn bộ shows only the live copy too.
+    await page.locator(".pd-medical-bar").getByRole("button", { name: "Toàn bộ" }).click();
+    await expect(page.getByText("Phiếu đã hủy")).toHaveCount(0);
+
+    // Unticked: back, marked Đã hủy, with its own number.
+    let edit = await openFromPicker(page, `Sửa bộ hồ sơ ${set.code}`);
+    const hide = edit.getByRole("checkbox", { name: "Ẩn hồ sơ đã hủy" });
+    await expect(hide).toBeChecked();
+    await hide.uncheck();
+    await edit.getByRole("button", { name: "Lưu" }).click();
+    await expect.poll(async () => (await setsOf(page, patient.id))[0].hideCancelledSheets).toBe(false);
+    await page.reload();
+    await expect(cover().locator(".pd-sheet-card")).toHaveCount(2);
+    await expect(cover().locator(".pd-sheet-card--cancelled")).toContainText("Bản 01");
+    await expect(cover().locator(".pd-medical-form-count")).toHaveText("2 bản · 1 đã hủy");
+
+    // The edit dialog reads what was saved; a set made without the flag keeps false.
+    edit = await openFromPicker(page, `Sửa bộ hồ sơ ${set.code}`);
+    await expect(edit.getByRole("checkbox", { name: "Ẩn hồ sơ đã hủy" })).not.toBeChecked();
+    await edit.getByRole("button", { name: "Huỷ" }).click();
+    const plain = await call<{ hideCancelledSheets: boolean }>(page, SETS_API, {
+      method: "POST",
+      json: { patientId: patient.id, treatmentPlanIds: [patient.slips[1].id], visibleForms: [] },
+    });
+    expect(plain.status, JSON.stringify(plain.body)).toBe(200);
+    expect(plain.body.hideCancelledSheets).toBe(false);
+  });
+
   test("a slip in another set is locked in both dialogs and moves in two steps; a started one stays; cancelling frees", async ({
     page,
     browser,
