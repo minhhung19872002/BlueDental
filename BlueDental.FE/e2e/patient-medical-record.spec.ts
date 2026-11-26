@@ -1297,8 +1297,9 @@ test.describe("Bệnh án", () => {
         "Hợp đồng thỏa thuận niềng răng",
         {
           "orthodontic-contract.patient.address": address,
-          // Chẩn đoán as Bệnh án chỉnh nha prints it (R-1079).
-          "orthodontic-contract.text.7": diagnosed,
+          // Chẩn đoán is written by hand: the contract is for braces alone and
+          // the record's other diagnoses do not belong on it (R-1324).
+          "orthodontic-contract.text.7": "",
           // An adult signs alone: the guardian on file is not printed as a parent.
           "orthodontic-contract.text.29": "",
         },

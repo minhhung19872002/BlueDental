@@ -31,9 +31,6 @@ interface Facts {
     planCode: string;
     dentistName: string | null;
     endDate: string | null;
-    grossAmount: number;
-    discountAmount: number;
-    totalAmount: number;
   }[];
   services: { amount: number }[];
   visits: { content: string | null }[];
@@ -287,24 +284,15 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await expect(blank(page, "consultation.text.46")).toHaveText(total.toLocaleString("vi-VN"));
     await expect(blank(page, "consultation.text.47")).toContainText("đồng");
 
-    // Hợp đồng thỏa thuận niềng răng (R-1079): "- Kế hoạch điều trị" as mẫu 3's
-    // IX lists it, the first service in the blank after the label (R-1094) — and
-    // II. Chi phí as the slips' own totals, added up over the set.
+    // Hợp đồng thỏa thuận niềng răng: nothing from the slips (BA, 2026-11-26,
+    // R-1324) — they carry every service, the contract is for braces alone, so
+    // Chẩn đoán, Kế hoạch điều trị and II. Chi phí are written by hand.
     await openSheet(page, "Hợp đồng thỏa thuận niềng răng");
-    await expect(blank(page, "orthodontic-contract.text.11")).toContainText("Răng 12 - ");
-    await expect(blank(page, "orthodontic-contract.text.12")).toContainText("Răng 11 - ");
-    await expect(blank(page, "orthodontic-contract.text.13")).toContainText("Răng 21 - ");
-    await expect(blank(page, "orthodontic-contract.text.14")).toHaveText("");
+    for (const line of [7, 11, 12, 13, 25, 26, 27]) {
+      await expect(blank(page, `orthodontic-contract.text.${line}`)).toHaveText("");
+    }
+    await expect(sheet(page).locator("body")).not.toContainText("Răng 12 - ");
     await expect(sheet(page).locator("body")).not.toContainText("Phiếu điều trị");
-    const money = (pick: (plan: Facts["plans"][number]) => number) =>
-      `${facts.plans.reduce((sum, plan) => sum + pick(plan), 0).toLocaleString("vi-VN")}đ`;
-    const gross = facts.plans.reduce((sum, plan) => sum + plan.grossAmount, 0);
-    const discount = facts.plans.reduce((sum, plan) => sum + plan.discountAmount, 0);
-    expect(discount, "the slip discount is in Giảm giá").toBeGreaterThanOrEqual(100_000);
-    expect(facts.plans.reduce((sum, plan) => sum + plan.totalAmount, 0)).toBe(gross - discount);
-    await expect(blank(page, "orthodontic-contract.text.25")).toHaveText(money((plan) => plan.grossAmount));
-    await expect(blank(page, "orthodontic-contract.text.26")).toHaveText(money((plan) => plan.discountAmount));
-    await expect(blank(page, "orthodontic-contract.text.27")).toHaveText(money((plan) => plan.totalAmount));
 
     // Phiếu theo dõi điều trị: Tờ điều trị số, Số ngoại trú, and the day's công đoạn.
     await openSheet(page, "Phiếu theo dõi điều trị");

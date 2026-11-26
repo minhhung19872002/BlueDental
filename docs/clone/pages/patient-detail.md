@@ -4418,30 +4418,28 @@ mục UNKNOWN_REFERENCE_BEHAVIOR.
   - Bên B: Họ và tên (in hoa), Mã hồ sơ, Số điện thoại, Địa chỉ, Số CCCD — như các mẫu khác.
   - **Bộ có mẫu 3 (BA, 2026-11-01, R-1097)**: mẫu 10 tự điền theo tờ mẫu 3 mới nhất chưa hủy của
     bộ (`contractFromOrthodontic.ts`), một chiều — chữ gõ trên mẫu 10 thắng, không ghi ngược về mẫu 3:
-    - "1. Chẩn đoán" ← VIII Chẩn đoán (ô 86..94 + dòng thêm), quá 3 dòng in thì thêm
-      `custom.line.orthodontic-contract.text.9.n`.
-    - Nhổ răng ← ô 95. "- Kế hoạch điều trị" ← các dòng của IX (ô 104..111 + dòng thêm).
+    - Nhổ răng ← ô 95.
+    - ~~"1. Chẩn đoán" ← VIII; "- Kế hoạch điều trị" ← IX~~ — **bỏ từ R-1324** (xem dưới).
     - "Thời gian điều trị dự kiến" ← ô 99, in "24 tháng" (mẫu 3 in chữ "tháng" sau ô).
     - Dòng mới "- Loại mắc cài" ngay sau Thời gian điều trị dự kiến, trình bày như mẫu 3 (hai
       dòng: Kim loại, Kim loại tự động / KLTĐ Cánh cam, Invisalign, mỗi loại một ô giá "… triệu"),
       id `orthodontic-contract.checkbox.1..4` + `text.34..37` ← mẫu 3 checkbox 61..64 + ô 100..103.
     - Không lấy: Cắm minivis, Vị trí mắc cài răng cửa HT, Khâu răng, Bác sĩ. Khí cụ và II. Chi phí
       giữ như cũ.
-  - Bộ chưa có mẫu 3 thì như trước:
-  - "1. Chẩn đoán": các chẩn đoán của bệnh nhân, như mẫu 3 (`DIAGNOSIS_FIELDS`).
-  - "- Kế hoạch điều trị": dịch vụ của từng phiếu điều trị trong bộ như mục IX mẫu 3, mỗi dòng
-    "Răng 16 - dịch vụ", nối liền qua các phiếu — không in tên phiếu, không dòng trống giữa phiếu
-    (R-1094, 2026-11-01). Quá 5 dòng in sẵn thì tự thêm dòng `custom.line.orthodontic-contract.text.15.n`.
-  - II. Chi phí: cộng các phiếu điều trị trong bộ (cùng phạm vi bảng chi phí mẫu 5), theo đúng số
-    của từng phiếu trên Kế hoạch điều trị: Chi phí ban đầu = `ServicesGrossTotal`, Giảm giá =
-    `TotalDiscountAmount` (giảm dòng, voucher dịch vụ, giảm cấp phiếu, voucher KHĐT), Chi phí sau
-    giảm giá = `TotalAmount` (chưa VAT). In dạng "45.000.000đ" như bảng phí của hợp đồng. Server
-    gửi ba số này trong sheet facts (`grossAmount`, `discountAmount`, `totalAmount` của từng phiếu).
+  - **"1. Chẩn đoán", "- Kế hoạch điều trị" và II. Chi phí (Chi phí ban đầu / Giảm giá / Chi phí
+    sau giảm giá) KHÔNG tự điền nữa (BA, 2026-11-26, R-1324)** — để trống cho nhân viên gõ tay, dù
+    bộ có hay chưa có mẫu 3. Lý do: hợp đồng chỉ nói về dịch vụ niềng, còn chẩn đoán / phiếu điều trị
+    của bệnh nhân gồm cả dịch vụ khác (nhổ răng khôn, viêm quanh cuống…), hệ thống không biết dịch
+    vụ nào là niềng. Trước R-1324: Chẩn đoán = mọi chẩn đoán (`DIAGNOSIS_FIELDS`) hoặc VIII mẫu 3;
+    Kế hoạch = mọi dịch vụ mọi phiếu (R-1094) hoặc IX mẫu 3; Chi phí = cộng `grossAmount` /
+    `discountAmount` / `totalAmount` của mọi phiếu (server vẫn gửi ba số này trong sheet facts,
+    FE không dùng nữa). Tờ đã lưu chỉ giữ chữ người dùng tự gõ (bản lưu chỉ chứa giá trị khác bản tự
+    điền), nên tờ cũ chưa gõ tay ba mục này sẽ hiện trống.
   - III. Đồng ý điều trị: Họ tên khách hàng (như hồ sơ, không in hoa), Ngày/tháng/năm sinh; "Họ
     tên cha mẹ/người giám hộ" = người giám hộ chính, **chỉ khi khách hàng dưới 18 tuổi** (đúng như
     nhãn). Người lớn hoặc không rõ ngày sinh thì để trống.
 - Để trống cho viết tay: ngày ký, Cấp ngày / Nơi cấp CCCD (hồ sơ bệnh nhân không lưu hai trường
-  này — chỉ người giám hộ có), Nhổ răng, Phục hồi – Phục hình, Khí cụ, thời gian điều trị / duy
+  này — chỉ người giám hộ có), Chẩn đoán, Kế hoạch điều trị, II. Chi phí (R-1324), Nhổ răng, Phục hồi – Phục hình, Khí cụ, thời gian điều trị / duy
   trì (Nhổ răng, thời gian điều trị và Loại mắc cài lấy từ mẫu 3 khi bộ có mẫu 3, R-1097), Cam kết, chữ ký, Địa chỉ / Số điện thoại cuối trang (file Word không nói là của khách hàng
   hay người giám hộ).
 - Bảng phí là chữ in của file Word, không phải ô nhập.

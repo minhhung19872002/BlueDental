@@ -205,10 +205,11 @@ export function patientFieldValues(facts: SheetPatientFacts): FieldValues {
  * out: its "II. CHẨN ĐOÁN" is written by hand at the consultation (clinic,
  * 2026-10-14). So is "Giấy đồng ý thực hiện phẫu thuật/thủ thuật": a patient
  * may carry many diagnosis slips and the sheet cannot tell which one the
- * operation is for, so the doctor writes it (clinic, 2026-10-16). The contract
- * (mẫu 10) takes it as Bệnh án chỉnh nha does — until the set has a mẫu 3,
- * whose VIII it then copies (contractFromOrthodontic, R-1097). Bảng kiểm an
- * toàn phẫu thuật (mẫu 11) takes it as Phiếu phẫu thuật/thủ thuật does.
+ * operation is for, so the doctor writes it (clinic, 2026-10-16). Nor the
+ * contract (mẫu 10): it is for braces alone and the patient's other diagnoses
+ * do not belong on it, so it is written by hand (BA, 2026-11-26, R-1324).
+ * Bảng kiểm an toàn phẫu thuật (mẫu 11) takes it as Phiếu phẫu thuật/thủ
+ * thuật does.
  */
 const DIAGNOSIS_FIELDS = [
   "outpatient-dental.text.43",
@@ -216,7 +217,6 @@ const DIAGNOSIS_FIELDS = [
   "custom.text.9959ffa6f36f45b89e42d5a486996216",
   "procedure-record.text.1",
   "care.diagnosis",
-  "orthodontic-contract.text.7",
   "surgical-safety.diagnosis",
 ] as const;
 
