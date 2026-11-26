@@ -48,6 +48,12 @@ public sealed class PatientMedicalRecordController(IPatientMedicalRecordAppServi
         Guid id,
         [FromBody] UpdatePatientMedicalRecordDto input) => service.UpdateAsync(id, input);
 
+    /// <summary>"Dịch vụ của phiếu" — the services a mẫu 5 copy prints (R-1326).</summary>
+    [HttpPut("{id:guid}/services")]
+    public Task<PatientMedicalRecordDto> SetServicesAsync(
+        Guid id,
+        [FromBody] SetPatientMedicalRecordServicesDto input) => service.SetServicesAsync(id, input);
+
     /// <summary>"Hủy phiếu" — a sheet is never deleted; see the service.</summary>
     [HttpPost("{id:guid}/cancel")]
     public Task<PatientMedicalRecordDto> CancelAsync(

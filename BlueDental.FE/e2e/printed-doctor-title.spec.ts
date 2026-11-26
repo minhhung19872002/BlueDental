@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { login, runId } from "./fixtures/auth";
-import { SETS_API, openBenhAn, seedPatientWithSlips } from "./fixtures/medicalRecordSet";
+import { CONSENT_FORM, SETS_API, clickAddSheet, openBenhAn, seedPatientWithSlips } from "./fixtures/medicalRecordSet";
 import { call, clinicToday, createRunStaff, deleteStaff, firstBranchId } from "./fixtures/timekeepingStaff";
 
 /**
@@ -129,7 +129,7 @@ test.describe("Printed sheets name the doctor by Chức danh", () => {
 
       // Phiếu tư vấn và xác nhận: the names under BÁC SĨ TƯ VẤN and BÁC SĨ ĐIỀU TRỊ.
       const consent = page.locator(".pd-medical-form", { hasText: "Phiếu tư vấn và xác nhận đồng ý điều trị" });
-      await consent.getByRole("button", { name: "Thêm" }).click();
+      await clickAddSheet(page, CONSENT_FORM);
       await expect(page.getByText("Đã thêm phiếu bệnh án").first()).toBeVisible();
       await consent.locator(".pd-sheet-card:not(.pd-sheet-card--cancelled) .pd-sheet-open").first().click();
       const field = (id: string) =>

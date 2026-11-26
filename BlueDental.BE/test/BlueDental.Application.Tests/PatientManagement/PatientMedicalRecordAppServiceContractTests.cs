@@ -41,6 +41,7 @@ public class PatientMedicalRecordAppServiceContractTests
     [InlineData("GetFieldSuggestionsAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
     [InlineData("CreateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Create)]
     [InlineData("UpdateAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
+    [InlineData("SetServicesAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
     [InlineData("CancelAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Delete)]
     [InlineData("UploadDrawingAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Update)]
     [InlineData("GetDrawingAsync", BlueDentalAbilityPermissions.PatientMedicalRecord.Read)]

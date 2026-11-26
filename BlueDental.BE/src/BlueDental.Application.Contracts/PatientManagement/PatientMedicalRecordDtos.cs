@@ -22,6 +22,12 @@ public class PatientMedicalRecordDto : FullAuditedEntityDto<Guid>
     public Guid? CancelledById { get; set; }
     public string? CancellerName { get; set; }
     public string? CancelReason { get; set; }
+
+    /// <summary>
+    /// Mẫu 5 only: the set's service lines this copy prints (R-1326). Null on
+    /// a copy never picked — it prints every service of the set.
+    /// </summary>
+    public List<Guid>? ServiceIds { get; set; }
 }
 
 public class CreatePatientMedicalRecordDto
@@ -33,6 +39,15 @@ public class CreatePatientMedicalRecordDto
 
     public MedicalRecordForm Form { get; set; }
     public string Title { get; set; } = string.Empty;
+
+    /// <summary>Mẫu 5 only: the services picked as the copy is added (R-1326).</summary>
+    public List<Guid>? ServiceIds { get; set; }
+}
+
+/// <summary>"Dịch vụ của phiếu" — the service lines a mẫu 5 copy prints (R-1326).</summary>
+public class SetPatientMedicalRecordServicesDto
+{
+    public List<Guid> ServiceIds { get; set; } = new();
 }
 
 public class UpdatePatientMedicalRecordDto
@@ -113,6 +128,12 @@ public interface IPatientMedicalRecordAppService : IApplicationService
     Task<PatientMedicalRecordDto> CreateAsync(CreatePatientMedicalRecordDto input);
 
     Task<PatientMedicalRecordDto> UpdateAsync(Guid id, UpdatePatientMedicalRecordDto input);
+
+    /// <summary>
+    /// "Dịch vụ của phiếu": which lines of the set's treatment slips a Phiếu tư
+    /// vấn và xác nhận đồng ý điều trị (mẫu 5) prints — every copy its own (R-1326).
+    /// </summary>
+    Task<PatientMedicalRecordDto> SetServicesAsync(Guid id, SetPatientMedicalRecordServicesDto input);
 
     /// <summary>
     /// "Hủy phiếu". A sheet is never erased: it stays in its set marked Đã hủy,

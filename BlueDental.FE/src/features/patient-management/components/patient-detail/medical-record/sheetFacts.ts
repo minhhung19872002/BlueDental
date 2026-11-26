@@ -154,12 +154,43 @@ function generalConsultationValues(facts: SheetFactsDto, values: FieldValues) {
   put(values, "general-consultation.text.7", first?.dentistPosition);
 }
 
-/** Phiếu tư vấn và xác nhận đồng ý điều trị. */
-function treatmentConsentValues(facts: SheetFactsDto, values: FieldValues, formats: SheetFactFormats) {
+/**
+ * The services a mẫu 5 copy is about, in the set's order: those its "Dịch vụ của
+ * phiếu" picked, or — on a copy never picked (`null`, made before R-1326) —
+ * every service of the set, as it always printed.
+ */
+export function consentServicesOf(
+  facts: SheetFactsDto,
+  serviceIds: readonly string[] | null,
+): SheetFactsServiceDto[] {
+  if (serviceIds === null) return facts.services;
+  const picked = new Set(serviceIds);
+  return facts.services.filter((service) => picked.has(service.id));
+}
+
+/**
+ * Phiếu tư vấn và xác nhận đồng ý điều trị — one copy of it. Each copy prints
+ * only its own services (Bản 01 the braces package, Bản 02 a later service:
+ * the clinic, 2026-11-26, R-1326), and its doctors and Chẩn đoán follow them.
+ */
+export function treatmentConsentFieldValues(
+  facts: SheetFactsDto | undefined,
+  serviceIds: readonly string[] | null,
+  formats: SheetFactFormats,
+): FieldValues {
+  const values: FieldValues = {};
+  if (!facts) return values;
+
+  const services = consentServicesOf(facts, serviceIds);
+  // The oldest slip of the copy's: on an unpicked copy the set's oldest, as before.
+  const firstPlan =
+    serviceIds === null
+      ? facts.plans[0]
+      : facts.plans.find((plan) => services.some((service) => service.treatmentPlanId === plan.treatmentPlanId));
+
   // Bác sĩ tư vấn and Ngày tư vấn (owner, 2026-10-19): the oldest slip, and of
   // the consulting lines it was opened from, the oldest — its Nhân sự tư vấn 1 and day.
-  const firstPlan = facts.plans[0];
-  const consulted = facts.services
+  const consulted = services
     .filter((service) => service.treatmentPlanId === firstPlan?.treatmentPlanId && service.consultedAt)
     .sort((a, b) => (a.consultedAt ?? "").localeCompare(b.consultedAt ?? ""))[0];
   if (consulted) {
@@ -171,7 +202,7 @@ function treatmentConsentValues(facts: SheetFactsDto, values: FieldValues, forma
 
   // II. Chẩn đoán as one long run: what does not fit a line goes on to the
   // next dotted line, and past the two printed ones the sheet grows lines.
-  const diagnoses = facts.services.map((service) => {
+  const diagnoses = services.map((service) => {
     const label = diagnosisLabel(service);
     if (!label) return "";
     const teeth = service.toothCodes.length ? formats.teeth(service.toothCodes) : "";
@@ -181,23 +212,24 @@ function treatmentConsentValues(facts: SheetFactsDto, values: FieldValues, forma
 
   // "1. Bác sĩ điều trị", VII's "Tôi đã được Bác sĩ …" (printed bold) and the
   // name under VII's "BÁC SĨ ĐIỀU TRỊ": the oldest slip's doctor only (owner, 2026-10-19).
-  const dentist = facts.plans[0]?.dentistName;
+  const dentist = firstPlan?.dentistName;
   put(values, "consultation.text.8", dentist);
   put(values, "consultation.text.53", dentist);
   put(values, "consultation.text.57", dentist);
 
   // IV. Chi phí điều trị: one service a row, then Tổng and the sum in words.
-  facts.services.forEach((service, at) => {
+  services.forEach((service, at) => {
     const [serial, content, amount] = costRowFieldIds(at + 1);
     put(values, serial, String(at + 1));
     put(values, content, serviceLine(service, formats.teeth));
     put(values, amount, formats.money(service.amount));
   });
-  if (facts.services.length > 0) {
-    const total = facts.services.reduce((sum, service) => sum + service.amount, 0);
+  if (services.length > 0) {
+    const total = services.reduce((sum, service) => sum + service.amount, 0);
     put(values, "consultation.text.46", formats.money(total));
     put(values, "consultation.text.47", formats.moneyWords(total));
   }
+  return values;
 }
 
 /**
@@ -267,7 +299,11 @@ function treatmentDetail(visits: readonly SheetFactsVisitDto[], teeth: TeethLabe
   return lines.join("\n");
 }
 
-/** Every blank the set's slips answer, across the forms. */
+/**
+ * Every blank the set's slips answer that is the same on every sheet, across
+ * the forms. Mẫu 5 is not among them: each of its copies prints its own
+ * services — see `treatmentConsentFieldValues`.
+ */
 export function sheetFactFieldValues(facts: SheetFactsDto | undefined, formats: SheetFactFormats): FieldValues {
   const values: FieldValues = {};
   if (!facts) return values;
@@ -277,7 +313,6 @@ export function sheetFactFieldValues(facts: SheetFactsDto | undefined, formats: 
   outpatientArrivalValues(facts, values);
   orthodonticValues(facts, values, formats.teeth);
   generalConsultationValues(facts, values);
-  treatmentConsentValues(facts, values, formats);
   treatmentTrackingValues(facts, values, formats.teeth);
   // Hợp đồng thỏa thuận niềng răng (mẫu 10) takes nothing from the slips: it
   // is for braces alone, and the slips carry every other service too — its

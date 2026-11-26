@@ -16374,3 +16374,37 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - Đo PDF in thật (`page.pdf`, build dev) so với PDF Word: lề trái 62,2pt (Word 62,4); mọi dòng trùng chỗ xuống dòng; baseline trong cùng trang lệch ≤1,5pt (trang thỏa thuận 1: −0,5…−1,4pt; trang 2: −0,5…−1,4pt; trang 3: −0,2…−0,3pt). Chrome vẽ TNR hẹp hơn Word ~2% (đo cả bản trước sửa) — không chỉnh.
 - E2E (build production `vite preview` :8080, API thật :5000): "mẫu 10: the contract…" (lề 18/20/18/22mm, 1,495 / 1,15, tiêu đề 20px, 6 trang), "mẫu 10: a page filled to its foot…" (6 trang), "mẫu 10 names the guardian…", `medical-record-contract-from-orthodontic`, `medical-record-contract-party-a`, các test mục lục — xanh. "a browser extension's block…" đỏ ở mẫu 7 (2 trang thay vì 1), trước khi tới mẫu 10 — đỏ có sẵn trên develop sạch (ghi nhận 2026-11-25), loạt này không đụng mẫu 7.
 - Mức retest: 2.
+
+## R-1326 — Bệnh án mẫu 5: mỗi bản Phiếu tư vấn và xác nhận đồng ý điều trị chỉ in dịch vụ của nó (2026-11-26, mức 2: Bệnh nhân — tab Bệnh án)
+
+- Nguồn: chat phòng khám 2026-11-26 (BS Huỳnh Văn Định): "lần đầu là 1 phiếu tư vấn và đồng ý đtri riêng cho gói niềng, lần sau 1 dịch vụ riêng, tách riêng 1 phiếu". Trước đây mọi bản mẫu 5 trong bộ hồ sơ in **mọi** dịch vụ của bộ.
+- User chốt:
+  - "+ Thêm" ở mẫu 5 mở dialog "Dịch vụ của phiếu" liệt kê dịch vụ của bộ (tên, mã phiếu · răng, thành tiền). Dịch vụ chưa nằm ở bản nào khác được tick sẵn; dịch vụ đã có ở bản khác ghi "Đã có ở Bản NN" (vẫn tick được).
+  - Nút "Dịch vụ của phiếu" trên đầu tờ đang mở để chọn lại sau; lưu ngay (không chờ nút Lưu của phiếu).
+  - Bản chỉ in dịch vụ được chọn ở: IV (dòng, Tổng, bằng chữ), II. Chẩn đoán, Bác sĩ tư vấn / Ngày tư vấn, Bác sĩ điều trị.
+  - Mục III "Phương pháp điều trị" (ô tick) **không** đổi.
+  - Phương án (a): bản đã có (chưa chọn, `ServiceIds = null`) vẫn in mọi dịch vụ.
+  - Chỉ develop trước, chưa đẩy main.
+- BE:
+  - `PatientMedicalRecord.ServiceIds` (`uuid[]`, nullable, tối đa 200) + `PickServices` — chỉ mẫu 5, khác thì `Patient:0040`. Migration `AddMedicalRecordServiceIdsR1326`.
+  - `PUT /api/v1/app/patient-medical-records/{id}/services` (quyền `PatientMedicalRecord.Update`, chặn chi nhánh như sửa phiếu, phiếu đã huỷ / bộ đã huỷ bị chặn). `CreateAsync` nhận `serviceIds`.
+  - Id chọn phải là dòng dịch vụ của các phiếu điều trị bộ đang giữ, khác thì `Patient:0041`.
+  - Sheet facts: `services[].id` = id dòng dịch vụ.
+- FE:
+  - `sheetFacts.ts`: giá trị mẫu 5 tách khỏi `sheetFactFieldValues` thành `treatmentConsentFieldValues(facts, serviceIds)`; `useSheetFactValues` trả `consentValuesOf(serviceIds)`, tab Bệnh án ghép theo từng tờ.
+  - `useConsentServicePick` + `ConsentServiceDialog` (+ `consent-services.css`); `MedicalRecordCanvasHead` thêm chỗ `tools`.
+- E2E thật mới `e2e/medical-record-consent-services.spec.ts` (2):
+  1. Bản 01: mở dialog đủ 3 dịch vụ tick sẵn, bỏ hết thì "Thêm phiếu" bị khoá, chọn 1 → tờ in 1 dòng, Tổng = tiền dịch vụ đó. Bản 02: tick sẵn 2 dịch vụ còn lại, dịch vụ 1 ghi "Đã có ở Bản 01" → in 2 dòng. API đọc lại `serviceIds`, reload vẫn đúng. "Dịch vụ của phiếu" trên Bản 01 thêm dịch vụ 3 → toast, tờ in 2 dòng, reload giữ, Bản 02 không đổi.
+  2. Bản tạo qua API không có `serviceIds` → `null`, in đủ 3 dòng. Dòng dịch vụ của bệnh nhân khác → 403 `Patient:0041`; chọn trên Bìa → 403 `Patient:0040`; tài khoản chi nhánh 2 không đổi được (403/404), `serviceIds` vẫn null. Bản mới khi mọi dịch vụ đã có bản → 0/3, "Thêm phiếu" khoá, Huỷ không tạo phiếu.
+- Spec cũ: helper "Thêm" mẫu 5 qua `clickAddSheet` (fixtures/medicalRecordSet.ts) — bấm "Thêm phiếu" trong dialog, giữ lựa chọn sẵn (bản đầu = mọi dịch vụ): `medical-record-sheet-facts`, `patient-medical-record` (openSheet / openFreshSheet), `printed-doctor-title`.
+  - Dialog tải dịch vụ xong mới bấm; nếu mọi dịch vụ đã có bản khác ("Thêm phiếu" khoá) thì helper tick "Tất cả dịch vụ" để vẫn thêm bản mới như trước R-1326.
+- Kết quả chạy local (BE thật :5000 + bản build production `vite preview` :8099):
+  - BE `PatientMedicalRecordAppServiceContractTests` 13/13; `tsc -p tsconfig.app.json` + eslint sạch.
+  - Spec mới 2/2 xanh.
+  - Hồi quy 7 spec Bệnh án (57 test): xanh trừ các đỏ có sẵn, giống trên HEAD a7f3e681 (như đã ghi ở R-1324):
+    - `patient-medical-record` :2073, :2695 (Phiếu phẫu thuật/thủ thuật in 2 trang thay vì 1);
+    - `patient-medical-record` :2969 (consultation.text.4 "20/11/2026" thay vì "15/08/2026").
+  - `printed-doctor-title` :128 (mẫu 4 `general-consultation.text.6` chỉ còn "ThS.BS. Chức danh", số chạy tràn xuống dòng tiếp): đỏ y hệt trên bản build HEAD → có sẵn, không do R-1326. Chạy bản tạm bỏ riêng dòng đó thì phần mẫu 5 phía sau (qua dialog chọn dịch vụ) xanh.
+  - :595 "Failed to fetch" và :1133 chạy lại xanh (lần đầu :1133 đỏ vì helper bấm khi dialog chưa tải xong — đã sửa ở trên).
+- Mức retest: 2 (feature Bệnh án mẫu 5).
+- Đẩy CHỈ develop (user: "deploy lên develop trước"), chưa đẩy main.

@@ -1335,6 +1335,8 @@ public static class BlueDentalDbContextModelCreatingExtensions
             entity.Property(x => x.Title).HasMaxLength(300).IsRequired();
             entity.Property(x => x.Content).HasMaxLength(PatientMedicalRecord.MaxContentLength);
             entity.Property(x => x.CancelReason).HasMaxLength(PatientMedicalRecord.MaxCancelReasonLength);
+            // Null = a mẫu 5 copy made before R-1326, printing every service.
+            entity.Property(x => x.ServiceIds).HasColumnType("uuid[]");
             entity.HasIndex(x => new { x.PatientId, x.SortOrder });
             entity.HasIndex(x => x.ClinicBranchId);
             entity.HasIndex(x => x.RecordSetId);

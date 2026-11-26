@@ -6769,6 +6769,9 @@ namespace BlueDental.Migrations
                     b.Property<Guid>("RecordSetId")
                         .HasColumnType("uuid");
 
+                    b.PrimitiveCollection<List<Guid>>("ServiceIds")
+                        .HasColumnType("uuid[]");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
 
