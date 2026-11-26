@@ -26,10 +26,11 @@ interface Props {
 
 /**
  * "Thêm đơn thuốc" / "Cập nhật đơn thuốc" (F-58): the patient beside the
- * doctor, Điều trị and Tái khám; then the diagnoses picked from the patient's
- * phiếu điều trị and their note; the advice; then the medicine lines dosed
- * Sáng / Trưa / Chiều / Tối. A medicine the patient declared an allergy to
- * (Tiểu sử bệnh) raises a warning and asks once more on Lưu (R-744).
+ * doctor, Điều trị and Tái khám; then the medicine lines dosed Sáng / Trưa /
+ * Chiều / Tối, above the diagnoses picked from the patient's phiếu điều trị
+ * (R-1330); then the diagnosis note and the advice. A medicine the patient
+ * declared an allergy to (Tiểu sử bệnh) raises a warning over the medicine
+ * lines and asks once more on Lưu (R-744).
  */
 export function PrescriptionDialog({ open, patient, prescription, onClose }: Props) {
   const navigate = useNavigate();
@@ -79,6 +80,15 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
         onFinish={save.handleFinish}
       >
         <RxHeaderFields patient={patient} />
+        <PrescriptionAllergyAlert conflicts={allergyConflicts} />
+        <RxMedicineSection
+          lines={lines}
+          medicines={medicines}
+          templates={state.templates}
+          onChange={state.setLines}
+          onPickTemplate={state.pickTemplate}
+          onAddMedicineType={() => navigate("/taxonomy/medicine")}
+        />
         <RxDiagnosisSection
           rows={diagnoses.rows}
           printedText={printedText}
@@ -96,16 +106,7 @@ export function PrescriptionDialog({ open, patient, prescription, onClose }: Pro
             aria-label={t("Treatment:Rx:DiagnosisNote")}
           />
         </Form.Item>
-        <PrescriptionAllergyAlert conflicts={allergyConflicts} />
         <RxAdviceRow saveAsTemplate={saveAsTemplate} />
-        <RxMedicineSection
-          lines={lines}
-          medicines={medicines}
-          templates={state.templates}
-          onChange={state.setLines}
-          onPickTemplate={state.pickTemplate}
-          onAddMedicineType={() => navigate("/taxonomy/medicine")}
-        />
       </Form>
       <ConfirmDialog
         open={save.confirmingAllergy}

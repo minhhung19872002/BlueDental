@@ -16408,3 +16408,13 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - :595 "Failed to fetch" và :1133 chạy lại xanh (lần đầu :1133 đỏ vì helper bấm khi dialog chưa tải xong — đã sửa ở trên).
 - Mức retest: 2 (feature Bệnh án mẫu 5).
 - Đẩy CHỈ develop (user: "deploy lên develop trước"), chưa đẩy main.
+
+## R-1330 — Đơn thuốc: Danh sách thuốc lên trên Chẩn đoán, góc dưới bảng thuốc bo theo khung (2026-11-26, mức 2: Đơn thuốc — dialog Thêm / Cập nhật đơn thuốc)
+
+- Nguồn: BA 2026-11-26 (ảnh dialog "Thêm đơn thuốc" khoanh khung Danh sách thuốc, "cho khung này lên trên phần chẩn đoán", ảnh 2 chỉ chỗ ngay dưới thông tin bệnh nhân). User chốt: (1) "Nhập lời dặn" + "Lưu đơn thuốc mẫu" để nguyên chỗ cũ; (2) cảnh báo dị ứng đi theo, nằm ngay trên Danh sách thuốc.
+- Thứ tự mới trong `PrescriptionDialog.tsx`: thông tin BN + bác sĩ/Điều trị/Tái khám/Ngày → cảnh báo dị ứng → Danh sách thuốc → Chẩn đoán → Ghi chú chẩn đoán → Lời dặn + Lưu đơn thuốc mẫu. Chỉ đổi vị trí; "Thêm thuốc của tất cả chẩn đoán" / thuốc gợi ý vẫn thêm vào danh sách (nay nằm phía trên). Áp cho cả Thêm và Sửa (một dialog). Bản in ĐƠN THUỐC không đổi.
+- User báo thêm: góc dưới khung Danh sách thuốc bị tràn. Đo trên build production: khung `.rx-section` bo 20px, nền trắng vuông của `.ant-table` chạy sát đáy khung → đè lên viền ở hai góc dưới (có từ trước, không do đổi chỗ). Sửa trong `prescription.css`, chỉ dưới `.rx-meds`: `.ant-table` / `.ant-table-container` bo hai góc dưới `calc(var(--bd-radius-card) - 1px)`, ô đầu/cuối của dòng cuối cũng bo (dòng hover không vuông góc). Bảng thuốc dùng chung (`components/prescription-lines`) và màn Danh mục không đổi.
+- E2E `prescription.spec.ts` (test tạo đơn): Danh sách thuốc nằm trên Chẩn đoán, Chẩn đoán nằm trên ô "Nhập lời dặn" (so `boundingBox().y`).
+- Kiểm tra local (build production, preview riêng :8094, BE thật :5000 + PostgreSQL thật): `prescription.spec.ts` + `prescription-allergy.spec.ts` 11/11 xanh (`E2E_PASSWORD=Admin@123456` — biến môi trường máy đang là mật khẩu khác). Ảnh chụp cận góc dưới khung sau sửa: bo tròn, không còn nền vuông. `tsc` + eslint sạch.
+- Ghi chú số: R-1329 đang được một phiên khác dùng (tab Lịch hẹn bệnh nhân, chưa commit) nên lấy R-1330.
+- Mức retest: 2 (chỉ dialog Đơn thuốc).
