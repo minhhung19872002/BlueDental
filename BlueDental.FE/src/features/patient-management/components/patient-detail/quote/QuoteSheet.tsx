@@ -1,7 +1,6 @@
 import { t } from "@/lib/i18n";
 import { formatDate } from "@/utils/format";
 import {
-  diagnosisLabel,
   lineTotal,
   money,
   rowDiscount,
@@ -31,17 +30,21 @@ const PREPARER_KEY = "Patient:Quote:Preparer";
 /**
  * "PHIẾU BÁO GIÁ" — the sheet "In Hoá Đơn" prints.
  *
+ * R-1334: the branch block takes the full width with the customer block
+ * stacked under it, one fact per line; the table reads Dịch vụ | Số lượng |
+ * Đơn giá | Giảm giá | Thành tiền, and each summary label spans Đơn giá +
+ * Giảm giá so the figures never wrap. Body type is 16px like the hồ sơ forms.
+ *
  * It ends on the reference's signature strip: "Người lập phiếu" and "Khách
  * hàng", each captioned "(Ký, ghi rõ họ tên)" with the signing space above the
- * printed name. An earlier pass recorded that the reference printed none, which
- * the project owner's own copy of the sheet corrected.
+ * printed name.
  */
 export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) {
   const summarySpan = totals.extra > 0 ? 4 : 3;
   return (
     <div className="pq-sheet">
       <div className="pq-sheet__header">
-        <div className="pq-sheet__branch">
+        <section className="pq-sheet__branch">
           {clinic.logoUrl && <img className="pq-sheet__logo" src={clinic.logoUrl} alt="" />}
           <div>
             <p className="pq-sheet__section-label">{t("Patient:QuoteSheet:BranchInfoTitle")}</p>
@@ -58,8 +61,8 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
               <strong>{t("Email")}:</strong> {dash(clinic.email)}
             </p>
           </div>
-        </div>
-        <div className="pq-sheet__customer">
+        </section>
+        <section className="pq-sheet__customer">
           <p className="pq-sheet__section-label">{t("Patient:QuoteSheet:CustomerInfoTitle")}</p>
           <p>
             <strong>{t("Patient:Col:PatientCode")}:</strong> {dash(customer.code)}
@@ -73,7 +76,7 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
           <p>
             <strong>{t("Patient:Col:Address")}:</strong> {dash(customer.address)}
           </p>
-        </div>
+        </section>
       </div>
 
       <h2 className="pq-sheet__title">{t("Patient:Quote:SlipTitle")}</h2>
@@ -83,10 +86,17 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
 
       <p className="pq-sheet__table-title">{t("Patient:Quote:ServiceListTitle")}</p>
       <table>
+        <colgroup>
+          <col className="pq-sheet__col-service" />
+          <col className="pq-sheet__col-quantity" />
+          <col className="pq-sheet__col-money" />
+          <col className="pq-sheet__col-money" />
+          <col className="pq-sheet__col-money" />
+        </colgroup>
         <thead>
           <tr>
             <th>{t("Patient:Misc:ServiceLabel")}</th>
-            <th>{t("Patient:Tab:Diagnosis")}</th>
+            <th className="pq-sheet__num">{t("Patient:Payment:Quantity")}</th>
             <th>{t("Patient:Payment:UnitPrice")}</th>
             <th>{t("Patient:Payment:Discount")}</th>
             <th>{t("Patient:Payment:Amount")}</th>
@@ -96,33 +106,39 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
           {rows.map((row) => (
             <tr key={row.id}>
               <td>{row.service}</td>
-              <td className="pq-sheet__diagnosis">{diagnosisLabel(row)}</td>
-              <td>{t("{0} (SL. {1})", money(row.unitPrice), row.quantity)}</td>
+              <td className="pq-sheet__num">{row.quantity}</td>
+              <td>{money(row.unitPrice)}</td>
               <td>{money(rowDiscount(row))}</td>
               <td>{money(lineTotal(row))}</td>
             </tr>
           ))}
           <tr>
-            <td colSpan={3} rowSpan={summarySpan} className="pq-sheet__summary-empty" />
-            <td className="pq-sheet__summary-label">{sheetLabel("Patient:PlanTotals:Subtotal")}</td>
+            <td colSpan={2} rowSpan={summarySpan} className="pq-sheet__summary-empty" />
+            <td colSpan={2} className="pq-sheet__summary-label">
+              {sheetLabel("Patient:PlanTotals:Subtotal")}
+            </td>
             <td className="pq-sheet__summary-value">{money(totals.gross)}</td>
           </tr>
           <tr>
-            <td className="pq-sheet__summary-label">{sheetLabel("Patient:PlanTotals:Discount")}</td>
+            <td colSpan={2} className="pq-sheet__summary-label">
+              {sheetLabel("Patient:PlanTotals:Discount")}
+            </td>
             <td className="pq-sheet__summary-value pq-sheet__summary-value--discount">
               {totals.discount > 0 ? `-${money(totals.discount)}` : money(0)}
             </td>
           </tr>
           {totals.extra > 0 && (
             <tr>
-              <td className="pq-sheet__summary-label">{sheetLabel("Patient:PlanTotals:Voucher")}</td>
+              <td colSpan={2} className="pq-sheet__summary-label">
+                {sheetLabel("Patient:PlanTotals:Voucher")}
+              </td>
               <td className="pq-sheet__summary-value pq-sheet__summary-value--discount">
                 -{money(totals.extra)}
               </td>
             </tr>
           )}
           <tr className="pq-sheet__summary-row--total">
-            <td className="pq-sheet__summary-label pq-sheet__summary-label--total">
+            <td colSpan={2} className="pq-sheet__summary-label pq-sheet__summary-label--total">
               {sheetLabel("Patient:PlanTotals:Net")}
             </td>
             <td className="pq-sheet__summary-value pq-sheet__summary-value--total">
@@ -133,7 +149,6 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
       </table>
 
       <QuoteSignatures
-        layout="caption-first"
         caption={t("Patient:QuoteSheet:SignFullName")}
         leftLabel={t("Patient:QuoteSheet:Creator")}
         leftName={t(PREPARER_KEY)}

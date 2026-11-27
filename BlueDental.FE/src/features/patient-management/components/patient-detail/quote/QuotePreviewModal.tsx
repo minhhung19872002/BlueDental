@@ -1,28 +1,23 @@
 import type { ReactNode } from "react";
 import { Modal } from "antd";
-import { Printer, Send, X } from "lucide-react";
-import { toast } from "sonner";
+import { Printer, X } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { printQuoteSheet } from "./printQuote";
 
 interface Props {
   open: boolean;
-  /** "Phiếu Báo Giá" / "Hóa Đơn Kèm Chẩn Đoán" — after "Xem trước:". */
+  /** "Phiếu Báo Giá" — after "Xem trước:". */
   subject: string;
   onClose: () => void;
   children: ReactNode;
 }
 
 /**
- * "Xem trước: …" — the preview both print buttons of Chi tiết phiếu open.
- * The sheet fills the body; the title row carries the send-to-customer
- * stub and "In Bản Này", which prints the sheet and nothing else.
+ * "Xem trước: …" — the preview "In Hoá Đơn" of Chi tiết phiếu opens. The
+ * sheet fills the body; the title row carries "In Bản Này", which prints the
+ * sheet and nothing else. "Gửi Khách Hàng (Zalo/FB)" is gone (R-1334).
  */
 export function QuotePreviewModal({ open, subject, onClose, children }: Props) {
-  const handleSend = () => {
-    toast.info(t("Patient:Quote:SendComingSoon"));
-  };
-
   return (
     <Modal
       open={open}
@@ -36,10 +31,6 @@ export function QuotePreviewModal({ open, subject, onClose, children }: Props) {
         <div className="pq-preview-title">
           <span>{t("Patient:Misc:QuotePreview", subject)}</span>
           <span className="pq-footer">
-            <button type="button" className="tp-btn tp-btn--outline" onClick={handleSend}>
-              <Send size={16} />
-              {t("Patient:Quote:SendToCustomer")}
-            </button>
             <button type="button" className="tp-btn tp-btn--primary" onClick={printQuoteSheet}>
               <Printer size={16} />
               {t("Patient:MedRecord:PrintThis")}

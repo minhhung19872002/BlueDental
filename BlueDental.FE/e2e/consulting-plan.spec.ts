@@ -1,9 +1,9 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 /**
  * Chẩn đoán & Tư vấn: the plan footer, the advise table's drag-to-reorder, and
- * the two printed sheets — all on the real stack, against the second branch,
+ * the printed báo giá — all on the real stack, against the second branch,
  * which is where the plan-scoped vouchers are seeded.
  *
  * No `page.route`, no injected token: the tests log in through the real screen
@@ -1261,7 +1261,9 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     await expect(quoteTabs()).toHaveCount(0);
   });
 
-  test("both printed sheets end on the reference's signature strip", async ({ page }) => {
+  test("Chi tiết phiếu lists the lines and totals only; PHIẾU BÁO GIÁ prints Số lượng, one-line totals and the signature strip (R-1334)", async ({
+    page,
+  }) => {
     await openConsulting(page);
     await page
       .locator(".pd-advise-table tbody tr.ant-table-row")
@@ -1273,71 +1275,86 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     const detail = page.getByRole("dialog", { name: "Chi tiết phiếu" });
     await expect(detail).toBeVisible();
 
-    // "In Hoá Đơn" — PHIẾU BÁO GIÁ: the caption sits under the role, the
-    // signing space above the printed name.
+    // No "Ảnh chẩn đoán" panel and no diagnosis invoice: "In Hoá Đơn" is the
+    // only command left in the footer.
+    await expect(detail.getByText("Ảnh chẩn đoán")).toHaveCount(0);
+    await expect(detail.locator("img")).toHaveCount(0);
+    await expect(detail.getByRole("button", { name: "In hóa đơn kèm chẩn đoán" })).toHaveCount(0);
+    await expect(detail.locator(".pq-footer button")).toHaveText(["In Hoá Đơn"]);
+
+    // Dịch vụ | Số lượng | Đơn giá | Giảm giá | Thành tiền — no Chẩn đoán, and
+    // Đơn giá is the bare price, no "(SL. n)" tail.
+    const services = detail.locator(".pq-services");
+    await expect(services.locator("thead th")).toHaveText(["Dịch vụ", "Số lượng", "Đơn giá", "Giảm giá", "Thành tiền"]);
+    const line = services.locator("tbody tr.ant-table-row").first();
+    await expect(line.locator("td")).toHaveCount(5);
+    await expect(line.locator("td").nth(1)).toHaveText("1");
+    await expect(line.locator("td").nth(2)).toHaveText(/^\d{1,3}(\.\d{3})* đ$/);
+    await expect(line.locator("td").nth(2)).not.toContainText("SL");
+    await expect(detail.locator(".pq-totals")).toBeVisible();
+
+    // "In Hoá Đơn" — the preview carries "In Bản Này" and nothing else.
     await detail.getByRole("button", { name: "In Hoá Đơn" }).click();
-    const quote = page.locator(".pq-sheet:visible .pq-signs");
-    await expect(quote).toBeVisible();
-    await expect(quote.locator(".pq-signs__role")).toHaveText(["Người lập phiếu", "Khách hàng"]);
-    await expect(quote.locator(".pq-signs__caption").first()).toHaveText("(Ký, ghi rõ họ tên)");
-    await expect(quote.locator(".pq-signs__name").first()).toHaveText("Thu Ngân / Bác Sĩ");
-    await page
-      .getByRole("button", { name: /^Đóng|close/i })
-      .last()
-      .click()
-      .catch(() => {});
-    await page.keyboard.press("Escape");
+    const preview = page.locator(".pq-dialog--preview:visible");
+    await expect(preview).toBeVisible();
+    await expect(preview.getByRole("button", { name: /Gửi Khách Hàng/i })).toHaveCount(0);
+    await expect(preview.getByRole("button", { name: "In Bản Này" })).toBeVisible();
 
-    // "In hóa đơn kèm chẩn đoán" — the diagnosis invoice names the doctor and
-    // captions it underneath.
-    await detail.getByRole("button", { name: "In hóa đơn kèm chẩn đoán" }).click();
-    // `:visible` for the same reason as the column panel: a preview that has
-    // been closed can still be mounted, and the geometry below would then be
-    // measured across two copies of the sheet.
-    const invoice = page.locator(".pq-dx:visible .pq-signs");
-    await expect(invoice).toBeVisible();
-    await expect(invoice.locator(".pq-signs__role")).toHaveText(["Bác sĩ chẩn đoán", "Khách hàng"]);
-    await expect(invoice.locator(".pq-signs__caption").first()).toHaveText("(Ký, họ tên)");
+    const sheet = preview.locator(".pq-sheet");
+    await expect(sheet.locator("thead th")).toHaveText(["Dịch vụ", "Số lượng", "Đơn giá", "Giảm giá", "Thành tiền"]);
+    const sheetLine = sheet.locator("tbody tr").first();
+    await expect(sheetLine.locator("td").nth(1)).toHaveText("1");
+    await expect(sheetLine.locator("td").nth(2)).toHaveText(/^\d{1,3}(\.\d{3})* đ$/);
 
-    // The doctor is the one field the reference lets you correct on the sheet.
-    // The customer's name beside it is not editable.
-    const doctor = invoice.getByRole("textbox", { name: "Bác sĩ chẩn đoán" });
-    await expect(doctor).toBeVisible();
-    await doctor.fill("BS Kiểm Tra");
-    await expect(doctor).toHaveValue("BS Kiểm Tra");
-    await expect(invoice.locator("input")).toHaveCount(1);
+    // Each summary label spans Đơn giá + Giảm giá and reads on one line, as
+    // does its figure.
+    const labels = sheet.locator("td.pq-sheet__summary-label");
+    expect(await labels.count()).toBeGreaterThanOrEqual(3);
+    for (const colspan of await labels.evaluateAll((cells) => cells.map((cell) => cell.getAttribute("colspan")))) {
+      expect(colspan).toBe("2");
+    }
+    const lineCounts = await sheet
+      .locator("td.pq-sheet__summary-label, td.pq-sheet__summary-value")
+      .evaluateAll((cells) =>
+        cells.map((cell) => {
+          const range = document.createRange();
+          range.selectNodeContents(cell);
+          return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+        }),
+      );
+    expect(lineCounts.every((count) => count === 1), `lines per summary cell: ${lineCounts}`).toBe(true);
 
-    // Both columns leave room for a pen above the name, and leave the same
-    // amount. Measured at the text rather than the box: the printed name is a
-    // <p> holding that space as padding — inside its box — while the editable
-    // one has to hold it as margin, since padding in an input only makes the
-    // box tall. Comparing box tops would read 51px against 6px and mean nothing.
-    const columns = invoice.locator(".pq-signs__col");
-    const textTop = (index: number) =>
-      columns
+    // Bigger type: body 16px, title 21px, section labels 14px.
+    const fontSize = (target: Locator) => target.evaluate((el) => getComputedStyle(el).fontSize);
+    expect(await fontSize(sheet)).toBe("16px");
+    expect(await fontSize(sheet.locator(".pq-sheet__title"))).toBe("21px");
+    expect(await fontSize(sheet.locator(".pq-sheet__section-label").first())).toBe("14px");
+
+    // THÔNG TIN CHI NHÁNH takes the full width; THÔNG TIN KHÁCH HÀNG stacks under it.
+    const header = (await sheet.locator(".pq-sheet__header").boundingBox())!;
+    const branch = (await sheet.locator(".pq-sheet__branch").boundingBox())!;
+    const customer = (await sheet.locator(".pq-sheet__customer").boundingBox())!;
+    await expect(sheet.locator(".pq-sheet__section-label")).toHaveText(["THÔNG TIN CHI NHÁNH", "THÔNG TIN KHÁCH HÀNG"]);
+    expect(Math.abs(branch.width - header.width)).toBeLessThanOrEqual(2);
+    expect(Math.abs(customer.width - header.width)).toBeLessThanOrEqual(2);
+    expect(customer.y).toBeGreaterThanOrEqual(branch.y + branch.height);
+
+    // The signature strip: caption under the role, signing space above the name.
+    const signs = sheet.locator(".pq-signs");
+    await expect(signs.locator(".pq-signs__role")).toHaveText(["Người lập phiếu", "Khách hàng"]);
+    await expect(signs.locator(".pq-signs__caption").first()).toHaveText("(Ký, ghi rõ họ tên)");
+    await expect(signs.locator(".pq-signs__name").first()).toHaveText("Thu Ngân / Bác Sĩ");
+    await expect(signs.locator("input")).toHaveCount(0);
+    const columns = signs.locator(".pq-signs__col");
+    const space = async (index: number) => {
+      const caption = (await columns.nth(index).locator(".pq-signs__caption").boundingBox())!;
+      const textTop = await columns
         .nth(index)
         .locator(".pq-signs__name")
-        .evaluate((el) => {
-          const box = el.getBoundingClientRect();
-          return box.y + parseFloat(getComputedStyle(el).paddingTop);
-        });
-    const roleBottom = async (index: number) => {
-      const role = (await columns.nth(index).locator(".pq-signs__role").boundingBox())!;
-      return role.y + role.height;
+        .evaluate((el) => el.getBoundingClientRect().y + parseFloat(getComputedStyle(el).paddingTop));
+      return textTop - (caption.y + caption.height);
     };
-
-    const doctorSpace = (await textTop(0)) - (await roleBottom(0));
-    const customerSpace = (await textTop(1)) - (await roleBottom(1));
-    expect(doctorSpace).toBeGreaterThanOrEqual(30);
-    expect(Math.abs(doctorSpace - customerSpace)).toBeLessThanOrEqual(8);
-
-    // And the field is centred under its heading, not flush left.
-    const column = (await columns.nth(0).boundingBox())!;
-    const field = (await doctor.boundingBox())!;
-    const leftGap = field.x - column.x;
-    const rightGap = column.x + column.width - (field.x + field.width);
-    // Loose enough for subpixel layout, tight enough that flush-left (which
-    // would leave the whole 40% on one side) still fails.
-    expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(10);
+    expect(await space(0)).toBeGreaterThanOrEqual(30);
+    expect(Math.abs((await space(0)) - (await space(1)))).toBeLessThanOrEqual(8);
   });
 });

@@ -1,19 +1,14 @@
 import { useMemo } from "react";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import type {
-  PatientAdviseDto,
-  PatientDiagnosisDto,
-} from "@/features/treatment-management/api/consultingApi";
+import type { PatientAdviseDto } from "@/features/treatment-management/api/consultingApi";
 import { useBranchInfo } from "@/hooks/useBranchInfo";
 import { formatDate } from "@/utils/format";
 import { usePatient } from "../../../api/patientQueries";
-import type { PatientImageViewModel } from "../../../api/patientImageAdapters";
 import {
   quoteTotals,
   toQuoteRow,
   type QuoteClinic,
   type QuoteCustomer,
-  type QuoteImage,
   type QuoteRow,
   type QuoteTotals,
 } from "./quoteModel";
@@ -22,8 +17,6 @@ interface Input {
   patientId: string;
   branchId: string;
   rows: PatientAdviseDto[];
-  diagnoses: PatientDiagnosisDto[];
-  images: PatientImageViewModel[];
   /** The plan voucher picked under the sheet — printed as "Giảm giá bác sĩ". */
   voucherDiscount: number;
 }
@@ -33,35 +26,19 @@ export interface QuoteSheetData {
   customer: QuoteCustomer;
   rows: QuoteRow[];
   totals: QuoteTotals;
-  images: QuoteImage[];
 }
 
 /**
- * Everything the quote and its two sheets print: the branch from its own
- * record, the patient from theirs, the ticked advise rows re-shaped, and the
- * album as plain src/alt pairs.
+ * Everything the quote and its sheet print: the branch from its own record
+ * (both its lines, "0779 160 888 - 0767 080 333"), the patient from theirs,
+ * and the ticked advise rows re-shaped.
  */
-export function useQuoteSheet({
-  patientId,
-  branchId,
-  rows,
-  diagnoses,
-  images,
-  voucherDiscount,
-}: Input): QuoteSheetData {
+export function useQuoteSheet({ patientId, branchId, rows, voucherDiscount }: Input): QuoteSheetData {
   const branch = useBranchInfo(branchId).data;
   const patient = usePatient(patientId).data;
   const user = useAuthStore((s) => s.user);
 
-  const quoteRows = useMemo(() => {
-    const slips = new Map(diagnoses.map((slip) => [slip.id, slip]));
-    return rows.map((row) => toQuoteRow(row, slips));
-  }, [rows, diagnoses]);
-
-  const quoteImages = useMemo(
-    () => images.map((image) => ({ id: image.id, src: image.url, alt: image.fileName })),
-    [images],
-  );
+  const quoteRows = useMemo(() => rows.map(toQuoteRow), [rows]);
 
   return {
     clinic: {
@@ -80,6 +57,5 @@ export function useQuoteSheet({
     },
     rows: quoteRows,
     totals: quoteTotals(quoteRows, voucherDiscount),
-    images: quoteImages,
   };
 }
