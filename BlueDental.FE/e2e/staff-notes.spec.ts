@@ -13,7 +13,7 @@ import { call } from "./fixtures/timekeepingStaff";
 
 const NOTES = "/api/v1/app/staff-notes";
 const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
-const MAIN_BRANCH = "Nha Khoa Đức Hạnh Premium";
+const MAIN_BRANCH = "Nha Khoa Đức Hạnh";
 const SCOPE = { Shared: 1, Personal: 2 } as const;
 /** The icon names itself too ("plus Thêm"), so match the end of the name. */
 const ADD_BUTTON = /(^| )Thêm$/;

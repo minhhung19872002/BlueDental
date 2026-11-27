@@ -56,16 +56,17 @@ public class BlueDentalBranchSeedContributor(
             "Development",
             StringComparison.OrdinalIgnoreCase);
 
-    private const string SecondBranchName = "Nha Khoa Đức Hạnh Premium - Chi nhánh 2";
+    private const string SecondBranchName = "Nha Khoa Đức Hạnh - Chi nhánh 2";
+    private const string LegacySecondBranchName = "Nha Khoa Đức Hạnh Premium - Chi nhánh 2";
 
     private async Task SeedSecondBranchAsync()
     {
-        // Corrected rather than skipped, for the reason given on the default
-        // branch: a rename here has to reach a database that already has the row.
+        // Only a name this seeder once wrote is replaced, as on the default
+        // branch: a rename made in the app is left alone.
         var existing = await branchRepository.FindAsync(b => b.Id == SecondBranchId);
         if (existing is not null)
         {
-            if (existing.Name != SecondBranchName)
+            if (existing.Name == LegacySecondBranchName)
             {
                 existing.SetName(SecondBranchName);
                 await branchRepository.UpdateAsync(existing, autoSave: true);

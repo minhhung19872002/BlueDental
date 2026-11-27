@@ -26,7 +26,7 @@ import { currentUserId } from "./fixtures/treatingSlip";
  */
 
 const DENTIST_ROLE = "dentist";
-const MAIN_BRANCH = "Nha Khoa Đức Hạnh Premium";
+const MAIN_BRANCH = "Nha Khoa Đức Hạnh";
 const LEAVES = [
   "patient.read",
   "payment.read",

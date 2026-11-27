@@ -727,7 +727,7 @@ test.describe("Danh mục — nhập từ Excel (API)", () => {
     // up branches that push this one out of the virtual list.
     await dialog.getByLabel(/Chi nhánh/).click();
     await dialog.getByLabel(/Chi nhánh/).fill("11111111-1111-1111-1111-111111111111");
-    await page.locator('.ant-select-item-option[title="Nha Khoa Đức Hạnh Premium"]').click();
+    await page.locator('.ant-select-item-option[title="Nha Khoa Đức Hạnh"]').click();
     await dialog.getByLabel(/Họ và tên/).click();
     await dialog.getByRole("button", { name: /Lưu/ }).click();
     await expect(dialog).toBeHidden();
