@@ -23,6 +23,20 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
     public string? ProvinceId { get; private set; }
     public string? WardId { get; private set; }
     public string? PhoneNumber { get; private set; }
+
+    public const int MaxPhoneLength = 20;
+
+    /// <summary>A 10- or 11-digit number starting with 0, as the settings form takes it.</summary>
+    private static readonly Regex PhonePattern = new(@"^0\d{9,10}$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// "Số điện thoại 2" of Thông tin phòng khám (R-1335): the clinic's second
+    /// line, printed after <see cref="PhoneNumber"/> on every letterhead
+    /// ("0779 160 888 - 0767 080 333"). Kept apart from the first because the
+    /// settings form also saves the first to the signed-in account.
+    /// </summary>
+    public string? SecondaryPhoneNumber { get; private set; }
+
     public string? Email { get; private set; }
     public string? Slogan { get; private set; }
     public string? TaxCode { get; private set; }
@@ -141,6 +155,26 @@ public class ClinicBranch : FullAuditedAggregateRoot<Guid>
 
         OpeningTime = opening;
         ClosingTime = closing;
+        return this;
+    }
+
+    /// <summary>Blank clears it; anything else must read as a phone number.</summary>
+    public ClinicBranch SetSecondaryPhoneNumber(string? phoneNumber)
+    {
+        var trimmed = phoneNumber?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            SecondaryPhoneNumber = null;
+            return this;
+        }
+
+        if (!PhonePattern.IsMatch(trimmed))
+        {
+            throw new BusinessException(BlueDentalDomainErrorCodes.Organizations.InvalidSecondaryPhone)
+                .WithData("value", trimmed);
+        }
+
+        SecondaryPhoneNumber = trimmed;
         return this;
     }
 

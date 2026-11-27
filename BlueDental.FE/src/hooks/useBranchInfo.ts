@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/axios";
+import { joinPhones } from "@/utils/phone";
 
 /** The letterhead facts a printed sheet needs about the clinic. */
 export interface BranchInfo {
@@ -8,6 +9,7 @@ export interface BranchInfo {
   /** Tỉnh / thành and phường / xã codes of Thông tin phòng khám, for the full address (R-1227). */
   provinceId: string | null;
   wardId: string | null;
+  /** Both lines of Thông tin phòng khám, "0779 160 888 - 0767 080 333", or the one set (R-1335). */
   phone: string | null;
   email: string | null;
 }
@@ -19,6 +21,7 @@ interface BranchResponse {
   provinceId?: string | null;
   wardId?: string | null;
   phoneNumber?: string;
+  secondaryPhoneNumber?: string | null;
   email?: string;
 }
 
@@ -28,7 +31,7 @@ function toBranchInfo(branch: BranchResponse): BranchInfo {
     address: branch.address ?? null,
     provinceId: branch.provinceId ?? null,
     wardId: branch.wardId ?? null,
-    phone: branch.phoneNumber ?? null,
+    phone: joinPhones(branch.phoneNumber, branch.secondaryPhoneNumber),
     email: branch.email ?? null,
   };
 }

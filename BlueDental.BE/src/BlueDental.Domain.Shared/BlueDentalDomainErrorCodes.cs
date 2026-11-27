@@ -28,6 +28,7 @@ public static class BlueDentalDomainErrorCodes
         public const string InvalidUsageHours = "BlueDental:Organizations:0008";
         public const string InvalidMaxDayOffDays = "BlueDental:Organizations:0010";
         public const string InvalidCode = "BlueDental:Organizations:0009";
+        public const string InvalidSecondaryPhone = "BlueDental:Organizations:0011";
     }
 
     public static class Catalogs
