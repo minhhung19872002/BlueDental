@@ -9,7 +9,7 @@ import { assertRealApiTraffic, login } from "./auth";
  */
 
 export const DENTIST_ROLE = "dentist";
-export const MAIN_BRANCH = "Nha Khoa Đức Hạnh Premium";
+export const MAIN_BRANCH = "Nha Khoa Đức Hạnh";
 
 /**
  * The checkboxes of one leaf on the dentist's grant tree, found by its id. A

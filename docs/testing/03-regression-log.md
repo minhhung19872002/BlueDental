@@ -16445,3 +16445,20 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
 - FE: giá trị bọc `span.pd-fact-alert` (`color: var(--bd-red)`) trong `PatientProfileTab`; CSS ở `patient-detail.css`.
 - Kiểm tra local (dev :5173 + BE thật, PostgreSQL thật): spec tạm tạo bệnh nhân có/không có Tiểu sử bệnh qua API — có bệnh: giá trị rgb(229, 72, 77), nhãn không đỏ; không bệnh: không có `.pd-fact-alert`. Ảnh chụp đúng. `tsc -b` sạch. Spec tạm đã xoá (thay đổi thuần màu chữ, retest mức 1).
 - Mức retest: 1.
+
+## R-1333 — Bỏ chữ "Premium" khỏi tên phòng khám (2026-11-27, mức 3: seed chi nhánh + tên phòng khám dùng chung)
+
+- Nguồn: nhóm BlueDental (Zalo, 2026-11-27) — "rà soát lại hết code bỏ chữ premium"; user: "bỏ chữ premium đi, rồi coi thử chỗ nào mà có hard code premium đó thì bỏ luôn".
+- Header lấy tên từ chi nhánh (`user.clinicName`), nhưng **không chỉ là dữ liệu**: `BlueDentalDataSeedContributor` chạy ở mọi môi trường, migrator chạy mỗi lần deploy (api `depends_on` migrator), và seeder **ép** tên BD-001 về "Nha Khoa Đức Hạnh Premium" nếu khác. Đổi tên trong Cấu hình chi nhánh sẽ bị lần deploy sau ghi đè.
+- Sửa:
+  - Seed BD-001 → "Nha Khoa Đức Hạnh"; BD-002 (chỉ Development) → "Nha Khoa Đức Hạnh - Chi nhánh 2".
+  - Seeder chỉ đổi tên dòng đã có khi tên đúng bằng tên seed cũ ("…Premium"); tên phòng khám tự đặt trong Cấu hình được giữ qua các lần deploy.
+  - `App:DefaultClinic` (vi/en, chữ dự phòng khi chưa có tên chi nhánh) → "NHA KHOA ĐỨC HẠNH".
+  - Hằng tên chi nhánh trong 9 file e2e.
+- Không đổi: tên miền `duchanhpremium.vn` (CI/CD, tài liệu, XrayAgent), chú thích "Đức Hạnh Premium v2" trong `theme/index.ts` / `index.css` (tên đợt restyle, không hiển thị), tài liệu quan sát bản gốc `docs/clone/*`.
+- Kiểm tra local (BE Docker :5000, Vite dev :5173):
+  - Migrator chạy với `ASPNETCORE_ENVIRONMENT=Production` (như deploy thật): BD-001 "…Premium" → "Nha Khoa Đức Hạnh". Đặt tên khác ("Ten Thu Nghiem") rồi chạy lại migrator → tên giữ nguyên.
+  - Migrator ở Development vẫn đỏ ở demo seed (`AppointmentSlot` giờ đã qua) — có sẵn, cả lần seed rollback; BD-002 local đổi tay bằng SQL.
+  - Header sau đăng nhập: "Nha Khoa Đức Hạnh". `App:DefaultClinic` qua API localization = "NHA KHOA ĐỨC HẠNH".
+  - E2E `branch-switcher` (3) + `patient-roster` (4): 7/7 xanh.
+- Khi deploy: production tự đổi tên BD-001 nếu đang đúng "Nha Khoa Đức Hạnh Premium"; nếu phòng khám đã đặt tên khác thì không đụng.

@@ -17,8 +17,8 @@ test.afterAll(async ({ browser }) => {
  *
  * Real stack only: real login, real ASP.NET Core API, real PostgreSQL.
  */
-const MAIN_BRANCH = "Nha Khoa Đức Hạnh Premium";
-const SECOND_BRANCH = "Nha Khoa Đức Hạnh Premium - Chi nhánh 2";
+const MAIN_BRANCH = "Nha Khoa Đức Hạnh";
+const SECOND_BRANCH = "Nha Khoa Đức Hạnh - Chi nhánh 2";
 
 test.describe("Chi nhánh", () => {
   test("offers only the branches the account may work in", async ({ page }) => {

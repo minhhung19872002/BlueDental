@@ -9,7 +9,7 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
  * rows are synthetic and the spec deletes its patient through the same import.
  */
 
-const BRANCH_NAME = "Nha Khoa Đức Hạnh Premium";
+const BRANCH_NAME = "Nha Khoa Đức Hạnh";
 const HEADER = ["Họ và tên *", "Số điện thoại *", "Mã khách hàng", "Chi nhánh *", "Action"];
 
 function rosterFile(rows: (string | null)[][]): Buffer {

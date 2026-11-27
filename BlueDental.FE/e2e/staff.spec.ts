@@ -51,8 +51,8 @@ test.describe("Nhân viên", () => {
     // Searched by its name first (since R-1051 the select matches the label, not
     // the id): test runs pile up branches and push it out of the virtual list.
     await dialog.getByLabel(/Chi nhánh/).click();
-    await dialog.getByLabel(/Chi nhánh/).fill("Nha Khoa Đức Hạnh Premium");
-    await page.locator('.ant-select-item-option[title="Nha Khoa Đức Hạnh Premium"]').click();
+    await dialog.getByLabel(/Chi nhánh/).fill("Nha Khoa Đức Hạnh");
+    await page.locator('.ant-select-item-option[title="Nha Khoa Đức Hạnh"]').click();
     // A multi-select keeps its dropdown open; clicking another field closes it.
     await dialog.getByLabel(/Họ và tên/).click();
 

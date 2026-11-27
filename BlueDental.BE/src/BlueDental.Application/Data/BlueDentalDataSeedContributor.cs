@@ -54,17 +54,20 @@ public class BlueDentalDataSeedContributor(
         }
     }
 
-    private const string DefaultBranchName = "Nha Khoa Đức Hạnh Premium";
+    private const string DefaultBranchName = "Nha Khoa Đức Hạnh";
+
+    /// <summary>The name this seeder used to give the branch.</summary>
+    private const string LegacyDefaultBranchName = "Nha Khoa Đức Hạnh Premium";
 
     private async Task SeedDefaultBranchAsync()
     {
-        // An existing row is corrected rather than skipped: the guard used to
-        // return here, so renaming the branch in this file never reached a
-        // database that already had it.
+        // The migrator runs on every deploy, and the branch name belongs to the
+        // clinic (Cấu hình chi nhánh) once the row exists: only a name this seeder
+        // itself once wrote is replaced, so a rename in the app survives deploys.
         var existing = await branchRepository.FindAsync(b => b.Id == DefaultBranchId);
         if (existing is not null)
         {
-            if (existing.Name != DefaultBranchName)
+            if (existing.Name == LegacyDefaultBranchName)
             {
                 existing.SetName(DefaultBranchName);
                 await branchRepository.UpdateAsync(existing, autoSave: true);

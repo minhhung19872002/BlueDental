@@ -17,7 +17,7 @@ import { assertRealApiTraffic, login, runId } from "./fixtures/auth";
 
 const DENTIST_ROLE = "dentist";
 const PATIENT_READ_LEAF = "patient.read";
-const MAIN_BRANCH = "Nha Khoa Đức Hạnh Premium";
+const MAIN_BRANCH = "Nha Khoa Đức Hạnh";
 
 /** The `Xem` checkbox of Khách hàng on the dentist's grant tree. */
 async function openDentistPatientRead(page: Page) {

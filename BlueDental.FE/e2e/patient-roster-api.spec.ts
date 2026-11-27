@@ -12,7 +12,7 @@ import { createDentist, deleteDentist, openDentistSession } from "./fixtures/res
 
 const API = "/api/v1/app/patient-roster";
 const BRANCH_ONE = "11111111-1111-1111-1111-111111111111";
-const BRANCH_ONE_NAME = "Nha Khoa Đức Hạnh Premium";
+const BRANCH_ONE_NAME = "Nha Khoa Đức Hạnh";
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 const enum RowAction {
