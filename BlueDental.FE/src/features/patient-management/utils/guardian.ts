@@ -233,11 +233,7 @@ export function maskNationalIdEnds(value: string): string {
   return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ••• ${digits.slice(-3)}`;
 }
 
-/** "0909 000 222" — a 10-digit phone grouped 4-3-3; anything else as typed. */
-export function formatPhoneGroups(value: string): string {
-  const digits = value.replace(/\s+/g, "");
-  return /^\d{10}$/.test(digits) ? `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}` : value;
-}
+export { formatPhoneGroups } from "@/utils/phone";
 
 export function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);

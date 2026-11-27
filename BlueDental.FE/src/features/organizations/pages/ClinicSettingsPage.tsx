@@ -393,6 +393,9 @@ function ChangePasswordTab() {
 
 /* ── Tab: Thông tin phòng khám ────────────────────────────────────────── */
 
+/** A clinic line as the server keeps it: 10 or 11 digits starting with 0, no spaces. */
+const PHONE_PATTERN = /^0\d{9,10}$/;
+
 function ClinicInfoTab({ branchId }: { branchId: string }) {
   const [form] = Form.useForm();
   const { data: branch, isLoading } = useClinicBranch(branchId);
@@ -428,6 +431,7 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
         code: branch.code ?? "",
         name: branch.name ?? "",
         phoneNumber: branch.phoneNumber ?? "",
+        secondaryPhoneNumber: branch.secondaryPhoneNumber ?? "",
         email: branch.email ?? "",
         provinceId: branch.provinceId ?? undefined,
         wardId: branch.wardId ?? undefined,
@@ -453,6 +457,8 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
         input: {
           name: values.name,
           phoneNumber: clean(values.phoneNumber),
+          // "" rather than omitted: emptying the box clears the second line.
+          secondaryPhoneNumber: values.secondaryPhoneNumber?.trim() ?? "",
           email: clean(values.email),
           address: clean(values.address),
           provinceId: values.provinceId || undefined,
@@ -492,14 +498,21 @@ function ClinicInfoTab({ branchId }: { branchId: string }) {
           <Form.Item
             name="phoneNumber"
             label={t("Organization:PhoneLabelField")}
-            rules={[{ pattern: /^0\d{9,10}$/, message: t("Organization:PhoneInvalid") }]}
+            rules={[{ pattern: PHONE_PATTERN, message: t("Organization:PhoneInvalid") }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item name="email" label={t("Organization:EmailLabel")} rules={[{ type: "email", message: t("Organization:EmailInvalid") }]}>
+          <Form.Item
+            name="secondaryPhoneNumber"
+            label={t("Organization:SecondaryPhoneLabelField")}
+            rules={[{ pattern: PHONE_PATTERN, message: t("Organization:PhoneInvalid") }]}
+          >
             <Input />
           </Form.Item>
         </div>
+        <Form.Item name="email" label={t("Organization:EmailLabel")} rules={[{ type: "email", message: t("Organization:EmailInvalid") }]}>
+          <Input />
+        </Form.Item>
         <div className="settings-row">
           <Form.Item name="provinceId" label={t("Organization:ProvinceLabelField")}>
             <Select

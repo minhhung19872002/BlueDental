@@ -12,6 +12,9 @@ public class ClinicBranchDto : FullAuditedEntityDto<Guid>
     public string? ProvinceId { get; set; }
     public string? WardId { get; set; }
     public string? PhoneNumber { get; set; }
+
+    /// <summary>"Số điện thoại 2" — printed after the first on letterheads (R-1335).</summary>
+    public string? SecondaryPhoneNumber { get; set; }
     public string? Email { get; set; }
     public string? Slogan { get; set; }
     public string? TaxCode { get; set; }
@@ -51,6 +54,10 @@ public class CreateClinicBranchDto
     [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
     public string? PhoneNumber { get; set; }
+
+    /// <summary>"Số điện thoại 2"; blank leaves the branch without one.</summary>
+    [StringLength(20, ErrorMessage = "Số điện thoại 2 tối đa 20 ký tự.")]
+    public string? SecondaryPhoneNumber { get; set; }
 
     [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     [StringLength(100, ErrorMessage = "Email tối đa 100 ký tự.")]
@@ -96,6 +103,13 @@ public class UpdateClinicBranchDto
     [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
     [StringLength(20, ErrorMessage = "Số điện thoại tối đa 20 ký tự.")]
     public string? PhoneNumber { get; set; }
+
+    /// <summary>
+    /// "Số điện thoại 2". Null keeps the current number — the branch dialog
+    /// saves without it; an empty string clears it.
+    /// </summary>
+    [StringLength(20, ErrorMessage = "Số điện thoại 2 tối đa 20 ký tự.")]
+    public string? SecondaryPhoneNumber { get; set; }
 
     [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     [StringLength(100, ErrorMessage = "Email tối đa 100 ký tự.")]

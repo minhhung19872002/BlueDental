@@ -10,6 +10,8 @@ export interface ClinicBranchDto {
   provinceId?: string;
   wardId?: string;
   phoneNumber?: string;
+  /** "Số điện thoại 2" — printed after the first on letterheads (R-1335). */
+  secondaryPhoneNumber?: string | null;
   email?: string;
   slogan?: string;
   taxCode?: string;
@@ -49,6 +51,8 @@ export interface UpdateClinicBranchDto {
   wardId?: string;
   address?: string;
   phoneNumber?: string;
+  /** "Số điện thoại 2". Omitted keeps the current number; "" clears it (R-1335). */
+  secondaryPhoneNumber?: string;
   email?: string;
   slogan?: string;
   taxCode?: string;
@@ -240,6 +244,8 @@ export interface UpdateClinicBranchInput {
   provinceId?: string;
   wardId?: string;
   phoneNumber?: string;
+  /** Omitted keeps the current number; "" clears it (R-1335). */
+  secondaryPhoneNumber?: string;
   email?: string;
   slogan?: string;
   taxCode?: string;
