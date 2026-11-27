@@ -55,9 +55,10 @@
   gap: 2px;
 }
 
+/* R-1334: the service name reads bold, the box edge dark enough to find. */
 .mr-consent-name {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   line-height: 20px;
 }
 
@@ -66,9 +67,15 @@
   font-size: 12px;
 }
 
+/* "Đã có ở Bản 01" — black italics, a note rather than a warning (R-1334). */
 .mr-consent-held {
-  color: var(--bd-amber);
+  color: var(--bd-ink);
   font-size: 12px;
+  font-style: italic;
+}
+
+.mr-consent-list .ant-checkbox:not(.ant-checkbox-checked) .ant-checkbox-inner {
+  border-color: var(--bd-ink-3);
 }
 
 .mr-consent-amount {

@@ -16463,3 +16463,56 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
   - Header sau đăng nhập: "Nha Khoa Đức Hạnh". `App:DefaultClinic` qua API localization = "NHA KHOA ĐỨC HẠNH".
   - E2E `branch-switcher` (3) + `patient-roster` (4): 7/7 xanh.
 - Khi deploy: production tự đổi tên BD-001 nếu đang đúng "Nha Khoa Đức Hạnh Premium"; nếu phòng khám đã đặt tên khác thì không đụng.
+
+## R-1334 — Chi tiết phiếu / Phiếu Báo Giá gọn lại + mẫu 5 "Dịch vụ của phiếu" dễ đọc (2026-11-27, mức 2: báo giá trong tab Chẩn đoán & Tư vấn)
+
+- Nguồn: BA (4 ảnh, 2026-11-27); user chốt "Xếp chồng 2 khối" cho đầu phiếu.
+- Chi tiết phiếu (`QuoteDetailModal`):
+  - Bỏ khung "Ảnh chẩn đoán" bên trái.
+  - Bảng: Dịch vụ | Số lượng | Đơn giá | Giảm giá | Thành tiền. Không còn cột Chẩn đoán; Đơn giá chỉ là giá ("3.900.000 đ"), không đuôi "(SL. n)".
+  - Bỏ nút "In hóa đơn kèm chẩn đoán" và bản xem trước của nó. Đã xoá 5 file chỉ phần đó dùng: `DiagnosisInvoiceSheet`, `DiagnosisGroupBlock`, `DiagnosisDoctorCard`, `QuoteImageAside`, `QuoteImageListDialog`.
+- Xem trước Phiếu Báo Giá (`QuoteSheet`):
+  - Ẩn "Gửi Khách Hàng (Zalo/FB)", chỉ còn "In Bản Này".
+  - Cột giống Chi tiết phiếu; nhãn tổng chiếm 2 cột nên không xuống dòng.
+  - Chữ to hơn: thân 16px, tiêu đề 21px, nhãn mục 14px.
+  - THÔNG TIN CHI NHÁNH ở trên, rộng hết khổ; THÔNG TIN KHÁCH HÀNG nằm dưới.
+- mẫu 5, hộp thoại "Dịch vụ của phiếu":
+  - Ô tick chưa chọn viền đậm hơn (`--bd-ink-3`).
+  - Tên dịch vụ in đậm.
+  - "Đã có ở Bản 01" chữ nghiêng màu đen (trước là vàng cam).
+- Kiểm tra (stack riêng: host :5335 + `vite preview` :8335, DB thật):
+  - `tsc -p tsconfig.app.json` sạch, eslint sạch, vite build OK.
+  - `consulting-plan.spec.ts`: test mới thay cho test chữ ký cũ, kiểm tra:
+    - Không có ảnh và không có nút chẩn đoán.
+    - 5 tiêu đề cột, Số lượng, Đơn giá trần.
+    - Không có Gửi Khách Hàng; nhãn tổng colspan 2 và cùng một dòng.
+    - Cỡ chữ 16/21/14; hai khối đầu phiếu xếp chồng.
+    - Dải chữ ký.
+  - Kết quả chạy toàn bộ: xem dòng "Kết quả" của R-1335.
+- Mức retest: 2.
+
+## R-1335 — Thông tin phòng khám có "Số điện thoại 2", in trên mọi phiếu (2026-11-27, mức 3: chi nhánh + tiêu đề in dùng chung)
+
+- Nguồn: BA (2026-11-27): đầu phiếu in "0779 160 888 - 0767 080 333". User chốt "Thêm ô SĐT 2" + "Mọi phiếu in".
+- BE:
+  - `ClinicBranch.SecondaryPhoneNumber` (nullable, tối đa 20 ký tự), migration `SecondaryPhoneNumberR1335`.
+  - `SetSecondaryPhoneNumber`: bỏ khoảng trắng hai đầu; rỗng → null; sai mẫu `^0\d{9,10}$` → `BlueDental:Organizations:0011` (403).
+  - Update DTO: null/vắng = giữ nguyên, "" = xoá. Nhờ đó dialog Sửa chi nhánh và Thông tin cá nhân (không gửi trường này) không làm mất số 2.
+  - SMS/Zalo `Hotline` vẫn chỉ một số (số 1), không đổi.
+- FE:
+  - Cài đặt → Thông tin phòng khám: "Số điện thoại" và "Số điện thoại 2" cùng một hàng, Email xuống hàng riêng. Kiểm tra 10–11 số bắt đầu bằng 0, lỗi "Số điện thoại không hợp lệ".
+  - `useBranchInfo.phone` = `joinPhones(số 1, số 2)`, mỗi số nhóm 4-3-3, nối bằng " - ". Mọi phiếu in đều đọc từ đây (báo giá, chẩn đoán, đơn thuốc, phiếu thu, Labo, bệnh án…).
+  - `src/utils/phone.ts` gom `formatPhoneGroups` (trước nằm trong `guardian.ts`, nay re-export) và `joinPhones`.
+- Kiểm tra:
+  - Domain tests `BranchSecondaryPhoneTests`: 12/12.
+  - E2E mới `branch-secondary-phone.spec.ts` (7 test, chi nhánh 2, afterAll trả nguyên chi nhánh bằng PUT đủ trường):
+    - Lưu qua UI → 200 + toast; reload đọc lại; danh sách accessible có số.
+    - Báo giá "ĐT: 0779 160 888 - 0767 080 333"; In chẩn đoán cùng dòng.
+    - Dòng SL 2: Đơn giá 3.900.000 đ, Thành tiền 7.800.000 đ.
+    - Xoá trống → null, phiếu in chỉ còn "0779 160 888".
+    - 4 kiểu sai bị chặn dưới ô, không gửi PUT; số 11 chữ số vẫn hợp lệ.
+    - API: "abc"/"12345"/"0767-080-333" → 403 0011, chuỗi 21 ký tự → 400, số cũ giữ nguyên; khoảng trắng hai đầu được cắt.
+    - PUT kiểu Thông tin cá nhân và dialog Sửa chi nhánh (không có trường) → giữ số 2.
+    - Kết quả: 7/7 xanh.
+- Hồi quy (cùng stack, `vite preview`): `consulting-plan` + `consulting-review` + `medical-record-consent-services` + `branch-list` + `branch-code-url` + `branch-isolation` — 32/32 xanh. Cộng thêm `branch-secondary-phone` 7/7.
+- Mức retest: 3.

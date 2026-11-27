@@ -183,8 +183,6 @@ export function PatientConsultingTab({ patient }: { patient: PatientDto }) {
         patientId={patientId}
         branchId={branchId}
         rows={shownRows.filter((row) => shownSelected.includes(row.id))}
-        diagnoses={data.diagnoses.data?.items ?? []}
-        images={data.images}
         voucherDiscount={plan.discount}
         onClose={() => setQuoteOpen(false)}
       />
