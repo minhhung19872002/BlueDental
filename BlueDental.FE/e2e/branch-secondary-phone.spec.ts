@@ -120,7 +120,7 @@ async function saveClinicInfo(page: Page) {
   return { status: response.status(), sent: response.request().postDataJSON() as Record<string, unknown>, body: (await response.json()) as Branch };
 }
 
-/** The ĐT line of THÔNG TIN CHI NHÁNH on the printed báo giá. */
+/** The clinic's ĐT line on the printed báo giá. */
 async function quoteLetterheadPhone(page: Page) {
   await page.goto(`/patient/${patientId}?tab=consulting&branchId=${BRANCH}`);
   const row = page.locator(".pd-advise-table tbody tr.ant-table-row").first();

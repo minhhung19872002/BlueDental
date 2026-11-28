@@ -299,8 +299,12 @@ test.describe("Bệnh án — sheets filled from the set's treatment slips (P181
     await openSheet(page, "Phiếu theo dõi điều trị");
     await expect(blank(page, "treatment-tracking.page-1.sheet-number")).toHaveText(facts.storageCode!);
     await expect(blank(page, "treatment-tracking.page-1.patient.code")).toHaveText(facts.outpatientNumber!);
+    // Ngày, giờ is narrow (R-1336): the date on its line, the hour flowing on to the next.
     await expect(blank(page, "treatment-tracking.page-1.row-1.date-time")).toHaveText(
-      new RegExp(`^${today.day}/${today.month}/${today.year} \\d{2}:\\d{2}$`),
+      `${today.day}/${today.month}/${today.year}`,
+    );
+    await expect(wholeCell(page, "treatment-tracking.page-1.row-1.date-time")).toHaveText(
+      new RegExp(`^\\s*${today.day}/${today.month}/${today.year}\\s*\\d{2}:\\d{2}\\s*$`),
     );
     // The whole cell: a long diagnosis flows onto the cell's next dotted line.
     await expect(wholeCell(page, "treatment-tracking.page-1.row-1.diagnosis-progress")).toContainText(
