@@ -582,10 +582,11 @@ test.describe("Bệnh án", () => {
     const order = await firstBlanks();
     expect(order[1], "the added row is still under row 1").toBe(added);
     expect(order).not.toContain("treatment-tracking.page-1.row-3.date-time");
-    await expect(document.locator(`[data-medical-record-field="${added}"]`)).toHaveText(`GIỮA ${id}`);
-    await expect(document.locator('[data-medical-record-field="treatment-tracking.page-1.row-2.date-time"]')).toHaveText(
-      `SAU ${id}`,
-    );
+    // Ngày, giờ is narrow (R-1336): a value too long for its line flows on to the
+    // cell's next dotted line, so the whole cell is what holds it.
+    const cell = (field: string) => document.locator("td", { has: document.locator(`[data-medical-record-field="${field}"]`) });
+    await expect(cell(added)).toHaveText(new RegExp(`^\\s*GIỮA\\s*${id}\\s*$`));
+    await expect(cell("treatment-tracking.page-1.row-2.date-time")).toHaveText(new RegExp(`^\\s*SAU\\s*${id}\\s*$`));
   });
 
   /**

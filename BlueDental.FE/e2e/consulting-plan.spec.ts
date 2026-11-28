@@ -1330,11 +1330,12 @@ test.describe("Chẩn đoán & Tư vấn — kế hoạch", () => {
     expect(await fontSize(sheet.locator(".pq-sheet__title"))).toBe("21px");
     expect(await fontSize(sheet.locator(".pq-sheet__section-label").first())).toBe("14px");
 
-    // THÔNG TIN CHI NHÁNH takes the full width; THÔNG TIN KHÁCH HÀNG stacks under it.
+    // The clinic's lines take the full width under no heading of their own (R-1337);
+    // THÔNG TIN KHÁCH HÀNG stacks under them.
     const header = (await sheet.locator(".pq-sheet__header").boundingBox())!;
     const branch = (await sheet.locator(".pq-sheet__branch").boundingBox())!;
     const customer = (await sheet.locator(".pq-sheet__customer").boundingBox())!;
-    await expect(sheet.locator(".pq-sheet__section-label")).toHaveText(["THÔNG TIN CHI NHÁNH", "THÔNG TIN KHÁCH HÀNG"]);
+    await expect(sheet.locator(".pq-sheet__section-label")).toHaveText(["THÔNG TIN KHÁCH HÀNG"]);
     expect(Math.abs(branch.width - header.width)).toBeLessThanOrEqual(2);
     expect(Math.abs(customer.width - header.width)).toBeLessThanOrEqual(2);
     expect(customer.y).toBeGreaterThanOrEqual(branch.y + branch.height);

@@ -714,7 +714,11 @@ ${SHEET_FONT_FACE_CSS}
    in plain type, seventeen rows of 34.5pt, dotted on paper as Word's
    (R-1286) — on paper low in its row, room above it to write by hand
    (R-1287); the cells' padding a little
-   under Word's, so "23/11/2026 08:30" holds one line in Ngày, giờ. */
+   under Word's.
+   R-1336 (owner, 2026-11-28): Ngày, giờ narrower — "23/11/2026" on its line,
+   the hour flowing on to the next — and Y lệnh/ Chi tiết điều trị wider; the
+   name's blank long enough that a four-word name stays on its line instead of
+   flowing under it, Tuổi moved right to make room. */
 .nfc-tpl[data-form="8"]{--nfc-letter-height:none;font-size:17.333px}
 .nfc-tpl[data-form="8"] span[style*="font-size"]{font-size:inherit!important}
 .nfc-tpl.nfc-tpl[data-form="8"] :is(p,h1,h2){margin:0}
@@ -728,13 +732,13 @@ ${SHEET_FONT_FACE_CSS}
 .nfc-tpl.nfc-tpl[data-form="8"] p.record-ids{display:grid;grid-template-columns:94.7px minmax(0,1fr);column-gap:0;row-gap:0;align-items:baseline;width:auto;margin:0 0 0 93.2px;padding:10.3px 0 0;font-size:13.333px;line-height:21.5px!important}
 .nfc-tpl.nfc-tpl[data-form="8"] p.record-ids .nfc-medical-record-text-field{min-width:0!important;min-height:1em;line-height:1.2;white-space:pre-wrap;overflow-wrap:anywhere}
 .nfc-tpl.nfc-tpl[data-form="8"]>p:has(>input){line-height:1.725!important;margin-top:1.2px}
-.nfc-tpl.nfc-tpl[data-form="8"] [data-medical-record-field="treatment-tracking.page-1.patient.name"]{min-width:215.6px!important}
+.nfc-tpl.nfc-tpl[data-form="8"] [data-medical-record-field="treatment-tracking.page-1.patient.name"]{min-width:262px!important}
 .nfc-tpl.nfc-tpl[data-form="8"] [data-medical-record-field="treatment-tracking.page-1.patient.age"]{min-width:72px!important}
 .nfc-tpl.nfc-tpl[data-form="8"] .nfc-medical-record-text-field{min-height:1em}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless]){margin:12.7px 0 0}
-.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(1){width:18.78%!important}
-.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(2){width:31.42%!important}
-.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(3){width:26.74%!important}
+.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(1){width:14%!important}
+.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(2){width:27%!important}
+.nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(3){width:38%!important}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless])>colgroup>col:nth-child(4){width:auto!important}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless]) th{box-sizing:border-box;height:60.7px;padding:0 1px;vertical-align:middle;text-align:center;font-weight:400}
 .nfc-tpl.nfc-tpl[data-form="8"]>table:not([data-borderless]) th em{font-style:normal}

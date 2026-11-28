@@ -16516,3 +16516,47 @@ Yêu cầu của owner: trên các tài liệu in được (mẫu bệnh án, h�
     - Kết quả: 7/7 xanh.
 - Hồi quy (cùng stack, `vite preview`): `consulting-plan` + `consulting-review` + `medical-record-consent-services` + `branch-list` + `branch-code-url` + `branch-isolation` — 32/32 xanh. Cộng thêm `branch-secondary-phone` 7/7.
 - Mức retest: 3.
+
+## R-1336 — Phiếu theo dõi điều trị (mẫu 8): tên một dòng, Ngày giờ hẹp, Y lệnh rộng (2026-11-28, mức 2: một mẫu bệnh án, chỉ CSS)
+
+- Nguồn: phản hồi nhân viên qua Zalo (ảnh phiếu in), 2026-11-28:
+  - "dời tuổi qua xíu nha": tên 4 chữ "NGUYỄN THỊ THANH HẰNG" bị rớt chữ cuối xuống dòng dưới.
+  - "ngày giờ cho bớt ngắn lại (giờ xuống dòng cũng đc), khung ghi điều trị dài ra".
+  - User chốt: "theo đề xuất của b cho phù hợp".
+- FE (`sheetCss.ts`, chỉ mẫu 8; template và dữ liệu không đổi):
+  - Ô "Họ và tên người bệnh" `min-width` 215.6px → 262px. Tuổi dời sang phải.
+    - Đo trên bản build: 300px làm "Nữ ☐" rớt dòng. 262px vừa khít "… Tuổi … Nam ☐ Nữ ☐" trên một dòng.
+  - Cột bảng: Ngày, giờ 14% · Chẩn đoán, Diễn biến bệnh 27% · Y lệnh/ Chi tiết điều trị 38% · Bác sĩ phần còn lại.
+  - Ô Ngày, giờ vẫn giữ giá trị "DD/MM/YYYY HH:mm":
+    - flowLines đẩy "HH:mm" xuống dòng chấm thứ hai của ô (`data-flow-of`).
+    - Đọc lại phiếu vẫn ra nguyên giá trị.
+- Kiểm tra: e2e mới `print-tracking-quote-r1336.spec.ts` (test mẫu 8, stack thật, `vite preview`):
+  - Đổi tên BN thành "Huỳnh Thị Thanh Phượng" qua PUT.
+  - Tên in hoa đủ 4 chữ trong ô, không có dòng flow của tên.
+  - Tuổi cùng dòng, nằm bên phải tên.
+  - Cả dòng cao < 1.6 line-height.
+  - Ô ngày = hôm nay "DD/MM/YYYY", dòng flow = "HH:mm".
+  - Tỉ lệ cột ≈ 0.14 / 0.38; Y lệnh rộng nhất, Ngày giờ hẹp nhất.
+  - Đã xem ảnh màn hình và ảnh in (print media).
+- Spec cũ sửa theo: `medical-record-sheet-facts.spec.ts` (Phiếu theo dõi điều trị):
+  - Ô ngày = ngày.
+  - Cả ô = ngày + giờ.
+
+## R-1337 — Phiếu Báo Giá: bỏ tiêu đề "Thông tin chi nhánh", địa chỉ khách hàng đầy đủ (2026-11-28, mức 2: báo giá tab Chẩn đoán & Tư vấn)
+
+- Nguồn: phản hồi nhân viên qua Zalo, 2026-11-28: "Bỏ chữ 'Thông tin chi nhánh'; Bổ sung chi tiết địa chỉ Khách hàng". User: "nhớ địa chỉ khách hàng cho chi tiết".
+- FE:
+  - `QuoteSheet.tsx`: bỏ dòng tiêu đề THÔNG TIN CHI NHÁNH.
+    - Logo + Phòng khám / Địa chỉ / ĐT / Email giữ nguyên.
+    - "THÔNG TIN KHÁCH HÀNG" giữ nguyên.
+    - Panel Chi tiết phiếu trên màn hình (`QuoteFacts`) không đổi.
+  - `useQuoteSheet.ts`: Địa chỉ khách hàng = "Số nhà/đường, Phường/Xã, Tỉnh/Thành phố".
+    - Ghép bằng `useAddressParts` từ `usePatientDto`; view model `Patient` không có mã tỉnh/phường.
+    - Thiếu phần nào thì bỏ phần đó: hồ sơ không có phường/tỉnh chỉ in số nhà.
+- Kiểm tra: e2e mới `print-tracking-quote-r1336.spec.ts` (2 test báo giá, chi nhánh 2):
+  - Không còn "THÔNG TIN CHI NHÁNH"; dòng đầu khối chi nhánh là "Phòng khám:".
+  - "Địa chỉ: 454 Võ Chí Công, Phường Thủ Dầu Một, Thành phố Hồ Chí Minh", đọc lại sau reload vẫn đúng.
+  - Hồ sơ không có phường/tỉnh in "Địa chỉ: 454 Võ Chí Công".
+- Spec cũ sửa theo:
+  - `consulting-plan.spec.ts:1264`: nhãn mục chỉ còn ["THÔNG TIN KHÁCH HÀNG"].
+  - `branch-secondary-phone.spec.ts`: chỉ sửa comment.

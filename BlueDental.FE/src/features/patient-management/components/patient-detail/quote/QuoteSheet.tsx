@@ -31,7 +31,9 @@ const PREPARER_KEY = "Patient:Quote:Preparer";
  * "PHIẾU BÁO GIÁ" — the sheet "In Hoá Đơn" prints.
  *
  * R-1334: the branch block takes the full width with the customer block
- * stacked under it, one fact per line; the table reads Dịch vụ | Số lượng |
+ * stacked under it, one fact per line (R-1337: the branch facts under no
+ * heading of their own; the customer's Địa chỉ with its ward and province);
+ * the table reads Dịch vụ | Số lượng |
  * Đơn giá | Giảm giá | Thành tiền, and each summary label spans Đơn giá +
  * Giảm giá so the figures never wrap. Body type is 16px like the hồ sơ forms.
  *
@@ -47,7 +49,6 @@ export function QuoteSheet({ clinic, customer, rows, totals }: QuoteSheetProps) 
         <section className="pq-sheet__branch">
           {clinic.logoUrl && <img className="pq-sheet__logo" src={clinic.logoUrl} alt="" />}
           <div>
-            <p className="pq-sheet__section-label">{t("Patient:QuoteSheet:BranchInfoTitle")}</p>
             <p>
               <strong>{t("Patient:Misc:Clinic")}:</strong> {dash(clinic.name)}
             </p>
